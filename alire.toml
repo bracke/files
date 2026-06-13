@@ -1,0 +1,43 @@
+name = "files"
+description = "Desktop file manager"
+version = "0.1.0-dev"
+
+authors = ["Bent Bracke"]
+maintainers = ["Bent Bracke <bent@bracke.dk>"]
+maintainers-logins = ["bracke"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = ["filemanager"]
+
+executables = ["files"]
+
+[[depends-on]]
+project_tools = "*"
+
+[[pins]]
+project_tools = { path = "../project_tools" }
+
+
+[[depends-on]]
+i18n = "*"
+
+[[pins]]
+i18n = { path = "../i18n" }
+
+[[depends-on]]
+textrender = "*"
+
+[[pins]]
+textrender = { path='../textrender' }
+
+[[depends-on]]
+zlib = "*"
+
+[[pins]]
+zlib = { path = "../zlib" }
+
+[[depends-on]]
+df_vulkan = "~0.1.0"
+
+[[depends-on]]
+openglada_glfw = "~0.9.0"
