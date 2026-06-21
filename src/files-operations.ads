@@ -1,0 +1,223 @@
+with Files.Model;
+with Files.Settings;
+with Files.Types;
+
+--  Filesystem-backed command operations and open-action preparation.
+package Files.Operations is
+   subtype UString is Files.Types.UString;
+
+   type Operation_Status is
+     (Operation_Success,
+      Operation_Disabled,
+      Operation_Invalid_Name,
+      Operation_Failed,
+      Operation_Action_Executed,
+      Operation_Navigated,
+      Operation_Missing_Open_Action);
+
+   type Operation_Result is record
+      Status    : Operation_Status := Operation_Disabled;
+      Error_Key : UString;
+      Path      : UString;
+      Action    : Files.Settings.Open_Action;
+      Action_Executable : UString;
+      Action_Arguments  : Natural := 0;
+      Action_Uses_Shell : Boolean := False;
+      Execution_Attempted : Boolean := False;
+      Executable_Found    : Boolean := False;
+      Exit_Status_Known   : Boolean := False;
+      Exit_Status         : Integer := 0;
+   end record;
+
+   type Open_Action_Execution_Policy is record
+      Uses_Argument_Vector       : Boolean := True;
+      Shell_Requires_Explicit_Opt_In : Boolean := True;
+      Checks_Executable_Before_Spawn : Boolean := True;
+      Tracks_Execution_Attempt  : Boolean := True;
+      Tracks_Exit_Status        : Boolean := True;
+      Runs_Asynchronously       : Boolean := False;
+      Supports_Cancellation     : Boolean := False;
+      Rejects_Unsafe_Placeholders : Boolean := True;
+      Reports_Missing_Action    : Boolean := True;
+      Reports_Missing_Executable : Boolean := True;
+      Captures_Executable_Discovery : Boolean := True;
+      Captures_Process_Result       : Boolean := True;
+      Quotes_Shell_Arguments        : Boolean := True;
+      Preserves_Vector_Boundaries   : Boolean := True;
+      Multi_File_Deterministic      : Boolean := True;
+   end record;
+
+   type Open_Action_Lifecycle_State is
+     (Open_Action_Not_Started,
+      Open_Action_Preflight_Failed,
+      Open_Action_Spawned,
+      Open_Action_Completed,
+      Open_Action_Failed);
+
+   type Open_Action_Lifecycle is record
+      State             : Open_Action_Lifecycle_State := Open_Action_Not_Started;
+      Executable        : UString;
+      Argument_Count    : Natural := 0;
+      Uses_Shell        : Boolean := False;
+      Exit_Status_Known : Boolean := False;
+      Exit_Status       : Integer := 0;
+      Cancellation_Available : Boolean := False;
+   end record;
+
+   --  Return open-action execution policy for the current implementation.
+   --
+   --  @return Process execution policy and known lifecycle limits.
+   function Open_Action_Policy return Open_Action_Execution_Policy;
+
+   --  Build lifecycle metadata for an operation result.
+   --
+   --  @param Result Operation result to summarize.
+   --  @return Open-action lifecycle metadata.
+   function Open_Action_Lifecycle_Of
+     (Result : Operation_Result)
+      return Open_Action_Lifecycle;
+
+   --  Return the executable used for explicit shell open actions.
+   --
+   --  COMSPEC is preferred when present. Otherwise SHELL is used, falling back
+   --  to /bin/sh.
+   --
+   --  @return Shell executable path or command name.
+   function Shell_Executable return String;
+
+   --  Return the first argument used to ask the selected shell to run a command.
+   --
+   --  @return /C for COMSPEC shells and -c otherwise.
+   function Shell_Command_Option return String;
+
+   --  Refresh the current directory and replace loaded items.
+   --
+   --  @param Model Window model to refresh.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Refresh
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Commit the current path-input text by validating and loading the destination.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Commit_Path_Input
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Navigate home and load the destination directory.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Navigate_Home
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Navigate backward and load the destination directory.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Navigate_Back
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Navigate forward and load the destination directory.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Navigate_Forward
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Select a root location and load it in the current window.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @param Root_Path Root path selected by the user.
+   --  @return Structured operation result.
+   function Select_Root
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Root_Path : String)
+      return Operation_Result;
+
+   --  Preflight eject/unmount for the selected root without forcing permanent state changes.
+   --
+   --  The first implementation exposes the command flow and reports a
+   --  localized unavailable error until a native backend is available.
+   --
+   --  @param Model Window model containing the open root selector.
+   --  @return Structured operation result.
+   function Eject_Selected_Root
+     (Model : in out Files.Model.Window_Model)
+      return Operation_Result;
+
+   --  Prepare the selected file's open action without executing it.
+   --
+   --  Directories are reported as navigable targets, and regular files use
+   --  settings-driven action lookup plus placeholder expansion.
+   --
+   --  @param Model Window model to inspect.
+   --  @param Settings Settings model used for open-action lookup.
+   --  @param Modifiers Active modifier keys for file open-action lookup.
+   --  @return Structured operation result with expanded action data.
+   function Prepare_Open_Selected_Action
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Operation_Result;
+
+   --  Open the selected item using directory navigation or configured file action execution.
+   --
+   --  @param Model Window model to inspect and possibly navigate.
+   --  @param Settings Settings model used for directory loading and open-action lookup.
+   --  @param Modifiers Active modifier keys for file open-action lookup.
+   --  @return Structured operation result.
+   function Open_Selected
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Operation_Result;
+
+   --  Move selected items to the platform trash when available.
+   --
+   --  @param Model Window model to inspect and refresh after mutation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Delete_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Commit the active create-file temporary item to the filesystem.
+   --
+   --  @param Model Window model to update after filesystem mutation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Commit_Create_File
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Commit active single-item rename mode to the filesystem.
+   --
+   --  @param Model Window model to update after filesystem mutation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Commit_Rename
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+end Files.Operations;

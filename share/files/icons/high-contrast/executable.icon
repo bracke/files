@@ -1,0 +1,8 @@
+files-icon-v1
+name=executable
+grid=16
+rect=1,0,14,16,base
+rect=11,0,4,4,border
+rect=1,0,3,16,accent
+rect=7,5,3,6,accent
+rect=10,8,3,3,accent

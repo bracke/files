@@ -1,0 +1,8 @@
+files-icon-v1
+name=ada
+grid=16
+rect=1,0,14,16,base
+rect=11,0,4,4,border
+rect=4,5,3,8,accent
+rect=9,5,3,8,accent
+rect=5,8,6,2,border

@@ -1,13 +1,15382 @@
+with Ada.Calendar;
+with Ada.Directories;
+with Ada.Environment_Variables;
+with Interfaces;
+with Interfaces.C.Strings;
+with Ada.Streams;
+with Ada.Streams.Stream_IO;
+with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
+with System;
+
+with AUnit;
+with AUnit.Assertions;
+with AUnit.Test_Cases;
+
+with Project_Tools.Files;
+
+with Glfw;
+with Glfw.Input.Mouse;
+
+with GNAT.OS_Lib;
+
+with Files.Application;
+with Files.Application.Windows;
+with Files.Command_Palette;
+with Files.Commands;
+with Files.Controller;
+with Files.Events;
+with Files.File_System;
+with Files.File_Types;
+with Files.Features;
+with Files.Localization;
+with Files.Model;
+with Files.Operations;
+with Files.Platform.Dialogs;
+with Files.Rendering;
+with Files.Rendering.Vulkan;
+with Files.Settings;
+with Files.Types;
+with Files.UI;
 
 package body Files_Suite is
+   use Ada.Strings.Unbounded;
+   use AUnit.Assertions;
+   use type Ada.Calendar.Time;
+   use type Ada.Directories.File_Kind;
+   use type Files.Commands.Command_Id;
+   use type Files.Commands.Command_Placement;
+   use type Files.Controller.Controller_Status;
+   use type Files.Events.Input_Action_Kind;
+   use type Files.Events.Scroll_Target;
+   use type Files.File_System.Native_API_Binding_Status;
+   use type Files.File_System.Native_Platform_Adapter;
+   use type Files.File_System.Path_Status;
+   use type Files.File_System.Root_Kind;
+   use type Files.File_System.Root_Readiness;
+   use type Files.File_System.Trash_Backend;
+   use type Files.Application.Run_Mode;
+   use type Files.Application.Windows.Native_File_Dialog_Mode;
+   use type Files.Operations.Open_Action_Lifecycle_State;
+   use type Files.Operations.Operation_Status;
+   use type Files.Rendering.Accessibility_Role;
+   use type Files.Rendering.Icon_Asset_Color_Role;
+   use type Files.Rendering.Render_Color;
+   use type Files.Rendering.Text_Render_Status;
+   use type Files.Rendering.Vulkan.Atlas_Texture_Format;
+   use type Files.Rendering.Vulkan.Texture_Source;
+   use type Files.Rendering.Vulkan.Vulkan_Status;
+   use type Interfaces.Unsigned_8;
+   use type Interfaces.C.int;
+   use type Files.Settings.Sort_Field;
+   use type Files.Types.Focus_Target;
+   use type Files.Types.Item_Kind;
+   use type Files.Types.Key_Code;
+   use type Files.Types.Modifier_Set;
+   use type Files.Types.Navigation_Direction;
+   use type Files.Types.View_Mode;
+   use type Glfw.Input.Mouse.Coordinate;
+   use type System.Address;
+
+   type Startup_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
+   type Model_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
+   type Command_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
+   type Settings_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
+   type Operation_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
+   type Rendering_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
+
+   overriding function Name (T : Startup_Test_Case) return AUnit.Message_String;
+   overriding function Name (T : Model_Test_Case) return AUnit.Message_String;
+   overriding function Name (T : Command_Test_Case) return AUnit.Message_String;
+   overriding function Name (T : Settings_Test_Case) return AUnit.Message_String;
+   overriding function Name (T : Operation_Test_Case) return AUnit.Message_String;
+   overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String;
+   overriding procedure Register_Tests (T : in out Startup_Test_Case);
+   overriding procedure Register_Tests (T : in out Model_Test_Case);
+   overriding procedure Register_Tests (T : in out Command_Test_Case);
+   overriding procedure Register_Tests (T : in out Settings_Test_Case);
+   overriding procedure Register_Tests (T : in out Operation_Test_Case);
+   overriding procedure Register_Tests (T : in out Rendering_Test_Case);
+
+   function Symlink
+     (Target   : Interfaces.C.Strings.chars_ptr;
+      Linkpath : Interfaces.C.Strings.chars_ptr)
+      return Interfaces.C.int
+     with Import, Convention => C, External_Name => "symlink";
+
+   function Create_Symlink
+     (Target   : String;
+      Linkpath : String)
+      return Boolean
+   is
+      C_Target : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Target);
+      C_Link   : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Linkpath);
+      Result   : Interfaces.C.int;
+   begin
+      Result := Symlink (C_Target, C_Link);
+      Interfaces.C.Strings.Free (C_Target);
+      Interfaces.C.Strings.Free (C_Link);
+      return Result = 0;
+   exception
+      when others =>
+         Interfaces.C.Strings.Free (C_Target);
+         Interfaces.C.Strings.Free (C_Link);
+         return False;
+   end Create_Symlink;
+
+   Root : constant String := "/tmp/files_aunit";
+
+   procedure Test_Startup_Path_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Settings_Path_Not_File (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Report (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Error_Report (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Report_Settings_Error (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_View_Mode_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Registry_And_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Palette_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Palette_Toggle_Shortcut (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_File_Temporary_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Command_Palette_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Palette_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Disabled_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Empty_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Render_Snapshot_And_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Event_Translation (T : in out AUnit.Test_Cases.Test_Case'Class);
+
+   procedure Reset_Root is
+   begin
+      Project_Tools.Files.Delete_Tree (Root);
+      Ada.Directories.Create_Path (Root);
+   end Reset_Root;
+
+   procedure Write_File (Path : String; Content : String := "x") is
+   begin
+      Project_Tools.Files.Write_Text_File (Path, Content);
+   end Write_File;
+
+   procedure Write_Binary_File
+     (Path    : String;
+      Content : String)
+   is
+      File   : Ada.Streams.Stream_IO.File_Type;
+      Buffer : Ada.Streams.Stream_Element_Array (1 .. Content'Length);
+   begin
+      for Index in Content'Range loop
+         Buffer (Ada.Streams.Stream_Element_Offset (Index - Content'First + 1)) :=
+           Ada.Streams.Stream_Element (Character'Pos (Content (Index)));
+      end loop;
+
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Ada.Streams.Stream_IO.Write (File, Buffer);
+      Ada.Streams.Stream_IO.Close (File);
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Write_Binary_File;
+
+   function Byte (Value : Natural) return Character is
+   begin
+      return Character'Val (Value);
+   end Byte;
+
+   function Minimal_Png_Header
+     (Width  : Natural;
+      Height : Natural)
+      return String is
+   begin
+      return
+        Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) & Byte (16#1A#) & Byte (16#0A#) &
+        Byte (0) & Byte (0) & Byte (0) & Byte (13) & "IHDR" &
+        Byte ((Width / 16#1000000#) mod 256) &
+        Byte ((Width / 16#10000#) mod 256) &
+        Byte ((Width / 16#100#) mod 256) &
+        Byte (Width mod 256) &
+        Byte ((Height / 16#1000000#) mod 256) &
+        Byte ((Height / 16#10000#) mod 256) &
+        Byte ((Height / 16#100#) mod 256) &
+        Byte (Height mod 256) &
+        Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0);
+   end Minimal_Png_Header;
+
+   function Minimal_Jpeg_With_Fill
+     (Width  : Natural;
+      Height : Natural)
+      return String is
+   begin
+      return
+        Byte (16#FF#) & Byte (16#D8#) &
+        Byte (16#FF#) & Byte (16#FF#) & Byte (16#C0#) &
+        Byte (0) & Byte (8) & Byte (8) &
+        Byte ((Height / 16#100#) mod 256) &
+        Byte (Height mod 256) &
+        Byte ((Width / 16#100#) mod 256) &
+        Byte (Width mod 256);
+   end Minimal_Jpeg_With_Fill;
+
+   function Join (Parent : String; Name : String) return String is
+   begin
+      return Files.File_System.Join_Path (Parent, Name);
+   end Join;
+
+   function Sample_Items return Files.File_System.Item_Vectors.Vector is
+      Items : Files.File_System.Item_Vectors.Vector;
+   begin
+      Items.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.File_System.Make_Item (Root, "Gamma.md", Files.Types.Regular_File_Item, "text/markdown"));
+      return Items;
+   end Sample_Items;
+
+   function Sample_Model return Files.Model.Window_Model is
+      Model : Files.Model.Window_Model;
+   begin
+      Files.Model.Initialize
+        (Model,
+         Directory_Path    => Root,
+         Items             => Sample_Items,
+         Home_Path         => "/home/test",
+         Default_View_Mode => Files.Types.Small_Icons);
+      return Model;
+   end Sample_Model;
+
+   procedure Select_Name
+     (Model : in out Files.Model.Window_Model;
+      Name  : String)
+   is
+      Selected : constant Boolean := Files.Model.Select_By_Name (Model, Name);
+      pragma Unreferenced (Selected);
+   begin
+      null;
+   end Select_Name;
+
+   overriding function Name (T : Startup_Test_Case) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("files startup and policy");
+   end Name;
+
+   overriding function Name (T : Model_Test_Case) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("files model");
+   end Name;
+
+   overriding function Name (T : Command_Test_Case) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("files commands and controller");
+   end Name;
+
+   overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("files settings");
+   end Name;
+
+   overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("files operations");
+   end Name;
+
+   overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("files rendering and events");
+   end Name;
+
+   overriding procedure Register_Tests (T : in out Startup_Test_Case) is
+   begin
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Path_Normalization'Access, "startup path normalization");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Default_Home_Selection'Access, "default home selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Loads_Settings_File'Access, "startup loads settings file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Invalid_Settings_Diagnostic'Access, "startup reports invalid settings");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Settings_Path_Not_File'Access, "startup reports non-file settings path");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Report'Access, "startup report formats windows and errors");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Desktop_Error_Report'Access, "desktop startup error report");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Report_Settings_Error'Access, "startup report formats settings errors");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Run_Configuration_Parsing'Access, "runtime smoke argument parsing");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Localization_Catalog'Access, "localization uses default catalog");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_First_Implementation_Feature_Policy'Access, "first implementation feature policy");
+   end Register_Tests;
+
+   overriding procedure Register_Tests (T : in out Model_Test_Case) is
+   begin
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Directory_Sorting'Access, "directory sorting");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Directory_Projection_Settings'Access, "directory projection settings");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Directory_Metadata_Permissions'Access, "directory metadata permissions");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filetype_Detection'Access, "filetype detection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_View_Mode_State'Access, "view mode transitions");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Selection_Movement'Access, "selection movement and wraparound");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filtering_Reconciles_Selection'Access, "filtering reconciles selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_History'Access, "path history");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Input_Validation'Access, "path input validation");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_And_Root_Selection'Access, "root selector and root selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_And_Bottom_Bar_Commands'Access, "info pane and bottom bar commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Rename_Mode'Access, "rename mode");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_File_Temporary_State'Access, "create-file temporary item state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Error_State'Access, "error-state representation");
+   end Register_Tests;
+
+   overriding procedure Register_Tests (T : in out Command_Test_Case) is
+   begin
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Enablement'Access, "command enablement");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Registry_And_Shortcuts'Access, "command registry and shortcuts");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Palette_Search'Access, "command palette search and disabled entries");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Palette_Toggle_Shortcut'Access, "command palette Control+P toggles");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Path_Input_Return'Access, "controller commits path input on Return");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Filter_Input_Return'Access, "controller commits filter input on Return");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Rename_Return'Access, "controller commits rename on Return");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Command_Palette_Return'Access, "controller executes palette result on Return");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Command_Palette_Escape_Priority'Access, "controller prioritizes palette Escape");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Palette_Selection_Movement'Access, "controller moves palette selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Disabled_Palette_Result'Access, "controller ignores disabled palette result");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Empty_Palette_Result'Access, "controller ignores empty palette result");
+   end Register_Tests;
+
+   overriding procedure Register_Tests (T : in out Settings_Test_Case) is
+   begin
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Parsing_And_Open_Actions'Access, "settings parsing and open actions");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Load_File'Access, "settings load file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Invalid_Boolean'Access, "settings invalid boolean");
+   end Register_Tests;
+
+   overriding procedure Register_Tests (T : in out Operation_Test_Case) is
+   begin
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Delete_Selected_Operation'Access, "delete operation moves selected item to trash");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Selected_Directory_Loads_Items'Access, "open directory loads and navigates");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Selected_File_Prepares_Action'Access, "open file executes configured action");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Missing_Open_Action_Reports_Error'Access, "missing open action reports localized error");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Commit_Create_File'Access, "commit create-file temporary item");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_File_Does_Not_Overwrite'Access, "create-file refuses existing destination");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Commit_Rename'Access, "commit rename mode");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
+   end Register_Tests;
+
+   overriding procedure Register_Tests (T : in out Rendering_Test_Case) is
+   begin
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Render_Snapshot_And_Layout'Access, "render snapshot and layout");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Event_Translation'Access, "event translation");
+   end Register_Tests;
+
+   procedure Test_Startup_Path_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "dir");
+      Second_Dir : constant String := Join (Root, "second");
+      Filepath : constant String := Join (Dir, "note.txt");
+      Other    : constant String := Join (Dir, "other.txt");
+      Args     : Files.Types.String_Vectors.Vector;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Direct   : Files.File_System.Path_Result;
+      File     : Files.File_System.Path_Result;
+      Current  : Files.File_System.Path_Result;
+      Missing  : Files.File_System.Path_Result;
+      Empty    : Files.File_System.Path_Result;
+      Startup  : Files.Application.Startup_Result;
+      Full_Dir : Unbounded_String;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Ada.Directories.Create_Path (Second_Dir);
+      Write_File (Filepath);
+      Write_File (Other);
+      Write_File (Join (Second_Dir, "inside.txt"));
+      Full_Dir := To_Unbounded_String (Ada.Directories.Full_Name (Dir));
+
+      Direct := Files.File_System.Normalize_Path (Dir);
+      File := Files.File_System.Normalize_Path (Filepath);
+      Current := Files.File_System.Normalize_Path (".");
+      Missing := Files.File_System.Normalize_Path (Join (Root, "missing"));
+      Empty := Files.File_System.Normalize_Path ("");
+
+      Assert (Direct.Status = Files.File_System.Path_Valid, "directory path is valid");
+      Assert (To_String (Direct.Directory_Path) = Ada.Directories.Full_Name (Dir), "directory is normalized");
+      Assert (File.Status = Files.File_System.Path_Valid, "file path is valid");
+      Assert (To_String (File.Directory_Path) = Ada.Directories.Full_Name (Dir), "file maps to parent");
+      Assert (Current.Status = Files.File_System.Path_Valid, "current-directory path is valid");
+      Assert
+        (To_String (Current.Directory_Path) = Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
+         "current-directory path normalizes to absolute directory");
+      Assert (Missing.Status = Files.File_System.Path_Missing, "missing path reports an error");
+      Assert (Empty.Status = Files.File_System.Path_Missing, "empty path reports missing");
+      Assert (To_String (Empty.Error_Key) = "error.path.missing", "empty path reports missing-path error");
+      declare
+         Special_Path : constant String := "/dev/null";
+      begin
+         if Ada.Directories.Exists (Special_Path)
+           and then Ada.Directories.Kind (Special_Path) = Ada.Directories.Special_File
+         then
+            declare
+               Special : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Special_Path);
+            begin
+               Assert (Special.Status = Files.File_System.Path_Inaccessible, "special path reports inaccessible");
+               Assert
+                 (To_String (Special.Error_Key) = "error.path.inaccessible",
+                  "special path reports inaccessible error key");
+
+               Args.Clear;
+               Args.Append (To_Unbounded_String (Special_Path));
+               Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+               Assert (Startup.Windows.Is_Empty, "special startup path opens no window");
+               Assert (Natural (Startup.Errors.Length) = 1, "special startup path is reported as diagnostic");
+               Assert
+                 (To_String (Startup.Errors.Element (1).Input_Path) = Special_Path,
+                  "special startup diagnostic records original path");
+               Assert
+                 (To_String (Startup.Errors.Element (1).Error_Key) = "error.path.inaccessible",
+                  "special startup diagnostic records inaccessible error key");
+            end;
+         end if;
+      exception
+         when others =>
+            null;
+      end;
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String (Dir));
+      Args.Append (To_Unbounded_String (Filepath));
+      Args.Append (To_Unbounded_String (Other));
+      Args.Append (To_Unbounded_String (Second_Dir));
+      Args.Append (To_Unbounded_String (Join (Root, "missing")));
+      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Assert (Natural (Startup.Windows.Length) = 2, "distinct normalized paths produce one window each");
+      Assert (Natural (Startup.Errors.Length) = 1, "missing path is reported without a window");
+      Assert
+        (To_String (Startup.Windows.Element (1).Title) = To_String (Startup.Windows.Element (1).Path),
+         "window title is the normalized current directory path");
+      Assert
+        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+         "startup window records the normalized directory path");
+      Assert
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+         "startup window model uses the normalized directory path");
+      Assert
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 2,
+         "startup window model loads direct directory entries");
+      Assert
+        (To_String (Startup.Windows.Element (2).Path) = Ada.Directories.Full_Name (Second_Dir),
+         "startup opens a separate window for a distinct normalized directory");
+      Assert
+        (Files.Model.Item_Count (Startup.Windows.Element (2).Model) = 1,
+         "second startup window model loads its directory entries");
+      Assert
+        (To_String (Startup.Settings_Path) = "",
+         "path-only startup resolution has no central settings path");
+      Assert
+        (To_String (Startup.Errors.Element (1).Input_Path) = Join (Root, "missing"),
+         "startup path diagnostic records the original invalid argument");
+      Assert
+        (To_String (Startup.Errors.Element (1).Error_Key) = "error.path.missing",
+         "startup path diagnostic records the missing-path error key");
+   end Test_Startup_Path_Normalization;
+
+   procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Args              : Files.Types.String_Vectors.Vector;
+      Settings          : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Startup           : Files.Application.Startup_Result;
+      Home_Path         : constant String := Join (Root, "configured-home");
+      Xdg_Path          : constant String := Join (Root, "xdg-config");
+      Override_Path     : constant String := Join (Root, "override.conf");
+      Expected_Default  : constant String :=
+        Files.File_System.Join_Path
+          (Files.File_System.Join_Path (Files.File_System.Join_Path (Home_Path, ".config"), "files"),
+           "settings.conf");
+      Expected_Xdg      : constant String :=
+        Files.File_System.Join_Path (Files.File_System.Join_Path (Xdg_Path, "files"), "settings.conf");
+      Had_Files_Setting : constant Boolean := Ada.Environment_Variables.Exists ("FILES_SETTINGS");
+      Had_Xdg_Config    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CONFIG_HOME");
+      Had_Home          : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_User_Profile  : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
+      Had_Home_Drive    : constant Boolean := Ada.Environment_Variables.Exists ("HOMEDRIVE");
+      Had_Home_Path     : constant Boolean := Ada.Environment_Variables.Exists ("HOMEPATH");
+      Had_Home_Share    : constant Boolean := Ada.Environment_Variables.Exists ("HOMESHARE");
+      Old_Files_Setting : Unbounded_String;
+      Old_Xdg_Config    : Unbounded_String;
+      Old_Home          : Unbounded_String;
+      Old_User_Profile  : Unbounded_String;
+      Old_Home_Drive    : Unbounded_String;
+      Old_Home_Path     : Unbounded_String;
+      Old_Home_Share    : Unbounded_String;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Files_Setting then
+            Ada.Environment_Variables.Set ("FILES_SETTINGS", To_String (Old_Files_Setting));
+         else
+            Ada.Environment_Variables.Clear ("FILES_SETTINGS");
+         end if;
+
+         if Had_Xdg_Config then
+            Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", To_String (Old_Xdg_Config));
+         else
+            Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
+         end if;
+
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+
+         if Had_User_Profile then
+            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_User_Profile));
+         else
+            Ada.Environment_Variables.Clear ("USERPROFILE");
+         end if;
+
+         if Had_Home_Drive then
+            Ada.Environment_Variables.Set ("HOMEDRIVE", To_String (Old_Home_Drive));
+         else
+            Ada.Environment_Variables.Clear ("HOMEDRIVE");
+         end if;
+
+         if Had_Home_Path then
+            Ada.Environment_Variables.Set ("HOMEPATH", To_String (Old_Home_Path));
+         else
+            Ada.Environment_Variables.Clear ("HOMEPATH");
+         end if;
+
+         if Had_Home_Share then
+            Ada.Environment_Variables.Set ("HOMESHARE", To_String (Old_Home_Share));
+         else
+            Ada.Environment_Variables.Clear ("HOMESHARE");
+         end if;
+      end Restore_Environment;
+   begin
+      if Had_Files_Setting then
+         Old_Files_Setting := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_SETTINGS"));
+      end if;
+
+      if Had_Xdg_Config then
+         Old_Xdg_Config := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CONFIG_HOME"));
+      end if;
+      if Had_Home then
+         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_User_Profile then
+         Old_User_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
+      end if;
+      if Had_Home_Drive then
+         Old_Home_Drive := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEDRIVE"));
+      end if;
+      if Had_Home_Path then
+         Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
+      end if;
+      if Had_Home_Share then
+         Old_Home_Share := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMESHARE"));
+      end if;
+
+      Assert (Files.Application.Home_Directory /= "", "home directory fallback is never empty");
+      Ada.Directories.Create_Path (Join (Root, "profile-home"));
+      Ada.Directories.Create_Path (Join (Root, "drive-profile"));
+      Ada.Directories.Create_Path (Join (Root, "share-profile"));
+      Ada.Environment_Variables.Set ("HOME", "");
+      Ada.Environment_Variables.Set ("USERPROFILE", Join (Root, "profile-home"));
+      Ada.Environment_Variables.Clear ("HOMEDRIVE");
+      Ada.Environment_Variables.Clear ("HOMEPATH");
+      Ada.Environment_Variables.Clear ("HOMESHARE");
+      Assert
+        (Files.Application.Home_Directory = Join (Root, "profile-home"),
+         "USERPROFILE is used when HOME is empty");
+      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Assert (Natural (Startup.Windows.Length) = 1, "no args resolves one path");
+      Assert (Startup.Errors.Is_Empty, "valid USERPROFILE default path reports no startup error");
+      Assert
+        (To_String (Startup.Windows.Element (1).Path) = Ada.Directories.Full_Name (Join (Root, "profile-home")),
+         "no args opens valid USERPROFILE directory");
+      Ada.Environment_Variables.Set ("HOME", Join (Root, "missing-home-env"));
+      Assert
+        (Files.Application.Home_Directory = Join (Root, "profile-home"),
+         "invalid HOME falls back to valid USERPROFILE");
+      Ada.Environment_Variables.Set ("USERPROFILE", Join (Root, "missing-profile-env"));
+      Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
+      Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile");
+      Assert
+        (Files.Application.Home_Directory = Join (Root, "drive-profile"),
+         "HOMEDRIVE and HOMEPATH are used when USERPROFILE is invalid");
+      Ada.Environment_Variables.Set ("HOMEPATH", "/missing-drive-profile");
+      Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "share-profile"));
+      Assert
+        (Files.Application.Home_Directory = Join (Root, "share-profile"),
+         "HOMESHARE is used when drive profile is invalid");
+      Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "missing-share-profile"));
+      Assert
+        (Files.Application.Home_Directory = Ada.Directories.Current_Directory,
+         "invalid home environment falls back to current directory");
+      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Assert (Natural (Startup.Windows.Length) = 1, "no args resolves one path with invalid home environment");
+      Assert (Startup.Errors.Is_Empty, "current-directory home fallback reports no startup error");
+      Assert
+        (To_String (Startup.Windows.Element (1).Path) = Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
+         "no args opens current directory after invalid home environment");
+
+      Ada.Environment_Variables.Clear ("FILES_SETTINGS");
+      Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
+      Assert
+        (Files.Application.Default_Settings_Path (Home_Path) = Expected_Default,
+         "default settings path is under home config directory");
+      Assert
+        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Default,
+         "configured settings path falls back to home config directory");
+
+      Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
+      Assert
+        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Xdg,
+         "XDG_CONFIG_HOME selects the XDG settings path");
+
+      Ada.Environment_Variables.Set ("FILES_SETTINGS", Override_Path);
+      Assert
+        (Files.Application.Configured_Settings_Path (Home_Path) = Override_Path,
+         "FILES_SETTINGS overrides the XDG settings path");
+
+      Ada.Environment_Variables.Set ("FILES_SETTINGS", "");
+      Assert
+        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Xdg,
+         "empty FILES_SETTINGS is ignored");
+
+      Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "");
+      Assert
+        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Default,
+         "empty XDG_CONFIG_HOME is ignored");
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Default_Home_Selection;
+
+   procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir           : constant String := Join (Root, "startup-settings");
+      Settings_Path : constant String := Join (Root, "files.conf");
+      Created_Path  : constant String := Join (Join (Root, "startup-created"), "settings.conf");
+      Args          : Files.Types.String_Vectors.Vector;
+      Startup       : Files.Application.Startup_Result;
+      Full_Dir      : Unbounded_String;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Full_Dir := To_Unbounded_String (Ada.Directories.Full_Name (Dir));
+      Write_File (Join (Dir, ".hidden"));
+      Write_File (Join (Dir, "shown.txt"));
+      Write_File
+        (Settings_Path,
+         "[settings]" & ASCII.LF &
+         "default_view_mode = details" & ASCII.LF &
+         "show_hidden_files = true" & ASCII.LF);
+
+      Args.Append (To_Unbounded_String (Dir));
+      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Assert (Natural (Startup.Errors.Length) = 0, "valid settings do not add startup diagnostics");
+      Assert (Natural (Startup.Windows.Length) = 1, "valid startup path opens one window");
+      Assert (To_String (Startup.Settings_Path) = Settings_Path, "startup result records loaded settings path");
+      Assert (Startup.Settings.Default_View = Files.Types.Details, "startup result exposes loaded default view");
+      Assert (Startup.Settings.Show_Hidden_Files, "startup result exposes loaded hidden-file setting");
+      Assert
+        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+         "settings startup window records normalized path");
+      Assert
+        (To_String (Startup.Windows.Element (1).Title) = To_String (Full_Dir),
+         "settings startup window title records normalized path");
+      Assert
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+         "settings startup model uses normalized path");
+      Assert (Files.Model.View_Mode_Of (Startup.Windows.Element (1).Model) = Files.Types.Details, "view setting loads");
+      Assert
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 2,
+         "hidden-file setting affects startup load");
+      Assert
+        (Files.Application.Windows.Headless_Smoke_Test (Startup),
+         "startup windows pass headless render smoke test");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String (Dir));
+      Startup := Files.Application.Resolve_Startup (Args, Created_Path);
+      Assert (Natural (Startup.Errors.Length) = 0, "missing startup settings are created without diagnostics");
+      Assert (Ada.Directories.Exists (Created_Path), "startup creates missing default settings file");
+      Assert (To_String (Startup.Settings_Path) = Created_Path, "startup result records created settings path");
+      Assert (Natural (Startup.Windows.Length) = 1, "startup still opens path after creating settings file");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Startup.Settings, "txt") = "text/plain",
+         "startup result exposes created default settings");
+   end Test_Startup_Loads_Settings_File;
+
+   procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir           : constant String := Join (Root, "startup-invalid-settings");
+      Settings_Path : constant String := Join (Root, "bad.conf");
+      Args          : Files.Types.String_Vectors.Vector;
+      Startup       : Files.Application.Startup_Result;
+      Full_Dir      : Unbounded_String;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Full_Dir := To_Unbounded_String (Ada.Directories.Full_Name (Dir));
+      Write_File (Join (Dir, ".hidden"));
+      Write_File (Join (Dir, "shown.txt"));
+      Write_File
+        (Settings_Path,
+         "[settings]" & ASCII.LF &
+         "show_hidden_files = maybe" & ASCII.LF);
+
+      Args.Append (To_Unbounded_String (Dir));
+      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Assert (Natural (Startup.Windows.Length) = 1, "invalid settings do not block valid paths");
+      Assert (Natural (Startup.Errors.Length) = 1, "invalid settings add one startup diagnostic");
+      Assert
+        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+         "invalid settings still open the normalized requested path");
+      Assert
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+         "invalid settings startup model still uses normalized path");
+      Assert
+        (To_String (Startup.Errors.Element (1).Input_Path) = Settings_Path,
+         "settings diagnostic records the settings path");
+      Assert
+        (To_String (Startup.Errors.Element (1).Error_Key) = "error.settings.invalid_boolean",
+         "settings diagnostic records the parse error");
+      Assert
+        (Startup.Settings.Default_View = Files.Settings.Default_Settings.Default_View,
+         "invalid settings leave startup result on default settings");
+      Assert
+        (not Startup.Settings.Show_Hidden_Files,
+         "invalid settings do not leak partially parsed hidden-file setting");
+      Assert
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 1,
+         "default settings are used after failure");
+   end Test_Startup_Invalid_Settings_Diagnostic;
+
+   procedure Test_Startup_Settings_Path_Not_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir           : constant String := Join (Root, "startup-settings-directory");
+      Settings_Path : constant String := Join (Root, "settings-as-directory");
+      Args          : Files.Types.String_Vectors.Vector;
+      Startup       : Files.Application.Startup_Result;
+      Full_Dir      : Unbounded_String;
+      Report        : Unbounded_String;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Ada.Directories.Create_Path (Settings_Path);
+      Full_Dir := To_Unbounded_String (Ada.Directories.Full_Name (Dir));
+      Write_File (Join (Dir, ".hidden"));
+      Write_File (Join (Dir, "shown.txt"));
+
+      Args.Append (To_Unbounded_String (Dir));
+      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Assert (Natural (Startup.Windows.Length) = 1, "settings directory does not block valid paths");
+      Assert (Natural (Startup.Errors.Length) = 1, "settings directory adds one startup diagnostic");
+      Assert
+        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+         "settings directory startup window records normalized path");
+      Assert
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+         "settings directory startup model uses normalized path");
+      Assert
+        (To_String (Startup.Errors.Element (1).Input_Path) = Settings_Path,
+         "settings directory diagnostic records the settings path");
+      Assert
+        (To_String (Startup.Errors.Element (1).Error_Key) = "error.settings.not_file",
+         "settings directory diagnostic records the not-file error");
+      Assert
+        (Startup.Settings.Default_View = Files.Settings.Default_Settings.Default_View,
+         "settings directory leaves startup result on default settings");
+      Assert
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 1,
+         "default settings are used when startup settings path is a directory");
+
+      Report := To_Unbounded_String (Files.Application.Startup_Report (Startup));
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Report),
+            Files.Localization.Text ("startup.error") & ": " &
+            Settings_Path & ": " &
+            Files.Localization.Text ("error.settings.not_file")) > 0,
+         "startup report localizes settings directory diagnostics");
+   end Test_Startup_Settings_Path_Not_File;
+
+   procedure Test_Startup_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "report-dir");
+      Settings_File_Path : constant String := Join (Dir, "files.conf");
+      Missing  : constant String := Join (Root, "missing-report-dir");
+      Args     : Files.Types.String_Vectors.Vector;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Startup  : Files.Application.Startup_Result;
+      Report   : Unbounded_String;
+      Smoke    : Unbounded_String;
+      Caps     : Files.Application.Windows.Desktop_Capabilities;
+      Plan     : Files.Application.Windows.Live_Smoke_Plan;
+      Live_Result : Files.Application.Windows.Live_Smoke_Result;
+      Dialog_Request : Files.Application.Windows.Native_File_Dialog_Request;
+      Dialog_Result  : Files.Application.Windows.Native_File_Dialog_Result;
+      Import_Request : Files.Application.Windows.Native_File_Dialog_Request;
+      Export_Request : Files.Application.Windows.Native_File_Dialog_Request;
+      Dialog_Profile : Files.Platform.Dialogs.Native_Dialog_Profile;
+      Completed_Dialog : Files.Application.Windows.Native_File_Dialog_Result;
+      Scroll_Remainder : Long_Float := 0.0;
+      Scroll_Lines     : Integer;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Args.Append (To_Unbounded_String (Dir));
+      Args.Append (To_Unbounded_String (Missing));
+
+      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Report := To_Unbounded_String (Files.Application.Startup_Report (Startup));
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Report),
+            Files.Localization.Text ("startup.window.ready") & ": " & Ada.Directories.Full_Name (Dir)) > 0,
+         "startup report uses localized window label");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Report),
+            Files.Localization.Text ("startup.error") & ": " &
+            Missing & ": " &
+            Files.Localization.Text ("error.path.missing")) > 0,
+         "startup report uses localized error label and diagnostic");
+      Smoke := To_Unbounded_String (Files.Application.Runtime_Smoke_Report (Startup, Width => 800, Height => 400));
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Smoke),
+            Files.Localization.Text ("runtime.smoke.window") & ": " & Ada.Directories.Full_Name (Dir)) > 0,
+         "runtime smoke report uses localized window label");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Smoke), Files.Localization.Text ("runtime.smoke.vertices") & ": ") > 0,
+         "runtime smoke report uses localized vertex-count label");
+      Assert
+        (Files.Application.Runtime_Smoke_Report ((others => <>)) =
+         Files.Localization.Text ("runtime.smoke.no_windows"),
+         "runtime smoke report uses localized empty-startup diagnostic");
+      Caps := Files.Application.Windows.Runtime_Capabilities;
+      Assert (Caps.Headless_Rendering, "runtime capabilities advertise headless rendering");
+      Assert
+        (Caps.Live_Window_Smoke_Ready = (Caps.Display_Available and then Caps.Vulkan_Available),
+         "runtime capabilities gate live window smoke on display and Vulkan");
+      Assert
+        (Caps.Native_File_Dialogs = Files.Application.Windows.Native_File_Dialogs_Available,
+         "runtime capabilities expose native file dialog availability");
+      Assert (Caps.Event_Translation_Model, "runtime capabilities expose event translation model");
+      Assert (Caps.Focus_Runtime_Model, "runtime capabilities expose focus model");
+      Assert (Caps.Resize_Runtime_Model, "runtime capabilities expose resize model");
+      Assert (Caps.Scroll_Runtime_Model, "runtime capabilities expose scroll model");
+      declare
+         Runtime_Model   : Files.Model.Window_Model := Sample_Model;
+         Runtime_Result  : Files.Controller.Controller_Result;
+         Runtime_Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Runtime_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Import_Settings_Command, Runtime_Model, Runtime_Settings);
+         Assert
+           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
+            "runtime does not open settings dialogs while settings pane is closed");
+         Runtime_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Toggle_Settings_Pane_Command, Runtime_Model, Runtime_Settings);
+         Runtime_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Import_Settings_Command, Runtime_Model, Runtime_Settings);
+         Assert
+           (Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
+            "runtime resolves settings import path after pure controller dialog preflight");
+         Runtime_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Save_Settings_Command, Runtime_Model, Runtime_Settings);
+         Assert
+           (Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
+            "runtime resolves settings save path after command execution");
+         Runtime_Result :=
+           (Status    => Files.Controller.Controller_Command_Executed,
+            Command   => Files.Commands.Save_Settings_Command,
+            Operation =>
+              (Status    => Files.Operations.Operation_Failed,
+               Error_Key => To_Unbounded_String ("error.settings.save"),
+               Path      => To_Unbounded_String ("/tmp/files-settings.conf"),
+               Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+               others    => <>));
+         Assert
+           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
+            "runtime does not re-resolve a settings command after handled save failure");
+         Runtime_Result :=
+           (Status    => Files.Controller.Controller_Command_Executed,
+            Command   => Files.Commands.Export_Settings_Command,
+            Operation =>
+              (Status    => Files.Operations.Operation_Success,
+               Error_Key => Null_Unbounded_String,
+               Path      => To_Unbounded_String ("/tmp/files-export.conf"),
+               Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+               others    => <>));
+         Assert
+           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
+            "runtime does not re-resolve a settings command after handled export success");
+         Runtime_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Reset_Settings_Command, Runtime_Model, Runtime_Settings);
+         Assert
+           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
+            "runtime does not resolve paths for settings commands without path dependency");
+      end;
+      Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.40);
+      Assert (Scroll_Lines = 0, "fractional scroll starts below one line");
+      Assert (abs (Scroll_Remainder - 0.40) < 0.000_001, "fractional scroll remainder is retained");
+      Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.35);
+      Assert (Scroll_Lines = 0, "second fractional scroll can still be below one line");
+      Assert (abs (Scroll_Remainder - 0.75) < 0.000_001, "second fractional scroll accumulates");
+      Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.50);
+      Assert (Scroll_Lines = 1, "fractional scroll emits a whole line after accumulation");
+      Assert (abs (Scroll_Remainder - 0.25) < 0.000_001, "fractional scroll keeps positive remainder");
+      Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, -0.75);
+      Assert (Scroll_Lines = 0, "opposite fractional scroll can cancel without a line");
+      Assert (abs (Scroll_Remainder + 0.50) < 0.000_001, "opposite fractional scroll keeps negative remainder");
+      Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, -0.75);
+      Assert (Scroll_Lines = -1, "negative fractional scroll emits a whole line after accumulation");
+      Assert (abs (Scroll_Remainder + 0.25) < 0.000_001, "fractional scroll keeps negative remainder");
+      Scroll_Remainder := 0.0;
+      Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, Long_Float (Integer'Last));
+      Assert (Scroll_Lines = Integer'Last, "scroll accumulation saturates large positive offsets");
+      Assert (Scroll_Remainder = 0.0, "saturated scroll clears remainder");
+      Assert
+        (Files.Application.Windows.Add_Pending_Scroll (Integer'Last - 1, 2) = Integer'Last,
+         "pending scroll addition saturates positive overflow");
+      Assert
+        (Files.Application.Windows.Add_Pending_Scroll (Integer'First + 1, -2) = Integer'First,
+         "pending scroll addition saturates negative overflow");
+      Assert
+        (Files.Application.Windows.Add_Pending_Scroll (4, -6) = -2,
+         "pending scroll addition preserves normal mixed-sign sums");
+      Assert
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (Character'Pos ('A'))) = "A",
+         "desktop text input preserves printable ASCII");
+      Assert
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#)) =
+         Byte (16#C3#) & Byte (16#A9#),
+         "desktop text input encodes two-byte UTF-8");
+      Assert
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#20AC#)) =
+         Byte (16#E2#) & Byte (16#82#) & Byte (16#AC#),
+         "desktop text input encodes three-byte UTF-8");
+      Assert
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#1F4C1#)) =
+         Byte (16#F0#) & Byte (16#9F#) & Byte (16#93#) & Byte (16#81#),
+         "desktop text input encodes four-byte UTF-8");
+      Assert
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (9)) = "",
+         "desktop text input ignores control characters");
+      Assert
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#D800#)) = "",
+         "desktop text input ignores surrogate code points");
+      Assert
+        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (200)) = 100,
+         "runtime coordinate scaling maps proportional positions");
+      Assert
+        (Files.Application.Windows.Scale_Coordinate (-1.0, Glfw.Size (100), Glfw.Size (200)) = 0,
+         "runtime coordinate scaling clamps negative cursor positions");
+      Assert
+        (Files.Application.Windows.Scale_Coordinate (150.0, Glfw.Size (100), Glfw.Size (200)) = 200,
+         "runtime coordinate scaling clamps beyond framebuffer size");
+      Assert
+        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (0), Glfw.Size (200)) = 0,
+         "runtime coordinate scaling rejects zero source dimensions");
+      Assert
+        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (0)) = 0,
+         "runtime coordinate scaling rejects zero target dimensions");
+      Dialog_Profile := Files.Platform.Dialogs.Profile;
+      Assert
+        (Files.Platform.Dialogs.Available = Caps.Native_File_Dialogs,
+         "platform dialog availability feeds runtime capabilities");
+      Assert (Dialog_Profile.Mode_Preflight, "platform dialog profile exposes mode preflight");
+      Assert
+        (Dialog_Profile.Settings_Import_Export,
+         "platform dialog profile exposes settings import and export integration");
+      Assert (Dialog_Profile.Extension_Filtering, "platform dialog profile exposes extension filtering");
+      Assert (Dialog_Profile.User_Mediated, "platform dialog profile records user-mediated selection");
+      Assert
+        (Dialog_Profile.Path_Result_Normalization,
+         "platform dialog profile exposes selected path normalization");
+      Assert
+        (Files.Application.Windows.Native_File_Dialog_Mode_Available
+           (Files.Application.Windows.Open_File_Dialog) =
+         (Dialog_Profile.Binding_Status = Files.File_System.Native_API_Binding_Available
+          and then Dialog_Profile.Can_Open_File
+          and then not Dialog_Profile.Uses_Shell),
+         "open-file dialog availability follows platform dialog profile");
+      Assert
+        (Files.Application.Windows.Native_File_Dialog_Mode_Available
+           (Files.Application.Windows.Save_File_Dialog) =
+         (Dialog_Profile.Binding_Status = Files.File_System.Native_API_Binding_Available
+          and then Dialog_Profile.Can_Save_File
+          and then not Dialog_Profile.Uses_Shell),
+         "save-file dialog availability follows platform dialog profile");
+      Assert
+        (To_String (Dialog_Profile.Backend_Name) = Files.Platform.Dialogs.Backend_Name,
+         "platform dialog profile exposes stable backend name");
+      Assert
+        (To_String (Dialog_Profile.Binding_Unit) = "Files.Platform.Dialogs",
+         "platform dialog profile records the Ada binding unit");
+      Assert (not Dialog_Profile.Uses_Shell, "platform dialog profile does not claim shell dialogs");
+      Assert
+        (not Dialog_Profile.Can_Open_File or else Dialog_Profile.Binding_Status =
+           Files.File_System.Native_API_Binding_Available,
+         "platform dialog open support requires an available native binding");
+      Assert
+        (not Dialog_Profile.Can_Save_File or else Dialog_Profile.Binding_Status =
+           Files.File_System.Native_API_Binding_Available,
+         "platform dialog save support requires an available native binding");
+      Dialog_Request :=
+        (Mode               => Files.Application.Windows.Open_File_Dialog,
+         Title_Key          => To_Unbounded_String ("dialog.settings.import"),
+         Initial_Path       => To_Unbounded_String (Dir),
+         Suggested_Name     => To_Unbounded_String ("settings.conf"),
+         Required_Extension => To_Unbounded_String ("conf"));
+      Dialog_Result := Files.Application.Windows.Evaluate_Native_File_Dialog (Dialog_Request);
+      Assert
+        (Dialog_Result.Supported =
+         Files.Application.Windows.Native_File_Dialog_Mode_Available (Dialog_Request.Mode),
+         "native dialog preflight matches requested mode availability");
+      Assert (not Dialog_Result.Attempted, "native dialog preflight does not open a dialog");
+      Assert (not Dialog_Result.Completed, "native dialog preflight does not select a path");
+      Assert
+        (To_String (Dialog_Result.Backend_Name) = Files.Platform.Dialogs.Backend_Name,
+         "native dialog result identifies the platform backend state");
+      if not Dialog_Result.Supported then
+         Assert
+           (To_String (Dialog_Result.Error_Key) = "error.dialog.native_unavailable",
+            "native dialog preflight reports localized unavailable status");
+      end if;
+      Dialog_Result := Files.Application.Windows.Open_Native_File_Dialog (Dialog_Request);
+      Assert (not Dialog_Result.Completed, "native dialog execution reports no selection without a backend");
+      Assert
+        (To_String (Dialog_Result.Error_Key) = "error.dialog.native_unavailable",
+         "native dialog execution reports localized unavailable status");
+      Assert
+        (not Files.Application.Windows.Settings_Path_Selected (Dialog_Result),
+         "unavailable native dialog result is not treated as a selected settings path");
+      Assert
+        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Dialog_Result)) =
+         Settings_File_Path,
+         "settings dialog path falls back to configured path without a completed dialog");
+      Completed_Dialog :=
+        (Supported     => True,
+         Attempted     => True,
+         Completed     => True,
+         Selected_Path => To_Unbounded_String (Join (Dir, "chosen.conf")),
+         Backend_Name  => To_Unbounded_String ("test"),
+         Error_Key     => Null_Unbounded_String);
+      Assert
+        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Completed_Dialog)) =
+         Join (Dir, "chosen.conf"),
+         "settings dialog path uses completed native selection");
+      Assert
+        (Files.Application.Windows.Settings_Path_Selected (Completed_Dialog),
+         "completed native dialog result with a path is treated as selected");
+      Completed_Dialog.Supported := False;
+      Assert
+        (not Files.Application.Windows.Settings_Path_Selected (Completed_Dialog),
+         "unsupported native dialog result with a path is not treated as selected");
+      Assert
+        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Completed_Dialog)) =
+         Settings_File_Path,
+         "unsupported native dialog result with a path falls back to configured settings path");
+      Completed_Dialog.Supported := True;
+      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request (Settings_File_Path);
+      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "chosen"));
+      Assert
+        (To_String
+           (Files.Application.Windows.Settings_Path_After_Dialog
+              (Settings_File_Path, Export_Request, Completed_Dialog)) =
+         Join (Dir, "chosen.conf"),
+         "settings save dialog appends the required extension");
+      Export_Request.Required_Extension := To_Unbounded_String (".conf");
+      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "dotted"));
+      Assert
+        (To_String
+           (Files.Application.Windows.Settings_Path_After_Dialog
+              (Settings_File_Path, Export_Request, Completed_Dialog)) =
+         Join (Dir, "dotted.conf"),
+         "settings save dialog normalizes a dotted required extension before appending");
+      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "dotted.conf"));
+      Assert
+        (To_String
+           (Files.Application.Windows.Settings_Path_After_Dialog
+              (Settings_File_Path, Export_Request, Completed_Dialog)) =
+         Join (Dir, "dotted.conf"),
+         "settings save dialog normalizes a dotted required extension before comparison");
+      Export_Request.Required_Extension := To_Unbounded_String ("  .conf  ");
+      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "padded"));
+      Assert
+        (To_String
+           (Files.Application.Windows.Settings_Path_After_Dialog
+              (Settings_File_Path, Export_Request, Completed_Dialog)) =
+         Join (Dir, "padded.conf"),
+         "settings save dialog trims a padded required extension before appending");
+      Export_Request.Required_Extension := To_Unbounded_String ("conf");
+      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "chosen.CONF"));
+      Assert
+        (To_String
+           (Files.Application.Windows.Settings_Path_After_Dialog
+              (Settings_File_Path, Export_Request, Completed_Dialog)) =
+         Join (Dir, "chosen.CONF"),
+         "settings save dialog preserves an existing extension case-insensitively");
+      Import_Request := Files.Application.Windows.Settings_Import_Dialog_Request (Settings_File_Path);
+      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "chosen"));
+      Assert
+        (To_String
+           (Files.Application.Windows.Settings_Path_After_Dialog
+              (Settings_File_Path, Import_Request, Completed_Dialog)) =
+         Join (Dir, "chosen"),
+         "settings open dialog does not append the save extension");
+      Completed_Dialog.Selected_Path := Null_Unbounded_String;
+      Assert
+        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Completed_Dialog)) =
+         Settings_File_Path,
+         "settings dialog path rejects empty completed selections");
+      Assert
+        (not Files.Application.Windows.Settings_Path_Selected (Completed_Dialog),
+         "completed native dialog result with an empty path is not treated as selected");
+      Import_Request := Files.Application.Windows.Settings_Import_Dialog_Request (Settings_File_Path);
+      Assert
+        (Import_Request.Mode = Files.Application.Windows.Open_File_Dialog,
+         "settings import uses a native open-file dialog request");
+      Assert
+        (To_String (Import_Request.Title_Key) = "dialog.settings.import",
+         "settings import dialog uses a localized title key");
+      Assert
+        (To_String (Import_Request.Initial_Path) = Dir,
+         "settings import dialog starts in the settings parent directory");
+      Assert
+        (To_String (Import_Request.Suggested_Name) = "files.conf",
+         "settings import dialog suggests the current settings filename");
+      Assert
+        (To_String (Import_Request.Required_Extension) = "conf",
+         "settings import dialog constrains settings file extension");
+      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request (Settings_File_Path);
+      Assert
+        (Export_Request.Mode = Files.Application.Windows.Save_File_Dialog,
+         "settings export uses a native save-file dialog request");
+      Assert
+        (To_String (Export_Request.Title_Key) = "dialog.settings.export",
+         "settings export dialog uses a localized title key");
+      Assert
+        (To_String (Export_Request.Initial_Path) = Dir,
+         "settings export dialog starts in the settings parent directory");
+      Assert
+        (To_String (Export_Request.Suggested_Name) = "files.conf",
+         "settings export dialog suggests the current settings filename");
+      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request ("");
+      Assert
+        (To_String (Export_Request.Initial_Path) = ".",
+         "settings export dialog has a deterministic empty-path directory fallback");
+      Assert
+        (To_String (Export_Request.Suggested_Name) = "files.conf",
+         "settings export dialog has a deterministic empty-path filename fallback");
+      Plan := Files.Application.Windows.Live_Window_Smoke_Plan (Width => 640, Height => 360);
+      Assert (Plan.Width = 640, "live smoke plan records requested width");
+      Assert (Plan.Height = 360, "live smoke plan records requested height");
+      Assert (Plan.Frame_Count = 1, "live smoke plan records deterministic frame count");
+      Assert (Plan.Input_Poll_Count = 1, "live smoke plan records deterministic input poll count");
+      Assert
+        (Plan.Can_Run = Caps.Live_Window_Smoke_Ready,
+         "live smoke plan readiness matches runtime capabilities");
+      Assert (To_String (Plan.Reason_Key) /= "", "live smoke plan exposes localized reason key");
+      Live_Result := Files.Application.Windows.Evaluate_Live_Window_Smoke (Plan);
+      Assert
+        (Live_Result.Skipped_By_Plan = not Plan.Can_Run,
+         "live smoke result records whether the plan skipped execution");
+      Assert (not Live_Result.Window_Created, "headless live smoke evaluation does not create a window");
+      Assert (To_String (Live_Result.Error_Key) /= "", "live smoke result exposes status key");
+      Live_Result := Files.Application.Windows.Run_Live_Window_Smoke ((others => <>), Plan);
+      Assert (not Live_Result.Window_Created, "live smoke runner does not create windows for empty startup");
+      Assert
+        (To_String (Live_Result.Error_Key) = "runtime.smoke.no_windows",
+         "live smoke runner reports empty startup");
+      Plan.Can_Run := False;
+      Plan.Reason_Key := To_Unbounded_String ("runtime.smoke.no_display");
+      Live_Result := Files.Application.Windows.Run_Live_Window_Smoke (Startup, Plan);
+      Assert (Live_Result.Skipped_By_Plan, "live smoke runner skips when plan cannot run");
+      Assert (not Live_Result.Attempted, "live smoke runner does not attempt skipped plan");
+   end Test_Startup_Report;
+
+   procedure Test_Desktop_Error_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Expected : constant String :=
+        Files.Localization.Text ("startup.error") & ": " & Files.Localization.Text ("error.window.create");
+   begin
+      Assert
+        (Files.Application.Desktop_Error_Report ("error.window.create")
+         = Expected,
+         "desktop error report localizes the provided key");
+      Assert
+        (Files.Application.Desktop_Error_Report ("") = Expected,
+         "desktop error report falls back when the key is empty");
+      Assert
+        (Files.Application.Desktop_Error_Report ("error.window.unknown") = Expected,
+         "desktop error report falls back when the key is not localized");
+   end Test_Desktop_Error_Report;
+
+   procedure Test_Startup_Report_Settings_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir           : constant String := Join (Root, "report-settings-dir");
+      Settings_Path : constant String := Join (Root, "bad-report-settings.conf");
+      Args          : Files.Types.String_Vectors.Vector;
+      Startup       : Files.Application.Startup_Result;
+      Report        : Unbounded_String;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File
+        (Settings_Path,
+         "[settings]" & ASCII.LF &
+         "show_hidden_files = not-a-boolean" & ASCII.LF);
+      Args.Append (To_Unbounded_String (Dir));
+
+      Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
+      Report := To_Unbounded_String (Files.Application.Startup_Report (Startup));
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Report),
+            Files.Localization.Text ("startup.window.ready") & ": " & Ada.Directories.Full_Name (Dir)) > 0,
+         "startup report includes the valid window after settings failure");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Report),
+            Files.Localization.Text ("startup.error") & ": " &
+            Settings_Path & ": " &
+            Files.Localization.Text ("error.settings.invalid_boolean")) > 0,
+         "startup report localizes settings parse diagnostics");
+   end Test_Startup_Report_Settings_Error;
+
+   procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Args   : Files.Types.String_Vectors.Vector;
+      Config : Files.Application.Run_Configuration;
+   begin
+      Args.Append (To_Unbounded_String ("--runtime-smoke"));
+      Args.Append (To_Unbounded_String ("--settings"));
+      Args.Append (To_Unbounded_String ("/tmp/files.conf"));
+      Args.Append (To_Unbounded_String ("/tmp"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "runtime smoke flag selects headless smoke mode");
+      Assert (Natural (Config.Paths.Length) = 1, "runtime smoke flag is consumed");
+      Assert (To_String (Config.Paths.Element (1)) = "/tmp", "runtime smoke preserves following path");
+      Assert (To_String (Config.Settings_Path) = "/tmp/files.conf", "settings flag consumes following path");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--settings"));
+      Args.Append (To_Unbounded_String ("--dash-start.conf"));
+      Args.Append (To_Unbounded_String ("--runtime-smoke"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert
+        (To_String (Config.Settings_Path) = "--dash-start.conf",
+         "settings flag consumes dash-prefixed following path");
+      Assert
+        (Config.Mode = Files.Application.Headless_Smoke_Run,
+         "settings path consumption resumes flag parsing after the value");
+      Assert (Config.Paths.Is_Empty, "dash-prefixed settings path value does not become a startup path");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--live-smoke"));
+      Args.Append (To_Unbounded_String ("--runtime-smoke"));
+      Args.Append (To_Unbounded_String ("--help"));
+      Args.Append (To_Unbounded_String ("--settings=/tmp/inline.conf"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (Config.Mode = Files.Application.Help_Run, "later run mode flag wins deterministically");
+      Assert (Config.Paths.Is_Empty, "smoke flags do not become startup paths");
+      Assert (To_String (Config.Settings_Path) = "/tmp/inline.conf", "settings equals form selects settings path");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("-h"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (Config.Mode = Files.Application.Help_Run, "short help flag selects help mode");
+      Assert (Config.Paths.Is_Empty, "short help flag is consumed");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--unknown-path"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (Config.Mode = Files.Application.Desktop_Run, "unknown dash-prefixed path keeps desktop mode");
+      Assert (Natural (Config.Paths.Length) = 1, "unknown dash-prefixed value is preserved as a path");
+      Assert (To_String (Config.Paths.Element (1)) = "--unknown-path", "unknown option is treated as a path");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--runtime-smoke"));
+      Args.Append (To_Unbounded_String ("--"));
+      Args.Append (To_Unbounded_String ("--live-smoke"));
+      Args.Append (To_Unbounded_String ("--help"));
+      Args.Append (To_Unbounded_String ("--settings=/tmp/after-terminator.conf"));
+      Args.Append (To_Unbounded_String ("--settings"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "terminator stops smoke flag parsing");
+      Assert (Natural (Config.Paths.Length) = 4, "terminated flags are preserved as paths");
+      Assert (To_String (Config.Paths.Element (1)) = "--live-smoke", "terminator keeps dash-prefixed path text");
+      Assert (To_String (Config.Paths.Element (2)) = "--help", "terminator keeps help-looking path text");
+      Assert
+        (To_String (Config.Paths.Element (3)) = "--settings=/tmp/after-terminator.conf",
+         "terminator keeps settings-looking path text");
+      Assert
+        (To_String (Config.Paths.Element (4)) = "--settings",
+         "terminator keeps bare settings flag as path text");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--settings"));
+      Args.Append (To_Unbounded_String ("--"));
+      Args.Append (To_Unbounded_String ("--runtime-smoke"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (To_String (Config.Settings_Path) = "--", "settings flag can consume terminator as a path");
+      Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "flag parsing resumes after terminator setting path");
+      Assert (Config.Paths.Is_Empty, "consumed terminator setting path does not become a startup path");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--settings"));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (To_String (Config.Settings_Path) = "", "missing settings value leaves default settings path");
+      Assert (Natural (Config.Paths.Length) = 1, "missing settings value preserves flag as path");
+      Assert (To_String (Config.Paths.Element (1)) = "--settings", "missing settings value is not dropped");
+
+      Args.Clear;
+      Args.Append (To_Unbounded_String ("--settings="));
+      Config := Files.Application.Parse_Run_Configuration (Args);
+      Assert (To_String (Config.Settings_Path) = "", "empty settings equals form leaves default settings path");
+      Assert (Config.Paths.Is_Empty, "empty settings equals form is consumed as a recognized flag");
+
+      declare
+         Dir           : constant String := Join (Root, "cli-settings");
+         Settings_Path : constant String := Join (Root, "cli-settings.conf");
+         Startup       : Files.Application.Startup_Result;
+      begin
+         Reset_Root;
+         Ada.Directories.Create_Path (Dir);
+         Write_File (Join (Dir, ".hidden"));
+         Write_File (Join (Dir, "shown.txt"));
+         Write_File
+           (Settings_Path,
+            "[settings]" & ASCII.LF &
+            "default_view_mode = details" & ASCII.LF &
+            "show_hidden_files = true" & ASCII.LF);
+         Args.Clear;
+         Args.Append (To_Unbounded_String ("--settings"));
+         Args.Append (To_Unbounded_String (Settings_Path));
+         Args.Append (To_Unbounded_String (Dir));
+         Config := Files.Application.Parse_Run_Configuration (Args);
+         Startup := Files.Application.Resolve_Startup (Config.Paths, To_String (Config.Settings_Path));
+         Assert
+           (To_String (Startup.Settings_Path) = Settings_Path,
+            "split settings flag drives startup settings path");
+         Assert
+           (Startup.Settings.Default_View = Files.Types.Details,
+            "split settings flag loads startup default view");
+         Assert
+           (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 2,
+            "split settings flag affects startup directory loading");
+      end;
+
+      declare
+         Help : constant String := Files.Application.Help_Text;
+      begin
+         Assert
+           (Ada.Strings.Fixed.Index (Help, "Usage: files") > 0,
+            "help text includes localized usage");
+         Assert
+           (Ada.Strings.Fixed.Index (Help, "--settings PATH") > 0,
+            "help text documents settings path flag");
+         Assert
+           (Ada.Strings.Fixed.Index (Help, "--help, -h") > 0,
+            "help text documents long and short help flags");
+      end;
+   end Test_Run_Configuration_Parsing;
+
+   procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "sort");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load     : Files.File_System.Directory_Load_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Dir, "zdir"));
+      Write_File (Join (Dir, "b.txt"));
+      Write_File (Join (Dir, "A.txt"));
+      Write_File (Join (Dir, "a.txt"));
+      Write_File (Join (Root, "not-a-directory.txt"));
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+
+      Assert (Load.Success, "directory load succeeds");
+      Assert
+        (Natural (Load.Items.Length) = 4,
+         "all direct children are loaded; count=" & Natural'Image (Natural (Load.Items.Length)));
+      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directories sort before files");
+      Load := Files.File_System.Load_Directory (Dir & "/.", Settings);
+      Assert (Load.Success, "non-normal directory path loads");
+      Assert (To_String (Load.Items.Element (1).Parent_Path) = To_String (Load.Path), "item parent path is normalized");
+      Assert (To_String (Load.Items.Element (2).Name) = "A.txt", "case-insensitive file order is stable");
+      Assert
+        (To_String (Load.Items.Element (3).Name) = "a.txt",
+         "case-insensitive equal names use deterministic fallback order");
+      Assert (To_String (Load.Items.Element (4).Name) = "b.txt", "fallback name order is deterministic");
+
+      Load := Files.File_System.Load_Directory (Join (Root, "missing-directory"), Settings);
+      Assert (not Load.Success, "missing directory load reports failure");
+      Assert (To_String (Load.Error_Key) = "error.directory.load", "missing directory load reports error key");
+      Load := Files.File_System.Load_Directory (Join (Root, "not-a-directory.txt"), Settings);
+      Assert (not Load.Success, "file path directory load reports failure");
+      Assert (To_String (Load.Error_Key) = "error.directory.load", "file path directory load reports error key");
+   end Test_Directory_Sorting;
+
+   procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "projection");
+      Tie_Dir  : constant String := Join (Root, "projection-ties");
+      Modified_Dir : constant String := Join (Root, "projection-modified");
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load     : Files.File_System.Directory_Load_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Dir, "zdir"));
+      Write_File (Join (Dir, "c.bin"), "cccc");
+      Write_File (Join (Dir, ".secret"));
+      Write_File (Join (Dir, ".profile"));
+      Write_File (Join (Dir, "afile.txt"), "a");
+      Files.Settings.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
+      Files.Settings.Add_Extension_Mapping (Settings, "bin", "application/x-bin");
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Load.Success, "directory projection loads");
+      Assert (Natural (Load.Items.Length) = 3, "hidden files are hidden by default");
+      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directories-first setting is applied");
+      Assert (To_String (Load.Items.Element (2).Name) = "afile.txt", "visible file remains after hidden filtering");
+      Assert (To_String (Load.Items.Element (3).Name) = "c.bin", "additional visible file remains loaded");
+
+      Settings.Sort_Directories_First := False;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Natural (Load.Items.Length) = 3, "sort preference preserves hidden filtering");
+      Assert (To_String (Load.Items.Element (1).Name) = "afile.txt", "name ordering can sort files before dirs");
+      Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "name sort keeps files in deterministic order");
+      Assert (To_String (Load.Items.Element (3).Name) = "zdir", "directory follows file when name sort wins");
+
+      Settings.Sort_Field_Value := Files.Settings.Sort_By_Filetype;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "c.bin", "filetype sort uses configured field");
+      Assert (To_String (Load.Items.Element (2).Name) = "zdir", "filetype ties fall back to name order");
+      Assert (To_String (Load.Items.Element (3).Name) = "afile.txt", "text file sorts after inode/filetype entries");
+
+      Settings.Sort_Directories_First := True;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directory grouping wins before filetype sort");
+      Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "filetype sort still orders grouped files");
+      Settings.Sort_Directories_First := False;
+
+      Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
+      Settings.Sort_Ascending := False;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "c.bin", "descending size sort uses metadata");
+      Assert (To_String (Load.Items.Element (2).Name) = "afile.txt", "smaller file follows larger file");
+
+      Settings.Sort_Directories_First := True;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directory grouping wins before size sort");
+      Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "size sort still orders grouped files");
+
+      Settings.Show_Hidden_Files := True;
+      Settings.Sort_Directories_First := False;
+      Settings.Sort_Field_Value := Files.Settings.Sort_By_Name;
+      Settings.Sort_Ascending := True;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Natural (Load.Items.Length) = 5, "show-hidden setting exposes dot files");
+      Assert (To_String (Load.Items.Element (1).Name) = ".profile", "hidden file participates in stable sorting");
+      Assert (To_String (Load.Items.Element (2).Name) = ".secret", "leading-dot files sort deterministically");
+      Assert
+        (To_String (Load.Items.Element (1).Filetype) = "application/octet-stream",
+         "leading-dot file loaded from disk does not use extension mapping");
+
+      Ada.Directories.Create_Path (Join (Dir, ".vault"));
+      Settings.Show_Hidden_Files := False;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Natural (Load.Items.Length) = 3, "hidden directories are hidden by default");
+
+      Settings.Show_Hidden_Files := True;
+      Settings.Sort_Directories_First := True;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Natural (Load.Items.Length) = 6, "show-hidden setting exposes dot directories");
+      Assert (To_String (Load.Items.Element (1).Name) = ".vault", "hidden directories group with directories");
+      Assert (To_String (Load.Items.Element (2).Name) = "zdir", "visible directories stay in grouped name order");
+      Assert (To_String (Load.Items.Element (3).Name) = ".profile", "hidden files follow grouped directories");
+
+      Ada.Directories.Create_Path (Tie_Dir);
+      Write_File (Join (Tie_Dir, "B_equal.txt"), "same");
+      Write_File (Join (Tie_Dir, "a_equal.txt"), "same");
+      Write_File (Join (Tie_Dir, "later.txt"), "larger");
+
+      Settings.Show_Hidden_Files := False;
+      Settings.Sort_Directories_First := False;
+      Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
+      Settings.Sort_Ascending := True;
+      Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "a_equal.txt", "ascending size ties use name fallback");
+      Assert (To_String (Load.Items.Element (2).Name) = "B_equal.txt", "ascending size tie fallback is deterministic");
+      Assert (To_String (Load.Items.Element (3).Name) = "later.txt", "ascending size places larger item after ties");
+
+      Settings.Sort_Ascending := False;
+      Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "later.txt", "descending size places larger item first");
+      Assert
+        (To_String (Load.Items.Element (2).Name) = "a_equal.txt",
+         "descending size ties keep deterministic name fallback");
+      Assert
+        (To_String (Load.Items.Element (3).Name) = "B_equal.txt",
+         "descending size tie fallback remains stable");
+
+      Settings.Sort_Field_Value := Files.Settings.Sort_By_Modified;
+      Settings.Sort_Ascending := True;
+      Ada.Directories.Create_Path (Modified_Dir);
+      Write_File (Join (Modified_Dir, "old.txt"), "older");
+      Write_File (Join (Modified_Dir, "new.txt"), "newer");
+      GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
+        (Join (Modified_Dir, "old.txt"),
+         GNAT.OS_Lib.GM_Time_Of
+           (Year   => 2020,
+            Month  => 1,
+            Day    => 1,
+            Hour   => 0,
+            Minute => 0,
+            Second => 0));
+      GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
+        (Join (Modified_Dir, "new.txt"),
+         GNAT.OS_Lib.GM_Time_Of
+           (Year   => 2022,
+            Month  => 1,
+            Day    => 1,
+            Hour   => 0,
+            Minute => 0,
+            Second => 0));
+      Load := Files.File_System.Load_Directory (Modified_Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "old.txt", "modified sort orders older item first");
+      Assert (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name) = "new.txt",
+              "modified sort orders newer item last");
+
+      Settings.Sort_Ascending := False;
+      Load := Files.File_System.Load_Directory (Modified_Dir, Settings);
+      Assert (To_String (Load.Items.Element (1).Name) = "new.txt", "descending modified sort orders newer item first");
+      Assert (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name) = "old.txt",
+              "descending modified sort orders older item last");
+   end Test_Directory_Projection_Settings;
+
+   procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Run_Path  : constant String := Join (Root, "run.sh");
+      Text_Path : constant String := Join (Root, "plain.txt");
+      Long_Text_Path : constant String := Join (Root, "long-line.txt");
+      Utf8_Path : constant String := Join (Root, "utf8.txt");
+      Binary_Text_Path : constant String := Join (Root, "binary.txt");
+      Late_Binary_Text_Path : constant String := Join (Root, "late-binary.txt");
+      Split_Utf8_Path : constant String := Join (Root, "split-utf8.txt");
+      Overlong_Text_Path : constant String := Join (Root, "overlong.txt");
+      Surrogate_Text_Path : constant String := Join (Root, "surrogate.txt");
+      Markdown_Path : constant String := Join (Root, "notes.md");
+      Png_Path  : constant String := Join (Root, "picture.png");
+      Jpeg_Path : constant String := Join (Root, "photo.jpg");
+      Pdf_Path  : constant String := Join (Root, "paper.pdf");
+      Pdf_Control_Path : constant String := Join (Root, "paper-control.pdf");
+      Zip_Path  : constant String := Join (Root, "bundle.zip");
+      Split_Zip_Path : constant String := Join (Root, "split.zip");
+      Docx_Path : constant String := Join (Root, "report.docx");
+      Xlsx_Path : constant String := Join (Root, "sheet.xlsx");
+      Mp3_Path  : constant String := Join (Root, "track.mp3");
+      Mp4_Path  : constant String := Join (Root, "clip.mp4");
+      Tar_Gz_Path : constant String := Join (Root, "archive.tar.gz");
+      Ada_Path  : constant String := Join (Root, "unit.adb");
+      Json_Path : constant String := Join (Root, "data.json");
+      Xml_Path  : constant String := Join (Root, "doc.xml");
+      Symlink_Path : constant String := Join (Root, "link-to-plain.adb");
+      Executable_Symlink_Path : constant String := Join (Root, "link-to-run.sh");
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load      : Files.File_System.Directory_Load_Result;
+      Found_Run : Boolean := False;
+      Found_Symlink : Boolean := False;
+      Found_Executable_Symlink : Boolean := False;
+      Symlink_Created : Boolean := False;
+      Executable_Symlink_Created : Boolean := False;
+      Found_Long_Text : Boolean := False;
+      Found_Utf8 : Boolean := False;
+      Found_Binary_Text : Boolean := False;
+      Found_Late_Binary_Text : Boolean := False;
+      Found_Split_Utf8 : Boolean := False;
+      Found_Overlong_Text : Boolean := False;
+      Found_Surrogate_Text : Boolean := False;
+      Found_Markdown : Boolean := False;
+      Found_Png : Boolean := False;
+      Found_Jpeg : Boolean := False;
+      Found_Dir : Boolean := False;
+      Found_Pdf : Boolean := False;
+      Found_Pdf_Control : Boolean := False;
+      Found_Zip : Boolean := False;
+      Found_Split_Zip : Boolean := False;
+      Found_Docx : Boolean := False;
+      Found_Xlsx : Boolean := False;
+      Found_Mp3 : Boolean := False;
+      Found_Mp4 : Boolean := False;
+      Found_Tar_Gz : Boolean := False;
+      Found_Ada : Boolean := False;
+      Found_Json : Boolean := False;
+      Found_Xml : Boolean := False;
+      Metadata_Policy : constant Files.File_System.Filetype_Metadata_Policy :=
+        Files.File_System.Filetype_Metadata_Policy_Of_Current_Implementation;
+   begin
+      Assert (Metadata_Policy.Uses_Extension_Mapping, "metadata policy uses extension mappings");
+      Assert (not Metadata_Policy.Uses_Mime_Sniffing, "metadata policy does not claim MIME sniffing");
+      Assert (Metadata_Policy.Parses_Image_Dimensions, "metadata policy parses image dimensions");
+      Assert (Metadata_Policy.Parses_Text_Encoding, "metadata policy parses text encoding");
+      Assert (Metadata_Policy.Parses_Archive_Entry_Count, "metadata policy parses archive entry counts");
+      Assert (Metadata_Policy.Parses_Pdf_Page_Markers, "metadata policy parses PDF page markers");
+      Assert (not Metadata_Policy.Parses_Media_Codecs, "metadata policy does not claim media codecs");
+      Assert (Metadata_Policy.Parses_Office_Package_Info, "metadata policy parses Office package info");
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "folder"));
+      Write_File (Join (Join (Root, "folder"), "inside.txt"));
+      Write_File (Run_Path, "echo run");
+      Write_File (Text_Path, "plain");
+      Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
+      Write_Binary_File (Utf8_Path, "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
+      Write_Binary_File (Binary_Text_Path, "bad" & Character'Val (16#C3#));
+      Write_Binary_File (Late_Binary_Text_Path, String'(1 .. 4096 => 'x') & Character'Val (0));
+      Write_Binary_File
+        (Split_Utf8_Path,
+         String'(1 .. 4095 => 'x') & Character'Val (16#C3#) & Character'Val (16#A9#));
+      Write_Binary_File
+        (Overlong_Text_Path,
+         "bad" & Character'Val (16#E0#) & Character'Val (16#80#) & Character'Val (16#80#));
+      Write_Binary_File
+        (Surrogate_Text_Path,
+         "bad" & Character'Val (16#ED#) & Character'Val (16#A0#) & Character'Val (16#80#));
+      Write_File (Markdown_Path, "# Title" & ASCII.LF & "body");
+      Write_Binary_File (Png_Path, Minimal_Png_Header (32, 16));
+      Write_Binary_File (Jpeg_Path, Minimal_Jpeg_With_Fill (48, 24));
+      Write_File
+        (Pdf_Path,
+         "%PDF-1.7" & ASCII.LF &
+         "1 0 obj /Type /Pages endobj" & ASCII.LF &
+         "2 0 obj /Type /Page endobj");
+      Write_File
+        (Pdf_Control_Path,
+         "%PDF-1.7" & ASCII.LF &
+         "1 0 obj /Type /Page" & ASCII.VT & "endobj" & ASCII.LF &
+         "2 0 obj /Type /Page" & ASCII.FF & "endobj");
+      Write_Binary_File (Zip_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File
+        (Split_Zip_Path,
+         String'(1 .. 4094 => 'x') & "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File (Docx_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File (Xlsx_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_File (Mp3_Path, "ID3");
+      Write_File (Mp4_Path, "....ftyp");
+      Write_Binary_File (Tar_Gz_Path, Character'Val (16#1F#) & Character'Val (16#8B#) & "gzip");
+      Write_File (Ada_Path, "procedure Unit is" & ASCII.LF & "begin" & ASCII.LF & "null;" & ASCII.LF & "end;");
+      Write_File (Json_Path, "{""ok"":true}");
+      Write_File (Xml_Path, "<root/>");
+      GNAT.OS_Lib.Set_Executable (Run_Path);
+      Symlink_Created := Create_Symlink ("plain.txt", Symlink_Path);
+      Executable_Symlink_Created := Create_Symlink ("run.sh", Executable_Symlink_Path);
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Assert (Load.Success, "directory metadata load succeeds");
+
+      for Item of Load.Items loop
+         if To_String (Item.Name) = "run.sh" then
+            declare
+               Permissions : constant String := To_String (Item.Permissions);
+            begin
+               Found_Run := True;
+               Assert (Item.Kind = Files.Types.Executable_Item, "executable metadata affects item kind");
+               Assert (Item.Modified_Available, "modified timestamp is available");
+               Assert (Item.Size_Available, "file size is available");
+               if Item.Creation_Available then
+                  Assert
+                    (Item.Creation_Time >= Ada.Calendar.Time_Of (1970, 1, 1),
+                     "creation timestamp is populated when the filesystem reports it");
+               else
+                  Assert
+                    (Item.Creation_Time = Ada.Calendar.Time_Of (1901, 1, 1),
+                     "missing creation timestamp keeps deterministic sentinel");
+               end if;
+               Assert (Permissions'Length = 3, "permission metadata has stable rwx shape");
+               Assert (Permissions (3) = 'x', "executable permission is captured");
+            end;
+         elsif To_String (Item.Name) = "plain.txt" then
+            Assert (To_String (Item.Permissions)'Length = 3, "regular file permissions are captured");
+         elsif To_String (Item.Name) = "link-to-plain.adb" then
+            Found_Symlink := True;
+            Assert (Item.Kind = Files.Types.Symlink_Item, "symlink metadata affects item kind");
+            Assert
+              (To_String (Item.Filetype) = "inode/symlink",
+               "real symlink directory item ignores extension mappings");
+            Assert (To_String (Item.Icon_Id) = "link", "real symlink directory item uses link icon");
+            Assert
+              (To_String (Item.Filetype_Extra) = "symlink.target|plain.txt",
+               "real symlink directory item records target metadata");
+         elsif To_String (Item.Name) = "link-to-run.sh" then
+            Found_Executable_Symlink := True;
+            Assert
+              (Item.Kind = Files.Types.Symlink_Item,
+               "executable symlink metadata keeps symlink kind");
+            Assert
+              (To_String (Item.Filetype) = "inode/symlink",
+               "executable symlink filetype wins before executable metadata");
+            Assert
+              (To_String (Item.Filetype_Extra) = "symlink.target|run.sh",
+               "executable symlink records target metadata");
+         elsif To_String (Item.Name) = "long-line.txt" then
+            Found_Long_Text := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|ascii",
+               "long text lines count as one physical line");
+         elsif To_String (Item.Name) = "utf8.txt" then
+            Found_Utf8 := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|utf8",
+               "UTF-8 text files expose text encoding metadata");
+         elsif To_String (Item.Name) = "binary.txt" then
+            Found_Binary_Text := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+               "invalid text files expose binary encoding metadata");
+         elsif To_String (Item.Name) = "late-binary.txt" then
+            Found_Late_Binary_Text := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+               "text encoding metadata scans beyond the first read buffer");
+         elsif To_String (Item.Name) = "split-utf8.txt" then
+            Found_Split_Utf8 := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|utf8",
+               "text encoding metadata accepts UTF-8 split across read buffers");
+         elsif To_String (Item.Name) = "overlong.txt" then
+            Found_Overlong_Text := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+               "overlong UTF-8 text files expose binary encoding metadata");
+         elsif To_String (Item.Name) = "surrogate.txt" then
+            Found_Surrogate_Text := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+               "surrogate UTF-8 text files expose binary encoding metadata");
+         elsif To_String (Item.Name) = "notes.md" then
+            Found_Markdown := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "markdown.lines_encoding|2|ascii",
+               "Markdown files expose markdown line and encoding metadata");
+         elsif To_String (Item.Name) = "picture.png" then
+            Found_Png := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "image.dimensions|32x16",
+               "PNG dimensions are loaded as filetype-specific metadata");
+         elsif To_String (Item.Name) = "photo.jpg" then
+            Found_Jpeg := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "image.dimensions|48x24",
+               "JPEG dimensions tolerate fill bytes before frame markers");
+         elsif To_String (Item.Name) = "folder" then
+            Found_Dir := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "directory.count|1",
+               "directory item counts are loaded as filetype-specific metadata");
+         elsif To_String (Item.Name) = "paper.pdf" then
+            Found_Pdf := True;
+            Assert (To_String (Item.Filetype) = "application/pdf", "PDF extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "document.pdf.pages|1",
+               "PDF files expose page marker metadata");
+         elsif To_String (Item.Name) = "paper-control.pdf" then
+            Found_Pdf_Control := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "document.pdf.pages|2",
+               "PDF page markers accept vertical tab and form feed separators");
+         elsif To_String (Item.Name) = "bundle.zip" then
+            Found_Zip := True;
+            Assert (To_String (Item.Filetype) = "application/zip", "ZIP extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "archive.zip.entries|1",
+               "ZIP files expose entry-count metadata");
+         elsif To_String (Item.Name) = "split.zip" then
+            Found_Split_Zip := True;
+            Assert
+              (To_String (Item.Filetype_Extra) = "archive.zip.entries|1",
+               "ZIP entry counting detects signatures split across read buffers");
+         elsif To_String (Item.Name) = "report.docx" then
+            Found_Docx := True;
+            Assert
+              (To_String (Item.Filetype) =
+               "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+               "DOCX extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "office.docx.entries|1",
+               "DOCX files expose package entry-count metadata");
+         elsif To_String (Item.Name) = "sheet.xlsx" then
+            Found_Xlsx := True;
+            Assert
+              (To_String (Item.Filetype) =
+               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+               "XLSX extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "office.xlsx.entries|1",
+               "XLSX files expose package entry-count metadata");
+         elsif To_String (Item.Name) = "track.mp3" then
+            Found_Mp3 := True;
+            Assert (To_String (Item.Filetype) = "audio/mpeg", "MP3 extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "media.kind|audio",
+               "MP3 files expose audio metadata");
+         elsif To_String (Item.Name) = "clip.mp4" then
+            Found_Mp4 := True;
+            Assert (To_String (Item.Filetype) = "video/mp4", "MP4 extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "media.kind|video",
+               "MP4 files expose video metadata");
+         elsif To_String (Item.Name) = "archive.tar.gz" then
+            Found_Tar_Gz := True;
+            Assert (To_String (Item.Filetype) = "application/gzip-tar", "compound extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "archive.format|gzip",
+               "compound gzip-tar archive files expose gzip format metadata");
+         elsif To_String (Item.Name) = "unit.adb" then
+            Found_Ada := True;
+            Assert (To_String (Item.Filetype) = "text/x-ada", "Ada body extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "source.ada.lines_encoding|4|ascii",
+               "Ada source files expose source metadata");
+         elsif To_String (Item.Name) = "data.json" then
+            Found_Json := True;
+            Assert (To_String (Item.Filetype) = "application/json", "JSON extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "source.json.lines_encoding|1|ascii",
+               "JSON files expose source metadata");
+         elsif To_String (Item.Name) = "doc.xml" then
+            Found_Xml := True;
+            Assert (To_String (Item.Filetype) = "application/xml", "XML extension maps to filetype");
+            Assert
+              (To_String (Item.Filetype_Extra) = "source.xml.lines_encoding|1|ascii",
+               "XML files expose source metadata");
+         end if;
+      end loop;
+
+      Assert (Found_Run, "executable item was loaded");
+      if Symlink_Created then
+         Assert (Found_Symlink, "symlink item was loaded");
+      end if;
+      if Executable_Symlink_Created then
+         Assert (Found_Executable_Symlink, "executable symlink item was loaded");
+      end if;
+      Assert (Found_Long_Text, "long text line item was loaded");
+      Assert (Found_Utf8, "UTF-8 text item was loaded");
+      Assert (Found_Binary_Text, "binary text item was loaded");
+      Assert (Found_Late_Binary_Text, "late binary text item was loaded");
+      Assert (Found_Split_Utf8, "split UTF-8 text item was loaded");
+      Assert (Found_Overlong_Text, "overlong UTF-8 text item was loaded");
+      Assert (Found_Surrogate_Text, "surrogate UTF-8 text item was loaded");
+      Assert (Found_Markdown, "Markdown item was loaded");
+      Assert (Found_Png, "PNG item was loaded");
+      Assert (Found_Jpeg, "JPEG item was loaded");
+      Assert (Found_Dir, "directory item was loaded");
+      Assert (Found_Pdf, "PDF item was loaded");
+      Assert (Found_Pdf_Control, "PDF control-whitespace item was loaded");
+      Assert (Found_Zip, "ZIP item was loaded");
+      Assert (Found_Split_Zip, "split ZIP item was loaded");
+      Assert (Found_Docx, "DOCX item was loaded");
+      Assert (Found_Xlsx, "XLSX item was loaded");
+      Assert (Found_Mp3, "MP3 item was loaded");
+      Assert (Found_Mp4, "MP4 item was loaded");
+      Assert (Found_Tar_Gz, "compound archive item was loaded");
+      Assert (Found_Ada, "Ada item was loaded");
+      Assert (Found_Json, "JSON item was loaded");
+      Assert (Found_Xml, "XML item was loaded");
+   end Test_Directory_Metadata_Permissions;
+
+   procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Directory_Item : constant Files.File_System.Directory_Item :=
+        Files.File_System.Make_Item (Root, "src", Files.Types.Directory_Item);
+      Symlink_Item : constant Files.File_System.Directory_Item :=
+        Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item);
+      Executable_Item : constant Files.File_System.Directory_Item :=
+        Files.File_System.Make_Item (Root, "run", Files.Types.Executable_Item);
+      Regular_Item : constant Files.File_System.Directory_Item :=
+        Files.File_System.Make_Item ("", "loose.txt", Files.Types.Regular_File_Item);
+      Ada_Item : Files.File_System.Directory_Item;
+      Executable_Ada_Item : Files.File_System.Directory_Item;
+      Symlink_Ada_Item : Files.File_System.Directory_Item;
+      C1_Break : constant Character := Character'Val (133);
+   begin
+      Files.Settings.Add_Extension_Mapping (Settings, "adb", "text/x-ada");
+      Files.Settings.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
+      Files.Settings.Add_Icon_Mapping (Settings, "text/x-ada", "ada");
+      Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Settings);
+      Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Settings);
+      Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Settings);
+      Assert
+        (To_String (Directory_Item.Filetype) = "inode/directory",
+         "directory helper item gets directory filetype");
+      Assert (To_String (Directory_Item.Icon_Id) = "folder", "directory helper item gets directory icon");
+      Assert
+        (To_String (Symlink_Item.Filetype) = "inode/symlink",
+         "symlink helper item gets symlink filetype before extension mapping");
+      Assert (To_String (Symlink_Item.Icon_Id) = "link", "symlink helper item gets symlink icon");
+      Assert
+        (To_String (Executable_Item.Filetype) = "application/x-executable",
+         "executable helper item gets executable filetype");
+      Assert (To_String (Executable_Item.Icon_Id) = "executable", "executable helper item gets executable icon");
+      Assert
+        (To_String (Executable_Ada_Item.Filetype) = "application/x-executable",
+         "settings-aware executable helper item ignores extension mappings");
+      Assert
+        (To_String (Executable_Ada_Item.Icon_Id) = "executable",
+         "settings-aware executable helper item keeps executable icon");
+      Assert
+        (To_String (Symlink_Ada_Item.Filetype) = "inode/symlink",
+         "settings-aware symlink helper item ignores extension mappings");
+      Assert
+        (To_String (Symlink_Ada_Item.Icon_Id) = "link",
+         "settings-aware symlink helper item keeps symlink icon");
+      Assert
+        (To_String (Regular_Item.Filetype) = "text/plain",
+         "regular helper item uses default extension mapping");
+      Assert (To_String (Regular_Item.Icon_Id) = "text", "regular helper item uses mapped text icon");
+      Assert
+        (To_String (Ada_Item.Filetype) = "text/x-ada",
+         "settings-aware helper item uses custom extension mapping");
+      Assert (To_String (Ada_Item.Icon_Id) = "ada", "settings-aware helper item uses custom icon mapping");
+      Assert
+        (To_String (Regular_Item.Full_Path) = "loose.txt",
+         "helper item with empty parent uses simple path");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Directory_Item, "src") = "inode/directory",
+         "directory filetype wins before extension mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Executable_Item, "tool.adb") =
+           "application/x-executable",
+         "executable filetype wins before extension mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Symlink_Item, "link.adb") = "inode/symlink",
+         "symlink filetype wins before extension mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "main.adb") = "text/x-ada",
+         "extension mapping is used for regular files");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "MAIN.ADB") = "text/x-ada",
+         "filetype detection normalizes filename extension case before mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "archive.tar.gz") =
+           "application/gzip-tar",
+         "compound extension mapping wins over final suffix mapping");
+      Assert (Files.File_Types.Extension_Of ("archive.tar.gz") = "gz", "final extension is extracted");
+      Assert (Files.File_Types.Extension_Of ("MAIN.ADB") = "adb", "extension extraction normalizes case");
+      Assert (Files.File_Types.Extension_Of (".profile") = "", "leading-dot file has no extension");
+      Assert (Files.File_Types.Extension_Of ("name.") = "", "trailing-dot file has no extension");
+      Assert (Files.File_Types.Extension_Of (" main.adb ") = "adb", "extension extraction trims whitespace");
+      Assert
+        (Files.File_Types.Extension_Of (ASCII.LF & "main.adb" & ASCII.LF) = "adb",
+         "extension extraction trims line-feed whitespace");
+      Assert
+        (Files.File_Types.Extension_Of (ASCII.VT & "main.adb" & ASCII.FF) = "adb",
+         "extension extraction trims vertical-tab and form-feed whitespace");
+      Assert
+        (Files.File_Types.Extension_Of (C1_Break & "main.adb" & C1_Break) = "adb",
+         "extension extraction trims C1 line-break whitespace");
+      Assert (Files.File_Types.Extension_Of ("   ") = "", "blank filename has no extension");
+      Assert
+        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/main.adb") = "adb",
+         "extension extraction uses the Unix path leaf name");
+      Assert
+        (Files.File_Types.Extension_Of ("C:\tmp\dir.with.dots\main.adb") = "adb",
+         "extension extraction uses the Windows path leaf name");
+      Assert
+        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/file") = "",
+         "extension extraction ignores dotted directory names");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ".profile") =
+         "application/octet-stream",
+         "leading-dot file does not match an extension mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype
+           (Settings,
+            Files.Types.Regular_File_Item,
+            "/tmp/dir.with.dots/main.adb") = "text/x-ada",
+         "filetype detection uses the Unix path leaf name");
+      Assert
+        (Files.File_Types.Detect_Filetype
+           (Settings,
+            Files.Types.Regular_File_Item,
+            "C:\tmp\dir.with.dots\main.adb") = "text/x-ada",
+         "filetype detection uses the Windows path leaf name");
+      Assert
+        (Files.File_Types.Detect_Filetype
+           (Settings,
+            Files.Types.Regular_File_Item,
+            "/tmp/dir.with.dots/file") = "application/octet-stream",
+         "filetype detection ignores dotted directory names");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, " main.adb ") = "text/x-ada",
+         "filetype detection trims filename whitespace before mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Unknown_Item, "mystery.adb") = "text/x-ada",
+         "unknown item filetype still uses configured extension mappings");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Other_Item, "socket") = "application/octet-stream",
+         "other item filetype falls back deterministically without mapping");
+      Files.Settings.Add_Extension_Mapping (Settings, "backup.tar.gz", "application/x-backup");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "weekly.backup.tar.gz") =
+           "application/x-backup",
+         "custom compound extension mapping uses the longest configured suffix");
+      Assert
+        (Files.File_Types.Detect_Filetype
+           (Settings,
+            Files.Types.Regular_File_Item,
+            ASCII.LF & "main.adb" & ASCII.LF) = "text/x-ada",
+         "filetype detection trims line-feed filename whitespace before mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype
+           (Settings,
+            Files.Types.Regular_File_Item,
+            ASCII.VT & "main.adb" & ASCII.FF) = "text/x-ada",
+         "filetype detection trims vertical-tab and form-feed filename whitespace before mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype
+           (Settings,
+            Files.Types.Regular_File_Item,
+            C1_Break & "main.adb" & C1_Break) = "text/x-ada",
+         "filetype detection trims C1 line-break filename whitespace before mapping");
+      Assert
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "blob.bin") =
+           "application/octet-stream",
+         "unknown extension falls back deterministically");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, "inode/symlink") = "link",
+         "symlink icon mapping is used");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, " inode/symlink ") = "link",
+         "icon classification trims filetype whitespace before mapping");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, " text/x-ada ") = "ada",
+         "mapped regular-file icon classification trims filetype whitespace");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, "application/x-custom") =
+           "unknown",
+         "unmapped regular-file icon falls back deterministically");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Directory_Item, "") = "folder",
+         "directory icon falls back by item kind without mapping");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, "") = "link",
+         "symlink icon falls back by item kind without mapping");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Executable_Item, "") = "executable",
+         "executable icon falls back by item kind without mapping");
+      Assert
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Other_Item, "") = "unknown",
+         "other item icon falls back deterministically without mapping");
+   end Test_Filetype_Detection;
+
+   procedure Test_View_Mode_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model : Files.Model.Window_Model := Sample_Model;
+   begin
+      Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Large_Icons, "large icons can be selected");
+      Files.Commands.Execute (Files.Commands.Select_Details_Command, Model);
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details command selects details");
+      Files.Commands.Execute (Files.Commands.Select_Small_Icons_Command, Model);
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small command clears prior mode");
+   end Test_View_Mode_State;
+
+   procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Files.Model.Move_Selection (Model, Files.Types.Move_Right);
+      Assert (Files.Model.Selected_Index (Model) = 1, "first movement selects first visible item");
+      Files.Model.Move_Selection (Model, Files.Types.Move_Left);
+      Assert (Files.Model.Selected_Index (Model) = 3, "left from first wraps to last");
+      Files.Model.Move_Selection (Model, Files.Types.Move_Right);
+      Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first");
+      Files.Model.Move_Selection (Model, Files.Types.Move_Up);
+      Assert (Files.Model.Selected_Index (Model) = 3, "up from first wraps to last");
+      Files.Model.Move_Selection (Model, Files.Types.Move_Right);
+      Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first after up wrap");
+      Files.Model.Move_Selection (Model, Files.Types.Move_Down);
+      Assert (Files.Model.Selected_Index (Model) = 2, "down advances selection");
+      Files.Model.Toggle_Visible_Selection (Model, 1);
+      Assert (Files.Model.Selected_Count (Model) = 2, "toggle adds a second deterministic selection");
+      Assert (Files.Model.Is_Selected (Model, 1), "first toggled item is selected");
+      Assert (Files.Model.Is_Selected (Model, 2), "primary item remains selected");
+      declare
+         Selected_Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      begin
+         Assert (Natural (Selected_Items.Length) = 2, "selected items API returns all selected items");
+         Assert (To_String (Selected_Items.Element (1).Name) = "Alpha.txt", "selected items use item order");
+         Assert (To_String (Selected_Items.Element (2).Name) = "Beta.txt", "selected items include primary item");
+      end;
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Assert (Files.Model.Selected_Count (Model) = 1, "toggle removes selected item");
+      Assert (Files.Model.Selected_Index (Model) = 1, "primary selection falls back to remaining selected item");
+      Files.Model.Clear_Selection (Model);
+      Assert (Files.Model.Selected_Count (Model) = 0, "clear selection empties deterministic selection set");
+      Files.Model.Select_Visible (Model, 2);
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "controller arrow moves selection");
+      Assert (Files.Model.Selected_Index (Model) = 3, "controller down advances selection");
+      Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Modifiers => Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "control-click toggles selection");
+      Assert (Files.Model.Selected_Count (Model) = 2, "control-click adds to selection");
+      Assert (Files.Model.Is_Selected (Model, 1), "control-click selects clicked item");
+      Assert (Files.Model.Is_Selected (Model, 3), "control-click preserves existing selection");
+      Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Ctrl);
+      Assert (Files.Model.Selected_Count (Model) = 1, "second control-click removes selected item");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Select_Visible_Range (Model, 1, 3);
+      Assert (Files.Model.Selected_Count (Model) = 3, "range selection selects every visible item");
+      Assert (Files.Model.Is_Selected (Model, 1), "range selection includes anchor");
+      Assert (Files.Model.Is_Selected (Model, 2), "range selection includes middle item");
+      Assert (Files.Model.Is_Selected (Model, 3), "range selection includes target");
+      Files.Model.Select_Visible_Range (Model, 3, 1);
+      Assert (Files.Model.Selected_Count (Model) = 3, "reverse range selection selects every visible item");
+      Assert (Files.Model.Selected_Index (Model) = 1, "reverse range selection makes target primary");
+      Assert (Files.Model.Is_Selected (Model, 1), "reverse range selection includes target");
+      Assert (Files.Model.Is_Selected (Model, 2), "reverse range selection includes middle item");
+      Assert (Files.Model.Is_Selected (Model, 3), "reverse range selection includes anchor");
+      Files.Model.Select_Visible (Model, 1);
+      declare
+         Shift : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      begin
+         Shift (Files.Types.Shift_Key) := True;
+         Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Shift);
+      end;
+      Assert (Files.Model.Selected_Count (Model) = 3, "shift-click selects a deterministic visible range");
+      Assert (Files.Model.Selected_Index (Model) = 3, "shift-click makes the clicked item primary");
+      Files.Model.Select_Visible (Model, 3);
+      Files.Model.Focus_Path_Input (Model);
+      declare
+         Before_Focused_Key : constant Natural := Files.Model.Selected_Index (Model);
+      begin
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+         Assert (Result.Status = Files.Controller.Controller_Ignored, "focused input suppresses arrow selection");
+         Assert
+           (Files.Model.Selected_Index (Model) = Before_Focused_Key,
+            "focused input keeps selection unchanged");
+      end;
+   end Test_Selection_Movement;
+
+   procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model        : Files.Model.Window_Model := Sample_Model;
+      Missing_Item : Files.File_System.Directory_Item;
+      Result       : Files.Controller.Controller_Result;
+   begin
+      Missing_Item := Files.Model.Visible_Item (Model, 99);
+      Assert (To_String (Missing_Item.Name) = "", "invalid visible item index returns empty item");
+      Assert (Missing_Item.Kind = Files.Types.Unknown_Item, "invalid visible item index returns unknown kind");
+      Files.Model.Select_Visible (Model, 3);
+      Files.Model.Set_Filter (Model, "alp");
+      Assert (Files.Model.Visible_Count (Model) = 1, "filter matches item names case-insensitively");
+      Assert (Files.Model.Selected_Index (Model) = 1, "filtered-out selection moves to first visible item");
+      Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "selection points to visible item");
+      Assert (Files.Model.Is_Selected (Model, 1), "selected visible item is reported selected");
+      Assert (not Files.Model.Is_Selected (Model, 2), "out-of-range visible item is not selected");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single visible item movement is ignored");
+      Assert (Files.Model.Selected_Index (Model) = 1, "single visible item movement keeps selection");
+      Files.Model.Clear_Filter (Model);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Toggle_Visible_Selection (Model, 3);
+      Assert (Files.Model.Selected_Count (Model) = 3, "filter reconciliation starts from multi-selection");
+      Files.Model.Set_Filter (Model, "beta");
+      Assert (Files.Model.Visible_Count (Model) = 1, "multi-selection filter leaves one visible item");
+      Assert
+        (Files.Model.Selected_Count (Model) = 1,
+         "filter reconciliation drops invisible multi-selected items");
+      Assert
+        (Files.Model.Selected_Name (Model) = "Beta.txt",
+         "filter reconciliation keeps visible multi-selected item primary");
+      Files.Model.Set_Filter (Model, "zzz");
+      Assert (Files.Model.Visible_Count (Model) = 0, "unmatched filter hides all items");
+      Assert (Files.Model.Selected_Count (Model) = 0, "selection becomes empty when no items are visible");
+      Files.Model.Move_Selection (Model, Files.Types.Move_Down);
+      Assert (Files.Model.Selected_Count (Model) = 0, "moving selection with no visible items stays empty");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty visible selection movement is ignored");
+   end Test_Filtering_Reconciles_Selection;
+
+   procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model : Files.Model.Window_Model := Sample_Model;
+      Items : constant Files.File_System.Item_Vectors.Vector := Sample_Items;
+   begin
+      Files.Model.Go_Back (Model);
+      Assert (Files.Model.Current_Path (Model) = Root, "empty back history leaves path unchanged");
+      Files.Model.Go_Forward (Model);
+      Assert (Files.Model.Current_Path (Model) = Root, "empty forward history leaves path unchanged");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Assert (Files.Model.Selected_Count (Model) = 2, "history test starts with multi-selection");
+      Files.Model.Navigate_To (Model, Root, Items);
+      Assert (not Files.Model.Can_Go_Back (Model), "same-path navigation does not push history");
+      Assert (Files.Model.Selected_Count (Model) = 0, "same-path navigation clears multi-selection state");
+
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Navigate_To (Model, "/tmp/files_aunit/second", Items);
+      Assert (Files.Model.Selected_Count (Model) = 0, "navigation clears multi-selection state");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Navigate_To (Model, "/tmp/files_aunit/third", Items);
+      Assert (Files.Model.Selected_Count (Model) = 0, "second navigation clears multi-selection state");
+      Assert (Files.Model.Can_Go_Back (Model), "back is enabled after navigation");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Begin_Create_File (Model, "history-pending.txt");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Files.Model.Set_Path_Input_Text (Model, "/tmp/bad-history-path");
+      Files.Model.Go_Back (Model);
+      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/second", "back restores previous path");
+      Assert (Files.Model.Selected_Count (Model) = 0, "back clears multi-selection state");
+      Assert (Files.Model.Path_Input_Text (Model) = "/tmp/files_aunit/second", "back restores path input text");
+      Assert (Files.Model.Path_Input_Is_Valid (Model), "back clears path validation state");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "back clears rename state");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "back closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "back clears command palette query");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "back clears focus");
+      Assert (Files.Model.Can_Go_Forward (Model), "forward is enabled after back");
+      Files.Model.Navigate_To (Model, "/tmp/files_aunit/branch", Items);
+      Assert (not Files.Model.Can_Go_Forward (Model), "new navigation after back clears forward history");
+      Files.Model.Go_Back (Model);
+      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/second", "back reaches branch origin");
+      Files.Model.Begin_Create_File (Model, "forward-pending.txt");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.forward");
+      Files.Model.Go_Forward (Model);
+      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/branch", "forward reaches branch path");
+      Assert (Files.Model.Selected_Count (Model) = 0, "forward clears multi-selection state");
+      Assert (Files.Model.Path_Input_Text (Model) = "/tmp/files_aunit/branch", "forward restores path input text");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "forward clears rename state");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "forward closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "forward clears command palette query");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "forward clears focus");
+      Files.Model.Go_Forward (Model);
+      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/branch", "forward is exhausted after branch path");
+      Files.Model.Go_Home (Model);
+      Assert (Files.Model.Current_Path (Model) = "/home/test", "home navigates to model home path");
+   end Test_Path_History;
+
+   procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model   : Files.Model.Window_Model := Sample_Model;
+      Empty   : Files.File_System.Item_Vectors.Vector;
+      Invalid : constant Files.File_System.Path_Result :=
+        (Status         => Files.File_System.Path_Missing,
+         Directory_Path => Null_Unbounded_String,
+         Error_Key      => To_Unbounded_String ("error.path.missing"));
+      Valid   : constant Files.File_System.Path_Result :=
+        (Status         => Files.File_System.Path_Valid,
+         Directory_Path => To_Unbounded_String ("/tmp/files_aunit/valid"),
+         Error_Key      => Null_Unbounded_String);
+   begin
+      Files.Model.Focus_Path_Input (Model);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path input receives focus directly");
+      Assert (Files.Model.Path_Input_Text (Model) = Root, "path input focus restores current path text");
+      Files.Model.Set_Path_Input_Text (Model, "/does/not/exist");
+      Files.Model.Commit_Path_Input (Model, Invalid, Empty);
+      Assert (not Files.Model.Path_Input_Is_Valid (Model), "invalid input sets validation state");
+      Assert (Files.Model.Path_Input_Error_Key (Model) = "error.path.missing", "invalid input records error key");
+      Assert (Files.Model.Current_Path (Model) = Root, "invalid input does not change current path");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "invalid path input keeps focus");
+      Files.Model.Focus_Filter_Input (Model);
+      Files.Model.Focus_Path_Input (Model);
+      Assert (Files.Model.Path_Input_Text (Model) = Root, "refocus restores current path after invalid input");
+      Assert (Files.Model.Path_Input_Is_Valid (Model), "refocus clears stale path validation state");
+      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "refocus clears stale path validation error");
+      Files.Model.Set_Path_Input_Text (Model, "/does/not/exist");
+      Files.Model.Commit_Path_Input (Model, Invalid, Empty);
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Assert (Files.Model.Path_Input_Text (Model) = Root, "escape restores current path text");
+      Assert (Files.Model.Path_Input_Is_Valid (Model), "escape clears path validation state");
+      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "escape clears path validation error");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "escape clears path input focus");
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 4);
+      Files.Model.Focus_Path_Input (Model);
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "path input focus closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "path input focus clears palette query");
+      Assert
+        (Files.Model.Command_Palette_Selected_Index (Model) = 0,
+         "path input focus clears palette selected index");
+      Files.Model.Set_Path_Input_Text (Model, "/tmp/files_aunit/valid");
+      Files.Model.Commit_Path_Input (Model, Valid, Empty);
+      Assert (Files.Model.Path_Input_Is_Valid (Model), "valid input clears validation state");
+      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "valid input clears validation error key");
+      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/valid", "valid input changes path");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "valid path input clears focus");
+   end Test_Path_Input_Validation;
+
+   procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Empty    : Files.File_System.Item_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.No_Command, Model), "no-command is never enabled");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model), "create is enabled initially");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Focus_Filter_Input_Command, Model),
+         "filter focus is enabled initially");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
+         "clear filter is disabled without filter text");
+      Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled clear-filter command is ignored");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled clear-filter returns operation data");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.filter.empty", "disabled clear-filter records error");
+      Files.Model.Set_Filter (Model, "alpha");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
+         "clear filter is enabled with filter text");
+      Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Clear_Filter_Command, "clear-filter command is reported");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "enabled clear-filter reports successful state-only operation");
+      Assert (Files.Model.Filter_Text (Model) = "", "clear-filter command clears filter text");
+      Model := Sample_Model;
+      Files.Commands.Execute (Files.Commands.No_Command, Model);
+      Assert (Files.Model.Current_Path (Model) = Root, "direct no-command execution does not change path");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "direct no-command execution preserves view");
+
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back disabled initially");
+      Files.Commands.Execute (Files.Commands.Navigate_Back_Command, Model);
+      Assert (Files.Model.Current_Path (Model) = Root, "direct disabled back command does not change path");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled back command is ignored");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled back returns operation data");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.history.back_unavailable", "disabled back records error");
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled back click is ignored");
+      Assert (Result.Command = Files.Commands.Navigate_Back_Command, "disabled back click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled back click returns operation data");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+         "delete disabled with no selection");
+      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled delete command is ignored");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled delete returns operation data");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "disabled delete records error");
+      Result := Files.Controller.Execute_Command (Files.Commands.Rename_Selected_Items_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled rename command is ignored");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled rename returns operation data");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "disabled rename records error");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+         "context cancel disabled with no transient state");
+      Files.Model.Focus_Path_Input (Model);
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+         "context cancel enabled while path input has focus");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Select_Drive_Command, "drive selector command is controller-routed");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "drive selector reports successful state-only operation");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "drive selector clears stale error state");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+         "context cancel enabled while root selector is open");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Model := Sample_Model;
+      Files.Commands.Execute (Files.Commands.Select_Drive_Command, Model);
+      Assert
+        (not Files.Model.Root_Selector_Is_Open (Model),
+         "pure drive selector command does not inspect filesystem roots");
+      Files.Commands.Execute (Files.Commands.Create_File_Command, Model);
+      Assert
+        (not Files.Model.Temporary_Item_Is_Active (Model),
+         "pure create command does not inspect filesystem names");
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Commands.Execute (Files.Commands.Select_Details_Command, Model);
+      Assert
+        (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons,
+         "pure command execution respects root-selector modal disablement");
+      Files.Commands.Execute (Files.Commands.Close_Command_Palette_Command, Model);
+      Assert
+        (not Files.Model.Root_Selector_Is_Open (Model),
+         "pure context cancel can close root selector");
+      Files.Model.Navigate_To (Model, "/tmp/files_aunit/direct-next", Empty);
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "direct back can be enabled");
+      Files.Commands.Execute (Files.Commands.Navigate_Back_Command, Model);
+      Assert
+        (Files.Model.Current_Path (Model) = "/tmp/files_aunit/direct-next",
+         "pure back command does not reload or navigate history");
+      Files.Commands.Execute (Files.Commands.Navigate_Forward_Command, Model);
+      Assert
+        (Files.Model.Current_Path (Model) = "/tmp/files_aunit/direct-next",
+         "pure forward command does not reload or navigate history");
+      Model := Sample_Model;
+      Files.Model.Move_Selection (Model, Files.Types.Move_Right);
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+         "delete enabled with selection");
+      Files.Commands.Execute (Files.Commands.Open_Selected_Items_Command, Model);
+      Assert
+        (Files.Model.Current_Path (Model) = Root,
+         "pure open command does not load selected items");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+         "rename enabled with one selected item");
+      Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+         "context cancel enabled while rename is active");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Toggle_Settings_Pane_Command, Model),
+         "settings pane command is enabled in the normal model state");
+      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+      Assert
+        (not Files.Model.Settings_Pane_Is_Open (Model),
+         "pure settings command does not open unseeded settings pane");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
+         "save settings is disabled without settings pane");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
+         "reset settings is disabled without settings pane");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Import_Settings_Command, Model),
+         "import settings is disabled without settings pane");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Export_Settings_Command, Model),
+         "export settings is disabled without settings pane");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens settings pane with editable draft");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "settings toggle reports successful state-only operation");
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+         "settings pane receives editable settings focus");
+      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+      Files.Model.Begin_Create_File (Model, "settings-pending.txt");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "settings.toggle");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert
+        (Files.Model.Settings_Pane_Is_Open (Model),
+         "controller opens settings pane over pending create");
+      Assert
+        (not Files.Model.Temporary_Item_Is_Active (Model),
+         "settings pane opening clears pending create state");
+      Assert
+        (not Files.Model.Rename_Is_Active (Model),
+         "settings pane opening clears pending rename state");
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+         "settings pane opening focuses settings after clearing edit state");
+      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+      Assert
+        (not Files.Model.Settings_Pane_Is_Open (Model),
+         "pure settings command can close seeded settings pane");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller reopens settings pane with editable draft");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model), "save settings is enabled");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model), "reset settings is enabled");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Import_Settings_Command, Model), "import settings is enabled");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Export_Settings_Command, Model), "export settings is enabled");
+      Files.Controller.Replace_Focused_Text (Model, "details");
+      Assert (Files.Model.Settings_Field_Text (Model) = "details", "settings draft field is editable");
+      Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Reset_Settings_Command, "reset settings command is reported");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "reset settings reports success");
+      Assert
+        (Files.Model.Settings_Field_Text (Model) = "small_icons",
+         "reset settings restores default draft view mode");
+      Result := Files.Controller.Execute_Command (Files.Commands.Import_Settings_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Import_Settings_Command, "pure import settings command is reported");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "pure import settings command requires a runtime-selected path");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.dialog.native_unavailable",
+         "pure import settings command reports missing runtime dialog path");
+      Result := Files.Controller.Execute_Command (Files.Commands.Export_Settings_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Export_Settings_Command, "pure export settings command is reported");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "pure export settings command requires a runtime-selected path");
+      Result := Files.Controller.Execute_Command (Files.Commands.Save_Settings_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Save_Settings_Command, "pure save settings command is reported");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "pure save settings command keeps runtime path-resolution sentinel");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 2);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings option click reports update");
+      Assert (Files.Model.Settings_Field_Text (Model) = "large_icons", "settings option click updates scalar value");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 2);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "same settings option click is ignored");
+      Files.Model.Set_Settings_Field_Index (Model, 2);
+      Files.Controller.Replace_Focused_Text (Model, "true");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 2, Option => 4);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "unsupported settings option is ignored");
+      Assert
+        (Files.Model.Settings_Field_Text (Model) = "true",
+         "unsupported settings option does not mutate boolean setting");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 99);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "unsupported settings field is ignored");
+      Assert (Files.Model.Settings_Field_Index (Model) = 2, "unsupported settings field does not clamp focus");
+      Assert
+        (Files.Model.Settings_Field_Text (Model) = "true",
+         "unsupported settings field does not mutate settings text");
+      Files.Model.Set_Settings_Field_Index (Model, 7);
+      Files.Controller.Replace_Focused_Text (Model, "ab");
+      Files.Model.Set_Text_Cursor_Position (Model, 1);
+      declare
+         Utf8_Text : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
+         Draft     : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      begin
+         Draft.Icon_Theme_Name := To_Unbounded_String (Utf8_Text);
+         Files.Model.Set_Settings_Draft (Model, Draft);
+         Assert
+           (Files.Model.Text_Cursor_Position (Model) = 0,
+            "settings draft replacement snaps stale UTF-8 cursor to character boundary");
+         Draft.Icon_Theme_Name := To_Unbounded_String ("files-basic");
+         Files.Model.Set_Settings_Draft (Model, Draft);
+      end;
+      Files.Model.Set_Settings_Field_Index (Model, 2);
+      declare
+         Old_Mapping_Count : constant Natural :=
+           Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length);
+      begin
+         Result := Files.Controller.Handle_Settings_Click (Model, Field => 9, Option => 100);
+         Assert (Result.Status = Files.Controller.Controller_Ignored, "settings value-field add click is ignored");
+         Assert (Files.Model.Settings_Field_Index (Model) = 2, "settings value-field add click does not move focus");
+         Assert
+           (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length) = Old_Mapping_Count,
+            "settings value-field add click does not create a mapping row");
+      end;
+      Files.Model.Set_Settings_Field_Index (Model, 1);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_S, Ctrl);
+      Assert (Result.Command = Files.Commands.Save_Settings_Command, "control+s routes settings save command");
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "control+s reports settings save command execution for runtime persistence");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_N, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores add-entry shortcut");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+      Assert
+        (Result.Status = Files.Controller.Controller_Ignored,
+         "scalar settings field ignores remove-entry shortcut");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores entry paging");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Files.Model.Settings_Field_Index (Model) = 2, "down moves to next settings field");
+      Files.Controller.Replace_Focused_Text (Model, "maybe");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Failed,
+         "invalid settings field Return reports validation failure");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.settings.invalid_boolean",
+         "invalid settings field Return reports diagnostic key");
+      Files.Controller.Replace_Focused_Text (Model, "true");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "valid settings field Return reports validation success");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "valid settings draft field validates on Return");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "controller closes settings pane");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 2);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "closed settings text click is ignored");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed settings text click does not focus input");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "settings.toggle");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Rename (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens from palette state");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "settings pane opening closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "settings pane opening clears palette query");
+      Assert (not Files.Model.Rename_Is_Active (Model), "settings pane opening clears active rename state");
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+         "settings pane opening moves focus to settings input");
+      Files.Model.Select_Visible (Model, 1);
+      Assert
+        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Save_Settings_Command),
+         "settings pane allowlist includes save");
+      Assert
+        (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Delete_Selected_Items_Command),
+         "settings pane allowlist excludes background delete");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+         "settings pane disables background delete command");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
+         "settings pane disables background open command");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
+         "settings pane keeps save command enabled");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Open_Command_Palette_Command, Model),
+         "settings pane keeps palette command enabled");
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background delete command");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+         "settings modal block preserves existing error");
+      Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background item click");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input, "blocked item click keeps settings focus");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background path text click");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input, "blocked text click keeps settings focus");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings pane accepts settings text click");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane remains open after focus Escape");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "settings Escape clears settings focus");
+      Assert (Files.Model.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background selection keys");
+      Assert
+        (Files.Model.Selected_Item (Model).Name = "Alpha.txt",
+         "settings pane keeps background selection unchanged");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings pane can regain settings focus");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "palette can open over settings pane");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "palette blocks settings click behind overlay");
+      Assert
+        (Files.Model.Settings_Field_Text (Model) /= "details",
+         "blocked settings click leaves settings field unchanged");
+      Files.Model.Close_Command_Palette (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before history enablement check");
+      Files.Model.Navigate_To (Model, "/tmp/files_aunit/next", Empty);
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back enabled after navigation");
+   end Test_Command_Enablement;
+
+   procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Roots_A  : Files.Types.String_Vectors.Vector;
+      Roots_B  : Files.Types.String_Vectors.Vector;
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Root_Status : Files.File_System.Root_Discovery_Diagnostics;
+      Volume_Caps : constant Files.File_System.Root_Volume_Capabilities :=
+        Files.File_System.Root_Volume_Capabilities_Of_Current_Environment;
+      Edge_Profile : constant Files.File_System.Filesystem_Edge_Case_Profile :=
+        Files.File_System.Filesystem_Edge_Case_Profile_Of_Current_Environment;
+      Linux_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Linux);
+      Windows_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Windows);
+      Macos_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Macos);
+      Had_Home       : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_User_Profile : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
+      Had_Home_Drive : constant Boolean := Ada.Environment_Variables.Exists ("HOMEDRIVE");
+      Had_Home_Path  : constant Boolean := Ada.Environment_Variables.Exists ("HOMEPATH");
+      Old_Home       : Unbounded_String;
+      Old_User_Profile : Unbounded_String;
+      Old_Home_Drive : Unbounded_String;
+      Old_Home_Path  : Unbounded_String;
+
+      function Repository_File_Contains
+        (Path    : String;
+         Pattern : String)
+         return Boolean is
+      begin
+         return
+           (Project_Tools.Files.File_Exists (Path)
+            and then Project_Tools.Files.File_Contains (Path, Pattern))
+           or else
+           (Project_Tools.Files.File_Exists ("../" & Path)
+            and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
+           or else
+           (Project_Tools.Files.File_Exists ("../../" & Path)
+           and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
+      end Repository_File_Contains;
+
+      procedure Restore_Root_Environment is
+      begin
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+
+         if Had_User_Profile then
+            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_User_Profile));
+         else
+            Ada.Environment_Variables.Clear ("USERPROFILE");
+         end if;
+
+         if Had_Home_Drive then
+            Ada.Environment_Variables.Set ("HOMEDRIVE", To_String (Old_Home_Drive));
+         else
+            Ada.Environment_Variables.Clear ("HOMEDRIVE");
+         end if;
+
+         if Had_Home_Path then
+            Ada.Environment_Variables.Set ("HOMEPATH", To_String (Old_Home_Path));
+         else
+            Ada.Environment_Variables.Clear ("HOMEPATH");
+         end if;
+      end Restore_Root_Environment;
+
+   begin
+      if Had_Home then
+         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_User_Profile then
+         Old_User_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
+      end if;
+      if Had_Home_Drive then
+         Old_Home_Drive := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEDRIVE"));
+      end if;
+      if Had_Home_Path then
+         Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
+      end if;
+
+      Ctrl (Files.Types.Control_Key) := True;
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Roots_A := Files.File_System.Available_Roots;
+      Roots_B := Files.File_System.Available_Roots;
+      Entries := Files.File_System.Available_Root_Entries;
+      Root_Status := Files.File_System.Root_Discovery_Status;
+      Assert (not Roots_A.Is_Empty, "available roots is never empty");
+      Assert (Natural (Entries.Length) = Natural (Roots_A.Length), "root metadata count matches root paths");
+      Assert (Root_Status.Root_Count = Natural (Entries.Length), "root diagnostics count discovered roots");
+      Assert (Root_Status.Ready_Count = Natural (Entries.Length), "root diagnostics count ready roots");
+      Assert (Root_Status.Duplicate_Paths_Removed, "root diagnostics expose duplicate-removal policy");
+      Assert (Root_Status.Deterministic_Order, "root diagnostics expose deterministic ordering policy");
+      Assert
+        (not Volume_Caps.Labels_From_Platform_Api,
+         "root volume capabilities do not claim platform labels yet");
+      Assert (Volume_Caps.Readiness_From_Platform_Api, "root volume capabilities expose readiness checks");
+      Assert
+        (Volume_Caps.Capacity_From_Platform_Api = Volume_Caps.Capacity_Bytes_Known,
+         "root volume capacity capability matches capacity-byte availability");
+      Assert
+        (Volume_Caps.Native_Binding_Status = Files.File_System.Native_API_Binding_Available,
+         "current target exposes native volume binding status");
+      Assert
+        (To_String (Volume_Caps.Binding_Unit) = "Files.File_System",
+         "root volume capabilities expose binding unit");
+      Assert
+        (Edge_Profile.Permission_Errors_Recoverable,
+         "filesystem edge-case profile records recoverable permission errors");
+      Assert (Edge_Profile.Symlink_Items_Represented, "filesystem edge-case profile records symlink items");
+      Assert
+        (Edge_Profile.Special_File_Items_Represented,
+         "filesystem edge-case profile records special file items");
+      Assert
+        (Edge_Profile.Cross_Device_Rename_Recoverable,
+         "filesystem edge-case profile records recoverable cross-device rename failures");
+      Assert (Edge_Profile.Trash_Preflight, "filesystem edge-case profile records trash preflight");
+      Assert
+        (Edge_Profile.Metadata_Partial_Items,
+         "filesystem edge-case profile records partial metadata items");
+      Assert
+        (Edge_Profile.Removable_Root_Metadata,
+         "filesystem edge-case profile records removable root metadata");
+      Assert
+        (Edge_Profile.Native_Root_Volume_Details,
+         "filesystem edge-case profile records native root volume details");
+      Assert
+        (Linux_Profile.Adapter = Files.File_System.Native_Adapter_Linux,
+         "Linux native profile identifies adapter");
+      Assert (Linux_Profile.Current_Target, "Linux native profile marks current target");
+      Assert
+        (Linux_Profile.Volume_Binding_Status = Volume_Caps.Native_Binding_Status,
+         "Linux native profile follows volume capability binding status");
+      Assert
+        (To_String (Linux_Profile.Volume_Binding_Unit) = "Files.File_System.Root_Volume_Details_For",
+         "Linux native profile records volume binding unit");
+      Assert
+        (Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
+         "Windows native profile is not active on this target");
+      Assert
+        (To_String (Windows_Profile.Trash_Binding_Unit) = "Files.Platform.Windows.Trash",
+         "Windows native profile records trash binding unit");
+      Assert
+        (To_String (Windows_Profile.Volume_API_Name) = "GetVolumeInformationW+GetDiskFreeSpaceExW",
+         "Windows native profile records volume APIs");
+      Assert
+        (Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
+         "macOS native profile is not active on this target");
+      Assert
+        (To_String (Macos_Profile.Required_Framework) = "Foundation",
+         "macOS native profile records required framework");
+      Assert
+        (Repository_File_Contains ("files.gpr", "src/platform/windows"),
+         "project file selects Windows platform bodies for Windows targets");
+      Assert
+        (Repository_File_Contains ("files.gpr", "src/platform/macos"),
+         "project file selects macOS platform bodies for macOS targets");
+      Assert
+        (Repository_File_Contains
+           ("src/platform/windows/files-platform-windows-trash.adb",
+            "External_Name => ""SHFileOperationW"""),
+         "Windows trash binding body imports the native recycle-bin API");
+      Assert
+        (Repository_File_Contains
+           ("src/platform/windows/files-platform-windows-volumes.adb",
+            "External_Name => ""GetVolumeInformationW"""),
+         "Windows volume binding body imports volume-label API");
+      Assert
+        (Repository_File_Contains
+           ("src/platform/windows/files-platform-windows-volumes.adb",
+            "External_Name => ""GetDiskFreeSpaceExW"""),
+         "Windows volume binding body imports volume-capacity API");
+      Assert
+        (Repository_File_Contains
+           ("src/platform/macos/files-platform-macos-trash.adb",
+            "External_Name => ""FSPathMoveObjectToTrashSync"""),
+         "macOS trash binding body imports native trash API");
+      Assert
+        (Repository_File_Contains
+           ("src/platform/macos/files-platform-macos-volumes.adb",
+            "External_Name => ""statfs"""),
+         "macOS volume binding body imports statfs");
+      Assert
+        (To_String (Volume_Caps.Native_Api_Name) = "none"
+         or else To_String (Volume_Caps.Native_Api_Name) = "proc.mounts"
+         or else To_String (Volume_Caps.Native_Api_Name) = "proc.mounts+sysfs"
+         or else To_String (Volume_Caps.Native_Api_Name) = "statvfs"
+         or else To_String (Volume_Caps.Native_Api_Name) = "statvfs+proc.mounts"
+         or else To_String (Volume_Caps.Native_Api_Name) = "statvfs+proc.mounts+sysfs"
+         or else To_String (Volume_Caps.Native_Api_Name) = "sysfs",
+         "root volume capabilities name adapter");
+      Assert
+        (Volume_Caps.Source_Device_Available = Volume_Caps.Filesystem_Type_Available,
+         "root volume source-device availability follows mount metadata availability");
+      Assert
+        (Volume_Caps.Mount_Options_Available = Volume_Caps.Filesystem_Type_Available,
+         "root volume mount-options availability follows mount metadata availability");
+      Assert
+        (Volume_Caps.Free_Bytes_Known = Volume_Caps.Capacity_Bytes_Known,
+         "root volume free-byte availability follows capacity availability");
+      Assert
+        (Volume_Caps.Inode_Count_Known = Volume_Caps.Capacity_Bytes_Known,
+         "root volume inode availability follows statvfs availability");
+      Assert
+        (Volume_Caps.Read_Only_Available = Volume_Caps.Capacity_Bytes_Known,
+         "root volume read-only availability follows statvfs availability");
+      Assert
+        (Volume_Caps.Name_Max_Available = Volume_Caps.Capacity_Bytes_Known,
+         "root volume name-limit availability follows statvfs availability");
+      Assert (not Volume_Caps.Eject_Available, "root volume capabilities do not claim eject support");
+      Assert (Natural (Roots_A.Length) = Natural (Roots_B.Length), "available roots count is deterministic");
+      for Index in 1 .. Natural (Roots_A.Length) loop
+         declare
+            Detail : constant Files.File_System.Root_Volume_Details :=
+              Files.File_System.Root_Volume_Details_For (Entries.Element (Index));
+         begin
+            Assert
+              (To_String (Detail.Path) = To_String (Entries.Element (Index).Path),
+               "root volume details preserve root path");
+            Assert
+              (To_String (Detail.Native_Api_Name) = "none"
+               or else To_String (Detail.Native_Api_Name) = "proc.mounts"
+               or else To_String (Detail.Native_Api_Name) = "proc.mounts+sysfs"
+               or else To_String (Detail.Native_Api_Name) = "statvfs"
+               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts"
+               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts+sysfs"
+               or else To_String (Detail.Native_Api_Name) = "sysfs",
+               "root volume details name adapter");
+            if To_String (Detail.Filesystem_Type) /= "" then
+               Assert (To_String (Detail.Source_Device) /= "", "root volume details include mount source");
+               Assert (To_String (Detail.Mount_Options) /= "", "root volume details include mount options");
+            end if;
+            Assert (Detail.Capacity_Known = Detail.Free_Known, "root volume size flags are consistent");
+            if Detail.Capacity_Known then
+               Assert (Detail.Capacity_Bytes > 0, "known root volume capacity is positive");
+               Assert (Detail.Free_Bytes >= 0, "known root volume free space is non-negative");
+               Assert (Detail.Free_Bytes <= Detail.Capacity_Bytes, "known root volume free space fits capacity");
+               Assert (Detail.Read_Only_Known, "known root volume capacity includes read-only metadata");
+               Assert (Detail.Name_Max_Known, "known root volume capacity includes filename limit metadata");
+               Assert (Detail.Name_Max > 0, "known root volume filename limit is positive");
+            end if;
+            if Detail.Inode_Count_Known then
+               Assert (Detail.Inode_Count > 0, "known root volume inode count is positive");
+               Assert (Detail.Free_Inode_Known, "known root volume inode count includes free inode count");
+               Assert
+                 (Detail.Free_Inode_Count <= Detail.Inode_Count,
+                  "known root volume free inode count fits inode count");
+            end if;
+            Assert
+              (Detail.Uses_Platform_Detail =
+               (Detail.Capacity_Known
+                or else Detail.Inode_Count_Known
+                or else Detail.Read_Only_Known
+                or else Detail.Name_Max_Known
+                or else Detail.Removable_Known
+                or else To_String (Detail.Filesystem_Type) /= ""),
+               "root volume details platform flag follows filesystem type availability");
+         end;
+         Assert (To_String (Roots_A.Element (Index)) /= "", "available root path is non-empty");
+         Assert
+           (To_String (Entries.Element (Index).Path) = To_String (Roots_A.Element (Index)),
+            "root metadata path matches path projection");
+         Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
+         Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
+         Assert (Entries.Element (Index).Ready = Files.File_System.Root_Ready, "root metadata marks roots ready");
+         case Entries.Element (Index).Kind is
+            when Files.File_System.Root_Filesystem
+               | Files.File_System.Root_Home
+               | Files.File_System.Root_Current
+               | Files.File_System.Root_Mount
+               | Files.File_System.Root_User_Mount
+               | Files.File_System.Root_Windows_Drive =>
+               null;
+         end case;
+         Assert (Ada.Directories.Exists (To_String (Roots_A.Element (Index))), "available root path exists");
+         Assert
+           (Ada.Directories.Kind (To_String (Roots_A.Element (Index))) = Ada.Directories.Directory,
+            "available root path is a directory");
+         Assert
+           (To_String (Roots_A.Element (Index)) = To_String (Roots_B.Element (Index)),
+            "available roots preserve deterministic order");
+         for Other in Index + 1 .. Natural (Roots_A.Length) loop
+            Assert
+              (To_String (Roots_A.Element (Index)) /= To_String (Roots_A.Element (Other)),
+               "available roots do not contain duplicates");
+         end loop;
+      end loop;
+      declare
+         Drive_Profile_Path : constant String := Join (Root, "drive-profile-root");
+         Found_Drive_Profile : Boolean := False;
+      begin
+         Ada.Directories.Create_Path (Drive_Profile_Path);
+         Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
+         Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile-root");
+         Entries := Files.File_System.Available_Root_Entries;
+         for Root_Entry_Value of Entries loop
+            if To_String (Root_Entry_Value.Path) = Ada.Directories.Full_Name (Drive_Profile_Path)
+              and then Root_Entry_Value.Kind = Files.File_System.Root_User_Mount
+            then
+               Found_Drive_Profile := True;
+            end if;
+         end loop;
+         Assert
+           (Found_Drive_Profile,
+            "available roots include HOMEDRIVE and HOMEPATH profile directory");
+         Restore_Root_Environment;
+      exception
+         when others =>
+         Restore_Root_Environment;
+         raise;
+      end;
+      declare
+         Shared_Profile_Path : constant String := Join (Root, "shared-profile-root");
+         Shared_Profile_Full : Unbounded_String;
+         Shared_Profile_Count : Natural := 0;
+      begin
+         Ada.Directories.Create_Path (Shared_Profile_Path);
+         Shared_Profile_Full := To_Unbounded_String (Ada.Directories.Full_Name (Shared_Profile_Path));
+         Ada.Environment_Variables.Set ("HOME", Shared_Profile_Path);
+         Ada.Environment_Variables.Set ("USERPROFILE", To_String (Shared_Profile_Full));
+         Entries := Files.File_System.Available_Root_Entries;
+         for Root_Entry_Value of Entries loop
+            if To_String (Root_Entry_Value.Path) = To_String (Shared_Profile_Full) then
+               Shared_Profile_Count := Shared_Profile_Count + 1;
+            end if;
+         end loop;
+         Assert
+           (Shared_Profile_Count = 1,
+            "available roots collapse duplicate HOME and USERPROFILE directories");
+         Restore_Root_Environment;
+      exception
+         when others =>
+            Restore_Root_Environment;
+            raise;
+      end;
+      declare
+         Bad_Root : constant Files.File_System.Root_Entry :=
+           (Path        => To_Unbounded_String (Root & "/bad" & Character'Val (0) & "root"),
+            Label       => To_Unbounded_String ("bad"),
+            Kind        => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("bad"),
+            Ready       => Files.File_System.Root_Inaccessible,
+            Removable   => False);
+         Bad_Detail : constant Files.File_System.Root_Volume_Details :=
+           Files.File_System.Root_Volume_Details_For (Bad_Root);
+      begin
+         Assert
+           (To_String (Bad_Detail.Native_Api_Name) = "none",
+            "malformed root volume detail skips platform adapter");
+         Assert
+           (not Bad_Detail.Uses_Platform_Detail,
+            "malformed root volume detail has no platform metadata");
+      end;
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Select_Drive_Command, "drive selector command is routed");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens root selector");
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "root selector opening closes settings pane");
+      Assert (Files.Model.Root_Count (Model) >= 1, "root selector contains at least one root");
+      Assert (Files.Model.Root_Selected_Index (Model) = 1, "root selector selects the first root by default");
+      Assert (Files.Model.Root_Path (Model, 1) /= "", "root selector exposes a root path");
+      Assert (Files.Model.Root_Path (Model, 99) = "", "invalid root selector index returns empty path");
+
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Root_Selector_Open, "snapshot captures root selector visibility");
+      Assert (not Snapshot.Settings_Pane_Open, "snapshot exposes root selector as exclusive settings modal");
+      Assert (Snapshot.Root_Selected_Index = 1, "snapshot captures selected root selector row");
+      Assert
+        (Natural (Snapshot.Root_Paths.Length) = Files.Model.Root_Count (Model),
+         "snapshot captures root selector paths");
+      Assert
+        (Natural (Snapshot.Root_Labels.Length) = Files.Model.Root_Count (Model),
+         "snapshot captures root selector labels");
+      Assert (To_String (Snapshot.Root_Labels.Element (1)) /= "", "root selector label is non-empty");
+      Entries.Clear;
+      Entries.Append
+        (Files.File_System.Root_Entry'
+           (Path  => To_Unbounded_String ("/tmp/example-mount"),
+            Label => To_Unbounded_String ("root.mount|example-mount"),
+            Kind  => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("example-mount"),
+            Ready => Files.File_System.Root_Ready,
+            Removable => True));
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert
+        (To_String (Snapshot.Root_Labels.Element (1)) =
+         Files.Localization.Text ("root.mount.prefix") & "example-mount" &
+         Files.Localization.Text ("root.mount.suffix"),
+         "root selector renders localized root kind prefix");
+      Entries.Clear;
+      Entries.Append
+        (Files.File_System.Root_Entry'
+           (Path  => To_Unbounded_String ("/tmp/example-mount"),
+            Label => To_Unbounded_String ("root.mount|example-mount|ext4"),
+            Kind  => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("example-mount"),
+            Ready => Files.File_System.Root_Ready,
+            Removable => True));
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert
+        (To_String (Snapshot.Root_Labels.Element (1)) =
+         Files.Localization.Text ("root.mount.prefix") & "example-mount" &
+         Files.Localization.Text ("root.detail.prefix") & "ext4" &
+         Files.Localization.Text ("root.detail.suffix") &
+         Files.Localization.Text ("root.mount.suffix"),
+         "root selector renders localized platform detail suffix");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
+         "eject command is enabled for removable roots");
+      Result := Files.Controller.Execute_Command (Files.Commands.Eject_Selected_Root_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Eject_Selected_Root_Command, "eject command reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Failed,
+         "eject command reports unavailable native operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.root.eject_unavailable",
+         "eject command reports localized unavailable error");
+      Assert
+        (To_String (Result.Operation.Path) = "/tmp/example-mount",
+         "eject command reports selected root path");
+      Entries.Clear;
+      Entries.Append
+        (Files.File_System.Root_Entry'
+           (Path  => To_Unbounded_String (Target),
+            Label => To_Unbounded_String ("root.mount|selected-root"),
+            Kind  => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("selected-root"),
+            Ready => Files.File_System.Root_Ready,
+            Removable => False));
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
+         "eject command is disabled for non-removable roots");
+      Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
+      Assert
+        (Result.Command = Files.Commands.Open_Selected_Root_Command,
+         "root-open command reports root activation command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "root-open command navigates");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "root-open loads selected root");
+      Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Toggle_Settings_Pane (Model);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens before direct root selector call");
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "direct root selector call opens root selector");
+      Assert
+        (not Files.Model.Settings_Pane_Is_Open (Model),
+         "metadata root selector overload closes settings pane");
+      Files.Model.Toggle_Settings_Pane (Model);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane reopens before string root selector call");
+      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "string root selector overload opens root selector");
+      Assert
+        (not Files.Model.Settings_Pane_Is_Open (Model),
+         "string root selector overload closes settings pane");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Select_Drive_Command, "second drive selector click is routed");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "second drive selector click closes root selector");
+      Assert (Files.Model.Current_Path (Model) = Root, "second drive selector click does not navigate");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after toggle close");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes root selector close");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "root selector Escape reports successful state-only close");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "Escape closes root selector");
+      Assert (Files.Model.Current_Path (Model) = Root, "root selector Escape does not navigate");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after Escape");
+      Result := Files.Controller.Execute_Command (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+      Assert
+        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+         "close command routes root selector close");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "close command closes root selector");
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after close command");
+      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks path focus command");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked path focus keeps root selector open");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "blocked path focus leaves focus clear");
+      Files.Model.Close_Root_Selector (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after blocked path focus");
+      Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "palette command is routed");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens from toolbar state");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "palette opening preserves root selector");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "same palette search cursor click is ignored");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "palette search focus preserves root selector");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "Escape closes palette after selector handoff");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "Escape leaves root selector open after palette closes");
+      Files.Model.Close_Root_Selector (Model);
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
+      Files.Controller.Replace_Focused_Text (Model, "view.details");
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens from palette state");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "drive selector closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "drive selector clears palette query");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "drive selector clears palette focus");
+      Files.Model.Close_Root_Selector (Model);
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after palette Escape");
+      Files.Model.Begin_Create_File (Model, "root-pending.txt");
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+
+      Result := Files.Controller.Select_Root (Model, Settings, Join (Root, "missing-root"));
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "invalid root selection executes command");
+      Assert (Result.Command = Files.Commands.Select_Drive_Command, "invalid root selection reports drive command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "invalid root selection fails as data");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.path.missing",
+         "invalid root selection reports path diagnostic");
+      Assert (Files.Model.Current_Path (Model) = Root, "invalid root selection does not navigate");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "invalid root selection keeps selector open");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.path.missing", "invalid root selection records error");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid root selection preserves temporary create state");
+      Assert (Files.Model.Rename_Is_Active (Model), "invalid root selection preserves rename state");
+      Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 0);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "outside root row click is ignored");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "outside root row click keeps selector open");
+
+      Result := Files.Controller.Select_Root (Model, Settings, Target);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "root selection executes command");
+      Assert (Result.Command = Files.Commands.Select_Drive_Command, "root selection reports drive command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "root selection navigates");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Target),
+         "root selection operation carries normalized path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "selected root is loaded");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "root selection clears stale error state");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "root selection clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "root selection clears rename state");
+      Assert (Files.Model.Item_Count (Model) = 1, "selected root directory items are loaded");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "root selection closes selector");
+      Assert (Files.Model.Can_Go_Back (Model), "root selection updates back history");
+      Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "closed root selector row click is ignored");
+      Assert
+        (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target),
+         "closed root selector row click does not navigate");
+
+      Files.Model.Initialize (Model, Root, Sample_Items, Root);
+      Files.Model.Open_Root_Selector (Model, Files.Types.String_Vectors.Empty_Vector);
+      Assert (Files.Model.Root_Selected_Index (Model) = 0, "empty root selector has no selected row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty root selector movement is ignored");
+      Roots_A.Clear;
+      Roots_A.Append (To_Unbounded_String (Root));
+      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single root selector movement is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector Home at first row is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single root selector End is ignored");
+      Roots_A.Clear;
+      Roots_A.Append (To_Unbounded_String (Root));
+      Roots_A.Append (To_Unbounded_String (Target));
+      Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
+      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Assert (Files.Model.Root_Selected_Index (Model) = 1, "non-empty root selector selects first row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Down moves root selector row");
+      Assert (Files.Model.Root_Selected_Index (Model) = 2, "Down selects next root row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Up);
+      Assert (Files.Model.Root_Selected_Index (Model) = 1, "Up selects previous root row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Up);
+      Assert (Files.Model.Root_Selected_Index (Model) = 3, "Up wraps root selector to last row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Files.Model.Root_Selected_Index (Model) = 1, "Home selects first root row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Files.Model.Root_Selected_Index (Model) = 3, "End selects last root row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Right wraps root selector to first row");
+      Assert (Files.Model.Root_Selected_Index (Model) = 1, "Right from last root row wraps to first row");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Left wraps root selector to last row");
+      Assert (Files.Model.Root_Selected_Index (Model) = 3, "Left from first root row wraps to last row");
+      Files.Model.Select_Visible (Model, 1);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background delete key");
+      Assert (Files.Model.Selected_Count (Model) = 1, "blocked root selector delete keeps selection");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked root selector delete keeps selector open");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background text focus");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "blocked text focus leaves focus clear");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background wheel scroll");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked root selector scroll leaves main view still");
+      Result :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model,
+           Files.Events.Scroll_Auto,
+           Lines => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks targeted auto scroll");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked root auto scroll leaves main view still");
+      Result :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model,
+           Files.Events.Scroll_Main_View,
+           Lines => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks targeted main scroll");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "root selector allows palette shortcut");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over root selector from shortcut");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "palette shortcut keeps root selector available");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
+      Assert
+        (Result.Status = Files.Controller.Controller_Ignored,
+         "same palette search cursor click is ignored over root selector");
+      Files.Model.Close_Command_Palette (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks direct path focus command");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "blocked direct path focus leaves focus clear");
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks direct delete command");
+      Assert (Files.Model.Selected_Count (Model) = 1, "blocked direct delete keeps selection");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+         "modal command block does not replace existing error");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks direct settings command");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked direct settings keeps root selector open");
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "blocked direct settings leaves settings pane closed");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+         "root selector settings block preserves existing error");
+      Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
+      Assert
+        (Result.Command = Files.Commands.Open_Command_Palette_Command,
+         "root selector allows direct palette command");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "direct palette command opens over root selector");
+      Files.Model.Close_Command_Palette (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Select_Drive_Command, "root selector allows drive toggle command");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "drive toggle closes root selector");
+      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Files.Model.Set_Root_Selected_Index (Model, 2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Command = Files.Commands.Open_Selected_Root_Command, "Return activates selected root row");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "Return root activation navigates");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "Return loads selected root");
+
+      Files.Model.Initialize (Model, Root, Sample_Items, Root);
+      Roots_A.Clear;
+      Roots_A.Append (To_Unbounded_String (Target));
+      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Files.Model.Focus_Path_Input (Model);
+      Files.Controller.Replace_Focused_Text (Model, "/tmp/root-click-edit");
+      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
+      Assert
+        (Result.Command = Files.Commands.Open_Selected_Root_Command,
+         "root row click reports root activation command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "root row click navigates");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "root row click loads root");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "root row click clears path input focus");
+      Assert
+        (Files.Model.Path_Input_Text (Model) = Ada.Directories.Full_Name (Target),
+         "root row click replaces edited path text");
+   end Test_Root_Selector_And_Root_Selection;
+
+   procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_4, Ctrl);
+      Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "Control+4 routes info-pane command");
+      Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane toggles open");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "info pane opens unscrolled");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of info pane is ignored");
+
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, -1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "negative info scroll at top is ignored");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageDown pages info pane");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 10, "PageDown scrolls info pane by page");
+
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, Integer'Last);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large info scroll is handled");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = Natural'Last, "large info scroll saturates");
+
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, Integer'First);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative info scroll is handled");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "large negative info scroll clamps to top");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 10, "info pane scroll resumes after saturation");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageUp pages info pane");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "PageUp scrolls info pane back to top");
+
+      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 3, "info pane can scroll before selection changes");
+      Files.Model.Select_Visible (Model, 2);
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "single selection resets info pane scroll");
+      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Toggle_Visible_Selection (Model, 1);
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "toggle selection resets info pane scroll");
+      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Select_Visible_Range (Model, 1, 3);
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "range selection resets info pane scroll");
+      Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+      Files.Model.Clear_Selection (Model);
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "clear selection resets info pane scroll");
+      Result :=
+        Files.Controller.Execute_Command
+          (Files.Commands.Toggle_Settings_Pane_Command,
+           Model,
+           Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over info pane");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background wheel scroll");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked wheel leaves info pane still");
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks auto info scroll");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked auto scroll leaves info pane still");
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, 10);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks targeted info scroll");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked targeted scroll leaves info pane still");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background PageDown");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked PageDown leaves info pane still");
+      Result :=
+        Files.Controller.Execute_Command
+          (Files.Commands.Toggle_Settings_Pane_Command,
+           Model,
+           Settings);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after scroll block checks");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_2, Ctrl);
+      Assert (Result.Command = Files.Commands.Select_Large_Icons_Command, "Control+2 routes large-icons command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Large_Icons, "large mode shortcut works");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_3, Ctrl);
+      Assert (Result.Command = Files.Commands.Select_Details_Command, "Control+3 routes details command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details shortcut works");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_1, Ctrl);
+      Assert (Result.Command = Files.Commands.Select_Small_Icons_Command, "Control+1 routes small-icons command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small mode shortcut works");
+
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "info-pane click routes command");
+      Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles closed");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of main view is ignored");
+
+      Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "negative main scroll at top is ignored");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageDown scrolls main view");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 10, "PageDown scrolls main view by page");
+
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'Last);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large main scroll is handled");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = Natural'Last, "large main scroll saturates");
+
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'First);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative main scroll is handled");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "large negative main scroll clamps to top");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 10, "main view scroll resumes after saturation");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageUp scrolls main view");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "PageUp returns main view to top");
+      Result :=
+        Files.Controller.Execute_Command
+          (Files.Commands.Toggle_Settings_Pane_Command,
+           Model,
+           Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over main view");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks main wheel scroll");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked wheel leaves main view still");
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks auto main scroll");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked auto scroll leaves main view still");
+      Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, 10);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks targeted main scroll");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked targeted scroll leaves main view still");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks main PageDown");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked PageDown leaves main view still");
+      Result :=
+        Files.Controller.Execute_Command
+          (Files.Commands.Toggle_Settings_Pane_Command,
+           Model,
+           Settings);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before command click checks");
+
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.Select_Details_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Select_Details_Command, "details click routes command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details click changes view mode");
+
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.No_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty command click is ignored");
+      Assert (Result.Command = Files.Commands.No_Command, "empty command click reports no command");
+   end Test_Info_And_Bottom_Bar_Commands;
+
+   procedure Test_Command_Registry_And_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Ctrl          : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Alt           : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Ctrl_Shift    : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Small_Shortcut : Files.Commands.Shortcut;
+      Drive_Shortcut : Files.Commands.Shortcut;
+      Empty_Shortcut : Files.Commands.Shortcut;
+      Delete_Secondary : Files.Commands.Shortcut;
+      Empty_Secondary : Files.Commands.Shortcut;
+
+      function Same_Shortcut
+        (Left  : Files.Commands.Shortcut;
+         Right : Files.Commands.Shortcut)
+         return Boolean is
+      begin
+         return Left.Present
+           and then Right.Present
+           and then Left.Key = Right.Key
+           and then Left.Modifiers = Right.Modifiers;
+      end Same_Shortcut;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Alt (Files.Types.Alt_Key) := True;
+      Ctrl_Shift (Files.Types.Control_Key) := True;
+      Ctrl_Shift (Files.Types.Shift_Key) := True;
+      Assert (Files.Commands.Command_Count = 25, "all expected commands are registered");
+      Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");
+      Assert (Files.Commands.Contains ("settings.toggle"), "settings command identifier is registered");
+      Assert (Files.Commands.Contains ("settings.import"), "settings import command identifier is registered");
+      Assert (Files.Commands.Contains ("settings.export"), "settings export command identifier is registered");
+      Assert (Files.Commands.Contains ("settings.save"), "settings save command identifier is registered");
+      Assert (Files.Commands.Contains ("settings.reset"), "settings reset command identifier is registered");
+      Assert (Files.Commands.Contains ("drive.eject_selected"), "drive eject command identifier is registered");
+      Assert (not Files.Commands.Contains (""), "empty command identifier is not registered");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.No_Command) = Files.Commands.No_Placement,
+         "no-command has no toolbar or palette placement");
+      Assert
+        (not Files.Commands.Requires_Settings_Path (Files.Commands.No_Command),
+         "no-command does not require a settings path");
+      Assert
+        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Select_Drive_Command),
+         "drive selector is allowed while root selector is open");
+      Assert
+        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Open_Selected_Root_Command),
+         "selected-root activation is allowed while root selector is open");
+      Assert
+        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Eject_Selected_Root_Command),
+         "selected-root eject is allowed while root selector is open");
+      Assert
+        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Open_Command_Palette_Command),
+         "palette open is allowed while root selector is open");
+      Assert
+        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Close_Command_Palette_Command),
+         "palette close is allowed while root selector is open");
+      Assert
+        (not Files.Commands.Allowed_With_Root_Selector (Files.Commands.Toggle_Settings_Pane_Command),
+         "settings pane is blocked while root selector is open");
+      Assert
+        (not Files.Commands.Allowed_With_Root_Selector (Files.Commands.Delete_Selected_Items_Command),
+         "delete is blocked while root selector is open");
+      Assert
+        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Toggle_Settings_Pane_Command),
+         "settings toggle is allowed while settings pane is open");
+      Assert
+        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Open_Command_Palette_Command),
+         "palette open is allowed while settings pane is open");
+      Assert
+        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Close_Command_Palette_Command),
+         "palette close is allowed while settings pane is open");
+      Assert
+        (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Select_Drive_Command),
+         "drive selector is blocked while settings pane is open");
+      Assert
+        (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Navigate_Back_Command),
+         "background navigation is blocked while settings pane is open");
+      Assert
+        (not Files.Commands.Command_Palette_Visible (Files.Commands.No_Command),
+         "no-command is hidden from the command palette");
+      for Id in Files.Commands.Registered_Command_Id loop
+         declare
+            Identifier : constant String := Files.Commands.Identifier (Id);
+            Key        : constant String := Files.Commands.Name_Key (Id);
+            Description_Key : constant String := Files.Commands.Description_Key (Id);
+            Text       : constant String := Files.Localization.Text (Key);
+            Description : constant String := Files.Localization.Text (Description_Key);
+            Primary    : constant Files.Commands.Shortcut := Files.Commands.Shortcut_For (Id);
+            Secondary  : constant Files.Commands.Shortcut := Files.Commands.Secondary_Shortcut_For (Id);
+            Placement  : constant Files.Commands.Command_Placement := Files.Commands.Placement_For (Id);
+         begin
+            Assert (Identifier /= "", "registered command identifier is non-empty");
+            Assert (Files.Commands.Contains (Identifier), "registered command is found by its identifier");
+            Assert (Key /= "", "registered command name key is non-empty");
+            Assert (Text /= Key, "command localization exists for " & Identifier);
+            Assert (Description_Key /= "", "registered command description key is non-empty");
+            Assert (Description /= Description_Key, "command description localization exists for " & Identifier);
+            Assert (Placement /= Files.Commands.No_Placement, "registered command has placement metadata");
+            Assert
+              (Files.Commands.Command_Palette_Visible (Id),
+               "registered command is command-palette visible");
+            Assert
+              (Files.Commands.Allowed_With_Settings_Pane (Id) or else not Files.Commands.Requires_Settings_Path (Id),
+               "settings-path commands are allowed while settings pane is open");
+            if Primary.Present then
+               Assert (Primary.Key /= Files.Types.Key_Unknown, "present primary shortcut has a concrete key");
+               Assert
+                 (Files.Commands.Shortcut_Text (Primary) /= "",
+                  "present primary shortcut has searchable text");
+               Assert
+                 (Files.Commands.Find_By_Shortcut (Primary.Key, Primary.Modifiers) = Id,
+                  "present primary shortcut routes back to command");
+            else
+               Assert (Primary.Key = Files.Types.Key_Unknown, "absent primary shortcut has unknown key");
+               Assert
+                 (Files.Commands.Shortcut_Text (Primary) = "",
+                  "absent primary shortcut has no searchable text");
+            end if;
+            if Secondary.Present then
+               Assert (Secondary.Key /= Files.Types.Key_Unknown, "present secondary shortcut has a concrete key");
+               Assert
+                 (Files.Commands.Shortcut_Text (Secondary) /= "",
+                  "present secondary shortcut has searchable text");
+               Assert
+                 (Files.Commands.Find_By_Shortcut (Secondary.Key, Secondary.Modifiers) = Id,
+                  "present secondary shortcut routes back to command");
+            else
+               Assert (Secondary.Key = Files.Types.Key_Unknown, "absent secondary shortcut has unknown key");
+               Assert
+                 (Files.Commands.Shortcut_Text (Secondary) = "",
+                  "absent secondary shortcut has no searchable text");
+            end if;
+            if Id /= Files.Commands.Registered_Command_Id'First then
+               for Previous in Files.Commands.Registered_Command_Id'First .. Files.Commands.Command_Id'Pred (Id) loop
+                  Assert
+                    (Files.Commands.Identifier (Previous) /= Identifier,
+                     "registered command identifier is unique");
+                  declare
+                     Shortcut : constant Files.Commands.Shortcut := Files.Commands.Shortcut_For (Id);
+                     Secondary : constant Files.Commands.Shortcut := Files.Commands.Secondary_Shortcut_For (Id);
+                     Previous_Shortcut : constant Files.Commands.Shortcut :=
+                       Files.Commands.Shortcut_For (Previous);
+                     Previous_Secondary : constant Files.Commands.Shortcut :=
+                       Files.Commands.Secondary_Shortcut_For (Previous);
+                  begin
+                     Assert
+                       (not Same_Shortcut (Shortcut, Secondary),
+                        "registered command primary and secondary shortcuts do not collide");
+                     Assert
+                       (not Same_Shortcut (Shortcut, Previous_Shortcut),
+                        "registered command primary shortcut is unique");
+                     Assert
+                       (not Same_Shortcut (Shortcut, Previous_Secondary),
+                        "registered command primary shortcut does not collide with previous secondary");
+                     Assert
+                       (not Same_Shortcut (Secondary, Previous_Shortcut),
+                        "registered command secondary shortcut does not collide with previous primary");
+                     Assert
+                       (not Same_Shortcut (Secondary, Previous_Secondary),
+                        "registered command secondary shortcut is unique");
+                  end;
+               end loop;
+            end if;
+         end;
+      end loop;
+      Small_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command);
+      Assert (Small_Shortcut.Present, "shortcut metadata marks small-icons shortcut present");
+      Assert (Small_Shortcut.Key = Files.Types.Key_1, "shortcut metadata stores small-icons key");
+      Assert (Small_Shortcut.Modifiers = Ctrl, "shortcut metadata stores small-icons modifiers");
+      Drive_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Select_Drive_Command);
+      Assert (Drive_Shortcut.Present, "drive selector exposes shortcut metadata");
+      Assert (Drive_Shortcut.Key = Files.Types.Key_D, "drive selector shortcut uses D");
+      Assert (Drive_Shortcut.Modifiers = Ctrl, "drive selector shortcut uses Control");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Toggle_Settings_Pane_Command) =
+         Files.Commands.Command_Palette_Only,
+         "settings command uses command-palette placement");
+      Assert
+        (Files.Commands.Description_Key (Files.Commands.Toggle_Settings_Pane_Command) =
+         "command.settings.toggle.description",
+         "settings command description key is stable");
+      Assert
+        (Files.Commands.Shortcut_For (Files.Commands.Save_Settings_Command).Key = Files.Types.Key_S,
+         "settings save command uses S shortcut metadata");
+      Assert
+        (not Files.Commands.Shortcut_For (Files.Commands.Import_Settings_Command).Present,
+         "settings import command is palette-only");
+      Assert
+        (not Files.Commands.Shortcut_For (Files.Commands.Export_Settings_Command).Present,
+         "settings export command is palette-only");
+      Assert
+        (not Files.Commands.Shortcut_For (Files.Commands.Reset_Settings_Command).Present,
+         "settings reset command is palette-only");
+      Assert
+        (Files.Commands.Requires_Settings_Path (Files.Commands.Import_Settings_Command),
+         "settings import requires a settings path");
+      Assert
+        (Files.Commands.Requires_Settings_Path (Files.Commands.Export_Settings_Command),
+         "settings export requires a settings path");
+      Assert
+        (Files.Commands.Requires_Settings_Path (Files.Commands.Save_Settings_Command),
+         "settings save requires a settings path");
+      Assert
+        (not Files.Commands.Requires_Settings_Path (Files.Commands.Reset_Settings_Command),
+         "settings reset does not require a settings path");
+      Empty_Shortcut := Files.Commands.Shortcut_For (Files.Commands.No_Command);
+      Assert (not Empty_Shortcut.Present, "no-command exposes absent shortcut metadata");
+      Empty_Secondary := Files.Commands.Secondary_Shortcut_For (Files.Commands.No_Command);
+      Assert (not Empty_Secondary.Present, "no-command exposes absent secondary shortcut metadata");
+      Delete_Secondary := Files.Commands.Secondary_Shortcut_For (Files.Commands.Delete_Selected_Items_Command);
+      Assert (Delete_Secondary.Present, "delete command exposes secondary shortcut metadata");
+      Assert (Delete_Secondary.Key = Files.Types.Key_Backspace, "delete secondary shortcut uses Backspace");
+      Assert
+        (Delete_Secondary.Modifiers = Files.Types.No_Modifiers,
+         "delete secondary shortcut has no modifiers");
+      Assert
+        (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command)) =
+         "control+p",
+         "primary shortcut text is normalized");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Delete_Selected_Items_Command),
+            "delete") = 1,
+         "command shortcut search text keeps canonical delete shortcut first");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Delete_Selected_Items_Command),
+            "del") > 0,
+         "command shortcut search text includes delete shortcut alias");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Delete_Selected_Items_Command),
+            "backspace") > 0,
+         "command shortcut search text includes secondary shortcuts");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Open_Command_Palette_Command),
+            "control+p") = 1,
+         "command shortcut search text keeps canonical primary shortcut first");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Open_Command_Palette_Command),
+            "ctrl+p") > 0,
+         "command shortcut search text includes control shortcut alias");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Navigate_Back_Command),
+            "option+left") > 0,
+         "command shortcut search text includes option shortcut alias");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Close_Command_Palette_Command),
+            "esc") > 0,
+         "command shortcut search text includes escape shortcut alias");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Open_Selected_Items_Command),
+            "enter") > 0,
+         "command shortcut search text includes return shortcut alias");
+      Assert
+        (Files.Commands.Shortcut_Search_Text (Files.Commands.Import_Settings_Command) = "",
+         "palette-only settings import has no shortcut search text");
+      Assert
+        (Files.Commands.Shortcut_Search_Text (Files.Commands.No_Command) = "",
+         "no-command has no shortcut search text");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_1, Ctrl) = Files.Commands.Select_Small_Icons_Command,
+         "control+1 dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_2, Ctrl) = Files.Commands.Select_Large_Icons_Command,
+         "control+2 dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_3, Ctrl) = Files.Commands.Select_Details_Command,
+         "control+3 dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_4, Ctrl) = Files.Commands.Toggle_Info_Pane_Command,
+         "control+4 dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_L, Ctrl) = Files.Commands.Focus_Path_Input_Command,
+         "control+l dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Home, Alt) = Files.Commands.Navigate_Home_Command,
+         "alt+home dispatches home command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Left, Alt) = Files.Commands.Navigate_Back_Command,
+         "alt+left dispatches back command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Right, Alt) = Files.Commands.Navigate_Forward_Command,
+         "alt+right dispatches forward command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_N, Ctrl) = Files.Commands.Create_File_Command,
+         "control+n dispatches create-file command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_P, Ctrl) = Files.Commands.Open_Command_Palette_Command,
+         "control+p dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_F, Ctrl) = Files.Commands.Focus_Filter_Input_Command,
+         "control+f dispatches filter focus command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_D, Ctrl) = Files.Commands.Select_Drive_Command,
+         "control+d dispatches drive selector command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_F, Ctrl_Shift) = Files.Commands.Clear_Filter_Command,
+         "control+shift+f dispatches clear-filter command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_R, Ctrl) = Files.Commands.Refresh_Directory_Command,
+         "control+r dispatches refresh command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_S, Ctrl) = Files.Commands.Save_Settings_Command,
+         "control+s dispatches settings save command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Delete, Files.Types.No_Modifiers) =
+           Files.Commands.Delete_Selected_Items_Command,
+         "delete dispatches delete command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Backspace, Files.Types.No_Modifiers) =
+           Files.Commands.Delete_Selected_Items_Command,
+         "backspace dispatches delete command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_F2, Files.Types.No_Modifiers) =
+           Files.Commands.Rename_Selected_Items_Command,
+         "F2 dispatches rename command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Escape, Files.Types.No_Modifiers) =
+           Files.Commands.Close_Command_Palette_Command,
+         "escape dispatches context-cancel command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Return, Files.Types.No_Modifiers) =
+           Files.Commands.Open_Selected_Items_Command,
+         "return dispatches open-selected command");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Select_Drive_Command) = Files.Commands.Toolbar_Left,
+         "drive selector is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Home_Command) = Files.Commands.Toolbar_Left,
+         "home command is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Back_Command) = Files.Commands.Toolbar_Left,
+         "back command is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Forward_Command) = Files.Commands.Toolbar_Left,
+         "forward command is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Create_File_Command) = Files.Commands.Toolbar_Left,
+         "create-file command is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Delete_Selected_Items_Command) = Files.Commands.Toolbar_Left,
+         "delete command is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Focus_Path_Input_Command) = Files.Commands.Toolbar_Middle,
+         "path input command is placed in middle toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Focus_Filter_Input_Command) = Files.Commands.Toolbar_Right,
+         "filter input command is placed in right toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Clear_Filter_Command) = Files.Commands.Toolbar_Right,
+         "clear-filter command is placed in right toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Refresh_Directory_Command) =
+           Files.Commands.Command_Palette_Only,
+         "refresh command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Select_Small_Icons_Command) = Files.Commands.Bottom_Bar,
+         "small view command is placed in bottom bar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Select_Large_Icons_Command) = Files.Commands.Bottom_Bar,
+         "large view command is placed in bottom bar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Select_Details_Command) = Files.Commands.Bottom_Bar,
+         "view mode command is placed in bottom bar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Toggle_Info_Pane_Command) = Files.Commands.Bottom_Bar,
+         "info-pane command is placed in bottom bar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Rename_Selected_Items_Command) =
+           Files.Commands.Command_Palette_Only,
+         "rename command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Open_Selected_Items_Command) =
+           Files.Commands.Command_Palette_Only,
+         "open-selected command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Close_Command_Palette_Command) =
+           Files.Commands.Command_Palette_Only,
+         "context-close command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Open_Selected_Root_Command) =
+           Files.Commands.Command_Palette_Only,
+         "open-selected-root command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Eject_Selected_Root_Command) =
+           Files.Commands.Command_Palette_Only,
+         "eject-selected-root command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Open_Command_Palette_Command) =
+           Files.Commands.Command_Palette_Only,
+         "palette toggle is not duplicated in toolbar metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Reset_Settings_Command) =
+           Files.Commands.Command_Palette_Only,
+         "settings reset command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Import_Settings_Command) =
+           Files.Commands.Command_Palette_Only,
+         "settings import command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Export_Settings_Command) =
+           Files.Commands.Command_Palette_Only,
+         "settings export command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Save_Settings_Command) =
+           Files.Commands.Command_Palette_Only,
+         "settings save command is palette-only metadata");
+   end Test_Command_Registry_And_Shortcuts;
+
+   procedure Test_Command_Palette_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model          : Files.Model.Window_Model := Sample_Model;
+      Small_Results  : Files.Command_Palette.Result_Vectors.Vector;
+      Rename_Results : Files.Command_Palette.Result_Vectors.Vector;
+      Create_Results : Files.Command_Palette.Result_Vectors.Vector;
+      Clear_Results  : Files.Command_Palette.Result_Vectors.Vector;
+      Mixed_Results  : Files.Command_Palette.Result_Vectors.Vector;
+      Exact_Results  : Files.Command_Palette.Result_Vectors.Vector;
+      Description_Results : Files.Command_Palette.Result_Vectors.Vector;
+      Shortcut_Results : Files.Command_Palette.Result_Vectors.Vector;
+      All_Results    : Files.Command_Palette.Result_Vectors.Vector;
+      Long_Query      : Unbounded_String;
+      Long_Results    : Files.Command_Palette.Result_Vectors.Vector;
+      Found_Disabled : Boolean := False;
+      Found_Rename_Enabled : Boolean := False;
+      Found_Create_Disabled : Boolean := False;
+      Found_Clear    : Boolean := False;
+      Found_Clear_Disabled : Boolean := False;
+      Found_Root_Open_Disabled : Boolean := False;
+      Found_Root_Open_Enabled : Boolean := False;
+      Found_Root_Eject_Disabled : Boolean := False;
+      Found_Root_Eject_Enabled : Boolean := False;
+      Found_Root_Blocked_Path : Boolean := False;
+      Found_Root_Drive_Enabled : Boolean := False;
+      Found_Reset_Disabled : Boolean := False;
+      Found_Reset_Enabled  : Boolean := False;
+      Found_Import_Disabled : Boolean := False;
+      Found_Import_Enabled  : Boolean := False;
+      Found_Export_Disabled : Boolean := False;
+      Found_Export_Enabled  : Boolean := False;
+      Found_Settings_Delete_Disabled : Boolean := False;
+   begin
+      All_Results := Files.Command_Palette.Search ("", Model);
+      Assert
+        (Natural (All_Results.Length) = Files.Commands.Command_Count,
+         "empty palette search returns every registered command");
+      for Id in Files.Commands.Registered_Command_Id loop
+         declare
+            Index : constant Positive :=
+              Positive (Files.Commands.Command_Id'Pos (Id) - Files.Commands.Command_Id'Pos
+                (Files.Commands.Registered_Command_Id'First) + 1);
+         begin
+            Assert (All_Results.Element (Index).Command = Id, "empty palette search preserves registry order");
+            Assert
+              (To_String (All_Results.Element (Index).Identifier) = Files.Commands.Identifier (Id),
+               "empty palette search exposes stable command identifiers");
+            Assert
+              (To_String (All_Results.Element (Index).Description) =
+                 Files.Localization.Text (Files.Commands.Description_Key (Id)),
+               "empty palette search exposes localized command descriptions");
+         end;
+      end loop;
+      for Id in Files.Commands.Registered_Command_Id loop
+         declare
+            Identifier_Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+              Files.Command_Palette.Search (Files.Commands.Identifier (Id), Model);
+            Label_Results      : constant Files.Command_Palette.Result_Vectors.Vector :=
+              Files.Command_Palette.Search
+                (Files.Localization.Text (Files.Commands.Name_Key (Id)), Model);
+            Found_By_Identifier : Boolean := False;
+            Found_By_Label      : Boolean := False;
+         begin
+            for Result_Item of Identifier_Results loop
+               if Result_Item.Command = Id then
+                  Found_By_Identifier := True;
+               end if;
+            end loop;
+            for Result_Item of Label_Results loop
+               if Result_Item.Command = Id then
+                  Found_By_Label := True;
+               end if;
+            end loop;
+            Assert
+              (Found_By_Identifier,
+               "palette search finds every command by stable identifier");
+            Assert
+              (Found_By_Label,
+               "palette search finds every command by localized label");
+         end;
+      end loop;
+
+      Small_Results := Files.Command_Palette.Search ("small", Model);
+      Assert (Natural (Small_Results.Length) >= 1, "palette search matches localized command labels");
+      Assert
+        (Small_Results.Element (1).Command = Files.Commands.Select_Small_Icons_Command,
+         "small-icons command is returned");
+      Assert
+        (To_String (Small_Results.Element (1).Description) =
+           Files.Localization.Text ("command.view.small.description"),
+         "palette result carries localized command description");
+      Assert (Small_Results.Element (1).Score < Natural'Last, "palette result exposes finite match score");
+
+      Exact_Results := Files.Command_Palette.Search ("view.details", Model);
+      Assert (Natural (Exact_Results.Length) >= 1, "exact identifier palette search returns results");
+      Assert
+        (Exact_Results.Element (1).Command = Files.Commands.Select_Details_Command,
+         "exact identifier palette search ranks exact identifier first");
+      Assert
+        (Exact_Results.Element (1).Score < Small_Results.Element (1).Score,
+         "exact identifier palette search scores above localized label prefix search");
+
+      Rename_Results := Files.Command_Palette.Search ("file.rename", Model);
+      for Result_Item of Rename_Results loop
+         if Result_Item.Command = Files.Commands.Rename_Selected_Items_Command and then not Result_Item.Enabled then
+            Found_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Disabled, "disabled selection-dependent entries still appear");
+
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Rename_Results := Files.Command_Palette.Search ("file.rename", Model);
+      for Result_Item of Rename_Results loop
+         if Result_Item.Command = Files.Commands.Rename_Selected_Items_Command and then Result_Item.Enabled then
+            Found_Rename_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Rename_Enabled, "rename entry is enabled while temporary create rename is active");
+      Create_Results := Files.Command_Palette.Search ("file.create", Model);
+      for Result_Item of Create_Results loop
+         if Result_Item.Command = Files.Commands.Create_File_Command and then not Result_Item.Enabled then
+            Found_Create_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Create_Disabled, "create entry is disabled while temporary create item is active");
+      Files.Model.Cancel_Create_File (Model);
+
+      Clear_Results := Files.Command_Palette.Search ("filter.clear", Model);
+      for Result_Item of Clear_Results loop
+         if Result_Item.Command = Files.Commands.Clear_Filter_Command and then not Result_Item.Enabled then
+            Found_Clear_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Clear_Disabled, "disabled clear-filter command still appears");
+
+      Files.Model.Set_Filter (Model, "beta");
+      Clear_Results := Files.Command_Palette.Search ("Clear Filter", Model);
+      for Result_Item of Clear_Results loop
+         if Result_Item.Command = Files.Commands.Clear_Filter_Command and then Result_Item.Enabled then
+            Found_Clear := True;
+         end if;
+      end loop;
+      Assert (Found_Clear, "palette search matches localized clear-filter label when enabled");
+
+      for Result_Item of Files.Command_Palette.Search ("settings.reset", Model) loop
+         if Result_Item.Command = Files.Commands.Reset_Settings_Command and then not Result_Item.Enabled then
+            Found_Reset_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Reset_Disabled, "settings reset appears disabled when settings pane is closed");
+      for Result_Item of Files.Command_Palette.Search ("settings.import", Model) loop
+         if Result_Item.Command = Files.Commands.Import_Settings_Command and then not Result_Item.Enabled then
+            Found_Import_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Import_Disabled, "settings import appears disabled when settings pane is closed");
+      for Result_Item of Files.Command_Palette.Search ("settings.export", Model) loop
+         if Result_Item.Command = Files.Commands.Export_Settings_Command and then not Result_Item.Enabled then
+            Found_Export_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Export_Disabled, "settings export appears disabled when settings pane is closed");
+      Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Files.Settings.Default_Settings));
+      for Result_Item of Files.Command_Palette.Search ("Reset Settings", Model) loop
+         if Result_Item.Command = Files.Commands.Reset_Settings_Command and then Result_Item.Enabled then
+            Found_Reset_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Reset_Enabled, "palette search matches localized reset-settings label when enabled");
+      for Result_Item of Files.Command_Palette.Search ("Import Settings", Model) loop
+         if Result_Item.Command = Files.Commands.Import_Settings_Command and then Result_Item.Enabled then
+            Found_Import_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Import_Enabled, "palette search matches localized import-settings label when enabled");
+      for Result_Item of Files.Command_Palette.Search ("Export Settings", Model) loop
+         if Result_Item.Command = Files.Commands.Export_Settings_Command and then Result_Item.Enabled then
+            Found_Export_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Export_Enabled, "palette search matches localized export-settings label when enabled");
+      Files.Model.Select_Visible (Model, 1);
+      for Result_Item of Files.Command_Palette.Search ("file.delete_selected", Model) loop
+         if Result_Item.Command = Files.Commands.Delete_Selected_Items_Command and then not Result_Item.Enabled then
+            Found_Settings_Delete_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Settings_Delete_Disabled, "settings pane disables background delete palette result");
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      for Result_Item of Files.Command_Palette.Search ("drive.open_selected", Model) loop
+         if Result_Item.Command = Files.Commands.Open_Selected_Root_Command and then not Result_Item.Enabled then
+            Found_Root_Open_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Root_Open_Disabled, "root-open command appears disabled when selector is closed");
+      for Result_Item of Files.Command_Palette.Search ("drive.eject_selected", Model) loop
+         if Result_Item.Command = Files.Commands.Eject_Selected_Root_Command and then not Result_Item.Enabled then
+            Found_Root_Eject_Disabled := True;
+         end if;
+      end loop;
+      Assert (Found_Root_Eject_Disabled, "root-eject command appears disabled when selector is closed");
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Root_Entries);
+      for Result_Item of Files.Command_Palette.Search ("drive.open_selected", Model) loop
+         if Result_Item.Command = Files.Commands.Open_Selected_Root_Command and then Result_Item.Enabled then
+            Found_Root_Open_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Root_Open_Enabled, "root-open command appears enabled when selector has a root");
+      declare
+         Removable_Roots : Files.File_System.Root_Entry_Vectors.Vector;
+      begin
+         Removable_Roots.Append
+           (Files.File_System.Root_Entry'
+              (Path        => To_Unbounded_String ("/tmp/removable-root"),
+               Label       => To_Unbounded_String ("root.mount|removable-root"),
+               Kind        => Files.File_System.Root_Mount,
+               Volume_Name => To_Unbounded_String ("removable-root"),
+               Ready       => Files.File_System.Root_Ready,
+               Removable   => True));
+         Files.Model.Open_Root_Selector (Model, Removable_Roots);
+      end;
+      for Result_Item of Files.Command_Palette.Search ("Eject Selected Drive", Model) loop
+         if Result_Item.Command = Files.Commands.Eject_Selected_Root_Command and then Result_Item.Enabled then
+            Found_Root_Eject_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Root_Eject_Enabled, "root-eject command appears enabled for removable roots");
+      for Result_Item of Files.Command_Palette.Search ("path.focus", Model) loop
+         if Result_Item.Command = Files.Commands.Focus_Path_Input_Command and then not Result_Item.Enabled then
+            Found_Root_Blocked_Path := True;
+         end if;
+      end loop;
+      Assert (Found_Root_Blocked_Path, "root selector disables background palette commands");
+      for Result_Item of Files.Command_Palette.Search ("drive.select", Model) loop
+         if Result_Item.Command = Files.Commands.Select_Drive_Command and then Result_Item.Enabled then
+            Found_Root_Drive_Enabled := True;
+         end if;
+      end loop;
+      Assert (Found_Root_Drive_Enabled, "root selector keeps drive command enabled");
+      Files.Model.Close_Root_Selector (Model);
+
+      Mixed_Results := Files.Command_Palette.Search ("NaViGaTe.BaCk", Model);
+      Assert (Natural (Mixed_Results.Length) = 1, "palette search matches identifiers case-insensitively");
+      Assert
+        (Mixed_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "mixed-case identifier search returns the matching command");
+
+      Description_Results := Files.Command_Palette.Search ("previous directory", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search matches localized command descriptions");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "description search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("directory previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search matches description terms independently");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "description token search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("directory" & ASCII.HT & "previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search treats tabs as token separators");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "tab-separated description search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("directory" & ASCII.LF & "previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search treats line feeds as token separators");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "line-feed-separated description search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("directory" & ASCII.CR & "previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search treats carriage returns as token separators");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "carriage-return-separated description search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("directory" & ASCII.VT & "previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search treats vertical tabs as token separators");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "vertical-tab-separated description search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("directory" & ASCII.FF & "previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search treats form feeds as token separators");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "form-feed-separated description search returns the matching command");
+      Description_Results :=
+        Files.Command_Palette.Search ("directory" & Character'Val (133) & "previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search treats C1 next-line controls as token separators");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "C1 next-line-separated description search returns the matching command");
+      declare
+         NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
+         Line_Separator : constant String :=
+           Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
+      begin
+         Description_Results := Files.Command_Palette.Search ("directory" & NBSP & "previous", Model);
+         Assert
+           (Natural (Description_Results.Length) = 1,
+            "palette search treats UTF-8 NBSP as a token separator");
+         Assert
+           (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+            "UTF-8 NBSP-separated description search returns the matching command");
+         Description_Results := Files.Command_Palette.Search ("directory" & Line_Separator & "previous", Model);
+         Assert
+           (Natural (Description_Results.Length) = 1,
+            "palette search treats UTF-8 line separator as a token separator");
+         Assert
+           (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+            "UTF-8 line-separator description search returns the matching command");
+      end;
+      Description_Results := Files.Command_Palette.Search ("navigate.back previous", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search can match separate tokens across identifier and description");
+      Assert
+        (Description_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "cross-field token search returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("control+p", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches primary command shortcuts");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Open_Command_Palette_Command,
+         "primary shortcut search returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("ctrl+p", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches control shortcut aliases");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Open_Command_Palette_Command,
+         "control shortcut alias search returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("option+left", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches option shortcut aliases");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "option shortcut alias search returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("control+shift+f", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches common control-shift shortcut order");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Clear_Filter_Command,
+         "common control-shift shortcut order returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("ctrl+shift+f", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches abbreviated control-shift shortcut aliases");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Clear_Filter_Command,
+         "abbreviated control-shift shortcut alias returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("backspace", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches secondary command shortcuts");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Delete_Selected_Items_Command,
+         "secondary shortcut search returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("del", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) >= 1,
+         "palette search matches delete shortcut aliases");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Delete_Selected_Items_Command,
+         "delete shortcut alias search ranks delete first");
+      Shortcut_Results := Files.Command_Palette.Search ("esc", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) >= 1,
+         "palette search matches escape shortcut aliases");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Close_Command_Palette_Command,
+         "escape shortcut alias search ranks close-palette first");
+      Shortcut_Results := Files.Command_Palette.Search ("enter", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) >= 1,
+         "palette search matches return shortcut aliases");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Open_Selected_Items_Command,
+         "return shortcut alias search ranks open-selected first");
+      Mixed_Results := Files.Command_Palette.Search ("   navigate.back   ", Model);
+      Assert
+        (Natural (Mixed_Results.Length) = 1,
+         "palette search trims leading and trailing identifier whitespace");
+      Assert
+        (Mixed_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "trimmed identifier search returns the matching command");
+      Shortcut_Results := Files.Command_Palette.Search ("CoNtRoL+p", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search matches primary shortcuts case-insensitively");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Open_Command_Palette_Command,
+         "mixed-case primary shortcut search returns the matching command");
+      Assert
+        (Shortcut_Results.Element (1).Score < Natural'Last,
+         "mixed-case primary shortcut search keeps a finite score");
+      Shortcut_Results := Files.Command_Palette.Search ("  backspace  ", Model);
+      Assert
+        (Natural (Shortcut_Results.Length) = 1,
+         "palette search trims shortcut query whitespace");
+      Assert
+        (Shortcut_Results.Element (1).Command = Files.Commands.Delete_Selected_Items_Command,
+         "trimmed secondary shortcut search returns the matching command");
+      Clear_Results := Files.Command_Palette.Search ("cLeAr fIlTeR", Model);
+      Assert
+        (Natural (Clear_Results.Length) = 1,
+         "palette search matches localized labels case-insensitively");
+      Assert
+        (Clear_Results.Element (1).Command = Files.Commands.Clear_Filter_Command,
+         "mixed-case localized label search returns the matching command");
+      Description_Results := Files.Command_Palette.Search ("  navigate.back    previous  ", Model);
+      Assert
+        (Natural (Description_Results.Length) = 1,
+         "palette search ignores repeated token separators around cross-field queries");
+      Description_Results := Files.Command_Palette.Search ("navigate.back impossible-token", Model);
+      Assert
+        (Natural (Description_Results.Length) = 0,
+         "palette search requires every query token to match");
+
+      Mixed_Results := Files.Command_Palette.Search ("   ", Model);
+      Assert
+        (Natural (Mixed_Results.Length) = Files.Commands.Command_Count,
+         "whitespace-only palette query is treated as empty search");
+      Assert
+        (Mixed_Results.Element (1).Command = Files.Commands.Registered_Command_Id'First,
+         "whitespace-only palette query preserves registry order");
+
+      for Index in 1 .. 2_000 loop
+         Append (Long_Query, "previous ");
+      end loop;
+      Long_Results := Files.Command_Palette.Search (To_String (Long_Query), Model);
+      Assert (Natural (Long_Results.Length) = 1, "long repeated palette query remains searchable");
+      Assert
+        (Long_Results.Element (1).Command = Files.Commands.Navigate_Back_Command,
+         "long repeated palette query preserves matching command");
+      Assert (Long_Results.Element (1).Score < Natural'Last, "long repeated palette query keeps score bounded");
+   end Test_Command_Palette_Search;
+
+   procedure Test_Command_Palette_Toggle_Shortcut (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Layout   : Files.Rendering.Layout_Metrics;
+      Palette_Layout : Files.Rendering.Command_Palette_Layout;
+      Palette_Rows   : Files.Rendering.Command_Result_Layout_Vectors.Vector;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "Control+P routes to palette command");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "palette shortcut clears stale error state");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "first Control+P opens palette");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "open palette receives focus");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "second Control+P routes through registry");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "second Control+P closes palette");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed palette clears focus");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 3);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "closed palette text click is ignored");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed palette text click does not focus input");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Files.Controller.Replace_Focused_Text (Model, "view.details");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_L, Ctrl);
+      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "Control+L routes while palette is open");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "path focus closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "path focus clears palette query");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path input receives focus after palette");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "palette blocks stale path text click");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "blocked text click leaves palette open");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "blocked text click keeps palette focus");
+   end Test_Command_Palette_Toggle_Shortcut;
+
+   procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Error_Keys : Files.Types.String_Vectors.Vector;
+
+      procedure Add_Error_Key (Key : String) is
+      begin
+         Error_Keys.Append (To_Unbounded_String (Key));
+      end Add_Error_Key;
+   begin
+      Assert
+        (Files.Localization.Text ("command.view.small") = "Small Icons",
+         "known command label is loaded from catalog");
+      Assert (Files.Localization.Text ("startup.window.ready") = "Window", "startup window label is localized");
+      Assert (Files.Localization.Text ("startup.error") = "Error", "startup error label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.window") = "Runtime smoke window",
+         "runtime smoke window label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.rectangles") = "rectangles",
+         "runtime smoke rectangle label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.glyphs") = "glyphs",
+         "runtime smoke glyph label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.vertices") = "vertices",
+         "runtime smoke vertex label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.text_failed") = "Runtime smoke text rendering failed.",
+         "runtime smoke text-failure label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.no_windows") = "Runtime smoke has no windows.",
+         "runtime smoke no-window label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.no_display") = "Runtime smoke needs a live display.",
+         "runtime smoke no-display label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.no_vulkan") = "Runtime smoke needs Vulkan support.",
+         "runtime smoke no-Vulkan label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.ready") = "Runtime smoke is ready.",
+         "runtime smoke ready label is localized");
+      Assert
+        (Files.Localization.Text ("runtime.smoke.requires_live_harness") = "Runtime smoke requires a live harness.",
+         "runtime smoke live-harness label is localized");
+      Assert
+        (Files.Localization.Text ("cli.help.usage") =
+         "Usage: files [--runtime-smoke] [--live-smoke] [--settings PATH] [PATH...]",
+         "CLI help usage is localized");
+      Assert
+        (Files.Localization.Text ("cli.help.path") = "PATH opens a directory, or the parent directory of a file.",
+         "CLI help path description is localized");
+      Assert
+        (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.runtime_smoke"), "--runtime-smoke") > 0,
+         "CLI help runtime smoke description is localized");
+      Assert
+        (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.live_smoke"), "--live-smoke") > 0,
+         "CLI help live smoke description is localized");
+      Assert
+        (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.settings"), "--settings PATH") > 0,
+         "CLI help settings description is localized");
+      Assert
+        (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.help"), "--help, -h") > 0,
+         "CLI help flag description is localized");
+      Assert
+        (Files.Localization.Text ("command.view.small", "da-DK") = "Small Icons",
+         "missing locale falls back through default locale");
+      Assert
+        (Files.Localization.Text ("missing.test.key") = "missing.test.key",
+         "unknown localization key falls back to key text");
+      Assert (Files.Localization.Text ("info.name") = "Name", "info pane name label is localized");
+      Assert (Files.Localization.Text ("status.items") = "Items", "item-count label is localized");
+      Assert (Files.Localization.Text ("status.visible") = "Visible", "visible-count label is localized");
+      Assert (Files.Localization.Text ("status.selected") = "Selected", "selected-count label is localized");
+      Assert
+        (Files.Localization.Text ("dialog.settings.import") = "Import Settings",
+         "import dialog title is localized");
+      Assert
+        (Files.Localization.Text ("dialog.settings.export") = "Export Settings",
+         "export dialog title is localized");
+      Assert
+        (Files.Localization.Text ("status.missing_metadata") = "Unavailable",
+         "missing metadata fallback is localized");
+      Assert (Files.Localization.Text ("accessibility.toolbar") = "Toolbar", "toolbar landmark is localized");
+      Assert
+        (Files.Localization.Text ("accessibility.main_view") = "Directory contents",
+         "main-view landmark is localized");
+      Assert
+        (Files.Localization.Text ("accessibility.info_pane") = "Information pane",
+         "info-pane landmark is localized");
+      Assert
+        (Files.Localization.Text ("accessibility.command_palette_search") = "Command search",
+         "command-palette search label is localized");
+      Assert
+        (Files.Localization.Text ("accessibility.root_selector") = "Root locations",
+         "root-selector landmark is localized");
+      Add_Error_Key ("error.path.missing");
+      Add_Error_Key ("error.path.inaccessible");
+      Add_Error_Key ("error.directory.load");
+      Add_Error_Key ("error.metadata.read");
+      Add_Error_Key ("error.file.create");
+      Add_Error_Key ("error.file.exists");
+      Add_Error_Key ("error.file.parent_missing");
+      Add_Error_Key ("error.rename.source_missing");
+      Add_Error_Key ("error.rename.invalid_destination");
+      Add_Error_Key ("error.rename.failed");
+      Add_Error_Key ("error.trash.unavailable");
+      Add_Error_Key ("error.trash.failed");
+      Add_Error_Key ("error.trash.native_unavailable");
+      Add_Error_Key ("error.history.back_unavailable");
+      Add_Error_Key ("error.history.forward_unavailable");
+      Add_Error_Key ("error.selection.empty");
+      Add_Error_Key ("error.create.pending");
+      Add_Error_Key ("error.create.no_temporary_item");
+      Add_Error_Key ("error.filter.empty");
+      Add_Error_Key ("error.root.selection.empty");
+      Add_Error_Key ("error.root.eject_unavailable");
+      Add_Error_Key ("error.dialog.native_unavailable");
+      Add_Error_Key ("error.name.invalid");
+      Add_Error_Key ("error.rename.disabled");
+      Add_Error_Key ("error.open_action.missing");
+      Add_Error_Key ("error.open_action.multi_directory");
+      Add_Error_Key ("error.open_action.execution");
+      Add_Error_Key ("error.open_action.executable_missing");
+      Add_Error_Key ("error.open_action.unsafe_placeholder");
+      Add_Error_Key ("error.settings.unknown_section");
+      Add_Error_Key ("error.settings.expected_equals");
+      Add_Error_Key ("error.settings.invalid_open_action");
+      Add_Error_Key ("error.settings.invalid_mapping");
+      Add_Error_Key ("error.settings.invalid_view_mode");
+      Add_Error_Key ("error.settings.invalid_boolean");
+      Add_Error_Key ("error.settings.invalid_icon_theme");
+      Add_Error_Key ("error.settings.invalid_sort_field");
+      Add_Error_Key ("error.settings.unknown_key");
+      Add_Error_Key ("error.settings.missing_section");
+      Add_Error_Key ("error.settings.invalid");
+      Add_Error_Key ("error.settings.not_file");
+      Add_Error_Key ("error.settings.load");
+      Add_Error_Key ("error.settings.save");
+      Add_Error_Key ("error.settings.closed");
+      Add_Error_Key ("error.window.create");
+      for Key of Error_Keys loop
+         declare
+            Text_Key : constant String := To_String (Key);
+         begin
+            Assert (Files.Localization.Text (Text_Key) /= Text_Key, "error localization exists for " & Text_Key);
+         end;
+      end loop;
+      for Id in Files.Commands.Registered_Command_Id loop
+         declare
+            Name_Key        : constant String := Files.Commands.Name_Key (Id);
+            Description_Key : constant String := Files.Commands.Description_Key (Id);
+         begin
+            Assert (Name_Key /= "", "registered command has a localization name key");
+            Assert
+              (Files.Localization.Text (Name_Key) /= Name_Key,
+               "registered command name is localized for " & Files.Commands.Identifier (Id));
+            if Description_Key /= "" then
+               Assert
+                 (Files.Localization.Text (Description_Key) /= Description_Key,
+                  "registered command description is localized for " & Files.Commands.Identifier (Id));
+            end if;
+         end;
+      end loop;
+   end Test_Localization_Catalog;
+
+   procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Repository_File_Exists (Path : String) return Boolean is
+      begin
+         return Ada.Directories.Exists (Path)
+           or else Ada.Directories.Exists ("../" & Path)
+           or else Ada.Directories.Exists ("../../" & Path);
+      end Repository_File_Exists;
+
+      function Repository_File_Contains
+        (Path    : String;
+         Pattern : String)
+         return Boolean is
+      begin
+         return
+           (Project_Tools.Files.File_Exists (Path)
+            and then Project_Tools.Files.File_Contains (Path, Pattern))
+           or else
+           (Project_Tools.Files.File_Exists ("../" & Path)
+            and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
+           or else
+           (Project_Tools.Files.File_Exists ("../../" & Path)
+            and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
+      end Repository_File_Contains;
+
+      function Repository_Root return String is
+      begin
+         if Project_Tools.Files.Directory_Exists ("src")
+           and then Project_Tools.Files.Directory_Exists ("tests")
+         then
+            return ".";
+         elsif Project_Tools.Files.Directory_Exists ("../src")
+           and then Project_Tools.Files.Directory_Exists ("../tests")
+         then
+            return "..";
+         elsif Project_Tools.Files.Directory_Exists ("../../src")
+           and then Project_Tools.Files.Directory_Exists ("../../tests")
+         then
+            return "../..";
+         else
+            return ".";
+         end if;
+      end Repository_Root;
+
+      function Has_Suffix
+        (Text   : String;
+         Suffix : String)
+         return Boolean is
+      begin
+         return Text'Length >= Suffix'Length
+           and then Text (Text'Last - Suffix'Length + 1 .. Text'Last) = Suffix;
+      end Has_Suffix;
+
+      function Is_Skipped_Tree (Name : String) return Boolean is
+      begin
+         return Name = "."
+           or else Name = ".."
+           or else Name = ".git"
+           or else Name = ".alire"
+           or else Name = "alire"
+           or else Name = "bin"
+           or else Name = "obj";
+      end Is_Skipped_Tree;
+
+      function Is_Forbidden_Helper_Script (Name : String) return Boolean is
+      begin
+         return Has_Suffix (Name, ".sh")
+           or else Has_Suffix (Name, ".bash")
+           or else Has_Suffix (Name, ".zsh")
+           or else Has_Suffix (Name, ".fish")
+           or else Has_Suffix (Name, ".ps1")
+           or else Has_Suffix (Name, ".py")
+           or else Has_Suffix (Name, ".awk")
+           or else Has_Suffix (Name, ".pl");
+      end Is_Forbidden_Helper_Script;
+
+      function Forbidden_Helper_Script_Count (Path : String) return Natural is
+         Search   : Ada.Directories.Search_Type;
+         Dir_Item : Ada.Directories.Directory_Entry_Type;
+         Count    : Natural := 0;
+         Started  : Boolean := False;
+      begin
+         if not Project_Tools.Files.Directory_Exists (Path) then
+            return 0;
+         end if;
+
+         Ada.Directories.Start_Search
+           (Search    => Search,
+            Directory => Path,
+            Pattern   => "*",
+            Filter    => [Ada.Directories.Directory => True, Ada.Directories.Ordinary_File => True, others => False]);
+         Started := True;
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Dir_Item);
+            declare
+               Name      : constant String := Ada.Directories.Simple_Name (Dir_Item);
+               Full_Path : constant String := Ada.Directories.Full_Name (Dir_Item);
+            begin
+               if Ada.Directories.Kind (Dir_Item) = Ada.Directories.Directory then
+                  if not Is_Skipped_Tree (Name) then
+                     Count := Count + Forbidden_Helper_Script_Count (Full_Path);
+                  end if;
+               elsif Is_Forbidden_Helper_Script (Name) then
+                  Count := Count + 1;
+               end if;
+            end;
+         end loop;
+         Ada.Directories.End_Search (Search);
+         Started := False;
+         return Count;
+      exception
+         when others =>
+            if Started then
+               Ada.Directories.End_Search (Search);
+            end if;
+            return Count;
+      end Forbidden_Helper_Script_Count;
+   begin
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Drag_And_Drop),
+         "drag-and-drop remains outside the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Thumbnail_Generation),
+         "thumbnail generation remains outside the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Recursive_Search),
+         "recursive search remains outside the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.File_Watching),
+         "file watching remains outside the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
+         "permanent deletion remains outside the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation
+           (Files.Features.Network_Filesystem_Special_Handling),
+         "network filesystem special handling remains outside the first implementation");
+      Assert
+        (not Repository_File_Contains ("src/files-file_system.adb", """/Network"""),
+         "root discovery does not add network-specific roots in the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Shell_Open_By_Default),
+         "shell open actions remain opt-in");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Gpu_Screenshot_Tests),
+         "GPU screenshot tests remain outside the first implementation");
+      Assert
+        (Forbidden_Helper_Script_Count (Repository_Root) = 0,
+         "all project helper tooling remains implemented in Ada");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Platform_Trash),
+         "platform trash belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Root_Discovery),
+         "root discovery belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Open_Action_Execution),
+         "open-action execution belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Settings_Editing),
+         "settings editing belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Desktop_Packaging),
+         "desktop packaging metadata belongs to the first implementation");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
+         "permanent deletion remains excluded even after trash support expands");
+      Assert
+        (Repository_File_Exists ("share/applications/files.desktop"),
+         "desktop packaging includes a desktop entry");
+      Assert
+        (Repository_File_Exists ("share/icons/hicolor/scalable/apps/files.svg"),
+         "desktop packaging includes an application icon");
+      Assert
+        (Repository_File_Exists ("share/metainfo/dk.bracke.files.metainfo.xml"),
+         "desktop packaging includes AppStream metadata");
+      Assert
+        (Repository_File_Exists ("share/files/package.manifest"),
+         "desktop packaging includes a release manifest");
+      Assert
+        (Repository_File_Exists ("share/files.catalog"),
+         "desktop packaging includes the localization catalog");
+      Assert
+        (Repository_File_Exists ("share/files/icons/folder.icon"),
+         "desktop packaging includes bundled icon assets");
+      Assert
+        (Repository_File_Exists ("share/files/icons/markdown.icon"),
+         "desktop packaging includes the complete bundled icon set");
+      Assert
+        (Repository_File_Contains ("alire.toml", "project_tools = ""*""")
+         and then Repository_File_Contains ("alire.toml", "project_tools = { path = ""../project_tools"" }"),
+         "files crate pins project_tools to the local relative path");
+      Assert
+        (Repository_File_Contains ("alire.toml", "i18n = ""*""")
+         and then Repository_File_Contains ("alire.toml", "i18n = { path = ""../i18n"" }"),
+         "files crate pins i18n to the local relative path");
+      Assert
+        (Repository_File_Contains ("alire.toml", "textrender = ""*""")
+         and then Repository_File_Contains ("alire.toml", "textrender = { path = ""../textrender"" }"),
+         "files crate pins textrender to the local relative path");
+      Assert
+        (Repository_File_Contains ("alire.toml", "openglada_glfw")
+         and then Repository_File_Contains ("alire.toml", "df_vulkan")
+         and then Repository_File_Contains ("alire.toml", "textrender"),
+         "files crate declares required windowing, rendering, and text-rendering dependencies");
+      Assert
+        (Repository_File_Contains ("tests/tests/alire.toml", "files = ""*""")
+         and then Repository_File_Contains ("tests/tests/alire.toml", "files = { path = ""../.."" }"),
+         "tests crate pins the parent files crate by local relative path");
+      Assert
+        (Repository_File_Contains ("tests/tests/alire.toml", "aunit"),
+         "tests crate declares the AUnit dependency");
+      Assert
+        (Repository_File_Contains ("tests/alire.toml", "files = ""*""")
+         and then Repository_File_Contains ("tests/alire.toml", "files = { path = "".."" }"),
+         "top-level tests sub-crate pins the parent files crate by local relative path");
+      Assert
+        (Repository_File_Contains ("tests/alire.toml", "aunit"),
+         "top-level tests sub-crate declares the AUnit dependency");
+      Assert
+        (Repository_File_Contains ("tests/tests.gpr", "tests/src/")
+         and then Repository_File_Contains ("tests/tests.gpr", "for Main use (""tests.adb"")"),
+         "top-level tests sub-crate reuses the AUnit suite sources");
+      Assert
+        (Repository_File_Contains ("files.gpr", "src/platform/windows")
+         and then Repository_File_Contains ("files.gpr", "src/platform/macos")
+         and then Repository_File_Contains ("files.gpr", "src/platform/unsupported"),
+         "files project keeps platform-specific source directories wired");
+      Assert
+        (Repository_File_Contains ("files.gpr", "for Main use (""files-main.adb"")")
+         and then Repository_File_Contains ("files.gpr", "use ""files"""),
+         "files project builds the expected binary entry point");
+      Assert
+        (Repository_File_Contains ("tests/tests/tests.gpr", "for Main use (""tests.adb"")")
+         and then Repository_File_Contains ("tests/tests/tests.gpr", "use ""tests"""),
+         "nested tests project builds the expected AUnit runner");
+      Assert
+        (Repository_File_Contains ("tests/tests/tests.gpr", "for Source_Dirs use (""src/"", ""config/"")")
+         and then Repository_File_Contains ("tests/tests/tests.gpr", """-gnat2022"""),
+         "nested tests project keeps Ada 2022 test sources wired");
+      Assert
+        (Repository_File_Contains ("tools/files_check_all.gpr", "for Main use (""check_all.adb"")")
+         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""check_all"""),
+         "checker tooling project builds the expected Ada helper");
+      Assert
+        (Repository_File_Contains ("tools/files_check_all.gpr", "for Source_Dirs use (""src"", ""config"")")
+         and then Repository_File_Contains ("tools/files_check_all.gpr", """-gnat2022"""),
+         "checker tooling project keeps Ada 2022 sources wired");
+      Assert
+        (Repository_File_Contains (".gitignore", "/obj/")
+         and then Repository_File_Contains (".gitignore", "/bin/")
+         and then Repository_File_Contains (".gitignore", "/alire/")
+         and then Repository_File_Contains (".gitignore", "/config/"),
+         "main crate ignores generated build artifacts");
+      Assert
+        (Repository_File_Contains ("tests/.gitignore", "/obj/")
+         and then Repository_File_Contains ("tests/.gitignore", "/bin/")
+         and then Repository_File_Contains ("tests/.gitignore", "/alire/")
+         and then Repository_File_Contains ("tests/.gitignore", "/config/"),
+         "top-level tests crate ignores generated build artifacts");
+      Assert
+        (Repository_File_Contains ("tests/tests/.gitignore", "/obj/")
+         and then Repository_File_Contains ("tests/tests/.gitignore", "/bin/")
+         and then Repository_File_Contains ("tests/tests/.gitignore", "/alire/")
+         and then Repository_File_Contains ("tests/tests/.gitignore", "/config/"),
+         "nested tests crate ignores generated build artifacts");
+      Assert
+        (Repository_File_Contains ("tools/.gitignore", "/obj/")
+         and then Repository_File_Contains ("tools/.gitignore", "/bin/")
+         and then Repository_File_Contains ("tools/.gitignore", "/alire/")
+         and then Repository_File_Contains ("tools/.gitignore", "/config/"),
+         "checker tooling crate ignores generated build artifacts");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/files.catalog"),
+         "release manifest includes localization catalog");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/files/icons/markdown.icon"),
+         "release manifest includes bundled icon assets");
+      declare
+         Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;
+         Vulkan_Available  : constant Boolean := Files.Application.Windows.Vulkan_Runtime_Available;
+         Capabilities      : constant Files.Application.Windows.Desktop_Capabilities :=
+           Files.Application.Windows.Runtime_Capabilities;
+      begin
+         Assert
+           (Display_Available or else not Display_Available,
+            "live display capability query returns deterministic boolean");
+         Assert
+           (Vulkan_Available or else not Vulkan_Available,
+            "Vulkan capability query returns deterministic boolean");
+         Assert
+           (Capabilities.Display_Available = Display_Available,
+            "desktop capability report includes display state");
+         Assert
+           (Capabilities.Vulkan_Available = Vulkan_Available,
+            "desktop capability report includes Vulkan state");
+      end;
+   end Test_First_Implementation_Feature_Policy;
+
+   procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Text      : constant String :=
+        ASCII.HT & "[ Settings ]" & ASCII.CR & ASCII.LF &
+        ASCII.HT & "Default_View_Mode" & ASCII.HT & "=" & ASCII.HT & "DETAILS" & ASCII.CR & ASCII.LF &
+        "Show_Hidden_Files = TRUE" & ASCII.CR & ASCII.LF &
+        "Sort_Directories_First = FALSE" & ASCII.CR & ASCII.LF &
+        "Sort_Field = size" & ASCII.CR & ASCII.LF &
+        "Sort_Ascending = FALSE" & ASCII.CR & ASCII.LF &
+        "High_Contrast_Theme = TRUE" & ASCII.CR & ASCII.LF &
+        "Icon_Theme = files-high-contrast" & ASCII.CR & ASCII.LF &
+        "# comment lines are ignored" & ASCII.LF &
+        "[filetypes]" & ASCII.LF &
+        "ada = text/x-ada" & ASCII.LF &
+        "log = ""text/x-log""" & ASCII.LF &
+        "quote = ""text/""""quoted""" & ASCII.LF &
+        "eq = ""text/with=equals""" & ASCII.LF &
+        "[icons]" & ASCII.LF &
+        "text/x-ada = text" & ASCII.LF &
+        "text/x-log = ""log-icon""" & ASCII.LF &
+        "text/x-quote = ""quote""""icon""" & ASCII.LF &
+        "text/x-equals = ""icon=equals""" & ASCII.LF &
+        "[open-actions]" & ASCII.LF &
+        "text/x-ada = editor {path}" & ASCII.LF &
+        "text/x-ada+control = editor --readonly {path}" & ASCII.LF &
+        "text/full = inspect {parent} {name} {stem} {extension}" & ASCII.LF &
+        "text/equals = runner --flag=value ""arg=two words""" & ASCII.LF &
+        "text/quoted = ""quoted editor"" ""--project file"" ""{path}""" & ASCII.LF &
+        "text/quote-char = ""quote""""runner"" ""arg """" inner""" & ASCII.LF &
+        "text/empty-arg = runner """" after-empty" & ASCII.LF &
+        "text/shell = shell:""shell runner"" ""{name}""" & ASCII.LF &
+        "text/shell-upper = SHELL:upper-runner ""{path}""" & ASCII.LF &
+        "text/unknown-placeholder = inspect ""{unknown}""" & ASCII.LF &
+        "text/mixed+alt+control = mixed {path}" & ASCII.LF &
+        "text/spaced + CONTROL + alt = spaced {path}" & ASCII.LF &
+        "text/duplicate+CONTROL+alt+control = duplicate {path}" & ASCII.LF &
+        "application/ld+json = json-viewer {path}" & ASCII.LF &
+        "application/ld+json+control = json-editor {path}" & ASCII.LF;
+      Parsed    : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Text);
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Expanded  : Files.Settings.Open_Action;
+      Manual    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Args      : Files.Types.String_Vectors.Vector;
+      C1_Break  : constant Character := Character'Val (133);
+   begin
+      Assert (Parsed.Success, "settings text parses");
+      Assert (Parsed.Settings.Default_View = Files.Types.Details, "default view mode parses");
+      Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
+      Assert (not Parsed.Settings.Sort_Directories_First, "section names tolerate whitespace");
+      Assert (Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "sort field setting parses");
+      Assert (not Parsed.Settings.Sort_Ascending, "sort direction setting parses");
+      Assert (Parsed.Settings.High_Contrast_Theme, "high-contrast theme setting parses");
+      Assert
+        (To_String (Parsed.Settings.Icon_Theme_Name) = "files-high-contrast",
+         "icon theme setting parses");
+      declare
+         Duplicate_Settings : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Parse
+             ("[settings]" & ASCII.LF &
+              "default_view_mode = small" & ASCII.LF &
+              "default_view_mode = details" & ASCII.LF &
+              "show_hidden_files = false" & ASCII.LF &
+              "show_hidden_files = true" & ASCII.LF &
+              "sort_field = name" & ASCII.LF &
+              "sort_field = modified" & ASCII.LF);
+      begin
+         Assert (Duplicate_Settings.Success, "duplicate scalar settings parse deterministically");
+         Assert
+           (Duplicate_Settings.Settings.Default_View = Files.Types.Details,
+            "duplicate default view setting uses the last value");
+         Assert
+           (Duplicate_Settings.Settings.Show_Hidden_Files,
+            "duplicate hidden-file setting uses the last value");
+         Assert
+           (Duplicate_Settings.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified,
+            "duplicate sort field setting uses the last value");
+      end;
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".ada") = "text/x-ada",
+         "extension mapping parses");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, " ADA ") = "text/x-ada",
+         "extension lookup normalizes whitespace and case");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "log") = "text/x-log",
+         "quoted filetype mapping value parses");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "quote") = "text/""quoted",
+         "quote-containing filetype mapping value parses");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "eq") = "text/with=equals",
+         "equals-containing filetype mapping value parses");
+      Assert (Files.Settings.Normalize_Extension (".") = "", "single-dot extension normalizes to empty");
+      Assert
+        (Files.Settings.Normalize_Extension (". TXT ") = "txt",
+         "extension normalization trims after a leading dot");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".") = "",
+         "empty normalized extension has no filetype mapping");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "unknown") = "",
+         "unknown extension has no filetype mapping");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "pdf") = "application/pdf",
+         "default settings map PDF files");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "adb") = "text/x-ada",
+         "default settings map Ada body files");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "json") = "application/json",
+         "default settings map JSON files");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "xml") = "application/xml",
+         "default settings map XML files");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "zip") = "application/zip",
+         "default settings map ZIP archives");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "tar.gz") = "application/gzip-tar",
+         "default settings map compressed tar archives");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "docx") =
+         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+         "default settings map Word documents");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "xlsx") =
+         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+         "default settings map spreadsheet documents");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "mp3") = "audio/mpeg",
+         "default settings map MP3 audio");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "mp4") = "video/mp4",
+         "default settings map MP4 video");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "inode/directory") = "folder",
+         "default settings map directory icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "inode/symlink") = "link",
+         "default settings map symlink icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "application/x-executable") = "executable",
+         "default settings map executable icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/plain") = "text",
+         "default settings map text icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/x-ada") = "ada",
+         "default settings map Ada icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "image/png") = "image",
+         "default settings map PNG icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "application/x-tar") = "unknown",
+         "default settings map tar icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "audio/mpeg") = "unknown",
+         "default settings map audio icons");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-ada") = "text",
+         "icon mapping parses");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, " text/x-ada ") = "text",
+         "icon lookup normalizes whitespace");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-log") = "log-icon",
+         "quoted icon mapping value parses");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-quote") = "quote""icon",
+         "quoted icon mapping unescapes doubled quotes");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-equals") = "icon=equals",
+         "equals-containing icon mapping value parses");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "application/x-missing") = "",
+         "unknown filetype has no icon mapping");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "   ") = "",
+         "blank filetype has no icon mapping");
+
+      Modifiers (Files.Types.Control_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
+      Assert (Lookup.Found, "modifier-specific open action is found");
+      Assert (To_String (Lookup.Token) = "text/x-ada+control", "modifier token is normalized");
+      Assert (To_String (Lookup.Action.Executable) = "editor", "action executable parses");
+      Assert (Natural (Lookup.Action.Arguments.Length) = 2, "action arguments parse");
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, " text/x-ada ", Modifiers);
+      Assert (Lookup.Found, "open action lookup normalizes filetype whitespace");
+      Assert
+        (To_String (Lookup.Token) = "text/x-ada+control",
+         "whitespace-normalized lookup preserves modifier token");
+
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
+      Assert
+        (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada",
+         "path placeholder expands as one argument");
+
+      Modifiers := Files.Types.No_Modifiers;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "application/ld+json", Modifiers);
+      Assert (Lookup.Found, "structured-suffix open action is found");
+      Assert
+        (To_String (Lookup.Token) = "application/ld+json",
+         "structured-suffix filetype token keeps plus suffix");
+      Assert
+        (To_String (Lookup.Action.Executable) = "json-viewer",
+         "structured-suffix open action executable parses");
+      Modifiers (Files.Types.Control_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "application/ld+json", Modifiers);
+      Assert (Lookup.Found, "structured-suffix modifier-specific open action is found");
+      Assert
+        (To_String (Lookup.Token) = "application/ld+json+control",
+         "structured-suffix modifier token appends after filetype suffix");
+      Assert
+        (To_String (Lookup.Action.Executable) = "json-editor",
+         "structured-suffix modifier-specific executable parses");
+
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/full", Files.Types.No_Modifiers);
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/archive.tar.gz");
+      Assert (Lookup.Found, "full placeholder action is found");
+      Assert (To_String (Expanded.Arguments.Element (1)) = "/tmp/example", "parent placeholder expands");
+      Assert (To_String (Expanded.Arguments.Element (2)) = "archive.tar.gz", "name placeholder expands");
+      Assert (To_String (Expanded.Arguments.Element (3)) = "archive.tar", "stem placeholder expands");
+      Assert (To_String (Expanded.Arguments.Element (4)) = "gz", "extension placeholder expands");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/.profile");
+      Assert (To_String (Expanded.Arguments.Element (2)) = ".profile", "dotfile name placeholder expands");
+      Assert (To_String (Expanded.Arguments.Element (3)) = ".profile", "dotfile stem keeps leading-dot name");
+      Assert (To_String (Expanded.Arguments.Element (4)) = "", "dotfile extension expands to empty");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/name.");
+      Assert (To_String (Expanded.Arguments.Element (2)) = "name.", "trailing-dot name placeholder expands");
+      Assert (To_String (Expanded.Arguments.Element (3)) = "name.", "trailing-dot stem keeps final separator");
+      Assert (To_String (Expanded.Arguments.Element (4)) = "", "trailing-dot extension expands to empty");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "");
+      Assert (To_String (Expanded.Arguments.Element (1)) = "", "empty path parent expands to empty");
+      Assert (To_String (Expanded.Arguments.Element (2)) = "", "empty path name expands to empty");
+      Assert (To_String (Expanded.Arguments.Element (3)) = "", "empty path stem expands to empty");
+      Assert (To_String (Expanded.Arguments.Element (4)) = "", "empty path extension expands to empty");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "relative.txt");
+      Assert (To_String (Expanded.Arguments.Element (1)) = ".", "relative path parent expands to current directory");
+      Assert (To_String (Expanded.Arguments.Element (2)) = "relative.txt", "relative path name expands");
+      Assert (To_String (Expanded.Arguments.Element (3)) = "relative", "relative path stem expands");
+      Assert (To_String (Expanded.Arguments.Element (4)) = "txt", "relative path extension expands");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\tmp\dir.with.dots\main.adb");
+      Assert (To_String (Expanded.Arguments.Element (1)) = "C:\tmp\dir.with.dots", "Windows path parent expands");
+      Assert (To_String (Expanded.Arguments.Element (2)) = "main.adb", "Windows path name expands");
+      Assert (To_String (Expanded.Arguments.Element (3)) = "main", "Windows path stem expands");
+      Assert (To_String (Expanded.Arguments.Element (4)) = "adb", "Windows path extension expands");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\tmp\dir.with.dots\file");
+      Assert
+        (To_String (Expanded.Arguments.Element (4)) = "",
+         "Windows placeholder extension ignores dotted directory names");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/trailing/");
+      Assert
+        (To_String (Expanded.Arguments.Element (1)) = "/tmp/example",
+         "trailing separator parent expands from trimmed path");
+      Assert
+        (To_String (Expanded.Arguments.Element (2)) = "trailing",
+         "trailing separator name expands from trimmed path");
+      Assert
+        (To_String (Expanded.Arguments.Element (3)) = "trailing",
+         "trailing separator stem expands from trimmed path");
+      Assert
+        (To_String (Expanded.Arguments.Element (4)) = "",
+         "trailing separator extension expands to empty");
+
+      declare
+         Embedded_Args   : Files.Types.String_Vectors.Vector;
+         Embedded_Action : Files.Settings.Open_Action;
+      begin
+         Embedded_Args.Append (To_Unbounded_String ("prefix-{path}"));
+         Embedded_Args.Append (To_Unbounded_String ("{stem}.suffix"));
+         Embedded_Action := Files.Settings.Make_Action ("inspect", Embedded_Args);
+         Expanded := Files.Settings.Expand_Placeholders (Embedded_Action, "/tmp/example/main.ada");
+         Assert
+           (To_String (Expanded.Arguments.Element (1)) = "prefix-{path}",
+            "embedded path placeholder remains literal");
+         Assert
+           (To_String (Expanded.Arguments.Element (2)) = "{stem}.suffix",
+            "embedded stem placeholder remains literal");
+         Assert
+           (Files.Settings.Has_Embedded_Placeholder (Embedded_Action),
+            "embedded placeholders are visible to safety checks");
+         Assert
+           (Files.Settings.Has_Unsafe_Placeholder_Usage (Embedded_Action),
+            "embedded placeholders make open actions unsafe");
+         Embedded_Action := Files.Settings.Make_Action ("{path}", Files.Types.String_Vectors.Empty_Vector);
+         Assert
+           (Files.Settings.Has_Unsafe_Placeholder_Usage (Embedded_Action),
+            "executable placeholders make open actions unsafe");
+      end;
+      Assert (Files.Settings.Has_Embedded_Placeholder ("prefix-{path}"), "embedded placeholder is unsafe");
+      Assert (not Files.Settings.Has_Embedded_Placeholder ("{path}"), "whole-argument placeholder is safe");
+      Assert
+        (not Files.Settings.Has_Embedded_Placeholder ("{unknown}"),
+         "unknown placeholder token is not treated as a known placeholder");
+      Assert
+        (not Files.Settings.Has_Embedded_Placeholder ("prefix-{unknown}"),
+         "embedded unknown placeholder remains a literal argument");
+
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/unknown-placeholder",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "unknown placeholder open action parses");
+      Assert
+        (not Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action),
+         "unknown placeholder open action is not unsafe");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
+      Assert
+        (To_String (Expanded.Arguments.Element (1)) = "{unknown}",
+         "unknown placeholder remains literal after expansion");
+
+      Modifiers := Files.Types.No_Modifiers;
+      Modifiers (Files.Types.Shift_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
+      Assert (Lookup.Found, "missing modifier action falls back to unmodified filetype");
+      Assert (To_String (Lookup.Token) = "text/x-ada", "fallback token is unmodified filetype");
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, " text/x-ada ", Modifiers);
+      Assert (Lookup.Found, "fallback open action lookup trims filetype");
+      Assert (To_String (Lookup.Token) = "text/x-ada", "trimmed fallback token is unmodified filetype");
+
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/quoted",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "quoted open action is found");
+      Assert (To_String (Lookup.Action.Executable) = "quoted editor", "quoted executable parses");
+      Assert (Natural (Lookup.Action.Arguments.Length) = 2, "quoted arguments parse as separate values");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (1)) = "--project file",
+         "quoted argument preserves spaces");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
+      Assert
+        (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada",
+         "quoted placeholder expands as one argument");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada/");
+      Assert
+        (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada/",
+         "path placeholder preserves trailing separator verbatim");
+
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/quote-char",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "quote-containing open action is found");
+      Assert
+        (To_String (Lookup.Action.Executable) = "quote""runner",
+         "quoted executable preserves doubled quote");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (1)) = "arg "" inner",
+         "quoted argument preserves doubled quote");
+
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/equals",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "equals-containing open action is found");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (1)) = "--flag=value",
+         "equals-containing action argument parses");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (2)) = "arg=two words",
+         "quoted equals-containing action argument parses");
+
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/empty-arg",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "empty quoted argument open action is found");
+      Assert (Natural (Lookup.Action.Arguments.Length) = 2, "empty quoted argument does not end parsing");
+      Assert (To_String (Lookup.Action.Arguments.Element (1)) = "", "empty quoted argument is preserved");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (2)) = "after-empty",
+         "argument after empty quoted argument is preserved");
+
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/shell",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "explicit shell open action is found");
+      Assert (Lookup.Action.Use_Shell, "explicit shell prefix is preserved");
+      Assert (To_String (Lookup.Action.Executable) = "shell runner", "shell executable can be quoted");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (1)) = "{name}",
+         "shell action arguments are still parsed as a vector");
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/shell.txt");
+      Assert (Expanded.Use_Shell, "placeholder expansion preserves explicit shell flag");
+      Assert (To_String (Expanded.Executable) = "shell runner", "placeholder expansion preserves executable");
+      Assert (To_String (Expanded.Arguments.Element (1)) = "shell.txt", "shell action placeholder expands");
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Parsed.Settings,
+         "text/shell-upper",
+         Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "uppercase shell open action is found");
+      Assert (Lookup.Action.Use_Shell, "uppercase shell prefix is normalized");
+      Assert (To_String (Lookup.Action.Executable) = "upper-runner", "uppercase shell executable parses");
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "unmodified non-shell open action is found");
+      Assert (not Lookup.Action.Use_Shell, "shell execution is opt-in through explicit prefix");
+      declare
+         Serialized : constant String := Files.Settings.To_Text (Parsed.Settings);
+         Reloaded   : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Serialized);
+      begin
+         Assert (Reloaded.Success, "serialized settings text parses");
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quoted", Files.Types.No_Modifiers);
+         Assert (Lookup.Found, "serialized quoted action reloads");
+         Assert
+           (To_String (Lookup.Action.Executable) = "quoted editor",
+            "serialized quoted action preserves executable spaces");
+         Assert
+           (To_String (Lookup.Action.Arguments.Element (1)) = "--project file",
+            "serialized quoted action preserves spaced argument");
+         Assert
+           (To_String (Lookup.Action.Arguments.Element (2)) = "{path}",
+            "serialized quoted action preserves placeholder argument");
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/equals", Files.Types.No_Modifiers);
+         Assert (Lookup.Found, "serialized equals-containing action reloads");
+         Assert
+           (To_String (Lookup.Action.Arguments.Element (1)) = "--flag=value",
+            "serialized open action preserves equals argument");
+         Assert
+           (To_String (Lookup.Action.Arguments.Element (2)) = "arg=two words",
+            "serialized open action preserves quoted equals argument");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quote-char", Files.Types.No_Modifiers);
+         Assert (Lookup.Found, "serialized quote-containing action reloads");
+         Assert
+           (To_String (Lookup.Action.Executable) = "quote""runner",
+            "serialized open action preserves executable quote");
+         Assert
+           (To_String (Lookup.Action.Arguments.Element (1)) = "arg "" inner",
+            "serialized open action preserves argument quote");
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/empty-arg", Files.Types.No_Modifiers);
+         Assert (Lookup.Found, "serialized empty-argument action reloads");
+         Assert
+           (To_String (Lookup.Action.Arguments.Element (1)) = "",
+            "serialized open action preserves empty argument");
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/shell", Files.Types.No_Modifiers);
+         Assert (Lookup.Found, "serialized shell action reloads");
+         Assert (Lookup.Action.Use_Shell, "serialized shell action preserves shell opt-in");
+         Assert
+           (To_String (Lookup.Action.Executable) = "shell runner",
+            "serialized shell action preserves quoted executable");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "quote") = "text/""quoted",
+            "serialized filetype mapping preserves quote");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "eq") = "text/with=equals",
+            "serialized filetype mapping preserves equals");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-quote") = "quote""icon",
+            "serialized icon mapping preserves quote");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-equals") = "icon=equals",
+            "serialized icon mapping preserves equals");
+      end;
+      declare
+         Odd_Settings : Files.Settings.Settings_Model := Parsed.Settings;
+         Odd_Text     : Unbounded_String;
+         Expected     : constant String :=
+           "icon_theme = " & '"' & "files " & '"' & '"' & "basic" & '"';
+      begin
+         Odd_Settings.Icon_Theme_Name := To_Unbounded_String ("files ""basic");
+         Odd_Text := To_Unbounded_String (Files.Settings.To_Text (Odd_Settings));
+         Assert
+           (Ada.Strings.Fixed.Index (To_String (Odd_Text), Expected) > 0,
+            "serialized icon theme quotes embedded quote");
+      end;
+
+      Modifiers := Files.Types.No_Modifiers;
+      Modifiers (Files.Types.Control_Key) := True;
+      Modifiers (Files.Types.Alt_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/mixed", Modifiers);
+      Assert (Lookup.Found, "settings modifier token is normalized on insertion");
+      Assert
+        (To_String (Lookup.Token) = "text/mixed+control+alt",
+         "lookup token uses normalized modifier order");
+      Assert (To_String (Lookup.Action.Executable) = "mixed", "normalized settings action is returned");
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/spaced", Modifiers);
+      Assert (Lookup.Found, "settings modifier token trims spaces around separators");
+      Assert
+        (To_String (Lookup.Token) = "text/spaced+control+alt",
+         "spaced modifier token is normalized on lookup");
+      Assert (To_String (Lookup.Action.Executable) = "spaced", "spaced modifier action is returned");
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/duplicate", Modifiers);
+      Assert (Lookup.Found, "duplicate settings modifiers are normalized on insertion");
+      Assert
+        (To_String (Lookup.Token) = "text/duplicate+control+alt",
+         "duplicate modifier token is deduplicated and ordered");
+      Assert (To_String (Lookup.Action.Executable) = "duplicate", "deduplicated settings action is returned");
+
+      declare
+         Normalized_Draft_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Normalized_Draft          : Files.Settings.Settings_Draft;
+         Normalized_Load           : Files.Settings.Settings_Parse_Result;
+         Normalized_Args           : Files.Types.String_Vectors.Vector;
+      begin
+         Normalized_Args.Append (To_Unbounded_String ("{path}"));
+         Files.Settings.Add_Open_Action
+           (Normalized_Draft_Settings,
+            "text/plain+control+alt",
+            Files.Settings.Make_Action ("existing", Normalized_Args));
+         Normalized_Draft := Files.Settings.Make_Draft (Normalized_Draft_Settings);
+         Normalized_Draft.Filetype_Extension := To_Unbounded_String (" .TXT ");
+         Normalized_Draft.Filetype_Value := To_Unbounded_String ("text/x-overridden");
+         Normalized_Draft.Icon_Filetype := To_Unbounded_String (" text/plain ");
+         Normalized_Draft.Icon_Value := To_Unbounded_String ("text-updated");
+         Normalized_Draft.Open_Action_Token := To_Unbounded_String (" text/plain + ALT + control ");
+         Normalized_Draft.Open_Action_Command := To_Unbounded_String ("editor {path}");
+         Normalized_Load := Files.Settings.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
+         Assert (Normalized_Load.Success, "normalized draft mapping replacement applies");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Normalized_Load.Settings, "txt") = "text/x-overridden",
+            "normalized draft extension replaces existing row");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Normalized_Load.Settings, "text/plain") = "text-updated",
+            "trimmed draft icon key replaces existing row");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Normalized_Load.Settings,
+              "text/plain",
+              [Files.Types.Control_Key | Files.Types.Alt_Key => True, others => False]);
+         Assert (Lookup.Found, "normalized draft action lookup succeeds");
+         Assert
+           (To_String (Lookup.Action.Executable) = "editor",
+            "normalized draft action replaces existing row");
+         Assert
+           (Natural (Normalized_Load.Settings.Extension_Filetypes.Length) =
+            Natural (Normalized_Draft_Settings.Extension_Filetypes.Length),
+            "normalized draft extension replacement does not add a duplicate row");
+         Assert
+           (Natural (Normalized_Load.Settings.Icon_Mappings.Length) =
+            Natural (Normalized_Draft_Settings.Icon_Mappings.Length),
+            "normalized draft icon replacement does not add a duplicate row");
+         Assert
+           (Natural (Normalized_Load.Settings.Open_Actions.Length) =
+            Natural (Normalized_Draft_Settings.Open_Actions.Length),
+            "normalized draft action replacement does not add a duplicate row");
+
+         Normalized_Draft.Open_Action_Token := To_Unbounded_String (" application/ld+json + control ");
+         Normalized_Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
+         Assert
+           (Files.Settings.Field_Diagnostic (12, "application/ld+json+control") = "",
+            "settings field accepts structured-suffix modifier tokens");
+         Assert
+           (Files.Settings.Validate_Draft (Normalized_Draft).Success,
+            "draft validates structured-suffix modifier action");
+         Normalized_Load := Files.Settings.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
+         Assert (Normalized_Load.Success, "draft applies structured-suffix modifier action");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Normalized_Load.Settings,
+              "application/ld+json",
+              [Files.Types.Control_Key => True, others => False]);
+         Assert (Lookup.Found, "draft structured-suffix modifier action lookup succeeds");
+         Assert
+           (To_String (Lookup.Token) = "application/ld+json+control",
+            "draft structured-suffix modifier action token is normalized");
+         Assert
+           (To_String (Lookup.Action.Executable) = "json-editor",
+            "draft structured-suffix modifier action executable parses");
+      end;
+
+      Modifiers := Files.Types.No_Modifiers;
+      Modifiers (Files.Types.Meta_Key) := True;
+      Modifiers (Files.Types.Shift_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
+      Assert (not Lookup.Found, "missing open action is represented as lookup data");
+      Assert
+        (To_String (Lookup.Token) = "text/missing+shift+meta",
+         "missing open action records normalized attempted token");
+      Assert
+        (To_String (Lookup.Error_Key) = "error.open_action.missing",
+         "missing open action reports deterministic diagnostic key");
+      Modifiers (Files.Types.Control_Key) := True;
+      Modifiers (Files.Types.Alt_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
+      Assert (not Lookup.Found, "missing full-modifier open action is represented as lookup data");
+      Assert
+        (To_String (Lookup.Token) = "text/missing+shift+control+alt+meta",
+         "missing open action records full normalized modifier order");
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "   ", Modifiers);
+      Assert (not Lookup.Found, "empty filetype open action lookup is missing");
+      Assert (To_String (Lookup.Token) = "", "empty filetype lookup reports no modifier-only token");
+      Assert
+        (To_String (Lookup.Error_Key) = "error.open_action.missing",
+         "empty filetype lookup reports deterministic diagnostic key");
+
+      Files.Settings.Add_Extension_Mapping (Manual, ".TXT", "text/first");
+      Files.Settings.Add_Extension_Mapping (Manual, " txt ", " text/second ");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "TXT") = "text/second",
+         "direct extension mapping trims values and replaces existing entries");
+      Files.Settings.Add_Extension_Mapping (Manual, ".", "text/blank");
+      Files.Settings.Add_Extension_Mapping (Manual, "blank", "   ");
+      Files.Settings.Add_Extension_Mapping (Manual, "bad=extension", "text/bad");
+      Files.Settings.Add_Extension_Mapping (Manual, "bad" & ASCII.LF & "extension", "text/bad-key");
+      Files.Settings.Add_Extension_Mapping (Manual, "bad" & ASCII.VT & "extension", "text/bad-vtab-key");
+      Files.Settings.Add_Extension_Mapping (Manual, "bad" & C1_Break & "extension", "text/bad-c1-key");
+      Files.Settings.Add_Extension_Mapping (Manual, "linebreak", "text/plain" & ASCII.LF & "bad");
+      Files.Settings.Add_Extension_Mapping (Manual, "formfeed", "text/plain" & ASCII.FF & "bad");
+      Files.Settings.Add_Extension_Mapping (Manual, "c1break", "text/plain" & C1_Break & "bad");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, ".") = "",
+         "direct extension mapping ignores empty normalized extension");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "blank") = "",
+         "direct extension mapping ignores empty filetype value");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "bad=extension") = "",
+         "direct extension mapping ignores unrepresentable extension keys");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.LF & "extension") = "",
+         "direct extension mapping ignores line-break extension keys");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.VT & "extension") = "",
+         "direct extension mapping ignores vertical-tab extension keys");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & C1_Break & "extension") = "",
+         "direct extension mapping ignores C1 line-break extension keys");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "linebreak") = "",
+         "direct extension mapping ignores unrepresentable values");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "formfeed") = "",
+         "direct extension mapping ignores form-feed values");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Manual, "c1break") = "",
+         "direct extension mapping ignores C1 line-break values");
+      Files.Settings.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/second") = "second-icon",
+         "direct icon mapping trims values and replaces existing entries");
+      Files.Settings.Add_Icon_Mapping (Manual, "   ", "blank-icon");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/blank-icon", "   ");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/bad=icon", "bad-icon");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/bad" & ASCII.LF & "icon", "bad-icon");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/bad" & ASCII.VT & "icon", "bad-icon");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/bad" & C1_Break & "icon", "bad-icon");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/linebreak-icon", "icon" & ASCII.LF & "bad");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/formfeed-icon", "icon" & ASCII.FF & "bad");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/c1break-icon", "icon" & C1_Break & "bad");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "") = "",
+         "direct icon mapping ignores empty filetype key");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/blank-icon") = "",
+         "direct icon mapping ignores empty icon value");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad=icon") = "",
+         "direct icon mapping ignores unrepresentable filetype keys");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.LF & "icon") = "",
+         "direct icon mapping ignores line-break filetype keys");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.VT & "icon") = "",
+         "direct icon mapping ignores vertical-tab filetype keys");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & C1_Break & "icon") = "",
+         "direct icon mapping ignores C1 line-break filetype keys");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/linebreak-icon") = "",
+         "direct icon mapping ignores unrepresentable values");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/formfeed-icon") = "",
+         "direct icon mapping ignores form-feed values");
+      Assert
+        (Files.Settings.Icon_For_Filetype (Manual, "text/c1break-icon") = "",
+         "direct icon mapping ignores C1 line-break values");
+
+      Args.Append (To_Unbounded_String ("{path}"));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/manual+META+shift+alt+control+shift",
+         Files.Settings.Make_Action ("first", Args));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         " text/manual+control+alt+meta+shift ",
+         Files.Settings.Make_Action ("second", Args));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         " text/spaced-manual + META + shift ",
+         Files.Settings.Make_Action (" spaced-manual ", Args));
+      Modifiers := Files.Types.No_Modifiers;
+      Modifiers (Files.Types.Meta_Key) := True;
+      Modifiers (Files.Types.Shift_Key) := True;
+      Modifiers (Files.Types.Alt_Key) := True;
+      Modifiers (Files.Types.Control_Key) := True;
+      Assert
+        (Files.Settings.Modifier_Token (Modifiers) = "+shift+control+alt+meta",
+         "modifier tokens are emitted in stable lookup order");
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/manual", Modifiers);
+      Assert (Lookup.Found, "direct open-action insertion normalizes modifiers");
+      Assert
+        (To_String (Lookup.Token) = "text/manual+shift+control+alt+meta",
+         "direct open-action lookup reports normalized modifier token");
+      Assert
+        (To_String (Lookup.Action.Executable) = "second",
+         "direct open-action insertion replaces normalized duplicate token");
+      Modifiers := Files.Types.No_Modifiers;
+      Modifiers (Files.Types.Meta_Key) := True;
+      Modifiers (Files.Types.Shift_Key) := True;
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/spaced-manual", Modifiers);
+      Assert (Lookup.Found, "direct open-action insertion trims filetype before modifiers");
+      Assert
+        (To_String (Lookup.Token) = "text/spaced-manual+shift+meta",
+         "direct spaced open-action token is normalized");
+      Assert
+        (To_String (Lookup.Action.Executable) = "spaced-manual",
+         "direct open-action insertion trims executable whitespace");
+      Assert
+        (To_String (Lookup.Action.Arguments.Element (1)) = "{path}",
+         "direct open-action insertion preserves argument values");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/bad-direct+",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores dangling modifier separator");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/bad-direct+control+",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Manual,
+         "text/bad-direct",
+         [Files.Types.Control_Key => True, others => False]);
+      Assert
+        (not Lookup.Found,
+         "direct open-action insertion ignores trailing modifier separator after a modifier");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/bad-direct+control++alt",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Manual,
+         "text/bad-direct",
+         [Files.Types.Control_Key => True, Files.Types.Alt_Key => True, others => False]);
+      Assert
+        (not Lookup.Found,
+         "direct open-action insertion ignores empty modifier segments");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/bad-direct+custom",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores unknown modifiers");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "image/svg+xml",
+         Files.Settings.Make_Action ("svg-viewer", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "image/svg+xml", Files.Types.No_Modifiers);
+      Assert (Lookup.Found, "direct open-action insertion accepts structured filetype suffixes");
+      Assert
+        (To_String (Lookup.Token) = "image/svg+xml",
+         "direct structured filetype suffix lookup keeps plus suffix");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/bad=direct",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad=direct", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores unrepresentable filetype keys");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         """text/quoted-direct""",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, """text/quoted-direct""", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores quoted filetype keys");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "[text/bracketed-direct]",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "[text/bracketed-direct]", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores bracketed filetype keys");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "+control",
+         Files.Settings.Make_Action ("bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "", Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores modifier-only token");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/empty-executable",
+         Files.Settings.Make_Action ("   ", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/empty-executable", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores empty executable");
+      declare
+         Unsafe_Args : Files.Types.String_Vectors.Vector;
+      begin
+         Unsafe_Args.Append (To_Unbounded_String ("prefix-{path}"));
+         Files.Settings.Add_Open_Action
+           (Manual,
+            "text/unsafe-argument",
+            Files.Settings.Make_Action ("unsafe", Unsafe_Args));
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/unsafe-argument", Files.Types.No_Modifiers);
+         Assert (not Lookup.Found, "direct open-action insertion ignores embedded placeholders");
+      end;
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/unsafe-executable",
+         Files.Settings.Make_Action ("{path}", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/unsafe-executable", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores executable placeholders");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/linebreak-executable",
+         Files.Settings.Make_Action ("viewer" & ASCII.LF & "bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-executable", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores executable line breaks");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/formfeed-executable",
+         Files.Settings.Make_Action ("viewer" & ASCII.FF & "bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/formfeed-executable", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores executable form feeds");
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/c1break-executable",
+         Files.Settings.Make_Action ("viewer" & C1_Break & "bad", Args));
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/c1break-executable", Files.Types.No_Modifiers);
+      Assert (not Lookup.Found, "direct open-action insertion ignores executable C1 line breaks");
+      declare
+         Broken_Args : Files.Types.String_Vectors.Vector;
+      begin
+         Broken_Args.Append (To_Unbounded_String ("arg" & ASCII.LF & "bad"));
+         Files.Settings.Add_Open_Action
+           (Manual,
+            "text/linebreak-argument",
+            Files.Settings.Make_Action ("viewer", Broken_Args));
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-argument", Files.Types.No_Modifiers);
+         Assert (not Lookup.Found, "direct open-action insertion ignores argument line breaks");
+      end;
+      declare
+         Broken_Args : Files.Types.String_Vectors.Vector;
+      begin
+         Broken_Args.Append (To_Unbounded_String ("arg" & ASCII.VT & "bad"));
+         Files.Settings.Add_Open_Action
+           (Manual,
+            "text/vtab-argument",
+            Files.Settings.Make_Action ("viewer", Broken_Args));
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/vtab-argument", Files.Types.No_Modifiers);
+         Assert (not Lookup.Found, "direct open-action insertion ignores argument vertical tabs");
+      end;
+      declare
+         Broken_Args : Files.Types.String_Vectors.Vector;
+      begin
+         Broken_Args.Append (To_Unbounded_String ("arg" & C1_Break & "bad"));
+         Files.Settings.Add_Open_Action
+           (Manual,
+            "text/c1break-argument",
+            Files.Settings.Make_Action ("viewer", Broken_Args));
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/c1break-argument", Files.Types.No_Modifiers);
+         Assert (not Lookup.Found, "direct open-action insertion ignores argument C1 line breaks");
+      end;
+      Assert (Files.Settings.Field_Diagnostic (1, "details") = "", "settings field validates view mode");
+      Assert
+        (Files.Settings.Field_Diagnostic (1, "bad") = "error.settings.invalid_view_mode",
+         "settings field reports invalid view mode");
+      Assert
+        (Files.Settings.Field_Diagnostic (1, "details" & ASCII.LF & "large") =
+         "error.settings.invalid_view_mode",
+         "view-mode field rejects line breaks");
+      Assert (Files.Settings.Field_Diagnostic (2, "true") = "", "settings field validates boolean");
+      Assert
+        (Files.Settings.Field_Diagnostic (2, "maybe") = "error.settings.invalid_boolean",
+         "settings field reports invalid boolean");
+      Assert
+        (Files.Settings.Field_Diagnostic (2, "true" & ASCII.LF & "false") =
+         "error.settings.invalid_boolean",
+         "boolean field rejects line breaks");
+      Assert (Files.Settings.Field_Diagnostic (6, "false") = "", "settings field validates high-contrast boolean");
+      Assert (Files.Settings.Field_Diagnostic (7, "files-basic") = "", "settings field validates icon theme");
+      Assert
+        (Files.Settings.Field_Diagnostic (7, "unknown-theme") = "error.settings.invalid_icon_theme",
+         "settings field reports invalid icon theme");
+      Assert (Files.Settings.Field_Diagnostic (4, "modified") = "", "settings field validates sort field");
+      Assert
+        (Files.Settings.Field_Diagnostic (4, "date") = "error.settings.invalid_sort_field",
+         "settings field reports invalid sort field");
+      Assert
+        (Files.Settings.Field_Diagnostic (9, "text/""quoted") = "",
+         "filetype value field accepts raw quote-containing values");
+      Assert
+        (Files.Settings.Field_Diagnostic (8, "bad=extension") = "error.settings.invalid_mapping",
+         "filetype extension field rejects unrepresentable keys");
+      Assert
+        (Files.Settings.Field_Diagnostic (9, "text/plain" & ASCII.LF & "bad") =
+         "error.settings.invalid_mapping",
+         "mapping value field rejects line breaks");
+      Assert
+        (Files.Settings.Field_Diagnostic (9, "text/plain" & C1_Break & "bad") =
+         "error.settings.invalid_mapping",
+         "mapping value field rejects C1 line breaks");
+      Assert
+        (Files.Settings.Field_Diagnostic (11, "quote""icon") = "",
+         "icon value field accepts raw quote-containing values");
+      Assert
+        (Files.Settings.Field_Diagnostic (10, "text/bad=icon") = "error.settings.invalid_mapping",
+         "icon filetype field rejects unrepresentable keys");
+      declare
+         Quote_Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Manual);
+         Applied     : Files.Settings.Settings_Parse_Result;
+      begin
+         Quote_Draft.Filetype_Extension := To_Unbounded_String ("quote");
+         Quote_Draft.Filetype_Value := To_Unbounded_String ("text/""quoted");
+         Quote_Draft.Icon_Filetype := To_Unbounded_String ("text/""quoted");
+         Quote_Draft.Icon_Value := To_Unbounded_String ("quote""icon");
+         Assert (Files.Settings.Validate_Draft (Quote_Draft).Success, "quote-containing draft validates");
+         Applied := Files.Settings.Apply_Draft (Manual, Quote_Draft);
+         Assert (Applied.Success, "quote-containing draft applies");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Applied.Settings, "quote") = "text/""quoted",
+            "quote-containing draft preserves filetype mapping");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Applied.Settings, "text/""quoted") = "quote""icon",
+            "quote-containing draft preserves icon mapping");
+      end;
+      declare
+         Broken_Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Load  : Files.Settings.Settings_Parse_Result;
+      begin
+         Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "mismatched draft mapping vectors are rejected");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid",
+            "mismatched draft mapping vectors report deterministic diagnostic");
+         Broken_Load := Files.Settings.Apply_Draft (Manual, Broken_Draft);
+         Assert (not Broken_Load.Success, "mismatched draft mapping vectors are not applied");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Filetype_Extension := To_Unbounded_String ("bad=extension");
+         Broken_Draft.Filetype_Value := To_Unbounded_String ("text/bad");
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects current unrepresentable filetype key");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+            "current unrepresentable draft filetype key reports mapping diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("bad=extension"));
+         Broken_Draft.Filetype_Values.Append (To_Unbounded_String ("text/bad"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects unrepresentable filetype keys");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+            "unrepresentable draft filetype key reports mapping diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Icon_Filetype := To_Unbounded_String ("text/bad=icon");
+         Broken_Draft.Icon_Value := To_Unbounded_String ("bad");
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects current unrepresentable icon key");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+            "current unrepresentable draft icon key reports mapping diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Icon_Keys.Append (To_Unbounded_String ("text/bad=icon"));
+         Broken_Draft.Icon_Values.Append (To_Unbounded_String ("bad"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects unrepresentable icon keys");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+            "unrepresentable draft icon key reports mapping diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Token := To_Unbounded_String ("text/plain+hyper");
+         Broken_Draft.Open_Action_Command := To_Unbounded_String ("viewer {path}");
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects current unknown open-action modifier");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "current unknown open-action modifier reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Token := To_Unbounded_String ("+control");
+         Broken_Draft.Open_Action_Command := To_Unbounded_String ("viewer {path}");
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects current modifier-only open-action token");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "current modifier-only open-action token reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/bad=action"));
+         Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects unrepresentable open-action keys");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "unrepresentable draft open-action key reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Token := To_Unbounded_String ("""text/quoted-action""");
+         Broken_Draft.Open_Action_Command := To_Unbounded_String ("viewer {path}");
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects quoted open-action keys");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "quoted draft open-action key reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("[text/bracketed-action]"));
+         Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects bracketed open-action keys");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "bracketed draft open-action key reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("+control"));
+         Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects stored modifier-only open-action tokens");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "stored modifier-only draft open-action token reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("linebreak-value"));
+         Broken_Draft.Filetype_Values.Append (To_Unbounded_String ("text/plain" & ASCII.LF & "bad"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects unrepresentable filetype values");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+            "unrepresentable draft filetype value reports mapping diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Icon_Keys.Append (To_Unbounded_String ("text/linebreak-value"));
+         Broken_Draft.Icon_Values.Append (To_Unbounded_String ("icon" & ASCII.LF & "bad"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects unrepresentable icon values");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+            "unrepresentable draft icon value reports mapping diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/linebreak-action"));
+         Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}" & ASCII.LF & "bad"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert (not Broken_Load.Success, "draft rejects unrepresentable open-action commands");
+         Assert
+           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+            "unrepresentable draft open-action command reports open-action diagnostic");
+      end;
+      Assert (Files.Settings.Field_Diagnostic (12, "text/plain+control") = "", "action token field validates");
+      Assert
+        (Files.Settings.Field_Diagnostic (12, "+control") = "error.settings.invalid_open_action",
+         "action token field reports invalid action token");
+      Assert
+        (Files.Settings.Field_Diagnostic (12, "text/bad=action") = "error.settings.invalid_open_action",
+         "action token field rejects unrepresentable filetype keys");
+      Assert
+        (Files.Settings.Field_Diagnostic (12, """text/quoted-action""") = "error.settings.invalid_open_action",
+         "action token field rejects quoted filetype keys");
+      Assert
+        (Files.Settings.Field_Diagnostic (12, "[text/bracketed-action]") = "error.settings.invalid_open_action",
+         "action token field rejects bracketed filetype keys");
+      Assert
+        (Files.Settings.Field_Diagnostic (12, "text/plain+control+") = "error.settings.invalid_open_action",
+         "action token field reports trailing modifier separator");
+      Assert
+        (Files.Settings.Field_Diagnostic (12, "text/plain" & ASCII.LF & "text/html") =
+         "error.settings.invalid_open_action",
+         "action token field rejects line breaks");
+      Assert (Files.Settings.Field_Diagnostic (13, "viewer {path}") = "", "action command field validates");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, """quoted editor"" ""--project file"" ""{path}""") = "",
+         "action command field validates quoted tokens");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, """quote""""runner"" ""arg """" inner""") = "",
+         "action command field validates doubled quotes");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, "runner """" after-empty") = "",
+         "action command field validates empty quoted argument");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, "viewer prefix-{path}") = "error.settings.invalid_open_action",
+         "action command field reports embedded placeholder");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, "viewer {path}" & ASCII.LF & "other") =
+         "error.settings.invalid_open_action",
+         "action command field rejects line breaks");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, "viewer {path}" & C1_Break & "other") =
+         "error.settings.invalid_open_action",
+         "action command field rejects C1 line breaks");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, """unterminated") = "error.settings.invalid_open_action",
+         "action command field reports unterminated quote");
+      Assert
+        (Files.Settings.Field_Diagnostic (13, """editor""junk {path}") = "error.settings.invalid_open_action",
+         "action command field reports quoted token trailing junk");
+      Assert
+        (Files.Settings.Field_Diagnostic (0, "details") = "error.settings.invalid",
+         "unknown settings field reports a deterministic diagnostic");
+      Assert
+        (Files.Settings.Field_Diagnostic (14, "details") = "error.settings.invalid",
+         "out-of-range settings field reports a deterministic diagnostic");
+      declare
+         Broken : Files.Settings.Settings_Parse_Result;
+      begin
+         Broken := Files.Settings.Parse ("[unknown]" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects unknown sections");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.unknown_section",
+            "unknown section reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "default_view_mode details" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects entries without equals");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.expected_equals",
+            "missing equals reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("default_view_mode = details" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects entries before any section");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.missing_section",
+            "missing section reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & ". = text/plain" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects empty normalized extensions");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+            "empty extension mapping reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & "txt = ""text/plain" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects unterminated quoted mappings");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+            "unterminated mapping quote reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[icons]" & ASCII.LF & "text/plain =   " & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects empty icon mappings");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+            "empty icon mapping reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[open-actions]" & ASCII.LF & "text/plain = viewer prefix-{path}" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects embedded open-action placeholders");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+            "embedded placeholder reports deterministic diagnostic");
+         Broken :=
+           Files.Settings.Parse
+             ("[open-actions]" & ASCII.LF & "text/plain+control+ = viewer {path}" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects trailing open-action modifier separator");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+            "trailing modifier separator reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "default_view_mode = compact" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects unknown view mode values");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_view_mode",
+            "unknown view mode reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "icon_theme = neon" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects unknown icon themes");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_icon_theme",
+            "unknown icon theme reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "show_hidden_files = maybe" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects invalid boolean values");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_boolean",
+            "invalid boolean reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & "txt = text/plain" & C1_Break & "bad" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects C1 line-break mapping values");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+            "C1 line-break mapping value reports deterministic diagnostic");
+         Broken :=
+           Files.Settings.Parse
+             ("[open-actions]" & ASCII.LF & "text/c1 = viewer {path}" & C1_Break & "bad" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects C1 line-break open actions");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+            "C1 line-break open action reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = created" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects invalid sort fields");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_sort_field",
+            "invalid sort field reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "unexpected = value" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects unknown setting keys");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.unknown_key",
+            "unknown setting key reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[open-actions]" & ASCII.LF & "text/plain+hyper = viewer {path}" & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects unknown open-action modifiers");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+            "unknown open-action modifier reports deterministic diagnostic");
+         Broken := Files.Settings.Parse ("[open-actions]" & ASCII.LF & "text/plain =   " & ASCII.LF);
+         Assert (not Broken.Success, "settings parser rejects empty open-action commands");
+         Assert
+           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+            "empty open-action command reports deterministic diagnostic");
+      end;
+   end Test_Settings_Parsing_And_Open_Actions;
+
+   procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings_Path : constant String := Join (Root, "files.conf");
+      Long_Path     : constant String := Join (Root, "long.conf");
+      Long_Type     : constant String :=
+        "application/x-" &
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" &
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" &
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" &
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" &
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" &
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" &
+        "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg" &
+        "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh" &
+        "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" &
+        "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj" &
+        "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk" &
+        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll";
+      Missing       : Files.Settings.Settings_Parse_Result;
+      Not_File      : Files.Settings.Settings_Parse_Result;
+      Loaded        : Files.Settings.Settings_Parse_Result;
+      Long_Loaded   : Files.Settings.Settings_Parse_Result;
+      Ensured_Path  : constant String := Join (Join (Root, "created-config"), "settings.conf");
+      Ensured       : Files.Settings.Settings_Write_Result;
+      Saved_Path    : constant String := Join (Join (Root, "saved-config"), "settings.conf");
+      Blocked_Parent : constant String := Join (Root, "blocked-parent");
+      Blocked_Path   : constant String := Join (Blocked_Parent, "settings.conf");
+      Exported_Path : constant String := Join (Join (Root, "exported-config"), "settings.conf");
+      Saved         : Files.Settings.Settings_Write_Result;
+      Default_Text  : constant String := Files.Settings.Default_Settings_Text;
+      Default_Parse : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Default_Text);
+   begin
+      Reset_Root;
+      Assert (Default_Parse.Success, "default settings text parses");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Default_Parse.Settings, "txt") = "text/plain",
+         "default settings text includes filetype mappings");
+      Assert
+        (not Default_Parse.Settings.High_Contrast_Theme,
+         "default settings text keeps high-contrast theme disabled");
+      Assert
+        (To_String (Default_Parse.Settings.Icon_Theme_Name) = "files-basic",
+         "default settings text keeps basic icon theme selected");
+      Missing := Files.Settings.Load_File (Join (Root, "missing.conf"));
+      Assert (Missing.Success, "missing settings file falls back to defaults");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Missing.Settings, "txt") = "text/plain",
+         "default settings are returned for a missing file");
+      Ada.Directories.Create_Path (Join (Root, "settings-dir"));
+      Not_File := Files.Settings.Load_File (Join (Root, "settings-dir"));
+      Assert (not Not_File.Success, "directory settings path is rejected");
+      Assert
+        (To_String (Not_File.Error_Key) = "error.settings.not_file",
+         "directory settings path reports not-file diagnostic");
+
+      Write_File
+        (Settings_Path,
+         "[settings]" & ASCII.LF &
+         "show_hidden_files = true" & ASCII.LF &
+         "sort_directories_first = false" & ASCII.LF &
+         "sort_field = modified" & ASCII.LF &
+         "sort_ascending = false" & ASCII.LF &
+         "high_contrast_theme = true" & ASCII.LF &
+         "[filetypes]" & ASCII.LF &
+         "foo = application/x-foo" & ASCII.LF);
+      Loaded := Files.Settings.Load_File (Settings_Path);
+      Assert (Loaded.Success, "settings file parses from disk");
+      Assert (Loaded.Settings.Show_Hidden_Files, "show-hidden setting loads from disk");
+      Assert (not Loaded.Settings.Sort_Directories_First, "sort preference loads from disk");
+      Assert (Loaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified, "sort field loads from disk");
+      Assert (not Loaded.Settings.Sort_Ascending, "sort direction loads from disk");
+      Assert (Loaded.Settings.High_Contrast_Theme, "theme preference loads from disk");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo") = "application/x-foo",
+         "filetype mapping loads from disk");
+
+      Write_File
+        (Long_Path,
+         "[filetypes]" & ASCII.LF &
+         "long = " & Long_Type & ASCII.LF);
+      Long_Loaded := Files.Settings.Load_File (Long_Path);
+      Assert (Long_Loaded.Success, "settings loader preserves long logical lines");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Long_Loaded.Settings, "long") = Long_Type,
+         "long filetype mapping is not split while loading");
+
+      Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
+      Assert (Ensured.Success, "ensure default settings creates missing file");
+      Assert (Ada.Directories.Exists (Ensured_Path), "ensure default settings creates parent directories");
+      Loaded := Files.Settings.Load_File (Ensured_Path);
+      Assert (Loaded.Success, "ensured default settings file loads");
+      Assert
+        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "txt") = "text/plain",
+         "ensured settings file contains default mappings");
+      Saved := Files.Settings.Save_Text (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
+      Assert (Saved.Success, "settings text can be saved to a new path");
+      Loaded := Files.Settings.Load_File (Saved_Path);
+      Assert (Loaded.Success, "saved settings file loads");
+      Assert (Loaded.Settings.Default_View = Files.Types.Large_Icons, "saved settings text is persisted");
+      Write_File (Blocked_Parent, "not a directory");
+      Saved := Files.Settings.Save_Text (Blocked_Path, "[settings]" & ASCII.LF);
+      Assert (not Saved.Success, "settings save rejects a file used as parent directory");
+      Assert
+        (To_String (Saved.Path) = Blocked_Path,
+         "settings save parent failure reports requested settings path");
+      Assert
+        (To_String (Saved.Error_Key) = "error.settings.not_file",
+         "settings save parent failure reports not-file diagnostic");
+      Saved := Files.Settings.Export_Settings (Exported_Path, Loaded.Settings);
+      Assert (Saved.Success, "settings export writes a settings file");
+      Long_Loaded := Files.Settings.Import_Draft (Exported_Path);
+      Assert (Long_Loaded.Success, "settings import parses exported settings");
+      Assert
+        (Long_Loaded.Settings.Default_View = Files.Types.Large_Icons,
+         "settings import preserves exported default view");
+      declare
+         Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
+      begin
+         Assert
+           (To_String (Reset_Draft.Default_View_Mode) = "small_icons",
+            "reset settings draft restores default view mode");
+      end;
+      declare
+         Draft_Path : constant String := Join (Join (Root, "draft-config"), "settings.conf");
+         Controller_Export_Path : constant String := Join (Join (Root, "draft-config"), "exported.conf");
+         Draft      : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Loaded.Settings);
+         Draft_Load : Files.Settings.Settings_Parse_Result;
+         Draft_Model : Files.Model.Window_Model := Sample_Model;
+         Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
+         Controller_Result : Files.Controller.Controller_Result;
+         Lookup : Files.Settings.Action_Lookup_Result;
+         Ctrl : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      begin
+         Ctrl (Files.Types.Control_Key) := True;
+         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
+            "closed settings pane cannot save settings");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
+            "closed settings save reports a localized disabled error");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Draft_Path,
+            "closed settings save reports settings path");
+         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Draft_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
+            "closed settings pane cannot import settings");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
+            "closed settings import reports a localized disabled error");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Draft_Path,
+            "closed settings import reports settings path");
+         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Join (Root, "settings-dir"));
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
+            "closed settings import does not validate the import path");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
+            "closed settings import keeps the closed-pane diagnostic");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Join (Root, "settings-dir"),
+            "closed settings import reports the requested invalid path");
+         Controller_Result :=
+           Files.Controller.Export_Settings (Draft_Model, Draft_Settings, Controller_Export_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
+            "closed settings pane cannot export settings");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
+            "closed settings export reports a localized disabled error");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Controller_Export_Path,
+            "closed settings export reports settings path");
+         Draft.Default_View_Mode := To_Unbounded_String ("details");
+         Draft.Show_Hidden_Files := To_Unbounded_String ("true");
+         Draft.Sort_Field_Value := To_Unbounded_String ("size");
+         Draft.Sort_Ascending := To_Unbounded_String ("false");
+         Draft.High_Contrast_Theme := To_Unbounded_String ("true");
+         Draft.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
+         Draft.Filetype_Extension := To_Unbounded_String ("log");
+         Draft.Filetype_Value := To_Unbounded_String ("text/x-log");
+         Draft.Icon_Filetype := To_Unbounded_String ("text/x-log");
+         Draft.Icon_Value := To_Unbounded_String ("text");
+         Draft.Open_Action_Token := To_Unbounded_String ("application/ld+json+alt");
+         Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
+         Assert (Files.Settings.Validate_Draft (Draft).Success, "settings draft validates editable values");
+         Draft_Load := Files.Settings.Apply_Draft (Loaded.Settings, Draft);
+         Assert (Draft_Load.Success, "settings draft applies to a settings model");
+         Assert (Draft_Load.Settings.Default_View = Files.Types.Details, "draft applies default view");
+         Assert (Draft_Load.Settings.Show_Hidden_Files, "draft applies hidden-file flag");
+         Assert (Draft_Load.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "draft applies sort field");
+         Assert (Draft_Load.Settings.High_Contrast_Theme, "draft applies high-contrast theme flag");
+         Assert
+           (To_String (Draft_Load.Settings.Icon_Theme_Name) = "files-high-contrast",
+            "draft applies icon theme selection");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log") = "text/x-log",
+            "draft applies filetype mapping");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log") = "text",
+            "draft applies icon mapping");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Draft_Load.Settings,
+              "application/ld+json",
+              [Files.Types.Alt_Key => True, others => False]);
+         Assert (Lookup.Found, "draft applies modifier-specific open action");
+         Assert (To_String (Lookup.Action.Executable) = "json-editor", "draft action executable is parsed");
+         Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
+         Assert (Saved.Success, "settings draft saves to disk");
+         Draft_Load := Files.Settings.Load_File (Draft_Path);
+         Assert (Draft_Load.Success, "saved draft settings load");
+         Assert (Draft_Load.Settings.Default_View = Files.Types.Details, "saved draft persists default view");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log") = "text/x-log",
+            "saved draft persists filetype mapping");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log") = "text",
+            "saved draft persists icon mapping");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Draft_Load.Settings,
+              "application/ld+json",
+              [Files.Types.Alt_Key => True, others => False]);
+         Assert (Lookup.Found, "saved draft persists open action");
+         Assert
+           (To_String (Lookup.Action.Executable) = "json-editor",
+            "saved draft persists structured-suffix open action executable");
+         Draft.Default_View_Mode := To_Unbounded_String ("bad-view");
+         Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
+         Assert (not Saved.Success, "invalid settings draft is not saved");
+         Assert
+           (To_String (Saved.Error_Key) = "error.settings.invalid_view_mode",
+            "invalid draft save reports validation diagnostic");
+         declare
+            Empty_Settings : Files.Settings.Settings_Model := Loaded.Settings;
+            Empty_Model    : Files.Model.Window_Model := Sample_Model;
+            Empty_Load     : Files.Settings.Settings_Parse_Result;
+            Repair_Draft   : Files.Settings.Settings_Draft;
+         begin
+            Empty_Settings.Extension_Filetypes.Clear;
+            Empty_Settings.Icon_Mappings.Clear;
+            Empty_Settings.Open_Actions.Clear;
+            Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
+
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Text (Empty_Model, "ghost");
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "",
+               "empty filetype list ignores mapping text without selected row");
+
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 10);
+            Files.Model.Set_Settings_Field_Text (Empty_Model, "text/x-ghost");
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "",
+               "empty icon list ignores mapping text without selected row");
+
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 12);
+            Files.Model.Set_Settings_Field_Text (Empty_Model, "text/x-ghost");
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "",
+               "empty open-action list ignores mapping text without selected row");
+
+            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+            Assert (Empty_Load.Success, "empty mapping draft remains valid after ignored edits");
+            Assert
+              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost") = "",
+               "ignored empty-list filetype edit is not saved");
+            Assert
+              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-ghost") = "",
+               "ignored empty-list icon edit is not saved");
+            Lookup :=
+              Files.Settings.Lookup_Open_Action
+                (Empty_Load.Settings,
+                 "text/x-ghost",
+                 Files.Types.No_Modifiers);
+            Assert (not Lookup.Found, "ignored empty-list open-action edit is not saved");
+
+            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+            Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+            Repair_Draft.Filetype_Index := 1;
+            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Remove_Settings_Entry (Empty_Model);
+            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "",
+               "misaligned filetype draft removal clears orphan key");
+            Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
+            Assert
+              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext") = "",
+               "repaired misaligned filetype edit is not saved");
+
+            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+            Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
+            Repair_Draft.Icon_Index := 1;
+            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 11);
+            Files.Model.Remove_Settings_Entry (Empty_Model);
+            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "",
+               "misaligned icon draft removal clears orphan value");
+            Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
+            Assert
+              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan") = "",
+               "repaired misaligned icon edit is not saved");
+
+            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+            Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
+            Repair_Draft.Open_Action_Index := 1;
+            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 12);
+            Files.Model.Remove_Settings_Entry (Empty_Model);
+            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "",
+               "misaligned open-action draft removal clears orphan key");
+            Assert (Empty_Load.Success, "repaired misaligned open-action draft validates");
+            Lookup :=
+              Files.Settings.Lookup_Open_Action
+                (Empty_Load.Settings,
+                 "text/x-orphan",
+                 Files.Types.No_Modifiers);
+            Assert (not Lookup.Found, "repaired misaligned open-action edit is not saved");
+
+            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+            Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+            Repair_Draft.Filetype_Index := 1;
+            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+            Assert
+              (Natural (Files.Model.Settings_Draft_Of (Empty_Model).Filetype_Keys.Length) = 0,
+               "begin settings edit drops orphan filetype rows");
+
+            Files.Settings.Add_Extension_Mapping (Empty_Settings, "ada", "text/x-ada");
+            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+            Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+            Repair_Draft.Filetype_Index := Natural (Repair_Draft.Filetype_Keys.Length);
+            Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
+            Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
+            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Assert
+              (Files.Model.Settings_Field_Text (Empty_Model) = "ada",
+               "begin settings edit syncs stale filetype selection");
+         end;
+         Controller_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
+         Assert
+           (Files.Model.Focus (Draft_Model) = Files.Types.Focus_Settings_Input,
+            "controller settings command opens editable settings focus");
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Right);
+         Assert
+           (Files.Model.Settings_Field_Text (Draft_Model) = "details",
+            "settings scalar row cycles with cursor keys");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "details");
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Down);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "true");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 6);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "true");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 7);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "files-high-contrast");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         declare
+            First_Extension : constant String := Files.Model.Settings_Field_Text (Draft_Model);
+         begin
+            Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Page_Down);
+            Assert
+              (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
+               "settings mapping entry movement reports update");
+            Assert
+              (Files.Model.Settings_Field_Text (Draft_Model) /= First_Extension,
+               "settings mapping rows cycle through existing entries");
+         end;
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_N, Ctrl);
+         Assert (Files.Model.Settings_Field_Text (Draft_Model) = "", "settings add creates a blank mapping entry");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "tmpdel");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Delete, Ctrl);
+         Assert
+           (Files.Model.Settings_Field_Text (Draft_Model) /= "tmpdel",
+            "settings remove deletes the selected mapping entry");
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 100);
+         Assert
+           (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
+            "settings add button reports update");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "buttondel");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-button-delete");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 101);
+         Assert
+           (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
+            "settings remove button reports update");
+         Assert
+           (Files.Model.Settings_Field_Text (Draft_Model) /= "buttondel",
+            "settings remove button deletes the selected mapping entry");
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 9, Option => 101);
+         Assert
+           (Controller_Result.Status = Files.Controller.Controller_Ignored,
+            "settings value-field remove button is ignored");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "cfg");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 10);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 12, Option => 100);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/markdown");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 13);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "reader {path}");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 1);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "bad-view");
+         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
+            "controller rejects invalid settings draft");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.invalid_view_mode",
+            "controller invalid settings save reports validation error");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Draft_Path,
+            "controller invalid settings save reports settings path");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "details");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
+         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
+            "controller settings save rejects directory path");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.not_file",
+            "controller settings save directory failure reports not-file diagnostic");
+         Assert
+           (Draft_Settings.Default_View = Loaded.Settings.Default_View,
+            "controller settings save failure preserves live settings");
+         Assert
+           (Files.Model.Settings_Field_Text (Draft_Model) = "text/markdown",
+            "controller settings save failure preserves editable draft");
+         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
+            "controller saves edited settings draft");
+         Assert (Draft_Settings.Default_View = Files.Types.Details, "controller save updates live settings");
+         Assert (Draft_Settings.High_Contrast_Theme, "controller save updates live high-contrast setting");
+         Assert
+           (To_String (Draft_Settings.Icon_Theme_Name) = "files-high-contrast",
+            "controller save updates live icon theme");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Draft_Settings, "cfg") = "text/x-config",
+            "controller save updates live filetype mappings");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Draft_Settings, "txt") = "text/plain",
+            "controller save preserves other filetype mappings");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Draft_Settings, "tmpdel") = "",
+            "controller save omits removed filetype mappings");
+         Assert
+           (Files.Settings.Icon_For_Filetype (Draft_Settings, "text/x-config") = "text",
+            "controller save updates live icon mappings");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Draft_Settings,
+              "text/markdown",
+              Files.Types.No_Modifiers);
+         Assert (Lookup.Found, "controller save updates live open-action settings");
+         Draft_Load := Files.Settings.Load_File (Draft_Path);
+         Assert (Draft_Load.Success, "controller-saved settings file reloads");
+         Assert (Draft_Load.Settings.Show_Hidden_Files, "controller save persists edited hidden-file flag");
+         declare
+            Missing_Current_Path : constant String := Join (Root, "settings-save-missing-current");
+            Missing_Model        : Files.Model.Window_Model;
+            Missing_Settings     : Files.Settings.Settings_Model := Draft_Settings;
+            Missing_Items        : Files.File_System.Item_Vectors.Vector;
+            Missing_Result       : Files.Controller.Controller_Result;
+         begin
+            Ada.Directories.Create_Path (Missing_Current_Path);
+            Files.Model.Initialize
+              (Missing_Model,
+               Directory_Path    => Missing_Current_Path,
+               Items             => Missing_Items,
+               Home_Path         => "/home/test",
+               Default_View_Mode => Files.Types.Small_Icons);
+            Missing_Result :=
+              Files.Controller.Execute_Command
+                (Files.Commands.Toggle_Settings_Pane_Command, Missing_Model, Missing_Settings);
+            Assert
+              (Missing_Result.Status = Files.Controller.Controller_Command_Executed,
+               "missing-current save fixture executes settings command");
+            Assert
+              (Files.Model.Settings_Pane_Is_Open (Missing_Model),
+               "missing-current save fixture opens settings pane");
+            Ada.Directories.Delete_Directory (Missing_Current_Path);
+            Missing_Result := Files.Controller.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);
+            Assert
+              (Missing_Result.Operation.Status = Files.Operations.Operation_Failed,
+               "controller settings save reports post-save refresh failure");
+            Assert
+              (To_String (Missing_Result.Operation.Error_Key) /= "",
+               "controller settings save keeps refresh failure diagnostic");
+            Assert
+              (Files.Model.Last_Error_Key (Missing_Model) = To_String (Missing_Result.Operation.Error_Key),
+               "controller settings save leaves refresh failure visible");
+         end;
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 1);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "small_icons");
+         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Join (Root, "settings-dir"));
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
+            "controller import reports failed settings load");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.not_file",
+            "controller import failure reports localized error");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Join (Root, "settings-dir"),
+            "controller import failure reports settings path");
+         Assert
+           (Files.Model.Settings_Field_Text (Draft_Model) = "small_icons",
+            "controller import failure preserves existing draft field text");
+         Assert
+           (Files.Model.Last_Error_Key (Draft_Model) = "error.settings.not_file",
+            "controller import failure records model diagnostic");
+         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Draft_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
+            "controller imports settings into editable draft");
+         Assert
+           (Files.Model.Settings_Field_Text (Draft_Model) = "details",
+            "controller import replaces draft field text from disk");
+         Controller_Result := Files.Controller.Export_Settings (Draft_Model, Draft_Settings, Blocked_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
+            "controller export reports failed settings write");
+         Assert
+           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.not_file",
+            "controller export failure reports localized error");
+         Assert
+           (To_String (Controller_Result.Operation.Path) = Blocked_Path,
+            "controller export failure reports settings path");
+         Assert
+           (Files.Model.Last_Error_Key (Draft_Model) = "error.settings.not_file",
+            "controller export failure records model diagnostic");
+         Controller_Result :=
+           Files.Controller.Export_Settings (Draft_Model, Draft_Settings, Controller_Export_Path);
+         Assert
+           (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
+            "controller exports active settings model");
+         Draft_Load := Files.Settings.Load_File (Controller_Export_Path);
+         Assert (Draft_Load.Success, "controller-exported settings file reloads");
+         Assert
+           (Draft_Load.Settings.Default_View = Files.Types.Details,
+            "controller export persists active settings model");
+      end;
+      Write_File (Ensured_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
+      Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
+      Assert (Ensured.Success, "ensure default settings accepts existing regular file");
+      Loaded := Files.Settings.Load_File (Ensured_Path);
+      Assert (Loaded.Settings.Default_View = Files.Types.Details, "ensure default settings does not overwrite");
+      Ensured := Files.Settings.Ensure_Default_File (Join (Root, "settings-dir"));
+      Assert (not Ensured.Success, "ensure default settings rejects directory path");
+      Assert
+        (To_String (Ensured.Error_Key) = "error.settings.not_file",
+         "ensure default settings reports not-file diagnostic");
+      Ensured := Files.Settings.Ensure_Default_File (Blocked_Path);
+      Assert (not Ensured.Success, "ensure default settings rejects a file used as parent directory");
+      Assert
+        (To_String (Ensured.Path) = Blocked_Path,
+         "ensure default settings parent failure reports requested settings path");
+      Assert
+        (To_String (Ensured.Error_Key) = "error.settings.not_file",
+         "ensure default settings parent failure reports not-file diagnostic");
+      Ensured := Files.Settings.Ensure_Default_File ("");
+      Assert (not Ensured.Success, "ensure default settings rejects empty settings path");
+      Assert
+        (To_String (Ensured.Error_Key) = "error.settings.save",
+         "ensure default settings empty path reports save diagnostic");
+   end Test_Settings_Load_File;
+
+   procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Bad_Path : constant String := Join (Root, "bad.conf");
+      Bad      : Files.Settings.Settings_Parse_Result;
+      Bad_Open : Files.Settings.Settings_Parse_Result;
+      Bad_Tail : Files.Settings.Settings_Parse_Result;
+
+      procedure Assert_Parse_Error
+        (Text      : String;
+         Error_Key : String;
+         Message   : String)
+      is
+         Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Text);
+      begin
+         Assert (not Parsed.Success, Message);
+         Assert
+           (To_String (Parsed.Error_Key) = Error_Key,
+            Message & " diagnostic key");
+      end Assert_Parse_Error;
+   begin
+      Reset_Root;
+      Write_File
+        (Bad_Path,
+         "[settings]" & ASCII.LF &
+         "show_hidden_files = maybe" & ASCII.LF);
+      Bad := Files.Settings.Load_File (Bad_Path);
+      Assert (not Bad.Success, "invalid boolean setting is rejected");
+      Assert
+        (To_String (Bad.Error_Key) = "error.settings.invalid_boolean",
+         "invalid boolean reports a deterministic diagnostic key");
+
+      Bad_Open :=
+        Files.Settings.Parse
+          ("[open-actions]" & ASCII.LF &
+           "text/plain = ""unterminated" & ASCII.LF);
+      Assert (not Bad_Open.Success, "unterminated quoted open action is rejected");
+      Assert
+        (To_String (Bad_Open.Error_Key) = "error.settings.invalid_open_action",
+         "unterminated quoted open action reports deterministic diagnostic key");
+
+      Bad_Tail :=
+        Files.Settings.Parse
+          ("[open-actions]" & ASCII.LF &
+           "text/plain = ""editor""junk {path}" & ASCII.LF);
+      Assert (not Bad_Tail.Success, "quoted open action rejects trailing junk");
+      Assert
+        (To_String (Bad_Tail.Error_Key) = "error.settings.invalid_open_action",
+         "quoted open action trailing junk reports deterministic diagnostic key");
+
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain = edit""or {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "unquoted open-action executable quote is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain = editor ar""g" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "unquoted open-action argument quote is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain =" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "empty open action executable is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         " = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "empty open action key is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         """text/quoted-action"" = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "quoted open-action filetype key is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "[text/bracketed-action] = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "bracketed open-action filetype key is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "+control = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "modifier-only open action key is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain+custom = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "unknown open-action modifier is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain+ = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "dangling open-action modifier separator is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain+control+ = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "trailing open-action modifier separator is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain++control = editor {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "empty open-action modifier segment is rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain = editor prefix-{path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "embedded open-action placeholders are rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain = {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "open-action executable placeholders are rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain = edit" & ASCII.VT & "or {path}" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "open-action executable vertical tabs are rejected");
+      Assert_Parse_Error
+        ("[open-actions]" & ASCII.LF &
+         "text/plain = editor arg" & ASCII.FF & "value" & ASCII.LF,
+         "error.settings.invalid_open_action",
+         "open-action argument form feeds are rejected");
+      Assert_Parse_Error
+        ("[filetypes]" & ASCII.LF &
+         " = text/plain" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "empty filetype extension mapping is rejected");
+      Assert_Parse_Error
+        ("[filetypes]" & ASCII.LF &
+         "txt =" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "empty filetype value mapping is rejected");
+      Assert_Parse_Error
+        ("[filetypes]" & ASCII.LF &
+         "txt = ""unterminated" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "unterminated quoted filetype mapping is rejected");
+      Assert_Parse_Error
+        ("[filetypes]" & ASCII.LF &
+         "txt = ""text/plain""junk" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "quoted filetype mapping with trailing junk is rejected");
+      Assert_Parse_Error
+        ("[icons]" & ASCII.LF &
+         "text/plain =" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "empty icon mapping value is rejected");
+      Assert_Parse_Error
+        ("[icons]" & ASCII.LF &
+         " = text" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "empty icon mapping key is rejected");
+      Assert_Parse_Error
+        ("[icons]" & ASCII.LF &
+         "text/plain = ""unterminated" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "unterminated quoted icon mapping is rejected");
+      Assert_Parse_Error
+        ("[icons]" & ASCII.LF &
+         "text/plain = ""text""junk" & ASCII.LF,
+         "error.settings.invalid_mapping",
+         "quoted icon mapping with trailing junk is rejected");
+      Assert_Parse_Error
+        ("[unknown]" & ASCII.LF,
+         "error.settings.unknown_section",
+         "unknown settings section is rejected");
+      Assert_Parse_Error
+        ("[]" & ASCII.LF,
+         "error.settings.unknown_section",
+         "empty settings section name is rejected");
+      Assert_Parse_Error
+        ("[settings" & ASCII.LF,
+         "error.settings.expected_equals",
+         "unterminated settings section header is rejected");
+      Assert_Parse_Error
+        ("orphan = value" & ASCII.LF,
+         "error.settings.missing_section",
+         "settings entry before section is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "default_view_mode details" & ASCII.LF,
+         "error.settings.expected_equals",
+         "settings entry without equals is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "default_view_mode = tiled" & ASCII.LF,
+         "error.settings.invalid_view_mode",
+         "invalid view mode is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "unknown_key = true" & ASCII.LF,
+         "error.settings.unknown_key",
+         "unknown settings key is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "sort_directories_first = maybe" & ASCII.LF,
+         "error.settings.invalid_boolean",
+         "invalid sort preference boolean is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "sort_field = random" & ASCII.LF,
+         "error.settings.invalid_sort_field",
+         "invalid sort field is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "sort_ascending = maybe" & ASCII.LF,
+         "error.settings.invalid_boolean",
+         "invalid sort direction boolean is rejected");
+      Assert_Parse_Error
+        ("[settings]" & ASCII.LF & "icon_theme = neon" & ASCII.LF,
+         "error.settings.invalid_icon_theme",
+         "invalid icon theme is rejected");
+   end Test_Settings_Invalid_Boolean;
+
+   procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+      Policy   : constant Files.Model.Rename_Policy := Files.Model.Rename_Behavior;
+   begin
+      Assert (Policy.Single_Item_Only, "rename policy is explicit single-item rename");
+      Assert (not Policy.Synchronized_Multi, "rename policy does not claim synchronized multi-rename");
+      Assert (not Policy.Atomic_Multi_Rename, "rename policy does not claim atomic multi-rename");
+      Assert (Policy.Requires_One_Selection, "rename policy requires exactly one selected item");
+      Assert (not Files.Model.Rename_Is_Enabled (Model), "rename disabled with no selection");
+      Files.Model.Select_Visible (Model, 2);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "file.rename");
+      Files.Model.Toggle_Rename (Model);
+      Assert (Files.Model.Rename_Is_Active (Model), "direct rename enters rename mode");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct rename closes stale root selector");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct rename closes stale command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "direct rename clears stale palette query");
+      Files.Model.Toggle_Rename (Model);
+      Assert (not Files.Model.Rename_Is_Active (Model), "direct rename can be cancelled after overlay cleanup");
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "file.rename");
+      Files.Model.Resume_Rename (Model, "renamed.txt");
+      Assert (Files.Model.Rename_Is_Active (Model), "resume rename enters rename mode");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "resume rename closes stale root selector");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "resume rename closes stale command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "resume rename clears stale palette query");
+      Files.Model.Toggle_Rename (Model);
+      Assert (not Files.Model.Rename_Is_Active (Model), "resume rename state can be cancelled");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Assert (not Files.Model.Rename_Is_Enabled (Model), "rename disabled with multi-selection");
+      Files.Model.Resume_Rename (Model, "multi.txt");
+      Assert (not Files.Model.Rename_Is_Active (Model), "resume rename follows single-item policy");
+      Files.Model.Select_Visible (Model, 2);
+      Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+      Assert (Files.Model.Rename_Is_Active (Model), "rename command enters rename mode");
+      Assert (Files.Model.Rename_Text (Model) = "Beta.txt", "rename text is selected file name");
+      Files.Model.Select_Visible (Model, 1);
+      Assert (not Files.Model.Rename_Is_Active (Model), "selection change cancels stale rename mode");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "selection change clears stale rename focus");
+
+      Files.Model.Select_Visible (Model, 2);
+      Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files.Model.Toggle_Visible_Selection (Model, 1);
+      Assert (not Files.Model.Rename_Is_Active (Model), "multi-selection cancels stale rename mode");
+
+      Files.Model.Select_Visible (Model, 3);
+      Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files.Model.Set_Filter (Model, "Alpha");
+      Assert (not Files.Model.Rename_Is_Active (Model), "filter hiding rename target cancels rename mode");
+      Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "filter reconciliation selects visible item");
+      Files.Model.Clear_Filter (Model);
+      Files.Model.Select_Visible (Model, 2);
+      Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+      Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+      Assert (not Files.Model.Rename_Is_Active (Model), "F2 while renaming cancels rename mode");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F2);
+      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 routes rename through controller");
+      Assert (Files.Model.Rename_Is_Active (Model), "controller F2 enters rename mode");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes context cancel");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "rename Escape reports successful state-only cancel");
+      Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels focused rename mode");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F2);
+      Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered again");
+      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path focus can move away from rename");
+      Assert (Files.Model.Rename_Is_Active (Model), "path focus does not implicitly cancel rename");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Escape clears focused path input");
+      Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels rename state after path focus");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F2);
+      Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered after path focus Escape");
+      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "focus can move away from rename");
+      Assert (Files.Model.Rename_Is_Active (Model), "moving focus does not implicitly cancel rename");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "first Escape clears focused filter input");
+      Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels pending rename state after focus moved");
+   end Test_Rename_Mode;
+
+   procedure Test_Create_File_Temporary_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      Operation : Files.Operations.Operation_Result;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Reset_Root;
+      Write_File (Join (Root, "untitled.txt"));
+      Write_File (Join (Root, "untitled 2.txt"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "file.create");
+      Files.Model.Begin_Create_File (Model, "draft.txt");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct create closes stale root selector");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct create closes stale command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "direct create clears stale palette query");
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Set_Filter (Model, "does-not-match-untitled");
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Files.Model.Scroll_Main_View (Model, 4);
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Create_File_Command, "create command routes through controller");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "create command reports successful temporary-item operation");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "create command clears stale error state");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "create command adds temporary item");
+      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 3.txt", "temporary item name is deterministic");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "create command scrolls temporary item into view");
+      Assert (Files.Model.Rename_Is_Active (Model), "create command starts rename mode");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "create command focuses rename input");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model),
+         "create command is disabled while a temporary item exists");
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "second create command is ignored");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "second create command reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.create.pending",
+         "second create command reports pending-create error");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.create.pending", "second create records error");
+      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 3.txt", "ignored create keeps pending name");
+      Files.Model.Cancel_Create_File (Model);
+      Ada.Directories.Delete_File (Join (Root, "untitled 2.txt"));
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 2.txt", "create command uses first name gap");
+      Assert (Files.Model.Visible_Count (Model) = 1, "temporary item appears despite active filter");
+      Assert
+        (To_String (Files.Model.Visible_Item (Model, 1).Name) = "untitled 2.txt",
+         "temporary item is the visible item while pending");
+      Assert (Files.Model.Selected_Index (Model) = 1, "create command selects temporary item");
+      Assert (Files.Model.Selected_Count (Model) = 1, "temporary item counts as a selected visible item");
+      Assert (Files.Model.Selected_Name (Model) = "untitled 2.txt", "temporary selection exposes pending name");
+      Assert (Files.Model.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
+      Assert (not Files.Model.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+         "active temporary rename can still be cancelled through the command");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+         "selected temporary item does not enable delete");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
+         "selected temporary item does not enable open");
+      Operation := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Operation.Status = Files.Operations.Operation_Disabled, "temporary item cannot be opened directly");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "temporary open records disabled state");
+      Operation := Files.Operations.Delete_Selected (Model, Settings);
+      Assert (Operation.Status = Files.Operations.Operation_Disabled, "temporary item cannot be deleted directly");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "temporary delete records disabled state");
+      Operation := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Operation.Status = Files.Operations.Operation_Disabled, "temporary item cannot be renamed directly");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "temporary rename records disabled state");
+
+      declare
+         Mixed_Model : Files.Model.Window_Model := Sample_Model;
+         Mixed_Items : Files.File_System.Item_Vectors.Vector;
+      begin
+         Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
+         Files.Model.Select_Visible_Range
+           (Mixed_Model,
+            Anchor_Index => Positive (Files.Model.Visible_Count (Mixed_Model)),
+            Target_Index => 1);
+         Mixed_Items := Files.Model.Selected_Items (Mixed_Model);
+         Assert
+           (Files.Model.Selected_Count (Mixed_Model) = 4,
+            "mixed selection includes real items and temporary item");
+         Assert
+           (Natural (Mixed_Items.Length) = 3,
+            "selected items excludes the transient create-file item");
+         Assert
+           (Files.Model.Selection_Includes_Temporary (Mixed_Model),
+            "model identifies temporary item inside mixed selection");
+         Assert
+           (not Files.Model.Selected_Item_Is_Temporary (Mixed_Model),
+            "primary selected item need not be temporary in a mixed selection");
+         Assert
+           (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Mixed_Model),
+            "mixed temporary selection does not enable delete");
+         Assert
+           (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
+            "mixed temporary selection does not enable open");
+         Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
+         Assert (Operation.Status = Files.Operations.Operation_Disabled, "mixed temporary selection cannot open");
+         Assert
+           (Files.Model.Last_Error_Key (Mixed_Model) = "error.selection.empty",
+            "mixed temporary open records disabled state");
+         Operation := Files.Operations.Delete_Selected (Mixed_Model, Settings);
+         Assert (Operation.Status = Files.Operations.Operation_Disabled, "mixed temporary selection cannot delete");
+         Assert
+           (Files.Model.Last_Error_Key (Mixed_Model) = "error.selection.empty",
+            "mixed temporary delete records disabled state");
+      end;
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F2);
+      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 routes temporary rename cancel");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "F2 cancels pending temporary item");
+      Assert (not Files.Model.Rename_Is_Active (Model), "F2 clears temporary rename state");
+      Assert (Files.Model.Selected_Count (Model) = 0, "F2 clears temporary selection");
+      Assert (Files.Model.Visible_Count (Model) = 0, "F2 removes temporary item from projection");
+      Assert (not Ada.Directories.Exists (Join (Root, "untitled 2.txt")), "F2 does not create a file");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_N, Ctrl);
+      Assert (Result.Command = Files.Commands.Create_File_Command, "Control+N routes create-file command");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N adds temporary item");
+      Files.Model.Cancel_Create_File (Model);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "direct create cancel clears rename focus");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_N, Ctrl);
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N can add temporary item after direct cancel");
+      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path focus can move away from create");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Escape clears path focus during create");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item after path focus");
+      Assert (not Files.Model.Rename_Is_Active (Model), "Escape clears create rename after path focus");
+      Assert (Files.Model.Visible_Count (Model) = 0, "path-focus Escape removes temporary item from projection");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Files.Model.Move_Selection (Model, Files.Types.Move_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes context cancel");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "create Escape reports successful state-only cancel");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item");
+      Assert (not Files.Model.Rename_Is_Active (Model), "Escape clears temporary rename state");
+      Assert (Files.Model.Selected_Count (Model) = 0, "Escape clears temporary selection");
+      Assert (Files.Model.Visible_Count (Model) = 0, "cancelled temporary item disappears from projection");
+      Assert (not Ada.Directories.Exists (Join (Root, "untitled 3.txt")), "Escape does not create a file");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "temporary-row item click reports successful context cancel");
+      Assert
+        (not Files.Model.Temporary_Item_Is_Active (Model),
+         "temporary-row item click cancels pending create");
+      Assert
+        (Files.Model.Selected_Count (Model) = 0,
+         "temporary-row item click does not leave a zero selection");
+      Assert
+        (Files.Model.Visible_Count (Model) = 0,
+         "temporary-row item click removes the only visible row");
+
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "untitled.txt"));
+      Write_File (Join (Root, "untitled 3.txt"));
+      Write_File (Join (Root, "name-parent.txt"));
+      Assert
+        (Files.File_System.Next_Untitled_Name (Join (Root, "name-parent.txt")) = "untitled.txt",
+         "untitled name generation falls back deterministically for non-directory probes");
+      Assert
+        (Files.File_System.Next_Untitled_Name (Root) = "untitled 2.txt",
+         "untitled name generation skips directory collisions");
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 2.txt", "create uses first available suffix");
+      Files.Model.Cancel_Create_File (Model);
+      declare
+         function Suffix_Text (Value : Natural) return String is
+            Image : constant String := Natural'Image (Value);
+         begin
+            if Image'Length > 0 and then Image (Image'First) = ' ' then
+               return Image (Image'First + 1 .. Image'Last);
+            end if;
+
+            return Image;
+         end Suffix_Text;
+      begin
+         for Index in 2 .. 10 loop
+            Write_File (Join (Root, "untitled " & Suffix_Text (Index) & ".txt"));
+         end loop;
+      end;
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Assert
+        (Files.Model.Temporary_Item_Name (Model) = "untitled 11.txt",
+         "create uses explicit spaced suffix text after single digits");
+   end Test_Create_File_Temporary_State;
+
+   procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Operations.Operation_Result;
+      Item     : Files.File_System.Directory_Item;
+   begin
+      Item := Files.Model.Selected_Item (Model);
+      Assert (To_String (Item.Name) = "", "empty selection returns an empty selected item");
+      Assert (To_String (Item.Full_Path) = "", "empty selection selected item has empty path");
+      Assert (Item.Kind = Files.Types.Unknown_Item, "empty selection selected item has unknown kind");
+      Assert (not Files.Model.Selected_Item_Is_Temporary (Model), "empty selection is not temporary");
+
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Disabled, "empty open is represented as disabled");
+      Assert (To_String (Result.Path) = "", "disabled empty open has no target path");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "empty open records an error");
+      Result := Files.Operations.Navigate_Back (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Disabled, "empty back history is disabled");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.history.back_unavailable",
+         "empty back history records an error");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Disabled, "create commit without temporary item is disabled");
+      Assert (To_String (Result.Path) = "", "disabled create commit has no target path");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.create.no_temporary_item",
+         "missing temporary item records an error");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Disabled, "rename commit outside rename mode is disabled");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "disabled rename records an error");
+
+      Files.Model.Select_Visible (Model, 1);
+      Result := Files.Operations.Delete_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "trash failure is represented as data");
+      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "trash failure reports selected path");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "trash failure is recorded as data");
+   end Test_Error_State;
+
+   procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Trash_Home   : constant String := Root & "_xdg_data";
+      Mac_Home     : constant String := Root & "_mac_home";
+      Trash_File   : constant String := Join (Join (Trash_Home, "Trash"), "files");
+      Trash_Info   : constant String := Join (Join (Trash_Home, "Trash"), "info");
+      Special_Path  : constant String := Join (Root, "space % file.txt");
+      Nested_Trash_Source : constant String := Join (Root, "nested-trash-source");
+      Had_Xdg_Data : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Home     : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_Backend  : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Xdg_Data : Unbounded_String;
+      Old_Home     : Unbounded_String;
+      Old_Backend  : Unbounded_String;
+      Load         : Files.File_System.Directory_Load_Result;
+      Model        : Files.Model.Window_Model;
+      Result       : Files.Controller.Controller_Result;
+      Mutation      : Files.File_System.Mutation_Result;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Xdg_Data then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Xdg_Data));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+
+         if Had_Backend then
+            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Old_Backend));
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+      end Restore_Environment;
+   begin
+      if Had_Xdg_Data then
+         Old_Xdg_Data := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Home then
+         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_Backend then
+         Old_Backend := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
+      end if;
+
+      Reset_Root;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Assert
+        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 0.0)) =
+         "2024-02-03T00:00:00",
+         "trash deletion date formats midnight");
+      Assert
+        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 60.9)) =
+         "2024-02-03T00:01:00",
+         "trash deletion date floors fractional seconds");
+      Assert
+        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 86_399.9)) =
+         "2024-02-03T23:59:59",
+         "trash deletion date does not round up near midnight");
+      Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+      Ada.Environment_Variables.Clear ("HOME");
+      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      Assert (not Files.File_System.Trash_Is_Available, "trash availability detects missing trash base");
+      Assert
+        (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
+         "trash backend reports unavailable when no trash base exists");
+      Assert
+        (not Files.File_System.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
+         "unavailable trash backend reports no metadata sidecar support");
+      Assert
+        (Files.File_System.Trash_Capabilities_Of_Current_Environment.Native_Diagnostics,
+         "trash capabilities expose native diagnostic policy");
+      Assert
+        (Files.File_System.Trash_Capabilities_Of_Current_Environment.Multi_Item_Preflight,
+         "trash capabilities expose multi-item preflight policy");
+      Write_File (Join (Root, "blocked-trash-parent"));
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Join (Root, "blocked-trash-parent"), "xdg"));
+      Assert
+        (not Files.File_System.Trash_Is_Available,
+         "trash availability rejects a regular file in the trash parent chain");
+      Mutation := Files.File_System.Move_To_Trash_Preflight (Join (Root, "missing-for-blocked-trash.txt"));
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.failed",
+         "missing trash target still reports failed trash mutation");
+      Mutation :=
+        Files.File_System.Move_To_Trash_Preflight
+          (Root & "/bad" & Character'Val (0) & "trash-target.txt");
+      Assert (not Mutation.Success, "malformed trash target reports failed trash mutation");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.failed",
+         "malformed trash target reports failed trash diagnostic");
+      Write_File (Join (Root, "blocked-trash-target.txt"));
+      Mutation := Files.File_System.Move_To_Trash_Preflight (Join (Root, "blocked-trash-target.txt"));
+      Assert (not Mutation.Success, "trash preflight rejects blocked trash parent chain");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.unavailable",
+         "blocked trash parent chain reports unavailable trash");
+      Ada.Directories.Delete_File (Join (Root, "blocked-trash-parent"));
+      Ada.Directories.Delete_File (Join (Root, "blocked-trash-target.txt"));
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Assert (Files.File_System.Trash_Is_Available, "trash availability detects XDG trash base");
+      Assert
+        (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Xdg_Data_Home,
+         "trash backend reports XDG data home when configured");
+      Assert
+        (Files.File_System.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
+         "XDG trash backend reports trashinfo sidecar support");
+      Assert
+        (Files.File_System.Trash_Capabilities_Of_Current_Environment.Collision_Safe_Name,
+         "XDG trash backend reports collision-safe naming");
+      Assert
+        (Files.File_System.Trash_Capabilities_Of_Current_Environment.Multi_Item_Preflight,
+         "XDG trash backend reports multi-item preflight support");
+      Mutation := Files.File_System.Move_To_Trash_Preflight ("/");
+      Assert (not Mutation.Success, "trash preflight rejects filesystem root");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.failed",
+         "filesystem root trash preflight reports failed trash mutation");
+      declare
+         Prefix_Source : constant String := Join (Root, "trash-prefix-source");
+         Prefix_Base   : constant String := Prefix_Source & "-xdg";
+      begin
+         Write_File (Prefix_Source);
+         Ada.Environment_Variables.Set ("XDG_DATA_HOME", Prefix_Base);
+         Mutation := Files.File_System.Move_To_Trash_Preflight (Prefix_Source);
+         Assert (Mutation.Success, "trash preflight accepts sibling paths sharing a prefix");
+         Assert
+           (To_String (Mutation.Error_Key) = "",
+            "trash prefix-sibling preflight has no diagnostic");
+         Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+         Ada.Directories.Delete_File (Prefix_Source);
+      end;
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Assert
+        (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Windows_Recycle_Bin,
+         "trash backend can represent native Windows recycle-bin intent");
+      Assert
+        (Files.File_System.Trash_Capabilities_Of_Current_Environment.Native_Platform,
+         "native Windows trash backend reports native-platform intent");
+      Assert
+        (not Files.File_System.Trash_Capabilities_Of_Current_Environment.Permanent_Delete,
+         "native trash capability does not opt into permanent deletion");
+      declare
+         Request : constant Files.File_System.Native_Trash_Request :=
+           Files.File_System.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
+         Native_Result : constant Files.File_System.Native_Trash_Result :=
+           Files.File_System.Evaluate_Native_Trash (Request);
+         Native_Execution : constant Files.File_System.Native_Trash_Result :=
+           Files.File_System.Execute_Native_Trash (Request);
+      begin
+         Assert (Request.Requires_Native_Api, "native trash request records native API requirement");
+         Assert (not Request.Can_Use_Current_Process, "native trash request does not claim local fallback");
+         Assert (not Native_Result.Supported, "native trash result reports unsupported native adapter");
+         Assert (not Native_Result.Attempted, "native trash evaluation does not attempt mutation");
+         Assert (not Native_Result.Completed, "native trash evaluation does not complete mutation");
+         Assert (not Native_Result.Native_Binding_Available, "Windows native trash binding is unavailable here");
+         Assert
+           (Native_Result.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
+            "Windows native trash binding reports non-target status here");
+         Assert
+           (To_String (Native_Result.Binding_Unit) = "Files.Platform.Windows.Trash",
+            "Windows native trash result records binding unit");
+         Assert (not Native_Result.Desktop_Standard, "Windows native trash is not a desktop-standard fallback");
+         Assert (Native_Result.Uses_Recycle_Bin, "Windows native trash result records recycle-bin target");
+         Assert
+           (To_String (Native_Result.Adapter_Name) = "windows.recycle_bin",
+            "Windows native trash result records adapter name");
+         Assert
+           (To_String (Native_Result.Native_Api_Name) = "IFileOperation",
+            "Windows native trash result records native API name");
+         Assert
+           (To_String (Native_Result.Operation_Name) = "move_to_trash",
+            "native trash result records operation name");
+         Assert (Native_Result.Preserves_Metadata, "native trash result records metadata-preservation intent");
+         Assert
+           (not Native_Result.Requires_User_Consent,
+            "native trash result records no in-app consent requirement");
+         Assert
+           (To_String (Native_Result.Error_Key) = "error.trash.native_unavailable",
+            "native trash result reports native-unavailable diagnostic");
+         Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
+         Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
+         Assert
+           (not Native_Execution.Native_Binding_Available,
+            "native trash execution reports unavailable binding");
+         Assert
+           (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
+            "native trash execution preserves binding status");
+         Assert
+           (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
+            "native trash execution reports native-unavailable diagnostic");
+      end;
+      Mutation := Files.File_System.Move_To_Trash (Join (Root, "missing-for-native-trash.txt"));
+      Assert (not Mutation.Success, "unimplemented native Windows trash fails as recoverable data");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.native_unavailable",
+         "native Windows trash reports native-unavailable diagnostic");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos");
+      Assert
+        (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,
+         "trash backend can represent native macOS trash intent");
+      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      Write_File (Join (Root, "native-execute.txt"));
+      declare
+         Request : constant Files.File_System.Native_Trash_Request :=
+           Files.File_System.Native_Trash_Request_For (Join (Root, "native-execute.txt"));
+         Native_Execution : constant Files.File_System.Native_Trash_Result :=
+           Files.File_System.Execute_Native_Trash (Request);
+      begin
+         Assert (Request.Can_Use_Current_Process, "XDG trash request can execute in current process");
+         Assert (Native_Execution.Supported, "XDG trash execution reports supported adapter");
+         Assert (Native_Execution.Attempted, "XDG trash execution attempts mutation");
+         Assert (Native_Execution.Completed, "XDG trash execution completes mutation");
+         Assert (Native_Execution.Desktop_Standard, "XDG trash execution reports desktop-standard backend");
+         Assert
+           (not Native_Execution.Native_Binding_Available,
+            "XDG trash execution does not claim OS-specific native binding");
+         Assert
+           (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Binding_Missing,
+            "XDG trash execution reports no OS-specific native binding");
+         Assert
+           (To_String (Native_Execution.Binding_Unit) = "Files.File_System.Move_To_Trash",
+            "XDG trash execution records binding unit");
+         Assert
+           (not Ada.Directories.Exists (Join (Root, "native-execute.txt")),
+            "XDG trash execution moves source entry");
+         Assert
+           (To_String (Native_Execution.Adapter_Name) = "xdg.trash",
+            "XDG trash execution records adapter name");
+         Assert
+           (To_String (Native_Execution.Error_Key) = "",
+            "XDG trash execution has no error key");
+      end;
+      Write_File (Join (Root, "doomed.txt"));
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "doomed.txt");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Command = Files.Commands.Delete_Selected_Items_Command, "Delete routes through command registry");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "available trash moves selected item");
+      Assert (To_String (Result.Operation.Path) = Join (Root, "doomed.txt"), "delete operation reports target path");
+      Assert (To_String (Result.Operation.Error_Key) = "", "successful trash move has no error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "successful trash move clears model error");
+      Assert (not Ada.Directories.Exists (Join (Root, "doomed.txt")), "trash move removes file from source");
+      Assert (Ada.Directories.Exists (Join (Trash_File, "doomed.txt")), "trash move stores file under XDG trash");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_Info, "doomed.txt.trashinfo")),
+         "trash move writes trashinfo metadata");
+      Assert (Files.Model.Selected_Count (Model) = 0, "successful delete reconciles selection");
+      Mutation := Files.File_System.Move_To_Trash (Join (Trash_File, "doomed.txt"));
+      Assert (not Mutation.Success, "trash preflight rejects items already inside trash");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.failed",
+         "already-trashed item reports trash failure");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_File, "doomed.txt")),
+         "already-trashed item remains in place after rejected trash move");
+
+      Write_File (Join (Root, "doomed.txt"), "again");
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads collision target");
+      Select_Name (Model, "doomed.txt");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second same-name delete succeeds");
+      Assert (Ada.Directories.Exists (Join (Trash_File, "doomed.txt.2")), "trash collision chooses suffix");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_Info, "doomed.txt.2.trashinfo")),
+         "trash collision writes suffixed metadata");
+
+      Write_File (Join (Trash_Info, "sidecar-only.txt.trashinfo"));
+      Write_File (Join (Root, "sidecar-only.txt"));
+      Mutation := Files.File_System.Move_To_Trash (Join (Root, "sidecar-only.txt"));
+      Assert (Mutation.Success, "trash sidecar-only collision succeeds with suffix");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_File, "sidecar-only.txt.2")),
+         "trash sidecar-only collision chooses suffix");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_Info, "sidecar-only.txt.2.trashinfo")),
+         "trash sidecar-only collision writes suffixed metadata");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_Info, "sidecar-only.txt.trashinfo")),
+         "trash sidecar-only collision preserves existing metadata sidecar");
+
+      Write_File (Join (Root, "doomed2.txt"));
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads second delete target");
+      Select_Name (Model, "doomed2.txt");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace);
+      Assert
+        (Result.Command = Files.Commands.Delete_Selected_Items_Command,
+         "Backspace routes through same delete command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "Backspace delete uses trash operation");
+      Assert (Ada.Directories.Exists (Join (Trash_File, "doomed2.txt")), "Backspace moves file to trash");
+
+      Write_File (Special_Path);
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads encoded trash target");
+      Select_Name (Model, "space % file.txt");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "encoded trash target moves to trash");
+      Assert
+        (Project_Tools.Files.File_Contains
+           (Join (Trash_Info, "space % file.txt.trashinfo"),
+            "Path=" & Ada.Directories.Full_Name (Root) & "/space%20%25%20file.txt"),
+         "trashinfo path percent-encodes spaces and percent signs");
+
+      Write_File (Join (Root, "multi-a.txt"));
+      Write_File (Join (Root, "multi-b.txt"));
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads multi-delete targets");
+      Files.Model.Set_Filter (Model, "multi-");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "multi-selection delete succeeds");
+      Assert (Ada.Directories.Exists (Join (Trash_File, "multi-a.txt")), "multi-delete moves first file");
+      Assert (Ada.Directories.Exists (Join (Trash_File, "multi-b.txt")), "multi-delete moves second file");
+      Assert (not Ada.Directories.Exists (Join (Root, "multi-a.txt")), "multi-delete removes first source file");
+      Assert (not Ada.Directories.Exists (Join (Root, "multi-b.txt")), "multi-delete removes second source file");
+
+      Write_File (Join (Root, "partial-a.txt"));
+      Write_File (Join (Root, "partial-b.txt"));
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads partial-delete targets");
+      Files.Model.Set_Filter (Model, "partial-");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Ada.Directories.Delete_File (Join (Root, "partial-b.txt"));
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "partial multi-delete reports failure");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.trash.failed",
+         "partial multi-delete reports trash failure");
+      Assert
+        (not Ada.Directories.Exists (Join (Trash_File, "partial-a.txt")),
+         "partial multi-delete does not move earlier files before preflight failure");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "partial-a.txt")),
+         "partial multi-delete leaves earlier source files in place");
+      Assert (Files.Model.Item_Count (Model) = 1, "partial multi-delete reloads stale directory model");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "partial multi-delete keeps error state");
+
+      Ada.Directories.Create_Path (Nested_Trash_Source);
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Nested_Trash_Source, "xdg-data"));
+      Mutation := Files.File_System.Move_To_Trash (Nested_Trash_Source);
+      Assert (not Mutation.Success, "trash move into a source subdirectory fails");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.trash.failed",
+         "nested trash move reports trash failure");
+      Assert (Ada.Directories.Exists (Nested_Trash_Source), "failed nested trash keeps source directory");
+      Assert
+        (not Ada.Directories.Exists
+           (Join (Join (Join (Nested_Trash_Source, "xdg-data"), "Trash"), "info")
+            & "/nested-trash-source.trashinfo"),
+         "failed nested trash removes stale trashinfo metadata");
+
+      declare
+         Guard_Directory : constant String := Join (Root, "guard-preflight-z-dir");
+         First_File      : constant String := Join (Root, "guard-preflight-a.txt");
+         Guard_Trash     : constant String := Join (Join (Guard_Directory, "xdg-data"), "Trash");
+         Guard_Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Guard_Load      : Files.File_System.Directory_Load_Result;
+         Guard_Model     : Files.Model.Window_Model;
+         Guard_Result    : Files.Controller.Controller_Result;
+      begin
+         Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Guard_Directory, "xdg-data"));
+         Guard_Settings.Sort_Directories_First := False;
+         Write_File (First_File);
+         Ada.Directories.Create_Path (Guard_Directory);
+         Guard_Load := Files.File_System.Load_Directory (Root, Guard_Settings);
+         Assert (Guard_Load.Success, "guarded multi-delete setup loads");
+         Files.Model.Initialize (Guard_Model, Root, Guard_Load.Items, Root);
+         Files.Model.Set_Filter (Guard_Model, "guard-preflight-");
+         Files.Model.Select_Visible (Guard_Model, 1);
+         Files.Model.Toggle_Visible_Selection (Guard_Model, 2);
+
+         Guard_Result := Files.Controller.Handle_Key (Guard_Model, Guard_Settings, Files.Types.Key_Delete);
+         Assert
+           (Guard_Result.Operation.Status = Files.Operations.Operation_Failed,
+            "multi-delete preflights nested trash targets");
+         Assert
+           (To_String (Guard_Result.Operation.Error_Key) = "error.trash.failed",
+            "multi-delete nested trash preflight reports trash failure");
+         Assert
+           (Ada.Directories.Exists (First_File),
+            "multi-delete nested trash preflight does not move earlier selected files");
+         Assert (Ada.Directories.Exists (Guard_Directory), "nested trash preflight keeps guarded directory");
+         Assert
+           (not Ada.Directories.Exists (Join (Join (Guard_Trash, "files"), "guard-preflight-a.txt")),
+            "multi-delete nested trash preflight does not create a trash target for earlier files");
+         Assert
+           (Files.Model.Last_Error_Key (Guard_Model) = "error.trash.failed",
+            "multi-delete nested trash preflight preserves model error");
+      end;
+
+      Project_Tools.Files.Delete_Tree (Mac_Home);
+      Ada.Directories.Create_Path (Join (Mac_Home, ".Trash"));
+      Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+      Ada.Environment_Variables.Set ("HOME", Mac_Home);
+      Write_File (Join (Root, "mac-trash.txt"));
+      Mutation := Files.File_System.Move_To_Trash (Join (Root, "mac-trash.txt"));
+      Assert (Mutation.Success, "macOS-style home trash fallback moves files");
+      Assert
+        (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,
+         "trash backend reports macOS-style home trash when present");
+      Assert
+        (Ada.Directories.Exists (Join (Join (Join (Mac_Home, ".Trash"), "files"), "mac-trash.txt")),
+         "macOS-style home trash fallback stores file below the home trash directory");
+
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Project_Tools.Files.Delete_Tree (Mac_Home);
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Delete_Selected_Operation;
+
+   procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "open-dir");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Operations.Operation_Result;
+      Routed   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Ada.Directories.Create_Path (Join (Root, "other-dir"));
+      Write_File (Join (Dir, "child.txt"));
+      Items.Append (Files.File_System.Make_Item (Root, "open-dir", Files.Types.Directory_Item, "inode/directory"));
+      Items.Append (Files.File_System.Make_Item (Root, "other-dir", Files.Types.Directory_Item, "inode/directory"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Set_Error (Model, "error.directory.load");
+
+      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled,
+         "pending create selection blocks direct open preparation");
+      Assert
+        (To_String (Result.Error_Key) = "error.selection.empty",
+         "pending create open preparation reports disabled selection");
+      Assert (Files.Model.Current_Path (Model) = Root, "preparing directory open does not navigate");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.selection.empty",
+         "preparing pending create open records disabled state");
+      Files.Model.Set_Error (Model, "error.directory.load");
+
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Disabled, "pending create item cannot be opened directly");
+      Assert (Files.Model.Current_Path (Model) = Root, "disabled pending create open keeps path");
+
+      Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Activate => True);
+      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "double-click routes open command");
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Navigated, "double-click opens directory");
+      Assert
+        (To_String (Routed.Operation.Path) = Ada.Directories.Full_Name (Dir),
+         "directory open returns loaded path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Dir), "directory open changes path");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "directory open clears stale error state");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "directory open clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "directory open clears rename state");
+      Assert (Files.Model.Rename_Text (Model) = "", "directory open clears stale rename text");
+      Assert (Files.Model.Temporary_Item_Name (Model) = "", "directory open clears stale temporary name");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "directory open clears rename focus");
+      Assert (Files.Model.Item_Count (Model) = 1, "directory open loads destination items");
+      Assert (Files.Model.Visible_Item (Model, 1).Name = To_Unbounded_String ("child.txt"), "child item is loaded");
+
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "multi-directory open is rejected");
+      Assert
+        (To_String (Result.Error_Key) = "error.open_action.multi_directory",
+         "multi-directory open reports localized diagnostic key");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.open_action.multi_directory",
+         "multi-directory open records localized diagnostic key");
+      Assert (Files.Model.Current_Path (Model) = Root, "multi-directory open does not navigate");
+
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Activate => True);
+      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "double-click routes open command");
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Navigated, "double-click opens directory");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Dir), "double-click changes path");
+   end Test_Open_Selected_Directory_Loads_Items;
+
+   procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Arguments : Files.Settings.String_Vectors.Vector;
+      Shell_Arguments : Files.Settings.String_Vectors.Vector;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Model     : Files.Model.Window_Model := Sample_Model;
+      Result    : Files.Operations.Operation_Result;
+      Routed    : Files.Controller.Controller_Result;
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Policy    : constant Files.Operations.Open_Action_Execution_Policy :=
+        Files.Operations.Open_Action_Policy;
+   begin
+      Assert (Policy.Uses_Argument_Vector, "open-action policy requires argument vectors");
+      Assert (Policy.Shell_Requires_Explicit_Opt_In, "open-action policy requires explicit shell opt-in");
+      Assert (Policy.Checks_Executable_Before_Spawn, "open-action policy checks executables before spawn");
+      Assert (Policy.Tracks_Execution_Attempt, "open-action policy tracks execution attempts");
+      Assert (Policy.Tracks_Exit_Status, "open-action policy tracks exit status");
+      Assert (not Policy.Runs_Asynchronously, "open-action policy records synchronous execution limit");
+      Assert (not Policy.Supports_Cancellation, "open-action policy records cancellation limit");
+      Assert
+        (Policy.Rejects_Unsafe_Placeholders,
+         "open-action policy records unsafe placeholder rejection");
+      Assert (Policy.Reports_Missing_Action, "open-action policy records missing-action diagnostics");
+      Assert
+        (Policy.Reports_Missing_Executable,
+         "open-action policy records missing-executable diagnostics");
+      Assert
+        (Policy.Captures_Executable_Discovery,
+         "open-action policy records executable discovery capture");
+      Assert (Policy.Captures_Process_Result, "open-action policy records process result capture");
+      Assert (Policy.Quotes_Shell_Arguments, "open-action policy records shell argument quoting");
+      Assert
+        (Policy.Preserves_Vector_Boundaries,
+         "open-action policy records argument vector boundary preservation");
+      Assert (Policy.Multi_File_Deterministic, "open-action policy records deterministic multi-file execution");
+      declare
+         Generic_Failure : constant Files.Operations.Operation_Result :=
+           (Status              => Files.Operations.Operation_Failed,
+            Error_Key           => To_Unbounded_String ("error.directory.load"),
+            Path                => To_Unbounded_String (Root),
+            Action              =>
+              Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+            Action_Executable   => Null_Unbounded_String,
+            Action_Arguments    => 0,
+            Action_Uses_Shell   => False,
+            Execution_Attempted => False,
+            Executable_Found    => False,
+            Exit_Status_Known   => False,
+            Exit_Status         => 0);
+      begin
+         Assert
+           (Files.Operations.Open_Action_Lifecycle_Of (Generic_Failure).State =
+            Files.Operations.Open_Action_Not_Started,
+            "generic failed operations are not classified as open-action preflight failures");
+      end;
+      Arguments.Append (To_Unbounded_String ("--readonly"));
+      Arguments.Append (To_Unbounded_String ("{path}"));
+      Arguments.Append (To_Unbounded_String ("{name}"));
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain+control",
+         Files.Settings.Make_Action ("/bin/true", Arguments));
+      Modifiers (Files.Types.Control_Key) := True;
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Set_Error (Model, "error.open_action.missing");
+
+      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Assert (Result.Status = Files.Operations.Operation_Success, "file open action can be prepared without spawn");
+      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "prepared action reports selected file path");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "prepared action clears stale error state");
+      Assert (To_String (Result.Action.Executable) = "/bin/true", "prepared action uses configured executable");
+      Assert (To_String (Result.Action_Executable) = "/bin/true", "prepared result exposes executable text");
+      Assert (Result.Action_Arguments = 3, "prepared result exposes argument count");
+      Assert (not Result.Execution_Attempted, "prepared action does not execute");
+      Assert (not Result.Action.Use_Shell, "prepared action preserves non-shell execution");
+      Assert (Natural (Result.Action.Arguments.Length) = 3, "prepared action preserves argument vector");
+      Assert (To_String (Result.Action.Arguments.Element (1)) = "--readonly", "literal argument is preserved");
+      Assert (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"), "path placeholder expands");
+      Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
+
+      Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "file open executes an action");
+      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "file open returns selected file path");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "executed open action clears stale error state");
+      Assert (To_String (Result.Action.Executable) = "/bin/true", "executed action uses configured executable");
+      Assert (To_String (Result.Action_Executable) = "/bin/true", "executed result exposes executable text");
+      Assert (Result.Action_Arguments = 3, "executed result exposes argument count");
+      Assert (Result.Execution_Attempted, "executed result records process attempt");
+      Assert (Result.Executable_Found, "executed result records executable discovery");
+      Assert (not Result.Action.Use_Shell, "executed non-shell action does not request shell execution");
+      Assert (Natural (Result.Action.Arguments.Length) = 3, "executed action preserves argument vector");
+      Assert (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"), "path placeholder expands");
+      Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
+      Assert (Files.Model.Current_Path (Model) = Root, "opening a non-directory does not navigate");
+      declare
+         Lifecycle : constant Files.Operations.Open_Action_Lifecycle :=
+           Files.Operations.Open_Action_Lifecycle_Of (Result);
+      begin
+         Assert
+           (Lifecycle.State = Files.Operations.Open_Action_Completed,
+            "open-action lifecycle records completed action");
+         Assert (To_String (Lifecycle.Executable) = "/bin/true", "lifecycle records executable");
+         Assert (Lifecycle.Argument_Count = 3, "lifecycle records argument count");
+         Assert (Lifecycle.Exit_Status_Known, "lifecycle records known exit status");
+         Assert (Lifecycle.Exit_Status = 0, "lifecycle records successful process status");
+      end;
+
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain",
+         Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "zero-argument open action executes");
+      Assert (To_String (Result.Action_Executable) = "/bin/true", "zero-argument action exposes executable");
+      Assert (Result.Action_Arguments = 0, "zero-argument action exposes empty argument vector");
+      Assert (Result.Execution_Attempted, "zero-argument action records process attempt");
+      Assert (Result.Executable_Found, "zero-argument action records executable discovery");
+      Assert (Result.Exit_Status_Known, "zero-argument action records exit status");
+      Assert (Result.Exit_Status = 0, "zero-argument action records successful exit");
+
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Set_Error (Model, "error.open_action.execution");
+      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Assert (Result.Status = Files.Operations.Operation_Success, "multi-file open action can be prepared");
+      Assert (not Result.Execution_Attempted, "multi-file open preparation does not execute actions");
+      Assert
+        (To_String (Result.Path) = Join (Root, "Alpha.txt"),
+         "multi-file open preparation reports first selected path");
+      Assert
+        (To_String (Result.Action_Executable) = "/bin/true",
+         "multi-file open preparation exposes first executable");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open preparation clears stale error state");
+      Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "multi-file open executes actions");
+      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "multi-file open reports first selected path");
+      Assert (Result.Execution_Attempted, "multi-file open records process attempts");
+      Assert (Result.Executable_Found, "multi-file open records executable discovery");
+      Assert (To_String (Result.Action_Executable) = "/bin/true", "multi-file open exposes first action executable");
+      Assert (Result.Action_Arguments = 3, "multi-file open exposes first action argument count");
+      Assert
+        (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
+         "multi-file open exposes first expanded action path");
+      Assert
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
+         Files.Operations.Open_Action_Completed,
+         "multi-file open lifecycle records completed action");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open clears stale error state");
+      Files.Model.Select_Visible (Model, 1);
+
+      declare
+         Preflight_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Preflight_Model    : Files.Model.Window_Model := Sample_Model;
+         Preflight_Args     : Files.Settings.String_Vectors.Vector;
+         Marker_Path        : constant String := Join (Root, "multi-open-preflight-marker");
+         Preflight_Result   : Files.Operations.Operation_Result;
+      begin
+         if Ada.Directories.Exists (Marker_Path) then
+            Ada.Directories.Delete_File (Marker_Path);
+         end if;
+
+         Preflight_Args.Append (To_Unbounded_String ("-c"));
+         Preflight_Args.Append (To_Unbounded_String ("touch " & Marker_Path));
+         Files.Settings.Add_Open_Action
+           (Preflight_Settings,
+            "text/plain",
+            Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+         Files.Model.Select_Visible (Preflight_Model, 1);
+         Files.Model.Toggle_Visible_Selection (Preflight_Model, 3);
+         Preflight_Result :=
+           Files.Operations.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
+         Assert
+           (Preflight_Result.Status = Files.Operations.Operation_Missing_Open_Action,
+            "multi-file open preparation preflights all actions");
+         Assert
+           (not Preflight_Result.Execution_Attempted,
+            "multi-file open preparation failure records no process attempt");
+         Assert
+           (To_String (Preflight_Result.Path) = Join (Root, "Gamma.md"),
+            "multi-file open preparation failure reports missing-action path");
+         Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
+         Assert
+           (Preflight_Result.Status = Files.Operations.Operation_Missing_Open_Action,
+            "multi-file open preflights all actions before spawning");
+         Assert
+           (not Ada.Directories.Exists (Marker_Path),
+           "multi-file preflight failure does not execute earlier selected action");
+      end;
+
+      declare
+         Preflight_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Preflight_Model    : Files.Model.Window_Model := Sample_Model;
+         Preflight_Args     : Files.Settings.String_Vectors.Vector;
+         Marker_Path        : constant String := Join (Root, "multi-open-executable-marker");
+         Missing_Executable : constant String := Join (Root, "missing-open-executable");
+         Preflight_Result   : Files.Operations.Operation_Result;
+      begin
+         if Ada.Directories.Exists (Marker_Path) then
+            Ada.Directories.Delete_File (Marker_Path);
+         end if;
+
+         Preflight_Args.Append (To_Unbounded_String ("-c"));
+         Preflight_Args.Append (To_Unbounded_String ("touch " & Marker_Path));
+         Files.Settings.Add_Open_Action
+           (Preflight_Settings,
+            "text/plain",
+            Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+         Files.Settings.Add_Open_Action
+           (Preflight_Settings,
+            "text/markdown",
+            Files.Settings.Make_Action (Missing_Executable, Files.Settings.String_Vectors.Empty_Vector));
+         Files.Model.Select_Visible (Preflight_Model, 1);
+         Files.Model.Toggle_Visible_Selection (Preflight_Model, 3);
+         Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
+         Assert
+           (Preflight_Result.Status = Files.Operations.Operation_Failed,
+            "multi-file open preflights missing executables before spawning");
+         Assert
+           (To_String (Preflight_Result.Error_Key) = "error.open_action.executable_missing",
+            "multi-file executable preflight reports executable diagnostic");
+         Assert
+           (not Preflight_Result.Execution_Attempted,
+            "multi-file executable preflight failure records no process attempt");
+         Assert
+           (not Ada.Directories.Exists (Marker_Path),
+            "multi-file executable preflight failure does not execute earlier selected action");
+      end;
+
+      declare
+         Failure_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Failure_Model    : Files.Model.Window_Model := Sample_Model;
+         Failure_Result   : Files.Operations.Operation_Result;
+      begin
+         Files.Settings.Add_Open_Action
+           (Failure_Settings,
+            "text/plain",
+            Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
+         Files.Settings.Add_Open_Action
+           (Failure_Settings,
+            "text/markdown",
+            Files.Settings.Make_Action ("/bin/false", Files.Settings.String_Vectors.Empty_Vector));
+         Files.Model.Select_Visible (Failure_Model, 1);
+         Files.Model.Toggle_Visible_Selection (Failure_Model, 3);
+         Failure_Result := Files.Operations.Open_Selected (Failure_Model, Failure_Settings);
+         Assert
+           (Failure_Result.Status = Files.Operations.Operation_Failed,
+            "multi-file open execution failure is represented");
+         Assert
+           (To_String (Failure_Result.Path) = Join (Root, "Gamma.md"),
+            "multi-file open execution failure reports failing path");
+         Assert
+           (To_String (Failure_Result.Action_Executable) = "/bin/false",
+            "multi-file open execution failure exposes failing executable");
+         Assert
+           (Failure_Result.Execution_Attempted,
+            "multi-file open execution failure records process attempt");
+         Assert
+           (Failure_Result.Executable_Found,
+            "multi-file open execution failure records executable discovery");
+         Assert
+           (Failure_Result.Exit_Status_Known,
+            "multi-file open execution failure records exit status");
+         Assert
+           (Failure_Result.Exit_Status /= 0,
+            "multi-file open execution failure records nonzero exit status");
+         Assert
+           (Files.Model.Last_Error_Key (Failure_Model) = "error.open_action.execution",
+            "multi-file open execution failure records model diagnostic");
+      end;
+
+      declare
+         Had_Comspec : constant Boolean := Ada.Environment_Variables.Exists ("COMSPEC");
+         Had_Shell   : constant Boolean := Ada.Environment_Variables.Exists ("SHELL");
+         Old_Comspec : constant Unbounded_String :=
+           To_Unbounded_String ((if Had_Comspec then Ada.Environment_Variables.Value ("COMSPEC") else ""));
+         Old_Shell   : constant Unbounded_String :=
+           To_Unbounded_String ((if Had_Shell then Ada.Environment_Variables.Value ("SHELL") else ""));
+
+         procedure Restore_Shell_Environment is
+         begin
+            if Had_Comspec then
+               Ada.Environment_Variables.Set ("COMSPEC", To_String (Old_Comspec));
+            else
+               Ada.Environment_Variables.Clear ("COMSPEC");
+            end if;
+
+            if Had_Shell then
+               Ada.Environment_Variables.Set ("SHELL", To_String (Old_Shell));
+            else
+               Ada.Environment_Variables.Clear ("SHELL");
+            end if;
+         end Restore_Shell_Environment;
+      begin
+         Ada.Environment_Variables.Clear ("COMSPEC");
+         Ada.Environment_Variables.Set ("SHELL", "/bin/custom-sh");
+         Assert (Files.Operations.Shell_Executable = "/bin/custom-sh", "explicit shell uses SHELL fallback");
+         Assert (Files.Operations.Shell_Command_Option = "-c", "SHELL fallback uses POSIX command option");
+         Ada.Environment_Variables.Set ("COMSPEC", "C:\Windows\System32\cmd.exe");
+         Assert
+           (Files.Operations.Shell_Executable = "C:\Windows\System32\cmd.exe",
+            "explicit shell prefers COMSPEC when present");
+         Assert (Files.Operations.Shell_Command_Option = "/C", "COMSPEC shell uses Windows command option");
+         Restore_Shell_Environment;
+      exception
+         when others =>
+            Restore_Shell_Environment;
+            raise;
+      end;
+
+      declare
+         Had_Comspec : constant Boolean := Ada.Environment_Variables.Exists ("COMSPEC");
+         Had_Shell   : constant Boolean := Ada.Environment_Variables.Exists ("SHELL");
+         Old_Comspec : constant Unbounded_String :=
+           To_Unbounded_String ((if Had_Comspec then Ada.Environment_Variables.Value ("COMSPEC") else ""));
+         Old_Shell   : constant Unbounded_String :=
+           To_Unbounded_String ((if Had_Shell then Ada.Environment_Variables.Value ("SHELL") else ""));
+         Missing_Shell_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Missing_Shell_Model    : Files.Model.Window_Model := Sample_Model;
+         Missing_Shell_Action   : Files.Operations.Operation_Result;
+
+         procedure Restore_Shell_Environment is
+         begin
+            if Had_Comspec then
+               Ada.Environment_Variables.Set ("COMSPEC", To_String (Old_Comspec));
+            else
+               Ada.Environment_Variables.Clear ("COMSPEC");
+            end if;
+
+            if Had_Shell then
+               Ada.Environment_Variables.Set ("SHELL", To_String (Old_Shell));
+            else
+               Ada.Environment_Variables.Clear ("SHELL");
+            end if;
+         end Restore_Shell_Environment;
+      begin
+         Ada.Environment_Variables.Clear ("COMSPEC");
+         Ada.Environment_Variables.Set ("SHELL", Join (Root, "missing-shell"));
+         Files.Settings.Add_Open_Action
+           (Missing_Shell_Settings,
+            "text/plain",
+            Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));
+         Files.Model.Select_Visible (Missing_Shell_Model, 1);
+         Missing_Shell_Action := Files.Operations.Open_Selected (Missing_Shell_Model, Missing_Shell_Settings);
+         Assert
+           (Missing_Shell_Action.Status = Files.Operations.Operation_Failed,
+            "explicit shell action fails preflight when shell executable is missing");
+         Assert
+           (not Missing_Shell_Action.Execution_Attempted,
+            "missing shell executable is rejected before spawn");
+         Assert
+           (not Missing_Shell_Action.Executable_Found,
+            "missing shell executable records failed executable lookup");
+         Assert
+           (To_String (Missing_Shell_Action.Error_Key) = "error.open_action.executable_missing",
+            "missing shell executable reports executable diagnostic");
+         Assert
+           (Files.Model.Last_Error_Key (Missing_Shell_Model) = "error.open_action.executable_missing",
+            "missing shell executable records model diagnostic");
+         Restore_Shell_Environment;
+      exception
+         when others =>
+            Restore_Shell_Environment;
+            raise;
+      end;
+
+      Files.Model.Select_Visible (Model, 2);
+      Files.Model.Focus_Filter_Input (Model);
+      Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
+      Assert (Routed.Status = Files.Controller.Controller_Selection_Moved, "click selects item without opening");
+      Assert (Routed.Command = Files.Commands.No_Command, "selection click does not execute a command");
+      Assert (Files.Model.Selected_Index (Model) = 1, "click selection updates selected visible index");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "item click clears text input focus");
+      Routed := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Routed.Status = Files.Controller.Controller_Selection_Moved, "arrow key moves after item click");
+      Assert (Files.Model.Selected_Index (Model) = 2, "arrow key uses main view after item click");
+      Files.Model.Focus_Path_Input (Model);
+      Files.Controller.Replace_Focused_Text (Model, "/tmp/typed-path");
+      Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 0);
+      Assert (Routed.Status = Files.Controller.Controller_Ignored, "outside item click is ignored");
+      Assert (Files.Model.Selected_Index (Model) = 2, "outside item click preserves selection");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "outside item click preserves focus");
+      Assert (Files.Model.Path_Input_Text (Model) = "/tmp/typed-path", "outside item click preserves edited text");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Files.Model.Select_Visible (Model, 1);
+
+      Shell_Arguments.Append (To_Unbounded_String ("literal; exit 9"));
+      Shell_Arguments.Append (To_Unbounded_String ("{name}"));
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain",
+         Files.Settings.Make_Action ("true", Shell_Arguments, True));
+      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "unmodified action fallback can be prepared");
+      Assert (Result.Action.Use_Shell, "prepared fallback action preserves explicit shell execution");
+      Assert (Result.Action_Uses_Shell, "prepared result exposes explicit shell flag");
+      Assert
+        (To_String (Result.Action.Arguments.Element (1)) = "literal; exit 9",
+         "explicit shell action keeps semicolon argument as one vector value");
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Action_Executed,
+         "file open quotes explicit shell arguments before execution");
+      Assert (Result.Action.Use_Shell, "explicit shell action remains explicit after execution");
+      Assert (Result.Action_Uses_Shell, "executed shell result exposes explicit shell flag");
+      Assert (Result.Execution_Attempted, "executed shell action records process attempt");
+      Assert (Result.Exit_Status_Known, "executed shell action records exit status");
+      Assert (Result.Exit_Status = 0, "quoted shell action exits successfully");
+
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain",
+         Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, True));
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Action_Executed,
+         "explicit shell action can execute shell builtins");
+      Assert (Result.Action.Use_Shell, "shell builtin action preserves explicit shell execution");
+      Assert (Result.Execution_Attempted, "shell builtin action records shell execution attempt");
+      Assert (Result.Executable_Found, "shell builtin action records shell discovery");
+      Assert (Result.Exit_Status_Known, "shell builtin action records exit status");
+      Assert (Result.Exit_Status = 0, "shell builtin action exits successfully");
+
+      declare
+         Exit_Arguments : Files.Settings.String_Vectors.Vector;
+      begin
+         Exit_Arguments.Append (To_Unbounded_String ("7"));
+         Files.Settings.Add_Open_Action
+           (Settings,
+            "text/plain",
+            Files.Settings.Make_Action ("exit", Exit_Arguments, True));
+      end;
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Failed,
+         "nonzero explicit shell builtin is represented");
+      Assert
+        (Result.Execution_Attempted,
+         "nonzero explicit shell builtin runs through the explicit shell");
+      Assert
+        (Result.Executable_Found,
+         "nonzero explicit shell builtin records successful shell lookup");
+      Assert
+        (To_String (Result.Error_Key) = "error.open_action.execution",
+         "nonzero explicit shell builtin reports shell execution failure");
+
+      Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action ("/bin/false", Arguments));
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "failed open action execution is represented");
+      Assert (Result.Execution_Attempted, "failed process result records execution attempt");
+      Assert (Result.Executable_Found, "failed process result records executable discovery");
+      Assert (Result.Exit_Status_Known, "failed process result records exit status");
+      Assert (Result.Exit_Status /= 0, "failed process result records nonzero exit status");
+      Assert
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Failed,
+         "failed process lifecycle records failed state");
+      Assert
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
+         "failed process lifecycle exposes known exit status");
+      Assert
+        (To_String (Result.Error_Key) = "error.open_action.execution",
+         "failed open action returns execution error key");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.open_action.execution",
+         "failed open action stores localized error key");
+
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain",
+         Files.Settings.Make_Action ("/tmp/files_missing_open_action_executable", Arguments));
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "missing open executable is represented");
+      Assert (not Result.Execution_Attempted, "missing executable result does not attempt execution");
+      Assert (not Result.Executable_Found, "missing executable result records failed lookup");
+      Assert
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
+         Files.Operations.Open_Action_Preflight_Failed,
+         "missing executable lifecycle records preflight failure");
+      Assert
+        (To_String (Result.Error_Key) = "error.open_action.executable_missing",
+         "missing open executable returns a specific diagnostic key");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.open_action.executable_missing",
+         "missing open executable stores specific diagnostic key");
+
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain",
+         Files.Settings.Make_Action (Root, Arguments));
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "directory open executable is represented");
+      Assert (not Result.Execution_Attempted, "directory executable result does not attempt execution");
+      Assert (not Result.Executable_Found, "directory executable result records failed lookup");
+      Assert
+        (To_String (Result.Error_Key) = "error.open_action.executable_missing",
+         "directory executable returns the missing executable diagnostic key");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.open_action.executable_missing",
+         "directory executable stores the missing executable diagnostic key");
+
+      declare
+         Unsafe_Arguments : Files.Settings.String_Vectors.Vector;
+      begin
+         Unsafe_Arguments.Append (To_Unbounded_String ("prefix-{path}"));
+         Files.Settings.Add_Open_Action
+           (Settings,
+            "text/unsafe-argument",
+            Files.Settings.Make_Action ("/bin/true", Unsafe_Arguments));
+         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-argument", Files.Types.No_Modifiers);
+         Assert
+           (not Lookup.Found,
+            "settings helper rejects embedded placeholders before operation preparation");
+         Assert
+           (To_String (Lookup.Error_Key) = "error.open_action.missing",
+            "rejected embedded-placeholder action is absent from lookup");
+         Assert (Files.Model.Current_Path (Model) = Root, "unsafe open action does not navigate");
+
+         Files.Settings.Add_Open_Action
+           (Settings,
+            "text/unsafe-executable",
+            Files.Settings.Make_Action ("{path}", Files.Types.String_Vectors.Empty_Vector));
+         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-executable", Files.Types.No_Modifiers);
+         Assert
+           (not Lookup.Found,
+            "settings helper rejects executable placeholders before operation preparation");
+         Assert
+           (To_String (Lookup.Error_Key) = "error.open_action.missing",
+            "rejected executable-placeholder action is absent from lookup");
+      end;
+
+      Files.Model.Set_Error (Model, "error.open_action.missing");
+      Files.Settings.Add_Open_Action
+        (Settings,
+         "text/plain+control",
+         Files.Settings.Make_Action ("/bin/true", Arguments));
+      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Assert (Result.Status = Files.Operations.Operation_Success, "modifier-specific action can be prepared");
+      Assert
+        (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
+         "prepared modifier-specific action expands path");
+      Routed := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return, Modifiers);
+      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "Return routes file open command");
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Action_Executed,
+         "Return executes configured open action");
+      Assert
+        (To_String (Routed.Operation.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
+         "Return open preserves modifier-specific action lookup");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "Return open clears stale error state");
+
+      Files.Model.Select_Visible (Model, 2);
+      Routed :=
+        Files.Controller.Handle_Item_Click
+          (Model, Settings, Visible_Index => 1, Activate => True, Modifiers => Modifiers);
+      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "double-click file routes open command");
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Action_Executed,
+         "double-click file executes configured action");
+      Assert (Files.Model.Selected_Index (Model) = 1, "double-click selects activated file");
+   end Test_Open_Selected_File_Prepares_Action;
+
+   procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Operations.Operation_Result;
+   begin
+      Files.Model.Select_Visible (Model, 3);
+      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Missing_Open_Action, "prepare reports missing action");
+      Assert (To_String (Result.Path) = Join (Root, "Gamma.md"), "prepare missing action reports file path");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.open_action.missing", "prepare missing action records error");
+      Result := Files.Operations.Open_Selected (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Missing_Open_Action, "missing action is reported");
+      Assert (To_String (Result.Path) = Join (Root, "Gamma.md"), "missing action reports selected file path");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.open_action.missing", "missing action sets error state");
+      Assert (Files.Model.Current_Path (Model) = Root, "missing file action does not navigate");
+   end Test_Missing_Open_Action_Reports_Error;
+
+   procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Set_Error (Model, "error.file.create");
+      Files.Model.Begin_Create_File (Model, "created.txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "create commit succeeds");
+      Assert (To_String (Result.Path) = Join (Root, "created.txt"), "create commit returns created path");
+      Assert (Ada.Directories.Exists (Join (Root, "created.txt")), "create commit creates the file");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "successful create clears stale error state");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create commit clears temporary state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "create commit clears rename state");
+      Assert (Files.Model.Item_Count (Model) = 1, "create commit reloads the directory model");
+      Assert (Files.Model.Selected_Name (Model) = "created.txt", "created item is selected after reload");
+   end Test_Commit_Create_File;
+
+   procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result        : Files.Operations.Operation_Result;
+      Existing_Path : constant String := Join (Root, "existing.txt");
+      Direct_Path   : constant String := Join (Root, "direct-created.txt");
+      Utf8_Two_Name   : constant String := "caf" & Byte (16#C3#) & Byte (16#A9#) & ".txt";
+      Utf8_Three_Name : constant String := Byte (16#E2#) & Byte (16#82#) & Byte (16#AC#) & "uro.txt";
+      Utf8_Four_Name  : constant String :=
+        "folder-" & Byte (16#F0#) & Byte (16#9F#) & Byte (16#93#) & Byte (16#81#) & ".txt";
+      Mutation      : Files.File_System.Mutation_Result;
+   begin
+      Reset_Root;
+      Write_File (Existing_Path, "original");
+      Ada.Directories.Create_Path (Join (Root, "existing-dir"));
+      Mutation := Files.File_System.Create_Empty_File ("");
+      Assert (not Mutation.Success, "create reports empty destination failure");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.file.parent_missing",
+         "empty destination create reports parent diagnostic");
+      Mutation := Files.File_System.Create_Empty_File (Join (Root, "existing-dir"));
+      Assert (not Mutation.Success, "create refuses an existing directory destination");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.file.exists",
+         "existing directory create reports exists diagnostic");
+      Mutation := Files.File_System.Create_Empty_File (Existing_Path);
+      Assert (not Mutation.Success, "create refuses an existing file destination");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.file.exists",
+         "existing file create reports exists diagnostic");
+      Assert
+        (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Existing_Path), "original") > 0,
+         "direct existing-file create preserves file content");
+      Mutation := Files.File_System.Create_Empty_File (Join (Join (Root, "missing-parent"), "child.txt"));
+      Assert (not Mutation.Success, "create reports missing parent failure");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.file.parent_missing",
+         "missing parent create reports parent diagnostic");
+      Assert
+        (not Ada.Directories.Exists (Join (Join (Root, "missing-parent"), "child.txt")),
+         "missing parent create writes no child file");
+      Mutation := Files.File_System.Create_Empty_File (Join (Existing_Path, "child.txt"));
+      Assert (not Mutation.Success, "create reports non-directory parent failure");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.file.parent_missing",
+         "non-directory parent create reports parent diagnostic");
+      Mutation := Files.File_System.Create_Empty_File (Direct_Path);
+      Assert (Mutation.Success, "direct create mutation succeeds");
+      Assert (To_String (Mutation.Error_Key) = "", "successful direct create has no error key");
+      Assert (Ada.Directories.Exists (Direct_Path), "direct create writes the requested file");
+      declare
+         Original_Content : constant String := Project_Tools.Files.Read_Raw_File (Existing_Path);
+      begin
+         Load := Files.File_System.Load_Directory (Root, Settings);
+         Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Model.Begin_Create_File (Model, "existing.txt");
+
+         Result := Files.Operations.Commit_Create_File (Model, Settings);
+         Assert (Result.Status = Files.Operations.Operation_Failed, "create refuses an existing destination");
+         Assert (To_String (Result.Error_Key) = "error.file.exists", "create reports existing file error");
+         Assert (To_String (Result.Path) = Existing_Path, "failed create reports attempted destination path");
+         Assert (Files.Model.Last_Error_Key (Model) = "error.file.exists", "model records existing file error");
+         Assert
+           (Project_Tools.Files.Read_Raw_File (Existing_Path) = Original_Content,
+            "failed create leaves existing file content unchanged");
+         Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed create keeps temporary item active");
+         Assert (Files.Model.Rename_Is_Active (Model), "failed create keeps rename mode active");
+         Assert (Files.Model.Temporary_Item_Name (Model) = "existing.txt", "failed create keeps attempted name");
+
+         Files.Model.Set_Rename_Text (Model, "retry.txt");
+         Result := Files.Operations.Commit_Create_File (Model, Settings);
+         Assert (Result.Status = Files.Operations.Operation_Success, "create retry after collision succeeds");
+         Assert (Ada.Directories.Exists (Join (Root, "retry.txt")), "create retry writes renamed file");
+         Assert
+           (Project_Tools.Files.Read_Raw_File (Existing_Path) = Original_Content,
+            "create retry preserves original existing file");
+         Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create retry clears temporary state");
+         Assert (Files.Model.Selected_Name (Model) = "retry.txt", "create retry selects created file");
+      end;
+
+      Files.Model.Begin_Create_File (Model, Utf8_Two_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "create accepts two-byte UTF-8 names");
+      Assert (Ada.Directories.Exists (Join (Root, Utf8_Two_Name)), "two-byte UTF-8 create writes file");
+      Assert (Files.Model.Selected_Name (Model) = Utf8_Two_Name, "two-byte UTF-8 create selects file");
+
+      Files.Model.Begin_Create_File (Model, Utf8_Three_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "create accepts three-byte UTF-8 names");
+      Assert (Ada.Directories.Exists (Join (Root, Utf8_Three_Name)), "three-byte UTF-8 create writes file");
+      Assert (Files.Model.Selected_Name (Model) = Utf8_Three_Name, "three-byte UTF-8 create selects file");
+
+      Files.Model.Begin_Create_File (Model, Utf8_Four_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "create accepts four-byte UTF-8 names");
+      Assert (Ada.Directories.Exists (Join (Root, Utf8_Four_Name)), "four-byte UTF-8 create writes file");
+      Assert (Files.Model.Selected_Name (Model) = Utf8_Four_Name, "four-byte UTF-8 create selects file");
+   end Test_Create_File_Does_Not_Overwrite;
+
+   procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Operations.Operation_Result;
+      Nul_Name : constant String := "bad" & Character'Val (0) & "name.txt";
+      Tab_Name : constant String := "bad" & Character'Val (9) & "name.txt";
+      C1_Name  : constant String := "bad" & Character'Val (133) & "name.txt";
+      Encoded_C1_Name : constant String := "bad" & Byte (16#C2#) & Byte (16#85#) & "name.txt";
+      Truncated_UTF8_Name : constant String := "bad" & Byte (16#E2#) & Byte (16#82#) & "name.txt";
+      Overlong_UTF8_Name  : constant String := "bad" & Byte (16#C0#) & Byte (16#AF#) & "name.txt";
+   begin
+      Reset_Root;
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Begin_Create_File (Model, "");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects empty names");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "empty create records invalid name");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, ".");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects dot names");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "..");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects parent-directory names");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "bad/name.txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects path separator names");
+      Assert (To_String (Result.Error_Key) = "error.name.invalid", "create invalid name reports error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "create invalid name records error");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad")), "invalid create does not create directories");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid create keeps temporary item active");
+      Assert (Files.Model.Rename_Is_Active (Model), "invalid create keeps rename active");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "bad\name.txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects backslash names");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad\name.txt")), "invalid backslash create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "bad:name.txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects Windows-reserved names");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad:name.txt")), "invalid reserved create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "bad*name.txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects wildcard names");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad*name.txt")), "invalid wildcard create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "trailing-dot.txt.");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects trailing-dot names");
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "trailing-dot.txt.")),
+         "invalid trailing-dot create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "trailing-space.txt ");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects trailing-space names");
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "trailing-space.txt ")),
+         "invalid trailing-space create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "CON.txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects reserved device names");
+      Assert (not Ada.Directories.Exists (Join (Root, "CON.txt")), "invalid device-name create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "CON .txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects padded device names");
+      Assert (not Ada.Directories.Exists (Join (Root, "CON .txt")), "invalid padded-device create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "lPt1 .txt");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects mixed-case padded device names");
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "lPt1 .txt")),
+         "invalid mixed-case padded-device create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, "CONIN$");
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects console device names");
+      Assert (not Ada.Directories.Exists (Join (Root, "CONIN$")), "invalid console-device create writes no file");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, Nul_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects embedded NUL names");
+      Assert (To_String (Result.Error_Key) = "error.name.invalid", "create NUL name reports error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "create NUL name records error");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, Tab_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects control-character names");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, C1_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects C1 control-character names");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, Encoded_C1_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Invalid_Name,
+         "create rejects UTF-8 encoded C1 control-character names");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, Truncated_UTF8_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects truncated UTF-8 names");
+
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Begin_Create_File (Model, Overlong_UTF8_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects overlong UTF-8 names");
+
+      Reset_Root;
+      Write_File (Join (Root, "old.txt"));
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "old.txt");
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects empty names");
+
+      Files.Model.Set_Rename_Text (Model, ".");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects dot names");
+
+      Files.Model.Set_Rename_Text (Model, "..");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects parent-directory names");
+
+      Files.Model.Set_Rename_Text (Model, "bad/name.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects path separator names");
+      Assert (To_String (Result.Error_Key) = "error.name.invalid", "rename invalid name reports error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "rename invalid name records error");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "invalid rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad")), "invalid rename does not create directories");
+      Assert (Files.Model.Rename_Is_Active (Model), "invalid rename keeps rename active");
+      Assert (Files.Model.Selected_Name (Model) = "old.txt", "invalid rename keeps selected item");
+
+      Files.Model.Set_Rename_Text (Model, "bad\name.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects backslash names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "backslash rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad\name.txt")), "invalid backslash rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "bad:name.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects Windows-reserved names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "reserved-character rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad:name.txt")), "invalid reserved rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "bad*name.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects wildcard names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "wildcard rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "bad*name.txt")), "invalid wildcard rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "renamed.");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects trailing-dot names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "trailing-dot rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "renamed.")), "invalid trailing-dot rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "renamed ");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects trailing-space names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "trailing-space rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "renamed ")), "invalid trailing-space rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "NUL.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects reserved device names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "device-name rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "NUL.txt")), "invalid device-name rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "NUL .txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects padded device names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "padded-device rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "NUL .txt")), "invalid padded-device rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "cOm9 .txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects mixed-case padded device names");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "old.txt")),
+         "mixed-case padded-device rename leaves source in place");
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "cOm9 .txt")),
+         "invalid mixed-case padded-device rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, "CONOUT$.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects console device names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "console-device rename leaves source in place");
+      Assert (not Ada.Directories.Exists (Join (Root, "CONOUT$.txt")), "invalid console-device rename writes no file");
+
+      Files.Model.Set_Rename_Text (Model, Nul_Name);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects embedded NUL names");
+      Assert (To_String (Result.Error_Key) = "error.name.invalid", "rename NUL name reports error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "rename NUL name records error");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "NUL rename leaves source in place");
+
+      Files.Model.Set_Rename_Text (Model, Tab_Name);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects control-character names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "control-character rename leaves source in place");
+
+      Files.Model.Set_Rename_Text (Model, C1_Name);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects C1 control-character names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "C1 control-character rename leaves source in place");
+
+      Files.Model.Set_Rename_Text (Model, Encoded_C1_Name);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Invalid_Name,
+         "rename rejects UTF-8 encoded C1 control-character names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "encoded C1 rename leaves source in place");
+
+      Files.Model.Set_Rename_Text (Model, Truncated_UTF8_Name);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects truncated UTF-8 names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "truncated UTF-8 rename leaves source in place");
+
+      Files.Model.Set_Rename_Text (Model, Overlong_UTF8_Name);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects overlong UTF-8 names");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "overlong UTF-8 rename leaves source in place");
+   end Test_Invalid_File_Operation_Names;
+
+   procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Operations.Operation_Result;
+      Taken    : constant String := Join (Root, "taken.txt");
+      Direct_Source : constant String := Join (Root, "direct-source.txt");
+      Direct_Target : constant String := Join (Root, "direct-target.txt");
+      Missing_Parent_Source : constant String := Join (Root, "missing-parent-source.txt");
+      Non_Directory_Source  : constant String := Join (Root, "non-directory-source.txt");
+      Utf8_Target : constant String :=
+        "renamed-" & Byte (16#E2#) & Byte (16#82#) & Byte (16#AC#) & ".txt";
+      Mutation : Files.File_System.Mutation_Result;
+   begin
+      Reset_Root;
+      Write_File (Join (Root, "old.txt"));
+      Write_File (Taken, "destination");
+      Write_File (Direct_Source, "direct");
+      Write_File (Missing_Parent_Source, "missing parent");
+      Write_File (Non_Directory_Source, "non-directory parent");
+      Ada.Directories.Create_Path (Join (Root, "taken-dir"));
+      Mutation := Files.File_System.Rename_Item (Join (Root, "old.txt"), Join (Root, "taken-dir"));
+      Assert (not Mutation.Success, "rename refuses an existing directory destination");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+         "existing directory rename reports invalid destination");
+      Mutation := Files.File_System.Rename_Item (Join (Root, "old.txt"), Taken);
+      Assert (not Mutation.Success, "direct rename refuses an existing file destination");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+         "existing file direct rename reports invalid destination");
+      Assert
+        (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Taken), "destination") > 0,
+         "direct rename preserves existing destination file");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "direct failed rename leaves source in place");
+      Mutation := Files.File_System.Rename_Item (Join (Root, "missing-source.txt"), Join (Root, "new-missing.txt"));
+      Assert (not Mutation.Success, "rename reports missing source failure");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.source_missing",
+         "missing source rename reports source-missing diagnostic");
+      Assert (not Ada.Directories.Exists (Join (Root, "new-missing.txt")), "missing source rename writes no target");
+      Mutation := Files.File_System.Rename_Item (Join (Root, "old.txt"), "");
+      Assert (not Mutation.Success, "rename reports empty destination failure");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+         "empty destination rename reports invalid destination");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "empty destination rename leaves source in place");
+      Mutation :=
+        Files.File_System.Rename_Item
+          (Root & "/bad" & Character'Val (0) & "same.txt",
+           Root & "/bad" & Character'Val (0) & "same.txt");
+      Assert (not Mutation.Success, "malformed same-path rename reports failure");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.source_missing",
+         "malformed same-path rename reports source-missing diagnostic");
+      Mutation :=
+        Files.File_System.Rename_Item
+          (Missing_Parent_Source,
+           Join (Join (Root, "missing-parent"), "target.txt"));
+      Assert (not Mutation.Success, "rename refuses a missing destination parent");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+         "missing destination parent reports invalid destination");
+      Assert (Ada.Directories.Exists (Missing_Parent_Source), "missing parent rename leaves source in place");
+      Mutation := Files.File_System.Rename_Item (Non_Directory_Source, Join (Taken, "target.txt"));
+      Assert (not Mutation.Success, "rename refuses a non-directory destination parent");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+         "non-directory destination parent reports invalid destination");
+      Assert (Ada.Directories.Exists (Non_Directory_Source), "non-directory parent rename leaves source in place");
+      Mutation := Files.File_System.Rename_Item (Direct_Source, Direct_Target);
+      Assert (Mutation.Success, "direct rename mutation succeeds");
+      Assert (To_String (Mutation.Error_Key) = "", "successful direct rename has no error key");
+      Assert (not Ada.Directories.Exists (Direct_Source), "direct rename removes source path");
+      Assert (Ada.Directories.Exists (Direct_Target), "direct rename creates destination path");
+      Mutation := Files.File_System.Rename_Item (Direct_Target, Direct_Target);
+      Assert (Mutation.Success, "direct same-path rename is a successful no-op");
+      Assert (To_String (Mutation.Error_Key) = "", "direct same-path rename has no error key");
+      Assert (Ada.Directories.Exists (Direct_Target), "direct same-path rename keeps source path");
+      Mutation :=
+        Files.File_System.Rename_Item
+          (Direct_Target,
+           Files.File_System.Join_Path (Files.File_System.Join_Path (Root, "."), "direct-target.txt"));
+      Assert (Mutation.Success, "direct normalized same-path rename is a successful no-op");
+      Assert (To_String (Mutation.Error_Key) = "", "direct normalized same-path rename has no error key");
+      Assert (Ada.Directories.Exists (Direct_Target), "direct normalized same-path rename keeps source path");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "old.txt");
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Error (Model, "error.rename.failed");
+      Files.Model.Set_Rename_Text (Model, "old.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "same-name rename succeeds without mutation");
+      Assert (To_String (Result.Path) = Join (Root, "old.txt"), "same-name rename reports existing path");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "same-name rename clears stale error state");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "same-name rename leaves source in place");
+      Assert (not Files.Model.Rename_Is_Active (Model), "same-name rename clears edit state");
+      Assert (Files.Model.Selected_Name (Model) = "old.txt", "same-name rename keeps selected source");
+
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "taken.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "rename refuses an existing destination");
+      Assert
+        (To_String (Result.Error_Key) = "error.rename.invalid_destination",
+         "existing destination rename reports invalid destination key");
+      Assert (To_String (Result.Path) = Taken, "failed rename reports attempted destination path");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.invalid_destination", "failed rename records error");
+      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "failed rename leaves source in place");
+      Assert
+        (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Taken), "destination") > 0,
+         "failed rename preserves destination");
+      Assert (Files.Model.Rename_Is_Active (Model), "failed rename keeps rename mode active");
+      Assert (Files.Model.Rename_Text (Model) = "taken.txt", "failed rename keeps attempted name");
+      Assert (Files.Model.Selected_Name (Model) = "old.txt", "failed rename keeps selected source");
+
+      Ada.Directories.Delete_File (Join (Root, "old.txt"));
+      Files.Model.Set_Rename_Text (Model, "missing-result.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Failed, "rename reports disappeared source");
+      Assert
+        (To_String (Result.Error_Key) = "error.rename.source_missing",
+         "disappeared source reports source-missing error key");
+      Assert
+        (To_String (Result.Path) = Join (Root, "missing-result.txt"),
+         "source-missing rename reports attempted destination path");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.rename.source_missing",
+         "disappeared source records source-missing error");
+      Assert (not Files.Model.Rename_Is_Active (Model), "source-missing rename clears stale rename mode");
+      Assert (Files.Model.Rename_Text (Model) = "", "source-missing rename clears stale attempted name");
+      Assert (Files.Model.Selected_Count (Model) = 0, "source-missing rename clears stale selection");
+      Assert (Files.Model.Selected_Name (Model) = "", "source-missing rename removes stale selected item");
+
+      Reset_Root;
+      Write_File (Join (Root, "same-missing.txt"));
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "same-missing.txt");
+      Files.Model.Toggle_Rename (Model);
+      Ada.Directories.Delete_File (Join (Root, "same-missing.txt"));
+      Files.Model.Set_Rename_Text (Model, "same-missing.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Failed,
+         "same-name rename reports disappeared source");
+      Assert
+        (To_String (Result.Error_Key) = "error.rename.source_missing",
+         "same-name disappeared source reports source-missing error key");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.rename.source_missing",
+         "same-name disappeared source records source-missing error");
+      Assert
+        (not Files.Model.Rename_Is_Active (Model),
+         "same-name disappeared source clears stale rename mode");
+
+      Write_File (Join (Root, "missing-parent-source.txt"));
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "missing-parent-source.txt");
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "new.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "rename succeeds after source is restored");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "restored-source rename clears stale error");
+      Assert (Ada.Directories.Exists (Join (Root, "new.txt")), "restored-source rename creates new path");
+      Assert (To_String (Result.Path) = Join (Root, "new.txt"), "rename commit returns renamed path");
+      Assert (not Ada.Directories.Exists (Join (Root, "missing-parent-source.txt")), "rename removes old path");
+      Assert (not Files.Model.Rename_Is_Active (Model), "rename commit clears edit state");
+      Assert (Files.Model.Selected_Name (Model) = "new.txt", "renamed item is selected after reload");
+
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, Utf8_Target);
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "rename accepts UTF-8 names");
+      Assert (Ada.Directories.Exists (Join (Root, Utf8_Target)), "UTF-8 rename creates new path");
+      Assert (not Ada.Directories.Exists (Join (Root, "new.txt")), "UTF-8 rename removes old path");
+      Assert (Files.Model.Selected_Name (Model) = Utf8_Target, "UTF-8 renamed item is selected after reload");
+   end Test_Commit_Rename;
+
+   procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Frame    : Files.Rendering.Frame_Commands;
+
+      procedure Assert_Localized_Extra
+        (Name     : String;
+         Filetype : String;
+         Token    : String;
+         Expected : String;
+         Message  : String;
+         Kind     : Files.Types.Item_Kind := Files.Types.Regular_File_Item)
+      is
+         Items : Files.File_System.Item_Vectors.Vector;
+         Item  : Files.File_System.Directory_Item :=
+           Files.File_System.Make_Item
+             (Parent_Path => Root,
+              Name        => Name,
+              Kind        => Kind,
+              Filetype    => Filetype);
+      begin
+         Item.Filetype_Extra := To_Unbounded_String (Token);
+         Items.Append (Item);
+         Files.Model.Initialize (Model, Root, Items, Root);
+         Files.Model.Select_Visible (Model, 1);
+         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Assert
+           (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) = Expected,
+            Message);
+      end Assert_Localized_Extra;
+   begin
+      Reset_Root;
+      Write_File (Join (Root, "meta.txt"), "abcd");
+      Write_File (Join (Root, "zmarkdown.md"), "# Title" & ASCII.LF & "body");
+      Write_Binary_File (Join (Root, "zsheet.xlsx"), "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File (Join (Root, "zutf8.txt"), "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
+      Write_Binary_File (Join (Root, "zbinary.txt"), "bad" & Character'Val (16#C3#));
+      Write_File
+        (Join (Root, "zunit.adb"),
+         "procedure Unit is" & ASCII.LF & "begin" & ASCII.LF & "null;" & ASCII.LF & "end;");
+      Write_File (Join (Root, "zdata.json"), "{""ok"":true}");
+      Write_File (Join (Root, "zdoc.xml"), "<root/>");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "meta.txt");
+      Files.Model.Toggle_Info_Pane (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Natural (Snapshot.Selected_Info.Length) = 1, "snapshot contains selected item info");
+      Assert (Snapshot.Selected_Info.Element (1).Name = To_Unbounded_String ("meta.txt"), "info name is captured");
+      Assert (Snapshot.Items.Element (1).Size_Available, "item snapshot captures size availability");
+      Assert
+        (Snapshot.Items.Element (1).Size = Long_Long_Integer (Ada.Directories.Size (Join (Root, "meta.txt"))),
+         "item snapshot captures size value");
+      Assert (Snapshot.Items.Element (1).Modified_Available, "item snapshot captures modified availability");
+      Assert
+        (Snapshot.Items.Element (1).Modified_Time = Ada.Directories.Modification_Time (Join (Root, "meta.txt")),
+         "item snapshot captures modified time value");
+      Assert
+        (To_String (Snapshot.Items.Element (1).Filetype_Extra) =
+         Files.Localization.Text ("info.extra.text.lines.prefix") &
+         "1" &
+         Files.Localization.Text ("info.extra.text.lines.suffix") &
+         " " &
+         Files.Localization.Text ("info.extra.encoding.prefix") &
+         Files.Localization.Text ("info.extra.encoding.ascii") &
+         Files.Localization.Text ("info.extra.encoding.suffix"),
+         "item snapshot captures filesystem-backed filetype extra metadata");
+      Assert (not Snapshot.Items.Element (1).Metadata_Error, "item snapshot captures metadata error state");
+      Assert (Snapshot.Selected_Info.Element (1).Size_Available, "info size availability is captured");
+      Assert
+        (Snapshot.Selected_Info.Element (1).Size =
+           Long_Long_Integer (Ada.Directories.Size (Join (Root, "meta.txt"))),
+         "info size value is captured");
+      Assert (Snapshot.Selected_Info.Element (1).Modified_Available, "info modified availability is captured");
+      Assert
+        (Snapshot.Selected_Info.Element (1).Modified_Time =
+           Ada.Directories.Modification_Time (Join (Root, "meta.txt")),
+         "info modified time value is captured");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Permissions)'Length = 3,
+         "info permissions are captured");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Detail) =
+         Files.Localization.Text ("info.kind.text"),
+         "info pane captures filetype-specific detail");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
+         Files.Localization.Text ("info.extra.text.lines.prefix") &
+         "1" &
+         Files.Localization.Text ("info.extra.text.lines.suffix") &
+         " " &
+         Files.Localization.Text ("info.extra.encoding.prefix") &
+         Files.Localization.Text ("info.extra.encoding.ascii") &
+         Files.Localization.Text ("info.extra.encoding.suffix"),
+         "info pane captures loaded text line metadata");
+      declare
+         Found_Utf8_Metadata   : Boolean := False;
+         Found_Binary_Metadata : Boolean := False;
+         Found_Markdown_Metadata : Boolean := False;
+         Found_Xlsx_Metadata   : Boolean := False;
+         Found_Ada_Metadata    : Boolean := False;
+         Found_Json_Metadata   : Boolean := False;
+         Found_Xml_Metadata    : Boolean := False;
+      begin
+         for Item of Snapshot.Items loop
+            if To_String (Item.Name) = "zutf8.txt" then
+               Found_Utf8_Metadata :=
+                 To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.text.lines.prefix") &
+                   "1" &
+                   Files.Localization.Text ("info.extra.text.lines.suffix") &
+                   " " &
+                   Files.Localization.Text ("info.extra.encoding.prefix") &
+                   Files.Localization.Text ("info.extra.encoding.utf8") &
+                   Files.Localization.Text ("info.extra.encoding.suffix");
+            elsif To_String (Item.Name) = "zbinary.txt" then
+               Found_Binary_Metadata :=
+                 To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.text.lines.prefix") &
+                   "1" &
+                   Files.Localization.Text ("info.extra.text.lines.suffix") &
+                   " " &
+                   Files.Localization.Text ("info.extra.encoding.prefix") &
+                   Files.Localization.Text ("info.extra.encoding.binary") &
+                   Files.Localization.Text ("info.extra.encoding.suffix");
+            elsif To_String (Item.Name) = "zmarkdown.md" then
+               Found_Markdown_Metadata :=
+                 To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.markdown.lines.prefix") &
+                   "2" &
+                   Files.Localization.Text ("info.extra.markdown.lines.suffix") &
+                   " " &
+                   Files.Localization.Text ("info.extra.encoding.prefix") &
+                   Files.Localization.Text ("info.extra.encoding.ascii") &
+                   Files.Localization.Text ("info.extra.encoding.suffix");
+            elsif To_String (Item.Name) = "zsheet.xlsx" then
+               Found_Xlsx_Metadata :=
+                 To_String (Item.Filetype_Detail) =
+                   Files.Localization.Text ("info.kind.document.spreadsheet")
+                 and then To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.office.xlsx.prefix") &
+                   "1" &
+                   Files.Localization.Text ("info.extra.office.entries.suffix");
+            elsif To_String (Item.Name) = "zunit.adb" then
+               Found_Ada_Metadata :=
+                 To_String (Item.Filetype_Detail) =
+                   Files.Localization.Text ("info.kind.source.ada")
+                 and then To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.source.ada.prefix") &
+                   "4" &
+                   Files.Localization.Text ("info.extra.source.lines.suffix") &
+                   " " &
+                   Files.Localization.Text ("info.extra.encoding.prefix") &
+                   Files.Localization.Text ("info.extra.encoding.ascii") &
+                   Files.Localization.Text ("info.extra.encoding.suffix");
+            elsif To_String (Item.Name) = "zdata.json" then
+               Found_Json_Metadata :=
+                 To_String (Item.Filetype_Detail) =
+                   Files.Localization.Text ("info.kind.source.json")
+                 and then To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.source.json.prefix") &
+                   "1" &
+                   Files.Localization.Text ("info.extra.source.lines.suffix") &
+                   " " &
+                   Files.Localization.Text ("info.extra.encoding.prefix") &
+                   Files.Localization.Text ("info.extra.encoding.ascii") &
+                   Files.Localization.Text ("info.extra.encoding.suffix");
+            elsif To_String (Item.Name) = "zdoc.xml" then
+               Found_Xml_Metadata :=
+                 To_String (Item.Filetype_Detail) =
+                   Files.Localization.Text ("info.kind.source.xml")
+                 and then To_String (Item.Filetype_Extra) =
+                   Files.Localization.Text ("info.extra.source.xml.prefix") &
+                   "1" &
+                   Files.Localization.Text ("info.extra.source.lines.suffix") &
+                   " " &
+                   Files.Localization.Text ("info.extra.encoding.prefix") &
+                   Files.Localization.Text ("info.extra.encoding.ascii") &
+                   Files.Localization.Text ("info.extra.encoding.suffix");
+            end if;
+         end loop;
+
+         Assert (Found_Utf8_Metadata, "item snapshot localizes UTF-8 text metadata");
+         Assert (Found_Binary_Metadata, "item snapshot localizes binary text metadata");
+         Assert (Found_Markdown_Metadata, "item snapshot localizes Markdown metadata");
+         Assert (Found_Xlsx_Metadata, "item snapshot localizes XLSX metadata");
+         Assert (Found_Ada_Metadata, "item snapshot localizes Ada source metadata");
+         Assert (Found_Json_Metadata, "item snapshot localizes JSON source metadata");
+         Assert (Found_Xml_Metadata, "item snapshot localizes XML source metadata");
+      end;
+
+      Assert_Localized_Extra
+        (Name     => "folder",
+         Filetype => "inode/directory",
+         Token    => "directory.count|7",
+         Expected =>
+           Files.Localization.Text ("info.extra.directory.count.prefix") &
+           "7" &
+           Files.Localization.Text ("info.extra.directory.count.suffix"),
+         Message  => "item snapshot localizes directory count metadata",
+         Kind     => Files.Types.Directory_Item);
+      Assert_Localized_Extra
+        (Name     => "program",
+         Filetype => "application/x-executable",
+         Token    => "executable.format|elf",
+         Expected =>
+           Files.Localization.Text ("info.extra.executable.format.prefix") &
+           Files.Localization.Text ("info.extra.executable.format.elf") &
+           Files.Localization.Text ("info.extra.executable.format.suffix"),
+         Message  => "item snapshot localizes executable format metadata",
+         Kind     => Files.Types.Executable_Item);
+      Assert_Localized_Extra
+        (Name     => "picture.png",
+         Filetype => "image/png",
+         Token    => "image.dimensions|32x16",
+         Expected =>
+           Files.Localization.Text ("info.extra.image.dimensions.prefix") &
+           "32x16" &
+           Files.Localization.Text ("info.extra.image.dimensions.suffix"),
+         Message  => "item snapshot localizes image dimension metadata");
+      Assert_Localized_Extra
+        (Name     => "link",
+         Filetype => "inode/symlink",
+         Token    => "symlink.target|target.txt",
+         Expected =>
+           Files.Localization.Text ("info.extra.symlink.target.prefix") &
+           "target.txt" &
+           Files.Localization.Text ("info.extra.symlink.target.suffix"),
+         Message  => "item snapshot localizes symlink target metadata",
+         Kind     => Files.Types.Symlink_Item);
+      Assert_Localized_Extra
+        (Name     => "paper.pdf",
+         Filetype => "application/pdf",
+         Token    => "document.pdf.pages|3",
+         Expected =>
+           Files.Localization.Text ("info.extra.document.pdf.pages.prefix") &
+           "3" &
+           Files.Localization.Text ("info.extra.document.pdf.pages.suffix"),
+         Message  => "item snapshot localizes PDF page metadata");
+      Assert_Localized_Extra
+        (Name     => "archive.tar",
+         Filetype => "application/x-tar",
+         Token    => "archive.format|tar",
+         Expected =>
+           Files.Localization.Text ("info.extra.archive.format.prefix") &
+           Files.Localization.Text ("info.extra.archive.format.tar") &
+           Files.Localization.Text ("info.extra.archive.format.suffix"),
+         Message  => "item snapshot localizes archive format metadata");
+      Assert_Localized_Extra
+        (Name     => "bundle.zip",
+         Filetype => "application/zip",
+         Token    => "archive.zip.entries|5",
+         Expected =>
+           Files.Localization.Text ("info.extra.archive.entries.prefix") &
+           "5" &
+           Files.Localization.Text ("info.extra.archive.entries.suffix"),
+         Message  => "item snapshot localizes archive entry metadata");
+      Assert_Localized_Extra
+        (Name     => "report.docx",
+         Filetype => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+         Token    => "office.docx.entries|9",
+         Expected =>
+           Files.Localization.Text ("info.extra.office.docx.prefix") &
+           "9" &
+           Files.Localization.Text ("info.extra.office.entries.suffix"),
+         Message  => "item snapshot localizes document package metadata");
+      Assert_Localized_Extra
+        (Name     => "track.mp3",
+         Filetype => "audio/mpeg",
+         Token    => "media.kind|audio",
+         Expected => Files.Localization.Text ("info.extra.media.audio"),
+         Message  => "item snapshot localizes audio media metadata");
+      Assert_Localized_Extra
+        (Name     => "clip.mp4",
+         Filetype => "video/mp4",
+         Token    => "media.kind|video",
+         Expected => Files.Localization.Text ("info.extra.media.video"),
+         Message  => "item snapshot localizes video media metadata");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "meta.txt");
+      Files.Model.Toggle_Info_Pane (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 400, Line_Height => 20);
+      declare
+         Found_Name         : Boolean := False;
+         Found_Filetype     : Boolean := False;
+         Found_Size         : Boolean := False;
+         Found_Created      : Boolean := False;
+         Found_Modified     : Boolean := False;
+         Found_Permissions  : Boolean := False;
+         Found_Metadata_Key : Boolean := False;
+         Found_Kind         : Boolean := False;
+         Found_Extra        : Boolean := False;
+         Found_A11y_Section : Boolean := False;
+         Name_Label         : constant String := Files.Localization.Text ("info.name") & ": ";
+         Filetype_Label     : constant String := Files.Localization.Text ("info.filetype") & ": ";
+         Size_Label         : constant String := Files.Localization.Text ("info.size") & ":";
+         Created_Label      : constant String := Files.Localization.Text ("info.created") & ":";
+         Modified_Label     : constant String := Files.Localization.Text ("info.modified") & ":";
+         Permissions_Label  : constant String := Files.Localization.Text ("info.permissions") & ":";
+         Metadata_Label     : constant String := Files.Localization.Text ("info.metadata_error") & ":";
+         Kind_Label         : constant String := Files.Localization.Text ("info.kind") & ":";
+         Extra_Label        : constant String := Files.Localization.Text ("info.extra") & ":";
+      begin
+         for Text of Frame.Text loop
+            declare
+               Value : constant String := To_String (Text.Text);
+            begin
+               if Value = Name_Label & "meta.txt" then
+                  Found_Name := True;
+               elsif Value = Filetype_Label & "text/p..." then
+                  Found_Filetype := True;
+               elsif Ada.Strings.Fixed.Index (Value, Size_Label) = 1 then
+                  Found_Size := True;
+               elsif Ada.Strings.Fixed.Index (Value, Created_Label) = 1 then
+                  Found_Created := True;
+               elsif Ada.Strings.Fixed.Index (Value, Modified_Label) = 1 then
+                  Found_Modified := True;
+               elsif Ada.Strings.Fixed.Index (Value, Permissions_Label) = 1 then
+                  Found_Permissions := True;
+               elsif Ada.Strings.Fixed.Index (Value, Metadata_Label) = 1 then
+                  Found_Metadata_Key := True;
+               elsif Ada.Strings.Fixed.Index (Value, Kind_Label) = 1 then
+                  Found_Kind := True;
+               elsif Ada.Strings.Fixed.Index (Value, Extra_Label) = 1 then
+                  Found_Extra := True;
+               end if;
+            end;
+         end loop;
+
+         for Node of Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_List_Item
+              and then To_String (Node.Name) = "meta.txt"
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("info.filetype") & ": text/plain") > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("info.size") & ":") > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("info.modified") & ":") > 0
+            then
+               Found_A11y_Section := True;
+            end if;
+         end loop;
+
+         Assert (Found_Name, "info pane frame includes localized name row");
+         Assert (Found_Filetype, "info pane frame includes localized filetype row");
+         Assert (Found_Size, "info pane frame includes localized size row");
+         Assert (Found_Created, "info pane frame includes localized missing creation row");
+         Assert (Found_Modified, "info pane frame includes localized modified row");
+         Assert (Found_Permissions, "info pane frame includes localized permissions row");
+         Assert (Found_Metadata_Key, "info pane frame includes localized metadata fallback row");
+         Assert (Found_Kind, "info pane frame includes filetype-specific detail row");
+         Assert (Found_Extra, "info pane frame includes filetype-specific extra metadata row");
+         Assert (Found_A11y_Section, "info pane frame exposes accessible selected-file section");
+      end;
+
+      declare
+         Items          : Files.File_System.Item_Vectors.Vector;
+         Broken_Item    : Files.File_System.Directory_Item :=
+           Files.File_System.Make_Item
+             (Parent_Path => Root,
+              Name        => "broken.txt",
+              Kind        => Files.Types.Regular_File_Item,
+              Filetype    => "text/plain");
+         Found_Localized : Boolean := False;
+         Found_A11y_Metadata : Boolean := False;
+      begin
+         Broken_Item.Metadata_Error := True;
+         Broken_Item.Error_Key := To_Unbounded_String ("error.metadata.read");
+         Items.Append (Broken_Item);
+         Files.Model.Initialize (Model, Root, Items, Root);
+         Files.Model.Select_Visible (Model, 1);
+         Files.Model.Toggle_Info_Pane (Model);
+         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 400, Line_Height => 20);
+
+         for Text of Frame.Text loop
+            if To_String (Text.Text) =
+              Files.Localization.Text ("info.metadata_error") & ": "
+              & Files.Localization.Text ("error.metadata.read")
+            then
+               Found_Localized := True;
+            end if;
+         end loop;
+         for Node of Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_List_Item
+              and then To_String (Node.Name) = "broken.txt"
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description),
+                 Files.Localization.Text ("info.metadata_error") & ": "
+                 & Files.Localization.Text ("error.metadata.read")) > 0
+            then
+               Found_A11y_Metadata := True;
+            end if;
+         end loop;
+
+         Assert (Found_Localized, "info pane localizes metadata error keys");
+         Assert (Found_A11y_Metadata, "info pane accessibility describes metadata error keys");
+      end;
+
+      Write_File (Join (Root, "blob.bin"), "binary");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "blob.bin");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
+         Files.Localization.Text ("info.extra.extension.prefix") &
+         "bin" &
+         Files.Localization.Text ("info.extra.extension.suffix"),
+         "info pane captures extension metadata fallback");
+
+      Write_File (Join (Root, "run.sh"), "#!/bin/sh" & ASCII.LF);
+      declare
+         Items : Files.File_System.Item_Vectors.Vector;
+         Exec_Item : Files.File_System.Directory_Item :=
+           Files.File_System.Make_Item
+             (Parent_Path => Root,
+              Name        => "run.sh",
+              Kind        => Files.Types.Executable_Item,
+              Filetype    => "application/x-executable");
+      begin
+         Exec_Item.Size_Available := True;
+         Exec_Item.Size := Long_Long_Integer (Ada.Directories.Size (Join (Root, "run.sh")));
+         Items.Append (Exec_Item);
+         Files.Model.Initialize (Model, Root, Items, Root);
+         Files.Model.Select_Visible (Model, 1);
+         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Assert
+           (Ada.Strings.Fixed.Index
+              (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
+               Files.Localization.Text ("info.extra.executable.size.prefix")) = 1,
+            "info pane captures executable snapshot metadata without reading file contents");
+      end;
+
+      declare
+         Items : Files.File_System.Item_Vectors.Vector;
+      begin
+         Items.Append
+           (Files.File_System.Make_Item
+              (Parent_Path => Join (Root, "missing-parent"),
+               Name        => "ghost.bin",
+               Kind        => Files.Types.Regular_File_Item,
+               Filetype    => "application/octet-stream"));
+         Files.Model.Initialize (Model, Root, Items, Root);
+         Files.Model.Select_Visible (Model, 1);
+         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Assert
+           (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
+            Files.Localization.Text ("info.extra.extension.prefix") &
+            "bin" &
+            Files.Localization.Text ("info.extra.extension.suffix"),
+            "info pane snapshot uses item fields without reading a backing file");
+      end;
+
+      Write_File (Join (Root, "more.txt"), "efgh");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Files.Model.Set_Filter (Model, ".txt");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
+      Files.Model.Toggle_Info_Pane (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Natural (Snapshot.Selected_Info.Length) = 2, "info snapshot includes all selected items");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Name) = "meta.txt",
+         "multi-selection info preserves first selected item order");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (2).Name) = "more.txt",
+         "multi-selection info preserves second selected item order");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Detail) =
+         Files.Localization.Text ("info.kind.text"),
+         "multi-selection info localizes first filetype detail");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (2).Filetype_Detail) =
+         Files.Localization.Text ("info.kind.text"),
+         "multi-selection info localizes second filetype detail");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 400, Line_Height => 20);
+      declare
+         Layout       : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 400, Line_Height => 20);
+         Info_Layout  : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
+         Row_Stride   : constant Natural := Info_Layout.Content_Height / Natural (Snapshot.Selected_Info.Length);
+         First_Name_Y  : Natural := 0;
+         Second_Name_Y : Natural := 0;
+         Name_Label    : constant String := Files.Localization.Text ("info.name") & ": ";
+      begin
+         for Text of Frame.Text loop
+            if To_String (Text.Text) = Name_Label & "meta.txt" then
+               First_Name_Y := Text.Y;
+            elsif To_String (Text.Text) = Name_Label & "more.txt" then
+               Second_Name_Y := Text.Y;
+            end if;
+         end loop;
+
+         Assert
+           (First_Name_Y > 0 and then Second_Name_Y = First_Name_Y + Row_Stride,
+            "info pane spaces selected sections by every rendered row");
+      end;
+   end Test_Info_Pane_Metadata_Snapshot;
+
+   procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "path-target");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "loaded.txt"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Ctrl (Files.Types.Control_Key) := True;
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_L, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "Control+L executes focus command");
+      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "Control+L focuses path input");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "path focus clears stale error state");
+      Files.Model.Begin_Create_File (Model, "path-pending.txt");
+      Files.Model.Focus_Path_Input (Model);
+      Files.Controller.Replace_Focused_Text (Model, "");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 0, "path replacement places cursor at text end");
+      Result := Files.Controller.Append_Focused_Text (Model, Root);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "path input append updates text");
+      Assert (Files.Model.Path_Input_Text (Model) = Root, "path input append uses focused path field");
+      Assert (Files.Model.Text_Cursor_Position (Model) = Root'Length, "path append advances cursor");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert
+        (Result.Command = Files.Commands.Open_Command_Palette_Command,
+         "Control+P routes through command registry from path input");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette from path input");
+      Assert (Files.Model.Path_Input_Text (Model) = Root, "palette shortcut preserves edited path input text");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert
+        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+         "Escape closes palette after path shortcut");
+      Files.Model.Focus_Path_Input (Model);
+      Files.Controller.Replace_Focused_Text (Model, Join (Root, "missing-path-target"));
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "invalid path input Return executes path command");
+      Assert
+        (Result.Command = Files.Commands.Focus_Path_Input_Command,
+         "invalid path input Return reports path command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "invalid path input returns failure");
+      Assert (To_String (Result.Operation.Path) = "", "missing path input has no operation path");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.path.missing",
+         "invalid path input reports path diagnostic");
+      Assert (Files.Model.Current_Path (Model) = Root, "invalid controller path input does not navigate");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "invalid path input keeps focus");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.path.missing", "invalid path input records error");
+      Assert (not Files.Model.Path_Input_Is_Valid (Model), "invalid path input marks validation state");
+      Assert
+        (Files.Model.Path_Input_Error_Key (Model) = "error.path.missing",
+         "invalid path input stores validation diagnostic");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid path input preserves temporary create state");
+      Assert (Files.Model.Rename_Is_Active (Model), "invalid path input preserves rename state");
+
+      Files.Controller.Replace_Focused_Text (Model, Target);
+      Assert (Files.Model.Path_Input_Is_Valid (Model), "path input edit clears stale validation state");
+      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "path input edit clears stale validation diagnostic");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "modified Return does not commit path input");
+      Assert (Files.Model.Current_Path (Model) = Root, "modified Return in path input does not navigate");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "modified Return keeps path input focus");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "path input Return executes path command");
+      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "path input Return reports path command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "Return commits path input");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Target),
+         "path input operation reports normalized target path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "path input navigates");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "path input success clears stale error state");
+      Assert (Files.Model.Item_Count (Model) = 1, "path input loads destination items");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "path input commit clears focus");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "path input success clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "path input success clears rename state");
+
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Focus_Path_Input (Model);
+      Files.Controller.Replace_Focused_Text (Model, Join (Target, "loaded.txt"));
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "file path input Return executes path command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Navigated,
+         "file path input navigates to parent directory");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Target),
+         "file path input operation reports normalized parent directory");
+      Assert
+        (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target),
+         "file path input changes model to parent directory");
+      Assert (Files.Model.Item_Count (Model) = 1, "file path input loads parent directory items");
+   end Test_Controller_Path_Input_Return;
+
+   procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Ctrl_Shift : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Ctrl_Shift (Files.Types.Control_Key) := True;
+      Ctrl_Shift (Files.Types.Shift_Key) := True;
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "filter.focus");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "filter focus executes command");
+      Assert (Result.Command = Files.Commands.Focus_Filter_Input_Command, "filter command is routed");
+      Assert (Files.Model.Last_Error_Key (Model) = "", "filter focus clears stale error state");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "filter focus closes command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "filter focus clears palette query");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "filter input receives focus");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "Control+P executes while filter input has focus");
+      Assert
+        (Result.Command = Files.Commands.Open_Command_Palette_Command,
+         "Control+P routes through command registry from filter input");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette from filter input");
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette,
+         "Control+P transfers focus from filter input to palette");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert
+        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+         "Escape closes palette after filter shortcut");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "palette closes before filter editing resumes");
+      Files.Model.Focus_Filter_Input (Model);
+
+      Files.Model.Select_Visible (Model, 2);
+      Result := Files.Controller.Append_Focused_Text (Model, "be");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter append updates text");
+      Result := Files.Controller.Append_Focused_Text (Model, "ta");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "second filter append updates text");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter text is updated through controller");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 4, "filter append leaves cursor at text end");
+      Assert (Files.Model.Visible_Count (Model) = 1, "filter input updates visible projection");
+      Assert (Files.Model.Selected_Name (Model) = "Beta.txt", "filter reconciles selection");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter click updates text cursor");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 2, "filter click positions cursor");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "filter Escape clears focus before refocus");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F, Ctrl);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "filter shortcut refocuses filter input");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 4, "filter shortcut refocus places cursor at text end");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter click can reposition after refocus");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "same filter cursor click is ignored");
+      Result := Files.Controller.Append_Focused_Text (Model, "X");
+      Assert (Files.Model.Filter_Text (Model) = "beXta", "filter insert uses cursor position");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 3, "filter insert advances cursor from insertion point");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter Backspace edits text");
+      Assert (Result.Command = Files.Commands.No_Command, "filter Backspace does not route delete command");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Backspace removes character before cursor");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 2, "filter Backspace moves cursor backward");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter Delete edits text");
+      Assert (Result.Command = Files.Commands.No_Command, "filter Delete does not route delete command");
+      Assert (Files.Model.Filter_Text (Model) = "bea", "filter Delete removes character at cursor");
+      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter insert restores text at cursor");
+      Assert (Files.Model.Selected_Name (Model) = "Beta.txt", "text delete preserves selected visible item");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter Home moves text cursor");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 0, "filter Home moves cursor to start");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Home at start is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Left at start is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Backspace at start is ignored");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Backspace at start leaves text unchanged");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Files.Model.Text_Cursor_Position (Model) = 4, "filter End moves cursor to end");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter End at end is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Right at end is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Delete at end is ignored");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Delete at end leaves text unchanged");
+      Files.Controller.Replace_Focused_Text (Model, "b");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 1, "short filter replacement clamps cursor to end");
+      Result := Files.Controller.Append_Focused_Text (Model, "eta");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter append after clamp updates text");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter append after short replacement uses clamped cursor");
+      declare
+         Utf8_Text : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
+      begin
+         Files.Controller.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
+         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
+         Assert
+           (Files.Model.Text_Cursor_Position (Model) = 1,
+            "filter click snaps UTF-8 cursor to character boundary");
+         Files.Model.Set_Text_Cursor_Position (Model, 2);
+         Assert
+           (Files.Model.Text_Cursor_Position (Model) = 1,
+            "model cursor setter snaps UTF-8 cursor to character boundary");
+         Files.Model.Set_Text_Cursor_Position (Model, 4);
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 3, "filter Left moves before ASCII after UTF-8");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Left moves over whole UTF-8 input");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 0, "filter Left reaches start before UTF-8 input");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Right moves over ASCII before UTF-8");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 3, "filter Right moves over whole UTF-8 input");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace);
+         Assert (Files.Model.Filter_Text (Model) = "ab", "filter Backspace removes whole UTF-8 input");
+         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Backspace lands before removed UTF-8 input");
+         Files.Controller.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
+         Files.Model.Set_Text_Cursor_Position (Model, 1);
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+         Assert (Files.Model.Filter_Text (Model) = "ab", "filter Delete removes whole UTF-8 input");
+         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Delete keeps cursor before UTF-8 input");
+      end;
+      Files.Controller.Replace_Focused_Text (Model, "alpha beta-gamma");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 16, "long filter replacement places cursor at end");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "Control+Left moves by word");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 11, "Control+Left stops before previous word");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "Control+Backspace deletes previous word");
+      Assert (Files.Model.Filter_Text (Model) = "alpha gamma", "Control+Backspace removes previous word and separator");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Backspace leaves cursor at word boundary");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "Control+Delete deletes next word");
+      Assert (Files.Model.Filter_Text (Model) = "alpha ", "Control+Delete removes next word");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Delete at end is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Left at start is ignored");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Backspace at start is ignored");
+      Files.Controller.Replace_Focused_Text (Model, "beta");
+
+      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats line feed as word separator");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace, Ctrl);
+      Assert
+        (Files.Model.Filter_Text (Model) = "beta",
+         "Control+Backspace removes previous word across line feed");
+
+      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.CR & "beta");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats carriage return as word separator");
+
+      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.VT & "beta");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats vertical tab as word separator");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace, Ctrl);
+      Assert
+        (Files.Model.Filter_Text (Model) = "beta",
+         "Control+Backspace removes previous word across vertical tab");
+
+      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.FF & "beta");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+      Assert (Files.Model.Text_Cursor_Position (Model) = 5, "filter click positions cursor before form feed");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+      Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across form feed");
+
+      declare
+         C1_Break : constant Character := Character'Val (133);
+      begin
+         Files.Controller.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats C1 NEL as word separator");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace, Ctrl);
+         Assert
+           (Files.Model.Filter_Text (Model) = "beta",
+            "Control+Backspace removes previous word across C1 NEL");
+
+         Files.Controller.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
+         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 5, "filter click positions cursor before C1 NEL");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+         Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across C1 NEL");
+      end;
+      declare
+         NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
+      begin
+         Files.Controller.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 7, "Control+Left treats UTF-8 NBSP as word separator");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace, Ctrl);
+         Assert
+           (Files.Model.Filter_Text (Model) = "beta",
+            "Control+Backspace removes previous word across UTF-8 NBSP");
+
+         Files.Controller.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
+         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 5, "filter click positions cursor before UTF-8 NBSP");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+         Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across UTF-8 NBSP");
+      end;
+      declare
+         Line_Separator : constant String :=
+           Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
+      begin
+         Files.Controller.Replace_Focused_Text (Model, "alpha" & Line_Separator & "beta");
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+         Assert
+           (Files.Model.Text_Cursor_Position (Model) = 8,
+            "Control+Left treats UTF-8 line separator as word separator");
+      end;
+      Files.Controller.Replace_Focused_Text (Model, "beta");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "filter Return executes focus command");
+      Assert (Result.Command = Files.Commands.Focus_Filter_Input_Command, "Return commits filter input");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "filter Return reports successful state-only commit");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "filter Return clears focus");
+      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Return preserves text");
+      Assert (Files.Model.Current_Path (Model) = Root, "filter Return does not navigate");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F, Ctrl_Shift);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "clear-filter executes command");
+      Assert (Result.Command = Files.Commands.Clear_Filter_Command, "clear-filter command is routed");
+      Assert (Files.Model.Filter_Text (Model) = "", "clear-filter command clears text");
+      Assert (Files.Model.Visible_Count (Model) = 3, "clear-filter restores visible projection");
+      Assert (Files.Model.Selected_Name (Model) = "Beta.txt", "clear-filter preserves selected visible item");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
+         "clear-filter disables after clearing");
+   end Test_Controller_Filter_Input_Return;
+
+   procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Write_File (Join (Root, "old.txt"));
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "old.txt");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F2);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "F2 executes rename command");
+      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 reports rename command");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "F2 focuses rename input");
+      Assert
+        (Files.Model.Text_Cursor_Position (Model) = Files.Model.Rename_Text (Model)'Length,
+         "F2 places rename cursor at the end of the selected name");
+      Result := Files.Controller.Append_Focused_Text (Model, ".bak");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename append works immediately after F2");
+      Assert
+        (Files.Model.Rename_Text (Model) = "old.txt.bak",
+         "initial rename cursor appends text at the end");
+      Files.Controller.Replace_Focused_Text (Model, "new.tx");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename Left moves cursor");
+      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Assert (Files.Model.Rename_Text (Model) = "new.ttx", "rename insert uses cursor position");
+      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename append updates text");
+      Assert (Files.Model.Rename_Text (Model) = "new.tttx", "rename second insert advances cursor");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename Backspace edits text");
+      Assert (Files.Model.Rename_Text (Model) = "new.ttx", "rename Backspace removes character before cursor");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Files.Model.Rename_Text (Model) = "new.tt", "rename Delete removes character at cursor");
+      Files.Controller.Replace_Focused_Text (Model, "new.tx");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "rename replacement clamps cursor to text end");
+      Result := Files.Controller.Append_Focused_Text (Model, "t");
+      Assert (Files.Model.Rename_Text (Model) = "new.txt", "rename append restores commit text");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "rename Return executes rename command");
+      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "rename Return reports rename command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "Return commits rename");
+      Assert (Ada.Directories.Exists (Join (Root, "new.txt")), "rename file exists after Return");
+      Assert (not Files.Model.Rename_Is_Active (Model), "rename Return clears rename mode");
+   end Test_Controller_Rename_Return;
+
+   procedure Test_Controller_Command_Palette_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      Roots    : Files.Types.String_Vectors.Vector;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette");
+      Result := Files.Controller.Append_Focused_Text (Model, "view.");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "palette append updates query");
+      Result := Files.Controller.Append_Focused_Text (Model, "details");
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "palette second append updates query");
+      Assert (Files.Model.Command_Palette_Query (Model) = "view.details", "palette append builds query");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 12, "palette append advances query cursor");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette query selects first result");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 99);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "palette Return executes selected command");
+      Assert (Result.Command = Files.Commands.Select_Details_Command, "Return executes selected palette command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "stale palette index clamps before execute");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "executed stale-index palette closes");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "executed stale-index palette clears query");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "executed stale-index palette clears focus");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Files.Controller.Replace_Focused_Text (Model, "view.small");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 10, "palette replacement clamps cursor to query end");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "reopened palette query selects first result");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Backspace);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "palette Backspace edits query text");
+      Assert (Result.Command = Files.Commands.No_Command, "palette Backspace does not route delete command");
+      Assert (Files.Model.Command_Palette_Query (Model) = "view.smal", "palette Backspace removes previous character");
+      Result := Files.Controller.Handle_Text_Click
+        (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 5);
+      Assert (Files.Model.Text_Cursor_Position (Model) = 5, "palette text click positions cursor");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "palette Delete edits query text");
+      Assert (Result.Command = Files.Commands.No_Command, "palette Delete does not route delete command");
+      Assert (Files.Model.Command_Palette_Query (Model) = "view.mal", "palette Delete removes character at cursor");
+      Files.Controller.Replace_Focused_Text (Model, "view.small");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left, Ctrl);
+      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "palette Control+Left edits query cursor");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 5, "palette Control+Left moves to query word boundary");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Delete, Ctrl);
+      Assert (Files.Model.Command_Palette_Query (Model) = "view.", "palette Control+Delete removes next query word");
+      Files.Controller.Replace_Focused_Text (Model, "view.small");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "reopened palette Return executes command");
+      Assert (Result.Command = Files.Commands.Select_Small_Icons_Command, "Return executes selected palette command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "palette command mutates model");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "executed palette closes");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "executed palette clears query");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Files.Controller.Replace_Focused_Text (Model, "view.details");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Command = Files.Commands.Select_Details_Command, "palette click executes result command");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "palette click mutates model");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "executed palette click closes palette");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "closed palette result click is ignored");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "closed palette result click does not execute");
+
+      Roots.Append (To_Unbounded_String (Root));
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over selected root");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "palette keeps selected root available");
+      Files.Controller.Replace_Focused_Text (Model, "path.focus");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "blocked root palette Return is ignored");
+      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "blocked root palette Return reports command");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "blocked root palette Return leaves palette open");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked root palette Return keeps root selector open");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "blocked root palette keeps focus");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "blocked root palette click is ignored");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "blocked root palette click leaves palette open");
+      Files.Controller.Replace_Focused_Text (Model, "drive.open_selected");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert
+        (Result.Command = Files.Commands.Open_Selected_Root_Command,
+         "palette Return executes selected-root command");
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "palette root activation navigates");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "palette root activation closes palette");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "palette root activation closes root selector");
+   end Test_Controller_Command_Palette_Return;
+
+   procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Files.Model.Select_Visible (Model, 2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_F2);
+      Assert (Files.Model.Rename_Is_Active (Model), "F2 enters rename before palette opens");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "Control+P routes from rename input");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette over rename state");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "palette takes focus");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "Escape first updates palette state");
+      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape first closes palette");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "Escape closes the open palette");
+      Assert (Files.Model.Rename_Is_Active (Model), "Escape does not cancel rename while palette is open");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed palette clears palette focus");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "second Escape routes context cancel");
+      Assert (not Files.Model.Rename_Is_Active (Model), "second Escape cancels pending rename");
+      Assert (Files.Model.Text_Cursor_Position (Model) = 0, "second Escape clears stale rename cursor");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "second Escape leaves focus clear");
+      Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Rename_Input, Cursor_Position => 2);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "inactive rename text click is ignored");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "inactive rename text click does not focus input");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "idle Escape is ignored");
+      Assert
+        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+         "idle Escape still reports context command");
+   end Test_Controller_Command_Palette_Escape_Priority;
+
+   procedure Test_Controller_Palette_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Layout   : Files.Rendering.Layout_Metrics;
+      Palette_Layout : Files.Rendering.Command_Palette_Layout;
+      Palette_Rows   : Files.Rendering.Command_Result_Layout_Vectors.Vector;
+      Found_Selected_Page_Row : Boolean;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette for movement");
+      Files.Controller.Replace_Focused_Text (Model, "view.");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette movement starts at first result");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "palette movement starts unscrolled");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "Down updates palette selection");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 2, "Down moves to next palette result");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "Down keeps visible result list unscrolled");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Up);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "Up moves to previous palette result");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "Up restores first result offset");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Left);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 3, "Left wraps palette selection");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "small wrapped palette stays unscrolled");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "Right wraps palette selection");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "wrapped first palette result resets offset");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 2, "Right moves to next palette result");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 3, "Right moves to third palette result");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "scroll up updates palette selection");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 2, "scroll up moves palette selection up");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "scroll up keeps visible result list unscrolled");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 1);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 3, "scroll down moves palette selection down");
+      Assert
+        (Files.Model.Command_Palette_Result_Offset (Model) = 0,
+         "scroll down keeps visible result list unscrolled");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "normal wheel delta updates palette");
+      Assert
+        (Files.Model.Command_Palette_Selected_Index (Model) = 1,
+         "normal wheel delta advances even when it matches result count");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => -3);
+      Assert
+        (Result.Status = Files.Controller.Controller_Palette_Updated,
+         "negative exact-count palette scroll updates selection");
+      Assert
+        (Files.Model.Command_Palette_Selected_Index (Model) = 3,
+         "negative exact-count palette scroll advances instead of no-op");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 1);
+      Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+      Result := Files.Controller.Handle_Scroll (Model, Lines => Integer'First);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "saturated palette scroll is handled");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 3, "saturated upward scroll stays bounded");
+      Result :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model,
+           Files.Events.Scroll_Command_Palette,
+           Lines => Integer'Last);
+      Assert
+        (Result.Status = Files.Controller.Controller_Palette_Updated,
+         "saturated targeted palette scroll is handled");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "saturated downward scroll stays bounded");
+      Files.Controller.Replace_Focused_Text (Model, "no-such-command");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 0, "empty palette query clears selection");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty palette ignores keyboard movement");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty palette ignores automatic scroll");
+      Result :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model,
+           Files.Events.Scroll_Command_Palette,
+           Lines => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty palette ignores targeted scroll");
+      Files.Controller.Replace_Focused_Text (Model, "settings.import");
+      Assert
+        (Natural (Files.Command_Palette.Search ("settings.import", Model).Length) = 1,
+         "unique palette query has one result");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores Down");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores PageDown");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores Home");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores End");
+      Result := Files.Controller.Handle_Scroll (Model, Lines => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores wheel movement");
+      Files.Controller.Replace_Focused_Text (Model, "view.");
+      Result :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model,
+           Files.Events.Scroll_Main_View,
+           Lines => 5);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "palette blocks targeted main scroll");
+      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked main scroll leaves item view still");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "palette Home at first result is ignored");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette Home selects first result");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "palette Home resets result offset");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "palette End updates selection");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 3, "palette End selects last result");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "palette End keeps short result list unscrolled");
+      Files.Controller.Replace_Focused_Text (Model, "");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "empty query starts at first command");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, Natural'Last);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert
+        (Result.Status = Files.Controller.Controller_Palette_Updated,
+         "Down clamps extreme stale palette selection");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "Down restarts extreme stale palette selection");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, Natural'Last);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert
+        (Result.Status = Files.Controller.Controller_Palette_Updated,
+         "PageDown clamps extreme stale palette selection");
+      Assert
+        (Files.Model.Command_Palette_Selected_Index (Model) = 1,
+         "PageDown restarts extreme stale palette selection");
+      declare
+         Result_Count : constant Natural :=
+           Natural (Files.Command_Palette.Search ("", Model).Length);
+      begin
+         Files.Model.Set_Command_Palette_Selected_Index (Model, Result_Count - 1);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, Result_Count - 1);
+         Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+         Assert (Files.Model.Command_Palette_Selected_Index (Model) = Result_Count, "stale offset move reaches end");
+         Assert
+           (Files.Model.Command_Palette_Result_Offset (Model) = Result_Count - 5,
+            "stale palette offset clamps to last full page");
+      end;
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette Home restores first result");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "palette PageDown updates selection");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 6, "palette PageDown jumps by page");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 1, "palette PageDown scrolls selected row into view");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 300, Line_Height => 20);
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Found_Selected_Page_Row := False;
+      for Row of Palette_Rows loop
+         if Row.Result_Index = 6 and then Row.Selected then
+            Found_Selected_Page_Row := True;
+         end if;
+      end loop;
+      Assert (Found_Selected_Page_Row, "paged palette keeps selected result visible");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
+      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "palette PageUp updates selection");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette PageUp jumps back by page");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "palette PageUp restores top offset");
+      Files.Controller.Replace_Focused_Text (Model, "view.details");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "narrowed query reconciles selection");
+      Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "narrowed query resets result offset");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Command = Files.Commands.Select_Details_Command, "Return executes reconciled palette result");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "wrapped palette command mutates model");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "executed wrapped palette result closes palette");
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "");
+      Files.Model.Set_Command_Palette_Result_Offset (Model, 5);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 300, Line_Height => 20);
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Assert (not Palette_Rows.Is_Empty, "scrolled palette layout exposes visible command rows");
+      declare
+         Search_Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+           Files.Command_Palette.Search ("", Model);
+         Clicked_Index : constant Natural := Palette_Rows.Element (1).Result_Index;
+         Clicked_Command : constant Files.Commands.Command_Id :=
+           Search_Results.Element (Positive (Clicked_Index)).Command;
+      begin
+         Assert (Clicked_Index > 1, "scrolled palette click uses absolute result index");
+         Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Clicked_Index);
+         Assert (Result.Command = Clicked_Command, "scrolled palette click executes visible absolute result");
+         Assert (not Files.Model.Command_Palette_Is_Open (Model), "scrolled palette click closes palette");
+      end;
+   end Test_Controller_Palette_Selection_Movement;
+
+   procedure Test_Controller_Disabled_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Files.Controller.Replace_Focused_Text (Model, "file.rename");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 99);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled palette result is ignored");
+      Assert
+        (Result.Command = Files.Commands.Rename_Selected_Items_Command,
+         "disabled palette Return reports selected command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled palette Return reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.rename.disabled",
+         "disabled palette Return reports localized error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "disabled palette Return records error");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "disabled palette result leaves palette open");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "disabled palette keeps input focus");
+      Assert (Files.Model.Command_Palette_Query (Model) = "file.rename", "disabled palette preserves query text");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "disabled palette clamps stale selection");
+      Assert (not Files.Model.Rename_Is_Active (Model), "disabled palette result does not execute");
+
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 0);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "outside palette result click is ignored");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "outside palette click leaves palette open");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled palette click is ignored");
+      Assert
+        (Result.Command = Files.Commands.Rename_Selected_Items_Command,
+         "disabled palette click reports selected command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled palette click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.rename.disabled",
+         "disabled palette click reports localized error key");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "disabled palette click records error");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "disabled palette click selects row");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "disabled palette click leaves palette open");
+
+      Files.Model.Set_Command_Palette_Query (Model, "filter.clear");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Command = Files.Commands.Clear_Filter_Command, "disabled clear palette click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled clear palette click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.filter.empty",
+         "disabled clear palette click reports empty-filter error");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.filter.empty", "disabled clear palette click records error");
+
+      Files.Model.Set_Command_Palette_Query (Model, "drive.open_selected");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Command = Files.Commands.Open_Selected_Root_Command, "disabled root-open click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled root-open click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.root.selection.empty",
+         "disabled root-open click reports empty-root error");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.root.selection.empty",
+         "disabled root-open click records error");
+
+      Files.Model.Set_Command_Palette_Query (Model, "settings.import");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert
+        (Result.Command = Files.Commands.Import_Settings_Command,
+         "disabled settings import click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled settings import click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.settings.closed",
+         "disabled settings import click reports closed-settings error");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
+         "disabled settings import click records error");
+
+      Files.Model.Set_Command_Palette_Query (Model, "settings.save");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Command = Files.Commands.Save_Settings_Command, "disabled settings save click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled settings save click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.settings.closed",
+         "disabled settings save click reports closed-settings error");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
+         "disabled settings save click records error");
+
+      Files.Model.Set_Command_Palette_Query (Model, "settings.reset");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Command = Files.Commands.Reset_Settings_Command, "disabled settings reset click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled settings reset click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.settings.closed",
+         "disabled settings reset click reports closed-settings error");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
+         "disabled settings reset click records error");
+
+      Files.Model.Set_Command_Palette_Query (Model, "settings.export");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert
+        (Result.Command = Files.Commands.Export_Settings_Command,
+         "disabled settings export click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled settings export click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.settings.closed",
+         "disabled settings export click reports closed-settings error");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
+         "disabled settings export click records error");
+
+      Files.Model.Close_Command_Palette (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens for modal palette checks");
+      Files.Model.Select_Visible (Model, 1);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over settings pane for disabled check");
+      Files.Controller.Replace_Focused_Text (Model, "file.delete_selected");
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings-modal disabled palette Return is ignored");
+      Assert
+        (Result.Command = Files.Commands.Delete_Selected_Items_Command,
+         "settings-modal disabled palette Return reports command");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+         "settings-modal disabled palette Return preserves existing error");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "settings-modal disabled Return leaves palette open");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings-modal disabled palette click is ignored");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+         "settings-modal disabled palette click preserves existing error");
+      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "file.create");
+      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
+      Assert (Result.Command = Files.Commands.Create_File_Command, "disabled create palette click reports command");
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+         "disabled create palette click reports disabled operation");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.create.pending",
+         "disabled create palette click reports pending-create error");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.create.pending",
+         "disabled create palette click records error");
+      Assert (Files.Model.Temporary_Item_Name (Model) = "pending.txt", "disabled create palette keeps pending item");
+   end Test_Controller_Disabled_Palette_Result;
+
+   procedure Test_Controller_Empty_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Frame    : Files.Rendering.Frame_Commands;
+      Found_Empty_Text : Boolean := False;
+      Found_Empty_Status : Boolean := False;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
+      Files.Controller.Replace_Focused_Text (Model, "no-such-command-token");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 0, "empty palette search has no selection");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty palette Down is ignored");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 0, "empty palette movement stays unselected");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "Return ignores an empty palette result");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "empty palette Return leaves palette open");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "empty palette keeps input focus");
+      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "empty palette Return does not mutate view");
+
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      for Command of Frame.Text loop
+         if To_String (Command.Text) = Files.Localization.Text ("command.palette.empty")
+           and then Command.Color = Files.Rendering.Muted_Text_Color
+         then
+            Found_Empty_Text := True;
+         end if;
+      end loop;
+      for Node of Frame.Accessibility loop
+         if Node.Role = Files.Rendering.Role_Status
+           and then To_String (Node.Name) = Files.Localization.Text ("command.palette.empty")
+         then
+            Found_Empty_Status := True;
+         end if;
+      end loop;
+      Assert (Found_Empty_Text, "empty palette renders localized empty state");
+      Assert (Found_Empty_Status, "empty palette exposes accessible status node");
+   end Test_Controller_Empty_Palette_Result;
+
+   procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      First    : constant String := Join (Root, "first");
+      Second   : constant String := Join (Root, "second");
+      Branch   : constant String := Join (Root, "branch");
+      Missing_Home : constant String := Join (Root, "missing-home");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Reset_Root;
+      Ada.Directories.Create_Path (First);
+      Ada.Directories.Create_Path (Second);
+      Ada.Directories.Create_Path (Branch);
+      Write_File (Join (First, "one.txt"));
+      Write_File (Join (Second, "two.txt"));
+      Write_File (Join (Branch, "branch.txt"));
+      Load := Files.File_System.Load_Directory (First, Settings);
+      Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
+      Files.Model.Begin_Create_File (Model, "failed-home-pending.txt");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.home");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed home load is reported");
+      Assert (To_String (Result.Operation.Path) = Missing_Home, "failed home reports attempted home path");
+      Assert
+        (To_String (Result.Operation.Error_Key) = "error.path.missing",
+         "failed home reports path diagnostic");
+      Assert (Files.Model.Current_Path (Model) = First, "failed home preserves current path");
+      Assert (Files.Model.Item_Count (Model) = 1, "failed home preserves loaded items");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.path.missing", "failed home records path error");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
+      Assert (Files.Model.Rename_Is_Active (Model), "failed home preserves rename state");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "failed home preserves command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "navigate.home", "failed home preserves palette query");
+      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Initialize (Model, First, Load.Items, First);
+      Files.Model.Begin_Create_File (Model, "home-pending.txt");
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.home");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "home load succeeds");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (First),
+         "home operation reports normalized home path");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "home clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "home clears rename state");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "home clears rename focus");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "home clears command palette");
+      Assert (Files.Model.Command_Palette_Query (Model) = "", "home clears palette query");
+      Write_File (Join (First, "fresh.txt"));
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Select_Visible (Model, 3);
+      Files.Model.Scroll_Info_Pane (Model, Lines => 4);
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "directory.refresh");
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh operation succeeds");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (First),
+         "refresh operation reports current path");
+      Assert (Files.Model.Item_Count (Model) = 2, "refresh loads newly created item");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "refresh clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "refresh clears rename state");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "refresh clears rename focus");
+      Assert (not Files.Model.Command_Palette_Is_Open (Model), "refresh clears command palette");
+      Assert (not Files.Model.Selected_Item_Is_Temporary (Model), "refresh clears temporary selection");
+      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "refresh resets info pane scroll");
+      Files.Model.Select_Visible (Model, 1);
+      Write_File (Join (First, "later.txt"));
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "directory.refresh");
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second refresh operation succeeds");
+      Assert (Files.Model.Item_Count (Model) = 3, "second refresh loads later item");
+      Assert (Files.Model.Selected_Count (Model) = 0, "refresh clears stale numeric selection");
+
+      Project_Tools.Files.Delete_Tree (First);
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "directory.refresh");
+      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed refresh is reported");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (First),
+         "failed refresh reports current path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (First), "failed refresh preserves path");
+      Assert (Files.Model.Item_Count (Model) = 3, "failed refresh preserves loaded items");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load", "failed refresh records load error");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "failed refresh preserves command palette");
+      Assert
+        (Files.Model.Command_Palette_Query (Model) = "directory.refresh",
+         "failed refresh preserves palette query");
+      Ada.Directories.Create_Path (First);
+      Write_File (Join (First, "one.txt"));
+      Write_File (Join (First, "fresh.txt"));
+      Write_File (Join (First, "later.txt"));
+
+      Load := Files.File_System.Load_Directory (Second, Settings);
+      Files.Model.Navigate_To (Model, Second, Load.Items);
+      Files.Model.Begin_Create_File (Model, "history-pending.txt");
+      Files.Model.Select_Visible (Model, 2);
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "back operation reloads target");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (First),
+         "back operation reports restored path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (First), "back restores first path");
+      Assert (Files.Model.Item_Count (Model) = 3, "back loads first path items");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "back clears rename state");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "back clears rename focus");
+      Files.Model.Begin_Create_File (Model, "forward-history-pending.txt");
+      Files.Model.Select_Visible (Model, 3);
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "forward operation reloads target");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Second),
+         "forward operation reports restored path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Second), "forward restores second path");
+      Assert (Files.Model.Item_Count (Model) = 1, "forward loads second path items");
+      Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
+      Assert (not Files.Model.Rename_Is_Active (Model), "forward clears rename state");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "forward clears rename focus");
+
+      Project_Tools.Files.Delete_Tree (First);
+      Files.Model.Begin_Create_File (Model, "failed-history-pending.txt");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed back reload is reported");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (First),
+         "failed back reports attempted path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Second), "failed back rolls path back");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load", "failed back records load error");
+      Assert (Files.Model.Can_Go_Back (Model), "failed back preserves back history");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed back preserves temporary create state");
+      Assert (Files.Model.Rename_Is_Active (Model), "failed back preserves rename state");
+      Ada.Directories.Create_Path (First);
+      Write_File (Join (First, "one.txt"));
+      Write_File (Join (First, "fresh.txt"));
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second back operation succeeds");
+      Project_Tools.Files.Delete_Tree (Second);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "one-renamed.txt");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed forward preserves rename result");
+      Assert (Files.Model.Rename_Is_Active (Model), "failed forward preserves normal rename state");
+      Assert (Files.Model.Rename_Text (Model) = "one-renamed.txt", "failed forward preserves rename text");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "failed forward restores rename focus");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Files.Model.Begin_Create_File (Model, "failed-forward-pending.txt");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed forward reload is reported");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Second),
+         "failed forward reports attempted path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (First), "failed forward rolls path back");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load", "failed forward records load error");
+      Assert (Files.Model.Can_Go_Forward (Model), "failed forward preserves forward history");
+      Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed forward preserves temporary create state");
+      Assert (Files.Model.Rename_Is_Active (Model), "failed forward preserves rename state");
+      Ada.Directories.Create_Path (Second);
+      Write_File (Join (Second, "two.txt"));
+      Files.Model.Cancel_Create_File (Model);
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second forward operation succeeds");
+      Project_Tools.Files.Delete_Tree (First);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "two-renamed.txt");
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed back preserves rename result");
+      Assert (Files.Model.Rename_Is_Active (Model), "failed back preserves normal rename state");
+      Assert (Files.Model.Rename_Text (Model) = "two-renamed.txt", "failed back preserves rename text");
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "failed back restores rename focus");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Ada.Directories.Create_Path (First);
+      Write_File (Join (First, "one.txt"));
+      Write_File (Join (First, "fresh.txt"));
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_L, Ctrl);
+      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "Control+L focuses path for branch");
+      Files.Controller.Replace_Focused_Text (Model, Branch);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Return);
+      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "path input navigates to branch");
+      Assert
+        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Branch),
+         "branch path input reports normalized path");
+      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Branch), "branch navigation loads path");
+      Assert (not Files.Model.Can_Go_Forward (Model), "new controller navigation clears forward history");
+      Assert (Files.Model.Item_Count (Model) = 1, "branch navigation carries loaded directory items");
+   end Test_Controller_Refresh_And_History_Loading;
+
+   procedure Test_Render_Snapshot_And_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model          : Files.Model.Window_Model := Sample_Model;
+      Settings       : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Snapshot       : Files.Rendering.View_Snapshot;
+      Layout         : Files.Rendering.Layout_Metrics;
+      Small_Layout    : Files.Rendering.Item_Layout_Vectors.Vector;
+      Large_Layout    : Files.Rendering.Item_Layout_Vectors.Vector;
+      Details_Layout  : Files.Rendering.Item_Layout_Vectors.Vector;
+      Palette_Layout  : Files.Rendering.Command_Palette_Layout;
+      Palette_Rows    : Files.Rendering.Command_Result_Layout_Vectors.Vector;
+      Root_Layout     : Files.Rendering.Root_Selector_Layout;
+      Root_Rows       : Files.Rendering.Root_Path_Layout_Vectors.Vector;
+      Info_Layout     : Files.Rendering.Info_Pane_Layout;
+      Roots           : Files.Types.String_Vectors.Vector;
+      Empty_Items     : Files.File_System.Item_Vectors.Vector;
+      Toolbar         : Files.UI.Toolbar_Layout;
+      Bottom_Bar      : Files.UI.Bottom_Bar_Layout;
+      Frame           : Files.Rendering.Frame_Commands;
+      Text_Renderer   : Files.Rendering.Text_Renderer;
+      Text_Result     : Files.Rendering.Text_Render_Result;
+      Vulkan_Renderer : Files.Rendering.Vulkan.Vulkan_Renderer;
+      Vulkan_Status   : Files.Rendering.Vulkan.Vulkan_Status;
+      Vulkan_Batch    : Files.Rendering.Vulkan.Submission_Batch;
+   begin
+      Assert
+        (not Files.Rendering.Default_Theme.High_Contrast,
+         "default render theme is not high contrast");
+      Assert
+        (Files.Rendering.High_Contrast_Theme.High_Contrast,
+         "high-contrast render theme advertises accessibility mode");
+      Assert
+        (Files.Rendering.High_Contrast_Theme.Selection_Strong,
+         "high-contrast render theme strengthens selection");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Focus_Path_Input (Model);
+      Files.Model.Set_Path_Input_Text (Model, "/missing");
+      Files.Model.Commit_Path_Input
+        (Model,
+         Files.File_System.Path_Result'
+           (Status         => Files.File_System.Path_Missing,
+            Directory_Path => Null_Unbounded_String,
+            Error_Key      => To_Unbounded_String ("error.path.missing")),
+         Empty_Items);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (To_String (Snapshot.Current_Path) = Root, "snapshot captures current path");
+      Assert (Snapshot.View_Mode = Files.Types.Small_Icons, "snapshot captures current view mode");
+      Assert (Snapshot.Focus = Files.Types.Focus_Path_Input, "snapshot captures focused path input");
+      Assert (Snapshot.Text_Cursor_Position = 8, "snapshot captures focused text cursor position");
+      Assert (To_String (Snapshot.Path_Input_Text) = "/missing", "snapshot captures path input text");
+      Assert (not Snapshot.Path_Input_Valid, "snapshot captures path input validation state");
+      Assert
+        (To_String (Snapshot.Path_Input_Error_Key) = "error.path.missing",
+         "snapshot captures path input error key");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      declare
+         Found_A11y_Path_Input_Error : Boolean := False;
+      begin
+         for Node of Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_Text_Input
+              and then To_String (Node.Name) = Files.Localization.Text ("command.path.focus")
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("error.path.missing")) > 0
+            then
+               Found_A11y_Path_Input_Error := True;
+            end if;
+         end loop;
+
+         Assert
+           (Found_A11y_Path_Input_Error,
+            "frame exposes path input validation error to accessibility");
+      end;
+      declare
+         Narrow_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 180, Height => 120, Line_Height => 20);
+         Found_Truncated_Text : Boolean := False;
+      begin
+         for Command of Narrow_Frame.Text loop
+            if Command.Truncated then
+               Found_Truncated_Text := True;
+               Assert
+                 (Length (Command.Text) > 0,
+                  "truncated text command keeps visible fitted text");
+            end if;
+         end loop;
+
+         Assert (Found_Truncated_Text, "narrow frame records truncated text commands");
+         for Command of Narrow_Frame.Rectangles loop
+            Assert
+              (Command.X < Narrow_Frame.Layout.Width
+               and then Command.Width <= Narrow_Frame.Layout.Width - Command.X,
+               "narrow frame clips rectangle width to layout bounds");
+            Assert
+              (Command.Y < Narrow_Frame.Layout.Height
+               and then Command.Height <= Narrow_Frame.Layout.Height - Command.Y,
+               "narrow frame clips rectangle height to layout bounds");
+         end loop;
+         for Command of Narrow_Frame.Text loop
+            Assert
+              (Command.X < Narrow_Frame.Layout.Width
+               and then Command.Width <= Narrow_Frame.Layout.Width - Command.X,
+               "narrow frame clips text width to layout bounds");
+            Assert
+              (Command.Y < Narrow_Frame.Layout.Height
+               and then Command.Height <= Narrow_Frame.Layout.Height - Command.Y,
+               "narrow frame clips text height to layout bounds");
+         end loop;
+         for Command of Narrow_Frame.Icons loop
+            Assert
+              (Command.X < Narrow_Frame.Layout.Width
+               and then Command.Size <= Narrow_Frame.Layout.Width - Command.X,
+               "narrow frame clips icon width to layout bounds");
+            Assert
+              (Command.Y < Narrow_Frame.Layout.Height
+               and then Command.Size <= Narrow_Frame.Layout.Height - Command.Y,
+               "narrow frame clips icon height to layout bounds");
+         end loop;
+         for Command of Narrow_Frame.Accessibility loop
+            Assert
+              (Command.X < Narrow_Frame.Layout.Width
+               and then Command.Width <= Narrow_Frame.Layout.Width - Command.X,
+               "narrow frame clips accessibility width to layout bounds");
+            Assert
+              (Command.Y < Narrow_Frame.Layout.Height
+               and then Command.Height <= Narrow_Frame.Layout.Height - Command.Y,
+               "narrow frame clips accessibility height to layout bounds");
+         end loop;
+      end;
+      declare
+         Zero_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 0, Height => 0, Line_Height => 20);
+      begin
+         Assert (Zero_Frame.Layout.Width = 0, "zero frame preserves zero width");
+         Assert (Zero_Frame.Layout.Height = 0, "zero frame preserves zero height");
+         Assert (Zero_Frame.Rectangles.Is_Empty, "zero frame emits no rectangle commands");
+         Assert (Zero_Frame.Text.Is_Empty, "zero frame emits no text commands");
+         Assert (Zero_Frame.Icons.Is_Empty, "zero frame emits no icon commands");
+         Assert (Zero_Frame.Tooltips.Is_Empty, "zero frame emits no tooltip commands");
+         Assert (Zero_Frame.Accessibility.Is_Empty, "zero frame emits no accessibility nodes");
+      end;
+      declare
+         Rename_Model : Files.Model.Window_Model := Sample_Model;
+         Rename_Frame : Files.Rendering.Frame_Commands;
+      begin
+         Files.Model.Select_Visible (Rename_Model, 1);
+         Files.Model.Toggle_Rename (Rename_Model);
+         Rename_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Files.Rendering.Build_Snapshot (Rename_Model),
+              Width       => 2,
+              Height      => 80,
+              Line_Height => 20);
+         Assert (Rename_Frame.Layout.Width = 2, "narrow rename frame preserves width");
+         for Command of Rename_Frame.Rectangles loop
+            Assert
+              (Command.X < Rename_Frame.Layout.Width
+               and then Command.Width <= Rename_Frame.Layout.Width - Command.X,
+               "narrow rename frame clips rectangle width");
+         end loop;
+      end;
+      Toolbar := Files.UI.Calculate_Toolbar_Layout (1000);
+      declare
+         Found_Path_Error_Border : Boolean := False;
+         Found_Path_Caret        : Boolean := False;
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.X = Toolbar.Middle_X
+              and then Command.Y = 10
+              and then Command.Width = Toolbar.Middle_Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Input_Error_Color
+            then
+               Found_Path_Error_Border := True;
+            elsif Command.X = Toolbar.Middle_X + 84
+              and then Command.Y = 12
+              and then Command.Width = 1
+              and then Command.Height = 16
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Path_Caret := True;
+            end if;
+         end loop;
+
+         Assert (Found_Path_Error_Border, "frame renders focused invalid path input border");
+         Assert (Found_Path_Caret, "frame renders focused path input caret");
+      end;
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+
+      Files.Model.Focus_Filter_Input (Model);
+      Files.Model.Set_Filter (Model, "beta");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Focus = Files.Types.Focus_Filter_Input, "snapshot captures focused filter input");
+      Assert (To_String (Snapshot.Filter_Text) = "beta", "snapshot captures focused filter text");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Toolbar := Files.UI.Calculate_Toolbar_Layout (1000);
+      declare
+         Found_Filter_Border : Boolean := False;
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.X = Toolbar.Right_X
+              and then Command.Y = 10
+              and then Command.Width = Toolbar.Right_Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Filter_Border := True;
+            end if;
+         end loop;
+
+         Assert (Found_Filter_Border, "frame renders focused filter input border");
+      end;
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Files.Model.Clear_Filter (Model);
+
+      Files.Model.Begin_Create_File (Model, "draft.txt");
+      Files.Model.Select_Visible (Model, 4);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Rename_Active, "snapshot captures active rename state");
+      Assert (To_String (Snapshot.Rename_Text) = "draft.txt", "snapshot captures rename text");
+      Assert (Snapshot.Temporary_Item_Active, "snapshot captures temporary item state");
+      Assert (To_String (Snapshot.Temporary_Item_Name) = "draft.txt", "snapshot captures temporary item name");
+      Assert (Natural (Snapshot.Items.Length) = 4, "snapshot includes existing items and temporary item");
+      Assert
+        (To_String (Snapshot.Items.Element (4).Name) = "draft.txt",
+         "snapshot appends visible temporary item");
+      Assert (Snapshot.Items.Element (4).Selected, "snapshot captures selected temporary item");
+      Assert (Natural (Snapshot.Selected_Info.Length) = 1, "snapshot includes temporary item info");
+      Assert
+        (To_String (Snapshot.Selected_Info.Element (1).Name) = "draft.txt",
+         "snapshot temporary item info uses pending name");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      declare
+         Rename_Rect         : constant Files.Rendering.Item_Layout := Small_Layout.Element (4);
+         Found_Rename_Border : Boolean := False;
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.X = Rename_Rect.X
+              and then Command.Y = Rename_Rect.Y
+              and then Command.Width = Rename_Rect.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Rename_Border := True;
+            end if;
+         end loop;
+
+         Assert (Found_Rename_Border, "frame renders focused rename item border");
+      end;
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+
+      Files.Model.Set_Error (Model, "error.directory.load");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Info_Pane (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (To_String (Snapshot.Last_Error_Key) = "error.directory.load", "snapshot captures last error key");
+      Assert (Snapshot.Item_Count = 3, "snapshot captures loaded item count");
+      Assert (Snapshot.Selected_Count = 1, "snapshot captures selected count");
+      Assert (Snapshot.Items.Element (1).Selected, "snapshot captures selected item state");
+      Files.Model.Set_Filter (Model, "beta");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Item_Count = 3, "filtered snapshot preserves loaded item count");
+      Assert (Snapshot.Visible_Count = 1, "filtered snapshot captures visible item count");
+      Assert (Snapshot.Selected_Count = 1, "filtered snapshot captures reconciled selection count");
+      Assert (Natural (Snapshot.Items.Length) = 1, "filtered snapshot only includes visible items");
+      Assert (To_String (Snapshot.Filter_Text) = "beta", "filtered snapshot captures filter text");
+      Assert (To_String (Snapshot.Items.Element (1).Name) = "Beta.txt", "filtered snapshot contains visible item");
+      Files.Model.Clear_Filter (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert
+        (To_String (Snapshot.Items.Element (1).Permissions) =
+         To_String (Files.Model.Visible_Item (Model, 1).Permissions),
+         "item snapshot captures permissions");
+      Assert
+        (Snapshot.Items.Element (1).Creation_Available =
+         Files.Model.Visible_Item (Model, 1).Creation_Available,
+         "item snapshot captures creation metadata availability");
+
+      declare
+         Scrolled_Model : Files.Model.Window_Model := Sample_Model;
+         Scrolled       : Files.Rendering.View_Snapshot;
+         Scrolled_Items : Files.Rendering.Item_Layout_Vectors.Vector;
+         Main_View      : Files.Rendering.Main_View_Layout;
+      begin
+         Files.Model.Set_View_Mode (Scrolled_Model, Files.Types.Details);
+         Files.Model.Scroll_Main_View (Scrolled_Model, 1);
+         Scrolled := Files.Rendering.Build_Snapshot (Scrolled_Model);
+         Layout := Files.Rendering.Calculate_Layout (Scrolled, Width => 1000, Height => 800, Line_Height => 20);
+         Scrolled_Items := Files.Rendering.Calculate_Item_Layout (Scrolled, Layout, Line_Height => 20);
+         Main_View := Files.Rendering.Calculate_Main_View_Layout (Scrolled, Layout, Line_Height => 20);
+         Assert (Scrolled.Main_View_Scroll_Lines = 1, "snapshot captures main view scroll lines");
+         Assert (Main_View.Content_Height = 80, "main view layout tracks details header and row content height");
+         Assert (not Main_View.Scrollbar_Visible, "short main view does not render scrollbar");
+         Assert (Main_View.Scroll_Lines = 0, "short main view clamps effective scroll lines");
+         Assert (Scrolled_Items.Element (1).Y = Layout.Main_Y + 20, "details layout reserves header line");
+         Assert (Scrolled_Items.Element (1).Height = 20, "short item layout keeps first row visible");
+         Assert (Scrolled_Items.Element (2).Y = Layout.Main_Y + 40, "short item layout keeps second row below first");
+         Assert
+           (Files.Rendering.Item_At (Scrolled_Items, X => Layout.Main_X + 1, Y => Layout.Main_Y + 1) = 0,
+            "details header does not hit-test as an item");
+         Assert
+           (Files.Rendering.Item_At (Scrolled_Items, X => Layout.Main_X + 1, Y => Layout.Main_Y + 21) = 1,
+            "short item hit test returns first visible item below header");
+
+         Frame := Files.Rendering.Build_Frame_Commands (Scrolled, Width => 1000, Height => 800, Line_Height => 20);
+         declare
+            Alternate_Row       : constant Files.Rendering.Item_Layout := Scrolled_Items.Element (2);
+            Found_Alternate_Row : Boolean := False;
+         begin
+            for Command of Frame.Rectangles loop
+               if Command.X = Alternate_Row.X
+                 and then Command.Y = Alternate_Row.Y
+                 and then Command.Width = Alternate_Row.Width
+                 and then Command.Height = Alternate_Row.Height
+                 and then Command.Color = Files.Rendering.Detail_Alternate_Color
+               then
+                  Found_Alternate_Row := True;
+               end if;
+            end loop;
+
+            Assert (Found_Alternate_Row, "details view renders alternating row background");
+         end;
+
+         declare
+            Overflow : Files.Rendering.View_Snapshot := Scrolled;
+            Frame    : Files.Rendering.Frame_Commands;
+            Excessive_Items : Files.Rendering.Item_Layout_Vectors.Vector;
+            Found_Track : Boolean := False;
+            Found_Thumb : Boolean := False;
+            Found_Grip  : Boolean := False;
+         begin
+            Overflow.Items.Clear;
+            for Index in 1 .. 12 loop
+               Overflow.Items.Append
+                 (Files.Rendering.Item_Snapshot'
+                    (Name          => To_Unbounded_String ("item" & Natural'Image (Index)),
+                     Filetype      => To_Unbounded_String ("text/plain"),
+                     Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.text")),
+                     Icon_Id       => To_Unbounded_String ("text"),
+                     Kind          => Files.Types.Regular_File_Item,
+                     Selected      => False,
+                     Visible_Index => Index,
+                     others        => <>));
+            end loop;
+            Overflow.Main_View_Scroll_Lines := 2;
+            Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 240, Height => 120, Line_Height => 20);
+            Main_View := Files.Rendering.Calculate_Main_View_Layout (Overflow, Layout, Line_Height => 20);
+            Assert (Main_View.Scrollbar_Visible, "overflow main view exposes scrollbar");
+            Assert (Main_View.Scrollbar_Thumb_Y > Main_View.Scrollbar_Y, "main view scrollbar thumb moves");
+            Frame := Files.Rendering.Build_Frame_Commands (Overflow, Width => 240, Height => 120, Line_Height => 20);
+            for Command of Frame.Rectangles loop
+               if Command.X = Main_View.Scrollbar_X
+                 and then Command.Y = Main_View.Scrollbar_Y
+                 and then Command.Width = Main_View.Scrollbar_Width
+                 and then Command.Height = Frame.Layout.Main_Height
+                 and then Command.Color = Files.Rendering.Border_Color
+               then
+                  Found_Track := True;
+               elsif Command.X = Main_View.Scrollbar_X
+                 and then Command.Y = Main_View.Scrollbar_Thumb_Y
+                 and then Command.Width = Main_View.Scrollbar_Width
+                 and then Command.Height = Main_View.Scrollbar_Height
+                 and then Command.Color = Files.Rendering.Selection_Color
+               then
+                  Found_Thumb := True;
+               elsif Command.X = Main_View.Scrollbar_X + 1
+                 and then Command.Width = Main_View.Scrollbar_Width - 2
+                 and then Command.Color = Files.Rendering.Muted_Text_Color
+               then
+                  Found_Grip := True;
+               end if;
+            end loop;
+
+            Assert (Found_Track, "frame includes main-view scrollbar track");
+            Assert (Found_Thumb, "frame includes main-view scrollbar thumb");
+            Assert (Found_Grip, "frame includes main-view scrollbar grip");
+            Assert (Found_Grip, "frame includes overflow-safe scrollbar grip");
+
+            Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 0, Height => 120, Line_Height => 20);
+            Main_View := Files.Rendering.Calculate_Main_View_Layout (Overflow, Layout, Line_Height => 20);
+            Assert (Main_View.Content_Height > Layout.Main_Height, "zero-width main view still tracks overflow");
+            Assert (not Main_View.Scrollbar_Visible, "zero-width main view does not expose scrollbar");
+            Assert (Main_View.Scrollbar_Width = 0, "zero-width main view reports no scrollbar width");
+
+            Overflow.Main_View_Scroll_Lines := 999;
+            Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 240, Height => 120, Line_Height => 20);
+            Main_View := Files.Rendering.Calculate_Main_View_Layout (Overflow, Layout, Line_Height => 20);
+            Excessive_Items := Files.Rendering.Calculate_Item_Layout (Overflow, Layout, Line_Height => 20);
+            Assert (Main_View.Scroll_Lines = 10, "main view layout clamps excessive scroll lines");
+            Assert
+              (Overflow.Main_View_Scroll_Lines = 999,
+               "main view layout clamp does not mutate snapshot scroll request");
+            Assert
+              (Files.Rendering.Item_At (Excessive_Items, X => Layout.Main_X + 1, Y => Layout.Main_Y + 21) = 11,
+               "item layout uses clamped details scroll offset to reveal final rows");
+         end;
+      end;
+
+      declare
+         Empty_Model : Files.Model.Window_Model;
+         Empty_Frame : Files.Rendering.Frame_Commands;
+         Found_Empty : Boolean := False;
+         Found_Empty_Panel : Boolean := False;
+         Found_Empty_Icon  : Boolean := False;
+      begin
+         Files.Model.Initialize
+           (Empty_Model,
+            Directory_Path => Root,
+            Items          => Empty_Items,
+            Home_Path      => "/home/test");
+         Snapshot := Files.Rendering.Build_Snapshot (Empty_Model);
+         Empty_Frame :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         for Command of Empty_Frame.Text loop
+            if To_String (Command.Text) = Files.Localization.Text ("status.empty_directory") then
+               Found_Empty := True;
+            end if;
+         end loop;
+         for Command of Empty_Frame.Rectangles loop
+            if Command.Width >= 240
+              and then Command.Height = 60
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Empty_Panel := True;
+            elsif Command.Width = 20
+              and then Command.Height = 20
+              and then Command.Color = Files.Rendering.Muted_Text_Color
+            then
+               Found_Empty_Icon := True;
+            end if;
+         end loop;
+
+         Assert (Found_Empty, "empty directory renders localized empty-state text");
+         Assert (Found_Empty_Panel, "empty directory renders framed empty-state panel");
+         Assert (Found_Empty_Icon, "empty directory renders empty-state icon mark");
+      end;
+
+      declare
+         Filtered_Model : Files.Model.Window_Model := Sample_Model;
+         Filtered_Frame : Files.Rendering.Frame_Commands;
+         Found_Filtered : Boolean := False;
+         Found_Filtered_Panel : Boolean := False;
+      begin
+         Files.Model.Set_Filter (Filtered_Model, "no-visible-items");
+         Snapshot := Files.Rendering.Build_Snapshot (Filtered_Model);
+         Filtered_Frame :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         for Command of Filtered_Frame.Text loop
+            if To_String (Command.Text) = Files.Localization.Text ("status.empty_filter") then
+               Found_Filtered := True;
+            end if;
+         end loop;
+         for Command of Filtered_Frame.Rectangles loop
+            if Command.Width >= 240
+              and then Command.Height = 60
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Filtered_Panel := True;
+            end if;
+         end loop;
+
+         Assert (Found_Filtered, "filtered-empty view renders localized empty-state text");
+         Assert (Found_Filtered_Panel, "filtered-empty view renders framed empty-state panel");
+      end;
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 99);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Command_Palette_Open, "snapshot captures open command palette");
+      Assert (To_String (Snapshot.Command_Palette_Query) = "navigate.back", "snapshot captures palette query");
+      Assert (Snapshot.Command_Palette_Selected_Index = 1, "snapshot clamps stale palette selection");
+      Assert
+        (Files.Model.Command_Palette_Selected_Index (Model) = 99,
+         "snapshot construction does not mutate stale palette selection");
+      Assert (Natural (Snapshot.Command_Palette_Results.Length) = 1, "snapshot captures matching palette results");
+      Assert
+        (To_String (Snapshot.Command_Palette_Results.Element (1).Identifier) = "navigate.back",
+         "snapshot captures palette result identifier");
+      Assert
+        (To_String (Snapshot.Command_Palette_Results.Element (1).Description) =
+           Files.Localization.Text ("command.navigate.back.description"),
+         "snapshot captures palette result description");
+      Assert
+        (To_String (Snapshot.Command_Palette_Results.Element (1).Shortcut_Text) = "alt+left",
+         "snapshot captures palette result shortcut text");
+      Assert
+        (not Snapshot.Command_Palette_Results.Element (1).Enabled,
+         "snapshot captures disabled palette result");
+      Assert
+        (Snapshot.Command_Palette_Results.Element (1).Selected,
+         "snapshot marks effective selected palette result");
+      Assert
+        (To_String (Snapshot.Items.Element (1).Filetype_Detail) = Files.Localization.Text ("info.kind.text"),
+         "snapshot captures localized item filetype detail");
+
+      Files.Model.Set_Command_Palette_Query (Model, "file.delete_selected");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert
+        (Natural (Snapshot.Command_Palette_Results.Length) = 1,
+         "snapshot captures delete palette result");
+      Assert
+        (To_String (Snapshot.Command_Palette_Results.Element (1).Shortcut_Text) = "delete / backspace",
+         "snapshot displays canonical primary and secondary shortcuts without aliases");
+
+      Files.Model.Set_Command_Palette_Query (Model, "no-such-command-token");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 99);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Command_Palette_Selected_Index = 0, "empty palette snapshot clears stale selection");
+      Assert
+        (Files.Model.Command_Palette_Selected_Index (Model) = 99,
+         "empty palette snapshot does not mutate stale model selection");
+      Assert
+        (Natural (Snapshot.Command_Palette_Results.Length) = 0,
+         "empty palette snapshot has no result rows");
+
+      Files.Model.Set_Command_Palette_Query (Model, "view.");
+      Files.Model.Set_Command_Palette_Result_Offset (Model, 1);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Command_Palette_Result_Offset = 1, "snapshot captures palette result offset");
+      Assert
+        (Files.Model.Command_Palette_Result_Offset (Model) = 1,
+         "snapshot construction does not mutate palette result offset");
+      declare
+         Tiny_Palette : constant Files.Rendering.Command_Palette_Layout :=
+           (X              => 0,
+            Y              => 0,
+            Width          => 300,
+            Height         => 60,
+            Search_X       => 0,
+            Search_Y       => 0,
+            Search_Width   => 300,
+            Search_Height  => 20,
+            Results_X      => 0,
+            Results_Y      => 20,
+            Results_Width  => 300,
+            Results_Height => 40,
+            Row_Height     => 20);
+         Tiny_Rows    : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Tiny_Palette);
+      begin
+         Assert (Natural (Tiny_Rows.Length) = 2, "scrolled palette layout only emits visible rows");
+         Assert (Tiny_Rows.Element (1).Result_Index = 2, "scrolled palette starts at offset result");
+         Assert (Tiny_Rows.Element (1).Y = 20, "scrolled palette first visible row starts at result top");
+         Assert (Tiny_Rows.Element (2).Result_Index = 3, "scrolled palette includes following result");
+
+         Snapshot.Command_Palette_Result_Offset := 99;
+         declare
+            Stale_Rows : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
+              Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Tiny_Palette);
+         begin
+            Assert (Natural (Stale_Rows.Length) = 2, "stale palette offset still emits a full visible page");
+            Assert (Stale_Rows.Element (1).Result_Index = 2, "stale palette offset clamps to last page start");
+            Assert (Stale_Rows.Element (2).Result_Index = 3, "stale palette offset keeps final result visible");
+         end;
+      end;
+
+      declare
+         Palette_Viewport : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 80, Line_Height => 20);
+         Palette_Layout   : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Palette_Viewport, Line_Height => 20);
+         Bar_X            : constant Natural :=
+           Palette_Layout.Results_X + Palette_Layout.Results_Width - 6;
+         Palette_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 80, Line_Height => 20);
+         Found_Track   : Boolean := False;
+         Found_Thumb   : Boolean := False;
+         Found_Grip    : Boolean := False;
+      begin
+         for Command of Palette_Frame.Rectangles loop
+            if Command.X = Bar_X
+              and then Command.Y = Palette_Layout.Results_Y
+              and then Command.Width = 6
+              and then Command.Height = Palette_Layout.Results_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Track := True;
+            elsif Command.X = Bar_X
+              and then Command.Y > Palette_Layout.Results_Y
+              and then Command.Width = 6
+              and then Command.Height < Palette_Layout.Results_Height
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Thumb := True;
+            elsif Command.X = Bar_X + 1
+              and then Command.Width = 4
+              and then Command.Color = Files.Rendering.Muted_Text_Color
+            then
+               Found_Grip := True;
+            end if;
+         end loop;
+
+         Assert (Found_Track, "frame includes command-palette scrollbar track");
+         Assert (Found_Thumb, "frame includes command-palette scrollbar thumb");
+         Assert (Found_Grip, "frame includes command-palette scrollbar grip");
+      end;
+
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Files.Model.Set_Command_Palette_Selected_Index (Model, 99);
+      Files.Model.Set_Command_Palette_Result_Offset (Model, 99);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Assert (Snapshot.Command_Palette_Result_Offset = 0, "snapshot clamps stale palette result offset");
+      Assert
+        (Files.Model.Command_Palette_Result_Offset (Model) = 99,
+         "snapshot offset clamp does not mutate the model");
+      Assert (Layout.Width = 1000 and then Layout.Height = 800, "layout captures window dimensions");
+      Assert (Layout.Toolbar_Height = 40, "toolbar height uses two text lines");
+      Assert (Layout.Bottom_Bar_Height = 20, "bottom bar equals text line height");
+      Assert (Layout.Main_X = 0 and then Layout.Main_Y = 40, "main content starts below toolbar");
+      Assert (Layout.Main_Width = 750, "main content leaves room for info pane");
+      Assert (Layout.Main_Height = 740, "main content leaves room for toolbar and bottom bar");
+      Assert (Layout.Info_Pane_Width = 250, "info pane uses stable right-side width");
+      Assert (Layout.Command_Width = 800, "command palette width is 80 percent");
+      Assert (Layout.Command_Height = 640, "command palette height is 80 percent");
+
+      Info_Layout := Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Info_Layout.X = 750, "info pane layout starts after main content");
+      Assert (Info_Layout.Y = Layout.Main_Y, "info pane layout starts at main content y");
+      Assert (Info_Layout.Width = Layout.Info_Pane_Width, "info pane layout uses pane width");
+      Assert (Info_Layout.Height = Layout.Main_Height, "info pane layout uses main height");
+      Assert (Info_Layout.Content_Height = 180, "single selected item contributes metadata rows");
+      Assert (not Info_Layout.Scrollbar_Visible, "single selected item does not need scrollbar");
+
+      declare
+         Overflow : Files.Rendering.View_Snapshot := Snapshot;
+      begin
+         for Index in 1 .. 5 loop
+            Overflow.Selected_Info.Append (Overflow.Selected_Info.Element (1));
+         end loop;
+
+         Info_Layout := Files.Rendering.Calculate_Info_Pane_Layout (Overflow, Layout, Line_Height => 20);
+         Assert (Info_Layout.Content_Height = 1080, "overflow info pane tracks full content height");
+         Assert (Info_Layout.Scroll_Lines = 0, "overflow info pane starts unscrolled");
+         Assert (Info_Layout.Scroll_Pixels = 0, "overflow info pane starts at top pixel");
+         Assert (Info_Layout.Scrollbar_Visible, "overflow info pane exposes scrollbar");
+         Assert (Info_Layout.Scrollbar_X = 994, "info pane scrollbar is right aligned");
+         Assert (Info_Layout.Scrollbar_Y = Layout.Main_Y, "info pane scrollbar starts at pane top");
+         Assert (Info_Layout.Scrollbar_Thumb_Y = Layout.Main_Y, "info pane scrollbar thumb starts at pane top");
+         Assert (Info_Layout.Scrollbar_Width = 6, "info pane scrollbar has stable width");
+         Assert (Info_Layout.Scrollbar_Height < Info_Layout.Height, "overflow scrollbar thumb is shortened");
+         Frame := Files.Rendering.Build_Frame_Commands (Overflow, Width => 1000, Height => 800, Line_Height => 20);
+         declare
+            Found_Track : Boolean := False;
+            Found_Thumb : Boolean := False;
+            Found_Grip  : Boolean := False;
+         begin
+            for Command of Frame.Rectangles loop
+               if Command.X = Info_Layout.Scrollbar_X
+                 and then Command.Y = Info_Layout.Scrollbar_Y
+                 and then Command.Width = Info_Layout.Scrollbar_Width
+                 and then Command.Height = Info_Layout.Height
+                 and then Command.Color = Files.Rendering.Border_Color
+               then
+                  Found_Track := True;
+               elsif Command.X = Info_Layout.Scrollbar_X
+                 and then Command.Y = Info_Layout.Scrollbar_Thumb_Y
+                 and then Command.Width = Info_Layout.Scrollbar_Width
+                 and then Command.Height = Info_Layout.Scrollbar_Height
+                 and then Command.Color = Files.Rendering.Selection_Color
+               then
+                  Found_Thumb := True;
+               elsif Command.X = Info_Layout.Scrollbar_X + 1
+                 and then Command.Width = Info_Layout.Scrollbar_Width - 2
+                 and then Command.Color = Files.Rendering.Muted_Text_Color
+               then
+                  Found_Grip := True;
+               end if;
+            end loop;
+
+            Assert (Found_Track, "frame includes info pane scrollbar track");
+            Assert (Found_Thumb, "frame includes info pane scrollbar thumb");
+            Assert (Found_Grip, "frame includes info pane scrollbar grip");
+         end;
+
+         Files.Model.Scroll_Info_Pane (Model, Lines => 3);
+         Overflow := Files.Rendering.Build_Snapshot (Model);
+         for Index in 1 .. 5 loop
+            Overflow.Selected_Info.Append (Overflow.Selected_Info.Element (1));
+         end loop;
+
+         Info_Layout := Files.Rendering.Calculate_Info_Pane_Layout (Overflow, Layout, Line_Height => 20);
+         Assert (Overflow.Info_Pane_Scroll_Lines = 3, "snapshot captures info pane scroll lines");
+         Assert (Info_Layout.Scroll_Lines = 3, "info pane layout applies scroll lines");
+         Assert (Info_Layout.Scroll_Pixels = 60, "info pane layout converts scroll lines to pixels");
+         Assert (Info_Layout.Scrollbar_Thumb_Y > Info_Layout.Scrollbar_Y, "scroll moves scrollbar thumb down");
+         Frame := Files.Rendering.Build_Frame_Commands (Overflow, Width => 1000, Height => 800, Line_Height => 20);
+         declare
+            Found_Visible_Row : Boolean := False;
+         begin
+            for Command of Frame.Text loop
+               if Command.X = Layout.Main_Width + 4
+                 and then Command.Y > Info_Layout.Y
+                 and then Command.Y < Info_Layout.Y + Info_Layout.Height
+               then
+                  Found_Visible_Row := True;
+               end if;
+            end loop;
+
+            Assert (Found_Visible_Row, "frame still renders visible scrolled info rows");
+         end;
+
+         Overflow.Info_Pane_Scroll_Lines := 999;
+         Info_Layout := Files.Rendering.Calculate_Info_Pane_Layout (Overflow, Layout, Line_Height => 20);
+         Assert (Info_Layout.Scroll_Lines = 17, "info pane layout clamps excessive scroll lines");
+         Assert
+           (Overflow.Info_Pane_Scroll_Lines = 999,
+            "info pane layout clamp does not mutate snapshot scroll request");
+         Assert
+           (Files.Model.Info_Pane_Scroll_Lines (Model) = 3,
+            "info pane layout clamp does not mutate model scroll request");
+
+         declare
+            Zero_Width_Layout : constant Files.Rendering.Layout_Metrics :=
+              (Width             => 0,
+               Height            => 120,
+               Toolbar_Height    => 0,
+               Bottom_Bar_Height => 0,
+               Main_X            => 0,
+               Main_Y            => 0,
+               Main_Width        => 0,
+               Main_Height       => 120,
+               Info_Pane_Width   => 0,
+               Command_X         => 0,
+               Command_Y         => 0,
+               Command_Width     => 0,
+               Command_Height    => 0);
+            Zero_Width_Info : constant Files.Rendering.Info_Pane_Layout :=
+              Files.Rendering.Calculate_Info_Pane_Layout
+                (Overflow, Zero_Width_Layout, Line_Height => 20);
+         begin
+            Assert (Zero_Width_Info.X = 0, "zero-width info pane returns empty layout");
+            Assert (not Zero_Width_Info.Scrollbar_Visible, "zero-width info pane does not expose scrollbar");
+            Assert (Zero_Width_Info.Scrollbar_Width = 0, "zero-width info pane reports no scrollbar width");
+         end;
+      end;
+
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      Assert (Palette_Layout.X = 100 and then Palette_Layout.Y = 20, "palette layout uses centered rectangle");
+      Assert (Palette_Layout.Search_Height = 20, "palette search input uses one text line");
+      Assert (Palette_Layout.Results_Y = 40, "palette results follow search input");
+      Assert (Palette_Layout.Results_Height = 620, "palette results fill remaining palette height");
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Assert (Natural (Palette_Rows.Length) = 1, "palette result layout includes matching result");
+      Assert (Palette_Rows.Element (1).X = 100, "palette result row uses palette x position");
+      Assert (Palette_Rows.Element (1).Y = 40, "palette first result row follows search input");
+      Assert (Palette_Rows.Element (1).Width = 800, "palette result row fills palette width");
+      Assert (Palette_Rows.Element (1).Height = 40, "palette result row uses label and description lines");
+      Assert (Palette_Rows.Element (1).Selected, "palette result row captures selection state");
+      Assert (not Palette_Rows.Element (1).Enabled, "palette result row captures disabled state");
+      declare
+         Huge_Layout  : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout
+             (Snapshot, Width => Natural'Last, Height => Natural'Last, Line_Height => Positive'Last);
+         Huge_Palette : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Huge_Layout, Line_Height => Positive'Last);
+         Extreme_Layout : constant Files.Rendering.Layout_Metrics :=
+           (Width             => Natural'Last,
+            Height            => Natural'Last,
+            Toolbar_Height    => 0,
+            Bottom_Bar_Height => 0,
+            Main_X            => Natural'Last / 2,
+            Main_Y            => Natural'Last / 2,
+            Main_Width        => Natural'Last / 2,
+            Main_Height       => Natural'Last / 2,
+            Info_Pane_Width   => Natural'Last / 2,
+            Command_X         => 0,
+            Command_Y         => 0,
+            Command_Width     => 0,
+            Command_Height    => 0);
+         Extreme_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
+         Extreme_Main     : Files.Rendering.Main_View_Layout;
+         Extreme_Info     : Files.Rendering.Info_Pane_Layout;
+      begin
+         Assert (Huge_Layout.Toolbar_Height = Natural'Last, "layout saturates huge toolbar line height");
+         Assert (Huge_Layout.Main_Height = 0, "layout clamps main height after saturated chrome");
+         Assert (Huge_Palette.Results_Y = Natural'Last, "palette layout saturates huge result origin");
+         Assert (Huge_Palette.Row_Height = Natural'Last, "palette row height saturates huge line height");
+         Extreme_Snapshot.Main_View_Scroll_Lines := Natural'Last;
+         Extreme_Snapshot.Info_Pane_Open := True;
+         Extreme_Snapshot.Info_Pane_Scroll_Lines := Natural'Last;
+         Extreme_Snapshot.Selected_Info.Append (Files.Rendering.Info_Snapshot'(others => <>));
+         Extreme_Main :=
+           Files.Rendering.Calculate_Main_View_Layout
+             (Extreme_Snapshot, Extreme_Layout, Line_Height => Positive'Last);
+         Extreme_Info :=
+           Files.Rendering.Calculate_Info_Pane_Layout
+             (Extreme_Snapshot, Extreme_Layout, Line_Height => Positive'Last);
+         Assert (Extreme_Main.Content_Height = Natural'Last, "main-view content height saturates");
+         Assert
+           (Extreme_Main.Scroll_Pixels = Extreme_Main.Content_Height - Extreme_Layout.Main_Height,
+            "main-view scroll pixels clamp to maximum scroll");
+         Assert (Extreme_Main.Scrollbar_Visible, "main-view scrollbar stays visible at extreme size");
+         Assert
+           (Extreme_Main.Scrollbar_Thumb_Y >= Extreme_Layout.Main_Y,
+            "main-view thumb y stays inside track start");
+         Assert
+           (Extreme_Main.Scrollbar_Thumb_Y
+            <= Extreme_Layout.Main_Y + Extreme_Layout.Main_Height - Extreme_Main.Scrollbar_Height,
+            "main-view thumb y stays inside track end");
+         Assert (Extreme_Info.Content_Height = Natural'Last, "info-pane content height saturates");
+         Assert
+           (Extreme_Info.Scroll_Pixels = Extreme_Info.Content_Height - Extreme_Layout.Main_Height,
+            "info-pane scroll pixels clamp to maximum scroll");
+         Assert (Extreme_Info.Scrollbar_Visible, "info-pane scrollbar stays visible at extreme size");
+         Assert
+           (Extreme_Info.Scrollbar_Thumb_Y >= Extreme_Layout.Main_Y,
+            "info-pane thumb y stays inside track start");
+         Assert
+           (Extreme_Info.Scrollbar_Thumb_Y
+            <= Extreme_Layout.Main_Y + Extreme_Layout.Main_Height - Extreme_Info.Scrollbar_Height,
+            "info-pane thumb y stays inside track end");
+         declare
+            Extreme_Frame : constant Files.Rendering.Frame_Commands :=
+              Files.Rendering.Build_Frame_Commands
+                (Extreme_Snapshot,
+                 Width       => Natural'Last,
+                 Height      => Natural'Last,
+                 Line_Height => Positive'Last);
+            Details_Extreme : Files.Rendering.View_Snapshot := Extreme_Snapshot;
+            Details_Frame   : Files.Rendering.Frame_Commands;
+            Settings_Extreme : Files.Rendering.View_Snapshot := Extreme_Snapshot;
+            Settings_Frame   : Files.Rendering.Frame_Commands;
+         begin
+            Assert
+              (Extreme_Frame.Layout.Toolbar_Height = Natural'Last,
+               "frame construction saturates huge line height");
+            Details_Extreme.View_Mode := Files.Types.Details;
+            Details_Frame :=
+              Files.Rendering.Build_Frame_Commands
+                (Details_Extreme,
+                 Width       => Natural'Last,
+                 Height      => Natural'Last,
+                 Line_Height => Positive'Last);
+            Assert
+              (Details_Frame.Layout.Toolbar_Height = Natural'Last,
+               "details frame construction saturates huge line height");
+            Settings_Extreme.Settings_Pane_Open := True;
+            Settings_Extreme.Settings_Field_Index := 1;
+            Settings_Extreme.Settings_Field_Help := To_Unbounded_String ("field help");
+            Settings_Extreme.Settings_Control_Options := To_Unbounded_String ("field options");
+            Settings_Frame :=
+              Files.Rendering.Build_Frame_Commands
+                (Settings_Extreme,
+                 Width       => Natural'Last,
+                 Height      => Natural'Last,
+                 Line_Height => Positive'Last);
+            Assert
+              (Settings_Frame.Layout.Toolbar_Height = Natural'Last,
+               "settings frame construction saturates huge line height");
+         end;
+      end;
+      Assert
+        (Files.Rendering.Command_Result_At (Palette_Rows, X => 104, Y => 45) = 1,
+         "palette hit test returns result index");
+      Assert
+        (Files.Rendering.Command_Result_At (Palette_Rows, X => 99, Y => 45) = 0,
+         "palette hit test rejects x before result row");
+      Assert
+        (Files.Rendering.Command_Result_At (Palette_Rows, X => 104, Y => 81) = 0,
+         "palette hit test rejects y below result row");
+      Files.Model.Close_Command_Palette (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Assert (Natural (Palette_Rows.Length) = 0, "closed palette has no result row layout");
+      Assert
+        (Files.Rendering.Command_Result_At (Palette_Rows, X => 104, Y => 45) = 0,
+         "closed palette hit test returns no result");
+
+      Roots.Append (To_Unbounded_String ("/"));
+      Roots.Append (To_Unbounded_String ("/mnt/data"));
+      Roots.Append (To_Unbounded_String ("/tmp"));
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Root_Layout := Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Root_Layout.X = 0, "root selector starts at left edge");
+      Assert (Root_Layout.Y = Layout.Toolbar_Height, "root selector appears below toolbar");
+      Assert (Root_Layout.Width = 240, "root selector has deterministic dropdown width");
+      Assert (Root_Layout.Height = 60, "root selector height follows root count");
+      Assert (Root_Layout.Row_Height = 20, "root selector row height follows text line height");
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert (Natural (Root_Rows.Length) = 3, "root selector lays out each visible root");
+      Assert (Snapshot.Root_Selected_Index = 1, "root snapshot captures first selected row");
+      Assert (Root_Rows.Element (1).Root_Index = 1, "root selector row preserves root index");
+      Assert (Root_Rows.Element (1).Selected, "root selector layout marks selected row");
+      Assert (not Root_Rows.Element (2).Selected, "root selector layout leaves unselected row normal");
+      Assert (Root_Rows.Element (1).X = Root_Layout.X, "root selector row starts at dropdown x");
+      Assert (Root_Rows.Element (1).Y = Root_Layout.Y, "root selector first row starts at dropdown y");
+      Assert (Root_Rows.Element (2).Y = Root_Layout.Y + 20, "root selector rows advance by line height");
+      Assert (Root_Rows.Element (3).Width = Root_Layout.Width, "root selector rows fill dropdown width");
+      Assert
+        (Files.Rendering.Root_Path_At (Root_Rows, X => 4, Y => Root_Layout.Y + 5) = 1,
+         "root selector hit test returns first root index");
+      Assert
+        (Files.Rendering.Root_Path_At (Root_Rows, X => 4, Y => Root_Layout.Y + 25) = 2,
+         "root selector hit test returns second root index");
+      Assert
+        (Files.Rendering.Root_Path_At (Root_Rows, X => Root_Layout.Width, Y => Root_Layout.Y + 5) = 0,
+         "root selector hit test rejects x after row");
+      Assert
+        (Files.Rendering.Root_Path_At (Root_Rows, X => 4, Y => Root_Layout.Y + Root_Layout.Height) = 0,
+         "root selector hit test rejects y after dropdown");
+
+      Roots.Append (To_Unbounded_String ("/var"));
+      Roots.Append (To_Unbounded_String ("/opt"));
+      Roots.Append (To_Unbounded_String ("/srv"));
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Files.Model.Set_Root_Selected_Index (Model, 5);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Root_Layout.Height := 60;
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert (Natural (Root_Rows.Length) = 3, "root selector clips long root lists to visible rows");
+      Assert (Root_Rows.Element (1).Root_Index = 3, "root selector scrolls selected root into view");
+      Assert (Root_Rows.Element (3).Root_Index = 5, "root selector includes selected row on last visible slot");
+      Assert (Root_Rows.Element (3).Selected, "root selector marks selected paged row");
+      Assert
+        (Files.Rendering.Root_Path_At (Root_Rows, X => 4, Y => Root_Layout.Y + 45) = 5,
+         "paged root selector hit test returns absolute root index");
+      Snapshot.Root_Selected_Index := Natural'Last;
+      Root_Layout.Height := 0;
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert
+        (Natural (Root_Rows.Length) = 0,
+         "zero-height root selector clamps stale selected index without overflow");
+      Root_Layout.Height := 60;
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert (Natural (Root_Rows.Length) = 3, "stale root selection still lays out visible rows");
+      Assert (Root_Rows.Element (3).Root_Index = Natural (Snapshot.Root_Paths.Length), "stale root selection clamps");
+      Assert (Root_Rows.Element (3).Selected, "clamped stale root selection marks final row");
+      Files.Model.Close_Root_Selector (Model);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Root_Layout := Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height => 20);
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert (Root_Layout.Height = 0, "closed root selector has zero dropdown height");
+      Assert (Natural (Root_Rows.Length) = 0, "closed root selector has no row layout");
+      Assert
+        (Files.Rendering.Root_Path_At (Root_Rows, X => 4, Y => 45) = 0,
+         "closed root selector hit test returns no root");
+
+      Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Natural (Small_Layout.Length) = 3, "small-icons layout includes each visible item");
+      Assert (Small_Layout.Element (1).Icon_Size = 20, "small-icons icon equals line height");
+      Assert (Small_Layout.Element (2).X = 180, "small-icons layout advances by cell width");
+      Assert (Small_Layout.Element (2).Y = Layout.Main_Y, "small-icons layout stays on first grid row");
+      Assert
+        (Files.Rendering.Item_At (Small_Layout, X => 1, Y => Layout.Main_Y + 1) = 1,
+         "small-icons hit test returns first visible item");
+      Assert
+        (Files.Rendering.Item_At (Small_Layout, X => 181, Y => Layout.Main_Y + 1) = 2,
+         "small-icons hit test returns second visible item");
+      Assert
+        (Files.Rendering.Item_At (Small_Layout, X => 1, Y => Layout.Main_Y - 1) = 0,
+         "small-icons hit test rejects point above main view");
+
+      Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Large_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Large_Layout.Element (1).Icon_Size = 60, "large-icons layout uses larger icons");
+      Assert (Large_Layout.Element (1).Icon_X = 40, "large-icons icon is centered in the cell");
+      Assert (Large_Layout.Element (2).X = 140, "large-icons layout uses large grid cells");
+      Assert
+        (Files.Rendering.Item_At (Large_Layout, X => 1, Y => Layout.Main_Y + 1) = 1,
+         "large-icons hit test returns first visible item");
+      Assert
+        (Files.Rendering.Item_At (Large_Layout, X => 141, Y => Layout.Main_Y + 1) = 2,
+         "large-icons hit test returns second visible item");
+
+      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Details_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Details_Layout.Element (1).Width = Layout.Main_Width, "details rows fill main width");
+      Assert (Details_Layout.Element (1).Y = Layout.Main_Y + 20, "details rows start below header");
+      Assert (Details_Layout.Element (2).Y = Layout.Main_Y + 40, "details rows advance by line height");
+      Assert (Details_Layout.Element (1).Icon_Size = 20, "details icon equals line height");
+      Assert (Details_Layout.Element (1).Name_X = Layout.Main_X + 24, "details name column follows icon");
+      Assert (Details_Layout.Element (1).Name_Width = 290, "details name column uses remaining width");
+      Assert (Details_Layout.Element (1).Modified_X = 314, "details modified column follows name");
+      Assert (Details_Layout.Element (1).Modified_Width = 180, "details modified column has stable width");
+      Assert (Details_Layout.Element (1).Size_X = 494, "details size column follows modified");
+      Assert (Details_Layout.Element (1).Size_Width = 96, "details size column has stable width");
+      Assert (Details_Layout.Element (1).Filetype_X = 590, "details filetype column follows size");
+      Assert (Details_Layout.Element (1).Filetype_Width = 160, "details filetype column has stable width");
+      Assert
+        (Files.Rendering.Item_At (Details_Layout, X => 1, Y => Layout.Main_Y + 1) = 0,
+         "details hit test ignores header row");
+      Assert
+        (Files.Rendering.Item_At (Details_Layout, X => 1, Y => Layout.Main_Y + 21) = 1,
+         "details hit test returns first visible row below header");
+      Assert
+        (Files.Rendering.Item_At (Details_Layout, X => 1, Y => Layout.Main_Y + 41) = 2,
+         "details hit test returns second visible row");
+      Assert
+        (Files.Rendering.Item_At (Details_Layout, X => Layout.Main_Width, Y => Layout.Main_Y + 21) = 0,
+         "details hit test rejects point after row width");
+
+      declare
+         Edge_Items : Files.Rendering.Item_Layout_Vectors.Vector;
+         Edge_Rows  : Files.Rendering.Command_Result_Layout_Vectors.Vector;
+         Edge_Roots : Files.Rendering.Root_Path_Layout_Vectors.Vector;
+      begin
+         Edge_Items.Append
+           (Files.Rendering.Item_Layout'
+              (Visible_Index => 7,
+               X             => Natural'Last - 1,
+               Y             => Natural'Last - 1,
+               Width         => 2,
+               Height        => 2,
+               others        => <>));
+         Edge_Rows.Append
+           (Files.Rendering.Command_Result_Layout'
+              (Result_Index => 8,
+               X            => Natural'Last - 1,
+               Y            => Natural'Last - 1,
+               Width        => 2,
+               Height       => 2,
+               others       => <>));
+         Edge_Roots.Append
+           (Files.Rendering.Root_Path_Layout'
+              (Root_Index => 9,
+               X          => Natural'Last - 1,
+               Y          => Natural'Last - 1,
+               Width      => 2,
+               Height     => 2,
+               others     => <>));
+
+         Assert
+           (Files.Rendering.Item_At (Edge_Items, X => Natural'Last, Y => Natural'Last) = 7,
+            "item hit test handles saturated lower-right coordinates");
+         Assert
+           (Files.Rendering.Command_Result_At (Edge_Rows, X => Natural'Last, Y => Natural'Last) = 8,
+            "palette hit test handles saturated lower-right coordinates");
+         Assert
+           (Files.Rendering.Root_Path_At (Edge_Roots, X => Natural'Last, Y => Natural'Last) = 9,
+            "root hit test handles saturated lower-right coordinates");
+      end;
+
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      declare
+         Found_Modified : Boolean := False;
+         Found_Size     : Boolean := False;
+         Found_Filetype : Boolean := False;
+         Found_Header_Name : Boolean := False;
+         Found_Header_Size : Boolean := False;
+         Found_Header_Border : Boolean := False;
+         Found_Header_Accent : Boolean := False;
+         Found_Row_Divider : Boolean := False;
+         Found_Header_A11y : Boolean := False;
+         Found_Row_A11y : Boolean := False;
+         Missing_Metadata_Text : constant String := Files.Localization.Text ("status.missing_metadata");
+         Missing_Metadata_Fitted : constant String :=
+           (if Missing_Metadata_Text'Length > 9
+            then Missing_Metadata_Text
+              (Missing_Metadata_Text'First .. Missing_Metadata_Text'First + 5) & "..."
+            else Missing_Metadata_Text);
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.X = Layout.Main_X
+              and then Command.Y = Layout.Main_Y
+              and then Command.Width = Layout.Main_Width
+              and then Command.Height = 20
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Header_Border := True;
+            elsif Command.X = Layout.Main_X
+              and then Command.Y = Layout.Main_Y + 18
+              and then Command.Width = Layout.Main_Width
+              and then Command.Height = 2
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Header_Accent := True;
+            elsif Command.X = Details_Layout.Element (1).X
+              and then Command.Y = Details_Layout.Element (1).Y + Details_Layout.Element (1).Height - 1
+              and then Command.Width = Details_Layout.Element (1).Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Row_Divider := True;
+            end if;
+         end loop;
+
+         for Command of Frame.Text loop
+            if Command.X = Details_Layout.Element (1).Modified_X
+              and then To_String (Command.Text) = Files.Localization.Text ("status.missing_metadata")
+            then
+               Found_Modified := True;
+            elsif Command.X = Details_Layout.Element (1).Size_X
+              and then To_String (Command.Text) = Missing_Metadata_Fitted
+            then
+               Found_Size := True;
+            elsif Command.X = Details_Layout.Element (1).Filetype_X
+              and then To_String (Command.Text) = Files.Localization.Text ("info.kind.text")
+            then
+               Found_Filetype := True;
+            elsif Command.X = Details_Layout.Element (1).Name_X
+              and then To_String (Command.Text) = Files.Localization.Text ("details.name")
+            then
+               Found_Header_Name := True;
+            elsif Command.X = Details_Layout.Element (1).Size_X
+              and then To_String (Command.Text) = Files.Localization.Text ("details.size")
+            then
+               Found_Header_Size := True;
+            end if;
+         end loop;
+
+         for Node of Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_Table_Row
+              and then Node.X = Layout.Main_X
+              and then Node.Y = Layout.Main_Y
+              and then To_String (Node.Name) = Files.Localization.Text ("details.header")
+              and then To_String (Node.Description) =
+                Files.Localization.Text ("details.name") & ", " &
+                Files.Localization.Text ("details.modified") & ", " &
+                Files.Localization.Text ("details.size") & ", " &
+                Files.Localization.Text ("details.filetype")
+            then
+               Found_Header_A11y := True;
+            elsif Node.Role = Files.Rendering.Role_Table_Row
+              and then Node.X = Details_Layout.Element (1).X
+              and then Node.Y = Details_Layout.Element (1).Y
+              and then To_String (Node.Name) = "Alpha.txt"
+              and then To_String (Node.Description) =
+                Files.Localization.Text ("details.modified") & ": " &
+                Files.Localization.Text ("status.missing_metadata") & ", " &
+                Files.Localization.Text ("details.size") & ": " &
+                Files.Localization.Text ("status.missing_metadata") & ", " &
+                Files.Localization.Text ("details.filetype") & ": " &
+                Files.Localization.Text ("info.kind.text")
+            then
+               Found_Row_A11y := True;
+            end if;
+         end loop;
+
+         Assert (Found_Modified, "details frame includes modified column text");
+         Assert (Found_Size, "details frame includes size column text");
+         Assert (Found_Filetype, "details frame includes filetype column text");
+         Assert (Found_Header_Name, "details frame includes localized name header");
+         Assert (Found_Header_Size, "details frame includes localized size header");
+         Assert (Found_Header_Border, "details frame includes header band");
+         Assert (Found_Header_Accent, "details frame includes header accent rule");
+         Assert (Found_Row_Divider, "details frame includes row divider");
+         Assert (Found_Header_A11y, "details frame exposes accessible table header");
+         Assert (Found_Row_A11y, "details frame exposes accessible table row columns");
+      end;
+      declare
+         Empty_Details : Files.Rendering.View_Snapshot := Snapshot;
+         Empty_Frame   : Files.Rendering.Frame_Commands;
+         Found_Empty_Header_Name : Boolean := False;
+         Found_Empty_Header_Modified : Boolean := False;
+         Found_Empty_Header_Size : Boolean := False;
+         Found_Empty_Header_Filetype : Boolean := False;
+         Found_Empty_Header_Band : Boolean := False;
+         Found_Empty_Modified_Separator : Boolean := False;
+         Found_Empty_Size_Separator : Boolean := False;
+         Found_Empty_Filetype_Separator : Boolean := False;
+         Found_Empty_Header_A11y : Boolean := False;
+      begin
+         Empty_Details.Items.Clear;
+         Empty_Details.Item_Count := 0;
+         Empty_Details.Visible_Count := 0;
+         Empty_Details.Selected_Count := 0;
+         Empty_Details.View_Mode := Files.Types.Details;
+         Empty_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Empty_Details, Width => 1000, Height => 800, Line_Height => 20);
+
+         for Command of Empty_Frame.Rectangles loop
+            if Command.X = Empty_Frame.Layout.Main_X
+              and then Command.Y = Empty_Frame.Layout.Main_Y
+              and then Command.Width = Empty_Frame.Layout.Main_Width
+              and then Command.Height = 20
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Empty_Header_Band := True;
+            elsif Command.X = Details_Layout.Element (1).Modified_X - 2
+              and then Command.Y = Empty_Frame.Layout.Main_Y
+              and then Command.Width = 1
+              and then Command.Height = Empty_Frame.Layout.Main_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Empty_Modified_Separator := True;
+            elsif Command.X = Details_Layout.Element (1).Size_X - 2
+              and then Command.Y = Empty_Frame.Layout.Main_Y
+              and then Command.Width = 1
+              and then Command.Height = Empty_Frame.Layout.Main_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Empty_Size_Separator := True;
+            elsif Command.X = Details_Layout.Element (1).Filetype_X - 2
+              and then Command.Y = Empty_Frame.Layout.Main_Y
+              and then Command.Width = 1
+              and then Command.Height = Empty_Frame.Layout.Main_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Empty_Filetype_Separator := True;
+            end if;
+         end loop;
+
+         for Command of Empty_Frame.Text loop
+            if Command.X = Details_Layout.Element (1).Name_X
+              and then To_String (Command.Text) = Files.Localization.Text ("details.name")
+            then
+               Found_Empty_Header_Name := True;
+            elsif Command.X = Details_Layout.Element (1).Modified_X
+              and then To_String (Command.Text) = Files.Localization.Text ("details.modified")
+            then
+               Found_Empty_Header_Modified := True;
+            elsif Command.X = Details_Layout.Element (1).Size_X
+              and then To_String (Command.Text) = Files.Localization.Text ("details.size")
+            then
+               Found_Empty_Header_Size := True;
+            elsif Command.X = Details_Layout.Element (1).Filetype_X
+              and then To_String (Command.Text) = Files.Localization.Text ("details.filetype")
+            then
+               Found_Empty_Header_Filetype := True;
+            end if;
+         end loop;
+
+         for Node of Empty_Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_Table_Row
+              and then Node.X = Empty_Frame.Layout.Main_X
+              and then Node.Y = Empty_Frame.Layout.Main_Y
+              and then To_String (Node.Name) = Files.Localization.Text ("details.header")
+            then
+               Found_Empty_Header_A11y := True;
+            end if;
+         end loop;
+
+         Assert (Found_Empty_Header_Band, "empty details frame includes header band");
+         Assert (Found_Empty_Header_Name, "empty details frame includes localized name header");
+         Assert (Found_Empty_Header_Modified, "empty details frame includes localized modified header");
+         Assert (Found_Empty_Header_Size, "empty details frame includes localized size header");
+         Assert (Found_Empty_Header_Filetype, "empty details frame includes localized filetype header");
+         Assert (Found_Empty_Modified_Separator, "empty details frame includes modified column separator");
+         Assert (Found_Empty_Size_Separator, "empty details frame includes size column separator");
+         Assert (Found_Empty_Filetype_Separator, "empty details frame includes filetype column separator");
+         Assert (Found_Empty_Header_A11y, "empty details frame exposes accessible table header");
+      end;
+
+      Toolbar := Files.UI.Calculate_Toolbar_Layout (1000);
+      Assert (Toolbar.Left_X = 0, "toolbar left section starts at left edge");
+      Assert (Toolbar.Left_Width = 200 and then Toolbar.Right_Width = 200, "toolbar has side sections");
+      Assert (Toolbar.Middle_X = 200, "toolbar middle section follows left section");
+      Assert (Toolbar.Middle_Width = 600, "toolbar middle section receives remaining width");
+      Assert (Toolbar.Right_X = 800, "toolbar right section follows middle section");
+      Assert
+        (Files.UI.Toolbar_Command_At (10, 10, 1000, Line_Height => 20) = Files.Commands.Select_Drive_Command,
+         "toolbar hit test maps drive selector to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (40, 10, 1000, Line_Height => 20) = Files.Commands.Navigate_Home_Command,
+         "toolbar hit test maps home button to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (33, 10, 1000, Line_Height => 20) = Files.Commands.Navigate_Home_Command,
+         "toolbar hit test maps first separator pixel to home button");
+      Assert
+        (Files.UI.Toolbar_Command_At (75, 10, 1000, Line_Height => 20) = Files.Commands.Navigate_Back_Command,
+         "toolbar hit test maps back button to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (66, 10, 1000, Line_Height => 20) = Files.Commands.Navigate_Back_Command,
+         "toolbar hit test maps second separator pixel to back button");
+      Assert
+        (Files.UI.Toolbar_Command_At (110, 10, 1000, Line_Height => 20) = Files.Commands.Navigate_Forward_Command,
+         "toolbar hit test maps forward button to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (100, 10, 1000, Line_Height => 20) = Files.Commands.Navigate_Forward_Command,
+         "toolbar hit test maps third separator pixel to forward button");
+      Assert
+        (Files.UI.Toolbar_Command_At (145, 10, 1000, Line_Height => 20) = Files.Commands.Create_File_Command,
+         "toolbar hit test maps create button to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (133, 10, 1000, Line_Height => 20) = Files.Commands.Create_File_Command,
+         "toolbar hit test maps fourth separator pixel to create button");
+      Assert
+        (Files.UI.Toolbar_Command_At (170, 10, 1000, Line_Height => 20) =
+         Files.Commands.Delete_Selected_Items_Command,
+         "toolbar hit test maps delete button to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (166, 10, 1000, Line_Height => 20) =
+         Files.Commands.Delete_Selected_Items_Command,
+         "toolbar hit test maps fifth separator pixel to delete button");
+      Assert
+        (Files.UI.Toolbar_Command_At (200, 10, 1000, Line_Height => 20) =
+         Files.Commands.Focus_Path_Input_Command,
+         "toolbar hit test maps left section end to path input");
+      Assert
+        (Files.UI.Toolbar_Command_At (200, 10, 1009, Line_Height => 20) =
+         Files.Commands.Delete_Selected_Items_Command,
+         "toolbar hit test maps uneven trailing left pixels to delete");
+      Assert
+        (Files.UI.Toolbar_Command_At (250, 10, 1000, Line_Height => 20) =
+         Files.Commands.Focus_Path_Input_Command,
+         "toolbar hit test maps path input to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (250, 5, 1000, Line_Height => 20) = Files.Commands.No_Command,
+         "toolbar hit test ignores path input top padding");
+      Assert
+        (Files.UI.Toolbar_Command_At (250, 30, 1000, Line_Height => 20) = Files.Commands.No_Command,
+         "toolbar hit test ignores path input bottom padding");
+      Assert
+        (Files.UI.Toolbar_Command_At (850, 10, 1000, Line_Height => 20) =
+         Files.Commands.Focus_Filter_Input_Command,
+         "toolbar hit test maps filter input to command");
+      Assert
+        (Files.UI.Toolbar_Command_At (850, 5, 1000, Line_Height => 20) = Files.Commands.No_Command,
+         "toolbar hit test ignores filter input top padding");
+      Assert
+        (Files.UI.Toolbar_Command_At (250, 40, 1000, Line_Height => 20) = Files.Commands.No_Command,
+         "toolbar hit test ignores coordinates below toolbar");
+      Assert
+        (Files.UI.Toolbar_Command_At (Natural'Last, 10, Natural'Last, Line_Height => 20) =
+         Files.Commands.No_Command,
+         "toolbar hit test handles saturated coordinates without overflow");
+      Assert
+        (Files.UI.Toolbar_Command_At (Natural'Last / 5 - 1, 10, Natural'Last, Line_Height => 20) =
+         Files.Commands.Delete_Selected_Items_Command,
+         "toolbar hit test handles saturated left-section coordinates without overflow");
+      declare
+         Offset_Toolbar : constant Files.UI.Toolbar_Layout :=
+           (Left_X       => Natural'Last - 1,
+            Left_Width   => 12,
+            Middle_X     => 0,
+            Middle_Width => 0,
+            Right_X      => 0,
+            Right_Width  => 0);
+      begin
+         Assert
+           (Files.UI.Toolbar_Left_Button_X (Offset_Toolbar, 5) = Natural'Last,
+            "toolbar button helper saturates offset origins");
+      end;
+
+      Bottom_Bar := Files.UI.Calculate_Bottom_Bar_Layout (1000, Line_Height => 20);
+      Assert (Bottom_Bar.View_Mode_X = 0, "bottom-bar view selector starts at left edge");
+      Assert (Bottom_Bar.View_Mode_Width = 240, "bottom-bar view selector contains three buttons");
+      Assert (Bottom_Bar.Small_Button_Width = 80, "bottom-bar small button has stable width");
+      Assert (Bottom_Bar.Large_Button_X = 80, "bottom-bar large button follows small button");
+      Assert (Bottom_Bar.Details_Button_X = 160, "bottom-bar details button follows large button");
+      Assert (Bottom_Bar.Info_X = 240, "bottom-bar information section follows view selector");
+      Assert (Bottom_Bar.Info_Width = 680, "bottom-bar information section receives remaining width");
+      Assert (Bottom_Bar.Info_Pane_X = 920, "bottom-bar info-pane toggle is right aligned");
+      Assert (Bottom_Bar.Info_Pane_Width = 80, "bottom-bar info-pane toggle has stable width");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (10, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Select_Small_Icons_Command,
+         "bottom-bar hit test maps small-icons button to command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (90, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Select_Large_Icons_Command,
+         "bottom-bar hit test maps large-icons button to command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (80, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Select_Large_Icons_Command,
+         "bottom-bar hit test maps small-large separator to large-icons command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (170, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Select_Details_Command,
+         "bottom-bar hit test maps details button to command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (160, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Select_Details_Command,
+         "bottom-bar hit test maps large-details separator to details command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (950, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Toggle_Info_Pane_Command,
+         "bottom-bar hit test maps info-pane toggle to command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (920, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Toggle_Info_Pane_Command,
+         "bottom-bar hit test maps info-toggle separator to info-pane command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (300, 790, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
+         "bottom-bar hit test ignores information section");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (240, 790, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
+         "bottom-bar hit test maps details-info separator to inert information section");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (10, 760, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
+         "bottom-bar hit test ignores coordinates above bottom bar");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (10, 800, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
+         "bottom-bar hit test ignores coordinate at window bottom edge");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (10, 801, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
+         "bottom-bar hit test ignores coordinates below window");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (10, 10, 1000, 10, Line_Height => 20) = Files.Commands.No_Command,
+         "short bottom-bar hit test ignores coordinate at short window bottom edge");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At
+           (Natural'Last, Natural'Last, Natural'Last, Natural'Last, Line_Height => 20) =
+         Files.Commands.No_Command,
+         "bottom-bar hit test handles saturated coordinates without overflow");
+      Bottom_Bar := Files.UI.Calculate_Bottom_Bar_Layout (Natural'Last, Line_Height => Positive'Last);
+      Assert (Bottom_Bar.Small_Button_Width = Natural'Last, "bottom-bar layout saturates large line height");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At
+           (0, Natural'Last - 1, Natural'Last, Natural'Last, Line_Height => Positive'Last) =
+         Files.Commands.Select_Small_Icons_Command,
+         "bottom-bar hit test handles saturated line height without overflow");
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 38, Line_Height => 20);
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Assert (Palette_Layout.Results_Height = 10, "partial palette result area is represented");
+      Assert (Palette_Rows.Element (1).Height = 10, "partial palette result row is clipped");
+      Files.Model.Set_Command_Palette_Query (Model, "");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Snapshot.Command_Palette_Result_Offset := 99;
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Assert (Natural (Palette_Rows.Length) = 1, "partial palette layout keeps one clipped visible row");
+      Assert
+        (Palette_Rows.Element (1).Result_Index = Natural (Snapshot.Command_Palette_Results.Length),
+         "partial palette stale offset clamps to final visible row");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 100, Height => 38, Line_Height => 20);
+      declare
+         Found_Partial_Track : Boolean := False;
+         Found_Partial_Thumb : Boolean := False;
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.X = Palette_Layout.Results_X + Palette_Layout.Results_Width - 6
+              and then Command.Y = Palette_Layout.Results_Y
+              and then Command.Width = 6
+              and then Command.Height = Palette_Layout.Results_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Partial_Track := True;
+            elsif Command.X = Palette_Layout.Results_X + Palette_Layout.Results_Width - 6
+              and then Command.Y = Palette_Layout.Results_Y
+              and then Command.Width = 6
+              and then Command.Height = Palette_Layout.Results_Height
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Partial_Thumb := True;
+            end if;
+         end loop;
+
+         Assert (Found_Partial_Track, "partial palette overflow renders scrollbar track");
+         Assert (Found_Partial_Thumb, "partial palette overflow renders scrollbar thumb");
+      end;
+      Palette_Layout.Results_Height := 90;
+      Snapshot.Command_Palette_Result_Offset := 99;
+      Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
+      Assert (Natural (Palette_Rows.Length) = 3, "palette layout includes clipped extra visible row");
+      Assert
+        (Palette_Rows.Element (3).Height = 10,
+         "palette layout clips final partial row height");
+      Assert
+        (Palette_Rows.Element (1).Result_Index = Natural (Snapshot.Command_Palette_Results.Length) - 2,
+         "palette stale offset clamps using clipped visible rows");
+
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 75, Line_Height => 20);
+      Root_Layout := Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height => 20);
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert (Root_Layout.Height = 15, "partial root selector height is represented");
+      Assert (Root_Rows.Element (1).Height = 15, "partial root selector row is clipped");
+      Files.Model.Set_Root_Selected_Index (Model, 3);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Root_Layout.Height := 45;
+      Root_Rows := Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Assert (Natural (Root_Rows.Length) = 3, "root selector includes clipped extra visible row");
+      Assert
+        (Root_Rows.Element (1).Root_Index = 1,
+         "root selector keeps selected clipped row visible without over-scrolling");
+      Assert (Root_Rows.Element (3).Root_Index = 3, "root selector partial row preserves selected index");
+      Assert (Root_Rows.Element (3).Height = 5, "root selector clips extra visible row");
+      Assert (Root_Rows.Element (3).Selected, "root selector marks selected clipped row");
+
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
+      Assert (Layout.Main_Height = 0, "narrow layout saturates main height");
+      Assert (Layout.Command_Width = 32, "narrow command palette keeps 80 percent width");
+      Assert (Layout.Command_Height = 40, "short command palette keeps 80 percent height");
+      Assert
+        (Layout.Command_Y + Layout.Command_Height <= Layout.Height,
+         "short command palette stays within the window height");
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      Assert (Palette_Layout.Results_Height = 20, "short palette result area saturates");
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 10, Line_Height => 20);
+      Assert
+        (Layout.Command_Y + Layout.Command_Height <= Layout.Height,
+         "tiny command palette stays within the window height");
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      Assert (Palette_Layout.Search_Height = 8, "tiny palette clamps search field to palette height");
+      Assert (Palette_Layout.Results_Height = 0, "tiny palette has no negative result area");
+      Assert
+        (Palette_Layout.Results_Y = Palette_Layout.Y + Palette_Layout.Search_Height,
+         "tiny palette results start after the clipped search field");
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
+      Root_Layout := Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Root_Layout.Width = 40, "narrow root selector stays within window width");
+      Assert (Root_Layout.Height = 0, "narrow root selector respects zero main height");
+
+      Details_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert
+        (Details_Layout.Element (1).Width = Layout.Main_Width,
+         "narrow details row stays within main width");
+      Assert (Details_Layout.Element (1).Height = 0, "narrow details row height saturates");
+      Assert (Details_Layout.Element (1).Icon_Size = 0, "narrow details icon size saturates");
+      Assert (Details_Layout.Element (1).Name_Width = 3, "narrow details name column saturates");
+      Assert (Details_Layout.Element (1).Modified_Width = 1, "narrow details modified column is bounded");
+      Assert (Details_Layout.Element (1).Size_Width = 1, "narrow details size column is bounded");
+      Assert (Details_Layout.Element (1).Filetype_Width = 1, "narrow details filetype column is bounded");
+
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 65, Line_Height => 20);
+      Details_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Layout.Main_Height = 5, "partial details main height is represented");
+      Assert (Details_Layout.Element (1).Height = 0, "partial details row is hidden behind clipped header");
+      Assert (Details_Layout.Element (1).Icon_Size = 0, "partial details icon is hidden behind clipped header");
+
+      Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Small_Layout.Element (1).Height = 5, "partial small-icons cell height is clipped");
+      Assert (Small_Layout.Element (1).Icon_Size = 5, "partial small-icons icon size is clipped");
+
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
+      Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Small_Layout.Element (1).Width = Layout.Main_Width, "narrow small-icons cell width is bounded");
+      Assert (Small_Layout.Element (1).Height = 0, "narrow small-icons cell height saturates");
+      Assert (Small_Layout.Element (1).Icon_Size = 0, "narrow small-icons icon size saturates");
+
+      declare
+         Image_Snapshot : Files.Rendering.View_Snapshot;
+         Image_Frame    : Files.Rendering.Frame_Commands;
+         Image_Layout   : Files.Rendering.Item_Layout_Vectors.Vector;
+         Found_Image_Mark : Boolean := False;
+         Found_Image_Frame : Boolean := False;
+         Ada_Snapshot   : Files.Rendering.View_Snapshot;
+         Ada_Frame      : Files.Rendering.Frame_Commands;
+         Ada_Layout     : Files.Rendering.Item_Layout_Vectors.Vector;
+         Found_Ada_Mark : Boolean := False;
+         Found_Ada_Frame : Boolean := False;
+         Unknown_Snapshot : Files.Rendering.View_Snapshot;
+         Unknown_Frame    : Files.Rendering.Frame_Commands;
+         Unknown_Layout   : Files.Rendering.Item_Layout_Vectors.Vector;
+         Found_Unknown_Mark : Boolean := False;
+         Found_Unknown_Frame : Boolean := False;
+         Custom_Snapshot : Files.Rendering.View_Snapshot;
+         Custom_Frame    : Files.Rendering.Frame_Commands;
+         Custom_Layout   : Files.Rendering.Item_Layout_Vectors.Vector;
+         Found_Custom_Fallback : Boolean := False;
+         Found_Custom_Command  : Boolean := False;
+         Long_Name_Snapshot : Files.Rendering.View_Snapshot;
+         Long_Name_Frame    : Files.Rendering.Frame_Commands;
+         Found_Truncated_Name : Boolean := False;
+         Utf8_Name_Snapshot : Files.Rendering.View_Snapshot;
+         Utf8_Name_Frame    : Files.Rendering.Frame_Commands;
+         Utf8_Text          : constant String :=
+           Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
+         Broken_Utf8_Text   : constant String := Utf8_Text (Utf8_Text'First .. Utf8_Text'First) & "...";
+         Found_Utf8_Fit     : Boolean := False;
+         Exact_Ellipsis_Snapshot : Files.Rendering.View_Snapshot;
+         Exact_Ellipsis_Frame    : Files.Rendering.Frame_Commands;
+         Found_Exact_Ellipsis    : Boolean := False;
+         Details_Snapshot   : Files.Rendering.View_Snapshot;
+         Details_Frame      : Files.Rendering.Frame_Commands;
+         Found_Truncated_Filetype : Boolean := False;
+      begin
+         Image_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          => To_Unbounded_String ("photo.png"),
+               Filetype      => To_Unbounded_String ("image/png"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.image.png")),
+               Icon_Id       => To_Unbounded_String ("image"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Image_Frame := Files.Rendering.Build_Frame_Commands (Image_Snapshot, Width => 200, Height => 120);
+         Image_Layout := Files.Rendering.Calculate_Item_Layout (Image_Snapshot, Image_Frame.Layout);
+         for Command of Image_Frame.Rectangles loop
+            if Command.Color = Files.Rendering.Selection_Color
+              and then Command.X >= Image_Layout.Element (1).Icon_X
+              and then Command.Y >= Image_Layout.Element (1).Icon_Y
+              and then Command.X < Image_Layout.Element (1).Icon_X + Image_Layout.Element (1).Icon_Size
+              and then Command.Y < Image_Layout.Element (1).Icon_Y + Image_Layout.Element (1).Icon_Size
+            then
+               Found_Image_Mark := True;
+            elsif Command.Color = Files.Rendering.Border_Color
+              and then Command.X = Image_Layout.Element (1).Icon_X
+              and then Command.Y = Image_Layout.Element (1).Icon_Y
+              and then Command.Width = Image_Layout.Element (1).Icon_Size
+              and then Command.Height = 1
+            then
+               Found_Image_Frame := True;
+            end if;
+         end loop;
+         Assert (Found_Image_Mark, "frame renders image-specific icon mark");
+         Assert (Found_Image_Frame, "frame renders image icon asset border");
+
+         Ada_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          => To_Unbounded_String ("main.adb"),
+               Filetype      => To_Unbounded_String ("text/x-ada"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.file")),
+               Icon_Id       => To_Unbounded_String ("ada"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Ada_Frame := Files.Rendering.Build_Frame_Commands (Ada_Snapshot, Width => 200, Height => 120);
+         Ada_Layout := Files.Rendering.Calculate_Item_Layout (Ada_Snapshot, Ada_Frame.Layout);
+         for Command of Ada_Frame.Rectangles loop
+            if Command.Color = Files.Rendering.Icon_Executable_Color
+              and then Command.X >= Ada_Layout.Element (1).Icon_X
+              and then Command.Y >= Ada_Layout.Element (1).Icon_Y
+              and then Command.X < Ada_Layout.Element (1).Icon_X + Ada_Layout.Element (1).Icon_Size
+              and then Command.Y < Ada_Layout.Element (1).Icon_Y + Ada_Layout.Element (1).Icon_Size
+            then
+               Found_Ada_Mark := True;
+            elsif Command.Color = Files.Rendering.Border_Color
+              and then Command.X = Ada_Layout.Element (1).Icon_X
+              and then Command.Y = Ada_Layout.Element (1).Icon_Y
+              and then Command.Width = Ada_Layout.Element (1).Icon_Size
+              and then Command.Height = 1
+            then
+               Found_Ada_Frame := True;
+            end if;
+         end loop;
+         Assert (Found_Ada_Mark, "frame renders settings-driven Ada icon mark");
+         Assert (Found_Ada_Frame, "frame renders Ada icon asset border");
+
+         Unknown_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          => To_Unbounded_String ("blob.bin"),
+               Filetype      => To_Unbounded_String ("application/octet-stream"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.file")),
+               Icon_Id       => To_Unbounded_String ("unknown"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Unknown_Frame := Files.Rendering.Build_Frame_Commands (Unknown_Snapshot, Width => 200, Height => 120);
+         Unknown_Layout := Files.Rendering.Calculate_Item_Layout (Unknown_Snapshot, Unknown_Frame.Layout);
+         for Command of Unknown_Frame.Rectangles loop
+            if Command.Color = Files.Rendering.Border_Color
+              and then Command.X >= Unknown_Layout.Element (1).Icon_X
+              and then Command.Y >= Unknown_Layout.Element (1).Icon_Y
+              and then Command.X < Unknown_Layout.Element (1).Icon_X + Unknown_Layout.Element (1).Icon_Size
+              and then Command.Y < Unknown_Layout.Element (1).Icon_Y + Unknown_Layout.Element (1).Icon_Size
+            then
+               Found_Unknown_Mark := True;
+            end if;
+
+            if Command.Color = Files.Rendering.Border_Color
+              and then Command.X = Unknown_Layout.Element (1).Icon_X
+              and then Command.Y = Unknown_Layout.Element (1).Icon_Y
+              and then Command.Width = Unknown_Layout.Element (1).Icon_Size
+              and then Command.Height = 1
+            then
+               Found_Unknown_Frame := True;
+            end if;
+         end loop;
+         Assert (Found_Unknown_Mark, "frame renders unknown-file icon mark");
+         Assert (Found_Unknown_Frame, "frame renders unknown icon asset border");
+
+         Custom_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          => To_Unbounded_String ("custom.asset"),
+               Filetype      => To_Unbounded_String ("application/x-custom"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.file")),
+               Icon_Id       => To_Unbounded_String ("project-private-icon"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Custom_Frame := Files.Rendering.Build_Frame_Commands (Custom_Snapshot, Width => 200, Height => 120);
+         Custom_Layout := Files.Rendering.Calculate_Item_Layout (Custom_Snapshot, Custom_Frame.Layout);
+         for Command of Custom_Frame.Rectangles loop
+            if Command.Color = Files.Rendering.Border_Color
+              and then Command.X >= Custom_Layout.Element (1).Icon_X
+              and then Command.Y >= Custom_Layout.Element (1).Icon_Y
+              and then Command.X < Custom_Layout.Element (1).Icon_X + Custom_Layout.Element (1).Icon_Size
+              and then Command.Y < Custom_Layout.Element (1).Icon_Y + Custom_Layout.Element (1).Icon_Size
+            then
+               Found_Custom_Fallback := True;
+            end if;
+         end loop;
+         for Command of Custom_Frame.Icons loop
+            if To_String (Command.Icon_Id) = "unknown" then
+               Found_Custom_Command := True;
+            end if;
+         end loop;
+         Assert (Found_Custom_Fallback, "frame renders fallback mark for custom unbundled icon id");
+         Assert (Found_Custom_Command, "frame records resolved icon command for custom unbundled icon id");
+
+         Long_Name_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          =>
+                 To_Unbounded_String ("this-file-name-is-far-too-long-for-the-visible-cell.txt"),
+               Filetype      => To_Unbounded_String ("text/plain"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.text")),
+               Icon_Id       => To_Unbounded_String ("text"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Long_Name_Frame := Files.Rendering.Build_Frame_Commands (Long_Name_Snapshot, Width => 100, Height => 120);
+         for Command of Long_Name_Frame.Text loop
+            if To_String (Command.Text) = "this..." then
+               Found_Truncated_Name := True;
+            end if;
+         end loop;
+         Assert (Found_Truncated_Name, "frame truncates long item text to fit visible cell");
+
+         Utf8_Name_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          => To_Unbounded_String (Utf8_Text & "file-name-too-long.txt"),
+               Filetype      => To_Unbounded_String ("text/plain"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.text")),
+               Icon_Id       => To_Unbounded_String ("text"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Utf8_Name_Frame := Files.Rendering.Build_Frame_Commands (Utf8_Name_Snapshot, Width => 70, Height => 120);
+         for Command of Utf8_Name_Frame.Text loop
+            Assert
+              (To_String (Command.Text) /= Broken_Utf8_Text,
+               "frame UTF-8 fitting does not split a multibyte name character");
+            if Command.Truncated
+              and then To_String (Command.Text) = "..."
+              and then Command.Color = Files.Rendering.Text_Color
+            then
+               Found_Utf8_Fit := True;
+            end if;
+         end loop;
+         Assert (Found_Utf8_Fit, "frame UTF-8 fitting drops partial multibyte prefix before ellipsis");
+
+         Exact_Ellipsis_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name          => To_Unbounded_String ("abcdefghi.txt"),
+               Filetype      => To_Unbounded_String ("text/plain"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.text")),
+               Icon_Id       => To_Unbounded_String ("text"),
+               Kind          => Files.Types.Regular_File_Item,
+               Visible_Index => 1,
+               others        => <>));
+         Exact_Ellipsis_Frame :=
+           Files.Rendering.Build_Frame_Commands (Exact_Ellipsis_Snapshot, Width => 60, Height => 120);
+         for Command of Exact_Ellipsis_Frame.Text loop
+            if Command.Truncated
+              and then To_String (Command.Text) = "..."
+              and then Command.Color = Files.Rendering.Text_Color
+            then
+               Found_Exact_Ellipsis := True;
+            end if;
+         end loop;
+         Assert (Found_Exact_Ellipsis, "frame uses ellipsis when fitted text has exact ellipsis capacity");
+
+         Details_Snapshot.View_Mode := Files.Types.Details;
+         Details_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name               => To_Unbounded_String ("report.long"),
+               Filetype           => To_Unbounded_String ("application/x-extremely-long-type"),
+               Filetype_Detail    => To_Unbounded_String ("application/x-extremely-long-type"),
+               Icon_Id            => To_Unbounded_String ("unknown"),
+               Kind               => Files.Types.Regular_File_Item,
+               Modified_Available => True,
+               Modified_Time      => Ada.Calendar.Time_Of (2026, 6, 17),
+               Size_Available     => True,
+               Size               => 42,
+               Visible_Index      => 1,
+               others             => <>));
+         Details_Frame := Files.Rendering.Build_Frame_Commands (Details_Snapshot, Width => 200, Height => 140);
+         for Command of Details_Frame.Text loop
+            if To_String (Command.Text) = "a..."
+              and then Command.Color = Files.Rendering.Muted_Text_Color
+            then
+               Found_Truncated_Filetype := True;
+            end if;
+         end loop;
+         Assert (Found_Truncated_Filetype, "frame truncates details filetype text to fit column");
+      end;
+
+      Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 65, Line_Height => 20);
+      Large_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Large_Layout.Element (1).Height = 5, "partial large-icons cell height is clipped");
+      Assert (Large_Layout.Element (1).Icon_Size = 5, "partial large-icons icon size is clipped");
+
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
+      Large_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+      Assert (Large_Layout.Element (1).Width = Layout.Main_Width, "narrow large-icons cell width is bounded");
+      Assert (Large_Layout.Element (1).Height = 0, "narrow large-icons cell height saturates");
+      Assert (Large_Layout.Element (1).Icon_Size = 0, "narrow large-icons icon size saturates");
+
+      Toolbar := Files.UI.Calculate_Toolbar_Layout (3);
+      Assert
+        (Toolbar.Left_X = 0 and then Toolbar.Middle_X = 0 and then Toolbar.Right_X = 3,
+         "narrow toolbar keeps explicit section origins");
+      Assert (Toolbar.Middle_Width = 3, "narrow toolbar preserves total width");
+      Assert
+        (Files.UI.Toolbar_Command_At (1, 0, 3, Line_Height => 20) = Files.Commands.No_Command,
+         "narrow toolbar hit test does not leak zero-width left commands");
+      Assert
+        (Files.UI.Toolbar_Command_At (1, 10, 3, Line_Height => 20) = Files.Commands.Focus_Path_Input_Command,
+         "narrow toolbar hit test gives remaining width to path input");
+      Toolbar := Files.UI.Calculate_Toolbar_Layout (0);
+      Assert
+        (Toolbar.Left_X = 0 and then Toolbar.Left_Width = 0 and then Toolbar.Middle_X = 0 and then
+         Toolbar.Middle_Width = 0 and then Toolbar.Right_X = 0 and then Toolbar.Right_Width = 0,
+         "zero-width toolbar stays empty");
+      Assert
+        (Files.UI.Toolbar_Command_At (0, 10, 0, Line_Height => 20) = Files.Commands.No_Command,
+         "zero-width toolbar hit test stays empty");
+      Bottom_Bar := Files.UI.Calculate_Bottom_Bar_Layout (40, Line_Height => 20);
+      Assert (Bottom_Bar.View_Mode_Width = 40, "narrow bottom bar keeps view selector within width");
+      Assert (Bottom_Bar.Info_Width = 0, "narrow bottom bar saturates info section");
+      Assert (Bottom_Bar.Info_Pane_Width = 0, "narrow bottom bar saturates info-pane toggle");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (39, 40, 40, 60, Line_Height => 20) =
+         Files.Commands.Select_Small_Icons_Command,
+         "narrow bottom-bar hit test keeps available pixels on small-icons command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (40, 40, 40, 60, Line_Height => 20) = Files.Commands.No_Command,
+         "narrow bottom-bar hit test rejects edge after collapsed buttons");
+      Bottom_Bar := Files.UI.Calculate_Bottom_Bar_Layout (0, Line_Height => 20);
+      Assert
+        (Bottom_Bar.View_Mode_Width = 0 and then Bottom_Bar.Info_Width = 0 and then
+         Bottom_Bar.Info_Pane_Width = 0,
+         "zero-width bottom bar stays empty");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (0, 0, 0, 20, Line_Height => 20) = Files.Commands.No_Command,
+         "zero-width bottom-bar hit test stays empty");
+
+      Model := Sample_Model;
+      Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
+      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+      declare
+         Palette_Frame        : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Found_Palette_Border : Boolean := False;
+         Found_Palette_Focus_Ring : Boolean := False;
+         Found_Palette_Shadow : Boolean := False;
+         Found_Palette_Top_Accent : Boolean := False;
+         Found_Palette_Description : Boolean := False;
+         Found_Palette_Selection_Accent : Boolean := False;
+         Found_Palette_Disabled_Fill : Boolean := False;
+         Found_Palette_Disabled_Rule : Boolean := False;
+         Found_Palette_Shortcut : Boolean := False;
+         Found_Palette_Accessible_Shortcut : Boolean := False;
+         Found_Palette_Accessible_Disabled : Boolean := False;
+      begin
+         for Command of Palette_Frame.Rectangles loop
+            if Command.X = Palette_Layout.Search_X
+              and then Command.Y = Palette_Layout.Search_Y
+              and then Command.Width = Palette_Layout.Search_Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Palette_Border := True;
+            elsif Command.X = Palette_Layout.Search_X - 1
+              and then Command.Y = Palette_Layout.Search_Y - 1
+              and then Command.Width = Palette_Layout.Search_Width + 2
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Palette_Focus_Ring := True;
+            elsif Command.X = Palette_Layout.X + Palette_Layout.Width
+              and then Command.Y = Palette_Layout.Y + 3
+              and then Command.Width = 3
+              and then Command.Height = Palette_Layout.Height
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Palette_Shadow := True;
+            elsif Command.X = Palette_Layout.X
+              and then Command.Y = Palette_Layout.Y
+              and then Command.Width = Palette_Layout.Width
+              and then Command.Height = 3
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Palette_Top_Accent := True;
+            elsif Command.X = Palette_Layout.Results_X
+              and then Command.Y = Palette_Layout.Results_Y
+              and then Command.Width = 3
+              and then Command.Height = 40
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Palette_Selection_Accent := True;
+            elsif Command.X = Palette_Layout.Results_X
+              and then Command.Y = Palette_Layout.Results_Y
+              and then Command.Width = Palette_Layout.Results_Width
+              and then Command.Height = 40
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Palette_Disabled_Fill := True;
+            elsif Command.X = Palette_Layout.Results_X + 4
+              and then Command.Y = Palette_Layout.Results_Y + 19
+              and then Command.Width = Palette_Layout.Results_Width - 8
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Disabled_Text_Color
+            then
+               Found_Palette_Disabled_Rule := True;
+            end if;
+         end loop;
+
+         for Command of Palette_Frame.Text loop
+            if To_String (Command.Text) = Files.Localization.Text ("command.navigate.back.description")
+              and then Command.Color = Files.Rendering.Disabled_Text_Color
+            then
+               Found_Palette_Description := True;
+            elsif To_String (Command.Text) = "alt+left"
+              and then Command.Color = Files.Rendering.Disabled_Text_Color
+            then
+               Found_Palette_Shortcut := True;
+            end if;
+         end loop;
+
+         for Node of Palette_Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_List_Item
+              and then To_String (Node.Name) = Files.Localization.Text ("command.navigate.back")
+              and then Ada.Strings.Fixed.Index (To_String (Node.Description), "alt+left") > 0
+            then
+               Found_Palette_Accessible_Shortcut := True;
+               if Ada.Strings.Fixed.Index
+                   (To_String (Node.Description), Files.Localization.Text ("accessibility.command_disabled")) > 0
+               then
+                  Found_Palette_Accessible_Disabled := True;
+               end if;
+            end if;
+         end loop;
+
+         Assert (Found_Palette_Border, "frame renders focused command-palette search border");
+         Assert (Found_Palette_Focus_Ring, "frame renders expanded command-palette focus ring");
+         Assert (Found_Palette_Shadow, "frame renders command-palette drop shadow");
+         Assert (Found_Palette_Top_Accent, "frame renders command-palette top accent");
+         Assert (Found_Palette_Description, "frame renders command-palette result description");
+         Assert (Found_Palette_Shortcut, "frame renders command-palette result shortcut text");
+         Assert
+           (Found_Palette_Accessible_Shortcut,
+            "frame exposes command-palette shortcut text in accessibility metadata");
+         Assert
+           (Found_Palette_Accessible_Disabled,
+            "frame exposes disabled command-palette state in accessibility metadata");
+         Assert (Found_Palette_Selection_Accent, "frame renders selected command-palette row accent");
+         Assert (Found_Palette_Disabled_Fill, "frame renders disabled command-palette row fill");
+         Assert (Found_Palette_Disabled_Rule, "frame renders disabled command-palette row rule");
+      end;
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      declare
+         Found_Count_Text : Boolean := False;
+         Expected_Count_Text : constant String :=
+           Files.Localization.Text ("status.items") & ": 3  "
+           & Files.Localization.Text ("status.visible") & ": 3  "
+           & Files.Localization.Text ("status.selected") & ": 1";
+         Root_For_Frame : constant Files.Rendering.Root_Selector_Layout :=
+           Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Frame.Layout, Line_Height => 20);
+         Root_Rows : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_For_Frame);
+         Found_Root_Selected_Accent : Boolean := False;
+      begin
+         for Command of Frame.Text loop
+            if To_String (Command.Text) = Expected_Count_Text
+              and then Command.Color = Files.Rendering.Muted_Text_Color
+            then
+               Found_Count_Text := True;
+            end if;
+         end loop;
+         for Command of Frame.Rectangles loop
+            if Command.X = Root_Rows.Element (1).X
+              and then Command.Y = Root_Rows.Element (1).Y
+              and then Command.Width = 3
+              and then Command.Height = Root_Rows.Element (1).Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Root_Selected_Accent := True;
+            end if;
+         end loop;
+
+         Assert (Found_Count_Text, "frame renders localized bottom-bar count text");
+         Assert (Found_Root_Selected_Accent, "frame renders root selector selected-row accent");
+      end;
+      declare
+         Found_Text_Icon : Boolean := False;
+      begin
+         Assert (Natural (Frame.Icons.Length) = Snapshot.Visible_Count, "frame emits one icon command per item");
+         for Command of Frame.Icons loop
+            if To_String (Command.Icon_Id) = "text"
+              and then To_String (Command.Theme_Name) = "files-basic"
+              and then To_String (Command.Asset_Path) = "share/files/icons/text.icon"
+            then
+               Found_Text_Icon := True;
+            end if;
+         end loop;
+
+         Assert (Found_Text_Icon, "frame exposes default themed text icon asset command");
+      end;
+      declare
+         Icon_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Icon_Items    : Files.File_System.Item_Vectors.Vector;
+         Icon_Model    : Files.Model.Window_Model;
+         Icon_Snapshot : Files.Rendering.View_Snapshot;
+         Icon_Frame    : Files.Rendering.Frame_Commands;
+         Found_Markdown_Icon : Boolean := False;
+      begin
+         Files.Settings.Add_Icon_Mapping (Icon_Settings, "text/markdown", "markdown");
+         Icon_Settings.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
+         Icon_Items.Append
+           (Files.File_System.Make_Item
+              (Root, "readme.md", Files.Types.Regular_File_Item, Icon_Settings));
+         Files.Model.Initialize (Icon_Model, Root, Icon_Items, Root);
+         Icon_Snapshot := Files.Rendering.Build_Snapshot (Icon_Model, Icon_Settings);
+         Icon_Frame :=
+           Files.Rendering.Build_Frame_Commands (Icon_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+
+         for Command of Icon_Frame.Icons loop
+            if To_String (Command.Icon_Id) = "markdown"
+              and then To_String (Command.Theme_Name) = "files-high-contrast"
+              and then To_String (Command.Asset_Path) = "share/files/icons/high-contrast/markdown.icon"
+            then
+               Found_Markdown_Icon := True;
+            end if;
+         end loop;
+
+         Assert (Found_Markdown_Icon, "frame exposes configured high-contrast markdown icon asset command");
+      end;
+      Files.Model.Close_Root_Selector (Model);
+      declare
+         Summary_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Args             : Files.Types.String_Vectors.Vector;
+      begin
+         Args.Append (To_Unbounded_String ("{path}"));
+         Files.Settings.Add_Extension_Mapping (Summary_Settings, "ada", "text/x-ada");
+         Files.Settings.Add_Icon_Mapping (Summary_Settings, "text/x-ada", "ada");
+         Files.Settings.Add_Open_Action
+           (Summary_Settings,
+            "text/x-ada",
+            Files.Settings.Make_Action ("editor", Args));
+         Summary_Settings.Default_View := Files.Types.Details;
+         Summary_Settings.Show_Hidden_Files := True;
+         Summary_Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
+         Summary_Settings.Sort_Ascending := False;
+         Summary_Settings.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
+         Files.Model.Toggle_Settings_Pane (Model);
+         Snapshot := Files.Rendering.Build_Snapshot (Model, Summary_Settings);
+      end;
+      Assert (Snapshot.Settings_Pane_Open, "snapshot captures settings pane visibility");
+      Assert
+        (To_String (Snapshot.Settings_Default_View) = Files.Localization.Text ("command.view.details"),
+         "settings snapshot captures actual default view setting");
+      Assert
+        (To_String (Snapshot.Settings_Default_View_Token) = "details",
+         "settings snapshot keeps raw default view token");
+      Assert
+        (To_String (Snapshot.Settings_Hidden_Files) = Files.Localization.Text ("settings.value.true"),
+         "settings snapshot captures actual hidden-file setting");
+      Assert
+        (To_String (Snapshot.Settings_Hidden_Files_Token) = "true",
+         "settings snapshot keeps raw hidden-file token");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Snapshot.Settings_Sort), Files.Localization.Text ("settings.sort.size")) = 1,
+         "settings snapshot captures actual sort field setting");
+      Assert
+        (To_String (Snapshot.Settings_Sort_Field_Token) = "size",
+         "settings snapshot keeps raw sort-field token");
+      Assert
+        (To_String (Snapshot.Settings_Sort_Dirs_Token) = "true",
+         "settings snapshot keeps raw sort-directories token");
+      Assert
+        (To_String (Snapshot.Settings_Sort_Ascending_Token) = "false",
+         "settings snapshot keeps raw sort-direction token");
+      Assert
+        (To_String (Snapshot.Settings_High_Contrast_Token) = "false",
+         "settings snapshot keeps raw high-contrast token");
+      Assert (To_String (Snapshot.Settings_Filetypes) = "20", "settings snapshot counts filetype mappings");
+      Assert (To_String (Snapshot.Settings_Icons) = "21", "settings snapshot counts icon mappings");
+      Assert (To_String (Snapshot.Settings_Open_Actions) = "2", "settings snapshot counts open actions");
+      Assert
+        (To_String (Snapshot.Settings_Icon_Theme) = "files-high-contrast",
+         "settings snapshot captures icon theme setting");
+      declare
+         Draft_Count_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Draft_Count_Model    : Files.Model.Window_Model := Sample_Model;
+         Draft_Count_Snapshot : Files.Rendering.View_Snapshot;
+         Args                 : Files.Types.String_Vectors.Vector;
+      begin
+         Args.Append (To_Unbounded_String ("{path}"));
+         Files.Settings.Add_Extension_Mapping (Draft_Count_Settings, "ada", "text/x-ada");
+         Files.Settings.Add_Icon_Mapping (Draft_Count_Settings, "text/x-ada", "ada");
+         Files.Settings.Add_Open_Action
+           (Draft_Count_Settings,
+            "text/x-ada",
+            Files.Settings.Make_Action ("editor", Args));
+         Files.Model.Begin_Settings_Edit
+           (Draft_Count_Model,
+            Files.Settings.Make_Draft (Draft_Count_Settings));
+
+         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 8);
+         Files.Model.Add_Settings_Entry (Draft_Count_Model);
+         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 10);
+         Files.Model.Remove_Settings_Entry (Draft_Count_Model);
+         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 12);
+         Files.Model.Add_Settings_Entry (Draft_Count_Model);
+
+         Draft_Count_Snapshot := Files.Rendering.Build_Snapshot (Draft_Count_Model, Draft_Count_Settings);
+         Assert
+           (To_String (Draft_Count_Snapshot.Settings_Filetypes) = "21",
+            "editable settings snapshot counts draft filetype mappings");
+         Assert
+           (To_String (Draft_Count_Snapshot.Settings_Icons) = "20",
+            "editable settings snapshot counts draft icon mappings");
+         Assert
+           (To_String (Draft_Count_Snapshot.Settings_Open_Actions) = "3",
+            "editable settings snapshot counts draft open actions");
+         Assert
+           (Natural (Draft_Count_Settings.Extension_Filetypes.Length) = 20,
+            "draft snapshot count does not mutate saved filetype mappings");
+         Assert
+           (Natural (Draft_Count_Settings.Icon_Mappings.Length) = 21,
+            "draft snapshot count does not mutate saved icon mappings");
+         Assert
+           (Natural (Draft_Count_Settings.Open_Actions.Length) = 2,
+            "draft snapshot count does not mutate saved open actions");
+      end;
+      declare
+         Misaligned_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Misaligned_Model    : Files.Model.Window_Model := Sample_Model;
+         Misaligned_Snapshot : Files.Rendering.View_Snapshot;
+         Misaligned_Draft    : Files.Settings.Settings_Draft;
+      begin
+         Misaligned_Settings.Extension_Filetypes.Clear;
+         Misaligned_Settings.Icon_Mappings.Clear;
+         Misaligned_Settings.Open_Actions.Clear;
+         Misaligned_Draft := Files.Settings.Make_Draft (Misaligned_Settings);
+         Misaligned_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+         Misaligned_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
+         Misaligned_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
+         Files.Model.Begin_Settings_Edit (Misaligned_Model, Misaligned_Draft);
+         Misaligned_Snapshot := Files.Rendering.Build_Snapshot (Misaligned_Model, Misaligned_Settings);
+         Assert
+           (To_String (Misaligned_Snapshot.Settings_Filetypes) = "0",
+            "editable settings snapshot ignores orphan filetype rows");
+         Assert
+           (To_String (Misaligned_Snapshot.Settings_Icons) = "0",
+            "editable settings snapshot ignores orphan icon rows");
+         Assert
+           (To_String (Misaligned_Snapshot.Settings_Open_Actions) = "0",
+            "editable settings snapshot ignores orphan open-action rows");
+      end;
+      declare
+         Control_Model    : Files.Model.Window_Model := Sample_Model;
+         Control_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Control_Snapshot : Files.Rendering.View_Snapshot;
+         Control_Frame    : Files.Rendering.Frame_Commands;
+         Found_Active     : Boolean := False;
+      begin
+         Control_Settings.Default_View := Files.Types.Details;
+         Files.Model.Begin_Settings_Edit
+           (Control_Model,
+            Files.Settings.Make_Draft (Control_Settings));
+         Files.Model.Set_Settings_Field_Index (Control_Model, 1);
+         Control_Snapshot := Files.Rendering.Build_Snapshot (Control_Model, Control_Settings);
+         Control_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Control_Snapshot,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20);
+
+         for Command of Control_Frame.Text loop
+            if To_String (Command.Text) = Files.Localization.Text ("command.view.details") then
+               for Rectangle of Control_Frame.Rectangles loop
+                  if Rectangle.X + 2 = Command.X
+                    and then Rectangle.Y = Command.Y
+                    and then Rectangle.Height = Command.Height
+                    and then Rectangle.Color = Files.Rendering.Selection_Color
+                  then
+                     Found_Active := True;
+                  end if;
+               end loop;
+            end if;
+         end loop;
+
+         Assert
+           (Found_Active,
+            "settings option controls highlight active raw token while rendering localized text");
+      end;
+      Assert
+        (To_String (Snapshot.Settings_Control_Options) = Files.Localization.Text ("settings.options.default_view"),
+         "settings snapshot exposes selected control options");
+      Assert (Snapshot.Settings_Can_Save, "settings snapshot exposes save availability");
+      Assert (Snapshot.Settings_Can_Reset, "settings snapshot exposes reset availability");
+      Assert (Snapshot.Settings_Can_Import, "settings snapshot exposes import availability");
+      Assert (Snapshot.Settings_Can_Export, "settings snapshot exposes export availability");
+      Assert (To_String (Snapshot.Theme_Name) = "default", "snapshot exposes default theme name");
+      Assert (not Snapshot.Theme_High_Contrast, "snapshot exposes default contrast state");
+      Assert (Snapshot.Theme_Focus_Ring = Files.Rendering.Border_Color, "snapshot exposes focus ring color");
+      declare
+         Contrast_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Contrast_Snapshot : Files.Rendering.View_Snapshot;
+      begin
+         Contrast_Settings.High_Contrast_Theme := True;
+         Contrast_Snapshot := Files.Rendering.Build_Snapshot (Model, Contrast_Settings);
+         Assert
+           (To_String (Contrast_Snapshot.Theme_Name) = "high_contrast",
+            "snapshot exposes high-contrast theme name");
+         Assert (Contrast_Snapshot.Theme_High_Contrast, "snapshot exposes high-contrast state");
+         Assert
+           (Contrast_Snapshot.Theme_Focus_Ring = Files.Rendering.Selection_Color,
+            "snapshot exposes high-contrast focus ring color");
+      end;
+      declare
+         Default_A11y : constant Files.Rendering.Accessibility_Profile :=
+           Files.Rendering.Default_Accessibility_Profile;
+         Contrast_A11y : constant Files.Rendering.Accessibility_Profile :=
+           Files.Rendering.High_Contrast_Accessibility_Profile;
+         Accessibility_Integration : constant Files.Rendering.Accessibility_Integration_Profile :=
+           Files.Rendering.Accessibility_Integration_Profile_Of_Current_UI;
+         Settings_Profile : constant Files.Rendering.Settings_Editor_Profile :=
+           Files.Rendering.Settings_Editor_Profile_Of_Current_UI;
+         Icon_Profile : constant Files.Rendering.Icon_Theme_Profile :=
+           Files.Rendering.Icon_Theme_Profile_Of_Current_UI;
+         Contrast_Icon_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Contrast_Icon_Profile  : Files.Rendering.Icon_Theme_Profile;
+         Icon_Names : constant Files.Types.String_Vectors.Vector :=
+           Files.Rendering.Bundled_Icon_Asset_Names;
+         Parsed_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=test" & ASCII.LF &
+              "grid=16" & ASCII.LF &
+              "rect=1,2,3,4,accent" & ASCII.LF);
+         Parsed_Bundled_Text_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             (Files.Rendering.Icon_Asset_Text ("text", "files-basic"));
+         Parsed_Contrast_Folder_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             (Files.Rendering.Icon_Asset_Text ("folder", "files-high-contrast"));
+         Bad_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad" & ASCII.LF &
+              "grid=16" & ASCII.LF &
+              "rect=1,2,0,4,accent" & ASCII.LF);
+         Out_Of_Bounds_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad-bounds" & ASCII.LF &
+              "grid=16" & ASCII.LF &
+              "rect=15,2,2,4,accent" & ASCII.LF);
+         Rect_Before_Grid_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad-order" & ASCII.LF &
+              "rect=1,2,3,4,accent" & ASCII.LF &
+              "grid=16" & ASCII.LF);
+         Huge_Rect_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad-huge" & ASCII.LF &
+              "grid=16" & ASCII.LF &
+              "rect=" & Natural'Image (Natural'Last) & ",2,1,4,accent" & ASCII.LF);
+         Bad_Grid_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad-grid" & ASCII.LF &
+              "grid=sixteen" & ASCII.LF &
+              "rect=1,2,3,4,accent" & ASCII.LF);
+         Bad_Rect_Number_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad-rect-number" & ASCII.LF &
+              "grid=16" & ASCII.LF &
+              "rect=1,x,3,4,accent" & ASCII.LF);
+         Bad_Role_Icon : constant Files.Rendering.Icon_Asset :=
+           Files.Rendering.Parse_Icon_Asset
+             ("files-icon-v1" & ASCII.LF &
+              "name=bad-role" & ASCII.LF &
+              "grid=16" & ASCII.LF &
+              "rect=1,2,3,4,glow" & ASCII.LF);
+
+         function Repository_File_Exists (Path : String) return Boolean is
+         begin
+            return Ada.Directories.Exists (Path)
+              or else Ada.Directories.Exists ("../" & Path)
+              or else Ada.Directories.Exists ("../../" & Path);
+         end Repository_File_Exists;
+      begin
+         Assert (Default_A11y.Keyboard_Navigation, "default accessibility profile supports keyboard navigation");
+         Assert (Default_A11y.Focus_Rings, "default accessibility profile exposes focus rings");
+         Assert (Default_A11y.Tooltips, "default accessibility profile exposes tooltips");
+         Assert (Default_A11y.Text_Truncation, "default accessibility profile exposes truncation behavior");
+         Assert (not Default_A11y.High_Contrast, "default accessibility profile is not high contrast");
+         Assert (Contrast_A11y.High_Contrast, "high-contrast accessibility profile advertises high contrast");
+         Assert
+           (Default_A11y.Screen_Reader_Role_Metadata,
+            "accessibility profile exposes screen-reader role metadata");
+         Assert (Settings_Profile.Scalar_Controls = 7, "settings profile counts scalar controls");
+         Assert (Settings_Profile.Mapping_Controls = 4, "settings profile counts mapping controls");
+         Assert (Settings_Profile.Open_Action_Controls = 2, "settings profile counts open-action controls");
+         Assert (Settings_Profile.Supports_Save, "settings profile exposes save support");
+         Assert (Settings_Profile.Supports_Reset, "settings profile exposes reset support");
+         Assert (Settings_Profile.Supports_Import, "settings profile exposes import support");
+         Assert (Settings_Profile.Supports_Export, "settings profile exposes export support");
+         Assert (Settings_Profile.Per_Field_Diagnostics, "settings profile exposes field diagnostics");
+         Assert (Settings_Profile.Supports_Option_Cycling, "settings profile exposes option cycling");
+         Assert
+           (Settings_Profile.Supports_Add_Remove_Mapping,
+            "settings profile exposes add and remove mapping controls");
+         Assert
+           (Settings_Profile.Supports_Draft_Validation,
+            "settings profile exposes draft validation");
+         Assert
+           (Settings_Profile.Supports_Native_Dialog_Policy,
+            "settings profile exposes native dialog policy");
+         Assert (Settings_Profile.Saves_Central_Settings, "settings profile records central settings saves");
+         Assert
+           (Accessibility_Integration.Render_Node_Tree,
+            "accessibility integration profile exposes render node tree");
+         Assert
+           (Accessibility_Integration.Native_API_Binding_Status =
+            Files.File_System.Native_API_Binding_Missing,
+            "accessibility integration profile records missing native binding");
+         Assert
+           (Accessibility_Integration.Role_Metadata,
+            "accessibility integration profile exposes role metadata");
+         Assert
+           (Accessibility_Integration.Table_Metadata,
+            "accessibility integration profile exposes table metadata");
+         Assert
+           (Accessibility_Integration.Pane_Section_Metadata,
+            "accessibility integration profile exposes pane section metadata");
+         Assert
+           (Accessibility_Integration.Keyboard_Focus_Metadata,
+            "accessibility integration profile exposes keyboard focus metadata");
+         Assert
+           (To_String (Accessibility_Integration.Binding_Unit) =
+            "Files.Rendering.Frame_Commands.Accessibility",
+            "accessibility integration profile records binding unit");
+         Assert (To_String (Icon_Profile.Theme_Name) = "files-basic", "icon profile exposes theme name");
+         Assert (not Icon_Profile.Placeholder_Icons, "icon profile records bundled asset icon mode");
+         Assert (Icon_Profile.Scalable_Icons, "icon profile records scalable vector assets");
+         Assert (To_String (Icon_Profile.Asset_Directory) = "share/files/icons", "icon profile exposes asset path");
+         Assert (To_String (Icon_Profile.Asset_Format) = "files-icon-v1", "icon profile exposes asset format");
+         Assert (Icon_Profile.Filetype_Icons = Natural (Icon_Names.Length), "icon profile counts bundled assets");
+         Assert (Icon_Profile.User_Selectable, "icon profile records selectable theme support");
+         Assert (Icon_Profile.High_Contrast_Ready, "icon profile records high-contrast asset support");
+         Assert (Parsed_Icon.Valid, "icon asset parser accepts files-icon-v1 text");
+         Assert (To_String (Parsed_Icon.Name) = "test", "icon asset parser captures name");
+         Assert (Parsed_Icon.Grid = 16, "icon asset parser captures grid size");
+         Assert (Natural (Parsed_Icon.Rectangles.Length) = 1, "icon asset parser captures rectangle count");
+         Assert
+           (Parsed_Icon.Rectangles.Element (1).Role = Files.Rendering.Icon_Asset_Accent,
+            "icon asset parser captures rectangle role");
+         Assert (Parsed_Bundled_Text_Icon.Valid, "renderer exposes bundled text icon asset text");
+         Assert
+           (To_String (Parsed_Bundled_Text_Icon.Name) = "text",
+            "renderer bundled text icon asset has the expected name");
+         Assert
+           (Parsed_Contrast_Folder_Icon.Valid,
+            "renderer exposes bundled high-contrast folder icon asset text");
+         Assert (not Bad_Icon.Valid, "icon asset parser rejects malformed rectangles");
+         Assert (not Out_Of_Bounds_Icon.Valid, "icon asset parser rejects rectangles outside the grid");
+         Assert (not Rect_Before_Grid_Icon.Valid, "icon asset parser rejects rectangles before grid declaration");
+         Assert (not Huge_Rect_Icon.Valid, "icon asset parser rejects huge out-of-grid coordinates");
+         Assert (not Bad_Grid_Icon.Valid, "icon asset parser rejects nonnumeric grid size");
+         Assert (not Bad_Rect_Number_Icon.Valid, "icon asset parser rejects nonnumeric rectangle fields");
+         Assert (not Bad_Role_Icon.Valid, "icon asset parser rejects unknown rectangle roles");
+         for Icon_Name of Icon_Names loop
+            declare
+               Path : constant String :=
+                 To_String (Icon_Profile.Asset_Directory) & "/" & To_String (Icon_Name) & ".icon";
+            begin
+               Assert (Repository_File_Exists (Path), "bundled icon asset exists: " & Path);
+            end;
+         end loop;
+         Contrast_Icon_Settings.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
+         Contrast_Icon_Profile := Files.Rendering.Icon_Theme_Profile_For (Contrast_Icon_Settings);
+         Assert
+           (To_String (Contrast_Icon_Profile.Theme_Name) = "files-high-contrast",
+            "settings-selected icon profile exposes high-contrast theme");
+         Assert
+           (To_String (Contrast_Icon_Profile.Asset_Directory) = "share/files/icons/high-contrast",
+            "settings-selected icon profile exposes high-contrast asset path");
+         for Icon_Name of Icon_Names loop
+            declare
+               Path : constant String :=
+                 To_String (Contrast_Icon_Profile.Asset_Directory) & "/" & To_String (Icon_Name) & ".icon";
+            begin
+               Assert (Repository_File_Exists (Path), "high-contrast icon asset exists: " & Path);
+            end;
+         end loop;
+      end;
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      declare
+         Found_Settings_Title : Boolean := False;
+         Found_Settings_Row   : Boolean := False;
+         Found_Settings_Options : Boolean := False;
+         Found_Settings_Add : Boolean := False;
+         Found_Settings_Import : Boolean := False;
+         Found_Settings_Export : Boolean := False;
+         Found_Settings_Reset : Boolean := False;
+         Found_Settings_Save : Boolean := False;
+         Found_Settings_Add_Tooltip : Boolean := False;
+         Found_Settings_Remove_Tooltip : Boolean := False;
+         Found_Settings_Import_Tooltip : Boolean := False;
+         Found_Settings_Export_Tooltip : Boolean := False;
+         Found_Settings_Reset_Tooltip : Boolean := False;
+         Found_Settings_Save_Tooltip : Boolean := False;
+         Found_A11y_Settings_Add : Boolean := False;
+         Found_A11y_Settings_Remove : Boolean := False;
+         Found_A11y_Settings_Import : Boolean := False;
+         Found_A11y_Settings_Export : Boolean := False;
+         Found_A11y_Settings_Reset : Boolean := False;
+         Found_A11y_Settings_Save : Boolean := False;
+         Pane_W : constant Natural := Natural'Max (240, (1000 * 2) / 5);
+         Pane_H : constant Natural := Natural'Max (20 * 23, 800 / 3);
+         Pane_X : constant Natural := (if 1000 > Pane_W then (1000 - Pane_W) / 2 else 0);
+         Pane_Y : constant Natural :=
+            (if 800 > Pane_H then Natural'Max (Frame.Layout.Toolbar_Height + 8, 800 / 6)
+             else Frame.Layout.Toolbar_Height);
+         Found_Settings_Shadow : Boolean := False;
+         Found_Settings_Top_Accent : Boolean := False;
+         Found_Settings_Field_Focus_Ring : Boolean := False;
+         Found_Settings_Field_Accent : Boolean := False;
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.X = Pane_X + Pane_W
+              and then Command.Y = Pane_Y + 3
+              and then Command.Width = 3
+              and then Command.Height = Pane_H
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Settings_Shadow := True;
+            elsif Command.X = Pane_X
+              and then Command.Y = Pane_Y
+              and then Command.Width = Pane_W
+              and then Command.Height = 3
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Settings_Top_Accent := True;
+            elsif Command.X = Pane_X + 5
+              and then Command.Y = Pane_Y + 3 * 20 - 1
+              and then Command.Width = Pane_W - 10
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Settings_Field_Focus_Ring := True;
+            elsif Command.X = Pane_X + 6
+              and then Command.Y = Pane_Y + 3 * 20
+              and then Command.Width = 3
+              and then Command.Height = 20
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Settings_Field_Accent := True;
+            end if;
+         end loop;
+
+         for Command of Frame.Text loop
+            if To_String (Command.Text) = Files.Localization.Text ("settings.title")
+              and then Command.Color = Files.Rendering.Text_Color
+            then
+               Found_Settings_Title := True;
+            elsif Ada.Strings.Fixed.Index (To_String (Command.Text), "Def") = 1
+            then
+               Found_Settings_Row := True;
+            elsif Ada.Strings.Fixed.Index (To_String (Command.Text), "Options:") = 1 then
+               Found_Settings_Options := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("settings.add") then
+               Found_Settings_Add := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.import") then
+               Found_Settings_Import := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.export") then
+               Found_Settings_Export := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.reset") then
+               Found_Settings_Reset := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.save") then
+               Found_Settings_Save := True;
+            end if;
+         end loop;
+         for Command of Frame.Tooltips loop
+            if To_String (Command.Text) = Files.Localization.Text ("settings.add") then
+               Found_Settings_Add_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("settings.remove") then
+               Found_Settings_Remove_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.import.description") then
+               Found_Settings_Import_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.export.description") then
+               Found_Settings_Export_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.reset.description") then
+               Found_Settings_Reset_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.save.description") then
+               Found_Settings_Save_Tooltip := True;
+            end if;
+         end loop;
+         for Node of Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("settings.add")
+            then
+               Found_A11y_Settings_Add := True;
+            elsif Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("settings.remove")
+            then
+               Found_A11y_Settings_Remove := True;
+            elsif Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("command.settings.import")
+              and then To_String (Node.Description) =
+                Files.Localization.Text ("command.settings.import.description")
+            then
+               Found_A11y_Settings_Import := True;
+            elsif Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("command.settings.export")
+              and then To_String (Node.Description) =
+                Files.Localization.Text ("command.settings.export.description")
+            then
+               Found_A11y_Settings_Export := True;
+            elsif Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("command.settings.reset")
+              and then To_String (Node.Description) =
+                Files.Localization.Text ("command.settings.reset.description")
+            then
+               Found_A11y_Settings_Reset := True;
+            elsif Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("command.settings.save")
+              and then To_String (Node.Description) =
+                Files.Localization.Text ("command.settings.save.description")
+            then
+               Found_A11y_Settings_Save := True;
+            end if;
+         end loop;
+
+         Assert (Found_Settings_Title, "frame renders localized settings pane title");
+         Assert (Found_Settings_Row, "frame renders localized settings pane settings rows");
+         Assert (Found_Settings_Options, "frame renders settings control options");
+         Assert (Found_Settings_Add, "frame renders settings add button");
+         Assert (Found_Settings_Add_Tooltip, "frame exposes settings add tooltip");
+         Assert (Found_Settings_Remove_Tooltip, "frame exposes settings remove tooltip");
+         Assert (Found_A11y_Settings_Add, "frame exposes settings add accessibility node");
+         Assert (Found_A11y_Settings_Remove, "frame exposes settings remove accessibility node");
+         Assert (Found_Settings_Import, "frame renders settings import command button");
+         Assert (Found_Settings_Export, "frame renders settings export command button");
+         Assert (Found_Settings_Reset, "frame renders settings reset command button");
+         Assert (Found_Settings_Save, "frame renders settings save command button");
+         Assert (Found_Settings_Import_Tooltip, "frame exposes settings import tooltip");
+         Assert (Found_Settings_Export_Tooltip, "frame exposes settings export tooltip");
+         Assert (Found_Settings_Reset_Tooltip, "frame exposes settings reset tooltip");
+         Assert (Found_Settings_Save_Tooltip, "frame exposes settings save tooltip");
+         Assert (Found_A11y_Settings_Import, "frame exposes settings import accessibility node");
+         Assert (Found_A11y_Settings_Export, "frame exposes settings export accessibility node");
+         Assert (Found_A11y_Settings_Reset, "frame exposes settings reset accessibility node");
+         Assert (Found_A11y_Settings_Save, "frame exposes settings save accessibility node");
+         Assert (Found_Settings_Shadow, "frame renders settings pane drop shadow");
+         Assert (Found_Settings_Top_Accent, "frame renders settings pane top accent");
+         Assert (Found_Settings_Field_Focus_Ring, "frame renders focused settings field ring");
+         Assert (Found_Settings_Field_Accent, "frame renders focused settings field accent");
+      end;
+      declare
+         Error_Model    : Files.Model.Window_Model := Sample_Model;
+         Error_Result   : Files.Controller.Controller_Result;
+         Error_Snapshot : Files.Rendering.View_Snapshot;
+         Error_Frame    : Files.Rendering.Frame_Commands;
+         Error_Pane_W   : constant Natural := Natural'Max (240, (1000 * 2) / 5);
+         Error_Pane_H   : constant Natural := Natural'Max (20 * 23, 800 / 3);
+         Error_Pane_X   : constant Natural := (if 1000 > Error_Pane_W then (1000 - Error_Pane_W) / 2 else 0);
+         Error_Pane_Y   : constant Natural := Natural'Max (40 + 8, 800 / 6);
+         Found_Error    : Boolean := False;
+         pragma Unreferenced (Error_Pane_X);
+      begin
+         Error_Result :=
+           Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Error_Model, Settings);
+         pragma Unreferenced (Error_Result);
+         Files.Model.Set_Settings_Field_Index (Error_Model, 2);
+         Files.Model.Set_Settings_Field_Text (Error_Model, "maybe");
+         Error_Result := Files.Controller.Handle_Key (Error_Model, Settings, Files.Types.Key_Return);
+         Error_Snapshot := Files.Rendering.Build_Snapshot (Error_Model);
+         Assert (not Error_Snapshot.Settings_Draft_Valid, "snapshot captures invalid settings draft");
+         Assert
+           (To_String (Error_Snapshot.Settings_Draft_Error) = "error.settings.invalid_boolean",
+            "snapshot captures settings draft diagnostic key");
+         Error_Frame := Files.Rendering.Build_Frame_Commands
+           (Error_Snapshot,
+            Width       => 1000,
+            Height      => 800,
+            Line_Height => 20);
+         for Command of Error_Frame.Text loop
+            if Ada.Strings.Fixed.Index (To_String (Command.Text), "Settings file contains") = 1
+              and then Command.Y = Error_Pane_Y + 22 * 20
+            then
+               Found_Error := True;
+            end if;
+         end loop;
+         Assert (Found_Error, "frame renders settings draft error inside pane");
+         Files.Model.Set_Settings_Field_Text (Error_Model, "true");
+         Error_Snapshot := Files.Rendering.Build_Snapshot (Error_Model);
+         Assert (Error_Snapshot.Settings_Draft_Valid, "settings edit clears stale draft invalid state");
+         Assert
+           (To_String (Error_Snapshot.Settings_Draft_Error) = "",
+            "settings edit clears stale draft diagnostic key");
+      end;
+      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+
+      Files.Model.Set_Error (Model, "error.path.missing");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert
+        (not Snapshot.Command_Enabled (Files.Commands.Navigate_Back_Command),
+         "snapshot captures disabled back command");
+      Assert
+        (Snapshot.Command_Enabled (Files.Commands.Delete_Selected_Items_Command),
+         "snapshot captures enabled delete command");
+      declare
+         Generic_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Delete_Button_X : constant Natural :=
+           Files.UI.Toolbar_Left_Button_X (Files.UI.Calculate_Toolbar_Layout (1000), 5);
+         Home_Button_X : constant Natural :=
+           Files.UI.Toolbar_Left_Button_X (Files.UI.Calculate_Toolbar_Layout (1000), 1);
+         Home_Button_W : constant Natural :=
+           Files.UI.Toolbar_Left_Button_Width (Files.UI.Calculate_Toolbar_Layout (1000), 1);
+         Found_Generic_Delete : Boolean := False;
+         Found_Generic_Toolbar_Glyph : Boolean := False;
+         Found_Generic_Hover_Toolbar_Fill : Boolean := False;
+         Found_Generic_Pressed_Toolbar_Fill : Boolean := False;
+      begin
+         for Command of Generic_Frame.Rectangles loop
+            if Command.X >= Home_Button_X
+              and then Command.X < Home_Button_X + Home_Button_W
+              and then Command.Y < Generic_Frame.Layout.Toolbar_Height
+              and then Command.Color = Files.Rendering.Text_Color
+            then
+               Found_Generic_Toolbar_Glyph := True;
+            end if;
+         end loop;
+         for Command of Generic_Frame.Text loop
+            if Command.X = Delete_Button_X + 2
+              and then Command.Color = Files.Rendering.Text_Color
+            then
+               Found_Generic_Delete := True;
+            end if;
+         end loop;
+         declare
+            Generic_Hover_Frame : constant Files.Rendering.Frame_Commands :=
+              Files.Rendering.Build_Frame_Commands
+                (Snapshot    => Snapshot,
+                 Width       => 1000,
+                 Height      => 800,
+                 Line_Height => 20,
+                 Hover_X     => Home_Button_X + 5,
+                 Hover_Y     => 10,
+                 Has_Hover   => True);
+            Generic_Pressed_Frame : constant Files.Rendering.Frame_Commands :=
+              Files.Rendering.Build_Frame_Commands
+                (Snapshot    => Snapshot,
+                 Width       => 1000,
+                 Height      => 800,
+                 Line_Height => 20,
+                 Pressed_X   => Home_Button_X + 5,
+                 Pressed_Y   => 10,
+                 Has_Press   => True);
+         begin
+            for Command of Generic_Hover_Frame.Rectangles loop
+               if Command.X = Home_Button_X
+                 and then Command.Y = 0
+                 and then Command.Width = Home_Button_W
+                 and then Command.Height = Generic_Hover_Frame.Layout.Toolbar_Height
+                 and then Command.Color = Files.Rendering.Hover_Color
+               then
+                  Found_Generic_Hover_Toolbar_Fill := True;
+               end if;
+            end loop;
+            for Command of Generic_Pressed_Frame.Rectangles loop
+               if Command.X = Home_Button_X
+                 and then Command.Y = 0
+                 and then Command.Width = Home_Button_W
+                 and then Command.Height = Generic_Pressed_Frame.Layout.Toolbar_Height
+                 and then Command.Color = Files.Rendering.Pressed_Color
+               then
+                  Found_Generic_Pressed_Toolbar_Fill := True;
+               end if;
+            end loop;
+         end;
+         Assert (Found_Generic_Delete, "frame renders enabled toolbar command text");
+         Assert (Found_Generic_Toolbar_Glyph, "frame renders toolbar vector icon geometry");
+         Assert (Found_Generic_Hover_Toolbar_Fill, "frame renders hover fill for toolbar command");
+         Assert (Found_Generic_Pressed_Toolbar_Fill, "frame renders pressed fill for toolbar command");
+      end;
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Assert (Frame.Layout.Width = 1000, "frame commands preserve layout metrics");
+      Assert (Natural (Frame.Rectangles.Length) >= 18, "frame includes drawable rectangles");
+      Assert (Natural (Frame.Text.Length) > 0, "frame includes drawable text runs");
+      Assert (Frame.Rectangles.Element (1).Color = Files.Rendering.Canvas_Color, "frame starts with canvas fill");
+      Assert (Frame.Rectangles.Element (2).Color = Files.Rendering.Toolbar_Color, "frame includes toolbar fill");
+      Assert
+        (Frame.Rectangles.Element (3).Color = Files.Rendering.Main_Color,
+         "frame includes main-area fill");
+
+      declare
+         Found_Selected_Item : Boolean := False;
+         Found_Selected_Item_Border : Boolean := False;
+         Found_Selected_Item_Accent : Boolean := False;
+         Icon_Geometry_Count : Natural := 0;
+         Found_Item_Text : Boolean := False;
+         Found_Root_Text : Boolean := False;
+         Found_Toolbar_Label : Boolean := False;
+         Found_Bottom_Label  : Boolean := False;
+         Found_Disabled_Back : Boolean := False;
+         Found_Disabled_Back_Fill : Boolean := False;
+         Found_Disabled_Back_Border : Boolean := False;
+         Found_Selected_Bottom_Border : Boolean := False;
+         Found_Error_Text : Boolean := False;
+         Found_Root_Border : Boolean := False;
+         Found_Root_Shadow : Boolean := False;
+         Found_Info_Pane_Top_Edge : Boolean := False;
+         Found_Home_Tooltip : Boolean := False;
+         Found_Info_Tooltip : Boolean := False;
+         Found_Root_Tooltip : Boolean := False;
+         Found_Hover_Tooltip_Text : Boolean := False;
+         Found_Hover_Tooltip_Panel : Boolean := False;
+         Found_Toolbar_Separator : Boolean := False;
+         Found_Toolbar_Left_Path_Separator : Boolean := False;
+         Found_Toolbar_Path_Filter_Separator : Boolean := False;
+         Found_Bottom_Separator : Boolean := False;
+         Found_Bottom_View_Info_Separator : Boolean := False;
+         Found_Bottom_Info_Toggle_Separator : Boolean := False;
+         Found_Info_Pane_Separator : Boolean := False;
+         Found_Pressed_Path_Border : Boolean := False;
+         Found_Hover_Item_Fill : Boolean := False;
+         Found_Hover_Item_Border : Boolean := False;
+         Found_Pressed_Item_Fill : Boolean := False;
+         Found_Pressed_Item_Border : Boolean := False;
+         Found_A11y_Window : Boolean := False;
+         Found_A11y_Toolbar : Boolean := False;
+         Found_A11y_Path_Input : Boolean := False;
+         Found_A11y_Main_View_State : Boolean := False;
+         Found_A11y_Filter_Input_State : Boolean := False;
+         Found_A11y_Item : Boolean := False;
+         Found_A11y_Item_State : Boolean := False;
+         Found_A11y_Root : Boolean := False;
+         Found_A11y_Root_Item_State : Boolean := False;
+         Found_A11y_Status : Boolean := False;
+         Found_A11y_Info_Toggle_State : Boolean := False;
+         Toolbar_For_Frame : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (1000);
+         Bottom_For_Frame : constant Files.UI.Bottom_Bar_Layout :=
+           Files.UI.Calculate_Bottom_Bar_Layout (1000, Line_Height => 20);
+         Back_Button_X : constant Natural := Files.UI.Toolbar_Left_Button_X (Toolbar_For_Frame, 2);
+         Back_Button_W : constant Natural := Files.UI.Toolbar_Left_Button_Width (Toolbar_For_Frame, 2);
+         Home_Button_X : constant Natural := Files.UI.Toolbar_Left_Button_X (Toolbar_For_Frame, 1);
+         Home_Button_W : constant Natural := Files.UI.Toolbar_Left_Button_Width (Toolbar_For_Frame, 1);
+         Delete_Button_X : constant Natural := Files.UI.Toolbar_Left_Button_X (Toolbar_For_Frame, 5);
+         Root_For_Frame : constant Files.Rendering.Root_Selector_Layout :=
+           Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Frame.Layout, Line_Height => 20);
+         Info_For_Frame : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Frame.Layout, Line_Height => 20);
+         Item_Layouts : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Item_Layout (Snapshot, Frame.Layout, Line_Height => 20);
+         First_Icon : constant Files.Rendering.Item_Layout := Item_Layouts.Element (1);
+         Second_Item : constant Files.Rendering.Item_Layout := Item_Layouts.Element (2);
+         Hover_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Snapshot    => Snapshot,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20,
+              Hover_X     => Home_Button_X + 5,
+              Hover_Y     => 10,
+              Has_Hover   => True);
+         Pressed_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Snapshot    => Snapshot,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20,
+              Pressed_X   => Home_Button_X + 5,
+              Pressed_Y   => 10,
+              Has_Press   => True);
+         Pressed_Input_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Snapshot    => Snapshot,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20,
+              Pressed_X   => Toolbar_For_Frame.Middle_X + 5,
+              Pressed_Y   => 15,
+              Has_Press   => True);
+         Hover_Item_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Snapshot    => Snapshot,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20,
+              Hover_X     => Second_Item.X + 1,
+              Hover_Y     => Second_Item.Y + 1,
+              Has_Hover   => True);
+         Pressed_Item_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Snapshot    => Snapshot,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20,
+              Pressed_X   => Second_Item.X + 1,
+              Pressed_Y   => Second_Item.Y + 1,
+              Has_Press   => True);
+      begin
+         for Command of Frame.Rectangles loop
+            if Command.Color = Files.Rendering.Selection_Color
+              and then Command.X = 0
+              and then Command.Y = Frame.Layout.Main_Y
+            then
+               Found_Selected_Item := True;
+            end if;
+
+            if Command.X = First_Icon.X
+              and then Command.Y = First_Icon.Y
+              and then Command.Width = First_Icon.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Selected_Item_Border := True;
+            elsif Command.X = First_Icon.X
+              and then Command.Y = First_Icon.Y
+              and then Command.Width = 3
+              and then Command.Height = First_Icon.Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Selected_Item_Accent := True;
+            end if;
+
+            if Command.Width > 0
+              and then Command.Height > 0
+              and then Command.X >= First_Icon.Icon_X
+              and then Command.Y >= First_Icon.Icon_Y
+              and then Command.X < First_Icon.Icon_X + First_Icon.Icon_Size
+              and then Command.Y < First_Icon.Icon_Y + First_Icon.Icon_Size
+            then
+               Icon_Geometry_Count := Icon_Geometry_Count + 1;
+            end if;
+
+            if Command.X = Back_Button_X
+              and then Command.Y = 0
+              and then Command.Width = Back_Button_W
+              and then Command.Height = Frame.Layout.Toolbar_Height
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Disabled_Back_Fill := True;
+            elsif Command.X = Back_Button_X
+              and then Command.Y = 0
+              and then Command.Width = Back_Button_W
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Disabled_Back_Border := True;
+            elsif Command.X = Bottom_For_Frame.Small_Button_X
+              and then Command.Y = Frame.Layout.Height - Frame.Layout.Bottom_Bar_Height
+              and then Command.Width = Bottom_For_Frame.Small_Button_Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Selected_Bottom_Border := True;
+            elsif Command.X = Root_For_Frame.X
+              and then Command.Y = Root_For_Frame.Y
+              and then Command.Width = Root_For_Frame.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Root_Border := True;
+            elsif Command.X = Root_For_Frame.X + Root_For_Frame.Width
+              and then Command.Y = Root_For_Frame.Y + 3
+              and then Command.Width = 3
+              and then Command.Height = Root_For_Frame.Height
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Root_Shadow := True;
+            elsif Command.X = Info_For_Frame.X
+              and then Command.Y = Info_For_Frame.Y
+              and then Command.Width = Info_For_Frame.Width
+              and then Command.Height = 2
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Info_Pane_Top_Edge := True;
+            elsif Command.X = 0
+              and then Command.Y = Frame.Layout.Toolbar_Height - 1
+              and then Command.Width = Frame.Layout.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Toolbar_Separator := True;
+            elsif Command.X = Toolbar_For_Frame.Middle_X
+              and then Command.Y = 0
+              and then Command.Width = 1
+              and then Command.Height = Frame.Layout.Toolbar_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Toolbar_Left_Path_Separator := True;
+            elsif Command.X = Toolbar_For_Frame.Right_X
+              and then Command.Y = 0
+              and then Command.Width = 1
+              and then Command.Height = Frame.Layout.Toolbar_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Toolbar_Path_Filter_Separator := True;
+            elsif Command.X = 0
+              and then Command.Y = Frame.Layout.Height - Frame.Layout.Bottom_Bar_Height
+              and then Command.Width = Frame.Layout.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Bottom_Separator := True;
+            elsif Command.X = Bottom_For_Frame.Info_X
+              and then Command.Y = Frame.Layout.Height - Frame.Layout.Bottom_Bar_Height
+              and then Command.Width = 1
+              and then Command.Height = Frame.Layout.Bottom_Bar_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Bottom_View_Info_Separator := True;
+            elsif Command.X = Bottom_For_Frame.Info_Pane_X
+              and then Command.Y = Frame.Layout.Height - Frame.Layout.Bottom_Bar_Height
+              and then Command.Width = 1
+              and then Command.Height = Frame.Layout.Bottom_Bar_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Bottom_Info_Toggle_Separator := True;
+            elsif Command.X = Frame.Layout.Main_Width
+              and then Command.Y = Frame.Layout.Main_Y
+              and then Command.Width = 1
+              and then Command.Height = Frame.Layout.Main_Height
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Found_Info_Pane_Separator := True;
+            end if;
+         end loop;
+
+         for Command of Frame.Text loop
+            if To_String (Command.Text) = "Alpha.txt" then
+               Found_Item_Text := True;
+            elsif To_String (Command.Text) = "/" then
+               Found_Root_Text := True;
+            elsif To_String (Command.Text) = "Ho" then
+               Found_Toolbar_Label := True;
+            elsif To_String (Command.Text) = "Smal..." then
+               Found_Bottom_Label := True;
+            elsif Command.X = Back_Button_X + 2
+              and then Command.Color = Files.Rendering.Disabled_Text_Color
+            then
+               Found_Disabled_Back := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("error.path.missing")
+              and then Command.Color = Files.Rendering.Error_Text_Color
+            then
+               Found_Error_Text := True;
+            end if;
+         end loop;
+
+         for Command of Frame.Tooltips loop
+            if To_String (Command.Text) = Files.Localization.Text ("command.navigate.home.description") then
+               Found_Home_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.info.toggle.description") then
+               Found_Info_Tooltip := True;
+            elsif To_String (Command.Text) = Files.Localization.Text ("command.drive.open_selected.description") then
+               Found_Root_Tooltip := True;
+            end if;
+         end loop;
+
+         for Node of Frame.Accessibility loop
+            if Node.Role = Files.Rendering.Role_Window
+              and then To_String (Node.Name) = To_String (Snapshot.Current_Path)
+            then
+               Found_A11y_Window := True;
+            elsif Node.Role = Files.Rendering.Role_Toolbar
+              and then To_String (Node.Name) = Files.Localization.Text ("accessibility.toolbar")
+            then
+               Found_A11y_Toolbar := True;
+            elsif Node.Role = Files.Rendering.Role_List
+              and then To_String (Node.Name) = Files.Localization.Text ("accessibility.main_view")
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("command.view.small")) > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("status.items") & ": 3") > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("status.visible") & ": 3") > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("status.selected") & ": 1") > 0
+            then
+               Found_A11y_Main_View_State := True;
+            elsif Node.Role = Files.Rendering.Role_Text_Input
+              and then To_String (Node.Name) = Files.Localization.Text ("command.path.focus")
+            then
+               Found_A11y_Path_Input := True;
+            elsif Node.Role = Files.Rendering.Role_Text_Input
+              and then To_String (Node.Name) = Files.Localization.Text ("command.filter.focus")
+              and then To_String (Node.Description) = To_String (Snapshot.Filter_Text)
+            then
+               Found_A11y_Filter_Input_State := True;
+            elsif Node.Role = Files.Rendering.Role_List_Item
+              and then Node.Selected
+              and then To_String (Node.Name) = "Alpha.txt"
+            then
+               Found_A11y_Item := True;
+               if Node.Focused
+                 and then Ada.Strings.Fixed.Index
+                   (To_String (Node.Description), Files.Localization.Text ("info.kind.text")) > 0
+               then
+                  Found_A11y_Item_State := True;
+               end if;
+            elsif Node.Role = Files.Rendering.Role_List
+              and then To_String (Node.Name) = Files.Localization.Text ("accessibility.root_selector")
+            then
+               Found_A11y_Root := True;
+            elsif Node.Role = Files.Rendering.Role_List_Item
+              and then Node.Selected
+              and then To_String (Node.Description) = "/"
+            then
+               Found_A11y_Root_Item_State := True;
+            elsif Node.Role = Files.Rendering.Role_Status
+              and then To_String (Node.Name) = Files.Localization.Text ("error.path.missing")
+            then
+               Found_A11y_Status := True;
+            elsif Node.Role = Files.Rendering.Role_Button
+              and then To_String (Node.Name) = Files.Localization.Text ("command.info.toggle")
+              and then Node.Selected = Snapshot.Info_Pane_Open
+              and then Ada.Strings.Fixed.Index
+                (To_String (Node.Description), Files.Localization.Text ("command.info.toggle.description")) > 0
+            then
+               Found_A11y_Info_Toggle_State := True;
+            end if;
+         end loop;
+
+         for Command of Hover_Frame.Text loop
+            if To_String (Command.Text) = Files.Localization.Text ("command.navigate.home.description") then
+               Found_Hover_Tooltip_Text := True;
+            end if;
+         end loop;
+
+         for Command of Hover_Frame.Rectangles loop
+            if Command.X >= Home_Button_X
+              and then Command.Width >= 160
+              and then Command.Height > 20
+              and then Command.Color = Files.Rendering.Overlay_Color
+            then
+               Found_Hover_Tooltip_Panel := True;
+            end if;
+         end loop;
+
+         for Command of Pressed_Input_Frame.Rectangles loop
+            if Command.X = Toolbar_For_Frame.Middle_X
+              and then Command.Y = 10
+              and then Command.Width = Toolbar_For_Frame.Middle_Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Pressed_Color
+            then
+               Found_Pressed_Path_Border := True;
+            end if;
+         end loop;
+
+         for Command of Hover_Item_Frame.Rectangles loop
+            if Command.X = Second_Item.X
+              and then Command.Y = Second_Item.Y
+              and then Command.Width = Second_Item.Width
+              and then Command.Height = Second_Item.Height
+              and then Command.Color = Files.Rendering.Hover_Color
+            then
+               Found_Hover_Item_Fill := True;
+            elsif Command.X = Second_Item.X
+              and then Command.Y = Second_Item.Y
+              and then Command.Width = Second_Item.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Hover_Color
+            then
+               Found_Hover_Item_Border := True;
+            end if;
+         end loop;
+
+         for Command of Pressed_Item_Frame.Rectangles loop
+            if Command.X = Second_Item.X
+              and then Command.Y = Second_Item.Y
+              and then Command.Width = Second_Item.Width
+              and then Command.Height = Second_Item.Height
+              and then Command.Color = Files.Rendering.Pressed_Color
+            then
+               Found_Pressed_Item_Fill := True;
+            elsif Command.X = Second_Item.X
+              and then Command.Y = Second_Item.Y
+              and then Command.Width = Second_Item.Width
+              and then Command.Height = 1
+              and then Command.Color = Files.Rendering.Pressed_Color
+            then
+               Found_Pressed_Item_Border := True;
+            end if;
+         end loop;
+
+         Assert (Found_Selected_Item, "frame includes selected item rectangle");
+         Assert (Found_Selected_Item_Border, "frame renders selected item border");
+         Assert (Found_Selected_Item_Accent, "frame renders selected item accent strip");
+         Assert (Icon_Geometry_Count >= 3, "frame renders multi-part vector icon geometry");
+         Assert (Found_Item_Text, "frame includes item text");
+         Assert (Found_Root_Text, "frame includes root-selector text");
+         Assert (Found_Toolbar_Label, "frame includes localized toolbar command label");
+         Assert (Found_Bottom_Label, "frame includes localized bottom-bar command label");
+         Assert (Found_Disabled_Back, "frame renders disabled toolbar command text");
+         Assert (Found_Disabled_Back_Fill, "frame renders disabled toolbar button fill");
+         Assert (Found_Disabled_Back_Border, "frame renders disabled toolbar button border");
+         Assert (Found_Selected_Bottom_Border, "frame renders selected bottom-bar button border");
+         Assert (Found_Error_Text, "frame renders localized bottom-bar error text");
+         Assert (Found_Root_Border, "frame renders bordered root selector panel");
+         Assert (Found_Root_Shadow, "frame renders root selector drop shadow");
+         Assert (Found_Info_Pane_Top_Edge, "frame renders info-pane top edge polish");
+         Assert (Found_Toolbar_Separator, "frame renders toolbar separator polish");
+         Assert
+           (Found_Toolbar_Left_Path_Separator,
+            "frame renders toolbar left and path separator polish");
+         Assert
+           (Found_Toolbar_Path_Filter_Separator,
+            "frame renders toolbar path and filter separator polish");
+         Assert (Found_Bottom_Separator, "frame renders bottom-bar separator polish");
+         Assert
+           (Found_Bottom_View_Info_Separator,
+            "frame renders bottom-bar view and info separator polish");
+         Assert
+           (Found_Bottom_Info_Toggle_Separator,
+            "frame renders bottom-bar info and toggle separator polish");
+         Assert (Found_Info_Pane_Separator, "frame renders info-pane separator polish");
+         Assert (Found_Home_Tooltip, "frame exposes localized toolbar tooltip text");
+         Assert (Found_Info_Tooltip, "frame exposes localized bottom-bar tooltip text");
+         Assert (Found_Root_Tooltip, "frame exposes localized root-selector tooltip text");
+         Assert (Found_Hover_Tooltip_Text, "frame renders localized hover tooltip text");
+         Assert (Found_Hover_Tooltip_Panel, "frame renders hover tooltip panel");
+         Assert (Found_Pressed_Path_Border, "frame renders pressed border for path input");
+         Assert (Found_Hover_Item_Fill, "frame renders hover fill for visible item");
+         Assert (Found_Hover_Item_Border, "frame renders hover border for visible item");
+         Assert (Found_Pressed_Item_Fill, "frame renders pressed fill for visible item");
+         Assert (Found_Pressed_Item_Border, "frame renders pressed border for visible item");
+         Assert (Found_A11y_Window, "frame exposes accessible window node");
+         Assert (Found_A11y_Toolbar, "frame exposes accessible toolbar node");
+         Assert (Found_A11y_Main_View_State, "frame exposes main-view count state to accessibility");
+         Assert (Found_A11y_Path_Input, "frame exposes focused path input node");
+         Assert (Found_A11y_Filter_Input_State, "frame exposes filter input state to accessibility");
+         Assert (Found_A11y_Item, "frame exposes selected item node");
+         Assert (Found_A11y_Item_State, "frame exposes selected item metadata to accessibility");
+         Assert (Found_A11y_Root, "frame exposes root selector node");
+         Assert (Found_A11y_Root_Item_State, "frame exposes selected root path to accessibility");
+         Assert (Found_A11y_Status, "frame exposes bottom status node");
+         Assert (Found_A11y_Info_Toggle_State, "frame exposes info-pane toggle state to accessibility");
+      end;
+      Files.Model.Close_Root_Selector (Model);
+
+      Assert (Files.Rendering.Default_Font_Path /= "", "default text font is available");
+      Assert
+        (Files.Rendering.Initialize_Text
+           (Renderer    => Text_Renderer,
+            Font_Path   => Files.Rendering.Default_Font_Path,
+            Pixel_Size  => 16,
+            Cell_Width  => 10,
+            Cell_Height => 20)
+         = Files.Rendering.Text_Render_Success,
+         "text renderer loads default font");
+      Text_Result := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Frame);
+      Assert (Text_Result.Status = Files.Rendering.Text_Render_Success, "frame text rasterizes through textrender");
+      Assert (Natural (Text_Result.Glyphs.Length) > 0, "text renderer emits glyph draw commands");
+      declare
+         Edge_Frame : Files.Rendering.Frame_Commands;
+         Edge_Text  : Files.Rendering.Text_Render_Result;
+      begin
+         Edge_Frame.Text.Append
+           (Files.Rendering.Text_Command'
+              (X         => Natural'Last - 4,
+               Y         => 0,
+               Width     => 20,
+               Height    => 20,
+               Text      => To_Unbounded_String ("x"),
+               Color     => Files.Rendering.Text_Color,
+               Truncated => False));
+         Edge_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Edge_Frame);
+         Assert
+           (Edge_Text.Status = Files.Rendering.Text_Render_Success,
+            "text renderer saturates edge text extents");
+      end;
+      Assert (Text_Result.Atlas_Width = 1024, "text renderer reports atlas width");
+      Assert (Text_Result.Atlas_Height = 1024, "text renderer reports atlas height");
+      Assert (Text_Result.Atlas_Pixels /= System.Null_Address, "text renderer exposes atlas pixels");
+      Assert (Text_Result.Atlas_Bytes = 1024 * 1024, "text renderer reports atlas byte count");
+      Assert (Text_Result.Atlas_Dirty, "text renderer reports dirty atlas after glyph rasterization");
+
+      Vulkan_Batch := Files.Rendering.Vulkan.Build_Submission (Frame, Text_Result);
+      Assert (Vulkan_Batch.Width = Frame.Layout.Width, "vulkan batch preserves frame width");
+      Assert (Vulkan_Batch.Height = Frame.Layout.Height, "vulkan batch preserves frame height");
+      Assert (Vulkan_Batch.Atlas_Width = Text_Result.Atlas_Width, "vulkan batch preserves atlas width");
+      Assert (Vulkan_Batch.Atlas_Height = Text_Result.Atlas_Height, "vulkan batch preserves atlas height");
+      Assert (Vulkan_Batch.Atlas_Pixels = Text_Result.Atlas_Pixels, "vulkan batch preserves atlas pixels");
+      Assert (Vulkan_Batch.Atlas_Bytes = Text_Result.Atlas_Bytes, "vulkan batch preserves atlas byte count");
+      Assert (Vulkan_Batch.Atlas_Dirty, "vulkan batch preserves dirty atlas state");
+      Assert
+        (Vulkan_Batch.Rectangle_Vertex_Count = Natural (Frame.Rectangles.Length) * 6,
+         "vulkan batch expands each rectangle to two triangles");
+      Assert
+        (Vulkan_Batch.Icon_Vertex_Count = Natural (Frame.Icons.Length) * 6,
+         "vulkan batch expands each themed icon asset to two textured triangles");
+      Assert
+        (Vulkan_Batch.Icon_Quad_Count = Natural (Frame.Icons.Length),
+         "vulkan batch preserves themed icon asset draw count");
+      Assert
+        (Vulkan_Batch.Icon_Atlas_Width = Natural (Frame.Icons.Length) * 16,
+         "vulkan batch builds one 16-pixel icon atlas tile per themed icon");
+      Assert (Vulkan_Batch.Icon_Atlas_Height = 16, "vulkan batch builds a 16-pixel-tall icon atlas");
+      Assert
+        (Vulkan_Batch.Icon_Atlas_Bytes =
+         Vulkan_Batch.Icon_Atlas_Width * Vulkan_Batch.Icon_Atlas_Height * 4,
+         "vulkan batch reports RGBA icon atlas byte count");
+      Assert (Vulkan_Batch.Icon_Atlas_Channels = 4, "vulkan batch records RGBA icon atlas channels");
+      Assert
+        (Natural (Vulkan_Batch.Icon_Atlas_Pixels.Length) = Vulkan_Batch.Icon_Atlas_Bytes,
+         "vulkan batch stores icon atlas pixel payload");
+      Assert (Vulkan_Batch.Icon_Atlas_Dirty, "vulkan batch marks icon atlas dirty");
+      Assert (Vulkan_Batch.Texture_Count = 2, "vulkan batch records two logical texture payloads");
+      Assert
+        (Vulkan_Batch.Uses_Separate_Text_And_Icon_Textures,
+         "vulkan batch records separate text and icon texture routing");
+      Assert
+        (Vulkan_Batch.Icon_Texture_Format = Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+         "vulkan batch records independent RGBA icon texture format");
+      Assert
+        (Files.Rendering.Vulkan.Upload_Texture_Format (Vulkan_Batch) =
+         Files.Rendering.Vulkan.Atlas_Texture_R8,
+         "vulkan mixed batch keeps text atlas upload on the current descriptor path");
+      Assert
+        (Files.Rendering.Vulkan.Icon_Upload_Texture_Format (Vulkan_Batch) =
+         Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+         "vulkan mixed batch exposes a separate RGBA icon atlas upload");
+      Assert
+        (Vulkan_Batch.Glyph_Vertex_Count = Natural (Text_Result.Glyphs.Length) * 6,
+         "vulkan batch expands each glyph to two triangles");
+      Assert
+        (Natural (Vulkan_Batch.Vertices.Length) =
+         Vulkan_Batch.Rectangle_Vertex_Count + Vulkan_Batch.Icon_Vertex_Count +
+         Vulkan_Batch.Glyph_Vertex_Count,
+         "vulkan batch vertex count matches rectangle, icon, and glyph vertices");
+      Assert (Vulkan_Batch.Vertices.Element (1).X = -1.0, "first vertex is normalized to left edge");
+      Assert (Vulkan_Batch.Vertices.Element (1).Y = 1.0, "first vertex is normalized to top edge");
+
+      declare
+         Found_Textured : Boolean := False;
+         Found_Icon_Alpha : Boolean := False;
+         Found_Icon_Color : Boolean := False;
+         Found_Text_Texture_Vertex : Boolean := False;
+         Found_Icon_Texture_Vertex : Boolean := False;
+      begin
+         for Vertex of Vulkan_Batch.Vertices loop
+            if Vertex.Textured then
+               Found_Textured := True;
+            end if;
+            if Vertex.Texture = Files.Rendering.Vulkan.Texture_Text_Atlas then
+               Found_Text_Texture_Vertex := True;
+            elsif Vertex.Texture = Files.Rendering.Vulkan.Texture_Icon_Atlas then
+               Found_Icon_Texture_Vertex := True;
+            end if;
+         end loop;
+
+         for Index in 1 .. Natural (Vulkan_Batch.Icon_Atlas_Pixels.Length) / 4 loop
+            declare
+               Offset : constant Positive := Positive ((Index - 1) * 4 + 1);
+               R : constant Interfaces.Unsigned_8 := Vulkan_Batch.Icon_Atlas_Pixels.Element (Offset);
+               G : constant Interfaces.Unsigned_8 := Vulkan_Batch.Icon_Atlas_Pixels.Element (Offset + 1);
+               B : constant Interfaces.Unsigned_8 := Vulkan_Batch.Icon_Atlas_Pixels.Element (Offset + 2);
+               A : constant Interfaces.Unsigned_8 := Vulkan_Batch.Icon_Atlas_Pixels.Element (Offset + 3);
+            begin
+               if A = 255 then
+                  Found_Icon_Alpha := True;
+               end if;
+               if A = 255 and then (R /= G or else G /= B) then
+                  Found_Icon_Color := True;
+               end if;
+            end;
+         end loop;
+
+         Assert (Found_Textured, "vulkan batch includes textured glyph vertices");
+         Assert (Found_Text_Texture_Vertex, "vulkan batch marks glyph vertices with the text atlas");
+         Assert (Found_Icon_Texture_Vertex, "vulkan batch marks icon vertices with the icon atlas");
+         Assert (Found_Icon_Alpha, "vulkan batch rasterizes themed icon pixels into the icon atlas");
+         Assert (Found_Icon_Color, "vulkan batch rasterizes colored themed icon pixels into the icon atlas");
+      end;
+
+      declare
+         Empty_Text : Files.Rendering.Text_Render_Result;
+         Rect_Only  : constant Files.Rendering.Vulkan.Submission_Batch :=
+           Files.Rendering.Vulkan.Build_Submission (Frame, Empty_Text);
+         Found_Textured : Boolean := False;
+      begin
+         for Vertex of Rect_Only.Vertices loop
+            if Vertex.Textured then
+               Found_Textured := True;
+            end if;
+         end loop;
+
+         Assert (Rect_Only.Glyph_Vertex_Count = 0, "vulkan icon-only batch has no glyph vertices");
+         Assert
+           (Rect_Only.Icon_Vertex_Count = Natural (Frame.Icons.Length) * 6,
+            "vulkan icon-only batch preserves themed icon vertices");
+         Assert
+           (Rect_Only.Icon_Quad_Count = Natural (Frame.Icons.Length),
+            "vulkan icon-only batch preserves themed icon draw count");
+         Assert (Rect_Only.Atlas_Pixels = System.Null_Address, "vulkan rectangle-only batch has no atlas pixels");
+         Assert (Rect_Only.Atlas_Bytes = 0, "vulkan rectangle-only batch has no atlas byte payload");
+         Assert (not Rect_Only.Atlas_Dirty, "vulkan rectangle-only batch leaves atlas clean");
+         Assert
+           (Rect_Only.Icon_Atlas_Bytes = Natural (Rect_Only.Icon_Atlas_Pixels.Length),
+            "vulkan icon-only batch keeps icon atlas byte count and payload aligned");
+         Assert (Rect_Only.Icon_Atlas_Dirty, "vulkan icon-only batch still uploads an icon atlas");
+         Assert (Rect_Only.Texture_Count = 1, "vulkan icon-only batch records one logical texture");
+         Assert
+           (Rect_Only.Icon_Texture_Format = Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+            "vulkan icon-only batch records RGBA icon texture format");
+         Assert
+           (Files.Rendering.Vulkan.Upload_Texture_Format (Rect_Only) =
+            Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+            "vulkan icon-only batch uploads colored icons as RGBA8");
+         Assert
+           (Files.Rendering.Vulkan.Icon_Upload_Texture_Format (Rect_Only) =
+            Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+            "vulkan icon-only batch exposes RGBA icon upload format");
+         Assert (Found_Textured, "vulkan icon-only batch includes textured icon vertices");
+      end;
+
+      declare
+         Empty_Text : Files.Rendering.Text_Render_Result;
+         Skipped_Icon_Frame : Files.Rendering.Frame_Commands;
+         Skipped_Icon_Batch : Files.Rendering.Vulkan.Submission_Batch;
+      begin
+         Skipped_Icon_Frame.Layout.Width := 64;
+         Skipped_Icon_Frame.Layout.Height := 64;
+         Skipped_Icon_Frame.Icons.Append
+           (Files.Rendering.Icon_Command'
+              (X          => 0,
+               Y          => 0,
+               Size       => 0,
+               Icon_Id    => To_Unbounded_String ("image"),
+               Theme_Name => To_Unbounded_String ("default"),
+               Asset_Path => Null_Unbounded_String));
+         Skipped_Icon_Frame.Icons.Append
+           (Files.Rendering.Icon_Command'
+              (X          => 16,
+               Y          => 16,
+               Size       => 16,
+               Icon_Id    => To_Unbounded_String ("ada"),
+               Theme_Name => To_Unbounded_String ("default"),
+               Asset_Path => Null_Unbounded_String));
+         Skipped_Icon_Batch := Files.Rendering.Vulkan.Build_Submission (Skipped_Icon_Frame, Empty_Text);
+         Assert
+           (Skipped_Icon_Batch.Icon_Quad_Count = 1,
+            "vulkan skipped source icon batch emits one visible icon quad");
+         Assert
+           (Skipped_Icon_Batch.Vertices.Element (1).Texture = Files.Rendering.Vulkan.Texture_Icon_Atlas,
+            "vulkan skipped source icon batch still uses the icon atlas");
+         Assert
+           (Skipped_Icon_Batch.Vertices.Element (1).U = 0.5,
+            "vulkan skipped source icon batch advances source atlas tile coordinates");
+      end;
+
+      declare
+         Empty_Text : Files.Rendering.Text_Render_Result;
+         Large_Icon_Frame : Files.Rendering.Frame_Commands;
+         Large_Icon_Batch : Files.Rendering.Vulkan.Submission_Batch;
+         Found_Textured_Icon : Boolean := False;
+      begin
+         Large_Icon_Frame.Layout.Width := 640;
+         Large_Icon_Frame.Layout.Height := 480;
+         for Index in 1 .. 4_097 loop
+            Large_Icon_Frame.Icons.Append
+              (Files.Rendering.Icon_Command'
+                 (X          => 0,
+                  Y          => 0,
+                  Size       => 16,
+                  Icon_Id    => To_Unbounded_String ("text"),
+                  Theme_Name => To_Unbounded_String ("default"),
+                  Asset_Path => Null_Unbounded_String));
+         end loop;
+
+         Large_Icon_Batch := Files.Rendering.Vulkan.Build_Submission (Large_Icon_Frame, Empty_Text);
+         for Vertex of Large_Icon_Batch.Vertices loop
+            if Vertex.Texture = Files.Rendering.Vulkan.Texture_Icon_Atlas then
+               Found_Textured_Icon := True;
+            end if;
+         end loop;
+
+         Assert (Large_Icon_Batch.Icon_Atlas_Bytes = 0, "oversized icon batch skips icon atlas allocation");
+         Assert (not Large_Icon_Batch.Icon_Atlas_Dirty, "oversized icon batch leaves icon atlas clean");
+         Assert
+           (Large_Icon_Batch.Icon_Texture_Format = Files.Rendering.Vulkan.Atlas_Texture_None,
+            "oversized icon batch records no icon texture format");
+         Assert
+           (Large_Icon_Batch.Icon_Vertex_Count = Natural (Large_Icon_Frame.Icons.Length) * 6,
+            "oversized icon batch still emits fallback icon geometry");
+         Assert (not Found_Textured_Icon, "oversized icon batch uses untextured fallback icon quads");
+      end;
+
+      declare
+         Empty_Text : Files.Rendering.Text_Render_Result;
+         Large_Rect_Frame : Files.Rendering.Frame_Commands;
+         Large_Rect_Batch : Files.Rendering.Vulkan.Submission_Batch;
+      begin
+         Large_Rect_Frame.Layout.Width := 640;
+         Large_Rect_Frame.Layout.Height := 480;
+         for Index in 1 .. 11_000 loop
+            Large_Rect_Frame.Rectangles.Append
+              (Files.Rendering.Rectangle_Command'
+                 (X      => 0,
+                  Y      => 0,
+                  Width  => 1,
+                  Height => 1,
+                  Color  => Files.Rendering.Canvas_Color));
+         end loop;
+
+         Large_Rect_Batch := Files.Rendering.Vulkan.Build_Submission (Large_Rect_Frame, Empty_Text);
+         Assert
+           (Natural (Large_Rect_Batch.Vertices.Length) <= 65_536,
+            "oversized rectangle batch caps vertices before GPU upload");
+         Assert
+           (Large_Rect_Batch.Rectangle_Vertex_Count = Natural (Large_Rect_Batch.Vertices.Length),
+            "oversized rectangle batch count matches capped vertex payload");
+      end;
+
+      Assert
+        (Files.Rendering.Vulkan.Present (Vulkan_Renderer, Vulkan_Batch) =
+         Files.Rendering.Vulkan.Vulkan_Present_Skipped,
+         "vulkan present skips when no live surface is available");
+      Assert
+        (Files.Rendering.Vulkan.Skipped_Frame_Count (Vulkan_Renderer) = 1,
+         "vulkan present records skipped frame count");
+      Assert
+        (Files.Rendering.Vulkan.Presented_Frame_Count (Vulkan_Renderer) = 0,
+         "vulkan present does not record skipped frames as presented");
+      Assert
+        (Files.Rendering.Vulkan.Failed_Frame_Count (Vulkan_Renderer) = 0,
+         "vulkan present skip does not record a failure");
+      Assert
+        (Files.Rendering.Vulkan.Last_Submitted_Vertex_Count (Vulkan_Renderer) =
+         Natural (Vulkan_Batch.Vertices.Length),
+         "vulkan present records last submitted vertex count");
+      declare
+         Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+           Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+      begin
+         Assert (not Diagnostics.Device_Ready, "vulkan diagnostics report missing device before initialization");
+         Assert (not Diagnostics.Surface_Ready, "vulkan diagnostics report missing surface before initialization");
+         Assert (not Diagnostics.Render_Targets_Ready, "vulkan diagnostics report missing render targets");
+         Assert (not Diagnostics.Commands_Ready, "vulkan diagnostics report missing command buffers");
+         Assert (not Diagnostics.Sync_Ready, "vulkan diagnostics report missing sync objects");
+         Assert (not Diagnostics.Pipeline_Ready, "vulkan diagnostics report missing pipeline");
+         Assert (not Diagnostics.Descriptor_Ready, "vulkan diagnostics report missing descriptors");
+         Assert (Diagnostics.Texture_Binding_Count = 0, "vulkan diagnostics report no texture bindings");
+         Assert
+           (not Diagnostics.Mixed_Texture_Bindings_Ready,
+            "vulkan diagnostics report missing mixed texture bindings");
+         Assert (Diagnostics.Last_Texture_Count = 2, "vulkan diagnostics record last submitted texture count");
+         Assert
+           (Diagnostics.Last_Used_Mixed_Textures,
+            "vulkan diagnostics record mixed text and icon texture submission");
+         Assert (not Diagnostics.Vertex_Buffer_Ready, "vulkan diagnostics report missing vertex buffer");
+         Assert (not Diagnostics.Atlas_Texture_Ready, "vulkan diagnostics report missing atlas texture");
+         Assert (not Diagnostics.Icon_Atlas_Texture_Ready, "vulkan diagnostics report missing icon atlas texture");
+         Assert (not Diagnostics.Resize_Validated, "vulkan diagnostics do not claim resize validation yet");
+         Assert (not Diagnostics.Long_Running_Validated, "vulkan diagnostics do not claim soak validation");
+         Assert (not Diagnostics.Device_Loss_Handled, "vulkan diagnostics do not claim device-loss validation");
+         Assert (not Diagnostics.Surface_Loss_Handled, "vulkan diagnostics do not claim surface-loss validation");
+         Assert (not Diagnostics.Multi_Window_Validated, "vulkan diagnostics do not claim multi-window validation");
+         Assert (Diagnostics.Resize_Validation_Planned, "vulkan diagnostics plan resize validation");
+         Assert
+           (Diagnostics.Device_Loss_Validation_Planned,
+            "vulkan diagnostics plan device-loss validation");
+         Assert
+           (Diagnostics.Surface_Loss_Validation_Planned,
+            "vulkan diagnostics plan surface-loss validation");
+         Assert
+           (Diagnostics.Multi_Window_Validation_Planned,
+            "vulkan diagnostics plan multi-window validation");
+         Assert
+           (Diagnostics.Long_Running_Validation_Planned,
+            "vulkan diagnostics plan long-running validation");
+         Assert (Diagnostics.Skipped_Frames = 1, "vulkan diagnostics aggregate skipped frames");
+         Assert
+           (Diagnostics.Last_Vertex_Count = Natural (Vulkan_Batch.Vertices.Length),
+            "vulkan diagnostics aggregate submitted vertex count");
+         Assert
+           (Diagnostics.Last_Status = Files.Rendering.Vulkan.Vulkan_Present_Skipped,
+            "vulkan diagnostics aggregate last present status");
+      end;
+      Assert
+        (not Files.Rendering.Vulkan.Swapchain_Ready (Vulkan_Renderer),
+         "vulkan swapchain starts unconfigured");
+      Assert
+        (Files.Rendering.Vulkan.Configure_Swapchain
+           (Renderer => Vulkan_Renderer,
+            Width    => Vulkan_Batch.Width,
+            Height   => Vulkan_Batch.Height)
+         = Files.Rendering.Vulkan.Vulkan_Swapchain_Create_Failed,
+         "vulkan swapchain configuration fails without a live surface");
+      Assert
+        (Files.Rendering.Vulkan.Frame_Width (Vulkan_Renderer) = 0,
+         "failed swapchain configuration clears frame width");
+      Assert
+        (Files.Rendering.Vulkan.Frame_Height (Vulkan_Renderer) = 0,
+         "failed swapchain configuration clears frame height");
+      Assert
+        (Files.Rendering.Vulkan.Swapchain_Recreate_Pending (Vulkan_Renderer),
+         "failed swapchain configuration leaves recreation pending");
+      Assert
+        (Files.Rendering.Vulkan.Pending_Frame_Width (Vulkan_Renderer) = Vulkan_Batch.Width,
+         "failed swapchain configuration records pending frame width");
+      Assert
+        (Files.Rendering.Vulkan.Pending_Frame_Height (Vulkan_Renderer) = Vulkan_Batch.Height,
+         "failed swapchain configuration records pending frame height");
+      declare
+         Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+           Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+      begin
+         Assert (Diagnostics.Swapchain_Recreate, "vulkan diagnostics report pending swapchain recreation");
+         Assert
+           (Diagnostics.Pending_Frame_Width = Vulkan_Batch.Width,
+            "vulkan diagnostics aggregate pending frame width");
+         Assert
+           (Diagnostics.Pending_Frame_Height = Vulkan_Batch.Height,
+            "vulkan diagnostics aggregate pending frame height");
+      end;
+      declare
+         Resize : constant Files.Rendering.Vulkan.Resize_Validation_Result :=
+           Files.Rendering.Vulkan.Validate_Resize_Request
+             (Vulkan_Renderer,
+              Width  => Vulkan_Batch.Width + 7,
+              Height => Vulkan_Batch.Height + 9);
+      begin
+         Assert (Resize.Recreate_Requested, "vulkan resize validation requests swapchain recreation");
+         Assert (Resize.Pending_Width = Vulkan_Batch.Width + 7, "vulkan resize validation records width");
+         Assert (Resize.Pending_Height = Vulkan_Batch.Height + 9, "vulkan resize validation records height");
+         Assert
+           (Resize.Status = Files.Rendering.Vulkan.Vulkan_Swapchain_Recreate_Needed,
+            "vulkan resize validation reports recreate-needed status");
+      end;
+      declare
+         Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+           Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+      begin
+         Assert (Diagnostics.Resize_Validated, "vulkan diagnostics report resize validation");
+      end;
+      Assert
+        (Files.Rendering.Vulkan.Configure_Swapchain
+           (Renderer => Vulkan_Renderer,
+            Width    => 0,
+            Height   => Vulkan_Batch.Height)
+         = Files.Rendering.Vulkan.Vulkan_Swapchain_Recreate_Needed,
+         "zero-width swapchain configuration requests recreation");
+      Assert
+        (Files.Rendering.Vulkan.Frame_Width (Vulkan_Renderer) = 0,
+         "zero-width swapchain configuration records frame width");
+      Assert
+        (Files.Rendering.Vulkan.Frame_Height (Vulkan_Renderer) = Vulkan_Batch.Height,
+         "zero-width swapchain configuration records frame height");
+      Files.Rendering.Vulkan.Request_Swapchain_Recreate
+        (Renderer => Vulkan_Renderer,
+         Width    => Vulkan_Batch.Width + 1,
+         Height   => Vulkan_Batch.Height + 1);
+      Assert
+        (Files.Rendering.Vulkan.Swapchain_Recreate_Pending (Vulkan_Renderer),
+         "explicit swapchain recreation request is recorded");
+      Assert
+        (Files.Rendering.Vulkan.Pending_Frame_Width (Vulkan_Renderer) = Vulkan_Batch.Width + 1,
+         "explicit swapchain recreation records pending width");
+      Assert
+        (Files.Rendering.Vulkan.Pending_Frame_Height (Vulkan_Renderer) = Vulkan_Batch.Height + 1,
+         "explicit swapchain recreation records pending height");
+      declare
+         Surface_Loss : constant Files.Rendering.Vulkan.Runtime_Validation_Result :=
+           Files.Rendering.Vulkan.Validate_Surface_Loss (Vulkan_Renderer);
+         Diagnostics : Files.Rendering.Vulkan.Renderer_Diagnostics;
+      begin
+         Assert (Surface_Loss.Requested, "vulkan surface-loss validation records request");
+         Assert (Surface_Loss.Handled, "vulkan surface-loss validation handles missing surface");
+         Assert (not Surface_Loss.Surface_Ready, "vulkan surface-loss validation clears surface readiness");
+         Assert (not Surface_Loss.Swapchain_Ready, "vulkan surface-loss validation clears swapchain readiness");
+         Assert
+           (Surface_Loss.Status = Files.Rendering.Vulkan.Vulkan_Swapchain_Recreate_Needed,
+            "vulkan surface-loss validation requests swapchain recreation");
+         Diagnostics := Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+         Assert (Diagnostics.Surface_Loss_Handled, "vulkan diagnostics report surface-loss validation");
+      end;
+      declare
+         Device_Loss : constant Files.Rendering.Vulkan.Runtime_Validation_Result :=
+           Files.Rendering.Vulkan.Validate_Device_Loss (Vulkan_Renderer);
+         Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+           Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+      begin
+         Assert (Device_Loss.Requested, "vulkan device-loss validation records request");
+         Assert (Device_Loss.Handled, "vulkan device-loss validation handles missing device");
+         Assert (not Device_Loss.Device_Ready, "vulkan device-loss validation clears device readiness");
+         Assert (not Device_Loss.Surface_Ready, "vulkan device-loss validation leaves no live surface");
+         Assert (not Device_Loss.Swapchain_Ready, "vulkan device-loss validation leaves no live swapchain");
+         Assert (Diagnostics.Device_Loss_Handled, "vulkan diagnostics report device-loss validation");
+         Assert (Diagnostics.Surface_Loss_Handled, "vulkan diagnostics retain surface-loss validation");
+      end;
+      declare
+         Plan : constant Files.Rendering.Vulkan.Runtime_Validation_Plan :=
+           (Validate_Resize       => True,
+            Validate_Device_Loss  => True,
+            Validate_Surface_Loss => True,
+            Validate_Multi_Window => True,
+            Validate_Long_Running => True,
+            Width                 => Vulkan_Batch.Width + 13,
+            Height                => Vulkan_Batch.Height + 17,
+            Frame_Count           => 2,
+            Window_Count          => 2);
+         Suite : constant Files.Rendering.Vulkan.Runtime_Validation_Suite_Result :=
+           Files.Rendering.Vulkan.Validate_Runtime_Suite (Vulkan_Renderer, Vulkan_Batch, Plan);
+         Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+           Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+      begin
+         Assert (Suite.Resize_Validated, "vulkan validation suite records resize validation");
+         Assert (Suite.Device_Loss_Handled, "vulkan validation suite records device-loss handling");
+         Assert (Suite.Surface_Loss_Handled, "vulkan validation suite records surface-loss handling");
+         Assert (Suite.Multi_Window_Validated, "vulkan validation suite records multi-window policy");
+         Assert (Suite.Long_Running_Validated, "vulkan validation suite records bounded frame validation");
+         Assert (Suite.Frames_Attempted = 2, "vulkan validation suite records attempted frames");
+         Assert (Suite.Frames_Skipped >= 1, "vulkan validation suite records skipped headless frames");
+         Assert (Diagnostics.Long_Running_Validated, "vulkan diagnostics report bounded frame validation");
+         Assert (Diagnostics.Multi_Window_Validated, "vulkan diagnostics report multi-window validation");
+         Assert (Diagnostics.Device_Loss_Handled, "vulkan diagnostics retain suite device-loss validation");
+         Assert (Diagnostics.Surface_Loss_Handled, "vulkan diagnostics retain suite surface-loss validation");
+      end;
+
+      Vulkan_Status := Files.Rendering.Vulkan.Initialize (Vulkan_Renderer);
+      Assert
+        (Vulkan_Status = Files.Rendering.Vulkan.Vulkan_Ready
+         or else Vulkan_Status = Files.Rendering.Vulkan.Vulkan_Instance_Create_Failed
+         or else Vulkan_Status = Files.Rendering.Vulkan.Vulkan_Surface_Unsupported
+         or else Vulkan_Status = Files.Rendering.Vulkan.Vulkan_Device_Create_Failed,
+         "vulkan renderer reports ready or recoverable initialization failure");
+      Assert
+        (Files.Rendering.Vulkan.Ready (Vulkan_Renderer) =
+         (Vulkan_Status = Files.Rendering.Vulkan.Vulkan_Ready),
+         "vulkan ready state matches initialization status");
+      Files.Rendering.Vulkan.Shutdown (Vulkan_Renderer);
+      Assert (not Files.Rendering.Vulkan.Ready (Vulkan_Renderer), "vulkan shutdown clears ready state");
+      declare
+         Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+           Files.Rendering.Vulkan.Diagnostics (Vulkan_Renderer);
+      begin
+         Assert (not Diagnostics.Device_Ready, "vulkan diagnostics report shutdown device state");
+         Assert (Diagnostics.Last_Vertex_Count = 0, "vulkan diagnostics report shutdown vertex count");
+      end;
+      Assert
+        (Files.Rendering.Vulkan.Skipped_Frame_Count (Vulkan_Renderer) = 0,
+         "vulkan shutdown clears skipped frame count");
+      Assert
+        (Files.Rendering.Vulkan.Last_Submitted_Vertex_Count (Vulkan_Renderer) = 0,
+         "vulkan shutdown clears last submitted vertex count");
+      Assert
+        (not Files.Rendering.Vulkan.Swapchain_Recreate_Pending (Vulkan_Renderer),
+         "vulkan shutdown clears pending swapchain recreation");
+   end Test_Render_Snapshot_And_Layout;
+
+   procedure Test_Event_Translation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Ctrl   : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Alt    : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Shift  : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Ctrl_Shift : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Action : Files.Events.Input_Action;
+      Model  : Files.Model.Window_Model := Sample_Model;
+      Roots  : Files.Types.String_Vectors.Vector;
+      Layout : Files.Rendering.Layout_Metrics;
+      Palette_Query_Length : constant Natural := String'("navigate.back")'Length;
+      Rename_Text_Length   : constant Natural := String'("Alpha.txt")'Length;
+   begin
+      Ctrl (Files.Types.Control_Key) := True;
+      Alt (Files.Types.Alt_Key) := True;
+      Shift (Files.Types.Shift_Key) := True;
+      Ctrl_Shift (Files.Types.Control_Key) := True;
+      Ctrl_Shift (Files.Types.Shift_Key) := True;
+      Action := Files.Events.Translate_Key (Files.Types.Key_P, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control shortcut translates to command action");
+      Assert (Action.Command = Files.Commands.Open_Command_Palette_Command, "control+p maps to palette command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_L, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+l translates to command action");
+      Assert (Action.Command = Files.Commands.Focus_Path_Input_Command, "control+l maps to path focus command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_F, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+f translates to command action");
+      Assert (Action.Command = Files.Commands.Focus_Filter_Input_Command, "control+f maps to filter focus");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_F, Ctrl_Shift);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+shift+f translates to command action");
+      Assert (Action.Command = Files.Commands.Clear_Filter_Command, "control+shift+f maps to clear filter");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_N, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+n translates to command action");
+      Assert (Action.Command = Files.Commands.Create_File_Command, "control+n maps to create file");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_D, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+d translates to command action");
+      Assert (Action.Command = Files.Commands.Select_Drive_Command, "control+d maps to drive selector");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_R, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+r translates to command action");
+      Assert (Action.Command = Files.Commands.Refresh_Directory_Command, "control+r maps to refresh");
+      Action := Files.Events.Translate_Key (Files.Types.Key_S, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+s translates to command action");
+      Assert (Action.Command = Files.Commands.Save_Settings_Command, "control+s maps to settings save");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Left, Alt);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "alt+left translates to command action");
+      Assert (Action.Command = Files.Commands.Navigate_Back_Command, "alt+left maps to back command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Right, Alt);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "alt+right translates to command action");
+      Assert (Action.Command = Files.Commands.Navigate_Forward_Command, "alt+right maps to forward command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Home, Alt);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "alt+home translates to command action");
+      Assert (Action.Command = Files.Commands.Navigate_Home_Command, "alt+home maps to home command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_1, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+1 translates to command action");
+      Assert (Action.Command = Files.Commands.Select_Small_Icons_Command, "control+1 maps to small-icons command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_2, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+2 translates to command action");
+      Assert (Action.Command = Files.Commands.Select_Large_Icons_Command, "control+2 maps to large-icons command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_3, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+3 translates to command action");
+      Assert (Action.Command = Files.Commands.Select_Details_Command, "control+3 maps to details command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_4, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "control+4 translates to command action");
+      Assert (Action.Command = Files.Commands.Toggle_Info_Pane_Command, "control+4 maps to info toggle command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Left, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Selection_Input_Action, "arrow key translates to selection action");
+      Assert (Action.Direction = Files.Types.Move_Left, "left arrow maps to left selection movement");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Right, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Selection_Input_Action, "right arrow translates to selection action");
+      Assert (Action.Direction = Files.Types.Move_Right, "right arrow maps to right selection movement");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Up, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Selection_Input_Action, "up arrow translates to selection action");
+      Assert (Action.Direction = Files.Types.Move_Up, "up arrow maps to upward selection movement");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Down, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Selection_Input_Action, "down arrow translates to selection action");
+      Assert (Action.Direction = Files.Types.Move_Down, "down arrow maps to downward selection movement");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Delete, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "Delete translates to command action");
+      Assert (Action.Command = Files.Commands.Delete_Selected_Items_Command, "Delete maps to delete command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Backspace, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "Backspace translates to command action");
+      Assert (Action.Command = Files.Commands.Delete_Selected_Items_Command, "Backspace maps to delete command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_F2, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "F2 translates to command action");
+      Assert (Action.Command = Files.Commands.Rename_Selected_Items_Command, "F2 maps to rename command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Return, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "Return translates to command action");
+      Assert (Action.Command = Files.Commands.Open_Selected_Items_Command, "Return maps to open command");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Escape, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "Escape translates to command action");
+      Assert (Action.Command = Files.Commands.Close_Command_Palette_Command, "Escape maps to context cancel");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Left, Ctrl);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "modified arrow does not move selection");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_P, Alt);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "nonmatching modifier shortcut is ignored");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "unknown key translates to no input action");
+
+      Action := Files.Events.Translate_Scroll (1);
+      Assert (Action.Kind = Files.Events.Scroll_Input_Action, "positive wheel offset translates to scroll action");
+      Assert (Action.Direction = Files.Types.Move_Up, "positive wheel offset maps to upward direction");
+      Assert (Action.Scroll_Lines = -3, "positive wheel offset scrolls content upward");
+      Assert (Action.Scroll_Area = Files.Events.Scroll_Auto, "wheel scroll uses automatic scroll target");
+
+      Action := Files.Events.Translate_Scroll (-2);
+      Assert (Action.Kind = Files.Events.Scroll_Input_Action, "negative wheel offset translates to scroll action");
+      Assert (Action.Direction = Files.Types.Move_Down, "negative wheel offset maps to downward direction");
+      Assert (Action.Scroll_Lines = 6, "negative wheel offset scrolls content downward");
+
+      Action := Files.Events.Translate_Scroll (Integer'Last);
+      Assert (Action.Kind = Files.Events.Scroll_Input_Action, "large positive wheel offset translates");
+      Assert (Action.Direction = Files.Types.Move_Up, "large positive wheel offset keeps upward direction");
+      Assert (Action.Scroll_Lines = Integer'First, "large positive wheel offset saturates upward scroll lines");
+
+      Action := Files.Events.Translate_Scroll (Integer'First);
+      Assert (Action.Kind = Files.Events.Scroll_Input_Action, "large negative wheel offset translates");
+      Assert (Action.Direction = Files.Types.Move_Down, "large negative wheel offset keeps downward direction");
+      Assert (Action.Scroll_Lines = Integer'Last, "large negative wheel offset saturates downward scroll lines");
+
+      Action := Files.Events.Translate_Scroll (0);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "zero wheel offset translates to no input action");
+
+      declare
+         Scroll_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Scroll_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Scroll_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Scroll_Snapshot,
+              X        => Scroll_Layout.Main_X + 1,
+              Y        => Scroll_Layout.Main_Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "wheel over main view translates to scroll");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Main_View, "wheel over main view targets main view");
+         Assert (Action.Scroll_Lines = 3, "targeted main wheel keeps line delta");
+
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Scroll_Snapshot,
+              X        => 1,
+              Y        => 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "wheel over toolbar does not scroll content");
+      end;
+
+      Files.Model.Toggle_Info_Pane (Model);
+      declare
+         Info_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Info_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Info_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Info_Pane     : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout (Info_Snapshot, Info_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Info_Snapshot,
+              X        => Info_Pane.X + 1,
+              Y        => Info_Pane.Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => 1);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "wheel over info pane translates to scroll");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Info_Pane, "wheel over info pane targets info pane");
+         Assert (Action.Scroll_Lines = -3, "targeted info wheel keeps line delta");
+      end;
+      Files.Model.Toggle_Info_Pane (Model);
+
+      Files.Model.Open_Command_Palette (Model);
+      declare
+         Palette_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Palette_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Palette_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Palette          : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Palette_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Palette_Snapshot,
+              X        => Palette.X + 1,
+              Y        => Palette.Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "wheel over palette search field is inert");
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Palette_Snapshot,
+              X        => Palette.Results_X + 1,
+              Y        => Palette.Results_Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert
+           (Action.Kind = Files.Events.Scroll_Input_Action,
+            "wheel over palette results translates to scroll");
+         Assert
+           (Action.Scroll_Area = Files.Events.Scroll_Command_Palette,
+            "wheel over palette results targets palette");
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Palette_Snapshot,
+              X        => 1,
+              Y        => 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "open palette blocks wheel outside overlay");
+      end;
+      Files.Model.Close_Command_Palette (Model);
+
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      declare
+         Root_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Root_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Root_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Root_Snapshot,
+              X        => Root_Layout.Main_X + 1,
+              Y        => Root_Layout.Main_Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "root selector blocks targeted main wheel translation");
+      end;
+      Files.Model.Open_Command_Palette (Model);
+      declare
+         Palette_Over_Root : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Palette_Layout    : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Palette_Over_Root, Width => 1000, Height => 800, Line_Height => 20);
+         Palette           : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Palette_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Palette_Over_Root,
+              X        => Palette.Results_X + 1,
+              Y        => Palette.Results_Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert
+           (Action.Scroll_Area = Files.Events.Scroll_Command_Palette,
+            "palette over root selector keeps palette wheel target");
+      end;
+      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Close_Root_Selector (Model);
+
+      Files.Model.Begin_Settings_Edit
+        (Model,
+         Files.Settings.Make_Draft (Files.Settings.Default_Settings));
+      declare
+         Settings_Scroll_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Settings_Scroll_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Settings_Scroll_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Settings_Info_Pane       : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout
+             (Settings_Scroll_Snapshot, Settings_Scroll_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Settings_Scroll_Snapshot,
+              X        => Settings_Scroll_Layout.Main_X + 1,
+              Y        => Settings_Scroll_Layout.Main_Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "settings pane blocks targeted main wheel translation");
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Settings_Scroll_Snapshot,
+              X        => Settings_Info_Pane.X + 1,
+              Y        => Settings_Info_Pane.Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "settings pane blocks targeted info wheel translation");
+      end;
+      Files.Model.Open_Command_Palette (Model);
+      declare
+         Palette_Over_Settings : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Palette_Layout        : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Palette_Over_Settings, Width => 1000, Height => 800, Line_Height => 20);
+         Palette               : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Palette_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot => Palette_Over_Settings,
+              X        => Palette.Results_X + 1,
+              Y        => Palette.Results_Y + 1,
+              Width    => 1000,
+              Height   => 800,
+              Y_Offset => -1);
+         Assert
+           (Action.Scroll_Area = Files.Events.Scroll_Command_Palette,
+            "palette over settings pane keeps palette wheel target");
+      end;
+      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 10, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "toolbar click translates to command action");
+      Assert (Action.Command = Files.Commands.Select_Drive_Command, "toolbar click maps drive command");
+
+      Roots.Append (To_Unbounded_String ("/"));
+      Roots.Append (To_Unbounded_String ("/tmp"));
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Layout :=
+        Files.Rendering.Calculate_Layout
+          (Files.Rendering.Build_Snapshot (Model), Width => 1000, Height => 800, Line_Height => 20);
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model),
+           X      => 4,
+           Y      => Layout.Toolbar_Height + 5,
+           Width  => 1000,
+           Height => 800);
+      Assert (Action.Kind = Files.Events.Root_Click_Input_Action, "root row click translates to root action");
+      Assert (Action.Root_Index = 1, "root row click returns root index");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 10, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "root selector blocks toolbar clicks behind dropdown");
+      Files.Model.Close_Root_Selector (Model);
+
+      Files.Model.Begin_Settings_Edit
+        (Model,
+         Files.Settings.Make_Draft (Files.Settings.Default_Settings));
+      declare
+         Settings_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Settings_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Settings_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Pane_W            : constant Natural := Natural'Max (240, (1000 * 2) / 5);
+         Pane_H            : constant Natural := Natural'Max (20 * 23, 800 / 3);
+         Pane_X            : constant Natural := (1000 - Pane_W) / 2;
+         Pane_Y            : constant Natural :=
+           Natural'Max (Settings_Layout.Toolbar_Height + 8, 800 / 6);
+         Text_X            : constant Natural := Pane_X + 8;
+         Text_W            : constant Natural := Pane_W - 16;
+         Cell_W            : constant Natural := Text_W / 4;
+         Action_Button_W   : constant Natural := (Text_W - 4) / 2;
+         Buttons_X         : constant Natural := Pane_X + Pane_W - (34 * 2 + 4) - 8;
+      begin
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + 1,
+               Y      => Pane_Y + 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings import click translates");
+         Assert (Action.Command = Files.Commands.Import_Settings_Command, "settings import click maps command");
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + Action_Button_W + 5,
+               Y      => Pane_Y + 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings export click translates");
+         Assert (Action.Command = Files.Commands.Export_Settings_Command, "settings export click maps command");
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + 1,
+               Y      => Pane_Y + 2 * 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings reset click translates");
+         Assert (Action.Command = Files.Commands.Reset_Settings_Command, "settings reset click maps command");
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + Action_Button_W + 5,
+               Y      => Pane_Y + 2 * 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings save click translates");
+         Assert (Action.Command = Files.Commands.Save_Settings_Command, "settings save click maps command");
+         declare
+            Disabled_Settings : Files.Rendering.View_Snapshot := Settings_Snapshot;
+         begin
+            Disabled_Settings.Settings_Can_Import := False;
+            Action :=
+              Files.Events.Translate_Click
+                 (Disabled_Settings,
+                  X      => Text_X + 1,
+                  Y      => Pane_Y + 20 + 1,
+                  Width  => 1000,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.No_Input_Action,
+               "disabled settings import click is ignored by hit testing");
+
+            Disabled_Settings := Settings_Snapshot;
+            Disabled_Settings.Settings_Can_Export := False;
+            Action :=
+              Files.Events.Translate_Click
+                 (Disabled_Settings,
+                  X      => Text_X + Action_Button_W + 5,
+                  Y      => Pane_Y + 20 + 1,
+                  Width  => 1000,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.No_Input_Action,
+               "disabled settings export click is ignored by hit testing");
+
+            Disabled_Settings := Settings_Snapshot;
+            Disabled_Settings.Settings_Can_Reset := False;
+            Action :=
+              Files.Events.Translate_Click
+                 (Disabled_Settings,
+                  X      => Text_X + 1,
+                  Y      => Pane_Y + 2 * 20 + 1,
+                  Width  => 1000,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.No_Input_Action,
+               "disabled settings reset click is ignored by hit testing");
+
+            Disabled_Settings := Settings_Snapshot;
+            Disabled_Settings.Settings_Can_Save := False;
+            Action :=
+              Files.Events.Translate_Click
+                 (Disabled_Settings,
+                  X      => Text_X + Action_Button_W + 5,
+                  Y      => Pane_Y + 2 * 20 + 1,
+                  Width  => 1000,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.No_Input_Action,
+               "disabled settings save click is ignored by hit testing");
+         end;
+         declare
+            Odd_Width      : constant Natural := 1004;
+            Odd_Snapshot   : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+            Odd_Layout     : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout (Odd_Snapshot, Width => Odd_Width, Height => 800, Line_Height => 20);
+            Odd_Pane_W     : constant Natural := Natural'Max (240, (Odd_Width * 2) / 5);
+            Odd_Pane_X     : constant Natural := (Odd_Width - Odd_Pane_W) / 2;
+            Odd_Pane_Y     : constant Natural :=
+              Natural'Max (Odd_Layout.Toolbar_Height + 8, 800 / 6);
+            Odd_Text_X     : constant Natural := Odd_Pane_X + 8;
+            Odd_Text_W     : constant Natural := Odd_Pane_W - 16;
+            Odd_Last_X     : constant Natural := Odd_Text_X + Odd_Text_W - 1;
+         begin
+            Action :=
+              Files.Events.Translate_Click
+                 (Odd_Snapshot,
+                  X      => Odd_Last_X,
+                  Y      => Odd_Pane_Y + 20 + 1,
+                  Width  => Odd_Width,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.Command_Input_Action,
+               "settings action remainder click translates");
+            Assert
+              (Action.Command = Files.Commands.Export_Settings_Command,
+               "settings action remainder click maps export command");
+            Action :=
+              Files.Events.Translate_Click
+                 (Odd_Snapshot,
+                  X      => Odd_Last_X,
+                  Y      => Odd_Pane_Y + 2 * 20 + 1,
+                  Width  => Odd_Width,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.Command_Input_Action,
+               "settings save remainder click translates");
+            Assert
+              (Action.Command = Files.Commands.Save_Settings_Command,
+               "settings save remainder click maps save command");
+         end;
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + Cell_W + 1,
+               Y      => Pane_Y + 21 * 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Settings_Click_Input_Action, "settings option click translates");
+         Assert (Action.Settings_Field = 1, "settings option click keeps active scalar field");
+         Assert (Action.Settings_Option = 2, "settings option click returns option index");
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + 3 * Cell_W + 1,
+               Y      => Pane_Y + 21 * 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "settings blank option cell is inert");
+         Files.Model.Set_Settings_Field_Index (Model, 4);
+         declare
+            Sort_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+            Sort_Pane_W   : constant Natural := Natural'Max (240, (997 * 2) / 5);
+            Sort_Pane_Y   : constant Natural :=
+              Natural'Max
+                (Files.Rendering.Calculate_Layout
+                   (Sort_Snapshot, Width => 997, Height => 800, Line_Height => 20).Toolbar_Height + 8,
+                 800 / 6);
+            Sort_Text_X   : constant Natural := ((997 - Sort_Pane_W) / 2) + 8;
+            Sort_Text_W   : constant Natural := Sort_Pane_W - 16;
+         begin
+            Action :=
+              Files.Events.Translate_Click
+                 (Sort_Snapshot,
+                  X      => Sort_Text_X + Sort_Text_W - 1,
+                  Y      => Sort_Pane_Y + 21 * 20 + 1,
+                  Width  => 997,
+                  Height => 800);
+            Assert
+              (Action.Kind = Files.Events.Settings_Click_Input_Action,
+               "settings sort remainder click translates");
+            Assert (Action.Settings_Field = 4, "settings sort remainder click keeps sort field");
+            Assert (Action.Settings_Option = 4, "settings sort remainder click maps modified option");
+         end;
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Buttons_X + 1,
+               Y      => Pane_Y + 10 * 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Settings_Click_Input_Action, "settings add click translates");
+         Assert (Action.Settings_Field = 8, "settings add click targets filetype mappings");
+         Assert (Action.Settings_Option = 100, "settings add click returns add action code");
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Buttons_X + 39,
+               Y      => Pane_Y + 10 * 20 + 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.Settings_Click_Input_Action, "settings remove click translates");
+         Assert (Action.Settings_Field = 8, "settings remove click targets filetype mappings");
+         Assert (Action.Settings_Option = 101, "settings remove click returns remove action code");
+         Action :=
+           Files.Events.Translate_Click
+              (Settings_Snapshot,
+               X      => Text_X + 1,
+               Y      => Pane_Y + Pane_H - 1,
+               Width  => 1000,
+               Height => 800);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "settings diagnostic row stays inside modal pane");
+      end;
+      declare
+         Huge_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Huge_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Huge_Snapshot, Width => Natural'Last, Height => Natural'Last);
+      begin
+         Assert (Huge_Layout.Command_Width < Natural'Last, "saturated command palette width is bounded");
+         Action :=
+           Files.Events.Translate_Click
+             (Huge_Snapshot,
+              X      => Natural'Last,
+              Y      => Natural'Last,
+              Width  => Natural'Last,
+              Height => Natural'Last);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "saturated settings click avoids overflow");
+         declare
+            Huge_Pane_W : constant Natural :=
+              Natural'Max (240, (Natural'Last / 5) * 2 + ((Natural'Last mod 5) * 2) / 5);
+            Huge_Pane_X : constant Natural := (Natural'Last - Huge_Pane_W) / 2;
+            Huge_Text_X : constant Natural := Huge_Pane_X + 8;
+         begin
+            Action :=
+              Files.Events.Translate_Click
+                (Huge_Snapshot,
+                 X      => Huge_Text_X + 1,
+                 Y      => Natural'Last / 6 + 21,
+                 Width  => Natural'Last,
+                 Height => Natural'Last);
+            Assert
+              (Action.Kind = Files.Events.Command_Input_Action,
+               "saturated settings pane button click avoids overflow");
+            Assert
+              (Action.Command = Files.Commands.Import_Settings_Command,
+               "saturated settings pane button click maps import command");
+         end;
+      end;
+      Files.Model.Open_Command_Palette (Model);
+      declare
+         Palette_Over_Settings : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Palette_Layout        : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Palette_Over_Settings, Width => 1000, Height => 800, Line_Height => 20);
+         Palette               : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Palette_Layout, Line_Height => 20);
+         Settings_Layout       : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Palette_Over_Settings, Width => 1000, Height => 800, Line_Height => 20);
+         Settings_Pane_W       : constant Natural := Natural'Max (240, (1000 * 2) / 5);
+         Settings_Pane_Y       : constant Natural :=
+           Natural'Max (Settings_Layout.Toolbar_Height + 8, 800 / 6);
+         Settings_Text_X       : constant Natural := ((1000 - Settings_Pane_W) / 2) + 8;
+      begin
+         Action :=
+           Files.Events.Translate_Click
+             (Palette_Over_Settings,
+              X      => Settings_Text_X + 1,
+              Y      => Settings_Pane_Y + 20 + 1,
+              Width  => 1000,
+              Height => 800);
+         Assert
+           (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
+            "palette claims settings modal clicks behind overlay");
+         Action :=
+           Files.Events.Translate_Click
+             (Palette_Over_Settings,
+              X      => Palette.Search_X + 1,
+              Y      => Palette.Search_Y + 1,
+              Width  => 1000,
+              Height => 800);
+         Assert
+           (Action.Kind = Files.Events.Text_Click_Input_Action,
+            "palette search remains clickable over settings pane");
+         Assert
+           (Action.Focus_Target = Files.Types.Focus_Command_Palette,
+            "palette search over settings targets command-palette input");
+         Action :=
+           Files.Events.Translate_Click
+             (Palette_Over_Settings,
+              X      => Palette.Results_X + 1,
+              Y      => Palette.Results_Y + 1,
+              Width  => 1000,
+              Height => 800);
+         Assert
+           (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
+            "palette result remains clickable over settings pane");
+      end;
+      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      declare
+         Wide_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Wide_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout
+             (Wide_Snapshot, Width => Natural'Last, Height => 800, Line_Height => 20);
+         Wide_Palette  : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Wide_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Click
+             (Wide_Snapshot,
+              X      => Wide_Palette.Search_X + Wide_Palette.Search_Width - 1,
+              Y      => Wide_Palette.Search_Y + 1,
+              Width  => Natural'Last,
+              Height => 800);
+         Assert
+           (Action.Kind = Files.Events.Text_Click_Input_Action,
+            "wide palette search click avoids cursor overflow");
+         Assert
+           (Action.Cursor_Position = Length (Wide_Snapshot.Command_Palette_Query),
+            "wide palette search click clamps cursor to query end");
+      end;
+      Files.Model.Close_Command_Palette (Model);
+
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 224, Y => 20, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "path click translates to text action");
+      Assert (Action.Focus_Target = Files.Types.Focus_Path_Input, "path click targets path input");
+      Assert (Action.Cursor_Position = 2, "path click computes text cursor position");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 200, Y => 20, Width => 1000, Height => 800);
+      Assert (Action.Cursor_Position = 0, "path click clamps cursor to text start");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 799, Y => 20, Width => 1000, Height => 800);
+      Assert (Action.Cursor_Position = Root'Length, "path click clamps cursor to text end");
+
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 224, Y => 5, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "path input top padding is not a text click");
+
+      Files.Model.Set_Filter (Model, "beta");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 824, Y => 20, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "filter click translates to text action");
+      Assert (Action.Focus_Target = Files.Types.Focus_Filter_Input, "filter click targets filter input");
+      Assert (Action.Cursor_Position = 2, "filter click computes text cursor position");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 800, Y => 20, Width => 1000, Height => 800);
+      Assert (Action.Cursor_Position = 0, "filter click clamps cursor to text start");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 999, Y => 20, Width => 1000, Height => 800);
+      Assert (Action.Cursor_Position = 4, "filter click clamps cursor to text end");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 824, Y => 30, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "filter input bottom padding is not a text click");
+      Files.Model.Clear_Filter (Model);
+
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 170, Y => 790, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "bottom-bar click translates to command action");
+      Assert (Action.Command = Files.Commands.Select_Details_Command, "bottom-bar click maps details command");
+
+      Layout :=
+        Files.Rendering.Calculate_Layout
+          (Files.Rendering.Build_Snapshot (Model), Width => 1000, Height => 800, Line_Height => 20);
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model),
+           X        => 1,
+           Y        => Layout.Main_Y + 1,
+           Width    => 1000,
+           Height   => 800,
+           Activate => True);
+      Assert (Action.Kind = Files.Events.Item_Click_Input_Action, "main item click translates to item action");
+      Assert (Action.Item_Index = 1, "main item click returns visible item index");
+      Assert (Action.Activate, "main item double-click preserves activation flag");
+      Assert (not Action.Range_Selection, "plain item click does not request range selection");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model),
+           X         => 1,
+           Y         => Layout.Main_Y + 1,
+           Width     => 1000,
+           Height    => 800,
+           Modifiers => Ctrl);
+      Assert (Action.Toggle_Selection, "control-click item action requests selection toggle");
+      Assert (not Action.Range_Selection, "control-click item action does not request range selection");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model),
+           X         => 1,
+           Y         => Layout.Main_Y + 1,
+           Width     => 1000,
+           Height    => 800,
+           Modifiers => Shift);
+      Assert (Action.Range_Selection, "shift-click item action requests range selection");
+      Assert (not Action.Toggle_Selection, "shift-click item action does not request toggle selection");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model),
+           X         => 1,
+           Y         => Layout.Main_Y + 1,
+           Width     => 1000,
+           Height    => 800,
+           Modifiers => Ctrl_Shift);
+      Assert (Action.Range_Selection, "control-shift item click keeps range selection precedence");
+      Assert (not Action.Toggle_Selection, "control-shift item click does not also request toggle selection");
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 124, Y => 25, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "palette search click translates to text action");
+      Assert
+        (Action.Focus_Target = Files.Types.Focus_Command_Palette,
+         "palette search click targets command-palette input");
+      Assert (Action.Cursor_Position = 2, "palette search click computes text cursor position");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 100, Y => 25, Width => 1000, Height => 800);
+      Assert (Action.Cursor_Position = 0, "palette search click clamps cursor to text start");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 899, Y => 25, Width => 1000, Height => 800);
+      Assert
+        (Action.Cursor_Position = Palette_Query_Length,
+         "palette search click clamps cursor to text end");
+      declare
+         Tiny_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Tiny_Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Tiny_Snapshot, Width => 40, Height => 10, Line_Height => 20);
+         Tiny_Palette  : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Tiny_Layout, Line_Height => 20);
+      begin
+         Action :=
+           Files.Events.Translate_Click
+             (Tiny_Snapshot,
+              X      => Tiny_Palette.Search_X,
+              Y      => Tiny_Palette.Search_Y + Tiny_Palette.Search_Height - 1,
+              Width  => 40,
+              Height => 10);
+         Assert
+           (Action.Kind = Files.Events.Text_Click_Input_Action,
+            "tiny palette search click uses clipped search height");
+         Assert
+           (Action.Focus_Target = Files.Types.Focus_Command_Palette,
+            "tiny palette search click targets command-palette input");
+         Action :=
+           Files.Events.Translate_Click
+             (Tiny_Snapshot,
+              X      => Tiny_Palette.Search_X,
+              Y      => Tiny_Palette.Search_Y + Tiny_Palette.Search_Height,
+              Width  => 40,
+              Height => 10);
+         Assert
+           (Action.Kind = Files.Events.No_Input_Action,
+            "tiny palette rejects click after clipped search field");
+      end;
+
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 104, Y => 45, Width => 1000, Height => 800);
+      Assert
+        (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
+         "palette result click translates to result action");
+      Assert (Action.Result_Index = 1, "palette result click returns result index");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 104, Y => 65, Width => 1000, Height => 800);
+      Assert
+        (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
+         "palette result description click translates to result action");
+      Assert (Action.Result_Index = 1, "palette result description click returns result index");
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 10, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "palette blocks toolbar clicks behind overlay");
+
+      declare
+         Palette_Snapshot : Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Palette_Layout   : Files.Rendering.Command_Palette_Layout;
+         Track_X          : Natural;
+      begin
+         Files.Model.Set_Command_Palette_Query (Model, "");
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 1);
+         Palette_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Layout :=
+           Files.Rendering.Calculate_Layout (Palette_Snapshot, Width => 1000, Height => 120, Line_Height => 20);
+         Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+         Track_X := Palette_Layout.Results_X + Palette_Layout.Results_Width - 1;
+         Action :=
+           Files.Events.Translate_Click
+             (Palette_Snapshot,
+              X      => Track_X,
+              Y      => Palette_Layout.Results_Y + Palette_Layout.Results_Height - 1,
+              Width  => 1000,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "palette scrollbar click translates to scroll");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Command_Palette, "palette scrollbar targets palette");
+         Assert (Action.Scroll_Lines = 5, "palette scrollbar below thumb scrolls down by a page step");
+         Palette_Snapshot.Command_Palette_Result_Offset := 0;
+         Action :=
+           Files.Events.Translate_Click
+             (Palette_Snapshot,
+              X      => Track_X,
+              Y      => Palette_Layout.Results_Y,
+              Width  => 1000,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "palette thumb click is inert");
+         Palette_Snapshot.Command_Palette_Result_Offset := 1;
+
+         Layout :=
+           Files.Rendering.Calculate_Layout (Palette_Snapshot, Width => 100, Height => 38, Line_Height => 20);
+         Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
+         Action :=
+           Files.Events.Translate_Click
+             (Palette_Snapshot,
+              X      => Palette_Layout.Results_X + Palette_Layout.Results_Width - 1,
+              Y      => Palette_Layout.Results_Y + Palette_Layout.Results_Height - 1,
+              Width  => 100,
+              Height => 38);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "partial palette thumb click is inert");
+      end;
+
+      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Info_Pane (Model);
+      declare
+         Info_Snapshot : Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Info_Pane     : Files.Rendering.Info_Pane_Layout;
+      begin
+         for Index in 1 .. 8 loop
+            Info_Snapshot.Selected_Info.Append (Info_Snapshot.Selected_Info.Element (1));
+         end loop;
+         Info_Snapshot.Info_Pane_Scroll_Lines := 1;
+         Layout :=
+           Files.Rendering.Calculate_Layout (Info_Snapshot, Width => 360, Height => 160, Line_Height => 20);
+         Info_Pane := Files.Rendering.Calculate_Info_Pane_Layout (Info_Snapshot, Layout, Line_Height => 20);
+         Assert (Info_Pane.Scrollbar_Visible, "overflow info pane exposes scrollbar for hit testing");
+         Action :=
+           Files.Events.Translate_Click
+             (Info_Snapshot,
+              X      => Info_Pane.Scrollbar_X,
+              Y      => Info_Pane.Scrollbar_Y,
+              Width  => 360,
+              Height => 160);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "info scrollbar click translates to scroll");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Info_Pane, "info scrollbar targets info pane");
+         Assert (Action.Scroll_Lines = -10, "info scrollbar above thumb scrolls up by a page step");
+         Action :=
+           Files.Events.Translate_Click
+             (Info_Snapshot,
+              X      => Info_Pane.Scrollbar_X,
+              Y      => Info_Pane.Scrollbar_Y + Info_Pane.Height - 1,
+              Width  => 360,
+              Height => 160);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "info scrollbar below thumb click translates");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Info_Pane, "info scrollbar below thumb targets info pane");
+         Assert (Action.Scroll_Lines = 10, "info scrollbar below thumb scrolls down by a page step");
+         Action :=
+           Files.Events.Translate_Click
+             (Info_Snapshot,
+              X      => Info_Pane.Scrollbar_X,
+              Y      => Info_Pane.Scrollbar_Thumb_Y,
+              Width  => 360,
+              Height => 160);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "info scrollbar thumb click is inert");
+         Info_Snapshot.Command_Palette_Open := True;
+         Action :=
+           Files.Events.Translate_Click
+             (Info_Snapshot,
+              X      => Info_Pane.Scrollbar_X,
+              Y      => Info_Pane.Scrollbar_Y,
+              Width  => 360,
+              Height => 160);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "palette blocks info scrollbar clicks behind overlay");
+         Info_Snapshot.Command_Palette_Open := False;
+         Info_Snapshot.Root_Paths.Clear;
+         Info_Snapshot.Root_Labels.Clear;
+         Info_Snapshot.Root_Selector_Open := True;
+         Action :=
+           Files.Events.Translate_Click
+             (Info_Snapshot,
+              X      => Info_Pane.Scrollbar_X,
+              Y      => Info_Pane.Scrollbar_Y,
+              Width  => 360,
+              Height => 160);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "root selector blocks info scrollbar clicks behind menu");
+         Info_Snapshot.Root_Selector_Open := False;
+         Info_Snapshot.Settings_Pane_Open := True;
+         Action :=
+           Files.Events.Translate_Click
+             (Info_Snapshot,
+              X      => Info_Pane.Scrollbar_X,
+              Y      => Info_Pane.Scrollbar_Y,
+              Width  => 360,
+              Height => 160);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "settings pane blocks info scrollbar clicks behind modal");
+      end;
+      Files.Model.Toggle_Info_Pane (Model);
+
+      declare
+         Main_Snapshot : Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Main_View     : Files.Rendering.Main_View_Layout;
+      begin
+         Main_Snapshot.Items.Clear;
+         Main_Snapshot.View_Mode := Files.Types.Details;
+         for Index in 1 .. 12 loop
+            Main_Snapshot.Items.Append
+              (Files.Rendering.Item_Snapshot'
+                 (Name          => To_Unbounded_String ("item" & Natural'Image (Index)),
+                  Filetype      => To_Unbounded_String ("text/plain"),
+                  Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.text")),
+                  Icon_Id       => To_Unbounded_String ("text"),
+                  Kind          => Files.Types.Regular_File_Item,
+                  Selected      => False,
+                  Visible_Index => Index,
+                  others        => <>));
+         end loop;
+         Main_Snapshot.Main_View_Scroll_Lines := 2;
+         Layout :=
+           Files.Rendering.Calculate_Layout (Main_Snapshot, Width => 240, Height => 120, Line_Height => 20);
+         Main_View := Files.Rendering.Calculate_Main_View_Layout (Main_Snapshot, Layout, Line_Height => 20);
+         Assert (Main_View.Scrollbar_Visible, "overflow main view exposes scrollbar for hit testing");
+         Action :=
+           Files.Events.Translate_Click
+             (Main_Snapshot,
+              X      => Main_View.Scrollbar_X,
+              Y      => Main_View.Scrollbar_Y,
+              Width  => 240,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "main scrollbar click translates to scroll");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Main_View, "main scrollbar targets main view");
+         Assert (Action.Scroll_Lines = -10, "main scrollbar above thumb scrolls up by a page step");
+         Action :=
+           Files.Events.Translate_Click
+             (Main_Snapshot,
+              X      => Main_View.Scrollbar_X,
+              Y      => Main_View.Scrollbar_Y + Layout.Main_Height - 1,
+              Width  => 240,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.Scroll_Input_Action, "main scrollbar below thumb click translates");
+         Assert (Action.Scroll_Area = Files.Events.Scroll_Main_View, "main scrollbar below thumb targets main view");
+         Assert (Action.Scroll_Lines = 10, "main scrollbar below thumb scrolls down by a page step");
+         Action :=
+           Files.Events.Translate_Click
+             (Main_Snapshot,
+              X      => Main_View.Scrollbar_X,
+              Y      => Main_View.Scrollbar_Thumb_Y,
+              Width  => 240,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "main scrollbar thumb click is inert");
+         Main_Snapshot.Command_Palette_Open := True;
+         Action :=
+           Files.Events.Translate_Click
+             (Main_Snapshot,
+              X      => Main_View.Scrollbar_X,
+              Y      => Main_View.Scrollbar_Y,
+              Width  => 240,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "palette blocks main scrollbar clicks behind overlay");
+         Main_Snapshot.Command_Palette_Open := False;
+         Main_Snapshot.Root_Paths.Clear;
+         Main_Snapshot.Root_Labels.Clear;
+         Main_Snapshot.Root_Selector_Open := True;
+         Action :=
+           Files.Events.Translate_Click
+             (Main_Snapshot,
+              X      => Main_View.Scrollbar_X,
+              Y      => Main_View.Scrollbar_Y,
+              Width  => 240,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "root selector blocks main scrollbar clicks behind menu");
+         Main_Snapshot.Root_Selector_Open := False;
+         Main_Snapshot.Settings_Pane_Open := True;
+         Action :=
+           Files.Events.Translate_Click
+             (Main_Snapshot,
+              X      => Main_View.Scrollbar_X,
+              Y      => Main_View.Scrollbar_Y,
+              Width  => 240,
+              Height => 120);
+         Assert (Action.Kind = Files.Events.No_Input_Action, "settings pane blocks main scrollbar clicks behind modal");
+      end;
+
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Rename (Model);
+      Layout :=
+        Files.Rendering.Calculate_Layout
+          (Files.Rendering.Build_Snapshot (Model), Width => 1000, Height => 800, Line_Height => 20);
+      declare
+         Item_Rows : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Item_Layout
+             (Files.Rendering.Build_Snapshot (Model), Layout, Line_Height => 20);
+         Row       : constant Files.Rendering.Item_Layout := Item_Rows.Element (1);
+      begin
+         Action :=
+           Files.Events.Translate_Click
+             (Files.Rendering.Build_Snapshot (Model),
+              X      => Row.Text_X + 24,
+              Y      => Row.Text_Y + 1,
+              Width  => 1000,
+              Height => 800);
+         Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "rename click translates to text action");
+         Assert (Action.Focus_Target = Files.Types.Focus_Rename_Input, "rename click targets rename input");
+         Assert (Action.Cursor_Position = 2, "rename click computes text cursor position");
+         Action :=
+           Files.Events.Translate_Click
+             (Files.Rendering.Build_Snapshot (Model),
+              X      => Row.Text_X,
+              Y      => Row.Text_Y + 1,
+              Width  => 1000,
+              Height => 800);
+         Assert (Action.Cursor_Position = 0, "rename click clamps cursor to text start");
+         Action :=
+           Files.Events.Translate_Click
+             (Files.Rendering.Build_Snapshot (Model),
+              X      => Row.Text_X + Row.Text_Width - 1,
+              Y      => Row.Text_Y + 1,
+              Width  => 1000,
+              Height => 800);
+         Assert
+           (Action.Cursor_Position = Rename_Text_Length,
+            "rename click clamps cursor to text end");
+      end;
+      Files.Model.Toggle_Rename (Model);
+
+      Roots.Append (To_Unbounded_String ("/"));
+      Roots.Append (To_Unbounded_String ("/tmp"));
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 4, Y => 45, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.Root_Click_Input_Action, "root row click translates to root action");
+      Assert (Action.Root_Index = 1, "root row click returns root index");
+      Files.Model.Open_Command_Palette (Model);
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 4, Y => 45, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "palette blocks root row clicks behind overlay");
+      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Close_Root_Selector (Model);
+
+      Action :=
+        Files.Events.Translate_Click
+          (Files.Rendering.Build_Snapshot (Model), X => 999, Y => 400, Width => 1000, Height => 800);
+      Assert (Action.Kind = Files.Events.No_Input_Action, "empty click translates to no input action");
+   end Test_Event_Translation;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
-      Result : constant AUnit.Test_Suites.Access_Test_Suite :=
-        new AUnit.Test_Suites.Test_Suite;
+      Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
    begin
       pragma Warnings (Off, "use of an anonymous access type allocator");
-   --   Result.Add_Test (new Version.Hash.Tests.Test_Case);
-
+      Result.Add_Test (new Startup_Test_Case);
+      Result.Add_Test (new Model_Test_Case);
+      Result.Add_Test (new Command_Test_Case);
+      Result.Add_Test (new Settings_Test_Case);
+      Result.Add_Test (new Operation_Test_Case);
+      Result.Add_Test (new Rendering_Test_Case);
       pragma Warnings (On, "use of an anonymous access type allocator");
       return Result;
    end Suite;

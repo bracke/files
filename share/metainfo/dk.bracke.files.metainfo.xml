@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dk.bracke.files</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT OR Apache-2.0 WITH LLVM-exception</project_license>
+  <name>Files</name>
+  <summary>Browse and open local files</summary>
+  <description>
+    <p>Files is an Ada desktop file explorer for local directories.</p>
+  </description>
+  <categories>
+    <category>System</category>
+    <category>FileManager</category>
+  </categories>
+  <launchable type="desktop-id">files.desktop</launchable>
+</component>

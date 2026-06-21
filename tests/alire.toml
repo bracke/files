@@ -15,13 +15,13 @@ executables = ["tests"]
 files = "*"
 
 [[pins]]
-files = { path = "../.." }
+files = { path = ".." }
 
 [[depends-on]]
 project_tools = "*"
 
 [[pins]]
-project_tools = { path = "../../../project_tools" }
+project_tools = { path = "../../project_tools" }
 
 [[depends-on]]
 aunit = "^26.0.0"

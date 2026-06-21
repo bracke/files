@@ -1,0 +1,1157 @@
+with Ada.Directories;
+with Ada.Characters.Handling;
+with Ada.Strings.Unbounded;
+
+with Files.File_System;
+with Ada.Environment_Variables;
+with GNAT.OS_Lib;
+
+package body Files.Operations is
+   use Ada.Strings.Unbounded;
+   use type Files.Types.Item_Kind;
+   use type Files.File_System.Path_Status;
+   use type GNAT.OS_Lib.Argument_List_Access;
+   use type GNAT.OS_Lib.String_Access;
+
+   function Empty_Action return Files.Settings.Open_Action is
+   begin
+      return Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector);
+   end Empty_Action;
+
+   function Open_Action_Policy return Open_Action_Execution_Policy is
+   begin
+      return
+        (Uses_Argument_Vector       => True,
+         Shell_Requires_Explicit_Opt_In => True,
+         Checks_Executable_Before_Spawn => True,
+         Tracks_Execution_Attempt  => True,
+         Tracks_Exit_Status        => True,
+         Runs_Asynchronously       => False,
+         Supports_Cancellation     => False,
+         Rejects_Unsafe_Placeholders => True,
+         Reports_Missing_Action    => True,
+         Reports_Missing_Executable => True,
+         Captures_Executable_Discovery => True,
+         Captures_Process_Result       => True,
+         Quotes_Shell_Arguments        => True,
+         Preserves_Vector_Boundaries   => True,
+         Multi_File_Deterministic      => True);
+   end Open_Action_Policy;
+
+   function Open_Action_Lifecycle_Of
+     (Result : Operation_Result)
+      return Open_Action_Lifecycle
+   is
+      State : Open_Action_Lifecycle_State := Open_Action_Not_Started;
+   begin
+      if Result.Status = Operation_Action_Executed then
+         State := Open_Action_Completed;
+      elsif Result.Status = Operation_Failed and then Result.Execution_Attempted then
+         State := Open_Action_Failed;
+      elsif Result.Status = Operation_Failed
+        and then not Result.Executable_Found
+        and then To_String (Result.Action_Executable) /= ""
+      then
+         State := Open_Action_Preflight_Failed;
+      elsif Result.Execution_Attempted then
+         State := Open_Action_Spawned;
+      end if;
+
+      return
+        (State             => State,
+         Executable        => Result.Action_Executable,
+         Argument_Count    => Result.Action_Arguments,
+         Uses_Shell        => Result.Action_Uses_Shell,
+         Exit_Status_Known => Result.Exit_Status_Known,
+         Exit_Status       => Result.Exit_Status,
+         Cancellation_Available => False);
+   end Open_Action_Lifecycle_Of;
+
+   function Make_Result
+     (Status    : Operation_Status;
+      Error_Key : String := "";
+      Path      : String := "";
+      Action    : Files.Settings.Open_Action := Empty_Action;
+      Attempted : Boolean := False;
+      Found     : Boolean := False;
+      Exit_Known : Boolean := False;
+      Exit_Status : Integer := 0)
+      return Operation_Result is
+   begin
+      return
+        (Status    => Status,
+         Error_Key => To_Unbounded_String (Error_Key),
+         Path      => To_Unbounded_String (Path),
+         Action    => Action,
+         Action_Executable => Action.Executable,
+         Action_Arguments  => Natural (Action.Arguments.Length),
+         Action_Uses_Shell => Action.Use_Shell,
+         Execution_Attempted => Attempted,
+         Executable_Found    => Found,
+         Exit_Status_Known   => Exit_Known,
+         Exit_Status         => Exit_Status);
+   end Make_Result;
+
+   function Disabled
+     (Model     : in out Files.Model.Window_Model;
+      Error_Key : String)
+      return Operation_Result is
+   begin
+      Files.Model.Set_Error (Model, Error_Key);
+      return Make_Result (Operation_Disabled, Error_Key);
+   end Disabled;
+
+   function Unsafe_Open_Action
+     (Model : in out Files.Model.Window_Model;
+      Path  : String)
+      return Operation_Result is
+   begin
+      Files.Model.Set_Error (Model, "error.open_action.unsafe_placeholder");
+      return Make_Result (Operation_Failed, "error.open_action.unsafe_placeholder", Path);
+   end Unsafe_Open_Action;
+
+   function Windows_Device_Basename (Name : String) return String is
+      Result : Unbounded_String;
+   begin
+      for Character_Value of Name loop
+         exit when Character_Value = '.';
+         Append (Result, Ada.Characters.Handling.To_Upper (Character_Value));
+      end loop;
+
+      declare
+         Text : constant String := To_String (Result);
+         Last : Natural := Text'Last;
+      begin
+         while Last >= Text'First and then Text (Last) = ' ' loop
+            Last := Last - 1;
+         end loop;
+
+         if Last < Text'First then
+            return "";
+         else
+            return Text (Text'First .. Last);
+         end if;
+      end;
+   end Windows_Device_Basename;
+
+   function Is_Windows_Device_Name (Name : String) return Boolean is
+      Base : constant String := Windows_Device_Basename (Name);
+   begin
+      return Base = "CON"
+        or else Base = "PRN"
+        or else Base = "AUX"
+        or else Base = "NUL"
+        or else Base = "CONIN$"
+        or else Base = "CONOUT$"
+        or else
+          (Base'Length = 4
+           and then (Base (Base'First .. Base'First + 2) = "COM"
+                     or else Base (Base'First .. Base'First + 2) = "LPT")
+           and then Base (Base'Last) in '1' .. '9');
+   end Is_Windows_Device_Name;
+
+   function Byte_Of
+     (Name  : String;
+      Index : Positive)
+      return Natural is
+   begin
+      return Character'Pos (Name (Index));
+   end Byte_Of;
+
+   function Has_UTF8_Continuation
+     (Name  : String;
+      Index : Positive)
+      return Boolean
+   is
+      Value : constant Natural := Byte_Of (Name, Index);
+   begin
+      return Value >= 16#80# and then Value <= 16#BF#;
+   end Has_UTF8_Continuation;
+
+   function Valid_UTF8_Sequence_Length
+     (Name  : String;
+      Index : Positive)
+      return Natural
+   is
+      First : constant Natural := Byte_Of (Name, Index);
+   begin
+      if First < 16#80# then
+         return 1;
+      elsif First = 16#C2# then
+         if Index + 1 <= Name'Last
+           and then Byte_Of (Name, Index + 1) >= 16#A0#
+           and then Byte_Of (Name, Index + 1) <= 16#BF#
+         then
+            return 2;
+         end if;
+      elsif First >= 16#C2# and then First <= 16#DF# then
+         if Index + 1 <= Name'Last
+           and then Has_UTF8_Continuation (Name, Index + 1)
+         then
+            return 2;
+         end if;
+      elsif First = 16#E0# then
+         if Index + 2 <= Name'Last
+           and then Byte_Of (Name, Index + 1) >= 16#A0#
+           and then Byte_Of (Name, Index + 1) <= 16#BF#
+           and then Has_UTF8_Continuation (Name, Index + 2)
+         then
+            return 3;
+         end if;
+      elsif First >= 16#E1# and then First <= 16#EC# then
+         if Index + 2 <= Name'Last
+           and then Has_UTF8_Continuation (Name, Index + 1)
+           and then Has_UTF8_Continuation (Name, Index + 2)
+         then
+            return 3;
+         end if;
+      elsif First = 16#ED# then
+         if Index + 2 <= Name'Last
+           and then Byte_Of (Name, Index + 1) >= 16#80#
+           and then Byte_Of (Name, Index + 1) <= 16#9F#
+           and then Has_UTF8_Continuation (Name, Index + 2)
+         then
+            return 3;
+         end if;
+      elsif First >= 16#EE# and then First <= 16#EF# then
+         if Index + 2 <= Name'Last
+           and then Has_UTF8_Continuation (Name, Index + 1)
+           and then Has_UTF8_Continuation (Name, Index + 2)
+         then
+            return 3;
+         end if;
+      elsif First = 16#F0# then
+         if Index + 3 <= Name'Last
+           and then Byte_Of (Name, Index + 1) >= 16#90#
+           and then Byte_Of (Name, Index + 1) <= 16#BF#
+           and then Has_UTF8_Continuation (Name, Index + 2)
+           and then Has_UTF8_Continuation (Name, Index + 3)
+         then
+            return 4;
+         end if;
+      elsif First >= 16#F1# and then First <= 16#F3# then
+         if Index + 3 <= Name'Last
+           and then Has_UTF8_Continuation (Name, Index + 1)
+           and then Has_UTF8_Continuation (Name, Index + 2)
+           and then Has_UTF8_Continuation (Name, Index + 3)
+         then
+            return 4;
+         end if;
+      elsif First = 16#F4# then
+         if Index + 3 <= Name'Last
+           and then Byte_Of (Name, Index + 1) >= 16#80#
+           and then Byte_Of (Name, Index + 1) <= 16#8F#
+           and then Has_UTF8_Continuation (Name, Index + 2)
+           and then Has_UTF8_Continuation (Name, Index + 3)
+         then
+            return 4;
+         end if;
+      end if;
+
+      return 0;
+   end Valid_UTF8_Sequence_Length;
+
+   function Valid_Leaf_Name (Name : String) return Boolean is
+      Index : Positive := Name'First;
+   begin
+      if Name = ""
+        or else Name = "."
+        or else Name = ".."
+        or else Name (Name'Last) = ' '
+        or else Name (Name'Last) = '.'
+        or else Is_Windows_Device_Name (Name)
+      then
+         return False;
+      end if;
+
+      while Index <= Name'Last loop
+         declare
+            Character_Value : constant Character := Name (Index);
+            Sequence_Length : constant Natural :=
+              Valid_UTF8_Sequence_Length (Name, Index);
+         begin
+            if Sequence_Length = 0 then
+               return False;
+            elsif Sequence_Length > 1 then
+               Index := Index + Sequence_Length;
+            elsif Character_Value = '/'
+              or else Character_Value = '\'
+              or else Character_Value = '<'
+              or else Character_Value = '>'
+              or else Character_Value = ':'
+              or else Character_Value = Character'Val (34)
+              or else Character_Value = '|'
+              or else Character_Value = '?'
+              or else Character_Value = '*'
+              or else Character'Pos (Character_Value) < 32
+              or else Character'Pos (Character_Value) = 127
+            then
+               return False;
+            else
+               Index := Index + 1;
+            end if;
+         end;
+      end loop;
+
+      return True;
+   end Valid_Leaf_Name;
+
+   function Shell_Quote (Value : String) return String is
+      Result : Unbounded_String := To_Unbounded_String ("'");
+   begin
+      for Character_Value of Value loop
+         if Character_Value = ''' then
+            Append (Result, "'\''");
+         else
+            Append (Result, Character_Value);
+         end if;
+      end loop;
+      Append (Result, "'");
+      return To_String (Result);
+   end Shell_Quote;
+
+   function Shell_Command_Line (Action : Files.Settings.Open_Action) return String is
+      Result : Unbounded_String := To_Unbounded_String (Shell_Quote (To_String (Action.Executable)));
+   begin
+      for Argument of Action.Arguments loop
+         Append (Result, " ");
+         Append (Result, Shell_Quote (To_String (Argument)));
+      end loop;
+
+      return To_String (Result);
+   end Shell_Command_Line;
+
+   function Safe_Environment_Value (Name : String) return String is
+   begin
+      if Ada.Environment_Variables.Exists (Name) then
+         return Ada.Environment_Variables.Value (Name);
+      end if;
+
+      return "";
+   exception
+      when others =>
+         return "";
+   end Safe_Environment_Value;
+
+   function Shell_Executable return String is
+      Comspec : constant String := Safe_Environment_Value ("COMSPEC");
+      Shell   : constant String := Safe_Environment_Value ("SHELL");
+   begin
+      if Comspec /= "" then
+         return Comspec;
+      elsif Shell /= "" then
+         return Shell;
+      else
+         return "/bin/sh";
+      end if;
+   end Shell_Executable;
+
+   function Shell_Command_Option return String is
+      Comspec : constant String := Safe_Environment_Value ("COMSPEC");
+   begin
+      if Comspec /= "" then
+         return "/C";
+      else
+         return "-c";
+      end if;
+   end Shell_Command_Option;
+
+   function Execute_Open_Action
+     (Action      : Files.Settings.Open_Action;
+      Exit_Status : out Integer)
+      return Boolean
+   is
+      Argument_Count : constant Natural := Natural (Action.Arguments.Length);
+      Args           : GNAT.OS_Lib.Argument_List_Access := null;
+   begin
+      Exit_Status := -1;
+
+      if To_String (Action.Executable) = "" then
+         return False;
+      end if;
+
+      if Action.Use_Shell then
+         declare
+            Shell_Path   : constant String := Shell_Executable;
+            Shell_Option : constant String := Shell_Command_Option;
+         begin
+            if Shell_Path = "" then
+               return False;
+            end if;
+
+            Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
+            Args (1) := new String'(Shell_Option);
+            Args (2) := new String'(Shell_Command_Line (Action));
+            Exit_Status := GNAT.OS_Lib.Spawn (Shell_Path, Args.all);
+         end;
+      elsif Argument_Count = 0 then
+         declare
+            Empty_Args : GNAT.OS_Lib.Argument_List (1 .. 0);
+         begin
+            Exit_Status := GNAT.OS_Lib.Spawn (To_String (Action.Executable), Empty_Args);
+         end;
+      else
+         Args := new GNAT.OS_Lib.Argument_List (1 .. Argument_Count);
+         for Index in 1 .. Argument_Count loop
+            Args (Index) := new String'(To_String (Action.Arguments.Element (Positive (Index))));
+         end loop;
+
+         Exit_Status := GNAT.OS_Lib.Spawn (To_String (Action.Executable), Args.all);
+      end if;
+
+      if Args /= null then
+         GNAT.OS_Lib.Free (Args);
+      end if;
+      return Exit_Status = 0;
+   exception
+      when others =>
+         if Args /= null then
+            GNAT.OS_Lib.Free (Args);
+         end if;
+         return False;
+   end Execute_Open_Action;
+
+   function Executable_Is_Available
+     (Executable : String)
+      return Boolean
+   is
+      Located : GNAT.OS_Lib.String_Access := null;
+   begin
+      if Executable = "" then
+         return False;
+      end if;
+
+      for Character_Value of Executable loop
+         if Character_Value = '/' or else Character_Value = '\' then
+            return GNAT.OS_Lib.Is_Executable_File (Executable);
+         end if;
+      end loop;
+
+      Located := GNAT.OS_Lib.Locate_Exec_On_Path (Executable);
+      if Located = null then
+         return False;
+      end if;
+
+      GNAT.OS_Lib.Free (Located);
+      return True;
+   exception
+      when others =>
+         if Located /= null then
+            GNAT.OS_Lib.Free (Located);
+         end if;
+         return False;
+   end Executable_Is_Available;
+
+   function Open_Action_Executable_Is_Available
+     (Action : Files.Settings.Open_Action)
+      return Boolean is
+   begin
+      if Action.Use_Shell then
+         return To_String (Action.Executable) /= ""
+           and then Executable_Is_Available (Shell_Executable);
+      else
+         return Executable_Is_Available (To_String (Action.Executable));
+      end if;
+   end Open_Action_Executable_Is_Available;
+
+   function Reload_Current_Directory
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Select_Name : String := "")
+      return Operation_Result
+   is
+      Load : constant Files.File_System.Directory_Load_Result :=
+        Files.File_System.Load_Directory (Files.Model.Current_Path (Model), Settings);
+   begin
+      if not Load.Success then
+         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
+      end if;
+
+      Files.Model.Replace_Items (Model, Load.Items);
+      if Select_Name /= "" then
+         declare
+            Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
+            pragma Unreferenced (Selection_Restored);
+         begin
+            null;
+         end;
+      end if;
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+   end Reload_Current_Directory;
+
+   function Refresh
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result is
+   begin
+      return Reload_Current_Directory (Model, Settings);
+   end Refresh;
+
+   function Commit_Path_Input
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Path_Result : constant Files.File_System.Path_Result :=
+        Files.File_System.Normalize_Path (Files.Model.Path_Input_Text (Model));
+      Empty_Items : Files.File_System.Item_Vectors.Vector;
+   begin
+      if Path_Result.Status /= Files.File_System.Path_Valid then
+         Files.Model.Commit_Path_Input (Model, Path_Result, Empty_Items);
+         Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Path_Result.Error_Key));
+      end if;
+
+      declare
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+      begin
+         if not Load.Success then
+            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Load.Error_Key), To_String (Path_Result.Directory_Path));
+         end if;
+
+         Files.Model.Commit_Path_Input (Model, Path_Result, Load.Items);
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Navigated, Path => To_String (Path_Result.Directory_Path));
+      end;
+   end Commit_Path_Input;
+
+   function Navigate_Home
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Path_Result : constant Files.File_System.Path_Result :=
+        Files.File_System.Normalize_Path (Files.Model.Home_Path (Model));
+   begin
+      if Path_Result.Status /= Files.File_System.Path_Valid then
+         Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
+         return Make_Result
+           (Operation_Failed,
+            To_String (Path_Result.Error_Key),
+            Files.Model.Home_Path (Model));
+      end if;
+
+      declare
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+      begin
+         if not Load.Success then
+            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+            return
+              Make_Result
+                (Operation_Failed,
+                 To_String (Load.Error_Key),
+                 To_String (Path_Result.Directory_Path));
+         end if;
+
+         Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+      end;
+   end Navigate_Home;
+
+   function Navigate_Back
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
+      Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
+      Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
+      Rename_Text    : constant String := Files.Model.Rename_Text (Model);
+      Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+   begin
+      if not Files.Model.Can_Go_Back (Model) then
+         return Disabled (Model, "error.history.back_unavailable");
+      end if;
+
+      Files.Model.Go_Back (Model);
+      declare
+         Reload : constant Operation_Result := Refresh (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            Files.Model.Go_Forward (Model);
+            if Had_Temporary then
+               Files.Model.Begin_Create_File (Model, Temporary_Name);
+            elsif Had_Rename then
+               declare
+                  Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Rename_Source);
+                  pragma Unreferenced (Selection_Restored);
+               begin
+                  null;
+               end;
+               Files.Model.Resume_Rename (Model, Rename_Text);
+            end if;
+         end if;
+
+         return Reload;
+      end;
+   end Navigate_Back;
+
+   function Navigate_Forward
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
+      Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
+      Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
+      Rename_Text    : constant String := Files.Model.Rename_Text (Model);
+      Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+   begin
+      if not Files.Model.Can_Go_Forward (Model) then
+         return Disabled (Model, "error.history.forward_unavailable");
+      end if;
+
+      Files.Model.Go_Forward (Model);
+      declare
+         Reload : constant Operation_Result := Refresh (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            Files.Model.Go_Back (Model);
+            if Had_Temporary then
+               Files.Model.Begin_Create_File (Model, Temporary_Name);
+            elsif Had_Rename then
+               declare
+                  Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Rename_Source);
+                  pragma Unreferenced (Selection_Restored);
+               begin
+                  null;
+               end;
+               Files.Model.Resume_Rename (Model, Rename_Text);
+            end if;
+         end if;
+
+         return Reload;
+      end;
+   end Navigate_Forward;
+
+   function Select_Root
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Root_Path : String)
+      return Operation_Result
+   is
+      Path_Result : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Root_Path);
+   begin
+      if Path_Result.Status /= Files.File_System.Path_Valid then
+         Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Path_Result.Error_Key), Root_Path);
+      end if;
+
+      declare
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+      begin
+         if not Load.Success then
+            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Load.Error_Key), To_String (Path_Result.Directory_Path));
+         end if;
+
+         Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+         Files.Model.Close_Root_Selector (Model);
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+      end;
+   end Select_Root;
+
+   function Eject_Selected_Root
+     (Model : in out Files.Model.Window_Model)
+      return Operation_Result
+   is
+      Index : constant Natural := Files.Model.Root_Selected_Index (Model);
+      Path  : Unbounded_String;
+   begin
+      if not Files.Model.Root_Selector_Is_Open (Model)
+        or else Index = 0
+        or else Index > Files.Model.Root_Count (Model)
+      then
+         return Disabled (Model, "error.root.selection.empty");
+      end if;
+
+      Path := To_Unbounded_String (Files.Model.Root_Path (Model, Index));
+      if not Files.Model.Root_Is_Removable (Model, Index) then
+         return Disabled (Model, "error.root.eject_unavailable");
+      end if;
+
+      Files.Model.Set_Error (Model, "error.root.eject_unavailable");
+      return Make_Result
+        (Operation_Failed,
+         "error.root.eject_unavailable",
+         To_String (Path));
+   end Eject_Selected_Root;
+
+   function Open_Selected
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Operation_Result
+   is
+      Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   begin
+      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+         return Disabled (Model, "error.selection.empty");
+      elsif Natural (Items.Length) > 1 then
+         declare
+            First_Path : Unbounded_String;
+            First_Action : Files.Settings.Open_Action := Empty_Action;
+            First_Action_Recorded : Boolean := False;
+            First_Exit_Status : Integer := 0;
+         begin
+            for Item of Items loop
+               if Item.Kind = Files.Types.Directory_Item then
+                  Files.Model.Set_Error (Model, "error.open_action.multi_directory");
+                  return
+                    Make_Result
+                      (Operation_Failed,
+                       "error.open_action.multi_directory",
+                       To_String (Item.Full_Path));
+               end if;
+            end loop;
+
+            for Item of Items loop
+               declare
+                  Lookup : constant Files.Settings.Action_Lookup_Result :=
+                    Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
+               begin
+                  if Length (First_Path) = 0 then
+                     First_Path := Item.Full_Path;
+                  end if;
+
+                  if not Lookup.Found then
+                     Files.Model.Set_Error (Model, To_String (Lookup.Error_Key));
+                     return
+                       Make_Result
+                         (Operation_Missing_Open_Action,
+                          To_String (Lookup.Error_Key),
+                          To_String (Item.Full_Path));
+                  elsif Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
+                     return Unsafe_Open_Action (Model, To_String (Item.Full_Path));
+                  end if;
+
+                  declare
+                     Action : constant Files.Settings.Open_Action :=
+                       Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
+                  begin
+                     if not Open_Action_Executable_Is_Available (Action) then
+                        Files.Model.Set_Error (Model, "error.open_action.executable_missing");
+                        return
+                          Make_Result
+                            (Operation_Failed,
+                             "error.open_action.executable_missing",
+                             To_String (Item.Full_Path),
+                             Action,
+                             Attempted => False,
+                             Found     => False);
+                     end if;
+
+                     if not First_Action_Recorded then
+                        First_Action := Action;
+                        First_Action_Recorded := True;
+                     end if;
+                  end;
+               end;
+            end loop;
+
+            for Item of Items loop
+               declare
+                  Lookup : constant Files.Settings.Action_Lookup_Result :=
+                    Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
+                  Action : constant Files.Settings.Open_Action :=
+                    Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
+                  Exit_Status : Integer := 0;
+               begin
+                  if not Execute_Open_Action (Action, Exit_Status) then
+                     Files.Model.Set_Error (Model, "error.open_action.execution");
+                     return
+                       Make_Result
+                         (Operation_Failed,
+                          "error.open_action.execution",
+                          To_String (Item.Full_Path),
+                          Action,
+                          Attempted => True,
+                          Found     => True,
+                          Exit_Known => True,
+                          Exit_Status => Exit_Status);
+                  end if;
+
+                  if To_String (Item.Full_Path) = To_String (First_Path) then
+                     First_Exit_Status := Exit_Status;
+                  end if;
+               end;
+            end loop;
+
+            Files.Model.Set_Error (Model, "");
+            return
+              Make_Result
+                (Operation_Action_Executed,
+                 Path      => To_String (First_Path),
+                 Action    => First_Action,
+                 Attempted => First_Action_Recorded,
+                 Found     => First_Action_Recorded,
+                 Exit_Known => First_Action_Recorded,
+                 Exit_Status => First_Exit_Status);
+         end;
+      end if;
+
+      declare
+         Prepared : constant Operation_Result := Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      begin
+         if Prepared.Status /= Operation_Success then
+            return Prepared;
+         elsif To_String (Prepared.Action.Executable) = "" then
+            declare
+               Load : constant Files.File_System.Directory_Load_Result :=
+                 Files.File_System.Load_Directory (To_String (Prepared.Path), Settings);
+            begin
+               if not Load.Success then
+                  Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+                  return Make_Result (Operation_Failed, To_String (Load.Error_Key), To_String (Prepared.Path));
+               end if;
+
+               Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+               Files.Model.Set_Error (Model, "");
+               return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+            end;
+         elsif not Open_Action_Executable_Is_Available (Prepared.Action) then
+            Files.Model.Set_Error (Model, "error.open_action.executable_missing");
+            return
+              Make_Result
+                (Operation_Failed,
+                 "error.open_action.executable_missing",
+                 To_String (Prepared.Path),
+                 Prepared.Action,
+                 Attempted => False,
+                 Found     => False);
+         else
+            declare
+               Exit_Status : Integer := 0;
+            begin
+               if Execute_Open_Action (Prepared.Action, Exit_Status) then
+                  Files.Model.Set_Error (Model, "");
+                  return
+                    Make_Result
+                      (Operation_Action_Executed,
+                       Path   => To_String (Prepared.Path),
+                       Action => Prepared.Action,
+                       Attempted => True,
+                       Found  => True,
+                       Exit_Known => True,
+                       Exit_Status => Exit_Status);
+               end if;
+
+               Files.Model.Set_Error (Model, "error.open_action.execution");
+               return
+                 Make_Result
+                   (Operation_Failed,
+                    "error.open_action.execution",
+                    To_String (Prepared.Path),
+                    Prepared.Action,
+                    Attempted => True,
+                    Found     => True,
+                    Exit_Known => True,
+                    Exit_Status => Exit_Status);
+            end;
+         end if;
+      end;
+   end Open_Selected;
+
+   function Prepare_Open_Selected_Action
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Operation_Result
+   is
+      Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   begin
+      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+         return Disabled (Model, "error.selection.empty");
+      elsif Items.Is_Empty then
+         return Disabled (Model, "error.selection.empty");
+      elsif Natural (Items.Length) > 1 then
+         declare
+            First_Path : Unbounded_String;
+            First_Action : Files.Settings.Open_Action := Empty_Action;
+            First_Action_Recorded : Boolean := False;
+         begin
+            for Item of Items loop
+               if Item.Kind = Files.Types.Directory_Item then
+                  Files.Model.Set_Error (Model, "error.open_action.multi_directory");
+                  return
+                    Make_Result
+                      (Operation_Failed,
+                       "error.open_action.multi_directory",
+                       To_String (Item.Full_Path));
+               end if;
+            end loop;
+
+            for Item of Items loop
+               declare
+                  Lookup : constant Files.Settings.Action_Lookup_Result :=
+                    Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
+               begin
+                  if Length (First_Path) = 0 then
+                     First_Path := Item.Full_Path;
+                  end if;
+
+                  if not Lookup.Found then
+                     Files.Model.Set_Error (Model, To_String (Lookup.Error_Key));
+                     return
+                       Make_Result
+                         (Operation_Missing_Open_Action,
+                          To_String (Lookup.Error_Key),
+                          To_String (Item.Full_Path));
+                  elsif Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
+                     return Unsafe_Open_Action (Model, To_String (Item.Full_Path));
+                  end if;
+
+                  if not First_Action_Recorded then
+                     First_Action :=
+                       Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
+                     First_Action_Recorded := True;
+                  end if;
+               end;
+            end loop;
+
+            Files.Model.Set_Error (Model, "");
+            return Make_Result (Operation_Success, Path => To_String (First_Path), Action => First_Action);
+         end;
+      end if;
+
+      declare
+         Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+      begin
+         if Item.Kind = Files.Types.Directory_Item then
+            Files.Model.Set_Error (Model, "");
+            return Make_Result (Operation_Success, Path => To_String (Item.Full_Path));
+         end if;
+
+         declare
+            Lookup : constant Files.Settings.Action_Lookup_Result :=
+              Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers);
+         begin
+            if not Lookup.Found then
+               Files.Model.Set_Error (Model, To_String (Lookup.Error_Key));
+               return
+                 Make_Result
+                   (Operation_Missing_Open_Action,
+                    To_String (Lookup.Error_Key),
+                    To_String (Item.Full_Path));
+            elsif Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action) then
+               return Unsafe_Open_Action (Model, To_String (Item.Full_Path));
+            end if;
+
+            declare
+               Action : constant Files.Settings.Open_Action :=
+                 Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
+            begin
+               Files.Model.Set_Error (Model, "");
+               return Make_Result (Operation_Success, Path => To_String (Item.Full_Path), Action => Action);
+            end;
+         end;
+      end;
+   end Prepare_Open_Selected_Action;
+
+   function Delete_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      First_Path : Unbounded_String;
+   begin
+      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+         return Disabled (Model, "error.selection.empty");
+      elsif not Files.File_System.Trash_Is_Available then
+         Files.Model.Set_Error (Model, "error.trash.unavailable");
+         return Make_Result (Operation_Failed, "error.trash.unavailable");
+      end if;
+
+      for Item of Items loop
+         declare
+            Preflight : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Move_To_Trash_Preflight (To_String (Item.Full_Path));
+         begin
+            if Preflight.Success then
+               null;
+            else
+               Files.Model.Set_Error (Model, To_String (Preflight.Error_Key));
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, To_String (Preflight.Error_Key));
+               end;
+               return Make_Result
+                 (Operation_Failed, To_String (Preflight.Error_Key), To_String (Item.Full_Path));
+            end if;
+         end;
+      end loop;
+
+      for Item of Items loop
+         if not Ada.Directories.Exists (To_String (Item.Full_Path)) then
+            Files.Model.Set_Error (Model, "error.trash.failed");
+            declare
+               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+               pragma Unreferenced (Reload);
+            begin
+               Files.Model.Set_Error (Model, "error.trash.failed");
+            end;
+            return Make_Result (Operation_Failed, "error.trash.failed", To_String (Item.Full_Path));
+         end if;
+      end loop;
+
+      for Item of Items loop
+         if Length (First_Path) = 0 then
+            First_Path := Item.Full_Path;
+         end if;
+
+         declare
+            Mutation : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Move_To_Trash (To_String (Item.Full_Path));
+         begin
+            if not Mutation.Success then
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               end;
+               return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
+            end if;
+         end;
+      end loop;
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+      end;
+
+      return Make_Result (Operation_Success, Path => To_String (First_Path));
+   end Delete_Selected;
+
+   function Commit_Create_File
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Name : constant String := Files.Model.Rename_Text (Model);
+   begin
+      if not Files.Model.Temporary_Item_Is_Active (Model) then
+         return Disabled (Model, "error.create.no_temporary_item");
+      elsif not Valid_Leaf_Name (Name) then
+         Files.Model.Set_Error (Model, "error.name.invalid");
+         return Make_Result (Operation_Invalid_Name, "error.name.invalid");
+      end if;
+
+      declare
+         Path     : constant String := Files.File_System.Join_Path (Files.Model.Current_Path (Model), Name);
+         Mutation : constant Files.File_System.Mutation_Result := Files.File_System.Create_Empty_File (Path);
+      begin
+         if not Mutation.Success then
+            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Path);
+         end if;
+      end;
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, Name);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+      end;
+
+      Files.Model.Clear_Edit_State (Model);
+      Files.Model.Set_Error (Model, "");
+      return
+        Make_Result
+          (Operation_Success,
+           Path => Files.File_System.Join_Path (Files.Model.Current_Path (Model), Name));
+   end Commit_Create_File;
+
+   function Commit_Rename
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      New_Name : constant String := Files.Model.Rename_Text (Model);
+   begin
+      if not Files.Model.Rename_Is_Active (Model)
+        or else Files.Model.Selected_Count (Model) /= 1
+        or else Files.Model.Selected_Item_Is_Temporary (Model)
+      then
+         return Disabled (Model, "error.rename.disabled");
+      end if;
+
+      declare
+         Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+      begin
+         if not Valid_Leaf_Name (New_Name) then
+            Files.Model.Set_Error (Model, "error.name.invalid");
+            return Make_Result (Operation_Invalid_Name, "error.name.invalid");
+         elsif New_Name = To_String (Item.Name) then
+            if not Ada.Directories.Exists (To_String (Item.Full_Path)) then
+               Files.Model.Set_Error (Model, "error.rename.source_missing");
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, "error.rename.source_missing");
+               end;
+               return Make_Result
+                 (Operation_Failed,
+                  "error.rename.source_missing",
+                  To_String (Item.Full_Path));
+            end if;
+
+            Files.Model.Clear_Edit_State (Model);
+            Files.Model.Set_Error (Model, "");
+            return Make_Result (Operation_Success, Path => To_String (Item.Full_Path));
+         end if;
+
+         declare
+            New_Path : constant String := Files.File_System.Join_Path (Files.Model.Current_Path (Model), New_Name);
+            Mutation : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Rename_Item (To_String (Item.Full_Path), New_Path);
+         begin
+            if not Mutation.Success then
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               if To_String (Mutation.Error_Key) = "error.rename.source_missing" then
+                  declare
+                     Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                     pragma Unreferenced (Reload);
+                  begin
+                     Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+                  end;
+               end if;
+               return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), New_Path);
+            end if;
+         end;
+
+         declare
+            Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, New_Name);
+         begin
+            if Reload.Status /= Operation_Success then
+               return Reload;
+            end if;
+         end;
+
+         Files.Model.Clear_Edit_State (Model);
+         Files.Model.Set_Error (Model, "");
+         return
+           Make_Result
+             (Operation_Success,
+              Path => Files.File_System.Join_Path (Files.Model.Current_Path (Model), New_Name));
+      end;
+   end Commit_Rename;
+
+end Files.Operations;

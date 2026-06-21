@@ -1,8 +1,10 @@
-with AUnit; use AUnit;
-with AUnit.Test_Suites; use AUnit.Test_Suites;
+with AUnit.Test_Suites;
 
 package All_Suites is
 
-   function Suite return Access_Test_Suite;
+   --  Return all AUnit suites for the tests executable.
+   --
+   --  @return Aggregate test suite.
+   function Suite return AUnit.Test_Suites.Access_Test_Suite;
 
 end All_Suites;

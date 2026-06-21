@@ -1,0 +1,8 @@
+files-icon-v1
+name=image
+grid=16
+rect=1,0,14,16,base
+rect=11,0,4,4,border
+rect=3,5,10,6,accent
+rect=4,8,4,2,border
+rect=8,7,4,3,border

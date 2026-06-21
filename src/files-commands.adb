@@ -1,0 +1,718 @@
+with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
+
+package body Files.Commands is
+   use Ada.Strings.Unbounded;
+   use type Files.Types.Focus_Target;
+   use type Files.Types.Key_Code;
+   use type Files.Types.Modifier_Set;
+
+   function Control_Modifier return Files.Types.Modifier_Set is
+      Result : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+   begin
+      Result (Files.Types.Control_Key) := True;
+      return Result;
+   end Control_Modifier;
+
+   function Alt_Modifier return Files.Types.Modifier_Set is
+      Result : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+   begin
+      Result (Files.Types.Alt_Key) := True;
+      return Result;
+   end Alt_Modifier;
+
+   function Control_Shift_Modifier return Files.Types.Modifier_Set is
+      Result : Files.Types.Modifier_Set := Control_Modifier;
+   begin
+      Result (Files.Types.Shift_Key) := True;
+      return Result;
+   end Control_Shift_Modifier;
+
+   function Allowed_With_Root_Selector (Id : Command_Id) return Boolean is
+   begin
+      case Id is
+         when Select_Drive_Command
+            | Open_Selected_Root_Command
+            | Eject_Selected_Root_Command
+            | Open_Command_Palette_Command
+            | Close_Command_Palette_Command =>
+            return True;
+         when others =>
+            return False;
+      end case;
+   end Allowed_With_Root_Selector;
+
+   function Allowed_With_Settings_Pane (Id : Command_Id) return Boolean is
+   begin
+      case Id is
+         when Toggle_Settings_Pane_Command
+            | Import_Settings_Command
+            | Export_Settings_Command
+            | Save_Settings_Command
+            | Reset_Settings_Command
+            | Open_Command_Palette_Command
+            | Close_Command_Palette_Command =>
+            return True;
+         when others =>
+            return False;
+      end case;
+   end Allowed_With_Settings_Pane;
+
+   function Identifier
+     (Id : Command_Id)
+      return String is
+   begin
+      case Id is
+         when No_Command =>
+            return "";
+         when Select_Small_Icons_Command =>
+            return "view.small";
+         when Select_Large_Icons_Command =>
+            return "view.large";
+         when Select_Details_Command =>
+            return "view.details";
+         when Toggle_Info_Pane_Command =>
+            return "info.toggle";
+         when Toggle_Settings_Pane_Command =>
+            return "settings.toggle";
+         when Focus_Path_Input_Command =>
+            return "path.focus";
+         when Navigate_Home_Command =>
+            return "navigate.home";
+         when Navigate_Back_Command =>
+            return "navigate.back";
+         when Navigate_Forward_Command =>
+            return "navigate.forward";
+         when Create_File_Command =>
+            return "file.create";
+         when Delete_Selected_Items_Command =>
+            return "file.delete_selected";
+         when Rename_Selected_Items_Command =>
+            return "file.rename";
+         when Open_Selected_Items_Command =>
+            return "file.open_selected";
+         when Focus_Filter_Input_Command =>
+            return "filter.focus";
+         when Open_Command_Palette_Command =>
+            return "palette.open";
+         when Close_Command_Palette_Command =>
+            return "palette.close";
+         when Select_Drive_Command =>
+            return "drive.select";
+         when Open_Selected_Root_Command =>
+            return "drive.open_selected";
+         when Eject_Selected_Root_Command =>
+            return "drive.eject_selected";
+         when Clear_Filter_Command =>
+            return "filter.clear";
+         when Refresh_Directory_Command =>
+            return "directory.refresh";
+         when Import_Settings_Command =>
+            return "settings.import";
+         when Export_Settings_Command =>
+            return "settings.export";
+         when Save_Settings_Command =>
+            return "settings.save";
+         when Reset_Settings_Command =>
+            return "settings.reset";
+      end case;
+   end Identifier;
+
+   function Name_Key
+     (Id : Command_Id)
+      return String is
+   begin
+      case Id is
+         when No_Command =>
+            return "";
+         when Select_Small_Icons_Command =>
+            return "command.view.small";
+         when Select_Large_Icons_Command =>
+            return "command.view.large";
+         when Select_Details_Command =>
+            return "command.view.details";
+         when Toggle_Info_Pane_Command =>
+            return "command.info.toggle";
+         when Toggle_Settings_Pane_Command =>
+            return "command.settings.toggle";
+         when Focus_Path_Input_Command =>
+            return "command.path.focus";
+         when Navigate_Home_Command =>
+            return "command.navigate.home";
+         when Navigate_Back_Command =>
+            return "command.navigate.back";
+         when Navigate_Forward_Command =>
+            return "command.navigate.forward";
+         when Create_File_Command =>
+            return "command.file.create";
+         when Delete_Selected_Items_Command =>
+            return "command.file.delete";
+         when Rename_Selected_Items_Command =>
+            return "command.file.rename";
+         when Open_Selected_Items_Command =>
+            return "command.file.open";
+         when Focus_Filter_Input_Command =>
+            return "command.filter.focus";
+         when Open_Command_Palette_Command =>
+            return "command.palette.open";
+         when Close_Command_Palette_Command =>
+            return "command.palette.close";
+         when Select_Drive_Command =>
+            return "command.drive.select";
+         when Open_Selected_Root_Command =>
+            return "command.drive.open_selected";
+         when Eject_Selected_Root_Command =>
+            return "command.drive.eject_selected";
+         when Clear_Filter_Command =>
+            return "command.filter.clear";
+         when Refresh_Directory_Command =>
+            return "command.directory.refresh";
+         when Import_Settings_Command =>
+            return "command.settings.import";
+         when Export_Settings_Command =>
+            return "command.settings.export";
+         when Save_Settings_Command =>
+            return "command.settings.save";
+         when Reset_Settings_Command =>
+            return "command.settings.reset";
+      end case;
+   end Name_Key;
+
+   function Description_Key
+     (Id : Command_Id)
+      return String is
+   begin
+      case Id is
+         when No_Command =>
+            return "";
+         when Select_Small_Icons_Command =>
+            return "command.view.small.description";
+         when Select_Large_Icons_Command =>
+            return "command.view.large.description";
+         when Select_Details_Command =>
+            return "command.view.details.description";
+         when Toggle_Info_Pane_Command =>
+            return "command.info.toggle.description";
+         when Toggle_Settings_Pane_Command =>
+            return "command.settings.toggle.description";
+         when Focus_Path_Input_Command =>
+            return "command.path.focus.description";
+         when Navigate_Home_Command =>
+            return "command.navigate.home.description";
+         when Navigate_Back_Command =>
+            return "command.navigate.back.description";
+         when Navigate_Forward_Command =>
+            return "command.navigate.forward.description";
+         when Create_File_Command =>
+            return "command.file.create.description";
+         when Delete_Selected_Items_Command =>
+            return "command.file.delete.description";
+         when Rename_Selected_Items_Command =>
+            return "command.file.rename.description";
+         when Open_Selected_Items_Command =>
+            return "command.file.open.description";
+         when Focus_Filter_Input_Command =>
+            return "command.filter.focus.description";
+         when Open_Command_Palette_Command =>
+            return "command.palette.open.description";
+         when Close_Command_Palette_Command =>
+            return "command.palette.close.description";
+         when Select_Drive_Command =>
+            return "command.drive.select.description";
+         when Open_Selected_Root_Command =>
+            return "command.drive.open_selected.description";
+         when Eject_Selected_Root_Command =>
+            return "command.drive.eject_selected.description";
+         when Clear_Filter_Command =>
+            return "command.filter.clear.description";
+         when Refresh_Directory_Command =>
+            return "command.directory.refresh.description";
+         when Import_Settings_Command =>
+            return "command.settings.import.description";
+         when Export_Settings_Command =>
+            return "command.settings.export.description";
+         when Save_Settings_Command =>
+            return "command.settings.save.description";
+         when Reset_Settings_Command =>
+            return "command.settings.reset.description";
+      end case;
+   end Description_Key;
+
+   function Shortcut_For
+     (Id : Command_Id)
+      return Shortcut
+   is
+      Ctrl       : constant Files.Types.Modifier_Set := Control_Modifier;
+      Alt        : constant Files.Types.Modifier_Set := Alt_Modifier;
+      Ctrl_Shift : constant Files.Types.Modifier_Set := Control_Shift_Modifier;
+   begin
+      case Id is
+         when Select_Small_Icons_Command =>
+            return (True, Files.Types.Key_1, Ctrl);
+         when Select_Large_Icons_Command =>
+            return (True, Files.Types.Key_2, Ctrl);
+         when Select_Details_Command =>
+            return (True, Files.Types.Key_3, Ctrl);
+         when Toggle_Info_Pane_Command =>
+            return (True, Files.Types.Key_4, Ctrl);
+         when Toggle_Settings_Pane_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+         when Focus_Path_Input_Command =>
+            return (True, Files.Types.Key_L, Ctrl);
+         when Navigate_Home_Command =>
+            return (True, Files.Types.Key_Home, Alt);
+         when Navigate_Back_Command =>
+            return (True, Files.Types.Key_Left, Alt);
+         when Navigate_Forward_Command =>
+            return (True, Files.Types.Key_Right, Alt);
+         when Create_File_Command =>
+            return (True, Files.Types.Key_N, Ctrl);
+         when Open_Command_Palette_Command =>
+            return (True, Files.Types.Key_P, Ctrl);
+         when Focus_Filter_Input_Command =>
+            return (True, Files.Types.Key_F, Ctrl);
+         when Select_Drive_Command =>
+            return (True, Files.Types.Key_D, Ctrl);
+         when Clear_Filter_Command =>
+            return (True, Files.Types.Key_F, Ctrl_Shift);
+         when Refresh_Directory_Command =>
+            return (True, Files.Types.Key_R, Ctrl);
+         when Import_Settings_Command | Export_Settings_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+         when Save_Settings_Command =>
+            return (True, Files.Types.Key_S, Ctrl);
+         when Reset_Settings_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+         when Open_Selected_Root_Command | Eject_Selected_Root_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+         when Delete_Selected_Items_Command =>
+            return (True, Files.Types.Key_Delete, Files.Types.No_Modifiers);
+         when Rename_Selected_Items_Command =>
+            return (True, Files.Types.Key_F2, Files.Types.No_Modifiers);
+         when Close_Command_Palette_Command =>
+            return (True, Files.Types.Key_Escape, Files.Types.No_Modifiers);
+         when Open_Selected_Items_Command =>
+            return (True, Files.Types.Key_Return, Files.Types.No_Modifiers);
+         when others =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+      end case;
+   end Shortcut_For;
+
+   function Secondary_Shortcut_For
+     (Id : Command_Id)
+      return Shortcut is
+   begin
+      case Id is
+         when Delete_Selected_Items_Command =>
+            return (True, Files.Types.Key_Backspace, Files.Types.No_Modifiers);
+         when others =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+      end case;
+   end Secondary_Shortcut_For;
+
+   function Key_Text
+     (Key : Files.Types.Key_Code)
+      return String is
+   begin
+      case Key is
+         when Files.Types.Key_1 =>
+            return "1";
+         when Files.Types.Key_2 =>
+            return "2";
+         when Files.Types.Key_3 =>
+            return "3";
+         when Files.Types.Key_4 =>
+            return "4";
+         when Files.Types.Key_D =>
+            return "d";
+         when Files.Types.Key_F =>
+            return "f";
+         when Files.Types.Key_L =>
+            return "l";
+         when Files.Types.Key_N =>
+            return "n";
+         when Files.Types.Key_P =>
+            return "p";
+         when Files.Types.Key_R =>
+            return "r";
+         when Files.Types.Key_S =>
+            return "s";
+         when Files.Types.Key_Backspace =>
+            return "backspace";
+         when Files.Types.Key_Delete =>
+            return "delete";
+         when Files.Types.Key_F2 =>
+            return "f2";
+         when Files.Types.Key_Escape =>
+            return "escape";
+         when Files.Types.Key_Return =>
+            return "return";
+         when Files.Types.Key_Left =>
+            return "left";
+         when Files.Types.Key_Right =>
+            return "right";
+         when Files.Types.Key_Up =>
+            return "up";
+         when Files.Types.Key_Down =>
+            return "down";
+         when Files.Types.Key_Home =>
+            return "home";
+         when Files.Types.Key_End =>
+            return "end";
+         when Files.Types.Key_Page_Up =>
+            return "pageup";
+         when Files.Types.Key_Page_Down =>
+            return "pagedown";
+         when Files.Types.Key_Unknown =>
+            return "";
+      end case;
+   end Key_Text;
+
+   function Shortcut_Text
+     (Value : Shortcut)
+      return String
+   is
+      Result : Unbounded_String;
+      Key    : constant String := Key_Text (Value.Key);
+   begin
+      if not Value.Present or else Key = "" then
+         return "";
+      end if;
+
+      if Value.Modifiers (Files.Types.Shift_Key) then
+         Append (Result, "shift+");
+      end if;
+      if Value.Modifiers (Files.Types.Control_Key) then
+         Append (Result, "control+");
+      end if;
+      if Value.Modifiers (Files.Types.Alt_Key) then
+         Append (Result, "alt+");
+      end if;
+      if Value.Modifiers (Files.Types.Meta_Key) then
+         Append (Result, "meta+");
+      end if;
+      Append (Result, Key);
+      return To_String (Result);
+   end Shortcut_Text;
+
+   function Shortcut_Search_Text
+     (Id : Command_Id)
+      return String
+   is
+      Primary   : constant String := Shortcut_Text (Shortcut_For (Id));
+      Secondary : constant String := Shortcut_Text (Secondary_Shortcut_For (Id));
+
+      function Search_Aliases (Text : String) return String is
+         Shift_Control_Prefix : constant String := "shift+control+";
+         Result : Unbounded_String := To_Unbounded_String (Text);
+
+         procedure Add_Control_Alias is
+         begin
+            if Text'Length > 8
+              and then Text (Text'First .. Text'First + 7) = "control+"
+            then
+               Append (Result, ASCII.HT);
+               Append (Result, "ctrl+");
+               Append (Result, Text (Text'First + 8 .. Text'Last));
+            end if;
+         end Add_Control_Alias;
+
+         procedure Add_Alt_Alias is
+         begin
+            if Text'Length > 4
+              and then Text (Text'First .. Text'First + 3) = "alt+"
+            then
+               Append (Result, ASCII.HT);
+               Append (Result, "option+");
+               Append (Result, Text (Text'First + 4 .. Text'Last));
+            end if;
+         end Add_Alt_Alias;
+
+         procedure Add_Shift_Control_Aliases is
+         begin
+            if Text'Length > Shift_Control_Prefix'Length
+              and then Text (Text'First .. Text'First + Shift_Control_Prefix'Length - 1) =
+                Shift_Control_Prefix
+            then
+               declare
+                  Suffix : constant String :=
+                    Text (Text'First + Shift_Control_Prefix'Length .. Text'Last);
+               begin
+                  Append (Result, ASCII.HT);
+                  Append (Result, "shift+ctrl+");
+                  Append (Result, Suffix);
+                  Append (Result, ASCII.HT);
+                  Append (Result, "control+shift+");
+                  Append (Result, Suffix);
+                  Append (Result, ASCII.HT);
+                  Append (Result, "ctrl+shift+");
+                  Append (Result, Suffix);
+               end;
+            end if;
+         end Add_Shift_Control_Aliases;
+
+         procedure Add_Key_Alias
+           (Canonical : String;
+            Alias     : String)
+         is
+            Position : constant Natural := Ada.Strings.Fixed.Index (Text, Canonical);
+         begin
+            if Position > 0 then
+               Append (Result, ASCII.HT);
+               if Position > Text'First then
+                  Append (Result, Text (Text'First .. Position - 1));
+               end if;
+               Append (Result, Alias);
+            end if;
+         end Add_Key_Alias;
+      begin
+         Add_Control_Alias;
+         Add_Alt_Alias;
+         Add_Shift_Control_Aliases;
+         Add_Key_Alias ("delete", "del");
+         Add_Key_Alias ("escape", "esc");
+         Add_Key_Alias ("return", "enter");
+         return To_String (Result);
+      end Search_Aliases;
+   begin
+      if Primary = "" then
+         return Search_Aliases (Secondary);
+      elsif Secondary = "" then
+         return Search_Aliases (Primary);
+      else
+         return Search_Aliases (Primary) & " " & Search_Aliases (Secondary);
+      end if;
+   end Shortcut_Search_Text;
+
+   function Placement_For
+     (Id : Command_Id)
+      return Command_Placement is
+   begin
+      case Id is
+         when No_Command =>
+            return No_Placement;
+         when Select_Drive_Command
+            | Navigate_Home_Command
+            | Navigate_Back_Command
+            | Navigate_Forward_Command
+            | Create_File_Command
+            | Delete_Selected_Items_Command =>
+            return Toolbar_Left;
+         when Focus_Path_Input_Command =>
+            return Toolbar_Middle;
+         when Focus_Filter_Input_Command | Clear_Filter_Command =>
+            return Toolbar_Right;
+         when Select_Small_Icons_Command
+            | Select_Large_Icons_Command
+            | Select_Details_Command
+            | Toggle_Info_Pane_Command =>
+            return Bottom_Bar;
+         when Toggle_Settings_Pane_Command =>
+            return Command_Palette_Only;
+         when Import_Settings_Command
+            | Export_Settings_Command
+            | Save_Settings_Command
+            | Reset_Settings_Command
+            | Eject_Selected_Root_Command =>
+            return Command_Palette_Only;
+         when others =>
+            return Command_Palette_Only;
+      end case;
+   end Placement_For;
+
+   function Command_Palette_Visible
+     (Id : Command_Id)
+      return Boolean is
+   begin
+      return Id /= No_Command;
+   end Command_Palette_Visible;
+
+   function Requires_Settings_Path
+     (Id : Command_Id)
+      return Boolean is
+   begin
+      case Id is
+         when Import_Settings_Command
+            | Export_Settings_Command
+            | Save_Settings_Command =>
+            return True;
+         when others =>
+            return False;
+      end case;
+   end Requires_Settings_Path;
+
+   function Command_Count return Natural is
+   begin
+      return Command_Id'Pos (Registered_Command_Id'Last)
+        - Command_Id'Pos (Registered_Command_Id'First)
+        + 1;
+   end Command_Count;
+
+   function Contains
+     (Identifier_Text : String)
+      return Boolean is
+   begin
+      for Id in Registered_Command_Id loop
+         if Identifier (Id) = Identifier_Text then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Contains;
+
+   function Is_Enabled
+     (Id    : Command_Id;
+      Model : Files.Model.Window_Model)
+      return Boolean is
+   begin
+      if Files.Model.Root_Selector_Is_Open (Model)
+        and then not Allowed_With_Root_Selector (Id)
+      then
+         return False;
+      elsif Files.Model.Settings_Pane_Is_Open (Model)
+        and then not Allowed_With_Settings_Pane (Id)
+      then
+         return False;
+      end if;
+
+      case Id is
+         when No_Command =>
+            return False;
+         when Navigate_Back_Command =>
+            return Files.Model.Can_Go_Back (Model);
+         when Navigate_Forward_Command =>
+            return Files.Model.Can_Go_Forward (Model);
+         when Delete_Selected_Items_Command | Open_Selected_Items_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Create_File_Command =>
+            return not Files.Model.Temporary_Item_Is_Active (Model);
+         when Rename_Selected_Items_Command =>
+            return Files.Model.Rename_Is_Enabled (Model) or else Files.Model.Rename_Is_Active (Model);
+         when Close_Command_Palette_Command =>
+            return Files.Model.Command_Palette_Is_Open (Model)
+              or else Files.Model.Root_Selector_Is_Open (Model)
+              or else Files.Model.Focus (Model) /= Files.Types.Focus_None
+              or else Files.Model.Rename_Is_Active (Model);
+         when Open_Selected_Root_Command =>
+            return Files.Model.Root_Selector_Is_Open (Model)
+              and then Files.Model.Root_Selected_Index (Model) > 0
+              and then Files.Model.Root_Selected_Index (Model) <= Files.Model.Root_Count (Model);
+         when Eject_Selected_Root_Command =>
+            return Files.Model.Root_Selector_Is_Open (Model)
+              and then Files.Model.Root_Selected_Index (Model) > 0
+              and then Files.Model.Root_Selected_Index (Model) <= Files.Model.Root_Count (Model)
+              and then Files.Model.Root_Is_Removable (Model, Files.Model.Root_Selected_Index (Model));
+         when Clear_Filter_Command =>
+            return Files.Model.Filter_Text (Model) /= "";
+         when Import_Settings_Command
+            | Export_Settings_Command
+            | Save_Settings_Command
+            | Reset_Settings_Command =>
+            return Files.Model.Settings_Pane_Is_Open (Model);
+         when others =>
+            return True;
+      end case;
+   end Is_Enabled;
+
+   function Find_By_Shortcut
+     (Key       : Files.Types.Key_Code;
+      Modifiers : Files.Types.Modifier_Set)
+      return Command_Id is
+   begin
+      for Id in Registered_Command_Id loop
+         declare
+            Candidate : constant Shortcut := Shortcut_For (Id);
+            Secondary : constant Shortcut := Secondary_Shortcut_For (Id);
+         begin
+            if (Candidate.Present
+                and then Candidate.Key = Key
+                and then Candidate.Modifiers = Modifiers)
+              or else
+                (Secondary.Present
+                 and then Secondary.Key = Key
+                 and then Secondary.Modifiers = Modifiers)
+            then
+               return Id;
+            end if;
+         end;
+      end loop;
+
+      return No_Command;
+   end Find_By_Shortcut;
+
+   procedure Execute
+     (Id    : Command_Id;
+      Model : in out Files.Model.Window_Model)
+   is
+   begin
+      if not Is_Enabled (Id, Model) then
+         return;
+      end if;
+
+      case Id is
+         when No_Command =>
+            null;
+         when Select_Small_Icons_Command =>
+            Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
+         when Select_Large_Icons_Command =>
+            Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+         when Select_Details_Command =>
+            Files.Model.Set_View_Mode (Model, Files.Types.Details);
+         when Toggle_Info_Pane_Command =>
+            Files.Model.Toggle_Info_Pane (Model);
+         when Toggle_Settings_Pane_Command =>
+            if Files.Model.Settings_Pane_Is_Open (Model) then
+               Files.Model.Toggle_Settings_Pane (Model);
+            end if;
+         when Focus_Path_Input_Command =>
+            Files.Model.Focus_Path_Input (Model);
+         when Navigate_Home_Command =>
+            null;
+         when Navigate_Back_Command =>
+            null;
+         when Navigate_Forward_Command =>
+            null;
+         when Create_File_Command =>
+            null;
+         when Delete_Selected_Items_Command =>
+            null;
+         when Rename_Selected_Items_Command =>
+            Files.Model.Toggle_Rename (Model);
+         when Open_Selected_Items_Command =>
+            null;
+         when Focus_Filter_Input_Command =>
+            Files.Model.Focus_Filter_Input (Model);
+         when Open_Command_Palette_Command =>
+            Files.Model.Toggle_Command_Palette (Model);
+         when Close_Command_Palette_Command =>
+            if Files.Model.Command_Palette_Is_Open (Model) then
+               Files.Model.Close_Command_Palette (Model);
+            elsif Files.Model.Root_Selector_Is_Open (Model) then
+               Files.Model.Close_Root_Selector (Model);
+            else
+               Files.Model.Cancel_Focus_Or_Edit (Model);
+            end if;
+         when Select_Drive_Command =>
+            null;
+         when Open_Selected_Root_Command =>
+            null;
+         when Eject_Selected_Root_Command =>
+            null;
+         when Clear_Filter_Command =>
+            Files.Model.Clear_Filter (Model);
+         when Refresh_Directory_Command =>
+            null;
+         when Import_Settings_Command =>
+            null;
+         when Export_Settings_Command =>
+            null;
+         when Save_Settings_Command =>
+            null;
+         when Reset_Settings_Command =>
+            null;
+      end case;
+   end Execute;
+
+end Files.Commands;

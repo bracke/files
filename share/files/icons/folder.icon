@@ -1,0 +1,6 @@
+files-icon-v1
+name=folder
+grid=16
+rect=0,3,7,3,base
+rect=0,6,16,10,base
+rect=1,7,14,1,border

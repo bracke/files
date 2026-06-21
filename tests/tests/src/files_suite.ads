@@ -1,7 +1,10 @@
-with AUnit.Test_Suites; use AUnit.Test_Suites;
+with AUnit.Test_Suites;
 
 package Files_Suite is
 
-   function Suite return Access_Test_Suite;
+   --  Return the complete files AUnit suite.
+   --
+   --  @return Test suite containing files vertical-slice tests.
+   function Suite return AUnit.Test_Suites.Access_Test_Suite;
 
 end Files_Suite;

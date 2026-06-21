@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Comment=Browse and open local files
+Exec=files %F
+Icon=files
+Terminal=false
+Categories=System;FileManager;
+Keywords=file;folder;directory;manager;explorer;
+MimeType=inode/directory;
+StartupNotify=true

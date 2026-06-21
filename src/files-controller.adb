@@ -1,0 +1,1839 @@
+with Ada.Strings.Unbounded;
+
+with Files.Command_Palette;
+with Files.File_System;
+
+package body Files.Controller is
+   use Ada.Strings.Unbounded;
+   use type Files.Commands.Command_Id;
+   use type Files.Events.Input_Action_Kind;
+   use type Files.Events.Scroll_Target;
+   use type Files.Operations.Operation_Status;
+   use type Files.Types.Focus_Target;
+   use type Files.Types.Key_Code;
+   use type Files.Types.Modifier_Set;
+   use type Files.Types.Navigation_Direction;
+   use type Files.Types.String_Vectors.Vector;
+
+   function Empty_Operation return Files.Operations.Operation_Result is
+   begin
+      return
+        (Status    => Files.Operations.Operation_Disabled,
+         Error_Key => Null_Unbounded_String,
+         Path      => Null_Unbounded_String,
+         Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+         others    => <>);
+   end Empty_Operation;
+
+   function Make_Result
+     (Status    : Controller_Status;
+      Command   : Files.Commands.Command_Id := Files.Commands.No_Command;
+      Operation : Files.Operations.Operation_Result := Empty_Operation)
+      return Controller_Result is
+   begin
+      return
+        (Status    => Status,
+         Command   => Command,
+         Operation => Operation);
+   end Make_Result;
+
+   function Successful_Command_Result
+     (Command : Files.Commands.Command_Id)
+      return Controller_Result
+   is
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      Operation.Status := Files.Operations.Operation_Success;
+      return Make_Result (Controller_Command_Executed, Command, Operation);
+   end Successful_Command_Result;
+
+   function Settings_Closed_Result
+     (Id    : Files.Commands.Command_Id;
+      Model : in out Files.Model.Window_Model;
+      Path  : String := "")
+      return Controller_Result
+   is
+      Error_Key : constant String := "error.settings.closed";
+   begin
+      Files.Model.Set_Error (Model, Error_Key);
+      return
+        Make_Result
+          (Controller_Ignored,
+           Id,
+           (Status    => Files.Operations.Operation_Disabled,
+            Error_Key => To_Unbounded_String (Error_Key),
+            Path      => To_Unbounded_String (Path),
+            Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+            others    => <>));
+   end Settings_Closed_Result;
+
+   function Disabled_Command_Result
+     (Id    : Files.Commands.Command_Id;
+      Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      function Disabled_Operation (Error_Key : String) return Files.Operations.Operation_Result is
+      begin
+         Files.Model.Set_Error (Model, Error_Key);
+         return
+           (Status    => Files.Operations.Operation_Disabled,
+            Error_Key => To_Unbounded_String (Error_Key),
+            Path      => Null_Unbounded_String,
+            Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
+            others    => <>);
+      end Disabled_Operation;
+   begin
+      case Id is
+         when Files.Commands.Navigate_Back_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.history.back_unavailable"));
+         when Files.Commands.Navigate_Forward_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.history.forward_unavailable"));
+         when Files.Commands.Open_Selected_Items_Command | Files.Commands.Delete_Selected_Items_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.selection.empty"));
+         when Files.Commands.Rename_Selected_Items_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.rename.disabled"));
+         when Files.Commands.Create_File_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.create.pending"));
+         when Files.Commands.Clear_Filter_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.filter.empty"));
+         when Files.Commands.Open_Selected_Root_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.root.selection.empty"));
+         when Files.Commands.Eject_Selected_Root_Command =>
+            return
+              Make_Result
+                (Controller_Ignored, Id, Disabled_Operation ("error.root.eject_unavailable"));
+         when Files.Commands.Import_Settings_Command | Files.Commands.Export_Settings_Command =>
+            if Files.Model.Settings_Pane_Is_Open (Model) then
+               return
+                 Make_Result
+                   (Controller_Ignored, Id, Disabled_Operation ("error.dialog.native_unavailable"));
+            end if;
+            return Settings_Closed_Result (Id, Model);
+         when Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command =>
+            return Settings_Closed_Result (Id, Model);
+         when others =>
+            return Make_Result (Controller_Ignored, Id);
+      end case;
+   end Disabled_Command_Result;
+
+   procedure Set_Palette_Selection
+     (Model : in out Files.Model.Window_Model;
+      Index : Natural;
+      Count : Natural);
+
+   procedure Reconcile_Palette_Selection (Model : in out Files.Model.Window_Model) is
+      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+      Count   : constant Natural := Natural (Results.Length);
+      Index   : Natural := Files.Model.Command_Palette_Selected_Index (Model);
+   begin
+      if Results.Is_Empty then
+         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+         return;
+      end if;
+
+      if Index = 0 or else Index > Count then
+         Index := 1;
+      end if;
+
+      Set_Palette_Selection (Model, Index, Count);
+   end Reconcile_Palette_Selection;
+
+   procedure Set_Palette_Selection
+     (Model : in out Files.Model.Window_Model;
+      Index : Natural;
+      Count : Natural)
+   is
+      Visible_Rows : constant Natural := 5;
+      Offset       : Natural := Files.Model.Command_Palette_Result_Offset (Model);
+   begin
+      if Count = 0 or else Index = 0 then
+         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+         return;
+      end if;
+
+      if Count <= Visible_Rows then
+         Offset := 0;
+      elsif Offset > Count - Visible_Rows then
+         Offset := Count - Visible_Rows;
+      end if;
+
+      if Index <= Offset then
+         Offset := Index - 1;
+      elsif Index > Offset + Visible_Rows then
+         Offset := Index - Visible_Rows;
+      end if;
+
+      Files.Model.Set_Command_Palette_Selected_Index (Model, Index);
+      Files.Model.Set_Command_Palette_Result_Offset (Model, Offset);
+   end Set_Palette_Selection;
+
+   procedure Move_Palette_Selection
+     (Model     : in out Files.Model.Window_Model;
+      Direction : Files.Types.Navigation_Direction)
+   is
+      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+      Count   : constant Natural := Natural (Results.Length);
+      Current : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+      Next    : Natural := 0;
+   begin
+      if Count = 0 then
+         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+         return;
+      elsif Current = 0 or else Current > Count then
+         Next := 1;
+      elsif Direction = Files.Types.Move_Up or else Direction = Files.Types.Move_Left then
+         Next := (if Current = 1 then Count else Current - 1);
+      else
+         Next := (if Current = Count then 1 else Current + 1);
+      end if;
+
+      Set_Palette_Selection (Model, Next, Count);
+   end Move_Palette_Selection;
+
+   function Palette_Scroll_Steps
+     (Lines : Integer;
+      Count : Natural)
+      return Natural
+   is
+      Magnitude : constant Natural :=
+        (if Lines = Integer'First then Natural'Last else Natural (abs Lines));
+      Remainder : constant Natural := (if Count = 0 then 0 else Magnitude mod Count);
+   begin
+      if Count = 0 or else Magnitude = 0 then
+         return 0;
+      elsif Remainder = 0 then
+         return 1;
+      end if;
+
+      return Remainder;
+   end Palette_Scroll_Steps;
+
+   procedure Scroll_Palette_Selection
+     (Model : in out Files.Model.Window_Model;
+      Lines : Integer)
+   is
+      Results   : constant Files.Command_Palette.Result_Vectors.Vector :=
+        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+      Count     : constant Natural := Natural (Results.Length);
+      Steps     : constant Natural := Palette_Scroll_Steps (Lines, Count);
+   begin
+      if Count = 0 then
+         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+         return;
+      end if;
+
+      for Step in 1 .. Steps loop
+         Move_Palette_Selection
+           (Model,
+            (if Lines > 0 then Files.Types.Move_Down else Files.Types.Move_Up));
+      end loop;
+   end Scroll_Palette_Selection;
+
+   procedure Jump_Palette_Selection
+     (Model : in out Files.Model.Window_Model;
+      Last  : Boolean)
+   is
+      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+      Count   : constant Natural := Natural (Results.Length);
+      Index   : Natural := 0;
+   begin
+      if Count = 0 then
+         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+         return;
+      end if;
+
+      Index := (if Last then Count else 1);
+      Set_Palette_Selection (Model, Index, Count);
+   end Jump_Palette_Selection;
+
+   procedure Page_Palette_Selection
+     (Model : in out Files.Model.Window_Model;
+      Down  : Boolean)
+   is
+      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+      Count   : constant Natural := Natural (Results.Length);
+      Current : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+      Step    : constant Natural := 5;
+      Next    : Natural := 0;
+   begin
+      if Count = 0 then
+         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
+         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
+         return;
+      elsif Current = 0 or else Current > Count then
+         Next := 1;
+      elsif Down then
+         Next := (if Current > Count - Natural'Min (Step, Count) then Count else Current + Step);
+      elsif Current <= Step then
+         Next := 1;
+      else
+         Next := Current - Step;
+      end if;
+
+      Set_Palette_Selection (Model, Next, Count);
+   end Page_Palette_Selection;
+
+   function Palette_Selection_Result
+     (Model      : Files.Model.Window_Model;
+      Old_Index  : Natural;
+      Old_Offset : Natural)
+      return Controller_Result
+   is
+   begin
+      return
+        Make_Result
+          (if Files.Model.Command_Palette_Selected_Index (Model) = Old_Index
+             and then Files.Model.Command_Palette_Result_Offset (Model) = Old_Offset
+           then Controller_Ignored
+           else Controller_Palette_Updated);
+   end Palette_Selection_Result;
+
+   function Settings_Drafts_Equal
+     (Left  : Files.Settings.Settings_Draft;
+      Right : Files.Settings.Settings_Draft)
+      return Boolean is
+   begin
+      return Left.Default_View_Mode = Right.Default_View_Mode
+        and then Left.Show_Hidden_Files = Right.Show_Hidden_Files
+        and then Left.Sort_Directories_First = Right.Sort_Directories_First
+        and then Left.Sort_Field_Value = Right.Sort_Field_Value
+        and then Left.Sort_Ascending = Right.Sort_Ascending
+        and then Left.High_Contrast_Theme = Right.High_Contrast_Theme
+        and then Left.Icon_Theme_Name = Right.Icon_Theme_Name
+        and then Left.Filetype_Extension = Right.Filetype_Extension
+        and then Left.Filetype_Value = Right.Filetype_Value
+        and then Left.Filetype_Keys = Right.Filetype_Keys
+        and then Left.Filetype_Values = Right.Filetype_Values
+        and then Left.Filetype_Index = Right.Filetype_Index
+        and then Left.Icon_Filetype = Right.Icon_Filetype
+        and then Left.Icon_Value = Right.Icon_Value
+        and then Left.Icon_Keys = Right.Icon_Keys
+        and then Left.Icon_Values = Right.Icon_Values
+        and then Left.Icon_Index = Right.Icon_Index
+        and then Left.Open_Action_Token = Right.Open_Action_Token
+        and then Left.Open_Action_Command = Right.Open_Action_Command
+        and then Left.Open_Action_Keys = Right.Open_Action_Keys
+        and then Left.Open_Action_Commands = Right.Open_Action_Commands
+        and then Left.Open_Action_Index = Right.Open_Action_Index
+        and then Left.Error_Key = Right.Error_Key
+        and then Left.Valid = Right.Valid;
+   end Settings_Drafts_Equal;
+
+   function Settings_Update_Result
+     (Model      : Files.Model.Window_Model;
+      Old_Draft  : Files.Settings.Settings_Draft;
+      Old_Field  : Natural;
+      Old_Text   : String;
+      Old_Cursor : Natural)
+      return Controller_Result
+   is
+      Draft : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+   begin
+      return
+        Make_Result
+          ((if Files.Model.Settings_Field_Index (Model) = Old_Field
+              and then Files.Model.Settings_Field_Text (Model) = Old_Text
+              and then Files.Model.Text_Cursor_Position (Model) = Old_Cursor
+              and then Settings_Drafts_Equal (Draft, Old_Draft)
+            then Controller_Ignored
+            else Controller_Text_Updated),
+           Files.Commands.Toggle_Settings_Pane_Command);
+   end Settings_Update_Result;
+
+   procedure Replace_Focused_Text
+     (Model : in out Files.Model.Window_Model;
+      Text  : String) is
+   begin
+      case Files.Model.Focus (Model) is
+         when Files.Types.Focus_Path_Input =>
+            Files.Model.Set_Path_Input_Text (Model, Text);
+         when Files.Types.Focus_Filter_Input =>
+            Files.Model.Set_Filter (Model, Text);
+         when Files.Types.Focus_Rename_Input =>
+            Files.Model.Set_Rename_Text (Model, Text);
+         when Files.Types.Focus_Command_Palette =>
+            Files.Model.Set_Command_Palette_Query (Model, Text);
+            Reconcile_Palette_Selection (Model);
+         when Files.Types.Focus_Settings_Input =>
+            Files.Model.Set_Settings_Field_Text (Model, Text);
+         when Files.Types.Focus_None =>
+            null;
+      end case;
+   end Replace_Focused_Text;
+
+   function Focused_Text
+     (Model : Files.Model.Window_Model)
+      return String is
+   begin
+      case Files.Model.Focus (Model) is
+         when Files.Types.Focus_Path_Input =>
+            return Files.Model.Path_Input_Text (Model);
+         when Files.Types.Focus_Filter_Input =>
+            return Files.Model.Filter_Text (Model);
+         when Files.Types.Focus_Rename_Input =>
+            return Files.Model.Rename_Text (Model);
+         when Files.Types.Focus_Command_Palette =>
+            return Files.Model.Command_Palette_Query (Model);
+         when Files.Types.Focus_Settings_Input =>
+            return Files.Model.Settings_Field_Text (Model);
+         when Files.Types.Focus_None =>
+            return "";
+      end case;
+   end Focused_Text;
+
+   function Append_Focused_Text
+     (Model : in out Files.Model.Window_Model;
+      Text  : String)
+      return Controller_Result
+   is
+      Old_Text : constant String := Focused_Text (Model);
+      Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      New_Text : Unbounded_String;
+   begin
+      if Files.Model.Focus (Model) = Files.Types.Focus_None or else Text = "" then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      if Cursor = 0 then
+         New_Text := To_Unbounded_String (Text & Old_Text);
+      elsif Cursor >= Old_Text'Length then
+         New_Text := To_Unbounded_String (Old_Text & Text);
+      else
+         New_Text :=
+           To_Unbounded_String
+             (Old_Text (Old_Text'First .. Old_Text'First + Cursor - 1)
+              & Text
+              & Old_Text (Old_Text'First + Cursor .. Old_Text'Last));
+      end if;
+
+      Replace_Focused_Text (Model, To_String (New_Text));
+      Files.Model.Set_Text_Cursor_Position (Model, Cursor + Text'Length);
+      return Make_Result (Controller_Text_Updated);
+   end Append_Focused_Text;
+
+   function Is_UTF8_Continuation (Value : Character) return Boolean is
+      Code : constant Natural := Character'Pos (Value);
+   begin
+      return Code >= 16#80# and then Code <= 16#BF#;
+   end Is_UTF8_Continuation;
+
+   function UTF8_Continuation_At
+     (Text     : String;
+      Position : Natural)
+      return Boolean
+   is
+      Index : constant Natural := Text'First + Position;
+      Lead  : Natural := Position;
+   begin
+      if Position = 0
+        or else Position >= Text'Length
+        or else not Is_UTF8_Continuation (Text (Index))
+      then
+         return False;
+      end if;
+
+      while Lead > 0 and then Is_UTF8_Continuation (Text (Text'First + Lead)) loop
+         Lead := Lead - 1;
+      end loop;
+
+      declare
+         Lead_Code : constant Natural := Character'Pos (Text (Text'First + Lead));
+         Expected  : Natural := 0;
+      begin
+         if Lead_Code in 16#C2# .. 16#DF# then
+            Expected := 1;
+         elsif Lead_Code in 16#E0# .. 16#EF# then
+            Expected := 2;
+         elsif Lead_Code in 16#F0# .. 16#F4# then
+            Expected := 3;
+         else
+            return False;
+         end if;
+
+         return Position - Lead <= Expected;
+      end;
+   end UTF8_Continuation_At;
+
+   function Previous_Text_Boundary
+     (Text   : String;
+      Cursor : Natural)
+      return Natural
+   is
+      Position : Natural := Natural'Min (Cursor, Text'Length);
+   begin
+      if Position = 0 then
+         return 0;
+      end if;
+
+      Position := Position - 1;
+      while Position > 0 and then UTF8_Continuation_At (Text, Position) loop
+         Position := Position - 1;
+      end loop;
+
+      return Position;
+   end Previous_Text_Boundary;
+
+   function Next_Text_Boundary
+     (Text   : String;
+      Cursor : Natural)
+      return Natural
+   is
+      Position : Natural := Natural'Min (Cursor, Text'Length);
+   begin
+      if Position >= Text'Length then
+         return Text'Length;
+      end if;
+
+      Position := Position + 1;
+      while Position < Text'Length and then UTF8_Continuation_At (Text, Position) loop
+         Position := Position + 1;
+      end loop;
+
+      return Position;
+   end Next_Text_Boundary;
+
+   function Remove_Text_Range
+     (Text  : String;
+      First : Natural;
+      Last  : Natural)
+      return String
+   is
+      Start_Index : constant Natural := Natural'Min (First, Text'Length);
+      End_Index   : constant Natural := Natural'Min (Last, Text'Length);
+      Result      : Unbounded_String;
+   begin
+      if Text = "" or else Start_Index >= End_Index then
+         return Text;
+      end if;
+
+      if Start_Index > 0 then
+         Append (Result, Text (Text'First .. Text'First + Start_Index - 1));
+      end if;
+
+      if End_Index < Text'Length then
+         Append (Result, Text (Text'First + End_Index .. Text'Last));
+      end if;
+
+      return To_String (Result);
+   end Remove_Text_Range;
+
+   function Delete_Focused_Text_Backward
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Text : constant String := Focused_Text (Model);
+      Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      Previous : Natural;
+   begin
+      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+         return Make_Result (Controller_Ignored);
+      elsif Text'Length = 0 or else Cursor = 0 then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Previous := Previous_Text_Boundary (Text, Cursor);
+      Replace_Focused_Text (Model, Remove_Text_Range (Text, Previous, Cursor));
+      Files.Model.Set_Text_Cursor_Position (Model, Previous);
+      return Make_Result (Controller_Text_Updated);
+   end Delete_Focused_Text_Backward;
+
+   function Delete_Focused_Text_Forward
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Text   : constant String := Focused_Text (Model);
+      Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      Next   : Natural;
+   begin
+      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+         return Make_Result (Controller_Ignored);
+      elsif Text'Length = 0 or else Cursor >= Text'Length then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Next := Next_Text_Boundary (Text, Cursor);
+      Replace_Focused_Text (Model, Remove_Text_Range (Text, Cursor, Next));
+      Files.Model.Set_Text_Cursor_Position (Model, Cursor);
+      return Make_Result (Controller_Text_Updated);
+   end Delete_Focused_Text_Forward;
+
+   function Is_Word_Separator (Value : Character) return Boolean is
+   begin
+      return Value = ' '
+        or else Value = ASCII.HT
+        or else Value = ASCII.LF
+        or else Value = ASCII.CR
+        or else Value = ASCII.VT
+        or else Value = ASCII.FF
+        or else Character'Pos (Value) = 133
+        or else Value = '/'
+        or else Value = '\'
+        or else Value = '.'
+        or else Value = '-'
+        or else Value = '_';
+   end Is_Word_Separator;
+
+   function UTF8_Word_Separator_Length
+     (Text     : String;
+      Position : Natural)
+      return Natural
+   is
+      Index : constant Natural := Text'First + Position;
+      B1    : Natural;
+      B2    : Natural;
+      B3    : Natural;
+   begin
+      if Position >= Text'Length then
+         return 0;
+      elsif Is_Word_Separator (Text (Index)) then
+         return 1;
+      end if;
+
+      B1 := Character'Pos (Text (Index));
+      if B1 = 16#C2# and then Position + 1 < Text'Length then
+         B2 := Character'Pos (Text (Index + 1));
+         if B2 = 16#85# or else B2 = 16#A0# then
+            return 2;
+         end if;
+      elsif B1 = 16#E1# and then Position + 2 < Text'Length then
+         B2 := Character'Pos (Text (Index + 1));
+         B3 := Character'Pos (Text (Index + 2));
+         if B2 = 16#9A# and then B3 = 16#80# then
+            return 3;
+         end if;
+      elsif B1 = 16#E2# and then Position + 2 < Text'Length then
+         B2 := Character'Pos (Text (Index + 1));
+         B3 := Character'Pos (Text (Index + 2));
+         if B2 = 16#80#
+           and then (B3 in 16#80# .. 16#8A# or else B3 = 16#A8# or else B3 = 16#A9# or else B3 = 16#AF#)
+         then
+            return 3;
+         elsif B2 = 16#81# and then B3 = 16#9F# then
+            return 3;
+         end if;
+      elsif B1 = 16#E3# and then Position + 2 < Text'Length then
+         B2 := Character'Pos (Text (Index + 1));
+         B3 := Character'Pos (Text (Index + 2));
+         if B2 = 16#80# and then B3 = 16#80# then
+            return 3;
+         end if;
+      end if;
+
+      return 0;
+   end UTF8_Word_Separator_Length;
+
+   function Previous_UTF8_Word_Separator_Length
+     (Text     : String;
+      Position : Natural)
+      return Natural
+   is
+      Max_Length : constant Natural := Natural'Min (3, Position);
+   begin
+      for Length in reverse 1 .. Max_Length loop
+         if UTF8_Word_Separator_Length (Text, Position - Length) = Length then
+            return Length;
+         end if;
+      end loop;
+
+      return 0;
+   end Previous_UTF8_Word_Separator_Length;
+
+   function Previous_Word_Boundary
+     (Text   : String;
+      Cursor : Natural)
+      return Natural
+   is
+      Position : Natural := Natural'Min (Cursor, Text'Length);
+      Separator_Length : Natural;
+   begin
+      loop
+         Separator_Length := Previous_UTF8_Word_Separator_Length (Text, Position);
+         exit when Separator_Length = 0;
+         Position := Position - Separator_Length;
+      end loop;
+
+      while Position > 0 and then Previous_UTF8_Word_Separator_Length (Text, Position) = 0 loop
+         Position := Position - 1;
+      end loop;
+
+      return Position;
+   end Previous_Word_Boundary;
+
+   function Next_Word_Boundary
+     (Text   : String;
+      Cursor : Natural)
+      return Natural
+   is
+      Position : Natural := Natural'Min (Cursor, Text'Length);
+      Separator_Length : Natural;
+   begin
+      loop
+         Separator_Length := UTF8_Word_Separator_Length (Text, Position);
+         exit when Separator_Length = 0;
+         Position := Natural'Min (Position + Separator_Length, Text'Length);
+      end loop;
+
+      while Position < Text'Length and then UTF8_Word_Separator_Length (Text, Position) = 0 loop
+         Position := Position + 1;
+      end loop;
+
+      return Position;
+   end Next_Word_Boundary;
+
+   function Delete_Focused_Text_Word_Backward
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Text   : constant String := Focused_Text (Model);
+      Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      Boundary : constant Natural := Previous_Word_Boundary (Text, Cursor);
+   begin
+      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+         return Make_Result (Controller_Ignored);
+      elsif Cursor = 0 then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Replace_Focused_Text (Model, Remove_Text_Range (Text, Boundary, Cursor));
+      Files.Model.Set_Text_Cursor_Position (Model, Boundary);
+      return Make_Result (Controller_Text_Updated);
+   end Delete_Focused_Text_Word_Backward;
+
+   function Delete_Focused_Text_Word_Forward
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Text     : constant String := Focused_Text (Model);
+      Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      Boundary : constant Natural := Next_Word_Boundary (Text, Cursor);
+   begin
+      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+         return Make_Result (Controller_Ignored);
+      elsif Cursor >= Text'Length then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Replace_Focused_Text (Model, Remove_Text_Range (Text, Cursor, Boundary));
+      Files.Model.Set_Text_Cursor_Position (Model, Cursor);
+      return Make_Result (Controller_Text_Updated);
+   end Delete_Focused_Text_Word_Forward;
+
+   function Execute_Command
+     (Id        : Files.Commands.Command_Id;
+      Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Controller_Result
+   is
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      if Files.Model.Root_Selector_Is_Open (Model)
+        and then not Files.Commands.Allowed_With_Root_Selector (Id)
+      then
+         return Make_Result (Controller_Ignored, Id);
+      elsif Files.Model.Settings_Pane_Is_Open (Model)
+        and then not Files.Commands.Allowed_With_Settings_Pane (Id)
+      then
+         return Make_Result (Controller_Ignored, Id);
+      elsif not Files.Commands.Is_Enabled (Id, Model) then
+         return Disabled_Command_Result (Id, Model);
+      end if;
+
+      case Id is
+         when Files.Commands.Navigate_Home_Command =>
+            Operation := Files.Operations.Navigate_Home (Model, Settings);
+         when Files.Commands.Navigate_Back_Command =>
+            Operation := Files.Operations.Navigate_Back (Model, Settings);
+         when Files.Commands.Navigate_Forward_Command =>
+            Operation := Files.Operations.Navigate_Forward (Model, Settings);
+         when Files.Commands.Open_Selected_Items_Command =>
+            Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+         when Files.Commands.Delete_Selected_Items_Command =>
+            Operation := Files.Operations.Delete_Selected (Model, Settings);
+         when Files.Commands.Refresh_Directory_Command =>
+            Operation := Files.Operations.Refresh (Model, Settings);
+         when Files.Commands.Open_Selected_Root_Command =>
+            return Handle_Root_Click (Model, Settings, Files.Model.Root_Selected_Index (Model));
+         when Files.Commands.Eject_Selected_Root_Command =>
+            Operation := Files.Operations.Eject_Selected_Root (Model);
+         when Files.Commands.Create_File_Command =>
+            Files.Model.Begin_Create_File
+              (Model,
+               Files.File_System.Next_Untitled_Name (Files.Model.Current_Path (Model)));
+            Files.Model.Set_Error (Model, "");
+         when Files.Commands.Select_Drive_Command =>
+            if Files.Model.Root_Selector_Is_Open (Model) then
+               Files.Model.Close_Root_Selector (Model);
+            else
+               Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Root_Entries);
+            end if;
+            Files.Model.Set_Error (Model, "");
+         when Files.Commands.Reset_Settings_Command =>
+            Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
+            Files.Model.Set_Settings_Field_Index (Model, 1);
+            Files.Model.Set_Error (Model, "");
+            Operation.Status := Files.Operations.Operation_Success;
+         when Files.Commands.Import_Settings_Command | Files.Commands.Export_Settings_Command =>
+            return Disabled_Command_Result (Id, Model);
+         when Files.Commands.Close_Command_Palette_Command =>
+            if Files.Model.Command_Palette_Is_Open (Model) then
+               Files.Model.Close_Command_Palette (Model);
+            elsif Files.Model.Root_Selector_Is_Open (Model) then
+               Files.Model.Close_Root_Selector (Model);
+            else
+               Files.Model.Cancel_Focus_Or_Edit (Model);
+            end if;
+         when others =>
+            if Id = Files.Commands.Toggle_Settings_Pane_Command
+              and then not Files.Model.Settings_Pane_Is_Open (Model)
+            then
+               Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));
+            else
+               Files.Commands.Execute (Id, Model);
+            end if;
+            case Id is
+               when Files.Commands.Focus_Path_Input_Command
+                  | Files.Commands.Focus_Filter_Input_Command
+                  | Files.Commands.Open_Command_Palette_Command =>
+                  Files.Model.Set_Error (Model, "");
+               when others =>
+                  null;
+            end case;
+      end case;
+
+      if Operation.Status = Files.Operations.Operation_Disabled
+        and then Length (Operation.Error_Key) = 0
+        and then not Files.Commands.Requires_Settings_Path (Id)
+      then
+         Operation.Status := Files.Operations.Operation_Success;
+      end if;
+
+      return Make_Result (Controller_Command_Executed, Id, Operation);
+   end Execute_Command;
+
+   function Save_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result
+   is
+      Applied : constant Files.Settings.Settings_Parse_Result :=
+        Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
+      Saved   : Files.Settings.Settings_Write_Result;
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      if not Files.Model.Settings_Pane_Is_Open (Model) then
+         return Settings_Closed_Result (Files.Commands.Save_Settings_Command, Model, Settings_Path);
+      elsif not Applied.Success then
+         declare
+            Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         begin
+            Draft.Valid := False;
+            Draft.Error_Key := Applied.Error_Key;
+            Files.Model.Set_Settings_Draft (Model, Draft);
+         end;
+         Files.Model.Set_Error (Model, To_String (Applied.Error_Key));
+         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Error_Key := Applied.Error_Key;
+         Operation.Path := To_Unbounded_String (Settings_Path);
+         return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
+      end if;
+
+      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Applied.Settings));
+      if not Saved.Success then
+         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Error_Key := Saved.Error_Key;
+         Operation.Path := To_Unbounded_String (Settings_Path);
+         return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
+      end if;
+
+      Settings := Applied.Settings;
+      Operation := Files.Operations.Refresh (Model, Settings);
+      if Operation.Status = Files.Operations.Operation_Failed then
+         return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
+      end if;
+
+      Files.Model.Set_Error (Model, "");
+      Files.Model.Set_Settings_Draft (Model, Files.Settings.Make_Draft (Settings));
+      Operation.Status := Files.Operations.Operation_Success;
+      Operation.Path := To_Unbounded_String (Settings_Path);
+      Operation.Error_Key := Null_Unbounded_String;
+
+      return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
+   end Save_Settings;
+
+   function Import_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings_Path : String)
+      return Controller_Result
+   is
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      if not Files.Model.Settings_Pane_Is_Open (Model) then
+         return Settings_Closed_Result (Files.Commands.Import_Settings_Command, Model, Settings_Path);
+      end if;
+
+      declare
+         Imported : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Import_Draft (Settings_Path);
+      begin
+         if not Imported.Success then
+            Files.Model.Set_Error (Model, To_String (Imported.Error_Key));
+            Operation.Status := Files.Operations.Operation_Failed;
+            Operation.Path := To_Unbounded_String (Settings_Path);
+            Operation.Error_Key := Imported.Error_Key;
+            return Make_Result (Controller_Command_Executed, Files.Commands.Import_Settings_Command, Operation);
+         end if;
+
+         Files.Model.Set_Settings_Draft (Model, Files.Settings.Make_Draft (Imported.Settings));
+         Files.Model.Set_Settings_Field_Index (Model, 1);
+      end;
+
+      Files.Model.Set_Error (Model, "");
+      Operation.Status := Files.Operations.Operation_Success;
+      Operation.Path := To_Unbounded_String (Settings_Path);
+
+      return Make_Result (Controller_Command_Executed, Files.Commands.Import_Settings_Command, Operation);
+   end Import_Settings;
+
+   function Export_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result
+   is
+      Exported  : Files.Settings.Settings_Write_Result;
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      if not Files.Model.Settings_Pane_Is_Open (Model) then
+         return Settings_Closed_Result (Files.Commands.Export_Settings_Command, Model, Settings_Path);
+      end if;
+
+      Exported := Files.Settings.Export_Settings (Settings_Path, Settings);
+      if not Exported.Success then
+         Files.Model.Set_Error (Model, To_String (Exported.Error_Key));
+         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Path := To_Unbounded_String (Settings_Path);
+         Operation.Error_Key := Exported.Error_Key;
+         return Make_Result (Controller_Command_Executed, Files.Commands.Export_Settings_Command, Operation);
+      end if;
+
+      Files.Model.Set_Error (Model, "");
+      Operation.Status := Files.Operations.Operation_Success;
+      Operation.Path := To_Unbounded_String (Settings_Path);
+
+      return Make_Result (Controller_Command_Executed, Files.Commands.Export_Settings_Command, Operation);
+   end Export_Settings;
+
+   function Handle_Command_Click
+     (Id        : Files.Commands.Command_Id;
+      Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Controller_Result is
+   begin
+      if Id = Files.Commands.No_Command then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      return Execute_Command (Id, Model, Settings, Modifiers);
+   end Handle_Command_Click;
+
+   function Select_Root
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Root_Path : String)
+      return Controller_Result
+   is
+      Operation : constant Files.Operations.Operation_Result :=
+        Files.Operations.Select_Root (Model, Settings, Root_Path);
+   begin
+      return Make_Result (Controller_Command_Executed, Files.Commands.Select_Drive_Command, Operation);
+   end Select_Root;
+
+   function Handle_Root_Click
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Root_Index : Natural)
+      return Controller_Result is
+   begin
+      if not Files.Model.Root_Selector_Is_Open (Model)
+        or else Root_Index = 0
+        or else Root_Index > Files.Model.Root_Count (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Files.Model.Set_Root_Selected_Index (Model, Root_Index);
+      declare
+         Operation : constant Files.Operations.Operation_Result :=
+           Files.Operations.Select_Root (Model, Settings, Files.Model.Root_Path (Model, Positive (Root_Index)));
+      begin
+         return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
+      end;
+   end Handle_Root_Click;
+
+   function Handle_Command_Result_Click
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Result_Index : Natural;
+      Modifiers    : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Controller_Result
+   is
+      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+   begin
+      if not Files.Model.Command_Palette_Is_Open (Model)
+        or else Result_Index = 0
+        or else Result_Index > Natural (Results.Length)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Files.Model.Set_Command_Palette_Selected_Index (Model, Result_Index);
+
+      if not Results.Element (Positive (Result_Index)).Enabled then
+         return Execute_Command (Results.Element (Positive (Result_Index)).Command, Model, Settings, Modifiers);
+      end if;
+
+      declare
+         Result : constant Controller_Result :=
+           Execute_Command (Results.Element (Positive (Result_Index)).Command, Model, Settings, Modifiers);
+      begin
+         if Result.Status /= Controller_Ignored then
+            Files.Model.Close_Command_Palette (Model);
+         end if;
+         return Result;
+      end;
+   end Handle_Command_Result_Click;
+
+   function Handle_Item_Click
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Visible_Index : Natural;
+      Activate      : Boolean := False;
+      Modifiers     : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Controller_Result is
+   begin
+      if Files.Model.Command_Palette_Is_Open (Model)
+        or else Files.Model.Root_Selector_Is_Open (Model)
+        or else Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Visible_Index = 0 or else Visible_Index > Files.Model.Visible_Count (Model) then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      if Visible_Index > Files.Model.Visible_Count (Model) then
+         return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+      end if;
+
+      if Modifiers (Files.Types.Shift_Key) and then not Activate then
+         declare
+            Anchor : constant Natural := Files.Model.Selected_Index (Model);
+         begin
+            Files.Model.Select_Visible_Range
+              (Model,
+               Positive ((if Anchor = 0 then Visible_Index else Anchor)),
+               Positive (Visible_Index));
+         end;
+      elsif Modifiers (Files.Types.Control_Key) and then not Activate then
+         Files.Model.Toggle_Visible_Selection (Model, Positive (Visible_Index));
+      else
+         Files.Model.Select_Visible (Model, Positive (Visible_Index));
+      end if;
+
+      if Activate then
+         return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+      end if;
+
+      return Make_Result (Controller_Selection_Moved);
+   end Handle_Item_Click;
+
+   function Scroll_Info_Result
+     (Model : in out Files.Model.Window_Model;
+      Lines : Integer)
+      return Controller_Result
+   is
+      Old_Lines : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+   begin
+      Files.Model.Scroll_Info_Pane (Model, Lines);
+      return
+        Make_Result
+          (if Files.Model.Info_Pane_Scroll_Lines (Model) = Old_Lines
+           then Controller_Ignored
+           else Controller_Command_Executed);
+   end Scroll_Info_Result;
+
+   function Scroll_Main_Result
+     (Model : in out Files.Model.Window_Model;
+      Lines : Integer)
+      return Controller_Result
+   is
+      Old_Lines : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
+   begin
+      Files.Model.Scroll_Main_View (Model, Lines);
+      return
+        Make_Result
+          (if Files.Model.Main_View_Scroll_Lines (Model) = Old_Lines
+           then Controller_Ignored
+           else Controller_Command_Executed);
+   end Scroll_Main_Result;
+
+   function Handle_Scroll
+     (Model : in out Files.Model.Window_Model;
+      Lines : Integer)
+      return Controller_Result is
+   begin
+      if Lines = 0 then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Root_Selector_Is_Open (Model)
+        and then not Files.Model.Command_Palette_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Command_Palette_Is_Open (Model) then
+         if Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model).Is_Empty then
+            return Make_Result (Controller_Ignored);
+         else
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Scroll_Palette_Selection (Model, Lines);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         end if;
+      elsif Files.Model.Settings_Pane_Is_Open (Model) then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Info_Pane_Is_Open (Model) then
+         return Scroll_Info_Result (Model, Lines);
+      end if;
+
+      return Scroll_Main_Result (Model, Lines);
+   end Handle_Scroll;
+
+   function Handle_Targeted_Scroll
+     (Model  : in out Files.Model.Window_Model;
+      Target : Files.Events.Scroll_Target;
+      Lines  : Integer)
+      return Controller_Result is
+   begin
+      if Lines = 0 then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      if Files.Model.Command_Palette_Is_Open (Model)
+        and then Target /= Files.Events.Scroll_Auto
+        and then Target /= Files.Events.Scroll_Command_Palette
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Root_Selector_Is_Open (Model)
+        and then not Files.Model.Command_Palette_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Settings_Pane_Is_Open (Model)
+        and then not Files.Model.Command_Palette_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      case Target is
+         when Files.Events.Scroll_Auto =>
+            return Handle_Scroll (Model, Lines);
+         when Files.Events.Scroll_Command_Palette =>
+            if Files.Model.Command_Palette_Is_Open (Model) then
+               if Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model).Is_Empty then
+                  return Make_Result (Controller_Ignored);
+               else
+                  declare
+                     Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+                     Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+                  begin
+                     Scroll_Palette_Selection (Model, Lines);
+                     return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+                  end;
+               end if;
+            end if;
+         when Files.Events.Scroll_Info_Pane =>
+            if Files.Model.Info_Pane_Is_Open (Model) then
+               return Scroll_Info_Result (Model, Lines);
+            end if;
+         when Files.Events.Scroll_Main_View =>
+            return Scroll_Main_Result (Model, Lines);
+      end case;
+
+      return Make_Result (Controller_Ignored);
+   end Handle_Targeted_Scroll;
+
+   function Handle_Text_Click
+     (Model           : in out Files.Model.Window_Model;
+      Target          : Files.Types.Focus_Target;
+      Cursor_Position : Natural)
+      return Controller_Result
+   is
+      Old_Focus  : constant Files.Types.Focus_Target := Files.Model.Focus (Model);
+      Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+   begin
+      if Target = Files.Types.Focus_Command_Palette
+        and then not Files.Model.Command_Palette_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Target = Files.Types.Focus_Settings_Input
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Target = Files.Types.Focus_Rename_Input
+        and then not Files.Model.Rename_Is_Active (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      if Files.Model.Command_Palette_Is_Open (Model)
+        and then Target /= Files.Types.Focus_Command_Palette
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Root_Selector_Is_Open (Model)
+        and then Target /= Files.Types.Focus_Command_Palette
+      then
+         return Make_Result (Controller_Ignored);
+      elsif Files.Model.Settings_Pane_Is_Open (Model)
+        and then Target /= Files.Types.Focus_Settings_Input
+        and then Target /= Files.Types.Focus_Command_Palette
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      case Target is
+         when Files.Types.Focus_Path_Input =>
+            if Files.Model.Focus (Model) /= Files.Types.Focus_Path_Input then
+               Files.Model.Focus_Path_Input (Model);
+            end if;
+         when Files.Types.Focus_Filter_Input =>
+            if Files.Model.Focus (Model) /= Files.Types.Focus_Filter_Input then
+               Files.Model.Focus_Filter_Input (Model);
+            end if;
+         when Files.Types.Focus_Rename_Input =>
+            Files.Model.Focus_Rename_Input (Model);
+         when Files.Types.Focus_Command_Palette =>
+            Files.Model.Focus_Command_Palette_Input (Model);
+         when Files.Types.Focus_Settings_Input =>
+            Files.Model.Set_Settings_Field_Index (Model, Files.Model.Settings_Field_Index (Model));
+         when Files.Types.Focus_None =>
+            return Make_Result (Controller_Ignored);
+      end case;
+
+      Files.Model.Set_Text_Cursor_Position (Model, Cursor_Position);
+      return
+        Make_Result
+          (if Files.Model.Focus (Model) = Old_Focus
+             and then Files.Model.Text_Cursor_Position (Model) = Old_Cursor
+           then Controller_Ignored
+           else Controller_Text_Updated);
+   end Handle_Text_Click;
+
+   function Handle_Settings_Click
+     (Model  : in out Files.Model.Window_Model;
+      Field  : Natural;
+      Option : Natural := 0)
+      return Controller_Result
+   is
+      function Valid_Option return Boolean is
+      begin
+         if Option = 0 then
+            return True;
+         elsif Option = 100 or else Option = 101 then
+            return Field in 8 | 10 | 12;
+         end if;
+
+         case Field is
+            when 1 =>
+               return Option in 1 .. 3;
+            when 2 | 3 | 5 | 6 | 7 =>
+               return Option in 1 .. 2;
+            when 4 =>
+               return Option in 1 .. 4;
+            when others =>
+               return False;
+         end case;
+      end Valid_Option;
+   begin
+      if Files.Model.Command_Palette_Is_Open (Model)
+        or else not Files.Model.Settings_Pane_Is_Open (Model)
+        or else Field = 0
+        or else Field > 13
+        or else not Valid_Option
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      declare
+         Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
+         Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
+         Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      begin
+         Files.Model.Set_Settings_Field_Index (Model, Field);
+         if Option = 100 then
+            Files.Model.Add_Settings_Entry (Model);
+         elsif Option = 101 then
+            Files.Model.Remove_Settings_Entry (Model);
+         elsif Option > 0 then
+            case Field is
+               when 1 =>
+                  case Option is
+                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "small_icons");
+                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "large_icons");
+                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "details");
+                     when others => null;
+                  end case;
+               when 2 | 3 | 5 | 6 =>
+                  Files.Model.Set_Settings_Field_Text (Model, (if Option = 1 then "true" else "false"));
+               when 7 =>
+                  Files.Model.Set_Settings_Field_Text
+                    (Model, (if Option = 1 then "files-basic" else "files-high-contrast"));
+               when 4 =>
+                  case Option is
+                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "name");
+                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "filetype");
+                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "size");
+                     when 4 => Files.Model.Set_Settings_Field_Text (Model, "modified");
+                     when others => null;
+                  end case;
+               when others =>
+                  null;
+            end case;
+         end if;
+
+         return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
+      end;
+   end Handle_Settings_Click;
+
+   function Commit_Focused_Text
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Files.Types.Modifier_Set)
+      return Controller_Result
+   is
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      case Files.Model.Focus (Model) is
+         when Files.Types.Focus_Path_Input =>
+            Operation := Files.Operations.Commit_Path_Input (Model, Settings);
+            return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Path_Input_Command, Operation);
+         when Files.Types.Focus_Filter_Input =>
+            Files.Model.Cancel_Focus_Or_Edit (Model);
+            Operation.Status := Files.Operations.Operation_Success;
+            return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Filter_Input_Command, Operation);
+         when Files.Types.Focus_Rename_Input =>
+            if Files.Model.Temporary_Item_Is_Active (Model) then
+               Operation := Files.Operations.Commit_Create_File (Model, Settings);
+            else
+               Operation := Files.Operations.Commit_Rename (Model, Settings);
+            end if;
+            return Make_Result (Controller_Command_Executed, Files.Commands.Rename_Selected_Items_Command, Operation);
+         when Files.Types.Focus_Command_Palette =>
+            declare
+               Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+                 Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+               Index   : Natural := Files.Model.Command_Palette_Selected_Index (Model);
+            begin
+               if Results.Is_Empty then
+                  return Make_Result (Controller_Ignored);
+               elsif Index = 0 or else Index > Natural (Results.Length) then
+                  Index := 1;
+                  Files.Model.Set_Command_Palette_Selected_Index (Model, Index);
+               end if;
+
+               if Index <= Natural (Results.Length) and then Results.Element (Positive (Index)).Enabled then
+                  declare
+                     Command_Result : constant Controller_Result :=
+                       Execute_Command (Results.Element (Positive (Index)).Command, Model, Settings, Modifiers);
+                  begin
+                     if Command_Result.Status /= Controller_Ignored then
+                        Files.Model.Close_Command_Palette (Model);
+                     end if;
+                     return Command_Result;
+                  end;
+               elsif Index <= Natural (Results.Length) then
+                  return Execute_Command (Results.Element (Positive (Index)).Command, Model, Settings, Modifiers);
+               end if;
+            end;
+            return Make_Result (Controller_Ignored);
+         when Files.Types.Focus_Settings_Input =>
+            declare
+               Parsed : constant Files.Settings.Settings_Parse_Result :=
+                 Files.Settings.Validate_Draft (Files.Model.Settings_Draft_Of (Model));
+               Draft  : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+            begin
+               if Parsed.Success then
+                  Draft.Valid := True;
+                  Draft.Error_Key := Null_Unbounded_String;
+                  Files.Model.Set_Error (Model, "");
+                  Operation.Status := Files.Operations.Operation_Success;
+               else
+                  Draft.Valid := False;
+                  Draft.Error_Key := Parsed.Error_Key;
+                  Files.Model.Set_Error (Model, To_String (Parsed.Error_Key));
+                  Operation.Status := Files.Operations.Operation_Failed;
+                  Operation.Error_Key := Parsed.Error_Key;
+               end if;
+               Files.Model.Set_Settings_Draft (Model, Draft);
+            end;
+            return
+              Make_Result
+                (Controller_Command_Executed,
+                 Files.Commands.Toggle_Settings_Pane_Command,
+                 Operation);
+         when others =>
+            return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+      end case;
+   end Commit_Focused_Text;
+
+   function Root_Selection_Result
+     (Model     : in out Files.Model.Window_Model;
+      Direction : Files.Types.Navigation_Direction)
+      return Controller_Result
+   is
+      Old_Index : constant Natural := Files.Model.Root_Selected_Index (Model);
+   begin
+      Files.Model.Move_Root_Selection (Model, Direction);
+      return
+        Make_Result
+          (if Files.Model.Root_Selected_Index (Model) = Old_Index
+           then Controller_Ignored
+           else Controller_Selection_Moved);
+   end Root_Selection_Result;
+
+   function Root_Jump_Result
+     (Model : in out Files.Model.Window_Model;
+      Index : Natural)
+      return Controller_Result
+   is
+      Old_Index : constant Natural := Files.Model.Root_Selected_Index (Model);
+   begin
+      Files.Model.Set_Root_Selected_Index (Model, Index);
+      return
+        Make_Result
+          (if Files.Model.Root_Selected_Index (Model) = Old_Index
+           then Controller_Ignored
+           else Controller_Selection_Moved);
+   end Root_Jump_Result;
+
+   function Handle_Key
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Key       : Files.Types.Key_Code;
+      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Controller_Result
+   is
+      Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
+
+      function Control_Only return Boolean is
+      begin
+         return Modifiers (Files.Types.Control_Key)
+           and then not Modifiers (Files.Types.Shift_Key)
+           and then not Modifiers (Files.Types.Alt_Key)
+           and then not Modifiers (Files.Types.Meta_Key);
+      end Control_Only;
+   begin
+      if Files.Model.Command_Palette_Is_Open (Model) then
+         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+            Files.Model.Close_Command_Palette (Model);
+            return Make_Result (Controller_Palette_Updated, Files.Commands.Close_Command_Palette_Command);
+         elsif Key = Files.Types.Key_Return and then Modifiers = Files.Types.No_Modifiers then
+            return Commit_Focused_Text (Model, Settings, Modifiers);
+         elsif Key = Files.Types.Key_Left and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Move_Palette_Selection (Model, Files.Types.Move_Left);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_Right and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Move_Palette_Selection (Model, Files.Types.Move_Right);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Move_Palette_Selection (Model, Files.Types.Move_Up);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Move_Palette_Selection (Model, Files.Types.Move_Down);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_Home and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Jump_Palette_Selection (Model, Last => False);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_End and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Jump_Palette_Selection (Model, Last => True);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_Page_Up and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Page_Palette_Selection (Model, Down => False);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         elsif Key = Files.Types.Key_Page_Down and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
+               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
+            begin
+               Page_Palette_Selection (Model, Down => True);
+               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
+            end;
+         end if;
+      end if;
+
+      if Files.Model.Root_Selector_Is_Open (Model) then
+         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+            Files.Model.Close_Root_Selector (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif Key = Files.Types.Key_Return and then Modifiers = Files.Types.No_Modifiers then
+            return Handle_Root_Click (Model, Settings, Files.Model.Root_Selected_Index (Model));
+         elsif Key = Files.Types.Key_Left and then Modifiers = Files.Types.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Types.Move_Left);
+         elsif Key = Files.Types.Key_Right and then Modifiers = Files.Types.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Types.Move_Right);
+         elsif Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Types.Move_Up);
+         elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Types.Move_Down);
+         elsif Key = Files.Types.Key_Home and then Modifiers = Files.Types.No_Modifiers then
+            return Root_Jump_Result (Model, 1);
+         elsif Key = Files.Types.Key_End and then Modifiers = Files.Types.No_Modifiers then
+            return Root_Jump_Result (Model, Files.Model.Root_Count (Model));
+         elsif Action.Kind = Files.Events.Command_Input_Action
+           and then Action.Command = Files.Commands.Open_Command_Palette_Command
+         then
+            null;
+         else
+            return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
+      if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
+         if Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
+            Files.Model.Move_Settings_Field (Model, Files.Types.Move_Up);
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+         elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
+            Files.Model.Move_Settings_Field (Model, Files.Types.Move_Down);
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+         elsif Key = Files.Types.Key_N and then Modifiers (Files.Types.Control_Key) then
+            declare
+               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
+               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
+               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+            begin
+               Files.Model.Add_Settings_Entry (Model);
+               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
+            end;
+         elsif Key = Files.Types.Key_Delete and then Modifiers (Files.Types.Control_Key) then
+            declare
+               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
+               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
+               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+            begin
+               Files.Model.Remove_Settings_Entry (Model);
+               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
+            end;
+         elsif Key = Files.Types.Key_Page_Up and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
+               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
+               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+            begin
+               Files.Model.Move_Settings_Entry (Model, Files.Types.Move_Up);
+               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
+            end;
+         elsif Key = Files.Types.Key_Page_Down and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
+               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
+               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+            begin
+               Files.Model.Move_Settings_Entry (Model, Files.Types.Move_Down);
+               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
+            end;
+         elsif (Key = Files.Types.Key_Left or else Key = Files.Types.Key_Right)
+           and then Modifiers = Files.Types.No_Modifiers
+           and then Files.Model.Settings_Field_Index (Model) <= 7
+         then
+            declare
+               Field   : constant Natural := Files.Model.Settings_Field_Index (Model);
+               Current : constant String := Files.Types.To_Lower (Files.Model.Settings_Field_Text (Model));
+               Forward : constant Boolean := Key = Files.Types.Key_Right;
+            begin
+               case Field is
+                  when 1 =>
+                     if Current = "small_icons" or else Current = "small" then
+                        Files.Model.Set_Settings_Field_Text
+                          (Model, (if Forward then "large_icons" else "details"));
+                     elsif Current = "large_icons" or else Current = "large" then
+                        Files.Model.Set_Settings_Field_Text
+                          (Model, (if Forward then "details" else "small_icons"));
+                     else
+                        Files.Model.Set_Settings_Field_Text
+                          (Model, (if Forward then "small_icons" else "large_icons"));
+                     end if;
+                  when 2 | 3 | 5 | 6 =>
+                     Files.Model.Set_Settings_Field_Text
+                       (Model, (if Current = "true" then "false" else "true"));
+                  when 7 =>
+                     Files.Model.Set_Settings_Field_Text
+                       (Model,
+                        (if Current = "files-basic" then "files-high-contrast" else "files-basic"));
+                  when 4 =>
+                     if Current = "name" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "filetype" else "modified"));
+                     elsif Current = "filetype" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "size" else "name"));
+                     elsif Current = "size" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "modified" else "filetype"));
+                     else
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "name" else "size"));
+                     end if;
+                  when others =>
+                     null;
+               end case;
+            end;
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+         end if;
+      end if;
+
+      if Key = Files.Types.Key_Return then
+         if Modifiers = Files.Types.No_Modifiers then
+            return Commit_Focused_Text (Model, Settings, Modifiers);
+         elsif Files.Model.Focus (Model) = Files.Types.Focus_None then
+            return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+         end if;
+      elsif Key = Files.Types.Key_Backspace
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Word_Backward (Model);
+      elsif Key = Files.Types.Key_Delete
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Word_Forward (Model);
+      elsif Key = Files.Types.Key_Left
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            Files.Model.Set_Text_Cursor_Position
+              (Model, Previous_Word_Boundary (Focused_Text (Model), Old_Position));
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Files.Types.Key_Right
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            Files.Model.Set_Text_Cursor_Position
+              (Model, Next_Word_Boundary (Focused_Text (Model), Old_Position));
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Files.Types.Key_Backspace
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Backward (Model);
+      elsif Key = Files.Types.Key_Delete
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Forward (Model);
+      elsif Key = Files.Types.Key_Left
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            Files.Model.Move_Text_Cursor (Model, Files.Types.Move_Left);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Files.Types.Key_Right
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            Files.Model.Move_Text_Cursor (Model, Files.Types.Move_Right);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Files.Types.Key_Home
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            Files.Model.Set_Text_Cursor_Position (Model, 0);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Files.Types.Key_End
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            Files.Model.Set_Text_Cursor_Position (Model, Focused_Text (Model)'Length);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Files.Types.Key_Page_Up
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         if Files.Model.Info_Pane_Is_Open (Model) then
+            return Scroll_Info_Result (Model, -10);
+         else
+            return Scroll_Main_Result (Model, -10);
+         end if;
+      elsif Key = Files.Types.Key_Page_Down
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         if Files.Model.Info_Pane_Is_Open (Model) then
+            return Scroll_Info_Result (Model, 10);
+         else
+            return Scroll_Main_Result (Model, 10);
+         end if;
+      elsif Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+         if Files.Model.Focus (Model) = Files.Types.Focus_None
+           and then not Files.Model.Rename_Is_Active (Model)
+           and then not Files.Model.Temporary_Item_Is_Active (Model)
+         then
+            return Make_Result (Controller_Ignored, Files.Commands.Close_Command_Palette_Command);
+         else
+            Files.Model.Cancel_Focus_Or_Edit (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         end if;
+      end if;
+
+      case Action.Kind is
+         when Files.Events.Command_Input_Action =>
+            return Execute_Command (Action.Command, Model, Settings, Modifiers);
+         when Files.Events.Selection_Input_Action =>
+            if Files.Model.Focus (Model) = Files.Types.Focus_None
+              and then not Files.Model.Settings_Pane_Is_Open (Model)
+            then
+               declare
+                  Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+                  Old_Count : constant Natural := Files.Model.Selected_Count (Model);
+               begin
+                  Files.Model.Move_Selection (Model, Action.Direction);
+                  return
+                    Make_Result
+                      (if Files.Model.Selected_Index (Model) = Old_Index
+                         and then Files.Model.Selected_Count (Model) = Old_Count
+                       then Controller_Ignored
+                       else Controller_Selection_Moved);
+               end;
+            end if;
+         when Files.Events.Scroll_Input_Action =>
+            return Handle_Scroll (Model, Action.Scroll_Lines);
+         when Files.Events.No_Input_Action
+            | Files.Events.Text_Click_Input_Action
+            | Files.Events.Settings_Click_Input_Action
+            | Files.Events.Item_Click_Input_Action
+            | Files.Events.Root_Click_Input_Action
+            | Files.Events.Command_Result_Click_Input_Action =>
+            null;
+      end case;
+
+      return Make_Result (Controller_Ignored);
+   end Handle_Key;
+
+end Files.Controller;

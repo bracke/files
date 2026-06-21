@@ -1,0 +1,8 @@
+files-icon-v1
+name=link
+grid=16
+rect=1,0,14,16,base
+rect=11,0,4,4,border
+rect=3,8,8,2,accent
+rect=8,5,5,2,accent
+rect=8,11,5,2,accent
