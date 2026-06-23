@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams;
@@ -8,12 +9,15 @@ with Ada.Text_IO;
 
 with Interfaces.C;
 with Interfaces.C.Strings;
+with System;
+with System.Address_To_Access_Conversions;
 
 with GNAT.OS_Lib;
 
 with Files.File_Types;
 with Files.Platform.Macos;
 with Files.Platform.Windows;
+with Files.UTF8;
 
 package body Files.File_System is
    use Ada.Strings.Unbounded;
@@ -26,6 +30,7 @@ package body Files.File_System is
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element;
    use type Ada.Streams.Stream_Element_Offset;
+   use type System.Address;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Item_Kind;
 
@@ -36,8 +41,54 @@ package body Files.File_System is
    subtype C_U64 is Interfaces.C.unsigned_long;
    subtype C_S64 is Interfaces.C.long;
    subtype C_Size is Interfaces.C.size_t;
-   subtype C_Char is Interfaces.C.char;
    subtype C_ULong is Interfaces.C.unsigned_long;
+
+   function Z_Uncompress
+     (Dest        : System.Address;
+      Dest_Length : access C_ULong;
+      Source      : System.Address;
+      Source_Len  : C_ULong)
+      return C_Int
+   with Import, Convention => C, External_Name => "uncompress";
+
+   function Gdk_Pixbuf_New_From_File_At_Size
+     (Filename : Interfaces.C.Strings.chars_ptr;
+      Width    : C_Int;
+      Height   : C_Int;
+      Error    : System.Address)
+      return System.Address
+   with Import, Convention => C, External_Name => "gdk_pixbuf_new_from_file_at_size";
+
+   function Gdk_Pixbuf_Get_Width
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_width";
+
+   function Gdk_Pixbuf_Get_Height
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_height";
+
+   function Gdk_Pixbuf_Get_N_Channels
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_n_channels";
+
+   function Gdk_Pixbuf_Get_Rowstride
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_rowstride";
+
+   function Gdk_Pixbuf_Get_Pixels
+     (Pixbuf : System.Address)
+      return System.Address
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_pixels";
+
+   procedure G_Object_Unref
+     (Object : System.Address)
+   with Import, Convention => C, External_Name => "g_object_unref";
+
+   subtype C_Char is Interfaces.C.char;
 
    At_FDCWD : constant C_Int := -100;
    At_Symlink_Nofollow : constant C_Unsigned := 16#100#;
@@ -1244,6 +1295,161 @@ package body Files.File_System is
             Error_Key => To_Unbounded_String ("error.directory.load"));
    end Load_Directory;
 
+   function Search_Recursive
+     (Root_Path : String;
+      Query     : String;
+      Settings  : Files.Settings.Settings_Model;
+      Max_Items : Natural := 1_000)
+      return Recursive_Search_Result
+   is
+      Result : Recursive_Search_Result :=
+        (Success   => False,
+         Root_Path => To_Unbounded_String (Root_Path),
+         Query     => To_Unbounded_String (Query),
+         Items     => Item_Vectors.Empty_Vector,
+         Error_Key => Null_Unbounded_String);
+      Normalized_Query : constant String := Files.Types.To_Lower (Query);
+
+      function Matches (Name : UString) return Boolean is
+      begin
+         return Normalized_Query = ""
+           or else Ada.Strings.Fixed.Index
+             (Files.Types.To_Lower (To_String (Name)), Normalized_Query) > 0;
+      end Matches;
+
+      procedure Visit (Directory_Path : String) is
+         Load : constant Directory_Load_Result := Load_Directory (Directory_Path, Settings);
+      begin
+         if not Load.Success or else Natural (Result.Items.Length) >= Max_Items then
+            return;
+         end if;
+
+         for Item of Load.Items loop
+            exit when Natural (Result.Items.Length) >= Max_Items;
+            if Matches (Item.Name) then
+               Result.Items.Append (Item);
+            end if;
+         end loop;
+
+         for Item of Load.Items loop
+            exit when Natural (Result.Items.Length) >= Max_Items;
+            if Item.Kind = Files.Types.Directory_Item then
+               Visit (To_String (Item.Full_Path));
+            end if;
+         end loop;
+      exception
+         when others =>
+            null;
+      end Visit;
+   begin
+      if not Ada.Directories.Exists (Root_Path)
+        or else Ada.Directories.Kind (Root_Path) /= Ada.Directories.Directory
+      then
+         Result.Error_Key := To_Unbounded_String ("error.directory.load");
+         return Result;
+      end if;
+
+      Result.Root_Path := To_Unbounded_String (Ada.Directories.Full_Name (Root_Path));
+      Visit (Root_Path);
+      Result.Success := True;
+      return Result;
+   exception
+      when others =>
+         Result.Success := False;
+         Result.Error_Key := To_Unbounded_String ("error.search.failed");
+         return Result;
+   end Search_Recursive;
+
+   function Directory_State
+     (Path : String)
+      return Directory_Signature
+   is
+      Search    : Ada.Directories.Search_Type;
+      Dir_Entry : Ada.Directories.Directory_Entry_Type;
+      Started   : Boolean := False;
+      Result    : Directory_Signature :=
+        (Path                  => To_Unbounded_String (Path),
+         Exists                => False,
+         Entry_Count           => 0,
+         Latest_Modified       => Ada.Calendar.Time_Of (1901, 1, 1),
+         Latest_Modified_Known => False);
+   begin
+      if not Ada.Directories.Exists (Path)
+        or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
+      then
+         return Result;
+      end if;
+
+      Result.Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+      Result.Exists := True;
+      Ada.Directories.Start_Search
+        (Search,
+         Directory => Path,
+         Pattern   => "*",
+         Filter    =>
+           [Ada.Directories.Ordinary_File => True,
+            Ada.Directories.Directory     => True,
+            Ada.Directories.Special_File  => True]);
+      Started := True;
+
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+         declare
+            Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
+         begin
+            if Name /= "." and then Name /= ".." then
+               Result.Entry_Count := Result.Entry_Count + 1;
+               begin
+                  declare
+                     Modified : constant Ada.Calendar.Time :=
+                       Ada.Directories.Modification_Time (Ada.Directories.Full_Name (Dir_Entry));
+                  begin
+                     if not Result.Latest_Modified_Known
+                       or else Modified > Result.Latest_Modified
+                     then
+                        Result.Latest_Modified := Modified;
+                        Result.Latest_Modified_Known := True;
+                     end if;
+                  end;
+               exception
+                  when others =>
+                     null;
+               end;
+            end if;
+         end;
+      end loop;
+
+      Safe_End_Search (Search, Started);
+      return Result;
+   exception
+      when others =>
+         Safe_End_Search (Search, Started);
+         return Result;
+   end Directory_State;
+
+   function Detect_Directory_Change
+     (Before_State : Directory_Signature;
+      Path         : String)
+      return Directory_Change_Result
+   is
+      After_State : constant Directory_Signature := Directory_State (Path);
+      Changed     : constant Boolean :=
+        Before_State.Exists /= After_State.Exists
+        or else Before_State.Entry_Count /= After_State.Entry_Count
+        or else Before_State.Latest_Modified_Known /= After_State.Latest_Modified_Known
+        or else
+          (Before_State.Latest_Modified_Known
+           and then After_State.Latest_Modified_Known
+           and then Before_State.Latest_Modified /= After_State.Latest_Modified);
+   begin
+      return
+        (Changed      => Changed,
+         Before_State => Before_State,
+         After_State  => After_State,
+         Error_Key    =>
+           (if After_State.Exists then Null_Unbounded_String else To_Unbounded_String ("error.directory.load")));
+   end Detect_Directory_Change;
+
    function Root_Label (Path : String; Kind : Root_Kind) return String is
    begin
       case Kind is
@@ -1257,6 +1463,8 @@ package body Files.File_System is
             return "root.mount|" & Ada.Directories.Simple_Name (Path);
          when Root_User_Mount =>
             return "root.user_mount|" & Ada.Directories.Simple_Name (Path);
+         when Root_Network_Mount =>
+            return "root.network_mount|" & Ada.Directories.Simple_Name (Path);
          when Root_Windows_Drive =>
             return "root.drive|" & Path;
       end case;
@@ -1281,37 +1489,144 @@ package body Files.File_System is
       Home_Drive_Profile      : constant String :=
         (if Home_Drive /= "" and then Home_Path /= "" then Home_Drive & Home_Path else "");
 
+      function Field_From
+        (Line  : String;
+         Index : Positive)
+         return String
+      is
+         Current : Positive := 1;
+         Start   : Natural := 0;
+      begin
+         for Position in Line'Range loop
+            if Line (Position) /= ' ' and then Start = 0 then
+               Start := Position;
+            elsif Line (Position) = ' ' and then Start /= 0 then
+               if Current = Index then
+                  return Line (Start .. Position - 1);
+               end if;
+               Current := Current + 1;
+               Start := 0;
+            end if;
+         end loop;
+
+         if Start /= 0 and then Current = Index then
+            return Line (Start .. Line'Last);
+         end if;
+
+         return "";
+      end Field_From;
+
+      function Starts_With
+        (Text   : String;
+         Prefix : String)
+         return Boolean is
+      begin
+         return Text'Length >= Prefix'Length
+           and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
+      end Starts_With;
+
+      function Is_Pseudo_Mount_Type (Filesystem_Type : String) return Boolean is
+         Normalized : constant String := Files.Types.To_Lower (Filesystem_Type);
+      begin
+         return Normalized = ""
+           or else Normalized = "autofs"
+           or else Normalized = "binfmt_misc"
+           or else Normalized = "bpf"
+           or else Normalized = "cgroup"
+           or else Normalized = "cgroup2"
+           or else Normalized = "configfs"
+           or else Normalized = "debugfs"
+           or else Normalized = "devpts"
+           or else Normalized = "devtmpfs"
+           or else Normalized = "efivarfs"
+           or else Normalized = "fusectl"
+           or else Normalized = "hugetlbfs"
+           or else Normalized = "mqueue"
+           or else Normalized = "nsfs"
+           or else Normalized = "overlay"
+           or else Normalized = "proc"
+           or else Normalized = "pstore"
+           or else Normalized = "ramfs"
+           or else Normalized = "rpc_pipefs"
+           or else Normalized = "securityfs"
+           or else Normalized = "squashfs"
+           or else Normalized = "sysfs"
+           or else Normalized = "tmpfs"
+           or else Normalized = "tracefs";
+      end Is_Pseudo_Mount_Type;
+
+      function Is_Network_Filesystem_Type (Filesystem_Type : String) return Boolean is
+         Normalized : constant String := Files.Types.To_Lower (Filesystem_Type);
+      begin
+         return Normalized = "9p"
+           or else Normalized = "afpfs"
+           or else Normalized = "cifs"
+           or else Normalized = "davfs"
+           or else Normalized = "fuse.gvfsd-fuse"
+           or else Normalized = "fuse.sshfs"
+           or else Normalized = "ncpfs"
+           or else Normalized = "nfs"
+           or else Normalized = "nfs4"
+           or else Normalized = "smb3"
+           or else Normalized = "sshfs";
+      end Is_Network_Filesystem_Type;
+
+      function Root_Kind_For_Mount
+        (Mount_Point     : String;
+         Filesystem_Type : String)
+         return Root_Kind is
+      begin
+         if Is_Network_Filesystem_Type (Filesystem_Type)
+           or else Starts_With (Mount_Point, "//")
+           or else Starts_With (Mount_Point, "\\")
+           or else Starts_With (Mount_Point, "/run/user/")
+         then
+            return Root_Network_Mount;
+         end if;
+
+         return Root_Mount;
+      end Root_Kind_For_Mount;
+
+      function Is_User_Visible_Mount_Point (Mount_Point : String) return Boolean is
+         Runtime_Gvfs : constant String :=
+           (if Xdg_Runtime_Dir = "" then "" else Join_Path (Xdg_Runtime_Dir, "gvfs"));
+
+         function Is_Mount_Container return Boolean is
+         begin
+            return Mount_Point = "/mnt"
+              or else Mount_Point = "/media"
+              or else Mount_Point = "/run/media"
+              or else Mount_Point = "/Volumes"
+              or else Mount_Point = "/System/Volumes"
+              or else (Runtime_Gvfs /= "" and then Mount_Point = Runtime_Gvfs);
+         end Is_Mount_Container;
+      begin
+         return not Is_Mount_Container
+           and then
+             (Mount_Point = "/"
+           or else Starts_With (Mount_Point, "/mnt/")
+           or else Starts_With (Mount_Point, "/media/")
+           or else Starts_With (Mount_Point, "/run/media/")
+           or else Starts_With (Mount_Point, "/Volumes/")
+           or else Starts_With (Mount_Point, "/System/Volumes/")
+           or else
+             (Runtime_Gvfs /= ""
+              and then Starts_With (Mount_Point, Runtime_Gvfs & "/")));
+      end Is_User_Visible_Mount_Point;
+
+      function Is_Displayable_Root_Mount
+        (Mount_Point     : String;
+         Filesystem_Type : String)
+         return Boolean is
+      begin
+         return Is_User_Visible_Mount_Point (Mount_Point)
+           and then not Is_Pseudo_Mount_Type (Filesystem_Type);
+      end Is_Displayable_Root_Mount;
+
       function Filesystem_Type_For (Path : String) return String is
          File   : Ada.Text_IO.File_Type;
          Buffer : String (1 .. 4096);
          Last   : Natural;
-
-         function Field
-           (Line  : String;
-            Index : Positive)
-            return String
-         is
-            Current : Positive := 1;
-            Start   : Natural := 0;
-         begin
-            for Position in Line'Range loop
-               if Line (Position) /= ' ' and then Start = 0 then
-                  Start := Position;
-               elsif Line (Position) = ' ' and then Start /= 0 then
-                  if Current = Index then
-                     return Line (Start .. Position - 1);
-                  end if;
-                  Current := Current + 1;
-                  Start := 0;
-               end if;
-            end loop;
-
-            if Start /= 0 and then Current = Index then
-               return Line (Start .. Line'Last);
-            end if;
-
-            return "";
-         end Field;
       begin
          if not Ada.Directories.Exists ("/proc/mounts") then
             return "";
@@ -1322,11 +1637,11 @@ package body Files.File_System is
             Ada.Text_IO.Get_Line (File, Buffer, Last);
             declare
                Line        : constant String := Buffer (1 .. Last);
-               Mount_Point : constant String := Field (Line, 2);
+               Mount_Point : constant String := Field_From (Line, 2);
             begin
                if Mount_Point = Path then
                   Ada.Text_IO.Close (File);
-                  return Field (Line, 3);
+                  return Field_From (Line, 3);
                end if;
             end;
          end loop;
@@ -1357,6 +1672,7 @@ package body Files.File_System is
          Full : Unbounded_String;
          Name : Unbounded_String;
          Label : Unbounded_String;
+         Effective_Kind : Root_Kind := Kind;
       begin
          if Ada.Directories.Exists (Path)
            and then Ada.Directories.Kind (Path) = Ada.Directories.Directory
@@ -1366,26 +1682,34 @@ package body Files.File_System is
             if Length (Name) = 0 then
                Name := Full;
             end if;
-            Label := To_Unbounded_String (Root_Label (To_String (Full), Kind));
-            if Kind in Root_Mount | Root_User_Mount | Root_Filesystem then
+            if Kind in Root_Mount | Root_User_Mount | Root_Network_Mount | Root_Filesystem then
                declare
                   Filesystem_Type : constant String := Filesystem_Type_For (To_String (Full));
                begin
+                  if Kind in Root_Mount | Root_User_Mount
+                    and then Is_Network_Filesystem_Type (Filesystem_Type)
+                  then
+                     Effective_Kind := Root_Network_Mount;
+                  end if;
+
+                  Label := To_Unbounded_String (Root_Label (To_String (Full), Effective_Kind));
                   if Filesystem_Type /= "" and then Ada.Strings.Fixed.Index (To_String (Label), "|") > 0 then
                      Append (Label, "|");
                      Append (Label, Filesystem_Type);
                   end if;
                end;
+            else
+               Label := To_Unbounded_String (Root_Label (To_String (Full), Effective_Kind));
             end if;
             if not Contains_Root (To_String (Full)) then
                Roots.Append
                  (Root_Entry'
                     (Path  => Full,
                      Label => Label,
-                     Kind  => Kind,
+                     Kind  => Effective_Kind,
                      Volume_Name => Name,
                      Ready => Root_Ready,
-                     Removable => Kind = Root_Mount or else Kind = Root_User_Mount));
+                     Removable => Effective_Kind = Root_Mount or else Effective_Kind = Root_User_Mount));
             end if;
          end if;
       exception
@@ -1421,9 +1745,17 @@ package body Files.File_System is
             Ada.Directories.Get_Next_Entry (Search, Child);
             declare
                Name : constant String := Ada.Directories.Simple_Name (Child);
+               Full : constant String := Ada.Directories.Full_Name (Child);
             begin
                if Name /= "." and then Name /= ".." then
-                  Append_If_Directory (Ada.Directories.Full_Name (Child), Kind);
+                  if User_Name /= ""
+                    and then (Parent = "/media" or else Parent = "/run/media")
+                    and then Name = User_Name
+                  then
+                     Append_Children (Full, Kind);
+                  else
+                     Append_If_Directory (Full, Kind);
+                  end if;
                end if;
             end;
          end loop;
@@ -1483,38 +1815,13 @@ package body Files.File_System is
             return To_String (Result);
          end Decode_Mount_Escapes;
 
-         function Mount_Point_From (Line : String) return String is
-            First_Space  : Natural := 0;
-            Second_Start : Natural := 0;
-            Second_End   : Natural := 0;
+         function Mount_Field
+           (Line  : String;
+            Index : Positive)
+            return String is
          begin
-            for Index in Line'Range loop
-               if Line (Index) = ' ' then
-                  First_Space := Index;
-                  exit;
-               end if;
-            end loop;
-
-            if First_Space = 0 or else First_Space = Line'Last then
-               return "";
-            end if;
-
-            Second_Start := First_Space + 1;
-            while Second_Start <= Line'Last and then Line (Second_Start) = ' ' loop
-               Second_Start := Second_Start + 1;
-            end loop;
-
-            Second_End := Second_Start;
-            while Second_End <= Line'Last and then Line (Second_End) /= ' ' loop
-               Second_End := Second_End + 1;
-            end loop;
-
-            if Second_Start > Line'Last or else Second_End <= Second_Start then
-               return "";
-            end if;
-
-            return Decode_Mount_Escapes (Line (Second_Start .. Second_End - 1));
-         end Mount_Point_From;
+            return Decode_Mount_Escapes (Field_From (Line, Index));
+         end Mount_Field;
       begin
          if not Ada.Directories.Exists ("/proc/mounts") then
             return;
@@ -1524,14 +1831,12 @@ package body Files.File_System is
          while not Ada.Text_IO.End_Of_File (File) loop
             Ada.Text_IO.Get_Line (File, Buffer, Last);
             declare
-               Mount_Point : constant String := Mount_Point_From (Buffer (1 .. Last));
+               Line            : constant String := Buffer (1 .. Last);
+               Mount_Point     : constant String := Mount_Field (Line, 2);
+               Filesystem_Type : constant String := Field_From (Line, 3);
             begin
-               if Mount_Point /= ""
-                 and then Mount_Point /= "/proc"
-                 and then Mount_Point /= "/sys"
-                 and then Mount_Point /= "/dev"
-               then
-                  Append_If_Directory (Mount_Point, Root_Mount);
+               if Is_Displayable_Root_Mount (Mount_Point, Filesystem_Type) then
+                  Append_If_Directory (Mount_Point, Root_Kind_For_Mount (Mount_Point, Filesystem_Type));
                end if;
             end;
          end loop;
@@ -1556,13 +1861,12 @@ package body Files.File_System is
       Append_Children ("/Volumes", Root_Mount);
       Append_Children ("/System/Volumes", Root_Mount);
       if Xdg_Runtime_Dir /= "" then
-         Append_Children (Join_Path (Xdg_Runtime_Dir, "gvfs"), Root_User_Mount);
+         Append_Children (Join_Path (Xdg_Runtime_Dir, "gvfs"), Root_Network_Mount);
       end if;
       if User_Name /= "" then
          declare
             Run_Media_User : constant String := "/run/media/" & User_Name;
          begin
-            Append_If_Directory (Run_Media_User, Root_User_Mount);
             Append_Children (Run_Media_User, Root_User_Mount);
          end;
       end if;
@@ -1580,7 +1884,7 @@ package body Files.File_System is
          Append_If_Directory (System_Drive & "\", Root_Windows_Drive);
       end if;
       if Home_Share /= "" then
-         Append_If_Directory (Home_Share, Root_User_Mount);
+         Append_If_Directory (Home_Share, Root_Network_Mount);
       end if;
       if One_Drive /= "" then
          Append_If_Directory (One_Drive, Root_User_Mount);
@@ -1641,6 +1945,7 @@ package body Files.File_System is
          Windows_Drive_Count     => 0,
          Mount_Count             => 0,
          User_Mount_Count        => 0,
+         Network_Mount_Count     => 0,
          Duplicate_Paths_Removed => True,
          Deterministic_Order     => True);
    begin
@@ -1660,6 +1965,8 @@ package body Files.File_System is
                Result.Mount_Count := Result.Mount_Count + 1;
             when Root_User_Mount =>
                Result.User_Mount_Count := Result.User_Mount_Count + 1;
+            when Root_Network_Mount =>
+               Result.Network_Mount_Count := Result.Network_Mount_Count + 1;
             when others =>
                null;
          end case;
@@ -1713,6 +2020,7 @@ package body Files.File_System is
          Binding_Unit                => To_Unbounded_String ("Files.File_System"),
          Source_Device_Available     => Has_Proc_Mounts,
          Mount_Options_Available     => Has_Proc_Mounts,
+         Network_Metadata_Available  => Has_Proc_Mounts,
          Removable_Status_Available  => Has_Sys_Block,
          Capacity_Bytes_Known        => Has_Statvfs,
          Free_Bytes_Known            => Has_Statvfs,
@@ -2055,40 +2363,130 @@ package body Files.File_System is
             return "none";
          end if;
       end Adapter_Name;
+
+      function Network_Filesystem_Type (Filesystem_Type : String) return Boolean is
+         Normalized : constant String := Files.Types.To_Lower (Filesystem_Type);
+      begin
+         return Normalized = "9p"
+           or else Normalized = "afpfs"
+           or else Normalized = "cifs"
+           or else Normalized = "davfs"
+           or else Normalized = "fuse.gvfsd-fuse"
+           or else Normalized = "fuse.sshfs"
+           or else Normalized = "ncpfs"
+           or else Normalized = "nfs"
+           or else Normalized = "nfs4"
+           or else Normalized = "smb3"
+           or else Normalized = "sshfs";
+      end Network_Filesystem_Type;
+
+      function Path_Starts_With (Prefix : String) return Boolean is
+      begin
+         return Path_Text'Length >= Prefix'Length
+           and then Path_Text (Path_Text'First .. Path_Text'First + Prefix'Length - 1) = Prefix;
+      end Path_Starts_With;
+
+      function Network_Root return Boolean is
+      begin
+         return Root.Kind = Root_Network_Mount
+           or else Network_Filesystem_Type (To_String (Mount.Filesystem_Type))
+           or else Path_Starts_With ("//")
+           or else Path_Starts_With ("\\");
+      end Network_Root;
+
+      function Remote_Protocol_For return String is
+         Path_Lower : constant String := Files.Types.To_Lower (Path_Text);
+         Type_Lower : constant String := Files.Types.To_Lower (To_String (Mount.Filesystem_Type));
+      begin
+         if Type_Lower = "cifs" or else Type_Lower = "smb3" then
+            return "smb";
+         elsif Type_Lower = "nfs" or else Type_Lower = "nfs4" then
+            return "nfs";
+         elsif Type_Lower = "sshfs" or else Type_Lower = "fuse.sshfs" then
+            return "sshfs";
+         elsif Type_Lower = "davfs" then
+            return "webdav";
+         elsif Type_Lower = "afpfs" then
+            return "afp";
+         elsif Type_Lower = "9p" then
+            return "9p";
+         elsif Ada.Strings.Fixed.Index (Path_Lower, "smb-share:") > 0
+           or else Path_Starts_With ("//")
+           or else Path_Starts_With ("\\")
+         then
+            return "smb";
+         elsif Ada.Strings.Fixed.Index (Path_Lower, "sftp:") > 0 then
+            return "sftp";
+         elsif Ada.Strings.Fixed.Index (Path_Lower, "dav:") > 0
+           or else Ada.Strings.Fixed.Index (Path_Lower, "davs:") > 0
+         then
+            return "webdav";
+         elsif Ada.Strings.Fixed.Index (Path_Lower, "afp-volume:") > 0 then
+            return "afp";
+         elsif Type_Lower = "fuse.gvfsd-fuse"
+           or else Ada.Strings.Fixed.Index (Path_Lower, "/gvfs/") > 0
+         then
+            return "gvfs";
+         elsif Network_Root then
+            return "unknown";
+         else
+            return "";
+         end if;
+      end Remote_Protocol_For;
+
+      function Auth_May_Be_Required_For (Protocol : String) return Boolean is
+      begin
+         return Protocol = "afp"
+           or else Protocol = "sftp"
+           or else Protocol = "smb"
+           or else Protocol = "sshfs"
+           or else Protocol = "webdav";
+      end Auth_May_Be_Required_For;
    begin
       if Queryable then
          Volume_Size_For (Path_Text, Volume);
       end if;
 
-      return
-        (Path                 => Root.Path,
-         Label                => Root.Volume_Name,
-         Native_Api_Name      => To_Unbounded_String (Adapter_Name),
-         Filesystem_Type      => Mount.Filesystem_Type,
-         Source_Device        => Mount.Source_Device,
-         Mount_Options        => Mount.Mount_Options,
-         Capacity_Bytes       => Volume.Capacity_Bytes,
-         Free_Bytes           => Volume.Free_Bytes,
-         Inode_Count          => Volume.Inode_Count,
-         Free_Inode_Count     => Volume.Free_Inode_Count,
-         Capacity_Known       => Volume.Known,
-         Free_Known           => Volume.Known,
-         Inode_Count_Known    => Volume.Inodes_Known,
-         Free_Inode_Known     => Volume.Inodes_Known,
-         Read_Only            => Volume.Read_Only,
-         Read_Only_Known      => Volume.Read_Only_Known,
-         Name_Max             => Volume.Name_Max,
-         Name_Max_Known       => Volume.Name_Max_Known,
-         Removable_Known      => Mount.Removable_Known,
-         Removable            => Mount.Removable,
-         Ejectable            => False,
-         Uses_Platform_Detail =>
-           Volume.Known
-           or else Volume.Inodes_Known
-           or else Volume.Read_Only_Known
-           or else Volume.Name_Max_Known
-           or else Mount.Found
-           or else Mount.Removable_Known);
+      declare
+         Is_Network : constant Boolean := Network_Root;
+         Protocol   : constant String := Remote_Protocol_For;
+      begin
+         return
+           (Path                 => Root.Path,
+            Label                => Root.Volume_Name,
+            Native_Api_Name      => To_Unbounded_String (Adapter_Name),
+            Filesystem_Type      => Mount.Filesystem_Type,
+            Source_Device        => Mount.Source_Device,
+            Mount_Options        => Mount.Mount_Options,
+            Capacity_Bytes       => Volume.Capacity_Bytes,
+            Free_Bytes           => Volume.Free_Bytes,
+            Inode_Count          => Volume.Inode_Count,
+            Free_Inode_Count     => Volume.Free_Inode_Count,
+            Capacity_Known       => Volume.Known,
+            Free_Known           => Volume.Known,
+            Inode_Count_Known    => Volume.Inodes_Known,
+            Free_Inode_Known     => Volume.Inodes_Known,
+            Read_Only            => Volume.Read_Only,
+            Read_Only_Known      => Volume.Read_Only_Known,
+            Name_Max             => Volume.Name_Max,
+            Name_Max_Known       => Volume.Name_Max_Known,
+            Removable_Known      => Mount.Removable_Known,
+            Removable            => Mount.Removable,
+            Ejectable            => False,
+            Network_Mount        => Is_Network,
+            Remote_Protocol      => To_Unbounded_String (Protocol),
+            Offline_Possible     => Is_Network,
+            Auth_May_Be_Required => Is_Network and then Auth_May_Be_Required_For (Protocol),
+            Latency_Sensitive    => Is_Network,
+            Special_Error_Recovery => Is_Network,
+            Uses_Platform_Detail =>
+              Volume.Known
+              or else Volume.Inodes_Known
+              or else Volume.Read_Only_Known
+              or else Volume.Name_Max_Known
+              or else Mount.Found
+              or else Mount.Removable_Known);
+      end;
    end Root_Volume_Details_For;
 
    function Filetype_Metadata_Policy_Of_Current_Implementation
@@ -2176,6 +2574,140 @@ package body Files.File_System is
         (Containing_Directory => Parent_Path,
          Name                 => Name);
    end Join_Path;
+
+   function Windows_Device_Basename (Name : String) return String is
+      Result : Unbounded_String;
+   begin
+      for Character_Value of Name loop
+         exit when Character_Value = '.';
+         Append (Result, Ada.Characters.Handling.To_Upper (Character_Value));
+      end loop;
+
+      declare
+         Text : constant String := To_String (Result);
+         Last : Natural := Text'Last;
+      begin
+         while Last >= Text'First and then Text (Last) = ' ' loop
+            Last := Last - 1;
+         end loop;
+
+         if Last < Text'First then
+            return "";
+         else
+            return Text (Text'First .. Last);
+         end if;
+      end;
+   end Windows_Device_Basename;
+
+   function Is_Windows_Device_Name (Name : String) return Boolean is
+      Base : constant String := Windows_Device_Basename (Name);
+   begin
+      return Base = "CON"
+        or else Base = "PRN"
+        or else Base = "AUX"
+        or else Base = "NUL"
+        or else Base = "CONIN$"
+        or else Base = "CONOUT$"
+        or else
+          (Base'Length = 4
+           and then (Base (Base'First .. Base'First + 2) = "COM"
+                     or else Base (Base'First .. Base'First + 2) = "LPT")
+           and then Base (Base'Last) in '1' .. '9');
+   end Is_Windows_Device_Name;
+
+   function Is_All_Whitespace (Name : String) return Boolean is
+      Position : Natural := 0;
+      Length   : Natural;
+   begin
+      if Name = "" then
+         return True;
+      end if;
+
+      while Position < Name'Length loop
+         Length := Files.UTF8.Whitespace_Separator_Length (Name, Position);
+         if Length = 0 then
+            return False;
+         end if;
+
+         Position := Position + Length;
+      end loop;
+
+      return True;
+   end Is_All_Whitespace;
+
+   function Ends_With_Whitespace (Name : String) return Boolean is
+      Position : Natural := 0;
+      Length   : Natural;
+      Last     : Boolean := False;
+   begin
+      while Position < Name'Length loop
+         Length := Files.UTF8.Whitespace_Separator_Length (Name, Position);
+         Last := Length > 0 and then Position + Length = Name'Length;
+         if Length = 0 then
+            declare
+               Next_Position : constant Natural := Files.UTF8.Next_Boundary (Name, Position);
+            begin
+               if Next_Position <= Position then
+                  return False;
+               end if;
+
+               Position := Next_Position;
+            end;
+         else
+            Position := Position + Length;
+         end if;
+      end loop;
+
+      return Last;
+   end Ends_With_Whitespace;
+
+   function Valid_Leaf_Name (Name : String) return Boolean is
+      Index     : Integer := Name'First;
+      Codepoint : Natural := 0;
+   begin
+      if Name = ""
+        or else Name = "."
+        or else Name = ".."
+        or else Name (Name'Last) = ' '
+        or else Name (Name'Last) = '.'
+        or else Is_Windows_Device_Name (Name)
+        or else not Files.UTF8.Is_Valid (Name)
+        or else Is_All_Whitespace (Name)
+        or else Ends_With_Whitespace (Name)
+      then
+         return False;
+      end if;
+
+      while Index <= Name'Last loop
+         Files.UTF8.Decode_Next_Codepoint (Name, Index, Codepoint);
+
+         if Codepoint < 32
+           or else Codepoint = 127
+           or else Codepoint in 16#80# .. 16#9F#
+         then
+            return False;
+         elsif Codepoint < 128 then
+            declare
+               Character_Value : constant Character := Character'Val (Codepoint);
+            begin
+               if Character_Value = '/'
+                 or else Character_Value = '\'
+                 or else Character_Value = '<'
+                 or else Character_Value = '>'
+                 or else Character_Value = ':'
+                 or else Character_Value = Character'Val (34)
+                 or else Character_Value = '|'
+                 or else Character_Value = '?'
+                 or else Character_Value = '*'
+               then
+                  return False;
+               end if;
+            end;
+         end if;
+      end loop;
+
+      return True;
+   end Valid_Leaf_Name;
 
    function Next_Untitled_Name
      (Directory_Path : String)
@@ -2459,6 +2991,18 @@ package body Files.File_System is
       return (Success => True, Error_Key => Null_Unbounded_String);
    end Move_To_Trash_Preflight;
 
+   function Mutation_Leaf_Name (Path : String) return String is
+   begin
+      if Path = "" then
+         return "";
+      end if;
+
+      return Ada.Directories.Simple_Name (Path);
+   exception
+      when others =>
+         return "";
+   end Mutation_Leaf_Name;
+
    function Create_Empty_File
      (Path : String)
       return Mutation_Result
@@ -2468,7 +3012,10 @@ package body Files.File_System is
 
       procedure Delete_Created_File_If_Present is
       begin
-         if Created and then Ada.Directories.Exists (Path) then
+         if Created
+           and then Ada.Directories.Exists (Path)
+           and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File
+         then
             Ada.Directories.Delete_File (Path);
          end if;
       exception
@@ -2485,11 +3032,16 @@ package body Files.File_System is
       end Parent_Directory;
 
       Parent : constant String := Parent_Directory;
+      Name   : constant String := Mutation_Leaf_Name (Path);
    begin
       if Path = "" then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.file.parent_missing"));
+      elsif not Valid_Leaf_Name (Name) then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.name.invalid"));
       elsif Ada.Directories.Exists (Path) then
          return
            (Success   => False,
@@ -2552,6 +3104,7 @@ package body Files.File_System is
       end Parent_Directory;
 
       Parent : constant String := Parent_Directory;
+      Name   : constant String := Mutation_Leaf_Name (To_Path);
    begin
       if not Exists_Safely (From_Path) then
          return
@@ -2559,8 +3112,15 @@ package body Files.File_System is
             Error_Key => To_Unbounded_String ("error.rename.source_missing"));
       elsif Same_Existing_Path then
          return (Success => True, Error_Key => Null_Unbounded_String);
-      elsif To_Path = ""
-        or else Exists_Safely (To_Path)
+      elsif To_Path = "" then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.rename.invalid_destination"));
+      elsif not Valid_Leaf_Name (Name) then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.name.invalid"));
+      elsif Exists_Safely (To_Path)
         or else Parent = ""
         or else not Ada.Directories.Exists (Parent)
         or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
@@ -2701,5 +3261,960 @@ package body Files.File_System is
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));
    end Move_To_Trash;
+
+   function Delete_Permanently
+     (Path : String)
+      return Mutation_Result
+   is
+      procedure Delete_Tree (Target_Path : String) is
+         Search    : Ada.Directories.Search_Type;
+         Dir_Entry : Ada.Directories.Directory_Entry_Type;
+         Started   : Boolean := False;
+      begin
+         if Ada.Directories.Kind (Target_Path) = Ada.Directories.Directory then
+            Ada.Directories.Start_Search
+              (Search,
+               Directory => Target_Path,
+               Pattern   => "*",
+               Filter    =>
+                 [Ada.Directories.Ordinary_File => True,
+                  Ada.Directories.Directory     => True,
+                  Ada.Directories.Special_File  => True]);
+            Started := True;
+            while Ada.Directories.More_Entries (Search) loop
+               Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+               declare
+                  Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
+               begin
+                  if Name /= "." and then Name /= ".." then
+                     Delete_Tree (Ada.Directories.Full_Name (Dir_Entry));
+                  end if;
+               end;
+            end loop;
+            Safe_End_Search (Search, Started);
+            Ada.Directories.Delete_Directory (Target_Path);
+         else
+            Ada.Directories.Delete_File (Target_Path);
+         end if;
+      exception
+         when others =>
+            Safe_End_Search (Search, Started);
+            raise;
+      end Delete_Tree;
+
+      function Unsafe_Target return Boolean is
+      begin
+         if Path = ""
+           or else Path = "/"
+           or else (Path'Length = 3 and then Path (Path'First + 1 .. Path'First + 2) = ":\")
+         then
+            return True;
+         end if;
+
+         declare
+            Full   : constant String := Ada.Directories.Full_Name (Path);
+            Parent : constant String := Ada.Directories.Containing_Directory (Full);
+         begin
+            return Full = ""
+              or else Full = Parent
+              or else (Full'Length = 1 and then Full (Full'First) = '/');
+         end;
+      exception
+         when others =>
+            return True;
+      end Unsafe_Target;
+   begin
+      if Unsafe_Target then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.permanent_delete.refused"));
+      elsif not Ada.Directories.Exists (Path) then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.rename.source_missing"));
+      end if;
+
+      Delete_Tree (Path);
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   exception
+      when others =>
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.permanent_delete.failed"));
+   end Delete_Permanently;
+
+   function Plan_Drop_Import
+     (Source_Paths          : Files.Types.String_Vectors.Vector;
+      Destination_Directory : String;
+      Mode                  : Drop_Import_Mode := Drop_Copy)
+      return Drop_Import_Result
+   is
+      Result : Drop_Import_Result :=
+        (Success   => False,
+         Plans     => Drop_Import_Plan_Vectors.Empty_Vector,
+         Error_Key => Null_Unbounded_String);
+
+      function Image_No_Space (Value : Natural) return String is
+         Image : constant String := Natural'Image (Value);
+      begin
+         return Image (Image'First + 1 .. Image'Last);
+      end Image_No_Space;
+
+      function Extension_Start (Name : String) return Natural is
+      begin
+         for Index in reverse Name'Range loop
+            if Name (Index) = '.' and then Index > Name'First then
+               return Index;
+            end if;
+         end loop;
+         return 0;
+      end Extension_Start;
+
+      function Available_Destination (Leaf : String) return String is
+         Dot       : constant Natural := Extension_Start (Leaf);
+         Stem      : constant String :=
+           (if Dot = 0 then Leaf else Leaf (Leaf'First .. Dot - 1));
+         Extension : constant String :=
+           (if Dot = 0 then "" else Leaf (Dot .. Leaf'Last));
+         Counter   : Positive := 2;
+         Candidate : Unbounded_String := To_Unbounded_String (Leaf);
+      begin
+         while Ada.Directories.Exists (Join_Path (Destination_Directory, To_String (Candidate))) loop
+            Candidate := To_Unbounded_String (Stem & " " & Image_No_Space (Counter) & Extension);
+            exit when Counter = Positive'Last;
+            Counter := Counter + 1;
+         end loop;
+         return Join_Path (Destination_Directory, To_String (Candidate));
+      end Available_Destination;
+   begin
+      if not Ada.Directories.Exists (Destination_Directory)
+        or else Ada.Directories.Kind (Destination_Directory) /= Ada.Directories.Directory
+      then
+         Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
+         return Result;
+      end if;
+
+      for Source of Source_Paths loop
+         declare
+            Source_Text : constant String := To_String (Source);
+            Leaf        : Unbounded_String;
+            Plan        : Drop_Import_Plan;
+         begin
+            Plan.Source_Path := Source;
+            Plan.Mode := Mode;
+            if not Ada.Directories.Exists (Source_Text) then
+               Plan.Valid := False;
+               Plan.Error_Key := To_Unbounded_String ("error.drop.invalid_source");
+               Result.Plans.Append (Plan);
+               Result.Error_Key := Plan.Error_Key;
+            else
+               Leaf := To_Unbounded_String (Ada.Directories.Simple_Name (Source_Text));
+               if not Valid_Leaf_Name (To_String (Leaf)) then
+                  Plan.Valid := False;
+                  Plan.Error_Key := To_Unbounded_String ("error.name.invalid");
+                  Result.Error_Key := Plan.Error_Key;
+               else
+                  Plan.Valid := True;
+                  Plan.Destination_Path := To_Unbounded_String (Available_Destination (To_String (Leaf)));
+                  Plan.Error_Key := Null_Unbounded_String;
+               end if;
+               Result.Plans.Append (Plan);
+            end if;
+         exception
+            when others =>
+               Result.Plans.Append
+                 (Drop_Import_Plan'
+                    (Source_Path      => Source,
+                     Destination_Path => Null_Unbounded_String,
+                     Mode             => Mode,
+                     Valid            => False,
+                     Error_Key        => To_Unbounded_String ("error.drop.failed")));
+               Result.Error_Key := To_Unbounded_String ("error.drop.failed");
+         end;
+      end loop;
+
+      Result.Success := Length (Result.Error_Key) = 0;
+      return Result;
+   end Plan_Drop_Import;
+
+   function Execute_Drop_Import
+     (Plans : Drop_Import_Plan_Vectors.Vector)
+      return Mutation_Result
+   is
+      procedure Copy_Tree
+        (Source_Path      : String;
+         Destination_Path : String)
+      is
+         Search    : Ada.Directories.Search_Type;
+         Dir_Entry : Ada.Directories.Directory_Entry_Type;
+         Started   : Boolean := False;
+      begin
+         case Ada.Directories.Kind (Source_Path) is
+            when Ada.Directories.Directory =>
+               Ada.Directories.Create_Directory (Destination_Path);
+               Ada.Directories.Start_Search
+                 (Search,
+                  Directory => Source_Path,
+                  Pattern   => "*",
+                  Filter    =>
+                    [Ada.Directories.Ordinary_File => True,
+                     Ada.Directories.Directory     => True,
+                     Ada.Directories.Special_File  => True]);
+               Started := True;
+               while Ada.Directories.More_Entries (Search) loop
+                  Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+                  declare
+                     Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
+                  begin
+                     if Name /= "." and then Name /= ".." then
+                        Copy_Tree
+                          (Ada.Directories.Full_Name (Dir_Entry),
+                           Join_Path (Destination_Path, Name));
+                     end if;
+                  end;
+               end loop;
+               Safe_End_Search (Search, Started);
+            when Ada.Directories.Ordinary_File =>
+               Ada.Directories.Copy_File (Source_Path, Destination_Path);
+            when Ada.Directories.Special_File =>
+               Ada.Directories.Copy_File (Source_Path, Destination_Path);
+         end case;
+      exception
+         when others =>
+            Safe_End_Search (Search, Started);
+            raise;
+      end Copy_Tree;
+   begin
+      for Plan of Plans loop
+         if not Plan.Valid then
+            return
+              (Success   => False,
+               Error_Key =>
+                 (if Length (Plan.Error_Key) > 0
+                  then Plan.Error_Key
+                  else To_Unbounded_String ("error.drop.failed")));
+         end if;
+      end loop;
+
+      for Plan of Plans loop
+         declare
+            Source_Path      : constant String := To_String (Plan.Source_Path);
+            Destination_Path : constant String := To_String (Plan.Destination_Path);
+         begin
+            if Plan.Mode = Drop_Move then
+               begin
+                  Ada.Directories.Rename (Source_Path, Destination_Path);
+               exception
+                  when others =>
+                     Copy_Tree (Source_Path, Destination_Path);
+                     declare
+                        Delete_Result : constant Mutation_Result := Delete_Permanently (Source_Path);
+                     begin
+                        if not Delete_Result.Success then
+                           return Delete_Result;
+                        end if;
+                     end;
+               end;
+            else
+               Copy_Tree (Source_Path, Destination_Path);
+            end if;
+         end;
+      end loop;
+
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   exception
+      when others =>
+         return
+           (Success   => False,
+           Error_Key => To_Unbounded_String ("error.drop.failed"));
+   end Execute_Drop_Import;
+
+   function Generate_Thumbnail
+     (Source_Path      : String;
+      Cache_Directory : String;
+      Size            : Positive := 64)
+      return Thumbnail_Result
+   is
+      File : Ada.Text_IO.File_Type;
+
+      function Image_No_Space (Value : Natural) return String is
+         Image : constant String := Natural'Image (Value);
+      begin
+         return Image (Image'First + 1 .. Image'Last);
+      end Image_No_Space;
+
+      function Safe_Extension return String is
+         Name : constant String := Ada.Directories.Simple_Name (Source_Path);
+      begin
+         for Index in reverse Name'Range loop
+            if Name (Index) = '.' and then Index < Name'Last then
+               return Files.Types.To_Lower (Name (Index + 1 .. Name'Last));
+            end if;
+         end loop;
+         return "file";
+      exception
+         when others =>
+            return "file";
+      end Safe_Extension;
+
+      function Sanitized_Extension return String is
+         Extension : constant String := Safe_Extension;
+         Result    : Unbounded_String;
+      begin
+         for Value of Extension loop
+            if Ada.Characters.Handling.Is_Alphanumeric (Value) then
+               Append (Result, Value);
+            else
+               Append (Result, '_');
+            end if;
+         end loop;
+
+         if Length (Result) = 0 then
+            return "file";
+         end if;
+
+         return To_String (Result);
+      end Sanitized_Extension;
+
+      function Path_Checksum return Natural is
+         Modulus : constant Long_Long_Integer := 1_000_000_007;
+         Result  : Long_Long_Integer := 0;
+      begin
+         for Value of Source_Path loop
+            Result := (Result * 33 + Long_Long_Integer (Character'Pos (Value))) mod Modulus;
+         end loop;
+         return Natural (Result);
+      end Path_Checksum;
+
+      function Clamp_Channel (Value : Natural) return Natural is
+      begin
+         return Value mod 256;
+      end Clamp_Channel;
+
+      function File_Size_Signal return Natural is
+      begin
+         return Natural (Long_Long_Integer'Min (Long_Long_Integer (Ada.Directories.Size (Source_Path)), 65_535));
+      exception
+         when others =>
+            return 0;
+      end File_Size_Signal;
+
+      function Thumbnail_Name return String is
+      begin
+         return "thumb_"
+           & Sanitized_Extension
+           & "_"
+           & Image_No_Space (Size)
+           & "_"
+           & Image_No_Space (Path_Checksum)
+           & ".ppm";
+      end Thumbnail_Name;
+
+      type Rgb_Pixel is record
+         Red   : Natural := 0;
+         Green : Natural := 0;
+         Blue  : Natural := 0;
+      end record;
+
+      package Pixel_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Natural,
+         Element_Type => Rgb_Pixel);
+
+      package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Natural,
+         Element_Type => Ada.Streams.Stream_Element);
+
+      type Gdk_Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
+      pragma Convention (C, Gdk_Pixel_Array);
+
+      package Gdk_Pixel_Pointers is new System.Address_To_Access_Conversions (Gdk_Pixel_Array);
+      use type Gdk_Pixel_Pointers.Object_Pointer;
+
+      function Byte_At
+        (Data  : Thumbnail_Byte_Vectors.Vector;
+         Index : Natural)
+         return Natural is
+      begin
+         if Index >= Natural (Data.Length) then
+            return 0;
+         end if;
+
+         return Natural (Data.Element (Index));
+      end Byte_At;
+
+      function U32_BE_From
+        (Data  : Thumbnail_Byte_Vectors.Vector;
+         Index : Natural)
+         return Natural is
+      begin
+         return
+           Byte_At (Data, Index) * 16#1000000#
+           + Byte_At (Data, Index + 1) * 16#10000#
+           + Byte_At (Data, Index + 2) * 16#100#
+           + Byte_At (Data, Index + 3);
+      end U32_BE_From;
+
+      function Bytes_To_Stream_Array
+        (Data : Thumbnail_Byte_Vectors.Vector)
+         return Ada.Streams.Stream_Element_Array
+      is
+         Result : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Data.Length) - 1);
+      begin
+         for Index in 0 .. Natural (Data.Length) - 1 loop
+            Result (Ada.Streams.Stream_Element_Offset (Index)) := Data.Element (Index);
+         end loop;
+
+         return Result;
+      end Bytes_To_Stream_Array;
+
+      procedure Write_Pixels_As_Ppm
+        (Target_Path   : String;
+         Pixels        : Pixel_Vectors.Vector;
+         Source_Width  : Natural;
+         Source_Height : Natural)
+      is
+         Output : Ada.Text_IO.File_Type;
+      begin
+         Ada.Text_IO.Create (Output, Ada.Text_IO.Out_File, Target_Path);
+         Ada.Text_IO.Put_Line (Output, "P3");
+         Ada.Text_IO.Put_Line (Output, Image_No_Space (Size) & " " & Image_No_Space (Size));
+         Ada.Text_IO.Put_Line (Output, "255");
+         for Row in 0 .. Size - 1 loop
+            for Column in 0 .. Size - 1 loop
+               declare
+                  Source_Row    : constant Natural := Row * Source_Height / Size;
+                  Source_Column : constant Natural := Column * Source_Width / Size;
+                  Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
+                  Pixel         : constant Rgb_Pixel := Pixels.Element (Source_Index);
+               begin
+                  Ada.Text_IO.Put
+                    (Output,
+                     Image_No_Space (Pixel.Red) & " "
+                     & Image_No_Space (Pixel.Green) & " "
+                     & Image_No_Space (Pixel.Blue));
+                  if Column < Size - 1 then
+                     Ada.Text_IO.Put (Output, " ");
+                  end if;
+               end;
+            end loop;
+            Ada.Text_IO.New_Line (Output);
+         end loop;
+         Ada.Text_IO.Close (Output);
+      exception
+         when others =>
+            Safe_Close (Output);
+            raise;
+      end Write_Pixels_As_Ppm;
+
+      function Try_Write_Decoded_P3_Thumbnail
+        (Target_Path : String)
+         return Boolean
+      is
+         Input  : Ada.Text_IO.File_Type;
+         Token  : Unbounded_String;
+         Content : Unbounded_String;
+         Scan_Index : Positive := 1;
+         Pixels : Pixel_Vectors.Vector;
+         Source_Width  : Natural := 0;
+         Source_Height : Natural := 0;
+         Max_Value     : Natural := 0;
+
+         function Next_Token return Boolean is
+            Value : Character;
+         begin
+            Token := Null_Unbounded_String;
+            while Scan_Index <= Length (Content) loop
+               Value := Element (Content, Scan_Index);
+               Scan_Index := Scan_Index + 1;
+               if Value = ' ' or else Value = ASCII.HT or else Value = ASCII.LF or else Value = ASCII.CR then
+                  if Length (Token) > 0 then
+                     return True;
+                  end if;
+               else
+                  Append (Token, Value);
+               end if;
+            end loop;
+
+            return Length (Token) > 0;
+         end Next_Token;
+
+         function Next_Natural
+           (Value : out Natural)
+            return Boolean is
+         begin
+            if not Next_Token then
+               return False;
+            end if;
+
+            Value := Natural'Value (To_String (Token));
+            return True;
+         exception
+            when others =>
+               return False;
+         end Next_Natural;
+
+         function Scaled_Channel
+           (Value : Natural)
+            return Natural is
+         begin
+            if Max_Value = 0 then
+               return 0;
+            elsif Max_Value = 255 then
+               return Natural'Min (Value, 255);
+            end if;
+
+            return Natural'Min ((Value * 255) / Max_Value, 255);
+         end Scaled_Channel;
+      begin
+         Ada.Text_IO.Open (Input, Ada.Text_IO.In_File, Source_Path);
+         while not Ada.Text_IO.End_Of_File (Input) loop
+            declare
+               Buffer  : String (1 .. 4096);
+               Last    : Natural;
+               Comment : Natural := 0;
+            begin
+               Ada.Text_IO.Get_Line (Input, Buffer, Last);
+               for Index in 1 .. Last loop
+                  if Buffer (Index) = '#' then
+                     Comment := Index;
+                     exit;
+                  end if;
+               end loop;
+
+               if Last = 0 then
+                  null;
+               elsif Comment = 0 then
+                  Append (Content, Buffer (1 .. Last));
+               elsif Comment > 1 then
+                  Append (Content, Buffer (1 .. Comment - 1));
+               end if;
+               Append (Content, ' ');
+            end;
+         end loop;
+         Ada.Text_IO.Close (Input);
+
+         if not Next_Token or else To_String (Token) /= "P3" then
+            return False;
+         end if;
+
+         if not Next_Natural (Source_Width)
+           or else not Next_Natural (Source_Height)
+           or else not Next_Natural (Max_Value)
+           or else Source_Width = 0
+           or else Source_Height = 0
+           or else Max_Value = 0
+           or else Source_Width > 4096
+           or else Source_Height > 4096
+           or else Source_Width * Source_Height > 4_194_304
+         then
+            return False;
+         end if;
+
+         for Pixel_Index in 1 .. Source_Width * Source_Height loop
+            declare
+               Red   : Natural;
+               Green : Natural;
+               Blue  : Natural;
+            begin
+               if not Next_Natural (Red) or else not Next_Natural (Green) or else not Next_Natural (Blue) then
+                  return False;
+               end if;
+
+               Pixels.Append
+                 (New_Item =>
+                    Rgb_Pixel'
+                      (Red   => Scaled_Channel (Red),
+                       Green => Scaled_Channel (Green),
+                       Blue  => Scaled_Channel (Blue)));
+            end;
+         end loop;
+
+         Write_Pixels_As_Ppm (Target_Path, Pixels, Source_Width, Source_Height);
+         return True;
+      exception
+         when others =>
+            Safe_Close (Input);
+            return False;
+      end Try_Write_Decoded_P3_Thumbnail;
+
+      function Try_Write_Decoded_Png_Thumbnail
+        (Target_Path : String)
+         return Boolean
+      is
+         File   : Ada.Streams.Stream_IO.File_Type;
+         Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
+         Last   : Ada.Streams.Stream_Element_Offset;
+         Bytes  : Thumbnail_Byte_Vectors.Vector;
+         Idat   : Thumbnail_Byte_Vectors.Vector;
+         Width  : Natural := 0;
+         Height : Natural := 0;
+         Bit_Depth  : Natural := 0;
+         Color_Type : Natural := 0;
+         Position   : Natural := 8;
+         Channels   : Natural := 0;
+         Pixels     : Pixel_Vectors.Vector;
+
+         function Is_Png_Signature return Boolean is
+         begin
+            return Natural (Bytes.Length) >= 8
+              and then Byte_At (Bytes, 0) = 16#89#
+              and then Byte_At (Bytes, 1) = Character'Pos ('P')
+              and then Byte_At (Bytes, 2) = Character'Pos ('N')
+              and then Byte_At (Bytes, 3) = Character'Pos ('G')
+              and then Byte_At (Bytes, 4) = 16#0D#
+              and then Byte_At (Bytes, 5) = 16#0A#
+              and then Byte_At (Bytes, 6) = 16#1A#
+              and then Byte_At (Bytes, 7) = 16#0A#;
+         end Is_Png_Signature;
+
+         function Chunk_Type
+           (Index : Natural)
+            return String is
+         begin
+            return
+              Character'Val (Byte_At (Bytes, Index))
+              & Character'Val (Byte_At (Bytes, Index + 1))
+              & Character'Val (Byte_At (Bytes, Index + 2))
+              & Character'Val (Byte_At (Bytes, Index + 3));
+         end Chunk_Type;
+
+         function Raw_Byte
+           (Data  : Ada.Streams.Stream_Element_Array;
+            Index : Natural)
+            return Natural is
+         begin
+            if Ada.Streams.Stream_Element_Offset (Index) not in Data'Range then
+               return 0;
+            end if;
+
+            return Natural (Data (Ada.Streams.Stream_Element_Offset (Index)));
+         end Raw_Byte;
+
+         function Paeth
+           (Left  : Natural;
+            Up    : Natural;
+            Upper : Natural)
+            return Natural
+         is
+            P  : constant Integer := Integer (Left) + Integer (Up) - Integer (Upper);
+            PA : constant Natural := Natural (abs (P - Integer (Left)));
+            PB : constant Natural := Natural (abs (P - Integer (Up)));
+            PC : constant Natural := Natural (abs (P - Integer (Upper)));
+         begin
+            if PA <= PB and then PA <= PC then
+               return Left;
+            elsif PB <= PC then
+               return Up;
+            else
+               return Upper;
+            end if;
+         end Paeth;
+      begin
+         Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Source_Path);
+         while not Ada.Streams.Stream_IO.End_Of_File (File) loop
+            Ada.Streams.Stream_IO.Read (File, Buffer, Last);
+            for Index in 1 .. Last loop
+               Bytes.Append (Buffer (Index));
+            end loop;
+         end loop;
+         Ada.Streams.Stream_IO.Close (File);
+
+         if not Is_Png_Signature then
+            return False;
+         end if;
+
+         while Position + 12 <= Natural (Bytes.Length) loop
+            declare
+               Length_Value : constant Natural := U32_BE_From (Bytes, Position);
+               Kind         : constant String := Chunk_Type (Position + 4);
+               Data_Start   : constant Natural := Position + 8;
+               Data_Last    : constant Natural := Data_Start + Length_Value - 1;
+            begin
+               if Data_Start + Length_Value + 4 > Natural (Bytes.Length) then
+                  return False;
+               end if;
+
+               if Kind = "IHDR" then
+                  if Length_Value < 13 then
+                     return False;
+                  end if;
+                  Width := U32_BE_From (Bytes, Data_Start);
+                  Height := U32_BE_From (Bytes, Data_Start + 4);
+                  Bit_Depth := Byte_At (Bytes, Data_Start + 8);
+                  Color_Type := Byte_At (Bytes, Data_Start + 9);
+               elsif Kind = "IDAT" then
+                  if Length_Value > 0 then
+                     for Index in Data_Start .. Data_Last loop
+                        Idat.Append (Bytes.Element (Index));
+                     end loop;
+                  end if;
+               elsif Kind = "IEND" then
+                  exit;
+               end if;
+
+               Position := Data_Start + Length_Value + 4;
+            end;
+         end loop;
+
+         if Width = 0
+           or else Height = 0
+           or else Width > 4096
+           or else Height > 4096
+           or else Width * Height > 4_194_304
+           or else Bit_Depth /= 8
+           or else Idat.Is_Empty
+         then
+            return False;
+         elsif Color_Type = 2 then
+            Channels := 3;
+         elsif Color_Type = 6 then
+            Channels := 4;
+         else
+            return False;
+         end if;
+
+         declare
+            Row_Stride : constant Natural := Width * Channels;
+            Needed     : constant Natural := Height * (Row_Stride + 1);
+            Compressed : constant Ada.Streams.Stream_Element_Array := Bytes_To_Stream_Array (Idat);
+            Inflated   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Needed - 1));
+            Inflated_Length : aliased C_ULong := C_ULong (Inflated'Length);
+            Status     : C_Int;
+            Previous   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
+              [others => 0];
+            Current    : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
+              [others => 0];
+         begin
+            Status :=
+              Z_Uncompress
+                (Dest        => Inflated (Inflated'First)'Address,
+                 Dest_Length => Inflated_Length'Access,
+                 Source      => Compressed (Compressed'First)'Address,
+                 Source_Len  => C_ULong (Compressed'Length));
+            if Status /= 0 or else Natural (Inflated_Length) < Needed then
+               return False;
+            end if;
+
+            for Row in 0 .. Height - 1 loop
+               declare
+                  Filter : constant Natural := Raw_Byte (Inflated, Row * (Row_Stride + 1));
+                  Base   : constant Natural := Row * (Row_Stride + 1) + 1;
+               begin
+                  if Filter > 4 then
+                     return False;
+                  end if;
+
+                  for Column in 0 .. Row_Stride - 1 loop
+                     declare
+                        Raw   : constant Natural := Raw_Byte (Inflated, Base + Column);
+                        Left  : constant Natural :=
+                          (if Column >= Channels
+                           then Natural (Current (Ada.Streams.Stream_Element_Offset (Column - Channels)))
+                           else 0);
+                        Up    : constant Natural :=
+                          Natural (Previous (Ada.Streams.Stream_Element_Offset (Column)));
+                        Upper : constant Natural :=
+                          (if Column >= Channels
+                           then Natural (Previous (Ada.Streams.Stream_Element_Offset (Column - Channels)))
+                           else 0);
+                        Value : Natural := Raw;
+                     begin
+                        case Filter is
+                           when 0 =>
+                              null;
+                           when 1 =>
+                              Value := Raw + Left;
+                           when 2 =>
+                              Value := Raw + Up;
+                           when 3 =>
+                              Value := Raw + (Left + Up) / 2;
+                           when 4 =>
+                              Value := Raw + Paeth (Left, Up, Upper);
+                           when others =>
+                              null;
+                        end case;
+                        Current (Ada.Streams.Stream_Element_Offset (Column)) :=
+                          Ada.Streams.Stream_Element (Value mod 256);
+                     end;
+                  end loop;
+
+                  for Column in 0 .. Width - 1 loop
+                     Pixels.Append
+                       (Rgb_Pixel'
+                          (Red   =>
+                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels))),
+                           Green =>
+                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 1))),
+                           Blue  =>
+                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 2)))));
+                  end loop;
+
+                  Previous := Current;
+               end;
+            end loop;
+         end;
+
+         Write_Pixels_As_Ppm (Target_Path, Pixels, Width, Height);
+         return True;
+      exception
+         when others =>
+            Safe_Close (File);
+            return False;
+      end Try_Write_Decoded_Png_Thumbnail;
+
+      function Try_Write_Gdk_Pixbuf_Thumbnail
+        (Target_Path : String)
+         return Boolean
+      is
+         C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Source_Path);
+         Pixbuf : System.Address := System.Null_Address;
+      begin
+         Pixbuf :=
+           Gdk_Pixbuf_New_From_File_At_Size
+             (Filename => C_Path,
+              Width    => C_Int (Size),
+              Height   => C_Int (Size),
+              Error    => System.Null_Address);
+         Interfaces.C.Strings.Free (C_Path);
+
+         if Pixbuf = System.Null_Address then
+            return False;
+         end if;
+
+         declare
+            Width     : constant Natural := Natural (Gdk_Pixbuf_Get_Width (Pixbuf));
+            Height    : constant Natural := Natural (Gdk_Pixbuf_Get_Height (Pixbuf));
+            Channels  : constant Natural := Natural (Gdk_Pixbuf_Get_N_Channels (Pixbuf));
+            Rowstride : constant Natural := Natural (Gdk_Pixbuf_Get_Rowstride (Pixbuf));
+            Pixels_Address : constant System.Address := Gdk_Pixbuf_Get_Pixels (Pixbuf);
+            Raw       : constant Gdk_Pixel_Pointers.Object_Pointer :=
+              Gdk_Pixel_Pointers.To_Pointer (Pixels_Address);
+            Decoded   : Pixel_Vectors.Vector;
+         begin
+            if Width = 0
+              or else Height = 0
+              or else Width > 4096
+              or else Height > 4096
+              or else Channels < 3
+              or else Rowstride < Width * Channels
+              or else Pixels_Address = System.Null_Address
+              or else Raw = null
+            then
+               G_Object_Unref (Pixbuf);
+               return False;
+            end if;
+
+            for Row in 0 .. Height - 1 loop
+               for Column in 0 .. Width - 1 loop
+                  declare
+                     Offset : constant Natural := Row * Rowstride + Column * Channels;
+                  begin
+                     Decoded.Append
+                       (Rgb_Pixel'
+                          (Red   => Natural (Raw.all (Offset)),
+                           Green => Natural (Raw.all (Offset + 1)),
+                           Blue  => Natural (Raw.all (Offset + 2))));
+                  end;
+               end loop;
+            end loop;
+
+            G_Object_Unref (Pixbuf);
+            Write_Pixels_As_Ppm (Target_Path, Decoded, Width, Height);
+            return True;
+         end;
+      exception
+         when others =>
+            Safe_Free (C_Path);
+            if Pixbuf /= System.Null_Address then
+               G_Object_Unref (Pixbuf);
+            end if;
+            return False;
+      end Try_Write_Gdk_Pixbuf_Thumbnail;
+
+      Checksum  : Natural := 0;
+      Size_Bias : Natural := 0;
+      Target    : Unbounded_String;
+   begin
+      if not Ada.Directories.Exists (Source_Path) then
+         return
+           (Status         => Thumbnail_Source_Missing,
+            Source_Path    => To_Unbounded_String (Source_Path),
+            Thumbnail_Path => Null_Unbounded_String,
+            Width          => Size,
+            Height         => Size,
+            Error_Key      => To_Unbounded_String ("error.thumbnail.source_missing"));
+      elsif Ada.Directories.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
+         return
+           (Status         => Thumbnail_Unsupported,
+            Source_Path    => To_Unbounded_String (Source_Path),
+            Thumbnail_Path => Null_Unbounded_String,
+            Width          => Size,
+            Height         => Size,
+            Error_Key      => To_Unbounded_String ("error.thumbnail.unsupported"));
+      end if;
+
+      Ada.Directories.Create_Path (Cache_Directory);
+      Target := To_Unbounded_String (Join_Path (Cache_Directory, Thumbnail_Name));
+      if Try_Write_Decoded_Png_Thumbnail (To_String (Target))
+        or else Try_Write_Decoded_P3_Thumbnail (To_String (Target))
+        or else Try_Write_Gdk_Pixbuf_Thumbnail (To_String (Target))
+      then
+         return
+           (Status         => Thumbnail_Generated,
+            Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
+            Thumbnail_Path => Target,
+            Width          => Size,
+            Height         => Size,
+            Error_Key      => Null_Unbounded_String);
+      end if;
+
+      Checksum := Path_Checksum;
+      Size_Bias := File_Size_Signal;
+
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, To_String (Target));
+      Ada.Text_IO.Put_Line (File, "P3");
+      Ada.Text_IO.Put_Line (File, Image_No_Space (Size) & " " & Image_No_Space (Size));
+      Ada.Text_IO.Put_Line (File, "255");
+      for Row in 0 .. Size - 1 loop
+         for Column in 0 .. Size - 1 loop
+            declare
+               Cell   : constant Natural := Natural'Max (1, Size / 8);
+               Stripe : constant Natural := (Row / Cell + Column / Cell) mod 2;
+               Red    : constant Natural := Clamp_Channel (Checksum + Row * 5 + Size_Bias / 7 + Stripe * 28);
+               Green  : constant Natural := Clamp_Channel (Checksum / 257 + Column * 7 + Size_Bias / 11);
+               Blue   : constant Natural := Clamp_Channel (Checksum / 65_521 + Row + Column * 3 + Size_Bias / 13);
+            begin
+               Ada.Text_IO.Put
+                 (File,
+                  Image_No_Space (Red) & " "
+                  & Image_No_Space (Green) & " "
+                  & Image_No_Space (Blue));
+               if Column < Size - 1 then
+                  Ada.Text_IO.Put (File, " ");
+               end if;
+            end;
+         end loop;
+         Ada.Text_IO.New_Line (File);
+      end loop;
+      Ada.Text_IO.Close (File);
+
+      return
+        (Status         => Thumbnail_Generated,
+         Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
+         Thumbnail_Path => Target,
+         Width          => Size,
+         Height         => Size,
+         Error_Key      => Null_Unbounded_String);
+   exception
+      when others =>
+         Safe_Close (File);
+         return
+           (Status         => Thumbnail_Failed,
+            Source_Path    => To_Unbounded_String (Source_Path),
+            Thumbnail_Path => Target,
+            Width          => Size,
+            Height         => Size,
+            Error_Key      => To_Unbounded_String ("error.thumbnail.failed"));
+   end Generate_Thumbnail;
 
 end Files.File_System;

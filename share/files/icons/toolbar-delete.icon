@@ -1,0 +1,10 @@
+files-icon-v1
+name=toolbar-delete
+grid=16
+rect=6,3,4,1,border
+rect=4,5,8,2,border
+rect=5,7,1,6,border
+rect=10,7,1,6,border
+rect=5,12,6,1,border
+rect=7,8,1,4,border
+rect=9,8,1,4,border

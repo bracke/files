@@ -6,11 +6,15 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
+with Interfaces.C;
+with Interfaces.C.Strings;
+with System;
+with System.Address_To_Access_Conversions;
 
 with Glfw.Input;
 with Glfw.Input.Keys;
 with Glfw.Windows;
-with Glfw.Windows.Context;
+with Glfw.Windows.Drop;
 with Glfw.Windows.Hints;
 with Glfw.Windows.Vulkan;
 
@@ -21,7 +25,6 @@ with Files.File_System;
 with Files.Operations;
 with Files.Platform.Dialogs;
 with Files.Rendering;
-with Files.Rendering.Vulkan;
 with Files.Settings;
 with Files.Types;
 
@@ -29,6 +32,7 @@ package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Glfw.Input.Button_State;
+   use type Glfw.Input.Mouse.Button;
    use type Glfw.Input.Mouse.Coordinate;
    use type Glfw.Size;
    use type Files.Controller.Controller_Status;
@@ -38,11 +42,17 @@ package body Files.Application.Windows is
    use type Files.Operations.Operation_Status;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Rendering.Vulkan.Vulkan_Status;
+   use type Interfaces.C.long;
+   use type Interfaces.C.unsigned;
+   use type Interfaces.C.Strings.chars_ptr;
+   use type System.Address;
 
    type Desktop_Window is new Glfw.Windows.Window with record
       Pending_Text : Unbounded_String;
       Pending_Scroll : Integer := 0;
       Pending_Scroll_Remainder : Long_Float := 0.0;
+      Pending_Left_Clicks : Natural := 0;
+      Pending_Drops : Files.Types.String_Vectors.Vector;
    end record;
 
    overriding procedure Character_Entered
@@ -54,13 +64,41 @@ package body Files.Application.Windows is
       X      : Glfw.Input.Mouse.Scroll_Offset;
       Y      : Glfw.Input.Mouse.Scroll_Offset);
 
+   overriding procedure Mouse_Button_Changed
+     (Object : not null access Desktop_Window;
+      Button : Glfw.Input.Mouse.Button;
+      State  : Glfw.Input.Button_State;
+      Mods   : Glfw.Input.Keys.Modifiers);
+
+   overriding procedure Mouse_Position_Changed
+     (Object : not null access Desktop_Window;
+      X      : Glfw.Input.Mouse.Coordinate;
+      Y      : Glfw.Input.Mouse.Coordinate);
+
    type Window_Access is access all Desktop_Window;
+
+   Max_Drop_Paths : constant Positive := 256;
+
+   type C_Path_Array is array (Positive range 1 .. Max_Drop_Paths) of Interfaces.C.Strings.chars_ptr;
+   pragma Convention (C, C_Path_Array);
+
+   package Desktop_Window_Pointers is new System.Address_To_Access_Conversions (Desktop_Window);
+   package C_Path_Array_Pointers is new System.Address_To_Access_Conversions (C_Path_Array);
+   use type Desktop_Window_Pointers.Object_Pointer;
+   use type C_Path_Array_Pointers.Object_Pointer;
+
+   procedure Raw_Drop_Callback
+     (Window : System.Address;
+      Count  : Interfaces.C.int;
+      Paths  : System.Address)
+   with Convention => C;
 
    type Tracked_Key is
      (Tracked_Key_1,
       Tracked_Key_2,
       Tracked_Key_3,
       Tracked_Key_4,
+      Tracked_A,
       Tracked_D,
       Tracked_F,
       Tracked_L,
@@ -96,26 +134,101 @@ package body Files.Application.Windows is
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Text            : Files.Rendering.Text_Renderer;
       Text_Ready      : Boolean := False;
+      Text_Font_Path  : Unbounded_String;
+      Text_Content_Key : Unbounded_String;
+      Text_Content_Font_Path : Unbounded_String;
+      Text_Glyph_Key  : Unbounded_String;
+      Text_Glyphs     : Files.Rendering.Text_Render_Result;
       Vulkan          : Files.Rendering.Vulkan.Vulkan_Renderer;
       Vulkan_Tried    : Boolean := False;
       Surface_Tried   : Boolean := False;
+      Shown           : Boolean := False;
       Last_Frame_Width  : Natural := 0;
       Last_Frame_Height : Natural := 0;
       Fallback_Frames : Natural := 0;
+      Last_Glyph_Count : Natural := 0;
+      Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Files.Rendering.Vulkan.Vulkan_Status :=
         Files.Rendering.Vulkan.Vulkan_Not_Initialized;
+      Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Native_Watch_FD : Interfaces.C.int := -1;
+      Native_Watch_ID : Interfaces.C.int := -1;
+      Native_Watch_Path : Unbounded_String;
+      Native_Watch_Event_Count : Natural := 0;
    end record;
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Runtime_Window);
 
+   Process_Text_Font_Ready : Boolean := False;
+   Process_Text_Font_Path  : Unbounded_String;
+   File_Watch_Poll_Interval : constant Duration := 1.0;
+   Event_Wait_Timeout : constant Interfaces.C.double := 0.016;
+   Inotify_Nonblock : constant Interfaces.C.int := 2_048;
+   Inotify_Cloexec : constant Interfaces.C.int := 524_288;
+   Inotify_Event_Mask : constant Interfaces.C.unsigned :=
+     16#00000004# or 16#00000008# or 16#00000040# or 16#00000080#
+     or 16#00000100# or 16#00000200# or 16#00000400# or 16#00000800#
+     or 16#00002000# or 16#00004000# or 16#01000000#;
+
    procedure Poll_Events
      with Import, Convention => C, External_Name => "glfwPollEvents";
+
+   procedure Wait_For_Events_Timeout
+     (Timeout : Interfaces.C.double)
+   with Import, Convention => C, External_Name => "glfwWaitEventsTimeout";
+
+   function Inotify_Init1
+     (Flags : Interfaces.C.int)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "inotify_init1";
+
+   function Inotify_Add_Watch
+     (FD       : Interfaces.C.int;
+      Pathname : Interfaces.C.Strings.chars_ptr;
+      Mask     : Interfaces.C.unsigned)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "inotify_add_watch";
+
+   function Inotify_Rm_Watch
+     (FD : Interfaces.C.int;
+      WD : Interfaces.C.int)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "inotify_rm_watch";
+
+   function C_Read
+     (FD    : Interfaces.C.int;
+      Buf   : System.Address;
+      Count : Interfaces.C.size_t)
+      return Interfaces.C.long
+   with Import, Convention => C, External_Name => "read";
+
+   function C_Close
+     (FD : Interfaces.C.int)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "close";
+
+   procedure Set_Raw_Window_Hint
+     (Target : Interfaces.C.int;
+      Hint   : Interfaces.C.int)
+     with Import, Convention => C, External_Name => "glfwWindowHint";
+
+   procedure Configure_Vulkan_Window_Hints;
 
    procedure Free_Window is new Ada.Unchecked_Deallocation
      (Object => Desktop_Window,
       Name   => Window_Access);
+
+   procedure Configure_Vulkan_Window_Hints is
+      GLFW_Client_API : constant Interfaces.C.int := 16#00022001#;
+      GLFW_No_API     : constant Interfaces.C.int := 0;
+   begin
+      Glfw.Windows.Hints.Reset_To_Defaults;
+      Set_Raw_Window_Hint (GLFW_Client_API, GLFW_No_API);
+      Glfw.Windows.Hints.Set_Resizable (True);
+      Glfw.Windows.Hints.Set_Visible (False);
+   end Configure_Vulkan_Window_Hints;
 
    function Safe_Environment_Value (Name : String) return String is
    begin
@@ -216,6 +329,43 @@ package body Files.Application.Windows is
       return Glfw.Windows.Window_Reference (Handle);
    end As_Window;
 
+   procedure Raw_Drop_Callback
+     (Window : System.Address;
+      Count  : Interfaces.C.int;
+      Paths  : System.Address)
+   is
+      User : constant System.Address := Glfw.Windows.Drop.User_Pointer (Window);
+   begin
+      if User = System.Null_Address or else Paths = System.Null_Address or else Count <= 0 then
+         return;
+      end if;
+
+      declare
+         Target    : constant Desktop_Window_Pointers.Object_Pointer :=
+           Desktop_Window_Pointers.To_Pointer (User);
+         Raw_Paths : constant C_Path_Array_Pointers.Object_Pointer :=
+           C_Path_Array_Pointers.To_Pointer (Paths);
+         Last      : constant Natural :=
+           Natural'Min (Natural (Count), Max_Drop_Paths);
+      begin
+         if Target = null or else Raw_Paths = null then
+            return;
+         end if;
+
+         for Index in 1 .. Last loop
+            if Raw_Paths.all (Index) /= Interfaces.C.Strings.Null_Ptr then
+               declare
+                  Path : constant String := Interfaces.C.Strings.Value (Raw_Paths.all (Index));
+               begin
+                  if Path'Length > 0 then
+                     Target.Pending_Drops.Append (To_Unbounded_String (Path));
+                  end if;
+               end;
+            end if;
+         end loop;
+      end;
+   end Raw_Drop_Callback;
+
    function Text_Input_Bytes
      (Char : Wide_Wide_Character)
       return String
@@ -268,6 +418,29 @@ package body Files.Application.Windows is
            Accumulate_Scroll_Offset (Object.Pending_Scroll_Remainder, Long_Float (Y)));
    end Mouse_Scrolled;
 
+   overriding procedure Mouse_Button_Changed
+     (Object : not null access Desktop_Window;
+      Button : Glfw.Input.Mouse.Button;
+      State  : Glfw.Input.Button_State;
+      Mods   : Glfw.Input.Keys.Modifiers)
+   is
+      pragma Unreferenced (Mods);
+   begin
+      if Button = Glfw.Input.Mouse.Left_Button and then State = Glfw.Input.Pressed then
+         Object.Pending_Left_Clicks := Natural'Min (Object.Pending_Left_Clicks + 1, 8);
+      end if;
+   end Mouse_Button_Changed;
+
+   overriding procedure Mouse_Position_Changed
+     (Object : not null access Desktop_Window;
+      X      : Glfw.Input.Mouse.Coordinate;
+      Y      : Glfw.Input.Mouse.Coordinate)
+   is
+      pragma Unreferenced (Object, X, Y);
+   begin
+      null;
+   end Mouse_Position_Changed;
+
    function To_Modifiers
      (Window : not null access Glfw.Windows.Window)
       return Files.Types.Modifier_Set
@@ -302,6 +475,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Key_3;
          when Tracked_Key_4 =>
             return Glfw.Input.Keys.Key_4;
+         when Tracked_A =>
+            return Glfw.Input.Keys.A;
          when Tracked_D =>
             return Glfw.Input.Keys.D;
          when Tracked_F =>
@@ -360,6 +535,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_3;
          when Tracked_Key_4 =>
             return Files.Types.Key_4;
+         when Tracked_A =>
+            return Files.Types.Key_A;
          when Tracked_D =>
             return Files.Types.Key_D;
          when Tracked_F =>
@@ -476,6 +653,147 @@ package body Files.Application.Windows is
          Handle_Text_Input (Runtime);
       end loop;
    end Handle_All_Text_Input;
+
+   procedure Handle_Drop_Input
+     (Runtime : in out Runtime_Window)
+   is
+      Result : Files.Controller.Controller_Result;
+      Drops  : Files.Types.String_Vectors.Vector;
+   begin
+      if Runtime.Handle = null or else Runtime.Handle.Pending_Drops.Is_Empty then
+         return;
+      end if;
+
+      Drops := Runtime.Handle.Pending_Drops;
+      Runtime.Handle.Pending_Drops.Clear;
+      Result := Files.Controller.Handle_Drop_Import (Runtime.Model, Runtime.Settings, Drops);
+      pragma Unreferenced (Result);
+   end Handle_Drop_Input;
+
+   procedure Handle_All_Drop_Input
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   begin
+      for Runtime of Runtime_Windows loop
+         Handle_Drop_Input (Runtime);
+      end loop;
+   end Handle_All_Drop_Input;
+
+   procedure Release_Native_Watch
+     (Runtime : in out Runtime_Window)
+   is
+      Ignored : Interfaces.C.int;
+   begin
+      if Runtime.Native_Watch_FD >= 0 and then Runtime.Native_Watch_ID >= 0 then
+         Ignored := Inotify_Rm_Watch (Runtime.Native_Watch_FD, Runtime.Native_Watch_ID);
+      end if;
+
+      if Runtime.Native_Watch_FD >= 0 then
+         Ignored := C_Close (Runtime.Native_Watch_FD);
+      end if;
+      pragma Unreferenced (Ignored);
+
+      Runtime.Native_Watch_FD := -1;
+      Runtime.Native_Watch_ID := -1;
+      Runtime.Native_Watch_Path := Null_Unbounded_String;
+   end Release_Native_Watch;
+
+   procedure Ensure_Native_Watch
+     (Runtime : in out Runtime_Window)
+   is
+      Path   : constant String := Files.Model.Current_Path (Runtime.Model);
+      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;
+   begin
+      if Path = "" or else To_String (Runtime.Native_Watch_Path) = Path then
+         return;
+      end if;
+
+      Release_Native_Watch (Runtime);
+      Runtime.Native_Watch_FD := Inotify_Init1 (Inotify_Nonblock + Inotify_Cloexec);
+      if Runtime.Native_Watch_FD < 0 then
+         Runtime.Native_Watch_FD := -1;
+         return;
+      end if;
+
+      C_Path := Interfaces.C.Strings.New_String (Path);
+      Runtime.Native_Watch_ID := Inotify_Add_Watch (Runtime.Native_Watch_FD, C_Path, Inotify_Event_Mask);
+      Interfaces.C.Strings.Free (C_Path);
+
+      if Runtime.Native_Watch_ID < 0 then
+         Release_Native_Watch (Runtime);
+      else
+         Runtime.Native_Watch_Path := To_Unbounded_String (Path);
+      end if;
+   exception
+      when others =>
+         if C_Path /= Interfaces.C.Strings.Null_Ptr then
+            Interfaces.C.Strings.Free (C_Path);
+         end if;
+         Release_Native_Watch (Runtime);
+   end Ensure_Native_Watch;
+
+   function Drain_Native_Watch
+     (Runtime : in out Runtime_Window)
+      return Boolean
+   is
+      Buffer : Interfaces.C.char_array (0 .. 4095);
+      Count  : Interfaces.C.long;
+      Changed : Boolean := False;
+   begin
+      Ensure_Native_Watch (Runtime);
+      if Runtime.Native_Watch_FD < 0 then
+         return False;
+      end if;
+
+      loop
+         Count := C_Read (Runtime.Native_Watch_FD, Buffer'Address, Buffer'Length);
+         exit when Count <= 0;
+         Changed := True;
+         Runtime.Native_Watch_Event_Count := Runtime.Native_Watch_Event_Count + 1;
+      end loop;
+
+      return Changed;
+   exception
+      when others =>
+         Release_Native_Watch (Runtime);
+         return False;
+   end Drain_Native_Watch;
+
+   procedure Handle_File_Watch_Poll
+     (Runtime : in out Runtime_Window)
+   is
+      Now    : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Result : Files.Operations.Operation_Result;
+   begin
+      if Runtime.Handle = null then
+         return;
+      end if;
+
+      if Drain_Native_Watch (Runtime) then
+         declare
+            Native_Result : Files.Operations.Operation_Result;
+         begin
+            Native_Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
+            pragma Unreferenced (Native_Result);
+         end;
+         return;
+      end if;
+
+      if Now - Runtime.Last_Watch_Poll < File_Watch_Poll_Interval then
+         return;
+      end if;
+
+      Runtime.Last_Watch_Poll := Now;
+      Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
+      pragma Unreferenced (Result);
+   end Handle_File_Watch_Poll;
+
+   procedure Handle_All_File_Watch_Poll
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   begin
+      for Runtime of Runtime_Windows loop
+         Handle_File_Watch_Poll (Runtime);
+      end loop;
+   end Handle_All_File_Watch_Poll;
 
    procedure Handle_Scroll_Input
      (Runtime : in out Runtime_Window)
@@ -659,54 +977,57 @@ package body Files.Application.Windows is
       Frame_H  : Glfw.Size := 0;
       Cursor_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Cursor_Y : Glfw.Input.Mouse.Coordinate := 0.0;
-      Down     : Boolean;
    begin
-      if Runtime.Handle = null then
+      if Runtime.Handle = null or else Runtime.Handle.Pending_Left_Clicks = 0 then
          return;
       end if;
 
-      Down :=
-        Glfw.Windows.Mouse_Button_State (As_Window (Runtime.Handle), Glfw.Input.Mouse.Left_Button) =
-        Glfw.Input.Pressed;
-
-      if not Down then
-         Runtime.Left_Mouse_Down := False;
-         return;
-      elsif Runtime.Left_Mouse_Down then
-         return;
-      end if;
-
-      Runtime.Left_Mouse_Down := True;
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
 
-      declare
-         X         : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
-         Y         : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-         Snapshot  : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-         Probe     : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Click (Snapshot, X, Y, Natural (Frame_W), Natural (Frame_H));
-         Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-         Modifiers : constant Files.Types.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
-         Activate  : constant Boolean :=
-           Probe.Kind = Files.Events.Item_Click_Input_Action
-           and then Probe.Item_Index = Runtime.Last_Click_Item
-           and then Now - Runtime.Last_Click_Time <= 0.5;
-         Action    : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Click
-             (Snapshot, X, Y, Natural (Frame_W), Natural (Frame_H), Activate => Activate, Modifiers => Modifiers);
-      begin
-         if Probe.Kind = Files.Events.Item_Click_Input_Action then
-            Runtime.Last_Click_Item := Probe.Item_Index;
-            Runtime.Last_Click_Time := Now;
-         else
-            Runtime.Last_Click_Item := 0;
-         end if;
+      while Runtime.Handle.Pending_Left_Clicks > 0 loop
+         Runtime.Handle.Pending_Left_Clicks := Runtime.Handle.Pending_Left_Clicks - 1;
 
-         Dispatch_Click_Action (Runtime, Action, Modifiers);
-      end;
+         declare
+            X         : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+            Y         : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+            Snapshot  : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+            Modifiers : constant Files.Types.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+            Action    : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Snapshot  => Snapshot,
+                 X         => X,
+                 Y         => Y,
+                 Width     => Natural (Frame_W),
+                 Height    => Natural (Frame_H),
+                 Modifiers => Modifiers);
+            Activate  : constant Boolean :=
+              Action.Kind = Files.Events.Item_Click_Input_Action
+              and then Action.Item_Index = Runtime.Last_Click_Item
+              and then Now - Runtime.Last_Click_Time <= 0.5;
+         begin
+            if Action.Kind = Files.Events.Item_Click_Input_Action then
+               Runtime.Last_Click_Item := Action.Item_Index;
+               Runtime.Last_Click_Time := Now;
+            else
+               Runtime.Last_Click_Item := 0;
+            end if;
+
+            if Activate then
+               declare
+                  Activated_Action : Files.Events.Input_Action := Action;
+               begin
+                  Activated_Action.Activate := True;
+                  Dispatch_Click_Action (Runtime, Activated_Action, Modifiers);
+               end;
+            else
+               Dispatch_Click_Action (Runtime, Action, Modifiers);
+            end if;
+         end;
+      end loop;
    end Handle_Mouse;
 
    procedure Handle_All_Mouse
@@ -717,10 +1038,44 @@ package body Files.Application.Windows is
       end loop;
    end Handle_All_Mouse;
 
+   function Frame_Text_Key
+     (Frame : Files.Rendering.Frame_Commands)
+      return Unbounded_String
+   is
+      Result : Unbounded_String;
+
+      procedure Append_Text_Key
+        (Command : Files.Rendering.Text_Command)
+      is
+      begin
+         Append (Result, Natural'Image (Command.X));
+         Append (Result, ":");
+         Append (Result, Natural'Image (Command.Y));
+         Append (Result, ":");
+         Append (Result, Natural'Image (Command.Width));
+         Append (Result, ":");
+         Append (Result, Natural'Image (Command.Height));
+         Append (Result, ":");
+         Append (Result, Command.Text);
+         Append (Result, ASCII.LF);
+      end Append_Text_Key;
+   begin
+      for Command of Frame.Text loop
+         Append_Text_Key (Command);
+      end loop;
+
+      for Command of Frame.Overlay_Text loop
+         Append_Text_Key (Command);
+      end loop;
+
+      return Result;
+   end Frame_Text_Key;
+
    procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
       for Runtime of Runtime_Windows loop
          Files.Rendering.Vulkan.Shutdown (Runtime.Vulkan);
+         Release_Native_Watch (Runtime);
 
          if Runtime.Handle /= null then
             if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
@@ -736,6 +1091,8 @@ package body Files.Application.Windows is
       end loop;
 
       Runtime_Windows.Clear;
+      Process_Text_Font_Ready := False;
+      Process_Text_Font_Path := Null_Unbounded_String;
    end Release_All;
 
    function Any_Window_Open
@@ -771,9 +1128,10 @@ package body Files.Application.Windows is
          Title  => To_String (Startup_Window.Title));
       Glfw.Windows.Set_Title (As_Window (Handle), To_String (Startup_Window.Title));
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Char);
+      Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Button);
+      Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
-      Glfw.Windows.Context.Make_Current (As_Window (Handle));
-      Glfw.Windows.Context.Set_Swap_Interval (1);
+      Glfw.Windows.Drop.Set_Drop_Callback (As_Window (Handle), Raw_Drop_Callback'Access);
       Glfw.Windows.Show (As_Window (Handle));
       Runtime_Windows.Append
         (Runtime_Window'
@@ -787,13 +1145,26 @@ package body Files.Application.Windows is
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
             Text_Ready      => False,
+            Text_Font_Path  => Null_Unbounded_String,
+            Text_Content_Key => Null_Unbounded_String,
+            Text_Content_Font_Path => Null_Unbounded_String,
+            Text_Glyph_Key => Null_Unbounded_String,
+            Text_Glyphs => <>,
             Vulkan          => <>,
             Vulkan_Tried    => False,
             Surface_Tried   => False,
+            Shown           => True,
             Last_Frame_Width  => 0,
             Last_Frame_Height => 0,
             Fallback_Frames => 0,
-            Last_Present_Status => Files.Rendering.Vulkan.Vulkan_Not_Initialized));
+            Last_Glyph_Count => 0,
+            Last_Missing_Glyph_Count => 0,
+            Last_Present_Status => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
+            Last_Watch_Poll => Ada.Calendar.Time_Of (1901, 1, 1),
+            Native_Watch_FD => -1,
+            Native_Watch_ID => -1,
+            Native_Watch_Path => Null_Unbounded_String,
+            Native_Watch_Event_Count => 0));
    exception
       when others =>
          if Handle /= null then
@@ -895,50 +1266,104 @@ package body Files.Application.Windows is
             Runtime.Last_Frame_Height := Natural (Height);
          end if;
 
-         if not Runtime.Text_Ready then
-            declare
-               Font_Path : constant String := Files.Rendering.Default_Font_Path;
-               Status    : constant Files.Rendering.Text_Render_Status :=
-                 Files.Rendering.Initialize_Text
-                   (Renderer    => Runtime.Text,
-                    Font_Path   => Font_Path,
-                    Pixel_Size  => 16,
-                    Cell_Width  => 10,
-                    Cell_Height => 20);
-            begin
-               Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
-            end;
-         end if;
+         declare
+            Current_Text_Key : constant Unbounded_String := Frame_Text_Key (Frame);
+            Frame_Font_Path  : Unbounded_String;
+         begin
+            if Current_Text_Key = Runtime.Text_Content_Key
+              and then Length (Runtime.Text_Content_Font_Path) > 0
+            then
+               Frame_Font_Path := Runtime.Text_Content_Font_Path;
+            else
+               Frame_Font_Path := To_Unbounded_String (Files.Rendering.Font_Path_For_Frame (Frame));
+               Runtime.Text_Content_Key := Current_Text_Key;
+               Runtime.Text_Content_Font_Path := Frame_Font_Path;
+               Runtime.Text_Ready := False;
+               Runtime.Text_Glyph_Key := Null_Unbounded_String;
+               Process_Text_Font_Ready := False;
+            end if;
 
-         if Runtime.Text_Ready then
-            declare
-               Glyphs : constant Files.Rendering.Text_Render_Result :=
-                 Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
-               Batch  : constant Files.Rendering.Vulkan.Submission_Batch :=
-                 Files.Rendering.Vulkan.Build_Submission (Frame, Glyphs);
-            begin
-               Runtime.Last_Present_Status := Files.Rendering.Vulkan.Present (Runtime.Vulkan, Batch);
+            if Runtime.Text_Ready
+              and then
+                (Runtime.Text_Font_Path /= Frame_Font_Path
+                 or else not Process_Text_Font_Ready
+                 or else Process_Text_Font_Path /= Frame_Font_Path)
+            then
+               Runtime.Text_Ready := False;
+               Runtime.Text_Glyph_Key := Null_Unbounded_String;
+            end if;
 
-               if Runtime.Last_Present_Status =
-                 Files.Rendering.Vulkan.Vulkan_Swapchain_Recreate_Needed
-               then
-                  Runtime.Last_Present_Status :=
-                    Files.Rendering.Vulkan.Configure_Swapchain
-                      (Renderer => Runtime.Vulkan,
-                       Width    => Natural (Width),
-                       Height   => Natural (Height));
-                  Runtime.Last_Frame_Width := Natural (Width);
-                  Runtime.Last_Frame_Height := Natural (Height);
-               end if;
+            if not Runtime.Text_Ready then
+               declare
+                  Status : constant Files.Rendering.Text_Render_Status :=
+                    Files.Rendering.Initialize_Text
+                      (Renderer    => Runtime.Text,
+                       Font_Path   => To_String (Frame_Font_Path),
+                       Pixel_Size  => 16,
+                       Cell_Width  => 10,
+                       Cell_Height => 20);
+               begin
+                  Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
+                  Runtime.Text_Font_Path :=
+                    (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
+                  Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                  Process_Text_Font_Ready := Runtime.Text_Ready;
+                  Process_Text_Font_Path :=
+                    (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
+               end;
+            end if;
 
-               if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Presented then
-                  Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
-               end if;
-            end;
-         end if;
+            if Runtime.Text_Ready then
+               declare
+                  Glyphs : Files.Rendering.Text_Render_Result;
+               begin
+                  if Runtime.Text_Glyph_Key = Current_Text_Key
+                    and then Runtime.Text_Glyphs.Status = Files.Rendering.Text_Render_Success
+                  then
+                     Glyphs := Runtime.Text_Glyphs;
+                     Glyphs.Atlas_Dirty := False;
+                  else
+                     Glyphs := Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
+                     Runtime.Text_Glyphs := Glyphs;
+                     Runtime.Text_Glyph_Key := Current_Text_Key;
+                  end if;
 
-         Glfw.Windows.Context.Make_Current (As_Window (Runtime.Handle));
-         Glfw.Windows.Context.Swap_Buffers (As_Window (Runtime.Handle));
+                  declare
+                     Batch : constant Files.Rendering.Vulkan.Submission_Batch :=
+                       Files.Rendering.Vulkan.Build_Submission (Frame, Glyphs);
+                  begin
+                     Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
+                     Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
+                     Runtime.Last_Present_Status := Files.Rendering.Vulkan.Present (Runtime.Vulkan, Batch);
+
+                     if Runtime.Last_Present_Status =
+                       Files.Rendering.Vulkan.Vulkan_Swapchain_Recreate_Needed
+                     then
+                        Runtime.Last_Present_Status :=
+                          Files.Rendering.Vulkan.Configure_Swapchain
+                            (Renderer => Runtime.Vulkan,
+                             Width    => Natural (Width),
+                             Height   => Natural (Height));
+                        Runtime.Last_Frame_Width := Natural (Width);
+                        Runtime.Last_Frame_Height := Natural (Height);
+                        if Runtime.Last_Present_Status =
+                          Files.Rendering.Vulkan.Vulkan_Swapchain_Ready
+                        then
+                           Runtime.Last_Present_Status :=
+                             Files.Rendering.Vulkan.Present (Runtime.Vulkan, Batch);
+                        end if;
+                     end if;
+
+                     if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Presented then
+                        Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
+                     end if;
+                  end;
+               end;
+            else
+               Runtime.Last_Glyph_Count := 0;
+               Runtime.Last_Missing_Glyph_Count := 0;
+            end if;
+         end;
       end;
    end Render_Window;
 
@@ -949,6 +1374,51 @@ package body Files.Application.Windows is
          Render_Window (Runtime);
       end loop;
    end Render_All;
+
+   function Any_Runtime_Frame_Rendered
+     (Runtime_Windows : Runtime_Window_Vectors.Vector)
+      return Boolean is
+   begin
+      for Runtime of Runtime_Windows loop
+         if Runtime.Last_Glyph_Count > 0
+           and then Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented
+         then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Any_Runtime_Frame_Rendered;
+
+   function All_Runtime_Windows_Shown
+     (Runtime_Windows : Runtime_Window_Vectors.Vector)
+      return Boolean is
+   begin
+      for Runtime of Runtime_Windows loop
+         if Runtime.Handle /= null
+           and then Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+           and then not Runtime.Shown
+         then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end All_Runtime_Windows_Shown;
+
+   procedure Show_Unshown_Runtime_Windows
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   begin
+      for Runtime of Runtime_Windows loop
+         if Runtime.Handle /= null
+           and then Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+           and then not Runtime.Shown
+         then
+            Glfw.Windows.Show (As_Window (Runtime.Handle));
+            Runtime.Shown := True;
+         end if;
+      end loop;
+   end Show_Unshown_Runtime_Windows;
 
    function Headless_Smoke_Test
      (Startup : Startup_Result)
@@ -964,10 +1434,23 @@ package body Files.Application.Windows is
                  Width       => 320,
                  Height      => 240,
                  Line_Height => 20);
+            Text     : Files.Rendering.Text_Renderer;
+            Text_Status : constant Files.Rendering.Text_Render_Status :=
+              Files.Rendering.Initialize_Text
+                (Renderer    => Text,
+                 Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame),
+                 Pixel_Size  => 16,
+                 Cell_Width  => 10,
+                 Cell_Height => 20);
+            Glyphs : constant Files.Rendering.Text_Render_Result :=
+              Files.Rendering.Build_Text_Glyphs (Text, Frame);
          begin
             if Frame.Layout.Width /= 320
               or else Frame.Layout.Height /= 240
               or else Frame.Rectangles.Is_Empty
+              or else Text_Status /= Files.Rendering.Text_Render_Success
+              or else Glyphs.Status /= Files.Rendering.Text_Render_Success
+              or else Glyphs.Glyphs.Is_Empty
               or else To_String (Snapshot.Current_Path) = ""
             then
                return False;
@@ -1021,8 +1504,26 @@ package body Files.Application.Windows is
          Event_Translation_Model => True,
          Focus_Runtime_Model     => True,
          Resize_Runtime_Model    => True,
-         Scroll_Runtime_Model    => True);
+         Scroll_Runtime_Model    => True,
+         Native_Drop_Callbacks   => True,
+         Native_Drop_Automation  => False,
+         Directory_Watch_Polling => True,
+         Native_File_Watching    => True);
    end Runtime_Capabilities;
+
+   function Native_Drag_Automation_Profile_Of_Current_Runtime
+      return Native_Drag_Automation_Profile is
+   begin
+      return
+        (Portable_GLFW_Automation         => False,
+         Native_Drop_Callbacks            => True,
+         Requires_OS_Event_Source         => True,
+         X11_Xdnd_Required                => True,
+         Wayland_Source_Protocol_Required => True,
+         Windows_Native_Injection_Required => True,
+         Macos_Native_Injection_Required  => True,
+         Binding_Unit                     => To_Unbounded_String ("Files.Application.Windows"));
+   end Native_Drag_Automation_Profile_Of_Current_Runtime;
 
    function Runtime_Should_Resolve_Settings_Path
      (Result : Files.Controller.Controller_Result)
@@ -1147,10 +1648,29 @@ package body Files.Application.Windows is
 
    function Settings_Dialog_Initial_Path
      (Settings_Path : String)
-      return String is
+      return String
+   is
+      Separator : Natural := 0;
    begin
       if Settings_Path = "" then
          return ".";
+      end if;
+
+      for Index in reverse Settings_Path'Range loop
+         if Settings_Path (Index) = '/' or else Settings_Path (Index) = '\' then
+            Separator := Index;
+            exit;
+         end if;
+      end loop;
+
+      if Separator = Settings_Path'First + 2
+        and then Settings_Path (Settings_Path'First + 1) = ':'
+      then
+         return Settings_Path (Settings_Path'First .. Separator);
+      elsif Separator > Settings_Path'First then
+         return Settings_Path (Settings_Path'First .. Separator - 1);
+      elsif Separator = Settings_Path'First then
+         return Settings_Path (Settings_Path'First .. Settings_Path'First);
       end if;
 
       declare
@@ -1165,9 +1685,24 @@ package body Files.Application.Windows is
 
    function Settings_Dialog_Suggested_Name
      (Settings_Path : String)
-      return String is
+      return String
+   is
+      Separator : Natural := 0;
    begin
       if Settings_Path = "" then
+         return "files.conf";
+      end if;
+
+      for Index in reverse Settings_Path'Range loop
+         if Settings_Path (Index) = '/' or else Settings_Path (Index) = '\' then
+            Separator := Index;
+            exit;
+         end if;
+      end loop;
+
+      if Separator > 0 and then Separator < Settings_Path'Last then
+         return Settings_Path (Separator + 1 .. Settings_Path'Last);
+      elsif Separator = Settings_Path'Last then
          return "files.conf";
       end if;
 
@@ -1295,7 +1830,7 @@ package body Files.Application.Windows is
          Needs_Vulkan     => True,
          Width            => Width,
          Height           => Height,
-         Frame_Count      => 1,
+         Frame_Count      => 2,
          Input_Poll_Count => 1,
          Reason_Key       =>
            To_Unbounded_String
@@ -1313,9 +1848,16 @@ package body Files.Application.Windows is
            (Attempted          => False,
             Window_Created     => False,
             Frame_Rendered     => False,
+            Frames_Attempted   => 0,
+            Frames_Presented   => 0,
             Input_Polled       => False,
             Closed_Cleanly     => False,
             Skipped_By_Plan    => True,
+            Last_Status        => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
+            Last_Vk_Result     => 0,
+            Framebuffer_Readback_Ready => False,
+            Last_Framebuffer_Hash => 0,
+            Last_Framebuffer_Bytes => 0,
             Error_Key          => Plan.Reason_Key);
       end if;
 
@@ -1323,9 +1865,16 @@ package body Files.Application.Windows is
         (Attempted          => False,
          Window_Created     => False,
          Frame_Rendered     => False,
+         Frames_Attempted   => 0,
+         Frames_Presented   => 0,
          Input_Polled       => False,
          Closed_Cleanly     => False,
          Skipped_By_Plan    => False,
+         Last_Status        => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
+         Last_Vk_Result     => 0,
+         Framebuffer_Readback_Ready => False,
+         Last_Framebuffer_Hash => 0,
+         Last_Framebuffer_Bytes => 0,
          Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
    end Evaluate_Live_Window_Smoke;
 
@@ -1349,9 +1898,7 @@ package body Files.Application.Windows is
       Result.Skipped_By_Plan := False;
       Glfw.Init;
       Initialized := True;
-      Glfw.Windows.Hints.Reset_To_Defaults;
-      Glfw.Windows.Hints.Set_Resizable (True);
-      Glfw.Windows.Hints.Set_Visible (True);
+      Configure_Vulkan_Window_Hints;
 
       for Startup_Window of Startup.Windows loop
          Append_Runtime_Window
@@ -1362,26 +1909,55 @@ package body Files.Application.Windows is
             Width           => Plan.Width,
             Height          => Plan.Height);
       end loop;
+      for Runtime of Runtime_Windows loop
+         Files.Rendering.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);
+      end loop;
 
       Result.Window_Created := not Runtime_Windows.Is_Empty;
       for Poll_Index in 1 .. Plan.Input_Poll_Count loop
          Poll_Events;
          Handle_All_Keyboard (Runtime_Windows);
          Handle_All_Text_Input (Runtime_Windows);
-         Handle_All_Scroll_Input (Runtime_Windows);
          Handle_All_Mouse (Runtime_Windows);
+         Handle_All_Drop_Input (Runtime_Windows);
+         Handle_All_Scroll_Input (Runtime_Windows);
+         Handle_All_File_Watch_Poll (Runtime_Windows);
          Result.Input_Polled := True;
       end loop;
 
       for Frame_Index in 1 .. Plan.Frame_Count loop
+         Result.Frames_Attempted := Result.Frames_Attempted + 1;
          Render_All (Runtime_Windows);
-         Result.Frame_Rendered := True;
+         Result.Frame_Rendered :=
+           Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
+         for Runtime of Runtime_Windows loop
+            if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Not_Initialized then
+               declare
+                  Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+                    Files.Rendering.Vulkan.Diagnostics (Runtime.Vulkan);
+               begin
+                  Result.Last_Status := Runtime.Last_Present_Status;
+                  Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
+                  if Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented then
+                     Result.Frames_Presented := Result.Frames_Presented + 1;
+                  end if;
+                  Result.Framebuffer_Readback_Ready :=
+                    Result.Framebuffer_Readback_Ready or else Diagnostics.Framebuffer_Readback_Ready;
+                  if Diagnostics.Framebuffer_Readback_Ready then
+                     Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
+                     Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
+                  end if;
+               end;
+            end if;
+         end loop;
       end loop;
 
       Release_All (Runtime_Windows);
       Glfw.Shutdown;
       Result.Closed_Cleanly := True;
-      Result.Error_Key := To_Unbounded_String ("runtime.smoke.ready");
+      Result.Error_Key :=
+        To_Unbounded_String
+          ((if Result.Frame_Rendered then "runtime.smoke.ready" else "runtime.smoke.text_failed"));
       return Result;
    exception
       when Desktop_Error =>
@@ -1393,9 +1969,16 @@ package body Files.Application.Windows is
            (Attempted       => True,
             Window_Created  => Result.Window_Created,
             Frame_Rendered  => Result.Frame_Rendered,
+            Frames_Attempted => Result.Frames_Attempted,
+            Frames_Presented => Result.Frames_Presented,
             Input_Polled    => Result.Input_Polled,
             Closed_Cleanly  => False,
             Skipped_By_Plan => False,
+            Last_Status     => Result.Last_Status,
+            Last_Vk_Result  => Result.Last_Vk_Result,
+            Framebuffer_Readback_Ready => Result.Framebuffer_Readback_Ready,
+            Last_Framebuffer_Hash => Result.Last_Framebuffer_Hash,
+            Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
             Error_Key       => To_Unbounded_String ("error.window.create"));
       when others =>
          Release_All (Runtime_Windows);
@@ -1406,9 +1989,16 @@ package body Files.Application.Windows is
            (Attempted       => True,
             Window_Created  => Result.Window_Created,
             Frame_Rendered  => Result.Frame_Rendered,
+            Frames_Attempted => Result.Frames_Attempted,
+            Frames_Presented => Result.Frames_Presented,
             Input_Polled    => Result.Input_Polled,
             Closed_Cleanly  => False,
             Skipped_By_Plan => False,
+            Last_Status     => Result.Last_Status,
+            Last_Vk_Result  => Result.Last_Vk_Result,
+            Framebuffer_Readback_Ready => Result.Framebuffer_Readback_Ready,
+            Last_Framebuffer_Hash => Result.Last_Framebuffer_Hash,
+            Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
             Error_Key       => To_Unbounded_String ("error.window.create"));
    end Run_Live_Window_Smoke;
 
@@ -1424,9 +2014,7 @@ package body Files.Application.Windows is
 
       Glfw.Init;
       Initialized := True;
-      Glfw.Windows.Hints.Reset_To_Defaults;
-      Glfw.Windows.Hints.Set_Resizable (True);
-      Glfw.Windows.Hints.Set_Visible (True);
+      Configure_Vulkan_Window_Hints;
 
       for Startup_Window of Startup.Windows loop
          Append_Runtime_Window
@@ -1438,15 +2026,28 @@ package body Files.Application.Windows is
             Height          => 768);
       end loop;
 
-      Render_All (Runtime_Windows);
+      for Frame_Index in 1 .. 3 loop
+         Poll_Events;
+         Render_All (Runtime_Windows);
+         exit when All_Runtime_Windows_Shown (Runtime_Windows);
+      end loop;
+
+      if not All_Runtime_Windows_Shown (Runtime_Windows) then
+         Show_Unshown_Runtime_Windows (Runtime_Windows);
+         Poll_Events;
+         Render_All (Runtime_Windows);
+      end if;
+      Poll_Events;
 
       while Any_Window_Open (Runtime_Windows) loop
-         Glfw.Input.Wait_For_Events;
+         Wait_For_Events_Timeout (Event_Wait_Timeout);
          Handle_All_Keyboard (Runtime_Windows);
          Handle_All_Text_Input (Runtime_Windows);
-         Handle_All_Scroll_Input (Runtime_Windows);
          Handle_All_Mouse (Runtime_Windows);
+         Handle_All_Drop_Input (Runtime_Windows);
+         Handle_All_Scroll_Input (Runtime_Windows);
          Render_All (Runtime_Windows);
+         Handle_All_File_Watch_Poll (Runtime_Windows);
       end loop;
 
       Release_All (Runtime_Windows);

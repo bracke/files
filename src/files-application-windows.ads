@@ -1,6 +1,8 @@
 with Files.Controller;
+with Files.Rendering.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
+with Interfaces;
 
 --  GLFW-backed desktop window session for resolved startup windows.
 package Files.Application.Windows is
@@ -16,6 +18,21 @@ package Files.Application.Windows is
       Focus_Runtime_Model     : Boolean := True;
       Resize_Runtime_Model    : Boolean := True;
       Scroll_Runtime_Model    : Boolean := True;
+      Native_Drop_Callbacks   : Boolean := True;
+      Native_Drop_Automation  : Boolean := False;
+      Directory_Watch_Polling : Boolean := True;
+      Native_File_Watching    : Boolean := True;
+   end record;
+
+   type Native_Drag_Automation_Profile is record
+      Portable_GLFW_Automation        : Boolean := False;
+      Native_Drop_Callbacks           : Boolean := True;
+      Requires_OS_Event_Source        : Boolean := True;
+      X11_Xdnd_Required               : Boolean := True;
+      Wayland_Source_Protocol_Required : Boolean := True;
+      Windows_Native_Injection_Required : Boolean := True;
+      Macos_Native_Injection_Required : Boolean := True;
+      Binding_Unit                    : UString;
    end record;
 
    type Native_File_Dialog_Mode is
@@ -54,9 +71,17 @@ package Files.Application.Windows is
       Attempted          : Boolean := False;
       Window_Created     : Boolean := False;
       Frame_Rendered     : Boolean := False;
+      Frames_Attempted   : Natural := 0;
+      Frames_Presented   : Natural := 0;
       Input_Polled       : Boolean := False;
       Closed_Cleanly     : Boolean := False;
       Skipped_By_Plan    : Boolean := True;
+      Last_Status        : Files.Rendering.Vulkan.Vulkan_Status :=
+        Files.Rendering.Vulkan.Vulkan_Not_Initialized;
+      Last_Vk_Result     : Interfaces.Integer_32 := 0;
+      Framebuffer_Readback_Ready : Boolean := False;
+      Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
+      Last_Framebuffer_Bytes : Natural := 0;
       Error_Key          : UString;
    end record;
 
@@ -91,6 +116,16 @@ package Files.Application.Windows is
    --
    --  @return Display, Vulkan, and smoke-test readiness flags.
    function Runtime_Capabilities return Desktop_Capabilities;
+
+   --  Return the native blocker profile for OS drag-event automation.
+   --
+   --  GLFW provides file-drop callbacks but not portable synthesis of external
+   --  drag events. This profile names the native backends required for real
+   --  automation so capability reporting stays explicit.
+   --
+   --  @return Structured native drag automation capability and blocker metadata.
+   function Native_Drag_Automation_Profile_Of_Current_Runtime
+      return Native_Drag_Automation_Profile;
 
    --  Return whether a controller result should continue through runtime settings-path handling.
    --

@@ -6,6 +6,7 @@ with System.Address_To_Access_Conversions;
 
 package body Files.Rendering.Vulkan is
    use Ada.Strings.Unbounded;
+   use type Interfaces.C.C_float;
    use type Interfaces.Unsigned_32;
    use type Interfaces.Unsigned_64;
    use type Interfaces.Integer_32;
@@ -25,7 +26,8 @@ package body Files.Rendering.Vulkan is
    Max_Surface_Formats : constant Positive := 32;
    Max_Batch_Vertices : constant Positive := 65_536;
    Max_Atlas_Bytes : constant Positive := 4_194_304;
-   Icon_Atlas_Tile_Size : constant Positive := 16;
+   Max_Readback_Bytes : constant Positive := 33_554_432;
+   Icon_Atlas_Tile_Size : constant Positive := 64;
    Icon_Atlas_Channels : constant Positive := 4;
    Max_Icon_Atlas_Tiles : constant Positive :=
      Max_Atlas_Bytes / (Icon_Atlas_Tile_Size * Icon_Atlas_Tile_Size * Icon_Atlas_Channels);
@@ -44,6 +46,32 @@ package body Files.Rendering.Vulkan is
       end if;
    end Saturating_Add;
 
+   function Saturating_Multiply
+     (Value  : Natural;
+      Factor : Natural)
+      return Natural is
+   begin
+      if Factor = 0 then
+         return 0;
+      elsif Value > Natural'Last / Factor then
+         return Natural'Last;
+      else
+         return Value * Factor;
+      end if;
+   end Saturating_Multiply;
+
+   function Scaled_Down
+     (Value       : Natural;
+      Numerator   : Positive;
+      Denominator : Positive)
+      return Natural is
+   begin
+      return
+        Saturating_Add
+          (Saturating_Multiply (Value / Denominator, Numerator),
+           Saturating_Multiply (Value mod Denominator, Numerator) / Denominator);
+   end Scaled_Down;
+
    function Bounded_Product_Divide
      (Value       : Natural;
       Factor      : Natural;
@@ -53,7 +81,7 @@ package body Files.Rendering.Vulkan is
       if Factor = 0 or else Value = 0 then
          return 0;
       elsif Value > Natural'Last / Factor then
-         return Value;
+         return Scaled_Down (Value, Factor, Denominator);
       else
          return (Value * Factor) / Denominator;
       end if;
@@ -81,6 +109,11 @@ package body Files.Rendering.Vulkan is
      with Convention => C;
 
    package Byte_Array_Conversions is new System.Address_To_Access_Conversions (Byte_Array);
+
+   type Readback_Byte_Array is array (Positive range 1 .. Max_Readback_Bytes) of aliased Interfaces.Unsigned_8
+     with Convention => C;
+
+   package Readback_Byte_Array_Conversions is new System.Address_To_Access_Conversions (Readback_Byte_Array);
 
    Fallback_Atlas_Pixel : aliased Interfaces.Unsigned_8 := 255;
 
@@ -272,6 +305,14 @@ package body Files.Rendering.Vulkan is
      (Renderer : in out Vulkan_Renderer;
       Batch    : Submission_Batch)
       return Boolean;
+
+   function Ensure_Readback_Buffer
+     (Renderer : in out Vulkan_Renderer;
+      Byte_Count : Natural)
+      return Boolean;
+
+   procedure Capture_Completed_Readback
+     (Renderer : in out Vulkan_Renderer);
 
    function Record_Command_Buffers
      (Renderer     : in out Vulkan_Renderer;
@@ -597,6 +638,22 @@ package body Files.Rendering.Vulkan is
             Renderer.Icon_Atlas_Memory := System.Null_Address;
          end if;
 
+         if Renderer.Readback_Buffer /= System.Null_Address then
+            Vk.Destroy_Buffer
+              (device      => Renderer.Device,
+               buffer      => Renderer.Readback_Buffer,
+               p_Allocator => System.Null_Address);
+            Renderer.Readback_Buffer := System.Null_Address;
+         end if;
+
+         if Renderer.Readback_Memory /= System.Null_Address then
+            Vk.Free_Memory
+              (device      => Renderer.Device,
+               memory      => Renderer.Readback_Memory,
+               p_Allocator => System.Null_Address);
+            Renderer.Readback_Memory := System.Null_Address;
+         end if;
+
          if Renderer.Graphics_Pipeline /= System.Null_Address then
             Vk.Destroy_Pipeline
               (device      => Renderer.Device,
@@ -722,6 +779,8 @@ package body Files.Rendering.Vulkan is
          Renderer.Icon_Atlas_Sampler := System.Null_Address;
          Renderer.Icon_Atlas_Staging_Buffer := System.Null_Address;
          Renderer.Icon_Atlas_Staging_Memory := System.Null_Address;
+         Renderer.Readback_Buffer := System.Null_Address;
+         Renderer.Readback_Memory := System.Null_Address;
          Renderer.Sync_Live := False;
          Renderer.Swapchain_Live := False;
       end if;
@@ -756,7 +815,25 @@ package body Files.Rendering.Vulkan is
       Renderer.Icon_Atlas_Height_Value := 0;
       Renderer.Icon_Atlas_Format_Value := Atlas_Texture_None;
       Renderer.Icon_Atlas_Staging_Capacity := 0;
+      Renderer.Readback_Capacity := 0;
+      Renderer.Readback_Bytes := 0;
+      Renderer.Readback_Pending := False;
+      Renderer.Readback_Ready := False;
+      Renderer.Last_Readback_Hash := 0;
    end Destroy_Swapchain_Resources;
+
+   procedure Set_Readback_Enabled
+     (Renderer : in out Vulkan_Renderer;
+      Enabled  : Boolean) is
+   begin
+      Renderer.Readback_Enabled := Enabled;
+      if not Enabled then
+         Renderer.Readback_Pending := False;
+         Renderer.Readback_Ready := False;
+         Renderer.Readback_Bytes := 0;
+         Renderer.Last_Readback_Hash := 0;
+      end if;
+   end Set_Readback_Enabled;
 
    function Create_Render_Targets
      (Renderer : in out Vulkan_Renderer;
@@ -965,11 +1042,15 @@ package body Files.Rendering.Vulkan is
          flags                    => 0,
          topology                 => Vk.PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
          primitive_Restart_Enable => 0);
+      Framebuffer_Width  : constant Interfaces.C.C_float :=
+        Interfaces.C.C_float (Renderer.Frame_Width_Value);
+      Framebuffer_Height : constant Interfaces.C.C_float :=
+        Interfaces.C.C_float (Renderer.Frame_Height_Value);
       Viewport : aliased Vk.Viewport_T :=
         (x         => 0.0,
-         y         => 0.0,
-         width     => Interfaces.C.C_float (Renderer.Frame_Width_Value),
-         height    => Interfaces.C.C_float (Renderer.Frame_Height_Value),
+         y         => Framebuffer_Height,
+         width     => Framebuffer_Width,
+         height    => -Framebuffer_Height,
          min_Depth => 0.0,
          max_Depth => 1.0);
       Scissor : aliased Vk.Rect2_D_T :=
@@ -1453,14 +1534,183 @@ package body Files.Rendering.Vulkan is
          return False;
    end Upload_Vertices;
 
+   function Ensure_Readback_Buffer
+     (Renderer : in out Vulkan_Renderer;
+      Byte_Count : Natural)
+      return Boolean
+   is
+      Buffer_Info : aliased Vk.Buffer_Create_Info_T :=
+        (s_Type                   => Vk.STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+         p_Next                   => System.Null_Address,
+         flags                    => 0,
+         size                     => Interfaces.Unsigned_64 (Byte_Count),
+         usage                    => Vk.BUFFER_USAGE_TRANSFER_DST_BIT,
+         sharing_Mode             => Vk.SHARING_MODE_EXCLUSIVE,
+         queue_Family_Index_Count => 0,
+         p_Queue_Family_Indices   => System.Null_Address);
+      Buffer_Handle : aliased Vk.Buffer_T := System.Null_Address;
+      Requirements  : aliased Vk.Memory_Requirements_T;
+      Memory_Type   : Interfaces.Unsigned_32 := 0;
+      Allocate_Info : aliased Vk.Memory_Allocate_Info_T;
+      Memory_Handle : aliased Vk.Device_Memory_T := System.Null_Address;
+      Result        : Vk.Result_T;
+   begin
+      if Byte_Count = 0 or else Byte_Count > Max_Readback_Bytes then
+         return False;
+      elsif Renderer.Readback_Buffer /= System.Null_Address
+        and then Renderer.Readback_Memory /= System.Null_Address
+        and then Renderer.Readback_Capacity >= Byte_Count
+      then
+         Renderer.Readback_Bytes := Byte_Count;
+         return True;
+      end if;
+
+      if Renderer.Readback_Buffer /= System.Null_Address then
+         Vk.Destroy_Buffer (Renderer.Device, Renderer.Readback_Buffer, System.Null_Address);
+         Renderer.Readback_Buffer := System.Null_Address;
+      end if;
+      if Renderer.Readback_Memory /= System.Null_Address then
+         Vk.Free_Memory (Renderer.Device, Renderer.Readback_Memory, System.Null_Address);
+         Renderer.Readback_Memory := System.Null_Address;
+      end if;
+
+      Renderer.Readback_Capacity := 0;
+      Renderer.Readback_Bytes := 0;
+      Renderer.Readback_Pending := False;
+      Renderer.Readback_Ready := False;
+      Result :=
+        Vk.Create_Buffer
+          (device        => Renderer.Device,
+           p_Create_Info => Buffer_Info'Address,
+           p_Allocator   => System.Null_Address,
+           p_Buffer      => Buffer_Handle'Address);
+
+      if Result /= Vk.SUCCESS or else Buffer_Handle = System.Null_Address then
+         return False;
+      end if;
+
+      Vk.Get_Buffer_Memory_Requirements
+        (device                => Renderer.Device,
+         buffer                => Buffer_Handle,
+         p_Memory_Requirements => Requirements'Address);
+
+      if not Host_Visible_Memory_Type (Renderer, Requirements.memory_Type_Bits, Memory_Type) then
+         Vk.Destroy_Buffer (Renderer.Device, Buffer_Handle, System.Null_Address);
+         return False;
+      end if;
+
+      Allocate_Info :=
+        (s_Type            => Vk.STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+         p_Next            => System.Null_Address,
+         allocation_Size   => Requirements.size,
+         memory_Type_Index => Memory_Type);
+      Result :=
+        Vk.Allocate_Memory
+          (device          => Renderer.Device,
+           p_Allocate_Info => Allocate_Info'Address,
+           p_Allocator     => System.Null_Address,
+           p_Memory        => Memory_Handle'Address);
+
+      if Result /= Vk.SUCCESS or else Memory_Handle = System.Null_Address then
+         Vk.Destroy_Buffer (Renderer.Device, Buffer_Handle, System.Null_Address);
+         return False;
+      end if;
+
+      Result := Vk.Bind_Buffer_Memory (Renderer.Device, Buffer_Handle, Memory_Handle, 0);
+      if Result /= Vk.SUCCESS then
+         Vk.Free_Memory (Renderer.Device, Memory_Handle, System.Null_Address);
+         Vk.Destroy_Buffer (Renderer.Device, Buffer_Handle, System.Null_Address);
+         return False;
+      end if;
+
+      Renderer.Readback_Buffer := Buffer_Handle;
+      Renderer.Readback_Memory := Memory_Handle;
+      Renderer.Readback_Capacity := Byte_Count;
+      Renderer.Readback_Bytes := Byte_Count;
+      return True;
+   exception
+      when others =>
+         return False;
+   end Ensure_Readback_Buffer;
+
+   procedure Capture_Completed_Readback
+     (Renderer : in out Vulkan_Renderer)
+   is
+      Mapped_Data : aliased System.Address := System.Null_Address;
+      Result      : Vk.Result_T;
+      Hash        : Interfaces.Unsigned_32 := 2_166_136_261;
+
+      procedure Mix
+        (Value : Interfaces.Unsigned_8) is
+      begin
+         Hash := (Hash xor Interfaces.Unsigned_32 (Value)) * 16_777_619;
+      end Mix;
+   begin
+      if not Renderer.Readback_Pending
+        or else Renderer.Readback_Memory = System.Null_Address
+        or else Renderer.Readback_Bytes = 0
+        or else Renderer.Readback_Bytes > Max_Readback_Bytes
+      then
+         return;
+      end if;
+
+      Result :=
+        Vk.Map_Memory
+          (device  => Renderer.Device,
+           memory  => Renderer.Readback_Memory,
+           offset  => 0,
+           size    => Interfaces.Unsigned_64 (Renderer.Readback_Bytes),
+           flags   => 0,
+           pp_Data => Mapped_Data'Address);
+
+      if Result /= Vk.SUCCESS or else Mapped_Data = System.Null_Address then
+         Renderer.Readback_Pending := False;
+         Renderer.Readback_Ready := False;
+         return;
+      end if;
+
+      declare
+         Bytes : constant Readback_Byte_Array_Conversions.Object_Pointer :=
+           Readback_Byte_Array_Conversions.To_Pointer (Mapped_Data);
+      begin
+         for Index in 1 .. Renderer.Readback_Bytes loop
+            Mix (Bytes.all (Index));
+         end loop;
+      end;
+
+      Vk.Unmap_Memory (Renderer.Device, Renderer.Readback_Memory);
+      Renderer.Last_Readback_Hash := Hash;
+      Renderer.Readback_Ready := True;
+      Renderer.Readback_Pending := False;
+   exception
+      when others =>
+         if Mapped_Data /= System.Null_Address then
+            Vk.Unmap_Memory (Renderer.Device, Renderer.Readback_Memory);
+         end if;
+         Renderer.Readback_Pending := False;
+         Renderer.Readback_Ready := False;
+   end Capture_Completed_Readback;
+
    function Upload_Atlas
      (Renderer : in out Vulkan_Renderer;
       Batch    : Submission_Batch)
       return Boolean
    is
-      Use_Batch_Atlas : constant Boolean := Batch.Atlas_Dirty;
-      Use_Icon_Atlas  : constant Boolean := (not Use_Batch_Atlas) and then Batch.Icon_Atlas_Dirty;
-      Upload_Format   : constant Atlas_Texture_Format := Upload_Texture_Format (Batch);
+      Use_Batch_Atlas : constant Boolean :=
+        Batch.Text_Atlas_Used
+        and then
+          (Batch.Atlas_Dirty
+           or else not Renderer.Atlas_Texture_Live
+           or else Renderer.Atlas_Width_Value /= Batch.Atlas_Width
+           or else Renderer.Atlas_Height_Value /= Batch.Atlas_Height
+           or else Renderer.Atlas_Format_Value /= Atlas_Texture_R8);
+      Use_Icon_Atlas  : constant Boolean :=
+        (not Use_Batch_Atlas) and then (not Batch.Text_Atlas_Used) and then Batch.Icon_Atlas_Dirty;
+      Upload_Format   : constant Atlas_Texture_Format :=
+        (if Use_Batch_Atlas then Atlas_Texture_R8
+         elsif Use_Icon_Atlas and then Batch.Icon_Atlas_Channels = 4 then Atlas_Texture_RGBA8
+         elsif Use_Icon_Atlas then Atlas_Texture_R8
+         else Atlas_Texture_None);
       Vulkan_Format   : constant Vk.Format_T :=
         (if Upload_Format = Atlas_Texture_RGBA8 then Format_R8G8B8A8_Unorm else Vk.FORMAT_R8_UNORM);
       Actual_Width : constant Natural :=
@@ -1478,7 +1728,10 @@ package body Files.Rendering.Vulkan is
         or else Renderer.Atlas_Format_Value /= Upload_Format;
       Result : Vk.Result_T;
    begin
-      if not Batch.Atlas_Dirty and then not Batch.Icon_Atlas_Dirty and then Renderer.Atlas_Texture_Live then
+      if not Use_Batch_Atlas
+        and then not Use_Icon_Atlas
+        and then Renderer.Atlas_Texture_Live
+      then
          return True;
       elsif Pixel_Address = System.Null_Address
         or else Actual_Width = 0
@@ -1545,8 +1798,8 @@ package body Files.Rendering.Vulkan is
               (s_Type                   => Vk.STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
                p_Next                   => System.Null_Address,
                flags                    => 0,
-               mag_Filter               => Vk.FILTER_LINEAR,
-               min_Filter               => Vk.FILTER_LINEAR,
+               mag_Filter               => Vk.FILTER_NEAREST,
+               min_Filter               => Vk.FILTER_NEAREST,
                mipmap_Mode              => Vk.SAMPLER_MIPMAP_MODE_NEAREST,
                address_Mode_U           => Vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
                address_Mode_V           => Vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -1896,8 +2149,8 @@ package body Files.Rendering.Vulkan is
               (s_Type                   => Vk.STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
                p_Next                   => System.Null_Address,
                flags                    => 0,
-               mag_Filter               => Vk.FILTER_LINEAR,
-               min_Filter               => Vk.FILTER_LINEAR,
+               mag_Filter               => Vk.FILTER_NEAREST,
+               min_Filter               => Vk.FILTER_NEAREST,
                mipmap_Mode              => Vk.SAMPLER_MIPMAP_MODE_NEAREST,
                address_Mode_U           => Vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
                address_Mode_V           => Vk.SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -2147,9 +2400,9 @@ package body Files.Rendering.Vulkan is
      (Batch : Submission_Batch)
       return Atlas_Texture_Format is
    begin
-      if Batch.Atlas_Dirty then
+      if Batch.Text_Atlas_Used then
          return Atlas_Texture_R8;
-      elsif Batch.Icon_Atlas_Dirty then
+      elsif Batch.Icon_Atlas_Dirty and then not Batch.Text_Atlas_Used then
          if Batch.Icon_Atlas_Channels = 4 then
             return Atlas_Texture_RGBA8;
          else
@@ -2442,6 +2695,91 @@ package body Files.Rendering.Vulkan is
 
             Vk.Cmd_End_Render_Pass (Renderer.Command_Buffers (Index));
 
+            if Renderer.Readback_Enabled
+              and then Renderer.Readback_Buffer /= System.Null_Address
+              and then Renderer.Readback_Bytes > 0
+              and then Renderer.Readback_Bytes <= Max_Readback_Bytes
+            then
+               declare
+                  To_Transfer : aliased Vk.Image_Memory_Barrier_T :=
+                    (s_Type                 => Vk.STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                     p_Next                 => System.Null_Address,
+                     src_Access_Mask        => Vk.ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                     dst_Access_Mask        => Vk.ACCESS_TRANSFER_READ_BIT,
+                     old_Layout             => Image_Layout_Present_Src_KHR,
+                     new_Layout             => Vk.IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                     src_Queue_Family_Index => Interfaces.Unsigned_32'Last,
+                     dst_Queue_Family_Index => Interfaces.Unsigned_32'Last,
+                     image                  => Renderer.Swapchain_Images (Index),
+                     subresource_Range      =>
+                       (aspect_Mask      => Vk.IMAGE_ASPECT_COLOR_BIT,
+                        base_Mip_Level   => 0,
+                        level_Count      => 1,
+                        base_Array_Layer => 0,
+                        layer_Count      => 1));
+                  Copy_Region : aliased Vk.Buffer_Image_Copy_T :=
+                    (buffer_Offset       => 0,
+                     buffer_Row_Length   => 0,
+                     buffer_Image_Height => 0,
+                     image_Subresource   =>
+                       (aspect_Mask      => Vk.IMAGE_ASPECT_COLOR_BIT,
+                        mip_Level        => 0,
+                        base_Array_Layer => 0,
+                        layer_Count      => 1),
+                     image_Offset        => (x => 0, y => 0, z => 0),
+                     image_Extent        =>
+                       (width  => Interfaces.Unsigned_32 (Renderer.Frame_Width_Value),
+                        height => Interfaces.Unsigned_32 (Renderer.Frame_Height_Value),
+                        depth  => 1));
+                  To_Present : aliased Vk.Image_Memory_Barrier_T :=
+                    (s_Type                 => Vk.STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                     p_Next                 => System.Null_Address,
+                     src_Access_Mask        => Vk.ACCESS_TRANSFER_READ_BIT,
+                     dst_Access_Mask        => 0,
+                     old_Layout             => Vk.IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                     new_Layout             => Image_Layout_Present_Src_KHR,
+                     src_Queue_Family_Index => Interfaces.Unsigned_32'Last,
+                     dst_Queue_Family_Index => Interfaces.Unsigned_32'Last,
+                     image                  => Renderer.Swapchain_Images (Index),
+                     subresource_Range      =>
+                       (aspect_Mask      => Vk.IMAGE_ASPECT_COLOR_BIT,
+                        base_Mip_Level   => 0,
+                        level_Count      => 1,
+                        base_Array_Layer => 0,
+                        layer_Count      => 1));
+               begin
+                  Vk.Cmd_Pipeline_Barrier
+                    (command_Buffer              => Renderer.Command_Buffers (Index),
+                     src_Stage_Mask              => Vk.PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                     dst_Stage_Mask              => Vk.PIPELINE_STAGE_TRANSFER_BIT,
+                     dependency_Flags            => 0,
+                     memory_Barrier_Count        => 0,
+                     p_Memory_Barriers           => System.Null_Address,
+                     buffer_Memory_Barrier_Count => 0,
+                     p_Buffer_Memory_Barriers    => System.Null_Address,
+                     image_Memory_Barrier_Count  => 1,
+                     p_Image_Memory_Barriers     => To_Transfer'Address);
+                  Vk.Cmd_Copy_Image_To_Buffer
+                    (command_Buffer   => Renderer.Command_Buffers (Index),
+                     src_Image        => Renderer.Swapchain_Images (Index),
+                     src_Image_Layout => Vk.IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                     dst_Buffer       => Renderer.Readback_Buffer,
+                     region_Count     => 1,
+                     p_Regions        => Copy_Region'Address);
+                  Vk.Cmd_Pipeline_Barrier
+                    (command_Buffer              => Renderer.Command_Buffers (Index),
+                     src_Stage_Mask              => Vk.PIPELINE_STAGE_TRANSFER_BIT,
+                     dst_Stage_Mask              => Vk.PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                     dependency_Flags            => 0,
+                     memory_Barrier_Count        => 0,
+                     p_Memory_Barriers           => System.Null_Address,
+                     buffer_Memory_Barrier_Count => 0,
+                     p_Buffer_Memory_Barriers    => System.Null_Address,
+                     image_Memory_Barrier_Count  => 1,
+                     p_Image_Memory_Barriers     => To_Present'Address);
+               end;
+            end if;
+
             Result := Vk.End_Command_Buffer (Renderer.Command_Buffers (Index));
             if Result /= Vk.SUCCESS then
                return False;
@@ -2590,7 +2928,7 @@ package body Files.Rendering.Vulkan is
          image_Color_Space       => Chosen_Format.color_Space,
          image_Extent            => Extent,
          image_Array_Layers      => 1,
-         image_Usage             => Vk.IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+         image_Usage             => Vk.IMAGE_USAGE_COLOR_ATTACHMENT_BIT or Vk.IMAGE_USAGE_TRANSFER_SRC_BIT,
          image_Sharing_Mode      => Vk.SHARING_MODE_EXCLUSIVE,
          queue_Family_Index_Count => 0,
          p_Queue_Family_Indices  => System.Null_Address,
@@ -3306,11 +3644,16 @@ package body Files.Rendering.Vulkan is
          Last_Vertex_Count     => Renderer.Last_Vertex_Count,
          Last_Texture_Count    => Renderer.Last_Texture_Count,
          Last_Used_Mixed_Textures => Renderer.Last_Used_Mixed_Textures,
+         Framebuffer_Readback_Enabled => Renderer.Readback_Enabled,
+         Framebuffer_Readback_Ready => Renderer.Readback_Ready,
+         Last_Framebuffer_Hash => Renderer.Last_Readback_Hash,
+         Last_Framebuffer_Bytes => Renderer.Readback_Bytes,
          Frame_Width           => Renderer.Frame_Width_Value,
          Frame_Height          => Renderer.Frame_Height_Value,
          Pending_Frame_Width   => Renderer.Pending_Width_Value,
          Pending_Frame_Height  => Renderer.Pending_Height_Value,
          Last_Status           => Renderer.Last_Status,
+         Last_Vk_Result        => Renderer.Last_Vk_Result,
          Physical_Device_Count => Renderer.Last_Physical_Devices);
    end Diagnostics;
 
@@ -3387,6 +3730,49 @@ package body Files.Rendering.Vulkan is
          Append (Right, Bottom, U1, V1);
          Append (Left, Bottom, U0, V1);
       end Append_Quad;
+
+      procedure Append_Triangle
+        (X1    : Float;
+         Y1    : Float;
+         X2    : Float;
+         Y2    : Float;
+         X3    : Float;
+         Y3    : Float;
+         Color : Files.Rendering.Render_Color)
+      is
+      begin
+         if Natural (Result.Vertices.Length) > Max_Batch_Vertices - 3 then
+            return;
+         end if;
+
+         Result.Vertices.Append
+           (Vertex'
+              (X        => Clip_X (X1),
+               Y        => Clip_Y (Y1),
+               U        => 0.0,
+               V        => 0.0,
+               Color    => Color,
+               Textured => False,
+               Texture  => Texture_None));
+         Result.Vertices.Append
+           (Vertex'
+              (X        => Clip_X (X2),
+               Y        => Clip_Y (Y2),
+               U        => 0.0,
+               V        => 0.0,
+               Color    => Color,
+               Textured => False,
+               Texture  => Texture_None));
+         Result.Vertices.Append
+           (Vertex'
+              (X        => Clip_X (X3),
+               Y        => Clip_Y (Y3),
+               U        => 0.0,
+               V        => 0.0,
+               Color    => Color,
+               Textured => False,
+               Texture  => Texture_None));
+      end Append_Triangle;
 
       procedure Build_Icon_Atlas is
          Tile_Size  : constant Positive := Icon_Atlas_Tile_Size;
@@ -3510,7 +3896,10 @@ package body Files.Rendering.Vulkan is
 
          Tile_Index : Natural := 0;
       begin
-         if Icon_Count = 0 or else Icon_Count > Max_Icon_Atlas_Tiles then
+         if Result.Text_Atlas_Used
+           or else Icon_Count = 0
+           or else Icon_Count > Max_Icon_Atlas_Tiles
+         then
             return;
          end if;
 
@@ -3535,6 +3924,11 @@ package body Files.Rendering.Vulkan is
       Result.Atlas_Pixels := Text.Atlas_Pixels;
       Result.Atlas_Bytes := Text.Atlas_Bytes;
       Result.Atlas_Dirty := Text.Atlas_Dirty;
+      Result.Text_Atlas_Used :=
+        Text.Status = Files.Rendering.Text_Render_Success
+        and then
+          (not Text.Glyphs.Is_Empty
+           or else not Text.Overlay_Glyphs.Is_Empty);
       Build_Icon_Atlas;
       Result.Icon_Texture_Format := Icon_Upload_Texture_Format (Result);
       Result.Texture_Count :=
@@ -3542,7 +3936,7 @@ package body Files.Rendering.Vulkan is
          elsif Result.Atlas_Dirty or else Result.Icon_Atlas_Dirty then 1
          else 0);
       Result.Uses_Separate_Text_And_Icon_Textures :=
-        Result.Atlas_Dirty and then Result.Icon_Atlas_Dirty;
+        Result.Text_Atlas_Used and then Result.Icon_Atlas_Dirty;
 
       for Rectangle of Frame.Rectangles loop
          declare
@@ -3565,40 +3959,58 @@ package body Files.Rendering.Vulkan is
          end;
       end loop;
 
-      declare
-         Source_Icon_Index : Natural := 0;
-      begin
-         for Icon of Frame.Icons loop
-            declare
-               Before : constant Natural := Natural (Result.Vertices.Length);
-               Icon_Count : constant Natural := Natural (Frame.Icons.Length);
-               U0 : constant Float :=
-                 (if Icon_Count = 0 then 0.0 else Float (Source_Icon_Index) / Float (Icon_Count));
-               U1 : constant Float :=
-                 (if Icon_Count = 0 then 0.0 else Float (Source_Icon_Index + 1) / Float (Icon_Count));
-               Textured : constant Boolean := Result.Icon_Atlas_Dirty;
-            begin
-               Append_Quad
-                 (X        => Float (Icon.X),
-                  Y        => Float (Icon.Y),
-                  Width    => Float (Icon.Size),
-                  Height   => Float (Icon.Size),
-                  U0       => (if Textured then U0 else 0.0),
-                  V0       => 0.0,
-                  U1       => (if Textured then U1 else 0.0),
-                  V1       => (if Textured then 1.0 else 0.0),
-                  Color    => Files.Rendering.Icon_File_Color,
-                  Textured => Textured,
-                  Texture  => (if Textured then Texture_Icon_Atlas else Texture_None));
-               Result.Icon_Vertex_Count :=
-                 Result.Icon_Vertex_Count + Natural (Result.Vertices.Length) - Before;
-               if Natural (Result.Vertices.Length) > Before then
-                  Result.Icon_Quad_Count := Result.Icon_Quad_Count + 1;
-               end if;
-               Source_Icon_Index := Source_Icon_Index + 1;
-            end;
-         end loop;
-      end;
+      for Triangle of Frame.Triangles loop
+         declare
+            Before : constant Natural := Natural (Result.Vertices.Length);
+         begin
+            Append_Triangle
+              (X1    => Triangle.X1,
+               Y1    => Triangle.Y1,
+               X2    => Triangle.X2,
+               Y2    => Triangle.Y2,
+               X3    => Triangle.X3,
+               Y3    => Triangle.Y3,
+               Color => Triangle.Color);
+            Result.Triangle_Vertex_Count :=
+              Result.Triangle_Vertex_Count + Natural (Result.Vertices.Length) - Before;
+         end;
+      end loop;
+
+      if Result.Icon_Atlas_Dirty then
+         declare
+            Source_Icon_Index : Natural := 0;
+         begin
+            for Icon of Frame.Icons loop
+               declare
+                  Before : constant Natural := Natural (Result.Vertices.Length);
+                  Icon_Count : constant Natural := Natural (Frame.Icons.Length);
+                  U0 : constant Float :=
+                    (if Icon_Count = 0 then 0.0 else Float (Source_Icon_Index) / Float (Icon_Count));
+                  U1 : constant Float :=
+                    (if Icon_Count = 0 then 0.0 else Float (Source_Icon_Index + 1) / Float (Icon_Count));
+               begin
+                  Append_Quad
+                    (X        => Float (Icon.X),
+                     Y        => Float (Icon.Y),
+                     Width    => Float (Icon.Size),
+                     Height   => Float (Icon.Size),
+                     U0       => U0,
+                     V0       => 0.0,
+                     U1       => U1,
+                     V1       => 1.0,
+                     Color    => Files.Rendering.Icon_File_Color,
+                     Textured => True,
+                     Texture  => Texture_Icon_Atlas);
+                  Result.Icon_Vertex_Count :=
+                    Result.Icon_Vertex_Count + Natural (Result.Vertices.Length) - Before;
+                  if Natural (Result.Vertices.Length) > Before then
+                     Result.Icon_Quad_Count := Result.Icon_Quad_Count + 1;
+                  end if;
+                  Source_Icon_Index := Source_Icon_Index + 1;
+               end;
+            end loop;
+         end;
+      end if;
 
       if Text.Status = Files.Rendering.Text_Render_Success then
          for Glyph of Text.Glyphs loop
@@ -3621,10 +4033,132 @@ package body Files.Rendering.Vulkan is
                  Result.Glyph_Vertex_Count + Natural (Result.Vertices.Length) - Before;
             end;
          end loop;
+
+         for Rectangle of Frame.Overlay_Rectangles loop
+            declare
+               Before : constant Natural := Natural (Result.Vertices.Length);
+            begin
+               Append_Quad
+                 (X        => Float (Rectangle.X),
+                  Y        => Float (Rectangle.Y),
+                  Width    => Float (Rectangle.Width),
+                  Height   => Float (Rectangle.Height),
+                  U0       => 0.0,
+                  V0       => 0.0,
+                  U1       => 0.0,
+                  V1       => 0.0,
+                  Color    => Rectangle.Color,
+                  Textured => False,
+                  Texture  => Texture_None);
+               Result.Overlay_Vertex_Count :=
+                 Result.Overlay_Vertex_Count + Natural (Result.Vertices.Length) - Before;
+            end;
+         end loop;
+
+         for Glyph of Text.Overlay_Glyphs loop
+            declare
+               Before : constant Natural := Natural (Result.Vertices.Length);
+            begin
+               Append_Quad
+                 (X        => Glyph.X,
+                  Y        => Glyph.Y,
+                  Width    => Glyph.Width,
+                  Height   => Glyph.Height,
+                  U0       => Glyph.U0,
+                  V0       => Glyph.V0,
+                  U1       => Glyph.U1,
+                  V1       => Glyph.V1,
+                  Color    => Glyph.Color,
+                  Textured => True,
+                  Texture  => Texture_Text_Atlas);
+               Result.Overlay_Vertex_Count :=
+                 Result.Overlay_Vertex_Count + Natural (Result.Vertices.Length) - Before;
+            end;
+         end loop;
       end if;
 
       return Result;
    end Build_Submission;
+
+   function Compare_Gpu_Screenshot
+     (Actual   : Submission_Batch;
+      Expected : Submission_Batch)
+      return Gpu_Screenshot_Comparison
+   is
+      function Natural_Code
+        (Value : Natural)
+         return Interfaces.Unsigned_32 is
+      begin
+         return Interfaces.Unsigned_32 (Value mod 2_147_483_647);
+      end Natural_Code;
+
+      function Float_Code
+        (Value : Float)
+         return Interfaces.Unsigned_32
+      is
+         Scaled : constant Integer := Integer (Value * 10_000.0);
+      begin
+         return Interfaces.Unsigned_32 (Scaled + 2_000_000);
+      end Float_Code;
+
+      function Boolean_Code
+        (Value : Boolean)
+         return Interfaces.Unsigned_32 is
+      begin
+         return (if Value then 1 else 0);
+      end Boolean_Code;
+
+      function Batch_Hash
+        (Batch : Submission_Batch)
+         return Interfaces.Unsigned_32
+      is
+         Hash : Interfaces.Unsigned_32 := 2_166_136_261;
+
+         procedure Mix
+           (Value : Interfaces.Unsigned_32) is
+         begin
+            Hash := (Hash xor Value) * 16_777_619;
+         end Mix;
+      begin
+         Mix (Natural_Code (Batch.Width));
+         Mix (Natural_Code (Batch.Height));
+         Mix (Natural_Code (Batch.Rectangle_Vertex_Count));
+         Mix (Natural_Code (Batch.Triangle_Vertex_Count));
+         Mix (Natural_Code (Batch.Icon_Vertex_Count));
+         Mix (Natural_Code (Batch.Icon_Quad_Count));
+         Mix (Natural_Code (Batch.Glyph_Vertex_Count));
+         Mix (Natural_Code (Batch.Overlay_Vertex_Count));
+         Mix (Natural_Code (Batch.Texture_Count));
+         Mix (Boolean_Code (Batch.Text_Atlas_Used));
+         Mix (Boolean_Code (Batch.Uses_Separate_Text_And_Icon_Textures));
+         Mix (Natural_Code (Natural (Batch.Vertices.Length)));
+
+         for Item of Batch.Vertices loop
+            Mix (Float_Code (Item.X));
+            Mix (Float_Code (Item.Y));
+            Mix (Float_Code (Item.U));
+            Mix (Float_Code (Item.V));
+            Mix (Natural_Code (Files.Rendering.Render_Color'Pos (Item.Color)));
+            Mix (Boolean_Code (Item.Textured));
+            Mix (Natural_Code (Texture_Source'Pos (Item.Texture)));
+         end loop;
+
+         return Hash;
+      end Batch_Hash;
+
+      Actual_Hash   : constant Interfaces.Unsigned_32 := Batch_Hash (Actual);
+      Expected_Hash : constant Interfaces.Unsigned_32 := Batch_Hash (Expected);
+   begin
+      return
+        (Supported         => True,
+         Matched           => Actual_Hash = Expected_Hash,
+         Width             => Actual.Width,
+         Height            => Actual.Height,
+         Compared_Vertices =>
+           Natural'Min (Natural (Actual.Vertices.Length), Natural (Expected.Vertices.Length)),
+         Actual_Hash       => Actual_Hash,
+         Expected_Hash     => Expected_Hash);
+   end Compare_Gpu_Screenshot;
 
    function Present
      (Renderer : in out Vulkan_Renderer;
@@ -3660,6 +4194,7 @@ package body Files.Rendering.Vulkan is
          p_Results            => System.Null_Address);
       Present_Result : Vk.Result_T;
    begin
+      Renderer.Last_Vk_Result := -10_000;
       Renderer.Last_Vertex_Count := Natural (Batch.Vertices.Length);
       Renderer.Last_Texture_Count := Batch.Texture_Count;
       Renderer.Last_Used_Mixed_Textures := Batch.Uses_Separate_Text_And_Icon_Textures;
@@ -3684,6 +4219,7 @@ package body Files.Rendering.Vulkan is
          Request_Swapchain_Recreate (Renderer, Batch.Width, Batch.Height);
          Renderer.Last_Status := Vulkan_Swapchain_Recreate_Needed;
       else
+         Renderer.Last_Vk_Result := -10_010;
          Present_Result :=
            Vk.Wait_For_Fences
              (device      => Renderer.Device,
@@ -3693,8 +4229,13 @@ package body Files.Rendering.Vulkan is
               timeout     => Infinite_Timeout);
 
          if Present_Result /= Vk.SUCCESS then
+            Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
             Renderer.Last_Status := Vulkan_Submit_Failed;
          else
+            if Renderer.Readback_Enabled then
+               Capture_Completed_Readback (Renderer);
+            end if;
+            Renderer.Last_Vk_Result := -10_020;
             if not Upload_Vertices (Renderer, Batch) then
                Renderer.Last_Status := Vulkan_Vertex_Buffer_Create_Failed;
             elsif not Upload_Atlas (Renderer, Batch) then
@@ -3703,7 +4244,14 @@ package body Files.Rendering.Vulkan is
               and then not Upload_Icon_Atlas (Renderer, Batch)
             then
                Renderer.Last_Status := Vulkan_Atlas_Texture_Create_Failed;
+            elsif Renderer.Readback_Enabled
+              and then not Ensure_Readback_Buffer
+                (Renderer,
+                 Saturating_Multiply (Saturating_Multiply (Batch.Width, Batch.Height), 4))
+            then
+               Renderer.Last_Status := Vulkan_Vertex_Buffer_Create_Failed;
             else
+               Renderer.Last_Vk_Result := -10_030;
                Present_Result :=
                  Vk.Acquire_Next_Image_KHR
                    (device        => Renderer.Device,
@@ -3714,16 +4262,20 @@ package body Files.Rendering.Vulkan is
                     p_Image_Index => Image_Index'Address);
 
                if Present_Result = Error_Out_Of_Date_KHR then
+                  Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                   Request_Swapchain_Recreate (Renderer, Batch.Width, Batch.Height);
                   Renderer.Last_Status := Vulkan_Swapchain_Recreate_Needed;
                elsif Present_Result /= Vk.SUCCESS and then Present_Result /= Suboptimal_KHR then
+                  Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                   Renderer.Last_Status := Vulkan_Present_Failed;
                elsif not Record_Command_Buffers (Renderer, Natural (Batch.Vertices.Length)) then
                   Renderer.Last_Status := Vulkan_Command_Record_Failed;
                else
+                  Renderer.Last_Vk_Result := -10_040;
                   Renderer.Current_Image_Index := Image_Index;
                   Indices (1) := Image_Index;
-                  Submit_Commands (1) := Renderer.Command_Buffers (Positive (Image_Index) + 1);
+                  Submit_Commands (1) := Renderer.Command_Buffers (Positive (Image_Index + 1));
+                  Renderer.Last_Vk_Result := -10_050;
                   Present_Result :=
                     Vk.Reset_Fences
                       (device      => Renderer.Device,
@@ -3731,8 +4283,10 @@ package body Files.Rendering.Vulkan is
                        p_Fences    => Fence_Array'Address);
 
                   if Present_Result /= Vk.SUCCESS then
+                     Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                      Renderer.Last_Status := Vulkan_Submit_Failed;
                   else
+                     Renderer.Last_Vk_Result := -10_060;
                      Present_Result :=
                        Vk.Queue_Submit
                          (queue        => Renderer.Graphics_Queue,
@@ -3741,19 +4295,25 @@ package body Files.Rendering.Vulkan is
                           fence        => Renderer.In_Flight);
 
                      if Present_Result /= Vk.SUCCESS then
+                        Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                         Renderer.Last_Status := Vulkan_Submit_Failed;
                      else
+                        Renderer.Readback_Pending := Renderer.Readback_Enabled;
+                        Renderer.Last_Vk_Result := -10_070;
                         Present_Result :=
                           Vk.Queue_Present_KHR
                             (queue          => Renderer.Graphics_Queue,
                              p_Present_Info => Present_Info'Address);
 
                         if Present_Result = Vk.SUCCESS then
+                           Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                            Renderer.Last_Status := Vulkan_Presented;
                         elsif Present_Result = Suboptimal_KHR or else Present_Result = Error_Out_Of_Date_KHR then
+                           Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                            Request_Swapchain_Recreate (Renderer, Batch.Width, Batch.Height);
                            Renderer.Last_Status := Vulkan_Swapchain_Recreate_Needed;
                         else
+                           Renderer.Last_Vk_Result := Interfaces.Integer_32 (Present_Result);
                            Renderer.Last_Status := Vulkan_Present_Failed;
                         end if;
                      end if;

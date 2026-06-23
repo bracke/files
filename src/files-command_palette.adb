@@ -1,71 +1,12 @@
 with Ada.Strings.Unbounded;
 
 with Files.Localization;
+with Files.UTF8;
 
 package body Files.Command_Palette is
    use Ada.Strings.Unbounded;
 
    No_Match_Score : constant Natural := Natural'Last;
-
-   function Is_Query_Separator (Value : Character) return Boolean is
-   begin
-      return Value = ' '
-        or else Value = ASCII.HT
-        or else Value = ASCII.LF
-        or else Value = ASCII.CR
-        or else Value = ASCII.VT
-        or else Value = ASCII.FF
-        or else Character'Pos (Value) = 133;
-   end Is_Query_Separator;
-
-   function Query_Separator_Length
-     (Query    : String;
-      Position : Natural)
-      return Natural
-   is
-      Index : constant Natural := Query'First + Position;
-      B1    : Natural;
-      B2    : Natural;
-      B3    : Natural;
-   begin
-      if Position >= Query'Length then
-         return 0;
-      elsif Is_Query_Separator (Query (Index)) then
-         return 1;
-      end if;
-
-      B1 := Character'Pos (Query (Index));
-      if B1 = 16#C2# and then Position + 1 < Query'Length then
-         B2 := Character'Pos (Query (Index + 1));
-         if B2 = 16#85# or else B2 = 16#A0# then
-            return 2;
-         end if;
-      elsif B1 = 16#E1# and then Position + 2 < Query'Length then
-         B2 := Character'Pos (Query (Index + 1));
-         B3 := Character'Pos (Query (Index + 2));
-         if B2 = 16#9A# and then B3 = 16#80# then
-            return 3;
-         end if;
-      elsif B1 = 16#E2# and then Position + 2 < Query'Length then
-         B2 := Character'Pos (Query (Index + 1));
-         B3 := Character'Pos (Query (Index + 2));
-         if B2 = 16#80#
-           and then (B3 in 16#80# .. 16#8A# or else B3 = 16#A8# or else B3 = 16#A9# or else B3 = 16#AF#)
-         then
-            return 3;
-         elsif B2 = 16#81# and then B3 = 16#9F# then
-            return 3;
-         end if;
-      elsif B1 = 16#E3# and then Position + 2 < Query'Length then
-         B2 := Character'Pos (Query (Index + 1));
-         B3 := Character'Pos (Query (Index + 2));
-         if B2 = 16#80# and then B3 = 16#80# then
-            return 3;
-         end if;
-      end if;
-
-      return 0;
-   end Query_Separator_Length;
 
    function Field_Score
      (Field : String;
@@ -134,7 +75,7 @@ package body Files.Command_Palette is
 
       while Position < Query'Length loop
          loop
-            Separator_Length := Query_Separator_Length (Query, Position);
+            Separator_Length := Files.UTF8.Whitespace_Separator_Length (Query, Position);
             exit when Separator_Length = 0;
             Position := Natural'Min (Position + Separator_Length, Query'Length);
          end loop;
@@ -142,7 +83,7 @@ package body Files.Command_Palette is
          exit when Position >= Query'Length;
 
          Last := Position;
-         while Last < Query'Length and then Query_Separator_Length (Query, Last) = 0 loop
+         while Last < Query'Length and then Files.UTF8.Whitespace_Separator_Length (Query, Last) = 0 loop
             Last := Last + 1;
          end loop;
 
@@ -174,7 +115,7 @@ package body Files.Command_Palette is
    begin
       while Position < Query'Length loop
          declare
-            Separator_Length : constant Natural := Query_Separator_Length (Query, Position);
+            Separator_Length : constant Natural := Files.UTF8.Whitespace_Separator_Length (Query, Position);
          begin
             if Separator_Length = 0 then
                return True;

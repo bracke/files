@@ -43,9 +43,10 @@ package Files.Types is
      (Key_Unknown,
       Key_1,
       Key_2,
-      Key_3,
-      Key_4,
-      Key_D,
+     Key_3,
+     Key_4,
+      Key_A,
+     Key_D,
       Key_F,
       Key_L,
       Key_N,
@@ -74,7 +75,8 @@ package Files.Types is
       Focus_Command_Palette,
       Focus_Settings_Input);
 
-   --  Return Text converted to lower case using simple Ada character folding.
+   --  Return Text converted to lower case using simple Ada character folding
+   --  plus common UTF-8 Latin-1 uppercase letters.
    --
    --  @param Text Text to normalize.
    --  @return Lower-case version of Text.

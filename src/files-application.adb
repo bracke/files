@@ -4,9 +4,11 @@ with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
+with Interfaces;
 
 with Files.File_System;
 with Files.Application.Windows;
+with Files_Config;
 with Files.Localization;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
@@ -40,6 +42,8 @@ package body Files.Application is
                Result.Mode := Live_Smoke_Run;
             elsif Parse_Flags and then (Value = "--help" or else Value = "-h") then
                Result.Mode := Help_Run;
+            elsif Parse_Flags and then Value = "--version" then
+               Result.Mode := Version_Run;
             elsif Parse_Flags and then Value = "--settings" then
                Need_Settings_Path := True;
             elsif Parse_Flags
@@ -80,8 +84,15 @@ package body Files.Application is
         & ASCII.LF
         & Files.Localization.Text ("cli.help.option.settings", Locale)
         & ASCII.LF
+        & Files.Localization.Text ("cli.help.option.version", Locale)
+        & ASCII.LF
         & Files.Localization.Text ("cli.help.option.help", Locale);
    end Help_Text;
+
+   function Version_Text return String is
+   begin
+      return Files_Config.Crate_Name & " " & Files_Config.Crate_Version;
+   end Version_Text;
 
    function Safe_Environment_Value (Name : String) return String is
    begin
@@ -371,10 +382,11 @@ package body Files.Application is
                  Hover_Y     => 5,
                  Has_Hover   => Width > 0 and then Height > 0);
             Text_Renderer : Files.Rendering.Text_Renderer;
+            Frame_Font_Path : constant String := Files.Rendering.Font_Path_For_Frame (Frame);
             Text_Status   : constant Files.Rendering.Text_Render_Status :=
               Files.Rendering.Initialize_Text
                 (Renderer    => Text_Renderer,
-                 Font_Path   => Files.Rendering.Default_Font_Path,
+                 Font_Path   => Frame_Font_Path,
                  Pixel_Size  => 16,
                  Cell_Width  => 10,
                  Cell_Height => 20);
@@ -396,11 +408,22 @@ package body Files.Application is
                & ": "
                & Natural_Text (Natural (Glyphs.Glyphs.Length))
                & "  "
+               & Files.Localization.Text ("runtime.smoke.missing_glyphs", Locale)
+               & ": "
+               & Natural_Text (Glyphs.Missing_Glyph_Count)
+               & "  "
+               & Files.Localization.Text ("runtime.smoke.font", Locale)
+               & ": "
+               & Frame_Font_Path
+               & "  "
                & Files.Localization.Text ("runtime.smoke.vertices", Locale)
                & ": "
                & Natural_Text (Natural (Batch.Vertices.Length)));
 
-            if Text_Status /= Files.Rendering.Text_Render_Success then
+            if Text_Status /= Files.Rendering.Text_Render_Success
+              or else Glyphs.Status /= Files.Rendering.Text_Render_Success
+              or else Glyphs.Glyphs.Is_Empty
+            then
                Append_Line (Files.Localization.Text ("runtime.smoke.text_failed", Locale));
             end if;
          end;
@@ -422,6 +445,9 @@ package body Files.Application is
       Config := Parse_Run_Configuration (Arguments);
       if Config.Mode = Help_Run then
          Ada.Text_IO.Put_Line (Help_Text);
+         return;
+      elsif Config.Mode = Version_Run then
+         Ada.Text_IO.Put_Line (Version_Text);
          return;
       end if;
 
@@ -445,10 +471,41 @@ package body Files.Application is
             begin
                Ada.Text_IO.Put_Line
                  (Files.Localization.Text (To_String (Live_Result.Error_Key)));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.vulkan_status")
+                  & ": "
+                  & Files.Rendering.Vulkan.Vulkan_Status'Image (Live_Result.Last_Status));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.vulkan_result")
+                  & ": "
+                  & Interfaces.Integer_32'Image (Live_Result.Last_Vk_Result));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.frames_attempted")
+                  & ": "
+                  & Natural'Image (Live_Result.Frames_Attempted));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.frames_presented")
+                  & ": "
+                  & Natural'Image (Live_Result.Frames_Presented));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.framebuffer_readback")
+                  & ": "
+                  & Boolean'Image (Live_Result.Framebuffer_Readback_Ready));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.framebuffer_hash")
+                  & ": "
+                  & Interfaces.Unsigned_32'Image (Live_Result.Last_Framebuffer_Hash));
+               Ada.Text_IO.Put_Line
+                 (Files.Localization.Text ("runtime.smoke.framebuffer_bytes")
+                  & ": "
+                  & Natural'Image (Live_Result.Last_Framebuffer_Bytes));
             end;
             return;
 
          when Help_Run =>
+            return;
+
+         when Version_Run =>
             return;
 
          when Desktop_Run =>

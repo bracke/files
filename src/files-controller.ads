@@ -1,5 +1,6 @@
 with Files.Commands;
 with Files.Events;
+with Files.File_System;
 with Files.Model;
 with Files.Operations;
 with Files.Settings;
@@ -185,6 +186,20 @@ package Files.Controller is
       Visible_Index : Natural;
       Activate      : Boolean := False;
       Modifiers     : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      return Controller_Result;
+
+   --  Import paths dropped into the current window.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Source_Paths Dropped filesystem paths.
+   --  @param Mode Copy or move mode.
+   --  @return Controller result with drop-import operation details.
+   function Handle_Drop_Import
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Controller_Result;
 
    --  Handle a scroll-wheel action for overlays that accept vertical movement.

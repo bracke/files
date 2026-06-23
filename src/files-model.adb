@@ -1,7 +1,11 @@
+with Ada.Calendar;
 with Ada.Strings.Unbounded;
+
+with Files.UTF8;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
+   use type Ada.Calendar.Time;
    use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Navigation_Direction;
@@ -31,103 +35,37 @@ package body Files.Model is
       end if;
    end Scroll_Step;
 
-   function Is_UTF8_Continuation (Value : Character) return Boolean is
-      Code : constant Natural := Character'Pos (Value);
-   begin
-      return Code >= 16#80# and then Code <= 16#BF#;
-   end Is_UTF8_Continuation;
-
-   function UTF8_Continuation_At
-     (Text     : String;
-      Position : Natural)
-      return Boolean
-   is
-      Index : constant Natural := Text'First + Position;
-      Lead  : Natural := Position;
-   begin
-      if Position = 0
-        or else Position >= Text'Length
-        or else not Is_UTF8_Continuation (Text (Index))
-      then
-         return False;
-      end if;
-
-      while Lead > 0 and then Is_UTF8_Continuation (Text (Text'First + Lead)) loop
-         Lead := Lead - 1;
-      end loop;
-
-      declare
-         Lead_Code : constant Natural := Character'Pos (Text (Text'First + Lead));
-         Expected  : Natural := 0;
-      begin
-         if Lead_Code in 16#C2# .. 16#DF# then
-            Expected := 1;
-         elsif Lead_Code in 16#E0# .. 16#EF# then
-            Expected := 2;
-         elsif Lead_Code in 16#F0# .. 16#F4# then
-            Expected := 3;
-         else
-            return False;
-         end if;
-
-         return Position - Lead <= Expected;
-      end;
-   end UTF8_Continuation_At;
-
    function Previous_Text_Boundary
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
+      return Natural is
    begin
-      if Position = 0 then
-         return 0;
-      end if;
-
-      Position := Position - 1;
-      while Position > 0 and then UTF8_Continuation_At (Text, Position) loop
-         Position := Position - 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Previous_Boundary (Text, Cursor);
    end Previous_Text_Boundary;
 
    function Next_Text_Boundary
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
+      return Natural is
    begin
-      if Position >= Text'Length then
-         return Text'Length;
-      end if;
-
-      Position := Position + 1;
-      while Position < Text'Length and then UTF8_Continuation_At (Text, Position) loop
-         Position := Position + 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Next_Boundary (Text, Cursor);
    end Next_Text_Boundary;
 
    function Text_Boundary_At_Or_Before
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
+      return Natural is
    begin
-      while Position > 0
-        and then Position < Text'Length
-        and then UTF8_Continuation_At (Text, Position)
-      loop
-         Position := Position - 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Boundary_At_Or_Before (Text, Cursor);
    end Text_Boundary_At_Or_Before;
+
+   procedure Clear_Root_Selector_State
+     (Model : in out Window_Model) is
+   begin
+      Model.Root_Selector_Open := False;
+      Model.Root_Entries.Clear;
+      Model.Root_Selected := 0;
+   end Clear_Root_Selector_State;
 
    function Pair_Count
      (Keys   : Files.Types.String_Vectors.Vector;
@@ -387,6 +325,30 @@ package body Files.Model is
       Reconcile_Rename_With_Selection (Model);
    end Reconcile_Selection;
 
+   function Signature_From_Items
+     (Directory_Path : String;
+      Items          : Files.File_System.Item_Vectors.Vector)
+      return Files.File_System.Directory_Signature
+   is
+      Result : Files.File_System.Directory_Signature :=
+        (Path                  => To_Unbounded_String (Directory_Path),
+         Exists                => True,
+         Entry_Count           => Natural (Items.Length),
+         Latest_Modified       => Ada.Calendar.Time_Of (1901, 1, 1),
+         Latest_Modified_Known => False);
+   begin
+      for Item of Items loop
+         if Item.Modified_Available
+           and then (not Result.Latest_Modified_Known or else Item.Modified_Time > Result.Latest_Modified)
+         then
+            Result.Latest_Modified := Item.Modified_Time;
+            Result.Latest_Modified_Known := True;
+         end if;
+      end loop;
+
+      return Result;
+   end Signature_From_Items;
+
    procedure Initialize
      (Model             : out Window_Model;
       Directory_Path    : String;
@@ -397,6 +359,7 @@ package body Files.Model is
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
+      Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
       Model.Filter_Value := Null_Unbounded_String;
       Model.Filter_Cursor := 0;
       Model.Selected_Item_Index := 0;
@@ -411,9 +374,7 @@ package body Files.Model is
       Model.Path_Input_Error := Null_Unbounded_String;
       Model.Info_Pane_Open := False;
       Model.Main_View_Scroll := 0;
-      Model.Root_Selector_Open := False;
-      Model.Root_Entries.Clear;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Cursor := 0;
@@ -434,6 +395,20 @@ package body Files.Model is
    begin
       return To_String (Model.Current_Path_Value);
    end Current_Path;
+
+   function Directory_Signature_Of
+     (Model : Window_Model)
+      return Files.File_System.Directory_Signature is
+   begin
+      return Model.Directory_Signature;
+   end Directory_Signature_Of;
+
+   procedure Set_Directory_Signature
+     (Model     : in out Window_Model;
+      Signature : Files.File_System.Directory_Signature) is
+   begin
+      Model.Directory_Signature := Signature;
+   end Set_Directory_Signature;
 
    function Home_Path
      (Model : Window_Model)
@@ -627,11 +602,34 @@ package body Files.Model is
       Reconcile_Rename_With_Selection (Model);
    end Select_Visible_Range;
 
+   procedure Select_All_Visible
+     (Model : in out Window_Model) is
+   begin
+      Model.Selected_Item_Indexes.Clear;
+      Model.Selected_Item_Index := 0;
+
+      if Model.Items.Is_Empty then
+         Reconcile_Rename_With_Selection (Model);
+         return;
+      end if;
+
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         if Item_Is_Visible (Model, Model.Items.Element (Index)) then
+            Add_Selected_Index (Model, Natural (Index));
+            if Model.Selected_Item_Index = 0 then
+               Model.Selected_Item_Index := Natural (Index);
+            end if;
+         end if;
+      end loop;
+
+      Model.Info_Pane_Scroll := 0;
+      Reconcile_Rename_With_Selection (Model);
+   end Select_All_Visible;
+
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model) is
    begin
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -821,6 +819,7 @@ package body Files.Model is
 
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Model.Items := Items;
+      Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.Path_Input_Value := To_Unbounded_String (Directory_Path);
@@ -833,8 +832,7 @@ package body Files.Model is
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
       Model.Command_Palette_Open := False;
@@ -883,8 +881,7 @@ package body Files.Model is
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
       Model.Command_Palette_Open := False;
@@ -919,8 +916,7 @@ package body Files.Model is
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
       Model.Command_Palette_Open := False;
@@ -947,8 +943,7 @@ package body Files.Model is
       Model.Path_Input_Cursor := Length (Model.Path_Input_Value);
       Model.Path_Input_Valid := True;
       Model.Path_Input_Error := Null_Unbounded_String;
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -961,8 +956,7 @@ package body Files.Model is
    begin
       Model.Focus_Value := Files.Types.Focus_Filter_Input;
       Model.Filter_Cursor := Length (Model.Filter_Value);
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -983,8 +977,7 @@ package body Files.Model is
    begin
       if Model.Rename_Active then
          Model.Focus_Value := Files.Types.Focus_Rename_Input;
-         Model.Root_Selector_Open := False;
-         Model.Root_Selected := 0;
+         Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
          Model.Command_Palette_Query := Null_Unbounded_String;
          Model.Command_Palette_Selected := 0;
@@ -1018,8 +1011,8 @@ package body Files.Model is
       Roots : Files.File_System.Root_Entry_Vectors.Vector) is
    begin
       Model.Root_Entries := Roots;
-      Model.Root_Selector_Open := True;
-      Model.Root_Selected := (if Roots.Is_Empty then 0 else 1);
+      Model.Root_Selector_Open := not Roots.Is_Empty;
+      Model.Root_Selected := (if Model.Root_Selector_Open then 1 else 0);
       Model.Settings_Pane_Open := False;
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
@@ -1032,8 +1025,7 @@ package body Files.Model is
    procedure Close_Root_Selector
      (Model : in out Window_Model) is
    begin
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
    end Close_Root_Selector;
 
    function Root_Selector_Is_Open
@@ -1296,8 +1288,7 @@ package body Files.Model is
    procedure Cancel_Focus_Or_Edit
      (Model : in out Window_Model) is
    begin
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
 
       if Model.Focus_Value = Files.Types.Focus_Path_Input then
          Model.Path_Input_Value := Model.Current_Path_Value;
@@ -1338,8 +1329,7 @@ package body Files.Model is
       Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
       if Model.Settings_Pane_Open then
          Clear_Edit_State (Model);
-         Model.Root_Selector_Open := False;
-         Model.Root_Selected := 0;
+         Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
          Model.Command_Palette_Query := Null_Unbounded_String;
          Model.Command_Palette_Selected := 0;
@@ -1369,8 +1359,7 @@ package body Files.Model is
       Model.Settings_Draft_Value := Normalized_Draft;
       Model.Settings_Pane_Open := True;
       Clear_Edit_State (Model);
-      Model.Root_Selector_Open := False;
-      Model.Root_Selected := 0;
+      Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -2119,6 +2108,7 @@ package body Files.Model is
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
       Model.Items := Items;
+      Model.Directory_Signature := Signature_From_Items (Current_Path (Model), Items);
       Model.Main_View_Scroll := 0;
       Model.Info_Pane_Scroll := 0;
       Model.Selected_Item_Index := 0;

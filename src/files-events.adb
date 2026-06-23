@@ -1,5 +1,6 @@
 with Ada.Strings.Unbounded;
 
+with Files.UTF8;
 with Files.UI;
 
 package body Files.Events is
@@ -160,6 +161,8 @@ package body Files.Events is
       Layout         : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
       Toolbar        : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
+      Toolbar_Input_Y : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
+      Toolbar_Input_H : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
       Palette_Rows   : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
@@ -222,16 +225,6 @@ package body Files.Events is
          end;
       end Scaled_Down;
 
-      function At_Or_After
-        (Value  : Natural;
-         Start  : Natural;
-         Offset : Natural)
-         return Boolean is
-      begin
-         return Value >= Start
-           and then Value - Start >= Offset;
-      end At_Or_After;
-
       function Saturating_Add
         (Left  : Natural;
          Right : Natural)
@@ -267,7 +260,7 @@ package body Files.Events is
          if Factor = 0 or else Value = 0 then
             return 0;
          elsif Value > Natural'Last / Factor then
-            return Value;
+            return Scaled_Down (Value, Factor, Denominator);
          else
             return (Value * Factor) / Denominator;
          end if;
@@ -287,20 +280,21 @@ package body Files.Events is
       end Visible_Row_Count;
 
       function Cursor_At
-        (Text_Length : Natural;
+        (Text        : Unbounded_String;
          Text_X      : Natural;
          Click_X     : Natural)
          return Natural
       is
          Char_W : constant Positive := Positive'Max (1, Line_Height / 2);
+         Raw    : constant String := To_String (Text);
+         Click_Column : Natural;
       begin
          if Click_X <= Text_X then
             return 0;
          end if;
 
-         return Natural'Min
-           (Text_Length,
-            Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W);
+         Click_Column := Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
+         return Files.UTF8.Byte_Offset_For_Display_Column (Raw, Click_Column);
       end Cursor_At;
 
       function Text_Click
@@ -427,29 +421,18 @@ package body Files.Events is
       end Settings_Click;
 
       function Settings_Click_Hit return Input_Action is
-         Pane_W : constant Natural := Natural'Max (240, Scaled_Down (Width, 2, 5));
-         Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);
-         Pane_X : constant Natural := (if Width > Pane_W then (Width - Pane_W) / 2 else 0);
-         Pane_Y : constant Natural :=
-           (if Height > Pane_H
-            then Natural'Max (Saturating_Add (Layout.Toolbar_Height, 8), Height / 6)
-            else Layout.Toolbar_Height);
-         Text_X : constant Natural := Saturating_Add (Pane_X, 8);
-         Text_W : constant Natural := (if Pane_W > 16 then Pane_W - 16 else 0);
-         Button_W : constant Natural := 34;
-         Button_Gap : constant Natural := 4;
-         Action_Button_W : constant Natural := (if Text_W > 4 then (Text_W - 4) / 2 else 0);
-         Action_Button_Offset : constant Natural := Saturating_Add (Action_Button_W, Button_Gap);
-         Action_Second_Button_W : constant Natural :=
-           (if Text_W > Action_Button_Offset then Text_W - Action_Button_Offset else 0);
-         Action_Buttons_W : constant Natural :=
-           Saturating_Add (Action_Button_Offset, Action_Second_Button_W);
-         Buttons_W : constant Natural := Button_W * 2 + Button_Gap;
-         Button_Offset : constant Natural := Saturating_Add (Button_W, Button_Gap);
-         Buttons_X : constant Natural :=
-           (if Pane_W > Saturating_Add (Buttons_W, 8)
-            then Saturating_Add (Pane_X, Pane_W - Buttons_W - 8)
-            else Pane_X);
+         Pane : constant Files.UI.Settings_Pane_Layout :=
+           Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+         Pane_W : constant Natural := Pane.Width;
+         Pane_H : constant Natural := Pane.Height;
+         Pane_X : constant Natural := Pane.X;
+         Pane_Y : constant Natural := Pane.Y;
+         Entry_Buttons : constant Files.UI.Settings_Entry_Button_Layout :=
+           Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
+         Text_X : constant Natural := Pane.Text_X;
+         Text_W : constant Natural := Pane.Text_Width;
+         Action_Buttons : constant Files.UI.Settings_Action_Button_Layout :=
+           Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W);
          Row    : Natural;
          Cell_W : Natural;
 
@@ -536,19 +519,22 @@ package body Files.Events is
 
          Row := (Y - Pane_Y) / Line_Height;
          if Row in 1 .. 2
-           and then Action_Button_W > 0
-           and then Within (X, Text_X, Action_Buttons_W)
+           and then Within (X, Action_Buttons.Total_X, Action_Buttons.Total_Width)
          then
-            if Row = 1 and then Within (X, Text_X, Action_Button_W) then
+            if Row = 1
+              and then Within (X, Action_Buttons.First_Button_X, Action_Buttons.First_Button_Width)
+            then
                return Settings_Command_Click (Files.Commands.Import_Settings_Command);
             elsif Row = 1
-              and then Within (X, Saturating_Add (Text_X, Action_Button_Offset), Action_Second_Button_W)
+              and then Within (X, Action_Buttons.Second_Button_X, Action_Buttons.Second_Button_Width)
             then
                return Settings_Command_Click (Files.Commands.Export_Settings_Command);
-            elsif Row = 2 and then Within (X, Text_X, Action_Button_W) then
+            elsif Row = 2
+              and then Within (X, Action_Buttons.First_Button_X, Action_Buttons.First_Button_Width)
+            then
                return Settings_Command_Click (Files.Commands.Reset_Settings_Command);
             elsif Row = 2
-              and then Within (X, Saturating_Add (Text_X, Action_Button_Offset), Action_Second_Button_W)
+              and then Within (X, Action_Buttons.Second_Button_X, Action_Buttons.Second_Button_Width)
             then
                return Settings_Command_Click (Files.Commands.Save_Settings_Command);
             end if;
@@ -567,13 +553,13 @@ package body Files.Events is
                       (Option_Count (Snapshot.Settings_Field_Index),
                        (X - Text_X) / Cell_W + 1));
             end if;
-         elsif Row in 10 | 13 | 16 and then Within (X, Buttons_X, Buttons_W) then
+         elsif Row in 10 | 13 | 16 and then Within (X, Entry_Buttons.Total_X, Entry_Buttons.Total_Width) then
             declare
                Field : constant Natural := (case Row is when 10 => 8, when 13 => 10, when others => 12);
             begin
-               if Within (X, Buttons_X, Button_W) then
+               if Within (X, Entry_Buttons.Add_Button_X, Entry_Buttons.Add_Button_Width) then
                   return Settings_Click (Field, 100);
-               elsif At_Or_After (X, Buttons_X, Button_Offset) then
+               elsif Within (X, Entry_Buttons.Remove_Button_X, Entry_Buttons.Remove_Button_Width) then
                   return Settings_Click (Field, 101);
                end if;
             end;
@@ -602,8 +588,8 @@ package body Files.Events is
            Text_Click
              (Files.Types.Focus_Command_Palette,
               Cursor_At
-                (Text_Length => Length (Snapshot.Command_Palette_Query),
-                 Text_X      => Palette_Layout.Search_X + 4,
+                 (Text        => Snapshot.Command_Palette_Query,
+                 Text_X      => Saturating_Add (Palette_Layout.Search_X, Files.UI.Input_Field_Padding),
                  Click_X     => X));
       end if;
 
@@ -644,6 +630,14 @@ package body Files.Events is
             Toggle_Selection => False,
             Range_Selection  => False);
       elsif Snapshot.Root_Selector_Open then
+         declare
+            Root_Command : constant Files.Commands.Command_Id :=
+              Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);
+         begin
+            if Root_Command = Files.Commands.Select_Drive_Command then
+               return Command_Action (Root_Command, Activate);
+            end if;
+         end;
          return No_Action (Activate);
       end if;
 
@@ -659,7 +653,7 @@ package body Files.Events is
 
       if Info_Pane.Scrollbar_Visible
         and then Within (X, Info_Pane.Scrollbar_X, Info_Pane.Scrollbar_Width)
-        and then Within (Y, Info_Pane.Scrollbar_Y, Info_Pane.Height)
+        and then Within (Y, Info_Pane.Scrollbar_Y, Info_Pane.Scrollbar_Track_Height)
       then
          return
            Scroll_Click
@@ -670,7 +664,7 @@ package body Files.Events is
               10);
       elsif Main_View.Scrollbar_Visible
         and then Within (X, Main_View.Scrollbar_X, Main_View.Scrollbar_Width)
-        and then Within (Y, Main_View.Scrollbar_Y, Layout.Main_Height)
+        and then Within (Y, Main_View.Scrollbar_Y, Main_View.Scrollbar_Track_Height)
       then
          return
            Scroll_Click
@@ -682,24 +676,24 @@ package body Files.Events is
       end if;
 
       if Within (X, Toolbar.Middle_X, Toolbar.Middle_Width)
-        and then Within (Y, Line_Height / 2, Line_Height)
+        and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
       then
          return
            Text_Click
              (Files.Types.Focus_Path_Input,
               Cursor_At
-                (Text_Length => Length (Snapshot.Path_Input_Text),
-                 Text_X      => Toolbar.Middle_X + 4,
+                 (Text        => Snapshot.Path_Input_Text,
+                 Text_X      => Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
                  Click_X     => X));
       elsif Within (X, Toolbar.Right_X, Toolbar.Right_Width)
-        and then Within (Y, Line_Height / 2, Line_Height)
+        and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
       then
          return
            Text_Click
              (Files.Types.Focus_Filter_Input,
               Cursor_At
-                (Text_Length => Length (Snapshot.Filter_Text),
-                 Text_X      => Toolbar.Right_X + 4,
+                 (Text        => Snapshot.Filter_Text,
+                 Text_X      => Saturating_Add (Toolbar.Right_X, Files.UI.Input_Field_Padding),
                  Click_X     => X));
       end if;
 
@@ -727,7 +721,7 @@ package body Files.Events is
                     Text_Click
                       (Files.Types.Focus_Rename_Input,
                        Cursor_At
-                         (Text_Length => Length (Snapshot.Rename_Text),
+                         (Text        => Snapshot.Rename_Text,
                           Text_X      => Item_Rect.Text_X,
                           Click_X     => X));
                end if;

@@ -3,6 +3,8 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
+with Files.UTF8;
+
 package body Files.Settings is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
@@ -66,13 +68,31 @@ package body Files.Settings is
    end Contains;
 
    function Contains_Line_Break (Text : String) return Boolean is
+      Index     : Integer := Text'First;
+      Codepoint : Natural := 0;
    begin
-      for Character_Value of Text loop
-         if Character_Value = ASCII.LF
-           or else Character_Value = ASCII.CR
-           or else Character_Value = ASCII.VT
-           or else Character_Value = ASCII.FF
-           or else Character'Pos (Character_Value) = 133
+      while Index <= Text'Last loop
+         declare
+            Byte_Value : constant Natural := Character'Pos (Text (Index));
+         begin
+            if Byte_Value = Character'Pos (ASCII.LF)
+              or else Byte_Value = Character'Pos (ASCII.CR)
+              or else Byte_Value = Character'Pos (ASCII.VT)
+              or else Byte_Value = Character'Pos (ASCII.FF)
+              or else Byte_Value = 133
+            then
+               return True;
+            end if;
+         end;
+
+         Files.UTF8.Decode_Next_Codepoint (Text, Index, Codepoint);
+         if Codepoint = Character'Pos (ASCII.LF)
+           or else Codepoint = Character'Pos (ASCII.CR)
+           or else Codepoint = Character'Pos (ASCII.VT)
+           or else Codepoint = Character'Pos (ASCII.FF)
+           or else Codepoint = 16#0085#
+           or else Codepoint = 16#2028#
+           or else Codepoint = 16#2029#
          then
             return True;
          end if;
@@ -1041,7 +1061,12 @@ package body Files.Settings is
       File : Ada.Text_IO.File_Type;
       Text : Unbounded_String := Null_Unbounded_String;
    begin
-      if not Ada.Directories.Exists (Path) then
+      if Path = "" then
+         return
+           (Success   => False,
+            Settings  => Default_Settings,
+            Error_Key => To_Unbounded_String ("error.settings.load"));
+      elsif not Ada.Directories.Exists (Path) then
          return
            (Success   => True,
             Settings  => Default_Settings,
@@ -1949,17 +1974,61 @@ package body Files.Settings is
       Path   : String)
       return Open_Action
    is
+      function Is_Path_Separator (Value : Character) return Boolean is
+      begin
+         return Value = '/' or else Value = '\';
+      end Is_Path_Separator;
+
+      function UNC_Share_Root_Last (Value : String) return Natural is
+         Server_Start : Natural;
+         Share_Start  : Natural;
+      begin
+         if Value'Length < 5
+           or else not Is_Path_Separator (Value (Value'First))
+           or else not Is_Path_Separator (Value (Value'First + 1))
+         then
+            return 0;
+         end if;
+
+         Server_Start := Value'First + 2;
+         while Server_Start <= Value'Last and then Is_Path_Separator (Value (Server_Start)) loop
+            Server_Start := Server_Start + 1;
+         end loop;
+
+         for Index in Server_Start .. Value'Last loop
+            if Is_Path_Separator (Value (Index)) then
+               Share_Start := Index + 1;
+               while Share_Start <= Value'Last and then Is_Path_Separator (Value (Share_Start)) loop
+                  Share_Start := Share_Start + 1;
+               end loop;
+
+               for Share_End in Share_Start .. Value'Last loop
+                  if Is_Path_Separator (Value (Share_End)) then
+                     return Share_End;
+                  end if;
+               end loop;
+
+               return Value'Last;
+            end if;
+         end loop;
+
+         return 0;
+      end UNC_Share_Root_Last;
+
       function Trim_Trailing_Path_Separators (Value : String) return String is
          Last : Natural := Value'Last;
+         UNC_Root_Last : constant Natural := UNC_Share_Root_Last (Value);
       begin
          if Value = "" then
             return "";
          end if;
 
          while Last > Value'First
-           and then (Value (Last) = '/' or else Value (Last) = '\')
+           and then Is_Path_Separator (Value (Last))
          loop
             if Last = Value'First + 2 and then Value (Value'First + 1) = ':' then
+               exit;
+            elsif UNC_Root_Last > 0 and then Last <= UNC_Root_Last then
                exit;
             end if;
 
@@ -1974,10 +2043,12 @@ package body Files.Settings is
       begin
          if Value = "" then
             return "";
+         elsif UNC_Share_Root_Last (Value) = Value'Last then
+            return "";
          end if;
 
          for Index in reverse Value'Range loop
-            if Value (Index) = '/' or else Value (Index) = '\' then
+            if Is_Path_Separator (Value (Index)) then
                Separator := Index;
                exit;
             end if;
@@ -2000,16 +2071,22 @@ package body Files.Settings is
       begin
          if Value = "" then
             return "";
+         elsif UNC_Share_Root_Last (Value) = Value'Last then
+            return Value;
          end if;
 
          for Index in reverse Value'Range loop
-            if Value (Index) = '/' or else Value (Index) = '\' then
+            if Is_Path_Separator (Value (Index)) then
                Separator := Index;
                exit;
             end if;
          end loop;
 
-         if Separator > Value'First then
+         if Separator = Value'First + 2
+           and then Value (Value'First + 1) = ':'
+         then
+            return Value (Value'First .. Separator);
+         elsif Separator > Value'First then
             return Value (Value'First .. Separator - 1);
          elsif Separator = Value'First then
             return Value (Value'First .. Value'First);

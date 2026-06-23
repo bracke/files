@@ -215,6 +215,7 @@ package Files.Rendering is
       Scrollbar_Thumb_Y : Natural := 0;
       Scrollbar_Width   : Natural := 0;
       Scrollbar_Height  : Natural := 0;
+      Scrollbar_Track_Height : Natural := 0;
    end record;
 
    type Command_Palette_Layout is record
@@ -282,6 +283,7 @@ package Files.Rendering is
       Scrollbar_Thumb_Y : Natural := 0;
       Scrollbar_Width   : Natural := 0;
       Scrollbar_Height  : Natural := 0;
+      Scrollbar_Track_Height : Natural := 0;
    end record;
 
    type Render_Theme is record
@@ -443,6 +445,20 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Rectangle_Command);
 
+   type Triangle_Command is record
+      X1    : Float := 0.0;
+      Y1    : Float := 0.0;
+      X2    : Float := 0.0;
+      Y2    : Float := 0.0;
+      X3    : Float := 0.0;
+      Y3    : Float := 0.0;
+      Color : Render_Color := Canvas_Color;
+   end record;
+
+   package Triangle_Command_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Triangle_Command);
+
    type Text_Command is record
       X      : Natural := 0;
       Y      : Natural := 0;
@@ -451,6 +467,7 @@ package Files.Rendering is
       Text   : UString;
       Color  : Render_Color := Text_Color;
       Truncated : Boolean := False;
+      Scale_To_Box : Boolean := False;
    end record;
 
    package Text_Command_Vectors is new Ada.Containers.Vectors
@@ -515,8 +532,11 @@ package Files.Rendering is
    type Frame_Commands is record
       Layout        : Layout_Metrics;
       Rectangles    : Rectangle_Command_Vectors.Vector;
+      Triangles     : Triangle_Command_Vectors.Vector;
       Text          : Text_Command_Vectors.Vector;
       Icons         : Icon_Command_Vectors.Vector;
+      Overlay_Rectangles : Rectangle_Command_Vectors.Vector;
+      Overlay_Text       : Text_Command_Vectors.Vector;
       Tooltips      : Tooltip_Command_Vectors.Vector;
       Accessibility : Accessibility_Node_Vectors.Vector;
    end record;
@@ -549,6 +569,8 @@ package Files.Rendering is
    type Text_Render_Result is record
       Status       : Text_Render_Status := Text_Render_Font_Not_Loaded;
       Glyphs       : Glyph_Command_Vectors.Vector;
+      Overlay_Glyphs : Glyph_Command_Vectors.Vector;
+      Missing_Glyph_Count : Natural := 0;
       Atlas_Width  : Natural := 0;
       Atlas_Height : Natural := 0;
       Atlas_Pixels : System.Address := System.Null_Address;
@@ -737,6 +759,14 @@ package Files.Rendering is
    --  @return Font path, or an empty string when no known font is present.
    function Default_Font_Path return String;
 
+   --  Return a font path selected for all text currently present in a frame.
+   --
+   --  @param Frame Frame commands whose text should render directly.
+   --  @return Font path, or an empty string when no known font is present.
+   function Font_Path_For_Frame
+     (Frame : Frame_Commands)
+      return String;
+
    --  Load the text renderer font and initialize the textrender atlas.
    --
    --  @param Renderer Renderer state to initialize.
@@ -759,9 +789,8 @@ package Files.Rendering is
 
    --  Rasterize frame text commands into glyph draw commands.
    --
-   --  This uses textrender glyph metrics and atlas coordinates. The current
-   --  implementation handles byte-oriented text; full UTF-8 decoding remains a
-   --  backend text-layout extension point.
+   --  This uses textrender glyph metrics and atlas coordinates. Text commands
+   --  are decoded from UTF-8 before glyph lookup.
    --
    --  @param Renderer Initialized text renderer.
    --  @param Frame Frame command list containing text commands.

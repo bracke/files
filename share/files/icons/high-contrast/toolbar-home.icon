@@ -1,0 +1,12 @@
+files-icon-v1
+name=toolbar-home
+grid=16
+rect=7,2,2,1,border
+rect=6,3,4,1,border
+rect=5,4,6,1,border
+rect=4,5,8,1,border
+rect=3,6,10,2,border
+rect=4,8,2,5,border
+rect=10,8,2,5,border
+rect=6,12,4,1,border
+rect=7,9,2,4,border

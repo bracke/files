@@ -39,6 +39,7 @@ package Files.Application is
      (Desktop_Run,
       Headless_Smoke_Run,
       Live_Smoke_Run,
+      Version_Run,
       Help_Run);
 
    type Run_Configuration is record
@@ -66,6 +67,11 @@ package Files.Application is
    function Help_Text
      (Locale : String := "en")
       return String;
+
+   --  Return command-line version text for the files executable.
+   --
+   --  @return Crate name and version from generated Alire configuration.
+   function Version_Text return String;
 
    --  Return the current user's home directory using platform environment variables.
    --

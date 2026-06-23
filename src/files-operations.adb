@@ -1,13 +1,12 @@
 with Ada.Directories;
-with Ada.Characters.Handling;
+with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 
-with Files.File_System;
-with Ada.Environment_Variables;
 with GNAT.OS_Lib;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
+   use type Files.File_System.Thumbnail_Status;
    use type Files.Types.Item_Kind;
    use type Files.File_System.Path_Status;
    use type GNAT.OS_Lib.Argument_List_Access;
@@ -109,192 +108,6 @@ package body Files.Operations is
       Files.Model.Set_Error (Model, "error.open_action.unsafe_placeholder");
       return Make_Result (Operation_Failed, "error.open_action.unsafe_placeholder", Path);
    end Unsafe_Open_Action;
-
-   function Windows_Device_Basename (Name : String) return String is
-      Result : Unbounded_String;
-   begin
-      for Character_Value of Name loop
-         exit when Character_Value = '.';
-         Append (Result, Ada.Characters.Handling.To_Upper (Character_Value));
-      end loop;
-
-      declare
-         Text : constant String := To_String (Result);
-         Last : Natural := Text'Last;
-      begin
-         while Last >= Text'First and then Text (Last) = ' ' loop
-            Last := Last - 1;
-         end loop;
-
-         if Last < Text'First then
-            return "";
-         else
-            return Text (Text'First .. Last);
-         end if;
-      end;
-   end Windows_Device_Basename;
-
-   function Is_Windows_Device_Name (Name : String) return Boolean is
-      Base : constant String := Windows_Device_Basename (Name);
-   begin
-      return Base = "CON"
-        or else Base = "PRN"
-        or else Base = "AUX"
-        or else Base = "NUL"
-        or else Base = "CONIN$"
-        or else Base = "CONOUT$"
-        or else
-          (Base'Length = 4
-           and then (Base (Base'First .. Base'First + 2) = "COM"
-                     or else Base (Base'First .. Base'First + 2) = "LPT")
-           and then Base (Base'Last) in '1' .. '9');
-   end Is_Windows_Device_Name;
-
-   function Byte_Of
-     (Name  : String;
-      Index : Positive)
-      return Natural is
-   begin
-      return Character'Pos (Name (Index));
-   end Byte_Of;
-
-   function Has_UTF8_Continuation
-     (Name  : String;
-      Index : Positive)
-      return Boolean
-   is
-      Value : constant Natural := Byte_Of (Name, Index);
-   begin
-      return Value >= 16#80# and then Value <= 16#BF#;
-   end Has_UTF8_Continuation;
-
-   function Valid_UTF8_Sequence_Length
-     (Name  : String;
-      Index : Positive)
-      return Natural
-   is
-      First : constant Natural := Byte_Of (Name, Index);
-   begin
-      if First < 16#80# then
-         return 1;
-      elsif First = 16#C2# then
-         if Index + 1 <= Name'Last
-           and then Byte_Of (Name, Index + 1) >= 16#A0#
-           and then Byte_Of (Name, Index + 1) <= 16#BF#
-         then
-            return 2;
-         end if;
-      elsif First >= 16#C2# and then First <= 16#DF# then
-         if Index + 1 <= Name'Last
-           and then Has_UTF8_Continuation (Name, Index + 1)
-         then
-            return 2;
-         end if;
-      elsif First = 16#E0# then
-         if Index + 2 <= Name'Last
-           and then Byte_Of (Name, Index + 1) >= 16#A0#
-           and then Byte_Of (Name, Index + 1) <= 16#BF#
-           and then Has_UTF8_Continuation (Name, Index + 2)
-         then
-            return 3;
-         end if;
-      elsif First >= 16#E1# and then First <= 16#EC# then
-         if Index + 2 <= Name'Last
-           and then Has_UTF8_Continuation (Name, Index + 1)
-           and then Has_UTF8_Continuation (Name, Index + 2)
-         then
-            return 3;
-         end if;
-      elsif First = 16#ED# then
-         if Index + 2 <= Name'Last
-           and then Byte_Of (Name, Index + 1) >= 16#80#
-           and then Byte_Of (Name, Index + 1) <= 16#9F#
-           and then Has_UTF8_Continuation (Name, Index + 2)
-         then
-            return 3;
-         end if;
-      elsif First >= 16#EE# and then First <= 16#EF# then
-         if Index + 2 <= Name'Last
-           and then Has_UTF8_Continuation (Name, Index + 1)
-           and then Has_UTF8_Continuation (Name, Index + 2)
-         then
-            return 3;
-         end if;
-      elsif First = 16#F0# then
-         if Index + 3 <= Name'Last
-           and then Byte_Of (Name, Index + 1) >= 16#90#
-           and then Byte_Of (Name, Index + 1) <= 16#BF#
-           and then Has_UTF8_Continuation (Name, Index + 2)
-           and then Has_UTF8_Continuation (Name, Index + 3)
-         then
-            return 4;
-         end if;
-      elsif First >= 16#F1# and then First <= 16#F3# then
-         if Index + 3 <= Name'Last
-           and then Has_UTF8_Continuation (Name, Index + 1)
-           and then Has_UTF8_Continuation (Name, Index + 2)
-           and then Has_UTF8_Continuation (Name, Index + 3)
-         then
-            return 4;
-         end if;
-      elsif First = 16#F4# then
-         if Index + 3 <= Name'Last
-           and then Byte_Of (Name, Index + 1) >= 16#80#
-           and then Byte_Of (Name, Index + 1) <= 16#8F#
-           and then Has_UTF8_Continuation (Name, Index + 2)
-           and then Has_UTF8_Continuation (Name, Index + 3)
-         then
-            return 4;
-         end if;
-      end if;
-
-      return 0;
-   end Valid_UTF8_Sequence_Length;
-
-   function Valid_Leaf_Name (Name : String) return Boolean is
-      Index : Positive := Name'First;
-   begin
-      if Name = ""
-        or else Name = "."
-        or else Name = ".."
-        or else Name (Name'Last) = ' '
-        or else Name (Name'Last) = '.'
-        or else Is_Windows_Device_Name (Name)
-      then
-         return False;
-      end if;
-
-      while Index <= Name'Last loop
-         declare
-            Character_Value : constant Character := Name (Index);
-            Sequence_Length : constant Natural :=
-              Valid_UTF8_Sequence_Length (Name, Index);
-         begin
-            if Sequence_Length = 0 then
-               return False;
-            elsif Sequence_Length > 1 then
-               Index := Index + Sequence_Length;
-            elsif Character_Value = '/'
-              or else Character_Value = '\'
-              or else Character_Value = '<'
-              or else Character_Value = '>'
-              or else Character_Value = ':'
-              or else Character_Value = Character'Val (34)
-              or else Character_Value = '|'
-              or else Character_Value = '?'
-              or else Character_Value = '*'
-              or else Character'Pos (Character_Value) < 32
-              or else Character'Pos (Character_Value) = 127
-            then
-               return False;
-            else
-               Index := Index + 1;
-            end if;
-         end;
-      end loop;
-
-      return True;
-   end Valid_Leaf_Name;
 
    function Shell_Quote (Value : String) return String is
       Result : Unbounded_String := To_Unbounded_String ("'");
@@ -469,6 +282,9 @@ package body Files.Operations is
       end if;
 
       Files.Model.Replace_Items (Model, Load.Items);
+      Files.Model.Set_Directory_Signature
+        (Model,
+         Files.File_System.Directory_State (Files.Model.Current_Path (Model)));
       if Select_Name /= "" then
          declare
             Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
@@ -488,6 +304,58 @@ package body Files.Operations is
    begin
       return Reload_Current_Directory (Model, Settings);
    end Refresh;
+
+   function Refresh_If_Changed
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Change : constant Files.File_System.Directory_Change_Result :=
+        Files.File_System.Detect_Directory_Change
+          (Files.Model.Directory_Signature_Of (Model),
+           Files.Model.Current_Path (Model));
+   begin
+      if Length (Change.Error_Key) > 0 then
+         Files.Model.Set_Error (Model, To_String (Change.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Change.Error_Key), Files.Model.Current_Path (Model));
+      elsif not Change.Changed then
+         Files.Model.Set_Directory_Signature (Model, Change.After_State);
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+      end if;
+
+      return Reload_Current_Directory (Model, Settings);
+   end Refresh_If_Changed;
+
+   function Run_Recursive_Search
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Query : constant String := Files.Model.Filter_Text (Model);
+   begin
+      if Query = "" then
+         return Disabled (Model, "error.filter.empty");
+      end if;
+
+      declare
+         Search : constant Files.File_System.Recursive_Search_Result :=
+           Files.File_System.Search_Recursive (Files.Model.Current_Path (Model), Query, Settings);
+      begin
+         if not Search.Success then
+            Files.Model.Set_Error (Model, To_String (Search.Error_Key));
+            return Make_Result
+              (Operation_Failed, To_String (Search.Error_Key), Files.Model.Current_Path (Model));
+         end if;
+
+         Files.Model.Replace_Items (Model, Search.Items);
+         Files.Model.Set_Directory_Signature
+           (Model,
+            Files.File_System.Directory_State (Files.Model.Current_Path (Model)));
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+      end;
+   end Run_Recursive_Search;
 
    function Commit_Path_Input
      (Model    : in out Files.Model.Window_Model;
@@ -514,6 +382,9 @@ package body Files.Operations is
          end if;
 
          Files.Model.Commit_Path_Input (Model, Path_Result, Load.Items);
+         Files.Model.Set_Directory_Signature
+           (Model,
+            Files.File_System.Directory_State (To_String (Path_Result.Directory_Path)));
          Files.Model.Set_Error (Model, "");
          return Make_Result (Operation_Navigated, Path => To_String (Path_Result.Directory_Path));
       end;
@@ -549,6 +420,9 @@ package body Files.Operations is
          end if;
 
          Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+         Files.Model.Set_Directory_Signature
+           (Model,
+            Files.File_System.Directory_State (To_String (Load.Path)));
          Files.Model.Set_Error (Model, "");
          return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
       end;
@@ -653,6 +527,9 @@ package body Files.Operations is
          end if;
 
          Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+         Files.Model.Set_Directory_Signature
+           (Model,
+            Files.File_System.Directory_State (To_String (Load.Path)));
          Files.Model.Close_Root_Selector (Model);
          Files.Model.Set_Error (Model, "");
          return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
@@ -814,6 +691,9 @@ package body Files.Operations is
                end if;
 
                Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+               Files.Model.Set_Directory_Signature
+                 (Model,
+                  Files.File_System.Directory_State (To_String (Load.Path)));
                Files.Model.Set_Error (Model, "");
                return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
             end;
@@ -1038,6 +918,151 @@ package body Files.Operations is
       return Make_Result (Operation_Success, Path => To_String (First_Path));
    end Delete_Selected;
 
+   function Delete_Selected_Permanently
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      First_Path : Unbounded_String;
+   begin
+      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      for Item of Items loop
+         if not Ada.Directories.Exists (To_String (Item.Full_Path)) then
+            Files.Model.Set_Error (Model, "error.permanent_delete.failed");
+            declare
+               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+               pragma Unreferenced (Reload);
+            begin
+               Files.Model.Set_Error (Model, "error.permanent_delete.failed");
+            end;
+            return Make_Result
+              (Operation_Failed, "error.permanent_delete.failed", To_String (Item.Full_Path));
+         end if;
+      end loop;
+
+      for Item of Items loop
+         if Length (First_Path) = 0 then
+            First_Path := Item.Full_Path;
+         end if;
+
+         declare
+            Mutation : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Delete_Permanently (To_String (Item.Full_Path));
+         begin
+            if not Mutation.Success then
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               end;
+               return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
+            end if;
+         end;
+      end loop;
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+      end;
+
+      return Make_Result (Operation_Success, Path => To_String (First_Path));
+   end Delete_Selected_Permanently;
+
+   function Generate_Selected_Thumbnails
+     (Model : in out Files.Model.Window_Model)
+      return Operation_Result
+   is
+      Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      First_Path : Unbounded_String;
+
+      function Cache_Directory return String is
+         Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
+         Home      : constant String := Safe_Environment_Value ("HOME");
+      begin
+         if Xdg_Cache /= "" then
+            return Files.File_System.Join_Path (Files.File_System.Join_Path (Xdg_Cache, "files"), "thumbnails");
+         elsif Home /= "" then
+            return Files.File_System.Join_Path
+              (Files.File_System.Join_Path (Files.File_System.Join_Path (Home, ".cache"), "files"), "thumbnails");
+         else
+            return Files.File_System.Join_Path (Files.Model.Current_Path (Model), ".files-thumbnails");
+         end if;
+      end Cache_Directory;
+   begin
+      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      for Item of Items loop
+         declare
+            Thumbnail : constant Files.File_System.Thumbnail_Result :=
+              Files.File_System.Generate_Thumbnail (To_String (Item.Full_Path), Cache_Directory);
+         begin
+            if Thumbnail.Status /= Files.File_System.Thumbnail_Generated then
+               Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
+               return Make_Result
+                 (Operation_Failed, To_String (Thumbnail.Error_Key), To_String (Item.Full_Path));
+            elsif Length (First_Path) = 0 then
+               First_Path := Thumbnail.Thumbnail_Path;
+            end if;
+         end;
+      end loop;
+
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Success, Path => To_String (First_Path));
+   end Generate_Selected_Thumbnails;
+
+   function Import_Dropped_Paths
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result
+   is
+      Plans : Files.File_System.Drop_Import_Result;
+   begin
+      if Source_Paths.Is_Empty then
+         return Disabled (Model, "error.drop.invalid_source");
+      end if;
+
+      Plans := Files.File_System.Plan_Drop_Import (Source_Paths, Files.Model.Current_Path (Model), Mode);
+      if not Plans.Success then
+         Files.Model.Set_Error (Model, To_String (Plans.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Plans.Error_Key), Files.Model.Current_Path (Model));
+      end if;
+
+      declare
+         Mutation : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Execute_Drop_Import (Plans.Plans);
+      begin
+         if not Mutation.Success then
+            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Files.Model.Current_Path (Model));
+         end if;
+      end;
+
+      declare
+         First_Path : constant String :=
+           (if Plans.Plans.Is_Empty then "" else To_String (Plans.Plans.First_Element.Destination_Path));
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+
+         return Make_Result (Operation_Success, Path => First_Path);
+      end;
+   end Import_Dropped_Paths;
+
    function Commit_Create_File
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -1047,7 +1072,7 @@ package body Files.Operations is
    begin
       if not Files.Model.Temporary_Item_Is_Active (Model) then
          return Disabled (Model, "error.create.no_temporary_item");
-      elsif not Valid_Leaf_Name (Name) then
+      elsif not Files.File_System.Valid_Leaf_Name (Name) then
          Files.Model.Set_Error (Model, "error.name.invalid");
          return Make_Result (Operation_Invalid_Name, "error.name.invalid");
       end if;
@@ -1095,7 +1120,7 @@ package body Files.Operations is
       declare
          Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
       begin
-         if not Valid_Leaf_Name (New_Name) then
+         if not Files.File_System.Valid_Leaf_Name (New_Name) then
             Files.Model.Set_Error (Model, "error.name.invalid");
             return Make_Result (Operation_Invalid_Name, "error.name.invalid");
          elsif New_Name = To_String (Item.Name) then

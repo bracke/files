@@ -49,6 +49,66 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
+   type Recursive_Search_Result is record
+      Success   : Boolean := False;
+      Root_Path : UString;
+      Query     : UString;
+      Items     : Item_Vectors.Vector;
+      Error_Key : UString;
+   end record;
+
+   type Directory_Signature is record
+      Path               : UString;
+      Exists             : Boolean := False;
+      Entry_Count        : Natural := 0;
+      Latest_Modified    : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Latest_Modified_Known : Boolean := False;
+   end record;
+
+   type Directory_Change_Result is record
+      Changed        : Boolean := False;
+      Before_State   : Directory_Signature;
+      After_State    : Directory_Signature;
+      Error_Key      : UString;
+   end record;
+
+   type Drop_Import_Mode is
+     (Drop_Copy,
+      Drop_Move);
+
+   type Drop_Import_Plan is record
+      Source_Path      : UString;
+      Destination_Path : UString;
+      Mode             : Drop_Import_Mode := Drop_Copy;
+      Valid            : Boolean := False;
+      Error_Key        : UString;
+   end record;
+
+   package Drop_Import_Plan_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Drop_Import_Plan);
+
+   type Drop_Import_Result is record
+      Success   : Boolean := False;
+      Plans     : Drop_Import_Plan_Vectors.Vector;
+      Error_Key : UString;
+   end record;
+
+   type Thumbnail_Status is
+     (Thumbnail_Generated,
+      Thumbnail_Source_Missing,
+      Thumbnail_Unsupported,
+      Thumbnail_Failed);
+
+   type Thumbnail_Result is record
+      Status         : Thumbnail_Status := Thumbnail_Failed;
+      Source_Path    : UString;
+      Thumbnail_Path : UString;
+      Width          : Positive := 1;
+      Height         : Positive := 1;
+      Error_Key      : UString;
+   end record;
+
    type Mutation_Result is record
       Success   : Boolean := False;
       Error_Key : UString;
@@ -135,6 +195,7 @@ package Files.File_System is
       Root_Current,
       Root_Mount,
       Root_User_Mount,
+      Root_Network_Mount,
       Root_Windows_Drive);
 
    type Root_Entry is record
@@ -157,6 +218,7 @@ package Files.File_System is
       Windows_Drive_Count     : Natural := 0;
       Mount_Count             : Natural := 0;
       User_Mount_Count        : Natural := 0;
+      Network_Mount_Count     : Natural := 0;
       Duplicate_Paths_Removed : Boolean := True;
       Deterministic_Order     : Boolean := True;
    end record;
@@ -173,6 +235,7 @@ package Files.File_System is
       Binding_Unit                : UString;
       Source_Device_Available     : Boolean := False;
       Mount_Options_Available     : Boolean := False;
+      Network_Metadata_Available  : Boolean := False;
       Removable_Status_Available  : Boolean := False;
       Capacity_Bytes_Known        : Boolean := False;
       Free_Bytes_Known            : Boolean := False;
@@ -214,6 +277,12 @@ package Files.File_System is
       Removable_Known      : Boolean := False;
       Removable            : Boolean := False;
       Ejectable            : Boolean := False;
+      Network_Mount        : Boolean := False;
+      Remote_Protocol      : UString;
+      Offline_Possible     : Boolean := False;
+      Auth_May_Be_Required : Boolean := False;
+      Latency_Sensitive    : Boolean := False;
+      Special_Error_Recovery : Boolean := False;
       Uses_Platform_Detail : Boolean := False;
    end record;
 
@@ -245,6 +314,38 @@ package Files.File_System is
      (Path     : String;
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result;
+
+   --  Search a directory tree recursively for item names matching Query.
+   --
+   --  @param Root_Path Directory where recursive search starts.
+   --  @param Query Case-insensitive name fragment to match.
+   --  @param Settings Settings used for filetype, icon, and hidden-file policy.
+   --  @param Max_Items Maximum number of matching items to return.
+   --  @return Deterministic recursive search result or recoverable error.
+   function Search_Recursive
+     (Root_Path : String;
+      Query     : String;
+      Settings  : Files.Settings.Settings_Model;
+      Max_Items : Natural := 1_000)
+      return Recursive_Search_Result;
+
+   --  Compute a shallow signature for polling-based directory change detection.
+   --
+   --  @param Path Directory to inspect.
+   --  @return Directory existence, item count, and latest modification time.
+   function Directory_State
+     (Path : String)
+      return Directory_Signature;
+
+   --  Compare two polling signatures for a directory.
+   --
+   --  @param Before_State Previously captured directory state.
+   --  @param Path Directory to inspect again.
+   --  @return Change result with the new state.
+   function Detect_Directory_Change
+     (Before_State : Directory_Signature;
+      Path         : String)
+      return Directory_Change_Result;
 
    --  Return available filesystem root locations in deterministic order.
    --
@@ -332,6 +433,14 @@ package Files.File_System is
      (Parent_Path : String;
       Name        : String)
       return String;
+
+   --  Return whether Name is a safe leaf filename for create or rename.
+   --
+   --  @param Name Candidate filename without parent path components.
+   --  @return True when Name can be used as a direct child filename.
+   function Valid_Leaf_Name
+     (Name : String)
+      return Boolean;
 
    --  Return a deterministic available untitled file name in Directory_Path.
    --
@@ -424,4 +533,49 @@ package Files.File_System is
    function Move_To_Trash
      (Path : String)
       return Mutation_Result;
+
+   --  Permanently remove a file or empty directory.
+   --
+   --  The operation is explicit and never used by normal trash/delete commands.
+   --
+   --  @param Path Entry to permanently remove.
+   --  @return Mutation result with a localized error key on failure.
+   function Delete_Permanently
+     (Path : String)
+      return Mutation_Result;
+
+   --  Build deterministic copy/move plans for paths dropped into a directory.
+   --
+   --  @param Source_Paths Paths received from a drag-and-drop operation.
+   --  @param Destination_Directory Directory receiving the dropped entries.
+   --  @param Mode Copy or move mode for all valid plans.
+   --  @return Planned destination paths and validation diagnostics.
+   function Plan_Drop_Import
+     (Source_Paths          : Files.Types.String_Vectors.Vector;
+      Destination_Directory : String;
+      Mode                  : Drop_Import_Mode := Drop_Copy)
+      return Drop_Import_Result;
+
+   --  Execute a validated drag-and-drop import plan.
+   --
+   --  @param Plans Plans produced by Plan_Drop_Import.
+   --  @return Mutation result with a localized error key on failure.
+   function Execute_Drop_Import
+     (Plans : Drop_Import_Plan_Vectors.Vector)
+      return Mutation_Result;
+
+   --  Generate a cached thumbnail artifact for a regular file.
+   --
+   --  Supported source image formats are decoded and scaled in Ada; unsupported
+   --  formats fall back to a deterministic PPM derived from file metadata.
+   --
+   --  @param Source_Path File to summarize as a thumbnail.
+   --  @param Cache_Directory Directory where the thumbnail file is written.
+   --  @param Size Width and height in pixels.
+   --  @return Thumbnail path and status, or a recoverable error key.
+   function Generate_Thumbnail
+     (Source_Path      : String;
+      Cache_Directory : String;
+      Size            : Positive := 64)
+      return Thumbnail_Result;
 end Files.File_System;

@@ -32,6 +32,22 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
+   --  Return the last stored directory polling signature.
+   --
+   --  @param Model Model to inspect.
+   --  @return Stored directory signature for the current path.
+   function Directory_Signature_Of
+     (Model : Window_Model)
+      return Files.File_System.Directory_Signature;
+
+   --  Replace the stored directory polling signature.
+   --
+   --  @param Model Model to update.
+   --  @param Signature Signature captured after loading or polling a directory.
+   procedure Set_Directory_Signature
+     (Model     : in out Window_Model;
+      Signature : Files.File_System.Directory_Signature);
+
    --  Return the model home path.
    --
    --  @param Model Model to inspect.
@@ -129,6 +145,15 @@ package Files.Model is
      (Model        : in out Window_Model;
       Anchor_Index : Positive;
       Target_Index : Positive);
+
+   --  Select all currently visible loaded directory items.
+   --
+   --  Temporary create-file items are excluded because they do not exist on
+   --  disk until committed.
+   --
+   --  @param Model Model to update.
+   procedure Select_All_Visible
+     (Model : in out Window_Model);
 
    --  Clear the deterministic multi-selection set and primary selection.
    --
@@ -815,6 +840,7 @@ private
       Current_Path_Value   : UString;
       Home_Path_Value      : UString;
       Items                : Files.File_System.Item_Vectors.Vector;
+      Directory_Signature  : Files.File_System.Directory_Signature;
       Filter_Value         : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;

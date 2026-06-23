@@ -1,0 +1,5 @@
+files-icon-v1
+name=toolbar-create
+grid=16
+rect=7,3,2,10,border
+rect=3,7,10,2,border

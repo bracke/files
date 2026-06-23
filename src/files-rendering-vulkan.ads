@@ -68,9 +68,11 @@ package Files.Rendering.Vulkan is
    type Submission_Batch is record
       Vertices               : Vertex_Vectors.Vector;
       Rectangle_Vertex_Count : Natural := 0;
+      Triangle_Vertex_Count  : Natural := 0;
       Icon_Vertex_Count      : Natural := 0;
       Icon_Quad_Count        : Natural := 0;
       Glyph_Vertex_Count     : Natural := 0;
+      Overlay_Vertex_Count   : Natural := 0;
       Width                  : Natural := 0;
       Height                 : Natural := 0;
       Atlas_Width            : Natural := 0;
@@ -78,6 +80,7 @@ package Files.Rendering.Vulkan is
       Atlas_Pixels           : System.Address := System.Null_Address;
       Atlas_Bytes            : Natural := 0;
       Atlas_Dirty            : Boolean := False;
+      Text_Atlas_Used        : Boolean := False;
       Texture_Count          : Natural := 0;
       Uses_Separate_Text_And_Icon_Textures : Boolean := False;
       Icon_Texture_Format    : Atlas_Texture_Format := Atlas_Texture_None;
@@ -87,6 +90,16 @@ package Files.Rendering.Vulkan is
       Icon_Atlas_Pixels      : Icon_Atlas_Pixel_Vectors.Vector;
       Icon_Atlas_Bytes       : Natural := 0;
       Icon_Atlas_Dirty       : Boolean := False;
+   end record;
+
+   type Gpu_Screenshot_Comparison is record
+      Supported         : Boolean := True;
+      Matched           : Boolean := False;
+      Width             : Natural := 0;
+      Height            : Natural := 0;
+      Compared_Vertices : Natural := 0;
+      Actual_Hash       : Interfaces.Unsigned_32 := 0;
+      Expected_Hash     : Interfaces.Unsigned_32 := 0;
    end record;
 
    --  Return the Vulkan upload texture format implied by Batch.
@@ -136,11 +149,16 @@ package Files.Rendering.Vulkan is
       Last_Vertex_Count     : Natural := 0;
       Last_Texture_Count    : Natural := 0;
       Last_Used_Mixed_Textures : Boolean := False;
+      Framebuffer_Readback_Enabled : Boolean := False;
+      Framebuffer_Readback_Ready : Boolean := False;
+      Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
+      Last_Framebuffer_Bytes : Natural := 0;
       Frame_Width           : Natural := 0;
       Frame_Height          : Natural := 0;
       Pending_Frame_Width   : Natural := 0;
       Pending_Frame_Height  : Natural := 0;
       Last_Status           : Vulkan_Status := Vulkan_Not_Initialized;
+      Last_Vk_Result        : Interfaces.Integer_32 := 0;
       Physical_Device_Count : Interfaces.Unsigned_32 := 0;
    end record;
 
@@ -391,6 +409,9 @@ package Files.Rendering.Vulkan is
 
    --  Return a stable diagnostic snapshot for renderer state.
    --
+   --  Live presentations copy the completed swapchain image into a readback
+   --  buffer and expose its hash through the framebuffer-readback fields.
+   --
    --  @param Renderer Renderer state to inspect.
    --  @return Aggregated renderer diagnostics.
    function Diagnostics
@@ -411,11 +432,35 @@ package Files.Rendering.Vulkan is
       Text  : Files.Rendering.Text_Render_Result)
       return Submission_Batch;
 
+   --  Compare two Vulkan submission batches as deterministic screenshot proxies.
+   --
+   --  This headless comparison validates the geometry, texture selection, and
+   --  color stream that would be submitted to the GPU. Live framebuffer
+   --  readback is reported through Diagnostics; this helper remains the
+   --  headless CI fallback for environments without a Vulkan window.
+   --
+   --  @param Actual Batch produced by the rendering path under test.
+   --  @param Expected Reference batch for the same frame.
+   --  @return Comparison status and stable hashes for diagnostics.
+   function Compare_Gpu_Screenshot
+     (Actual   : Submission_Batch;
+      Expected : Submission_Batch)
+      return Gpu_Screenshot_Comparison;
+
+   --  Enable or disable framebuffer readback diagnostics.
+   --
+   --  @param Renderer Renderer state to update.
+   --  @param Enabled True to copy and hash presented frames for diagnostics.
+   procedure Set_Readback_Enabled
+     (Renderer : in out Vulkan_Renderer;
+      Enabled  : Boolean);
+
    --  Submit a prepared frame batch to the renderer presentation path.
    --
-   --  This records the presentation result for the current vertical slice. A
-   --  complete swapchain-backed implementation can replace the internals without
-   --  changing window-loop control flow.
+   --  On a live swapchain this records commands and presents the image. When
+   --  readback diagnostics are enabled, it also queues framebuffer readback.
+   --  Without a live surface it records a skipped presentation without touching
+   --  native window state.
    --
    --  @param Renderer Renderer state to present through.
    --  @param Batch Prepared Vulkan submission batch.
@@ -461,6 +506,8 @@ private
       Icon_Atlas_Sampler    : Vk.Sampler_T := System.Null_Address;
       Icon_Atlas_Staging_Buffer : Vk.Buffer_T := System.Null_Address;
       Icon_Atlas_Staging_Memory : Vk.Device_Memory_T := System.Null_Address;
+      Readback_Buffer      : Vk.Buffer_T := System.Null_Address;
+      Readback_Memory      : Vk.Device_Memory_T := System.Null_Address;
       Image_Available       : Vk.Semaphore_T := System.Null_Address;
       Render_Finished       : Vk.Semaphore_T := System.Null_Address;
       In_Flight             : Vk.Fence_T := System.Null_Address;
@@ -505,6 +552,12 @@ private
       Icon_Atlas_Height_Value : Natural := 0;
       Icon_Atlas_Format_Value : Atlas_Texture_Format := Atlas_Texture_None;
       Icon_Atlas_Staging_Capacity : Natural := 0;
+      Readback_Capacity    : Natural := 0;
+      Readback_Bytes       : Natural := 0;
+      Readback_Enabled     : Boolean := False;
+      Readback_Pending     : Boolean := False;
+      Readback_Ready       : Boolean := False;
+      Last_Readback_Hash   : Interfaces.Unsigned_32 := 0;
       Pending_Width_Value   : Natural := 0;
       Pending_Height_Value  : Natural := 0;
       Presented_Frames      : Natural := 0;
@@ -514,6 +567,7 @@ private
       Last_Texture_Count    : Natural := 0;
       Last_Used_Mixed_Textures : Boolean := False;
       Last_Status           : Vulkan_Status := Vulkan_Not_Initialized;
+      Last_Vk_Result        : Interfaces.Integer_32 := 0;
       Last_Physical_Devices : Interfaces.Unsigned_32 := 0;
       Resize_Validated      : Boolean := False;
       Long_Running_Validated : Boolean := False;

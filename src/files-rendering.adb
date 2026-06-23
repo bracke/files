@@ -6,16 +6,27 @@ with Textrender;
 
 with Files.Command_Palette;
 with Files.File_Types;
+with Files.Fonts;
 with Files.Localization;
+with Files.UTF8;
 with Files.UI;
 
 package body Files.Rendering is
    use Ada.Strings.Unbounded;
+   use type Files.Commands.Registered_Command_Id;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
 
-   Info_Rows_Per_Item : constant Natural := 9;
+   Info_Rows_Per_Item : constant Natural := 27;
+   Info_Pane_Padding : constant Natural := 10;
+   Main_Content_Padding : constant Natural := 8;
+   Main_Grid_Gap : constant Natural := 8;
+   Item_Content_Padding : constant Natural := 4;
+   Details_Row_Padding : constant Natural := 4;
+   Details_Row_Gap : constant Natural := 4;
+   Details_Column_Padding : constant Natural := 6;
+   Root_Selector_Padding : constant Natural := 8;
 
    function Contains_Rectangle_Point
      (X        : Natural;
@@ -240,6 +251,11 @@ package body Files.Rendering is
       Names.Append (To_Unbounded_String ("unknown"));
       Names.Append (To_Unbounded_String ("ada"));
       Names.Append (To_Unbounded_String ("markdown"));
+      Names.Append (To_Unbounded_String ("toolbar-home"));
+      Names.Append (To_Unbounded_String ("toolbar-back"));
+      Names.Append (To_Unbounded_String ("toolbar-forward"));
+      Names.Append (To_Unbounded_String ("toolbar-create"));
+      Names.Append (To_Unbounded_String ("toolbar-delete"));
       return Names;
    end Bundled_Icon_Asset_Names;
 
@@ -324,6 +340,49 @@ package body Files.Rendering is
               "rect=4,5,2,8,border" & LF
               & "rect=7,8,2,5,border" & LF
               & "rect=10,5,2,8,border" & LF);
+      elsif Icon_Id = "toolbar-home" then
+         return
+           Header ("toolbar-home")
+           & "rect=7,2,2,1,border" & LF
+           & "rect=6,3,4,1,border" & LF
+           & "rect=5,4,6,1,border" & LF
+           & "rect=4,5,8,1,border" & LF
+           & "rect=3,6,10,2,border" & LF
+           & "rect=4,8,2,5,border" & LF
+           & "rect=10,8,2,5,border" & LF
+           & "rect=6,12,4,1,border" & LF
+           & "rect=7,9,2,4,border" & LF;
+      elsif Icon_Id = "toolbar-back" then
+         return
+           Header ("toolbar-back")
+           & "rect=7,3,2,2,border" & LF
+           & "rect=6,5,2,2,border" & LF
+           & "rect=4,7,8,2,border" & LF
+           & "rect=6,9,2,2,border" & LF
+           & "rect=7,11,2,2,border" & LF;
+      elsif Icon_Id = "toolbar-forward" then
+         return
+           Header ("toolbar-forward")
+           & "rect=7,3,2,2,border" & LF
+           & "rect=8,5,2,2,border" & LF
+           & "rect=4,7,8,2,border" & LF
+           & "rect=8,9,2,2,border" & LF
+           & "rect=7,11,2,2,border" & LF;
+      elsif Icon_Id = "toolbar-create" then
+         return
+           Header ("toolbar-create")
+           & "rect=7,3,2,10,border" & LF
+           & "rect=3,7,10,2,border" & LF;
+      elsif Icon_Id = "toolbar-delete" then
+         return
+           Header ("toolbar-delete")
+           & "rect=6,3,4,1,border" & LF
+           & "rect=4,5,8,2,border" & LF
+           & "rect=5,7,1,6,border" & LF
+           & "rect=10,7,1,6,border" & LF
+           & "rect=5,12,6,1,border" & LF
+           & "rect=7,8,1,4,border" & LF
+           & "rect=9,8,1,4,border" & LF;
       else
          return "";
       end if;
@@ -541,7 +600,7 @@ package body Files.Rendering is
          when Files.Types.Small_Icons =>
             return
               (Width     => 180,
-               Height    => Line_Height,
+               Height    => Saturating_Add (Line_Height, Saturating_Multiply (Item_Content_Padding, 2)),
                Icon_Size => Line_Height,
                Large     => False);
          when Files.Types.Large_Icons =>
@@ -553,7 +612,10 @@ package body Files.Rendering is
          when Files.Types.Details =>
             return
               (Width     => Main_Width,
-               Height    => Line_Height,
+               Height    =>
+                 Saturating_Add
+                   (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)),
+                    Details_Row_Gap),
                Icon_Size => Line_Height,
                Large     => False);
       end case;
@@ -1230,7 +1292,7 @@ package body Files.Rendering is
          end;
       end loop;
 
-      if Files.Model.Selected_Count (Model) > 0 then
+      if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
          declare
             Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
          begin
@@ -1287,7 +1349,8 @@ package body Files.Rendering is
       return Layout_Metrics
    is
       Toolbar    : constant Natural := Saturating_Multiply (Line_Height, 2);
-      Bottom     : constant Natural := Line_Height;
+      Bottom     : constant Natural :=
+        Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2));
       Used_Y     : constant Natural := Saturating_Add (Toolbar, Bottom);
       Main_H     : constant Natural := (if Height > Used_Y then Height - Used_Y else 0);
       Pane_W     : constant Natural := (if Snapshot.Info_Pane_Open then Width / 4 else 0);
@@ -1321,6 +1384,21 @@ package body Files.Rendering is
       return Item_Layout_Vectors.Vector
    is
       Result : Item_Layout_Vectors.Vector;
+      Padding : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+      Content_W : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Width);
+      Content_H : constant Natural :=
+        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Height);
       Main_View : constant Main_View_Layout :=
         Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
       Scroll_Pixels : constant Natural := Main_View.Scroll_Pixels;
@@ -1335,11 +1413,12 @@ package body Files.Rendering is
       end Saturating_Subtract;
 
       function Columns_For (Main_Width : Natural; Cell_Width : Positive) return Positive is
+         Stride : constant Positive := Positive (Saturating_Add (Cell_Width, Main_Grid_Gap));
       begin
          if Main_Width < Cell_Width then
             return 1;
          else
-            return Positive (Main_Width / Cell_Width);
+            return Positive'Max (1, Positive ((Saturating_Add (Main_Width, Main_Grid_Gap)) / Stride));
          end if;
       end Columns_For;
 
@@ -1350,35 +1429,59 @@ package body Files.Rendering is
          Icon_Size : Positive;
          Large     : Boolean)
       is
-         Columns     : constant Positive := Columns_For (Layout.Main_Width, Cell_W);
+         Columns     : constant Positive := Columns_For (Content_W, Cell_W);
          Offset      : constant Natural := Natural (Index - 1);
          Column      : constant Natural := Offset mod Columns;
          Row         : constant Natural := Offset / Columns;
-         Cell_Offset : constant Natural := Column * Cell_W;
-         Row_Offset  : constant Natural := Saturating_Multiply (Row, Cell_H);
+         Cell_Stride : constant Natural := Saturating_Add (Cell_W, Main_Grid_Gap);
+         Row_Stride  : constant Natural := Saturating_Add (Cell_H, Main_Grid_Gap);
+         Cell_Offset : constant Natural := Saturating_Multiply (Column, Cell_Stride);
+         Row_Offset  : constant Natural := Saturating_Multiply (Row, Row_Stride);
          Hidden_Px   : constant Natural :=
            (if Row_Offset < Scroll_Pixels then Natural'Min (Cell_H, Scroll_Pixels - Row_Offset) else 0);
          Visible_Row : constant Natural := Saturating_Subtract (Row_Offset, Scroll_Pixels);
-         Cell_X      : constant Natural := Saturating_Add (Layout.Main_X, Cell_Offset);
-         Cell_Y      : constant Natural := Saturating_Add (Layout.Main_Y, Visible_Row);
+         Cell_X      : constant Natural := Saturating_Add (Content_X, Cell_Offset);
+         Cell_Y      : constant Natural := Saturating_Add (Content_Y, Visible_Row);
          Cell_Width  : constant Natural :=
-           (if Layout.Main_Width > Cell_Offset
-            then Natural'Min (Cell_W, Layout.Main_Width - Cell_Offset)
+           (if Content_W > Cell_Offset
+            then Natural'Min (Cell_W, Content_W - Cell_Offset)
             else 0);
          Cell_Height : constant Natural :=
            (if Hidden_Px = Cell_H
             then 0
-            elsif Layout.Main_Height > Visible_Row
-            then Natural'Min (Cell_H - Hidden_Px, Layout.Main_Height - Visible_Row)
+            elsif Content_H > Visible_Row
+            then Natural'Min (Cell_H - Hidden_Px, Content_H - Visible_Row)
             else 0);
          Draw_Icon   : constant Natural := Natural'Min (Icon_Size, Natural'Min (Cell_Width, Cell_Height));
+         Content_Pad : constant Natural := Natural'Min (Item_Content_Padding, Natural'Min (Cell_Width, Cell_Height));
+         Inner_X     : constant Natural := Saturating_Add (Cell_X, Content_Pad);
+         Inner_Y     : constant Natural := Saturating_Add (Cell_Y, Content_Pad);
+         Inner_W     : constant Natural :=
+           (if Cell_Width > Saturating_Multiply (Content_Pad, 2)
+            then Cell_Width - Saturating_Multiply (Content_Pad, 2)
+            else Cell_Width);
+         Inner_H     : constant Natural :=
+           (if Cell_Height > Saturating_Multiply (Content_Pad, 2)
+            then Cell_Height - Saturating_Multiply (Content_Pad, 2)
+            else Cell_Height);
+         Padded_Icon : constant Natural := Natural'Min (Draw_Icon, Natural'Min (Inner_W, Inner_H));
          Used_X      : constant Natural :=
-           (if Large then 0 else Natural'Min (Cell_Width, Saturating_Add (Draw_Icon, 4)));
+           (if Large then 0 else Natural'Min (Inner_W, Saturating_Add (Padded_Icon, Item_Content_Padding)));
          Icon_X      : constant Natural :=
-           (if Large then Saturating_Add (Cell_X, (Cell_Width - Draw_Icon) / 2) else Cell_X);
-         Icon_Y      : constant Natural := Cell_Y;
-         Text_X      : constant Natural := (if Large then Cell_X else Saturating_Add (Cell_X, Used_X));
-         Text_Y      : constant Natural := (if Large then Saturating_Add (Cell_Y, Draw_Icon) else Cell_Y);
+           (if Large then Saturating_Add (Inner_X, (if Inner_W > Padded_Icon then (Inner_W - Padded_Icon) / 2 else 0))
+            else Inner_X);
+         Icon_Y      : constant Natural := Inner_Y;
+         Name_Units  : constant Natural :=
+           Files.UTF8.Display_Units (To_String (Snapshot.Items.Element (Index).Name));
+         Name_Pixels : constant Natural := Saturating_Multiply (Name_Units, Line_Height / 2);
+         Large_Text_W : constant Natural := Natural'Min (Inner_W, Name_Pixels);
+         Text_X      : constant Natural :=
+           (if Large
+            then Saturating_Add (Inner_X, (if Inner_W > Large_Text_W then (Inner_W - Large_Text_W) / 2 else 0))
+            else Saturating_Add (Inner_X, Used_X));
+         Text_Y      : constant Natural := (if Large then Saturating_Add (Inner_Y, Padded_Icon) else Inner_Y);
+         Text_W      : constant Natural :=
+           (if Large then Large_Text_W else Saturating_Subtract (Inner_W, Used_X));
       begin
          Result.Append
            (Item_Layout'
@@ -1389,12 +1492,12 @@ package body Files.Rendering is
                Height        => Cell_Height,
                Icon_X        => Icon_X,
                Icon_Y         => Icon_Y,
-               Icon_Size      => Draw_Icon,
+               Icon_Size      => Padded_Icon,
                Text_X         => Text_X,
                Text_Y         => Text_Y,
-               Text_Width     => Saturating_Subtract (Cell_Width, Used_X),
+               Text_Width     => Text_W,
                Name_X         => Text_X,
-               Name_Width     => Saturating_Subtract (Cell_Width, Used_X),
+               Name_Width     => Text_W,
                Modified_X     => 0,
                Modified_Width => 0,
                Size_X         => 0,
@@ -1408,7 +1511,7 @@ package body Files.Rendering is
             when Files.Types.Small_Icons | Files.Types.Large_Icons =>
                declare
                   Metrics : constant Item_Cell_Metrics :=
-                    Metrics_For (Snapshot.View_Mode, Layout.Main_Width, Line_Height);
+                    Metrics_For (Snapshot.View_Mode, Content_W, Line_Height);
                begin
                   Append_Grid_Item
                     (Positive (Index),
@@ -1419,50 +1522,69 @@ package body Files.Rendering is
                end;
             when Files.Types.Details =>
                declare
-                  Header_H   : constant Natural := Natural'Min (Line_Height, Layout.Main_Height);
-                  Rows_Y     : constant Natural := Saturating_Add (Layout.Main_Y, Header_H);
-                  Rows_H     : constant Natural := Saturating_Subtract (Layout.Main_Height, Header_H);
-                  Row_Offset : constant Natural := Saturating_Multiply (Natural (Index - 1), Line_Height);
+                  Metrics    : constant Item_Cell_Metrics :=
+                    Metrics_For (Snapshot.View_Mode, Content_W, Line_Height);
+                  Row_Step   : constant Natural := Metrics.Height;
+                  Header_H   : constant Natural :=
+                    Natural'Min
+                      (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+                  Rows_Y     : constant Natural := Saturating_Add (Content_Y, Header_H);
+                  Rows_H     : constant Natural := Saturating_Subtract (Content_H, Header_H);
+                  Row_Offset : constant Natural := Saturating_Multiply (Natural (Index - 1), Row_Step);
                   Hidden_Px  : constant Natural :=
                     (if Row_Offset < Scroll_Pixels
-                     then Natural'Min (Line_Height, Scroll_Pixels - Row_Offset)
+                     then Natural'Min (Row_Step, Scroll_Pixels - Row_Offset)
                      else 0);
                   Visible_Row : constant Natural := Saturating_Subtract (Row_Offset, Scroll_Pixels);
                   Row_Y      : constant Natural := Saturating_Add (Rows_Y, Visible_Row);
                   Row_H      : constant Natural :=
-                    (if Hidden_Px = Line_Height
+                    (if Hidden_Px = Row_Step
                      then 0
                      elsif Rows_H > Visible_Row
-                     then Natural'Min (Line_Height - Hidden_Px, Rows_H - Visible_Row)
+                     then Natural'Min (Row_Step - Hidden_Px, Rows_H - Visible_Row)
                      else 0);
-                  Icon_Gap   : constant Natural := Saturating_Add (Line_Height, 4);
-                  Content_X  : constant Natural := Saturating_Add (Layout.Main_X, Icon_Gap);
-                  Available  : constant Natural := Saturating_Subtract (Layout.Main_Width, Icon_Gap);
-                  Type_W     : constant Natural := Natural'Min (160, Available / 4);
-                  Size_W     : constant Natural := Natural'Min (96, Available / 6);
-                  Modified_W : constant Natural := Natural'Min (180, Available / 4);
+                  Row_Draw_H : constant Natural :=
+                    (if Row_H > Details_Row_Gap then Row_H - Details_Row_Gap else Row_H);
+                  Row_Pad    : constant Natural := Natural'Min (Details_Row_Padding, Row_Draw_H);
+                  Inner_H    : constant Natural :=
+                    (if Row_Draw_H > Saturating_Multiply (Row_Pad, 2)
+                     then Row_Draw_H - Saturating_Multiply (Row_Pad, 2)
+                     else Row_Draw_H);
+                  Icon_Gap   : constant Natural := Saturating_Add (Line_Height, 6);
+                  Row_Inner_X : constant Natural := Saturating_Add (Content_X, Row_Pad);
+                  Row_Content_X : constant Natural := Saturating_Add (Row_Inner_X, Icon_Gap);
+                  Available  : constant Natural :=
+                    (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Row_Pad, 2))
+                     then Content_W - Icon_Gap - Saturating_Multiply (Row_Pad, 2)
+                     else 0);
+                  Reserved_Name_W : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 6));
+                  Metadata_W : constant Natural := Saturating_Subtract (Available, Reserved_Name_W);
+                  Type_W     : constant Natural := Natural'Min (180, Metadata_W / 4);
+                  Size_W     : constant Natural := Natural'Min (120, Metadata_W / 7);
+                  Modified_W : constant Natural := Natural'Min (220, Metadata_W / 3);
                   Used_W     : constant Natural :=
                     Saturating_Add (Type_W, Saturating_Add (Size_W, Modified_W));
                   Name_W     : constant Natural := Saturating_Subtract (Available, Used_W);
-                  Modified_X : constant Natural := Saturating_Add (Content_X, Name_W);
+                  Modified_X : constant Natural := Saturating_Add (Row_Content_X, Name_W);
                   Size_X     : constant Natural := Saturating_Add (Modified_X, Modified_W);
                   Type_X     : constant Natural := Saturating_Add (Size_X, Size_W);
+                  Text_Pad   : constant Natural := Natural'Min (Details_Column_Padding, Row_Draw_H);
                begin
                   Result.Append
                     (Item_Layout'
                        (Visible_Index  => Snapshot.Items.Element (Positive (Index)).Visible_Index,
-                        X              => Layout.Main_X,
+                        X              => Content_X,
                         Y              => Row_Y,
-                        Width          => Layout.Main_Width,
-                        Height         => Row_H,
-                        Icon_X         => Layout.Main_X,
-                        Icon_Y         => Row_Y,
-                        Icon_Size      => Natural'Min (Line_Height, Row_H),
-                        Text_X         => Content_X,
-                        Text_Y         => Row_Y,
-                        Text_Width     => Name_W,
-                        Name_X         => Content_X,
-                        Name_Width     => Name_W,
+                        Width          => Content_W,
+                        Height         => Row_Draw_H,
+                        Icon_X         => Row_Inner_X,
+                        Icon_Y         => Saturating_Add (Row_Y, Row_Pad),
+                        Icon_Size      => Natural'Min (Line_Height, Inner_H),
+                        Text_X         => Saturating_Add (Row_Content_X, Text_Pad),
+                        Text_Y         => Saturating_Add (Row_Y, Row_Pad),
+                        Text_Width     => Saturating_Subtract (Name_W, Text_Pad),
+                        Name_X         => Saturating_Add (Row_Content_X, Text_Pad),
+                        Name_Width     => Saturating_Subtract (Name_W, Text_Pad),
                         Modified_X     => Modified_X,
                         Modified_Width => Modified_W,
                         Size_X         => Size_X,
@@ -1482,60 +1604,86 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Main_View_Layout
    is
+      Padding      : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+      Content_W    : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Width);
+      View_H       : constant Natural :=
+        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Height);
       Count        : constant Natural := Natural (Snapshot.Items.Length);
       Metrics      : constant Item_Cell_Metrics :=
-        Metrics_For (Snapshot.View_Mode, Layout.Main_Width, Line_Height);
+        Metrics_For (Snapshot.View_Mode, Content_W, Line_Height);
       Cell_W       : constant Natural := Metrics.Width;
       Cell_H       : constant Natural := Metrics.Height;
       Columns      : constant Natural :=
         (if Snapshot.View_Mode = Files.Types.Details or else Cell_W = 0
          then 1
-         elsif Layout.Main_Width < Cell_W
+         elsif Content_W < Cell_W
          then 1
-         else Natural'Max (1, Layout.Main_Width / Cell_W));
+         else Natural'Max
+           (1,
+            Saturating_Add (Content_W, Main_Grid_Gap) / Saturating_Add (Cell_W, Main_Grid_Gap)));
       Rows         : constant Natural := (if Count = 0 then 0 else 1 + (Count - 1) / Columns);
-      Row_Content_H : constant Natural := Saturating_Multiply (Rows, Cell_H);
-      Content_H    : constant Natural :=
+      Row_Content_H : constant Natural :=
+        (if Rows = 0 then 0
+         elsif Snapshot.View_Mode = Files.Types.Details
+         then Saturating_Multiply (Rows, Cell_H)
+         else Saturating_Add
+           (Saturating_Multiply (Rows, Cell_H),
+            Saturating_Multiply (Rows - 1, Main_Grid_Gap)));
+      Content_Total_H : constant Natural :=
         (if Snapshot.View_Mode = Files.Types.Details
-         then Saturating_Add (Natural'Min (Line_Height, Layout.Main_Height), Row_Content_H)
+         then Saturating_Add
+           (Natural'Min
+              (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), View_H),
+            Row_Content_H)
          else Row_Content_H);
-      Max_Scroll   : constant Natural := (if Content_H > Layout.Main_Height then Content_H - Layout.Main_Height else 0);
+      Max_Scroll   : constant Natural :=
+        (if Content_Total_H > View_H then Content_Total_H - View_H else 0);
       Requested_Px : constant Natural := Saturating_Multiply (Snapshot.Main_View_Scroll_Lines, Line_Height);
       Scroll_Px    : constant Natural := Natural'Min (Requested_Px, Max_Scroll);
       Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
       Bar_W        : constant Natural := Natural'Min (6, Layout.Main_Width);
       Visible      : constant Boolean :=
-        Layout.Main_Height > 0
+        View_H > 0
         and then Bar_W > 0
-        and then Content_H > Layout.Main_Height;
+        and then Content_Total_H > View_H;
       Thumb_H      : constant Natural :=
         (if Visible
          then Natural'Min
-           (Layout.Main_Height,
+           (View_H,
             Natural'Max
               (Line_Height,
                Bounded_Product_Divide
-                 (Value => Layout.Main_Height, Factor => Layout.Main_Height, Denominator => Content_H)))
+                 (Value => View_H, Factor => View_H, Denominator => Content_Total_H)))
          else 0);
       Track_H      : constant Natural :=
-        (if Layout.Main_Height > Thumb_H then Layout.Main_Height - Thumb_H else 0);
+        (if View_H > Thumb_H then View_H - Thumb_H else 0);
       Thumb_Y      : constant Natural :=
         (if Visible and then Max_Scroll > 0
          then Saturating_Add
-           (Layout.Main_Y,
+           (Saturating_Add (Layout.Main_Y, Padding),
             Bounded_Product_Divide (Value => Track_H, Factor => Scroll_Px, Denominator => Max_Scroll))
-         else Layout.Main_Y);
+         else Saturating_Add (Layout.Main_Y, Padding));
    begin
       return
-        (Content_Height    => Content_H,
+        (Content_Height    => Content_Total_H,
          Scroll_Lines      => Scroll_Lines,
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
          Scrollbar_X       => (if Visible then Saturating_Add (Layout.Main_X, Layout.Main_Width - Bar_W) else 0),
-         Scrollbar_Y       => (if Visible then Layout.Main_Y else 0),
+         Scrollbar_Y       => (if Visible then Saturating_Add (Layout.Main_Y, Padding) else 0),
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),
-         Scrollbar_Height  => Thumb_H);
+         Scrollbar_Height  => Thumb_H,
+         Scrollbar_Track_Height => (if Visible then View_H else 0));
    end Calculate_Main_View_Layout;
 
    function Item_At
@@ -1560,7 +1708,10 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Command_Palette_Layout
    is
-      Search_H  : constant Natural := Natural'Min (Line_Height, Layout.Command_Height);
+      Search_H  : constant Natural :=
+        Natural'Min
+          (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
+           Layout.Command_Height);
       Results_Y : constant Natural := Saturating_Add (Layout.Command_Y, Search_H);
    begin
       return
@@ -1646,9 +1797,16 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Root_Selector_Layout
    is
-      Preferred_Width : constant Natural := Natural'Max (Layout.Width / 5, Saturating_Multiply (Line_Height, 12));
+      Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3, Saturating_Multiply (Line_Height, 18));
       Dropdown_Width  : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
-      Wanted_Height   : constant Natural := Saturating_Multiply (Natural (Snapshot.Root_Paths.Length), Line_Height);
+      Row_Height      : constant Natural :=
+        Saturating_Add
+          (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
+           Saturating_Multiply (Root_Selector_Padding, 2));
+      Wanted_Height   : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Natural (Snapshot.Root_Paths.Length), Row_Height),
+           Saturating_Multiply (Root_Selector_Padding, 2));
       Dropdown_Height : constant Natural := Natural'Min (Layout.Main_Height, Wanted_Height);
    begin
       if not Snapshot.Root_Selector_Open then
@@ -1660,7 +1818,7 @@ package body Files.Rendering is
          Y          => Layout.Toolbar_Height,
          Width      => Dropdown_Width,
          Height     => Dropdown_Height,
-         Row_Height => Line_Height);
+         Row_Height => Row_Height);
    end Calculate_Root_Selector_Layout;
 
    function Calculate_Root_Path_Layout
@@ -1670,7 +1828,15 @@ package body Files.Rendering is
    is
       Result       : Root_Path_Layout_Vectors.Vector;
       Root_Count   : constant Natural := Natural (Snapshot.Root_Paths.Length);
-      Visible_Rows : constant Natural := Visible_Row_Count (Layout.Height, Layout.Row_Height);
+      Content_H    : constant Natural :=
+        (if Layout.Height > Saturating_Multiply (Root_Selector_Padding, 2)
+         then Layout.Height - Saturating_Multiply (Root_Selector_Padding, 2)
+         else 0);
+      Content_W    : constant Natural :=
+        (if Layout.Width > Saturating_Multiply (Root_Selector_Padding, 2)
+         then Layout.Width - Saturating_Multiply (Root_Selector_Padding, 2)
+         else Layout.Width);
+      Visible_Rows : constant Natural := Visible_Row_Count (Content_H, Layout.Row_Height);
       Start_Index  : Natural := 1;
       Selected_Index : Natural := Snapshot.Root_Selected_Index;
    begin
@@ -1696,8 +1862,13 @@ package body Files.Rendering is
       for Index in Start_Index .. Root_Count loop
          declare
             Row_Y : constant Natural :=
-              Saturating_Add (Layout.Y, Saturating_Multiply (Natural (Index - Start_Index), Layout.Row_Height));
-            Layout_End_Y : constant Natural := Saturating_Add (Layout.Y, Layout.Height);
+              Saturating_Add
+                (Saturating_Add (Layout.Y, Root_Selector_Padding),
+                 Saturating_Multiply (Natural (Index - Start_Index), Layout.Row_Height));
+            Layout_End_Y : constant Natural :=
+              Saturating_Add
+                (Layout.Y,
+                 (if Layout.Height > Root_Selector_Padding then Layout.Height - Root_Selector_Padding else 0));
          begin
             exit when Row_Y >= Layout_End_Y;
             declare
@@ -1707,9 +1878,9 @@ package body Files.Rendering is
                Result.Append
                  (Root_Path_Layout'
                     (Root_Index => Index,
-                     X          => Layout.X,
+                     X          => Saturating_Add (Layout.X, Root_Selector_Padding),
                      Y          => Row_Y,
-                     Width      => Layout.Width,
+                     Width      => Content_W,
                      Height     => Row_H,
                      Selected   => Index = Selected_Index));
             end;
@@ -1743,9 +1914,13 @@ package body Files.Rendering is
       return Info_Pane_Layout
    is
       Pane_X        : constant Natural := Layout.Main_Width;
-      Content_H     : constant Natural :=
+      Raw_Content_H : constant Natural :=
         Saturating_Multiply
           (Saturating_Multiply (Natural (Snapshot.Selected_Info.Length), Info_Rows_Per_Item), Line_Height);
+      Content_H     : constant Natural :=
+        (if Raw_Content_H > 0
+         then Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding, 2))
+         else 0);
       Bar_W         : constant Natural := Natural'Min (6, Layout.Info_Pane_Width);
       Visible       : constant Boolean :=
         Snapshot.Info_Pane_Open
@@ -1790,7 +1965,8 @@ package body Files.Rendering is
          Scrollbar_Y       => (if Visible then Layout.Main_Y else 0),
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),
-         Scrollbar_Height  => (if Visible then Natural'Min (Thumb_H, Layout.Main_Height) else 0));
+         Scrollbar_Height  => (if Visible then Natural'Min (Thumb_H, Layout.Main_Height) else 0),
+         Scrollbar_Track_Height => (if Visible then Layout.Main_Height else 0));
    end Calculate_Info_Pane_Layout;
 
    function Build_Frame_Commands
@@ -1816,6 +1992,16 @@ package body Files.Rendering is
       Bottom        : constant Files.UI.Bottom_Bar_Layout :=
         Files.UI.Calculate_Bottom_Bar_Layout (Width, Line_Height);
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
+      Toolbar_Input_Y : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
+      Toolbar_Input_H : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
+      Toolbar_Input_Text_Y : constant Natural :=
+        (if Toolbar_Input_H > 2 * Files.UI.Input_Field_Padding
+         then Saturating_Add (Toolbar_Input_Y, Files.UI.Input_Field_Padding)
+         else Toolbar_Input_Y);
+      Toolbar_Input_Text_H : constant Natural :=
+        (if Toolbar_Input_H > 2 * Files.UI.Input_Field_Padding
+         then Natural'Min (Line_Height, Toolbar_Input_H - 2 * Files.UI.Input_Field_Padding)
+         else Toolbar_Input_H);
       Palette_Rows  : constant Command_Result_Layout_Vectors.Vector :=
         Calculate_Command_Result_Layout (Snapshot, Palette);
       Root_Selector : constant Root_Selector_Layout :=
@@ -1825,6 +2011,11 @@ package body Files.Rendering is
       Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
       Bottom_Y      : constant Natural :=
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
+      Bottom_Content_Y : constant Natural := Saturating_Add (Bottom_Y, Files.UI.Bottom_Bar_Padding);
+      Bottom_Content_H : constant Natural :=
+        (if Layout.Bottom_Bar_Height > Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
+         then Layout.Bottom_Bar_Height - Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
+         else Layout.Bottom_Bar_Height);
 
       function Clipped_Size
         (Start : Natural;
@@ -1861,6 +2052,78 @@ package body Files.Rendering is
          end if;
       end Add_Rect;
 
+      procedure Add_Triangle
+        (X1    : Float;
+         Y1    : Float;
+         X2    : Float;
+         Y2    : Float;
+         X3    : Float;
+         Y3    : Float;
+         Color : Render_Color)
+      is
+      begin
+         if Layout.Width = 0 or else Layout.Height = 0 then
+            return;
+         end if;
+
+         Result.Triangles.Append
+           (Triangle_Command'
+              (X1    => X1,
+               Y1    => Y1,
+               X2    => X2,
+               Y2    => Y2,
+               X3    => X3,
+               Y3    => Y3,
+               Color => Color));
+      end Add_Triangle;
+
+      procedure Add_Overlay_Rect
+        (X      : Natural;
+         Y      : Natural;
+         Rect_W : Natural;
+         Rect_H : Natural;
+         Color  : Render_Color)
+      is
+         Draw_W : constant Natural := Clipped_Size (X, Rect_W, Layout.Width);
+         Draw_H : constant Natural := Clipped_Size (Y, Rect_H, Layout.Height);
+      begin
+         if Draw_W > 0 and then Draw_H > 0 then
+            Result.Overlay_Rectangles.Append
+              (Rectangle_Command'
+                 (X      => X,
+                  Y      => Y,
+                  Width  => Draw_W,
+                  Height => Draw_H,
+                  Color  => Color));
+         end if;
+      end Add_Overlay_Rect;
+
+      function Fitted_Text_For
+        (Text     : UString;
+         Capacity : Natural)
+         return UString
+      is
+         Raw : constant String := To_String (Text);
+      begin
+         if Capacity = 0 then
+            return Null_Unbounded_String;
+         elsif Files.UTF8.Display_Units (Raw) <= Capacity then
+            return Text;
+         elsif Capacity < 4 then
+            return To_Unbounded_String (Files.UTF8.Prefix_By_Units (Raw, Capacity));
+         else
+            declare
+               Prefix : constant String := Files.UTF8.Prefix_By_Units (Raw, Capacity - 3);
+            begin
+               if Prefix = "" then
+                  return To_Unbounded_String (Files.UTF8.Prefix_By_Units (Raw, Capacity));
+               else
+                  return To_Unbounded_String (Prefix & "...");
+               end if;
+            end;
+         end if;
+      end Fitted_Text_For;
+
       procedure Add_Text
         (X      : Natural;
          Y      : Natural;
@@ -1868,65 +2131,15 @@ package body Files.Rendering is
          Text_H : Natural;
          Text   : UString;
          Color  : Render_Color := Text_Color;
-         Fit    : Boolean := False)
+         Fit    : Boolean := False;
+         Scale_To_Box : Boolean := False)
       is
          Draw_W   : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
          Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
          Cell_W   : constant Positive := Positive'Max (1, Line_Height / 2);
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
-
-         function Is_UTF8_Continuation
-           (Value : Character)
-            return Boolean is
-            Code : constant Natural := Character'Pos (Value);
-         begin
-            return Code >= 16#80# and then Code <= 16#BF#;
-         end Is_UTF8_Continuation;
-
-         function UTF8_Safe_Prefix_Length
-           (Max_Bytes : Natural)
-            return Natural
-         is
-            Limit : Natural := Natural'Min (Max_Bytes, Raw'Length);
-         begin
-            while Limit > 0
-              and then Limit < Raw'Length
-              and then Is_UTF8_Continuation (Raw (Raw'First + Limit))
-            loop
-               Limit := Limit - 1;
-            end loop;
-
-            return Limit;
-         end UTF8_Safe_Prefix_Length;
-
-         function UTF8_Safe_Prefix
-           (Max_Bytes : Natural)
-            return String
-         is
-            Prefix_Length : constant Natural := UTF8_Safe_Prefix_Length (Max_Bytes);
-         begin
-            if Prefix_Length = 0 then
-               return "";
-            end if;
-
-            return Raw (Raw'First .. Raw'First + Prefix_Length - 1);
-         end UTF8_Safe_Prefix;
-
-         function Fitted_Text return UString is
-         begin
-            if Capacity = 0 then
-               return Null_Unbounded_String;
-            elsif Raw'Length <= Capacity then
-               return Text;
-            elsif Capacity < 3 then
-               return To_Unbounded_String (UTF8_Safe_Prefix (Capacity));
-            else
-               return To_Unbounded_String (UTF8_Safe_Prefix (Capacity - 3) & "...");
-            end if;
-         end Fitted_Text;
-
-         Fitted : constant UString := (if Fit then Fitted_Text else Text);
+         Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
          Was_Truncated : constant Boolean := Fit and then Length (Fitted) < Raw'Length;
       begin
          if Draw_W > 0 and then Draw_H > 0 and then Length (Fitted) > 0 then
@@ -1938,9 +2151,41 @@ package body Files.Rendering is
                   Height => Draw_H,
                   Text   => Fitted,
                   Color  => Color,
-                  Truncated => Was_Truncated));
+                  Truncated => Was_Truncated,
+                  Scale_To_Box => Scale_To_Box));
          end if;
       end Add_Text;
+
+      procedure Add_Overlay_Text
+        (X      : Natural;
+         Y      : Natural;
+         Text_W : Natural;
+         Text_H : Natural;
+         Text   : UString;
+         Color  : Render_Color := Text_Color;
+         Fit    : Boolean := False)
+      is
+         Draw_W : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
+         Draw_H : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
+         Cell_W   : constant Positive := Positive'Max (1, Line_Height / 2);
+         Capacity : constant Natural := Draw_W / Cell_W;
+         Raw      : constant String := To_String (Text);
+         Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
+         Was_Truncated : constant Boolean := Fit and then Length (Fitted) < Raw'Length;
+      begin
+         if Draw_W > 0 and then Draw_H > 0 and then Length (Fitted) > 0 then
+            Result.Overlay_Text.Append
+              (Text_Command'
+                 (X         => X,
+                  Y         => Y,
+                  Width     => Draw_W,
+                  Height    => Draw_H,
+                  Text      => Fitted,
+                  Color     => Color,
+                  Truncated => Was_Truncated,
+                  Scale_To_Box => False));
+         end if;
+      end Add_Overlay_Text;
 
       procedure Add_Tooltip
         (X        : Natural;
@@ -1963,6 +2208,27 @@ package body Files.Rendering is
                   Text   => To_Unbounded_String (Text)));
          end if;
       end Add_Tooltip;
+
+      procedure Add_Tooltip_Text
+        (X        : Natural;
+         Y        : Natural;
+         Tip_W    : Natural;
+         Tip_H    : Natural;
+         Text     : UString)
+      is
+         Draw_W : constant Natural := Clipped_Size (X, Tip_W, Layout.Width);
+         Draw_H : constant Natural := Clipped_Size (Y, Tip_H, Layout.Height);
+      begin
+         if Draw_W > 0 and then Draw_H > 0 and then Length (Text) > 0 then
+            Result.Tooltips.Append
+              (Tooltip_Command'
+                 (X      => X,
+                  Y      => Y,
+                  Width  => Draw_W,
+                  Height => Draw_H,
+                  Text   => Text));
+         end if;
+      end Add_Tooltip_Text;
 
       procedure Add_Accessibility_Node
         (Role        : Accessibility_Role;
@@ -2155,126 +2421,263 @@ package body Files.Rendering is
       end Add_Scrollbar;
 
       procedure Add_Hover_Tooltip is
-         Padding   : constant Natural := 6;
-         Text      : constant UString := Tooltip_At (Hover_X, Hover_Y);
-         Text_Len  : constant Natural := Length (Text);
-         Text_W    : constant Natural :=
-           Natural'Min (Natural'Max (160, Saturating_Multiply (Text_Len, 8)), 360);
-         Tip_W     : constant Natural := Saturating_Add (Text_W, 2 * Padding);
-         Tip_H     : constant Natural := Saturating_Add (Line_Height, 2 * Padding);
-         Desired_X : constant Natural := Saturating_Add (Hover_X, 12);
-         Desired_Y : constant Natural := Saturating_Add (Hover_Y, 18);
-         Tip_X     : constant Natural :=
-           (if Width > Saturating_Add (Tip_W, 4) then Natural'Min (Desired_X, Width - Tip_W - 4) else 0);
-         Tip_Y     : constant Natural :=
-           (if Height > Saturating_Add (Tip_H, 4) then Natural'Min (Desired_Y, Height - Tip_H - 4) else 0);
+         Padding     : constant Natural := 6;
+         Margin      : constant Natural := 4;
+         Horizontal_Gap : constant Natural := 12;
+         Vertical_Gap   : constant Natural := 18;
+         Text        : constant UString := Tooltip_At (Hover_X, Hover_Y);
+         Text_Raw    : constant String := To_String (Text);
+         Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);
+         Cell_W      : constant Natural := Natural'Max (1, Line_Height / 2);
+         Max_Tip_W   : constant Natural :=
+           (if Width > 2 * Margin then Width - 2 * Margin else Width);
+         Raw_Text_W  : constant Natural := Saturating_Multiply (Text_Len, Cell_W);
+         Text_W      : constant Natural :=
+           (if Max_Tip_W > 2 * Padding
+            then Natural'Min (Raw_Text_W, Max_Tip_W - 2 * Padding)
+            else 0);
+         Tip_W       : constant Natural := Saturating_Add (Text_W, 2 * Padding);
+         Tip_H       : constant Natural := Saturating_Add (Line_Height, 2 * Padding);
+
+         function Fits_Right return Boolean is
+         begin
+            return
+              Width > Margin
+              and then Hover_X <= Natural'Last - Horizontal_Gap
+              and then Saturating_Add (Hover_X, Horizontal_Gap) <= Natural'Last - Tip_W
+              and then Saturating_Add (Saturating_Add (Hover_X, Horizontal_Gap), Tip_W) <= Width - Margin;
+         end Fits_Right;
+
+         function Fits_Left return Boolean is
+         begin
+            return Hover_X >= Saturating_Add (Saturating_Add (Tip_W, Horizontal_Gap), Margin);
+         end Fits_Left;
+
+         function Fits_Below return Boolean is
+         begin
+            return
+              Height > Margin
+              and then Hover_Y <= Natural'Last - Vertical_Gap
+              and then Saturating_Add (Hover_Y, Vertical_Gap) <= Natural'Last - Tip_H
+              and then Saturating_Add (Saturating_Add (Hover_Y, Vertical_Gap), Tip_H) <= Height - Margin;
+         end Fits_Below;
+
+         function Fits_Above return Boolean is
+         begin
+            return Hover_Y >= Saturating_Add (Saturating_Add (Tip_H, Vertical_Gap), Margin);
+         end Fits_Above;
+
+         Tip_X       : constant Natural :=
+           (if Fits_Right then Saturating_Add (Hover_X, Horizontal_Gap)
+            elsif Fits_Left then Hover_X - Tip_W - Horizontal_Gap
+            elsif Width > Saturating_Add (Tip_W, Margin)
+            then Natural'Min (Hover_X, Width - Tip_W - Margin)
+            else 0);
+         Tip_Y       : constant Natural :=
+           (if Fits_Below then Saturating_Add (Hover_Y, Vertical_Gap)
+            elsif Fits_Above then Hover_Y - Tip_H - Vertical_Gap
+            elsif Height > Saturating_Add (Tip_H, Margin)
+            then Natural'Min (Hover_Y, Height - Tip_H - Margin)
+            else 0);
       begin
-         if not Has_Hover or else Text_Len = 0 then
+         if not Has_Hover or else Text_Len = 0 or else Text_W = 0 then
             return;
          end if;
 
-         Add_Rect (Tip_X, Tip_Y, Tip_W, Tip_H, Overlay_Color);
-         Add_Border (Tip_X, Tip_Y, Tip_W, Tip_H, Border_Color);
-         Add_Text
+         Add_Overlay_Rect (Tip_X, Tip_Y, Tip_W, Tip_H, Overlay_Color);
+         Add_Overlay_Rect (Tip_X, Tip_Y, Tip_W, 1, Border_Color);
+         Add_Overlay_Rect (Tip_X, Tip_Y, 1, Tip_H, Border_Color);
+         Add_Overlay_Rect (Tip_X, Saturating_Add (Tip_Y, Tip_H - 1), Tip_W, 1, Border_Color);
+         Add_Overlay_Rect (Saturating_Add (Tip_X, Tip_W - 1), Tip_Y, 1, Tip_H, Border_Color);
+         Add_Overlay_Text
            (Tip_X + Padding,
             Tip_Y + Padding,
             Text_W,
             Line_Height,
             Text,
-            Text_Color);
+            Text_Color,
+            Fit => True);
       end Add_Hover_Tooltip;
 
-      procedure Add_Toolbar_Glyph
+      function Icon_Theme_Name return String is
+      begin
+         if Length (Snapshot.Settings_Icon_Theme) > 0 then
+            return To_String (Snapshot.Settings_Icon_Theme);
+         else
+            return "files-basic";
+         end if;
+      end Icon_Theme_Name;
+
+      procedure Add_Toolbar_Asset_Icon
         (Id      : Files.Commands.Registered_Command_Id;
          X       : Natural;
          Y       : Natural;
          Size    : Natural;
          Enabled : Boolean)
       is
-         Color : constant Render_Color := (if Enabled then Text_Color else Disabled_Text_Color);
-         Mark  : constant Natural := Natural'Max (1, Size / 5);
+         Icon_Name : constant String :=
+           (case Id is
+              when Files.Commands.Navigate_Home_Command => "toolbar-home",
+              when Files.Commands.Navigate_Back_Command => "toolbar-back",
+              when Files.Commands.Navigate_Forward_Command => "toolbar-forward",
+              when Files.Commands.Create_File_Command => "toolbar-create",
+              when Files.Commands.Delete_Selected_Items_Command => "toolbar-delete",
+              when others => "unknown");
+         Asset     : constant Icon_Asset := Parse_Icon_Asset (Icon_Asset_Text (Icon_Name, Icon_Theme_Name));
+         Color     : constant Render_Color := (if Enabled then Text_Color else Disabled_Text_Color);
 
-         function Scale (Numerator : Natural; Denominator : Positive) return Natural is
+         function SX (Numerator : Natural) return Float is
          begin
-            return Bounded_Product_Divide (Size, Numerator, Denominator);
-         end Scale;
+            return Float (X) + Float (Size * Numerator) / 16.0;
+         end SX;
 
-         function X_Offset (Offset : Natural) return Natural is
+         function SY (Numerator : Natural) return Float is
          begin
-            return Saturating_Add (X, Offset);
-         end X_Offset;
+            return Float (Y) + Float (Size * Numerator) / 16.0;
+         end SY;
 
-         function Y_Offset (Offset : Natural) return Natural is
+         function SN (Numerator : Natural) return Natural is
          begin
-            return Saturating_Add (Y, Offset);
-         end Y_Offset;
+            return Natural'Max (1, Bounded_Product_Divide (Value => Size, Factor => Numerator, Denominator => 16));
+         end SN;
+
+         procedure Add_Local_Rect
+           (Local_X : Natural;
+            Local_Y : Natural;
+            Local_W : Natural;
+            Local_H : Natural)
+         is
+         begin
+            Add_Rect (Natural (SX (Local_X)), Natural (SY (Local_Y)), SN (Local_W), SN (Local_H), Color);
+         end Add_Local_Rect;
+
+         procedure Draw_Home is
+         begin
+            Add_Triangle (SX (2), SY (7), SX (8), SY (2), SX (14), SY (7), Color);
+            Add_Local_Rect (4, 7, 8, 6);
+            Add_Local_Rect (7, 9, 2, 4);
+         end Draw_Home;
+
+         procedure Draw_Back is
+         begin
+            Add_Triangle (SX (4), SY (8), SX (9), SY (3), SX (9), SY (13), Color);
+            Add_Local_Rect (8, 7, 5, 2);
+         end Draw_Back;
+
+         procedure Draw_Forward is
+         begin
+            Add_Triangle (SX (12), SY (8), SX (7), SY (3), SX (7), SY (13), Color);
+            Add_Local_Rect (3, 7, 5, 2);
+         end Draw_Forward;
+
+         procedure Draw_Create is
+         begin
+            Add_Local_Rect (7, 3, 2, 10);
+            Add_Local_Rect (3, 7, 10, 2);
+         end Draw_Create;
+
+         procedure Draw_Delete is
+         begin
+            Add_Local_Rect (6, 3, 4, 1);
+            Add_Local_Rect (4, 5, 8, 2);
+            Add_Local_Rect (5, 7, 1, 6);
+            Add_Local_Rect (10, 7, 1, 6);
+            Add_Local_Rect (5, 12, 6, 1);
+            Add_Local_Rect (7, 8, 1, 4);
+            Add_Local_Rect (9, 8, 1, 4);
+         end Draw_Delete;
       begin
          if Size = 0 then
             return;
          end if;
 
-         case Id is
-            when Files.Commands.Select_Drive_Command =>
-               Add_Rect (X, Y_Offset (Scale (1, 4)), Size, Scale (1, 2), Color);
-               Add_Rect (X_Offset (Scale (1, 5)), Y, Scale (3, 5), Natural'Max (1, Scale (1, 4)), Color);
-               Add_Rect (X_Offset (Scale (1, 5)), Y_Offset (Size - Mark), Mark, Mark, Border_Color);
+         Result.Icons.Append
+           (Icon_Command'
+              (X          => X,
+               Y          => Y,
+               Size       => Size,
+               Icon_Id    => To_Unbounded_String (Icon_Name),
+               Theme_Name => To_Unbounded_String (Icon_Theme_Name),
+               Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon")));
 
-            when Files.Commands.Navigate_Home_Command =>
-               Add_Rect (X_Offset (Scale (1, 5)), Y_Offset (Scale (1, 2)), Scale (3, 5), Scale (1, 2), Color);
-               Add_Rect (X_Offset (Scale (1, 3)), Y_Offset (Scale (1, 3)), Scale (1, 3), Scale (1, 3), Color);
-               Add_Rect (X_Offset (Scale (1, 2)), Y, Mark, Natural'Max (1, Scale (1, 3)), Color);
+         if Id = Files.Commands.Navigate_Home_Command then
+            Draw_Home;
+         elsif Id = Files.Commands.Navigate_Back_Command then
+            Draw_Back;
+         elsif Id = Files.Commands.Navigate_Forward_Command then
+            Draw_Forward;
+         elsif Id = Files.Commands.Create_File_Command then
+            Draw_Create;
+         elsif Id = Files.Commands.Delete_Selected_Items_Command then
+            Draw_Delete;
+         elsif Asset.Valid then
+            for Rect of Asset.Rectangles loop
+               Add_Local_Rect (Rect.Grid_X, Rect.Grid_Y, Rect.Grid_W, Rect.Grid_H);
+            end loop;
+         end if;
+      end Add_Toolbar_Asset_Icon;
 
-            when Files.Commands.Navigate_Back_Command =>
-               Add_Rect (X, Y_Offset (Scale (1, 2)), Size, Mark, Color);
-               Add_Rect (X, Y_Offset (Scale (1, 2)), Scale (1, 3), Mark, Color);
-               Add_Rect (X_Offset (Mark), Y_Offset (Scale (1, 3)), Mark, Scale (1, 3), Color);
+      procedure Add_Toolbar_Drive_Icon
+        (X       : Natural;
+         Y       : Natural;
+         Size    : Natural;
+         Enabled : Boolean)
+      is
+         Color     : constant Render_Color := (if Enabled then Text_Color else Disabled_Text_Color);
+         Bar_H     : constant Natural := Natural'Max (2, Size / 9);
+         Bar_W     : constant Natural := Natural'Max (1, (Size * 2) / 3);
+         Gap       : constant Natural := Natural'Max (2, Size / 7);
+         Total_H   : constant Natural := Saturating_Add (Saturating_Multiply (Bar_H, 3), Saturating_Multiply (Gap, 2));
+         Bar_X     : constant Natural := Saturating_Add (X, (if Size > Bar_W then (Size - Bar_W) / 2 else 0));
+         First_Y   : constant Natural := Saturating_Add (Y, (if Size > Total_H then (Size - Total_H) / 2 else 0));
 
-            when Files.Commands.Navigate_Forward_Command =>
-               Add_Rect (X, Y_Offset (Scale (1, 2)), Size, Mark, Color);
-               Add_Rect (X_Offset (Scale (2, 3)), Y_Offset (Scale (1, 2)), Scale (1, 3), Mark, Color);
-               Add_Rect
-                 (X_Offset (Size - Natural'Min (Size, Saturating_Multiply (2, Mark))),
-                  Y_Offset (Scale (1, 3)),
-                  Mark,
-                  Scale (1, 3),
-                  Color);
+         procedure Add_Bar (Index : Natural) is
+            Offset_Y : constant Natural := Saturating_Multiply (Index, Saturating_Add (Bar_H, Gap));
+         begin
+            Add_Rect (Bar_X, Saturating_Add (First_Y, Offset_Y), Bar_W, Bar_H, Color);
+         end Add_Bar;
+      begin
+         if Size = 0 then
+            return;
+         end if;
 
-            when Files.Commands.Create_File_Command =>
-               Add_Rect (X_Offset (Scale (1, 5)), Y, Scale (3, 5), Size, Color);
-               Add_Rect (X_Offset (Scale (1, 2)), Y_Offset (Scale (1, 4)), Mark, Scale (1, 2), Border_Color);
-               Add_Rect (X_Offset (Scale (1, 3)), Y_Offset (Scale (1, 2)), Scale (1, 3), Mark, Border_Color);
-
-            when Files.Commands.Delete_Selected_Items_Command =>
-               Add_Rect (X_Offset (Scale (1, 5)), Y_Offset (Scale (1, 4)), Scale (3, 5), Scale (3, 4), Color);
-               Add_Rect (X_Offset (Scale (1, 6)), Y, Scale (2, 3), Mark, Color);
-               Add_Rect (X_Offset (Scale (1, 3)), Y_Offset (Scale (1, 2)), Mark, Scale (1, 3), Border_Color);
-               Add_Rect (X_Offset (Scale (3, 5)), Y_Offset (Scale (1, 2)), Mark, Scale (1, 3), Border_Color);
-
-            when others =>
-               Add_Rect (X, Y, Size, Size, Color);
-         end case;
-      end Add_Toolbar_Glyph;
+         Add_Bar (0);
+         Add_Bar (1);
+         Add_Bar (2);
+      end Add_Toolbar_Drive_Icon;
 
       procedure Add_Caret
         (X       : Natural;
          Y       : Natural;
          Field_W : Natural;
-         Field_H : Natural)
+         Field_H : Natural;
+         Text    : UString)
       is
          Char_W : constant Positive := Positive'Max (1, Line_Height / 2);
+         Raw    : constant String := To_String (Text);
          Raw_X  : constant Natural :=
            Saturating_Add
-             (Saturating_Add (X, 4),
-              Saturating_Multiply (Snapshot.Text_Cursor_Position, Char_W));
+             (Saturating_Add (X, Files.UI.Input_Field_Padding),
+              Saturating_Multiply
+                (Files.UTF8.Display_Units_Before (Raw, Snapshot.Text_Cursor_Position), Char_W));
          Max_X  : constant Natural := (if Field_W > 2 then Saturating_Add (X, Field_W - 2) else X);
+         Text_Y : constant Natural :=
+           (if Field_H > 2 * Files.UI.Input_Field_Padding
+            then Saturating_Add (Y, Files.UI.Input_Field_Padding)
+            else Y);
+         Text_H : constant Natural :=
+           (if Field_H > 2 * Files.UI.Input_Field_Padding
+            then Natural'Min (Line_Height, Field_H - 2 * Files.UI.Input_Field_Padding)
+            else Field_H);
+         Caret_W : constant Natural := Natural'Min (2, Field_W);
       begin
-         if Field_W > 0 and then Field_H > 4 then
+         if Field_W > 0 and then Text_H > 4 then
             Add_Rect
               (Natural'Min (Raw_X, Max_X),
-               Saturating_Add (Y, 2),
-               1,
-               Field_H - 4,
-               Border_Color);
+               Saturating_Add (Text_Y, 2),
+               Caret_W,
+               Text_H - 4,
+               Text_Color);
          end if;
       end Add_Caret;
 
@@ -2344,15 +2747,6 @@ package body Files.Rendering is
             return "share/files/icons";
          end if;
       end Icon_Asset_Directory;
-
-      function Icon_Theme_Name return String is
-      begin
-         if Length (Snapshot.Settings_Icon_Theme) > 0 then
-            return To_String (Snapshot.Settings_Icon_Theme);
-         else
-            return "files-basic";
-         end if;
-      end Icon_Theme_Name;
 
       function Is_Bundled_Icon (Name : String) return Boolean is
       begin
@@ -2451,7 +2845,6 @@ package body Files.Rendering is
             for Rect of Asset.Rectangles loop
                Add_Asset_Rect (Asset, Rect);
             end loop;
-            Add_Border (X, Y, Draw_Size, Draw_Size, Border_Color);
             return True;
          end Add_Named_Asset;
 
@@ -2694,6 +3087,24 @@ package body Files.Rendering is
          end case;
       end Add_Icon;
 
+      procedure Add_Details_Icon
+        (Item : Item_Snapshot;
+         X    : Natural;
+         Y    : Natural;
+         Size : Natural)
+      is
+         Draw_Size : constant Natural :=
+           Natural'Min
+             (Size,
+              Natural'Min
+                (Clipped_Size (X, Size, Layout.Width),
+                 Clipped_Size (Y, Size, Layout.Height)));
+      begin
+         if Draw_Size > 0 then
+            Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_Color (Item.Kind));
+         end if;
+      end Add_Details_Icon;
+
       procedure Add_Button
         (X        : Natural;
          Button_W : Natural;
@@ -2703,15 +3114,15 @@ package body Files.Rendering is
       begin
          Add_Rect
            (X,
-            Bottom_Y,
+            Bottom_Content_Y,
             Button_W,
-            Layout.Bottom_Bar_Height,
+            Bottom_Content_H,
             (if Selected then Selection_Color
              elsif Pressed then Pressed_Color
              elsif Hovered then Hover_Color
              else Bottom_Bar_Color));
          if Selected then
-            Add_Border (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height, Border_Color);
+            Add_Border (X, Bottom_Content_Y, Button_W, Bottom_Content_H, Border_Color);
          end if;
       end Add_Button;
 
@@ -2719,6 +3130,22 @@ package body Files.Rendering is
       begin
          return To_Unbounded_String (Files.Localization.Text (Files.Commands.Name_Key (Id)));
       end Command_Label;
+
+      function Bottom_Command_Label (Id : Files.Commands.Command_Id) return UString is
+      begin
+         case Id is
+            when Files.Commands.Select_Small_Icons_Command =>
+               return To_Unbounded_String (Files.Localization.Text ("command.view.small.short"));
+            when Files.Commands.Select_Large_Icons_Command =>
+               return To_Unbounded_String (Files.Localization.Text ("command.view.large.short"));
+            when Files.Commands.Select_Details_Command =>
+               return To_Unbounded_String (Files.Localization.Text ("command.view.details.short"));
+            when Files.Commands.Toggle_Info_Pane_Command =>
+               return To_Unbounded_String (Files.Localization.Text ("command.info.toggle.short"));
+            when others =>
+               return Command_Label (Id);
+         end case;
+      end Bottom_Command_Label;
 
       function Command_Color (Id : Files.Commands.Registered_Command_Id) return Render_Color is
       begin
@@ -2732,30 +3159,30 @@ package body Files.Rendering is
          Selected : Boolean)
       is
          Hovered : constant Boolean :=
-           Has_Hover and then Contains_Point (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y);
-         Pressed : constant Boolean := Is_Pressed (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height);
+           Has_Hover and then Contains_Point (X, Bottom_Content_Y, Button_W, Bottom_Content_H, Hover_X, Hover_Y);
+         Pressed : constant Boolean := Is_Pressed (X, Bottom_Content_Y, Button_W, Bottom_Content_H);
       begin
          Add_Button (X, Button_W, Selected, Hovered, Pressed);
          Add_Text
            (Saturating_Add (X, 4),
-            Bottom_Y,
+            Bottom_Content_Y,
             (if Button_W > 8 then Button_W - 8 else 0),
-            Layout.Bottom_Bar_Height,
-            Command_Label (Command),
+            Bottom_Content_H,
+            Bottom_Command_Label (Command),
             Command_Color (Command),
             Fit => True);
          Add_Tooltip
            (X,
-            Bottom_Y,
+            Bottom_Content_Y,
             Button_W,
-            Layout.Bottom_Bar_Height,
+            Bottom_Content_H,
             Files.Commands.Description_Key (Command));
          Add_Accessibility_Node
            (Role_Button,
             X,
-            Bottom_Y,
+            Bottom_Content_Y,
             Button_W,
-            Layout.Bottom_Bar_Height,
+            Bottom_Content_H,
             Command_Label (Command),
             Localized (Files.Commands.Description_Key (Command)),
             Enabled  => Snapshot.Command_Enabled (Command),
@@ -2884,10 +3311,12 @@ package body Files.Rendering is
       function Detail_Size_Text (Item : Item_Snapshot) return UString is
       begin
          if not Item.Size_Available then
-            return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
+            return Null_Unbounded_String;
          end if;
 
-         return To_Unbounded_String (Integer_Text (Item.Size));
+         return
+           To_Unbounded_String
+             (Integer_Text (Item.Size) & " " & Files.Localization.Text ("details.size.unit.bytes"));
       end Detail_Size_Text;
 
       function Detail_Time_Text (Item : Item_Snapshot) return UString is
@@ -2995,56 +3424,54 @@ package body Files.Rendering is
                   when 3 => Files.Commands.Navigate_Forward_Command,
                   when 4 => Files.Commands.Create_File_Command,
                   when others => Files.Commands.Delete_Selected_Items_Command);
+            Button_Y : constant Natural := Toolbar_Input_Y;
+            Button_H : constant Natural :=
+              (if Button_Y >= Layout.Toolbar_Height
+               then 0
+               else Natural'Min (Toolbar_Input_H, Layout.Toolbar_Height - Button_Y));
             Icon_Size : constant Natural :=
-              (if Line_Height > 6 then Line_Height - 6 else 0);
+              (if Button_W >= Files.UI.Toolbar_Button_Width
+               then Natural'Min (Button_H, Files.UI.Toolbar_Button_Width - 4)
+               else Natural'Min (Button_W, Button_H));
             Icon_X   : constant Natural :=
               (if Button_W > Icon_Size then Button_X + (Button_W - Icon_Size) / 2 else Button_X);
             Icon_Y   : constant Natural :=
-              (if Line_Height > Icon_Size then (Line_Height - Icon_Size) / 2 else 0);
-            Text_X   : constant Natural := Button_X + 2;
-            Text_W   : constant Natural :=
-              (if Button_W > 4 then Button_W - 4 else 0);
-            Text_Y   : constant Natural :=
-              (if Layout.Toolbar_Height > Line_Height then Line_Height else 0);
+              (if Button_H > Icon_Size then Button_Y + (Button_H - Icon_Size) / 2 else Button_Y);
             Enabled  : constant Boolean := Snapshot.Command_Enabled (Command);
             Hovered  : constant Boolean :=
-              Has_Hover and then Contains_Point (Button_X, 0, Button_W, Layout.Toolbar_Height, Hover_X, Hover_Y);
-            Pressed  : constant Boolean := Is_Pressed (Button_X, 0, Button_W, Layout.Toolbar_Height);
+              Has_Hover and then Contains_Point (Button_X, Button_Y, Button_W, Button_H, Hover_X, Hover_Y);
+            Pressed  : constant Boolean := Is_Pressed (Button_X, Button_Y, Button_W, Button_H);
          begin
             Add_Rect
               (Button_X,
-               0,
+               Button_Y,
                Button_W,
-               Layout.Toolbar_Height,
+               Button_H,
                (if not Enabled then Pane_Color
                 elsif Pressed then Pressed_Color
                 elsif Hovered then Hover_Color
                 else Toolbar_Color));
             if not Enabled then
                Add_Border
-                 (Button_X, 0, Button_W, Layout.Toolbar_Height, Border_Color);
+                 (Button_X, Button_Y, Button_W, Button_H, Border_Color);
             end if;
-            Add_Toolbar_Glyph (Command, Icon_X, Icon_Y, Natural'Min (Icon_Size, Button_W), Enabled);
-            Add_Text
-              (Text_X,
-               Text_Y,
-               Text_W,
-               Natural'Min (Line_Height, Layout.Toolbar_Height),
-               Command_Label (Command),
-               Command_Color (Command),
-               Fit => True);
+            if Command = Files.Commands.Select_Drive_Command then
+               Add_Toolbar_Drive_Icon (Icon_X, Icon_Y, Icon_Size, Enabled);
+            else
+               Add_Toolbar_Asset_Icon (Command, Icon_X, Icon_Y, Icon_Size, Enabled);
+            end if;
             Add_Tooltip
               (Button_X,
-               0,
+               Button_Y,
                Button_W,
-               Layout.Toolbar_Height,
+               Button_H,
                Files.Commands.Description_Key (Command));
             Add_Accessibility_Node
               (Role_Button,
                Button_X,
-               0,
+               Button_Y,
                Button_W,
-               Layout.Toolbar_Height,
+               Button_H,
                Command_Label (Command),
                Localized (Files.Commands.Description_Key (Command)),
                Enabled => Enabled);
@@ -3053,91 +3480,108 @@ package body Files.Rendering is
 
       Add_Rect
         (Toolbar.Middle_X,
-         Line_Height / 2,
+         Toolbar_Input_Y,
          Toolbar.Middle_Width,
-         Line_Height,
+         Toolbar_Input_H,
          (if Snapshot.Path_Input_Valid then Input_Color else Input_Error_Color));
       Add_Text
-        (Toolbar.Middle_X + 4,
-         Line_Height / 2,
-         (if Toolbar.Middle_Width > 8 then Toolbar.Middle_Width - 8 else 0),
-         Line_Height,
+        (Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
+         Toolbar_Input_Text_Y,
+         (if Toolbar.Middle_Width > 2 * Files.UI.Input_Field_Padding
+          then Toolbar.Middle_Width - 2 * Files.UI.Input_Field_Padding
+          else 0),
+         Toolbar_Input_Text_H,
          Snapshot.Path_Input_Text,
          Fit => True);
       if Snapshot.Focus = Files.Types.Focus_Path_Input or else not Snapshot.Path_Input_Valid then
          Add_Border
            (Toolbar.Middle_X,
-            Line_Height / 2,
+            Toolbar_Input_Y,
             Toolbar.Middle_Width,
-            Line_Height,
+            Toolbar_Input_H,
             (if Snapshot.Path_Input_Valid then Border_Color else Input_Error_Color));
       elsif Has_Hover
         and then Contains_Point
-          (Toolbar.Middle_X, Line_Height / 2, Toolbar.Middle_Width, Line_Height, Hover_X, Hover_Y)
+          (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H, Hover_X, Hover_Y)
       then
-         Add_Border (Toolbar.Middle_X, Line_Height / 2, Toolbar.Middle_Width, Line_Height, Hover_Color);
+         Add_Border (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H, Hover_Color);
       end if;
-      if Is_Pressed (Toolbar.Middle_X, Line_Height / 2, Toolbar.Middle_Width, Line_Height) then
-         Add_Border (Toolbar.Middle_X, Line_Height / 2, Toolbar.Middle_Width, Line_Height, Pressed_Color);
+      if Is_Pressed (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H) then
+         Add_Border (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H, Pressed_Color);
       end if;
       if Snapshot.Focus = Files.Types.Focus_Path_Input then
-         Add_Focus_Ring (Toolbar.Middle_X, Line_Height / 2, Toolbar.Middle_Width, Line_Height);
-         Add_Caret (Toolbar.Middle_X, Line_Height / 2, Toolbar.Middle_Width, Line_Height);
+         Add_Focus_Ring (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H);
+         Add_Caret
+           (Toolbar.Middle_X,
+            Toolbar_Input_Y,
+            Toolbar.Middle_Width,
+            Toolbar_Input_H,
+            Snapshot.Path_Input_Text);
       end if;
       Add_Tooltip
         (Toolbar.Middle_X,
-         Line_Height / 2,
+         Toolbar_Input_Y,
          Toolbar.Middle_Width,
-         Line_Height,
+         Toolbar_Input_H,
          Files.Commands.Description_Key (Files.Commands.Focus_Path_Input_Command));
       Add_Accessibility_Node
         (Role_Text_Input,
          Toolbar.Middle_X,
-         Line_Height / 2,
+         Toolbar_Input_Y,
          Toolbar.Middle_Width,
-         Line_Height,
+         Toolbar_Input_H,
          Localized (Files.Commands.Name_Key (Files.Commands.Focus_Path_Input_Command)),
          Path_Input_Accessible_Description,
          Enabled => True,
          Focused => Snapshot.Focus = Files.Types.Focus_Path_Input);
       Add_Rect
         (Toolbar.Right_X,
-         Line_Height / 2,
+         Toolbar_Input_Y,
          Toolbar.Right_Width,
-         Line_Height,
+         Toolbar_Input_H,
          Input_Color);
       Add_Text
-        (Toolbar.Right_X + 4,
-         Line_Height / 2,
-         (if Toolbar.Right_Width > 8 then Toolbar.Right_Width - 8 else 0),
-         Line_Height,
-         Snapshot.Filter_Text,
+        (Saturating_Add (Toolbar.Right_X, Files.UI.Input_Field_Padding),
+         Toolbar_Input_Text_Y,
+         (if Toolbar.Right_Width > 2 * Files.UI.Input_Field_Padding
+          then Toolbar.Right_Width - 2 * Files.UI.Input_Field_Padding
+          else 0),
+         Toolbar_Input_Text_H,
+         (if Length (Snapshot.Filter_Text) = 0
+          then To_Unbounded_String (Files.Localization.Text ("filter.placeholder"))
+          else Snapshot.Filter_Text),
+         (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
          Fit => True);
       if Snapshot.Focus = Files.Types.Focus_Filter_Input then
-         Add_Border (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height, Border_Color);
-         Add_Focus_Ring (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height);
-         Add_Caret (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height);
+         Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Border_Color);
+         Add_Focus_Ring (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H);
+         Add_Caret
+           (Toolbar.Right_X,
+            Toolbar_Input_Y,
+            Toolbar.Right_Width,
+            Toolbar_Input_H,
+            Snapshot.Filter_Text);
       elsif Has_Hover
         and then Contains_Point
-          (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height, Hover_X, Hover_Y)
+          (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Hover_X, Hover_Y)
       then
-         Add_Border (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height, Hover_Color);
+         Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Hover_Color);
       end if;
-      if Is_Pressed (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height) then
-         Add_Border (Toolbar.Right_X, Line_Height / 2, Toolbar.Right_Width, Line_Height, Pressed_Color);
+      if Is_Pressed (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H) then
+         Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Pressed_Color);
       end if;
       Add_Tooltip
         (Toolbar.Right_X,
-         Line_Height / 2,
+         Toolbar_Input_Y,
          Toolbar.Right_Width,
-         Line_Height,
+         Toolbar_Input_H,
          Files.Commands.Description_Key (Files.Commands.Focus_Filter_Input_Command));
       Add_Accessibility_Node
         (Role_Text_Input,
          Toolbar.Right_X,
-         Line_Height / 2,
+         Toolbar_Input_Y,
          Toolbar.Right_Width,
-         Line_Height,
+         Toolbar_Input_H,
          Localized (Files.Commands.Name_Key (Files.Commands.Focus_Filter_Input_Command)),
          Snapshot.Filter_Text,
          Enabled => True,
@@ -3166,68 +3610,75 @@ package body Files.Rendering is
          Snapshot.View_Mode = Files.Types.Details);
       Add_Rect
         (Bottom.Info_X,
-         Bottom_Y,
+         Bottom_Content_Y,
          Bottom.Info_Width,
-         Layout.Bottom_Bar_Height,
+         Bottom_Content_H,
          Bottom_Bar_Color);
       Add_Text
         (Saturating_Add (Bottom.Info_X, 4),
-         Bottom_Y,
+         Bottom_Content_Y,
          (if Bottom.Info_Width > 8 then Bottom.Info_Width - 8 else 0),
-         Layout.Bottom_Bar_Height,
+         Bottom_Content_H,
          Bottom_Info_Text,
          Bottom_Info_Color,
          Fit => True);
+      Add_Tooltip_Text
+        (Bottom.Info_X,
+         Bottom_Content_Y,
+         Bottom.Info_Width,
+         Bottom_Content_H,
+         Bottom_Info_Text);
       Add_Accessibility_Node
         (Role_Status,
          Bottom.Info_X,
-         Bottom_Y,
+         Bottom_Content_Y,
          Bottom.Info_Width,
-         Layout.Bottom_Bar_Height,
+         Bottom_Content_H,
          Bottom_Info_Text);
       Add_Rect
         (Bottom.Info_Pane_X,
-         Bottom_Y,
+         Bottom_Content_Y,
          Bottom.Info_Pane_Width,
-         Layout.Bottom_Bar_Height,
-         (if Snapshot.Info_Pane_Open
+         Bottom_Content_H,
+         (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command) then Pane_Color
+          elsif Snapshot.Info_Pane_Open
           then Selection_Color
           elsif Is_Pressed
             (Bottom.Info_Pane_X,
-             Bottom_Y,
+             Bottom_Content_Y,
              Bottom.Info_Pane_Width,
-             Layout.Bottom_Bar_Height)
+             Bottom_Content_H)
           then Pressed_Color
           elsif Has_Hover
             and then Contains_Point
               (Bottom.Info_Pane_X,
-               Bottom_Y,
+               Bottom_Content_Y,
                Bottom.Info_Pane_Width,
-               Layout.Bottom_Bar_Height,
+               Bottom_Content_H,
                Hover_X,
                Hover_Y)
           then Hover_Color
           else Bottom_Bar_Color));
       Add_Text
         (Saturating_Add (Bottom.Info_Pane_X, 4),
-         Bottom_Y,
+         Bottom_Content_Y,
          (if Bottom.Info_Pane_Width > 8 then Bottom.Info_Pane_Width - 8 else 0),
-         Layout.Bottom_Bar_Height,
-         Command_Label (Files.Commands.Toggle_Info_Pane_Command),
+         Bottom_Content_H,
+         Bottom_Command_Label (Files.Commands.Toggle_Info_Pane_Command),
          Command_Color (Files.Commands.Toggle_Info_Pane_Command),
          Fit => True);
       Add_Tooltip
         (Bottom.Info_Pane_X,
-         Bottom_Y,
+         Bottom_Content_Y,
          Bottom.Info_Pane_Width,
-         Layout.Bottom_Bar_Height,
+         Bottom_Content_H,
          Files.Commands.Description_Key (Files.Commands.Toggle_Info_Pane_Command));
       Add_Accessibility_Node
         (Role_Button,
          Bottom.Info_Pane_X,
-         Bottom_Y,
+         Bottom_Content_Y,
          Bottom.Info_Pane_Width,
-         Layout.Bottom_Bar_Height,
+         Bottom_Content_H,
          Command_Label (Files.Commands.Toggle_Info_Pane_Command),
          Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Info_Pane_Command)),
          Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command),
@@ -3241,18 +3692,41 @@ package body Files.Rendering is
 
       if Snapshot.View_Mode = Files.Types.Details then
          declare
-            Header_H  : constant Natural := Natural'Min (Line_Height, Layout.Main_Height);
-            Header_Y  : constant Natural := Layout.Main_Y;
-            Header_W  : constant Natural := Layout.Main_Width;
-            Text_Y    : constant Natural := Header_Y;
-            Icon_Gap  : constant Natural := Saturating_Add (Line_Height, 4);
-            Content_X : constant Natural := Saturating_Add (Layout.Main_X, Icon_Gap);
+            Padding   : constant Natural :=
+              (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+                 and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+               then Main_Content_Padding
+               else 0);
+            Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+            Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+            Content_W : constant Natural :=
+              (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+               then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+               else Layout.Main_Width);
+            Content_H : constant Natural :=
+              (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+               then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+               else Layout.Main_Height);
+            Header_H  : constant Natural :=
+              Natural'Min
+                (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+            Header_Y  : constant Natural := Content_Y;
+            Header_W  : constant Natural := Content_W;
+            Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+            Text_Y    : constant Natural := Saturating_Add (Header_Y, Header_Pad);
+            Icon_Gap  : constant Natural := Saturating_Add (Line_Height, 6);
+            Header_Content_X : constant Natural :=
+              Saturating_Add (Saturating_Add (Content_X, Header_Pad), Icon_Gap);
             Available : constant Natural :=
-              (if Layout.Main_Width > Icon_Gap then Layout.Main_Width - Icon_Gap else 0);
-            Type_W    : constant Natural := Natural'Min (160, Available / 4);
-            Size_W    : constant Natural := Natural'Min (96, Available / 6);
-            Modified_W : constant Natural := Natural'Min (180, Available / 4);
-            Name_X    : constant Natural := Content_X;
+              (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Header_Pad, 2))
+               then Content_W - Icon_Gap - Saturating_Multiply (Header_Pad, 2)
+               else 0);
+            Reserved_Name_W : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 6));
+            Metadata_W : constant Natural := (if Available > Reserved_Name_W then Available - Reserved_Name_W else 0);
+            Type_W    : constant Natural := Natural'Min (180, Metadata_W / 4);
+            Size_W    : constant Natural := Natural'Min (120, Metadata_W / 7);
+            Modified_W : constant Natural := Natural'Min (220, Metadata_W / 3);
+            Name_X    : constant Natural := Header_Content_X;
             Name_W    : constant Natural :=
               (if Available > Saturating_Add (Saturating_Add (Type_W, Size_W), Modified_W)
                then Available - Type_W - Size_W - Modified_W
@@ -3260,44 +3734,54 @@ package body Files.Rendering is
             Modified_X : constant Natural := Saturating_Add (Name_X, Name_W);
             Size_X    : constant Natural := Saturating_Add (Modified_X, Modified_W);
             Type_X    : constant Natural := Saturating_Add (Size_X, Size_W);
+
+            function Cell_X (Column_X : Natural) return Natural is
+            begin
+               return Saturating_Add (Column_X, Details_Column_Padding);
+            end Cell_X;
+
+            function Cell_W (Column_W : Natural) return Natural is
+            begin
+               return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
+            end Cell_W;
          begin
-            Add_Rect (Layout.Main_X, Header_Y, Header_W, Header_H, Pane_Color);
-            Add_Border (Layout.Main_X, Header_Y, Header_W, Header_H, Border_Color);
+            Add_Rect (Content_X, Header_Y, Header_W, Header_H, Pane_Color);
+            Add_Border (Content_X, Header_Y, Header_W, Header_H, Border_Color);
             Add_Text
-              (Name_X,
+              (Cell_X (Name_X),
                Text_Y,
-               Name_W,
-               Header_H,
+               Cell_W (Name_W),
+               Line_Height,
                To_Unbounded_String (Files.Localization.Text ("details.name")),
                Muted_Text_Color,
                Fit => True);
             Add_Text
-              (Modified_X,
+              (Cell_X (Modified_X),
                Text_Y,
-               Modified_W,
-               Header_H,
+               Cell_W (Modified_W),
+               Line_Height,
                To_Unbounded_String (Files.Localization.Text ("details.modified")),
                Muted_Text_Color,
                Fit => True);
             Add_Text
-              (Size_X,
+              (Cell_X (Size_X),
                Text_Y,
-               Size_W,
-               Header_H,
+               Cell_W (Size_W),
+               Line_Height,
                To_Unbounded_String (Files.Localization.Text ("details.size")),
                Muted_Text_Color,
                Fit => True);
             Add_Text
-              (Type_X,
+              (Cell_X (Type_X),
                Text_Y,
-               Type_W,
-               Header_H,
+               Cell_W (Type_W),
+               Line_Height,
                To_Unbounded_String (Files.Localization.Text ("details.filetype")),
                Muted_Text_Color,
                Fit => True);
             Add_Accessibility_Node
               (Role_Table_Row,
-               Layout.Main_X,
+               Content_X,
                Header_Y,
                Header_W,
                Header_H,
@@ -3309,11 +3793,11 @@ package body Files.Rendering is
                   Files.Localization.Text ("details.filetype")));
 
             if Header_H > 0 then
-               Add_Rect ((if Modified_X > 2 then Modified_X - 2 else 0), Header_Y, 1, Layout.Main_Height, Border_Color);
-               Add_Rect ((if Size_X > 2 then Size_X - 2 else 0), Header_Y, 1, Layout.Main_Height, Border_Color);
-               Add_Rect ((if Type_X > 2 then Type_X - 2 else 0), Header_Y, 1, Layout.Main_Height, Border_Color);
+               Add_Rect ((if Modified_X > 2 then Modified_X - 2 else 0), Header_Y, 1, Content_H, Border_Color);
+               Add_Rect ((if Size_X > 2 then Size_X - 2 else 0), Header_Y, 1, Content_H, Border_Color);
+               Add_Rect ((if Type_X > 2 then Type_X - 2 else 0), Header_Y, 1, Content_H, Border_Color);
                Add_Rect
-                 (Layout.Main_X,
+                 (Content_X,
                   Saturating_Add (Header_Y, Header_H - Natural'Min (2, Header_H)),
                   Header_W,
                   Natural'Min (2, Header_H),
@@ -3330,8 +3814,16 @@ package body Files.Rendering is
               Has_Hover
               and then Contains_Point
                 (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_X, Hover_Y);
-            Pressed   : constant Boolean :=
-              Is_Pressed (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
+
+            function Detail_Cell_X (Column_X : Natural) return Natural is
+            begin
+               return Saturating_Add (Column_X, Details_Column_Padding);
+            end Detail_Cell_X;
+
+            function Detail_Cell_W (Column_W : Natural) return Natural is
+            begin
+               return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
+            end Detail_Cell_W;
          begin
             if Item.Selected then
                Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
@@ -3342,9 +3834,6 @@ package body Files.Rendering is
                   Natural'Min (3, Item_Rect.Width),
                   Item_Rect.Height,
                   Border_Color);
-            elsif Pressed then
-               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Pressed_Color);
-               Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Pressed_Color);
             elsif Hovered then
                Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
                Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
@@ -3352,12 +3841,16 @@ package body Files.Rendering is
                Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Detail_Alternate_Color);
             end if;
 
-            Add_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
+            if Snapshot.View_Mode = Files.Types.Details then
+               Add_Details_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
+            else
+               Add_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
+            end if;
             Add_Text
               (Item_Rect.Text_X,
                Item_Rect.Text_Y,
                Item_Rect.Text_Width,
-               Item_Rect.Height,
+               Natural'Min (Line_Height, Item_Rect.Height),
                (if Snapshot.Rename_Active and then Item.Selected then Snapshot.Rename_Text else Item.Name),
                Fit => True);
 
@@ -3368,14 +3861,18 @@ package body Files.Rendering is
                Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Border_Color);
                Add_Focus_Ring (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
                declare
-                  Caret_X     : constant Natural := (if Item_Rect.Text_X > 4 then Item_Rect.Text_X - 4 else 0);
+                  Caret_X     : constant Natural :=
+                    (if Item_Rect.Text_X > Files.UI.Input_Field_Padding
+                     then Item_Rect.Text_X - Files.UI.Input_Field_Padding
+                     else 0);
                   Caret_Inset : constant Natural := Item_Rect.Text_X - Caret_X;
                begin
                   Add_Caret
                     (Caret_X,
                      Item_Rect.Text_Y,
                      Saturating_Add (Item_Rect.Text_Width, Caret_Inset),
-                     Item_Rect.Height);
+                     Item_Rect.Height,
+                     Snapshot.Rename_Text);
                end;
             end if;
 
@@ -3389,26 +3886,25 @@ package body Files.Rendering is
                      Border_Color);
                end if;
                Add_Text
-                 (Item_Rect.Modified_X,
-                  Item_Rect.Y,
-                  Item_Rect.Modified_Width,
-                  Item_Rect.Height,
+                 (Detail_Cell_X (Item_Rect.Modified_X),
+                  Item_Rect.Text_Y,
+                  Detail_Cell_W (Item_Rect.Modified_Width),
+                  Line_Height,
                   Detail_Time_Text (Item),
-                  Muted_Text_Color,
-                  Fit => True);
+                  Muted_Text_Color);
                Add_Text
-                 (Item_Rect.Size_X,
-                  Item_Rect.Y,
-                  Item_Rect.Size_Width,
-                  Item_Rect.Height,
+                 (Detail_Cell_X (Item_Rect.Size_X),
+                  Item_Rect.Text_Y,
+                  Detail_Cell_W (Item_Rect.Size_Width),
+                  Line_Height,
                   Detail_Size_Text (Item),
                   Muted_Text_Color,
                   Fit => True);
                Add_Text
-                 (Item_Rect.Filetype_X,
-                  Item_Rect.Y,
-                  Item_Rect.Filetype_Width,
-                  Item_Rect.Height,
+                 (Detail_Cell_X (Item_Rect.Filetype_X),
+                  Item_Rect.Text_Y,
+                  Detail_Cell_W (Item_Rect.Filetype_Width),
+                  Line_Height,
                   Item.Filetype_Detail,
                   Muted_Text_Color,
                   Fit => True);
@@ -3497,7 +3993,7 @@ package body Files.Rendering is
            (Main_View.Scrollbar_X,
             Main_View.Scrollbar_Y,
             Main_View.Scrollbar_Width,
-            Layout.Main_Height,
+            Main_View.Scrollbar_Track_Height,
             Main_View.Scrollbar_Thumb_Y,
             Main_View.Scrollbar_Height);
       end if;
@@ -3524,16 +4020,18 @@ package body Files.Rendering is
                    (Saturating_Multiply (Natural (Index - 1), Line_Height),
                     Info_Rows_Per_Item);
                Base_Y : constant Integer :=
-                 Saturating_Integer_Add (Integer (Info_Pane.Y), Section_Offset);
+                 Saturating_Integer_Add
+                   (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)), Section_Offset);
                Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
-               Text_X : constant Natural := Saturating_Add (Layout.Main_Width, 4);
+               Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
                Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
+               Reserved_W : constant Natural :=
+                 Saturating_Add
+                   ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
+                    Saturating_Multiply (Info_Pane_Padding, 2));
                Text_W : constant Natural :=
-                 (if Info_Pane.Scrollbar_Visible
-                   and then Layout.Info_Pane_Width > Saturating_Add (Info_Pane.Scrollbar_Width, 8)
-                  then Layout.Info_Pane_Width - Info_Pane.Scrollbar_Width - 8
-                  elsif Layout.Info_Pane_Width > 8
-                  then Layout.Info_Pane_Width - 8
+                 (if Layout.Info_Pane_Width > Reserved_W
+                  then Layout.Info_Pane_Width - Reserved_W
                   else 0);
 
                procedure Add_Info_Text
@@ -3550,45 +4048,111 @@ package body Files.Rendering is
                      Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => True);
                   end if;
                end Add_Info_Text;
+
+               procedure Add_Info_Label
+                 (Field : Natural;
+                  Key   : String)
+               is
+                  Row : constant Natural := Saturating_Multiply (Field, 3);
+                  Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+               begin
+                  Add_Info_Text (Row, Text, Text_Color);
+                  if Text_W > 1 then
+                     declare
+                        Y : constant Integer :=
+                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                     begin
+                        if Y >= Integer (Info_Pane.Y)
+                          and then Y < Integer (Info_Bottom)
+                        then
+                           Add_Text
+                             (Saturating_Add (Text_X, 1),
+                              Natural (Y),
+                              Text_W - 1,
+                              Line_Height,
+                              Text,
+                              Text_Color,
+                              Fit => True);
+                        end if;
+                     end;
+                  end if;
+               end Add_Info_Label;
+
+               procedure Add_Info_Value
+                 (Field : Natural;
+                  Text  : UString;
+                  Color : Render_Color := Muted_Text_Color)
+               is
+               begin
+                  Add_Info_Text (Saturating_Add (Saturating_Multiply (Field, 3), 1), Text, Color);
+               end Add_Info_Value;
+
+               function Metadata_Value
+                 (Available : Boolean;
+                  Value     : Ada.Calendar.Time)
+                  return UString
+               is
+               begin
+                  if not Available then
+                     return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
+                  end if;
+
+                  return
+                    To_Unbounded_String
+                      (Ada.Calendar.Formatting.Image
+                         (Date                  => Value,
+                          Include_Time_Fraction => False,
+                          Time_Zone             => 0));
+               end Metadata_Value;
             begin
-               Add_Info_Text (0, Info_Value ("info.name", To_String (Info.Name)));
-               Add_Info_Text (1, Info_Value ("info.filetype", To_String (Info.Filetype)), Muted_Text_Color);
+               Add_Info_Label (0, "info.name");
+               Add_Info_Value (0, Info.Name);
+               Add_Info_Label (1, "info.filetype");
+               Add_Info_Value (1, Info.Filetype);
+               Add_Info_Label (2, "info.size");
                if Info.Size_Available then
-                  Add_Info_Text
+                  Add_Info_Value
                     (2,
-                     Info_Value ("info.size", Integer_Text (Info.Size)),
+                     To_Unbounded_String (Integer_Text (Info.Size)),
                      Muted_Text_Color);
                else
-                  Add_Info_Text (2, Missing_Info ("info.size"), Muted_Text_Color);
+                  Add_Info_Value
+                    (2,
+                     To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")),
+                     Muted_Text_Color);
                end if;
-               Add_Info_Text
-                 (3,
-                  Time_Text (Info.Creation_Available, Info.Creation_Time, "info.created"),
-                  Muted_Text_Color);
-               Add_Info_Text
-                 (4,
-                  Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"),
-                  Muted_Text_Color);
+               Add_Info_Label (3, "info.created");
+               Add_Info_Value (3, Metadata_Value (Info.Creation_Available, Info.Creation_Time), Muted_Text_Color);
+               Add_Info_Label (4, "info.modified");
+               Add_Info_Value (4, Metadata_Value (Info.Modified_Available, Info.Modified_Time), Muted_Text_Color);
+               Add_Info_Label (5, "info.permissions");
                if Length (Info.Permissions) = 0 then
-                  Add_Info_Text (5, Missing_Info ("info.permissions"), Muted_Text_Color);
-               else
-                  Add_Info_Text
+                  Add_Info_Value
                     (5,
-                     Info_Value ("info.permissions", Permission_Text (To_String (Info.Permissions))),
-                     Muted_Text_Color);
-               end if;
-               if Info.Metadata_Error then
-                  Add_Info_Text
-                    (6,
-                     Info_Value
-                       ("info.metadata_error",
-                        Files.Localization.Text (To_String (Info.Error_Key))),
+                     To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")),
                      Muted_Text_Color);
                else
-                  Add_Info_Text (6, Missing_Info ("info.metadata_error"), Muted_Text_Color);
+                  Add_Info_Value
+                    (5,
+                     To_Unbounded_String (Permission_Text (To_String (Info.Permissions))),
+                     Muted_Text_Color);
                end if;
-               Add_Info_Text (7, Info_Value ("info.kind", To_String (Info.Filetype_Detail)), Muted_Text_Color);
-               Add_Info_Text (8, Info_Value ("info.extra", To_String (Info.Filetype_Extra)), Muted_Text_Color);
+               Add_Info_Label (6, "info.metadata_error");
+               if Info.Metadata_Error then
+                  Add_Info_Value
+                    (6,
+                     To_Unbounded_String (Files.Localization.Text (To_String (Info.Error_Key))),
+                     Muted_Text_Color);
+               else
+                  Add_Info_Value
+                    (6,
+                     To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")),
+                     Muted_Text_Color);
+               end if;
+               Add_Info_Label (7, "info.kind");
+               Add_Info_Value (7, Info.Filetype_Detail, Muted_Text_Color);
+               Add_Info_Label (8, "info.extra");
+               Add_Info_Value (8, Info.Filetype_Extra, Muted_Text_Color);
                declare
                   Section_H : constant Natural :=
                     Natural'Min
@@ -3638,7 +4202,7 @@ package body Files.Rendering is
               (Info_Pane.Scrollbar_X,
                Info_Pane.Scrollbar_Y,
                Info_Pane.Scrollbar_Width,
-               Info_Pane.Height,
+               Info_Pane.Scrollbar_Track_Height,
                Info_Pane.Scrollbar_Thumb_Y,
                Info_Pane.Scrollbar_Height);
          end if;
@@ -3646,15 +4210,15 @@ package body Files.Rendering is
 
       if Snapshot.Settings_Pane_Open then
          declare
-            Pane_W : constant Natural := Natural'Max (240, Scaled_Down (Width, 2, 5));
-            Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);
-            Pane_X : constant Natural := (if Width > Pane_W then (Width - Pane_W) / 2 else 0);
-            Pane_Y : constant Natural :=
-              (if Height > Pane_H
-               then Natural'Max (Saturating_Add (Layout.Toolbar_Height, 8), Height / 6)
-               else Layout.Toolbar_Height);
-            Text_X : constant Natural := Saturating_Add (Pane_X, 8);
-            Text_W : constant Natural := (if Pane_W > 16 then Pane_W - 16 else 0);
+            Pane : constant Files.UI.Settings_Pane_Layout :=
+              Files.UI.Calculate_Settings_Pane_Layout
+                (Width, Height, Layout.Toolbar_Height, Line_Height);
+            Pane_W : constant Natural := Pane.Width;
+            Pane_H : constant Natural := Pane.Height;
+            Pane_X : constant Natural := Pane.X;
+            Pane_Y : constant Natural := Pane.Y;
+            Text_X : constant Natural := Pane.Text_X;
+            Text_W : constant Natural := Pane.Text_Width;
 
             procedure Add_Settings_Row
               (Row   : Natural;
@@ -3721,9 +4285,11 @@ package body Files.Rendering is
                   Add_Rect (X, Y, W, Line_Height, (if Active then Selection_Color else Input_Color));
                   Add_Border (X, Y, W, Line_Height, Border_Color);
                   Add_Text
-                    (X + 2,
+                    (Saturating_Add (X, Files.UI.Input_Field_Padding),
                      Y,
-                     (if W > 4 then W - 4 else 0),
+                     (if W > 2 * Files.UI.Input_Field_Padding
+                      then W - 2 * Files.UI.Input_Field_Padding
+                      else 0),
                      Line_Height,
                      To_Unbounded_String (Files.Localization.Text (Key)),
                      Muted_Text_Color,
@@ -3766,25 +4332,27 @@ package body Files.Rendering is
             end Add_Settings_Control_Options;
 
             procedure Add_Settings_Entry_Buttons (Row : Natural) is
-               Button_W : constant Natural := 34;
-               Gap      : constant Natural := 4;
-               Total_W  : constant Natural := Button_W * 2 + Gap;
+               Buttons  : constant Files.UI.Settings_Entry_Button_Layout :=
+                 Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
                Y        : constant Natural := Saturating_Add (Pane_Y, Saturating_Multiply (Row, Line_Height));
-               X        : constant Natural :=
-                 (if Pane_W > Total_W + 8 then Pane_X + Pane_W - Total_W - 8 else Pane_X);
 
                procedure Add_Button
-                 (Offset : Natural;
-                  Key    : String) is
-                  Button_X : constant Natural :=
-                    Saturating_Add (X, Saturating_Multiply (Offset, Button_W + Gap));
+                 (Button_X : Natural;
+                  Button_W : Natural;
+                  Key      : String) is
                begin
+                  if Button_W = 0 then
+                     return;
+                  end if;
+
                   Add_Rect (Button_X, Y, Button_W, Line_Height, Input_Color);
                   Add_Border (Button_X, Y, Button_W, Line_Height, Border_Color);
                   Add_Text
-                    (Saturating_Add (Button_X, 2),
+                    (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
                      Y,
-                     Button_W - 4,
+                     (if Button_W > 2 * Files.UI.Input_Field_Padding
+                      then Button_W - 2 * Files.UI.Input_Field_Padding
+                      else 0),
                      Line_Height,
                      To_Unbounded_String (Files.Localization.Text (Key)),
                      Muted_Text_Color,
@@ -3799,17 +4367,13 @@ package body Files.Rendering is
                      Localized (Key));
                end Add_Button;
             begin
-               Add_Button (0, "settings.add");
-               Add_Button (1, "settings.remove");
+               Add_Button (Buttons.Add_Button_X, Buttons.Add_Button_Width, "settings.add");
+               Add_Button (Buttons.Remove_Button_X, Buttons.Remove_Button_Width, "settings.remove");
             end Add_Settings_Entry_Buttons;
 
             procedure Add_Settings_Action_Buttons (Row : Natural) is
-               Gap      : constant Natural := 4;
-               Base_Button_W : constant Natural := (if Text_W > Gap then (Text_W - Gap) / 2 else 0);
-               Second_Button_W : constant Natural :=
-                 (if Text_W > Saturating_Add (Base_Button_W, Gap)
-                  then Text_W - Saturating_Add (Base_Button_W, Gap)
-                  else 0);
+               Buttons : constant Files.UI.Settings_Action_Button_Layout :=
+                 Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W);
 
                procedure Add_Button
                  (Column  : Natural;
@@ -3817,9 +4381,10 @@ package body Files.Rendering is
                   Command : Files.Commands.Registered_Command_Id;
                   Enabled : Boolean)
                is
-                  Button_W : constant Natural := (if Column = 0 then Base_Button_W else Second_Button_W);
+                  Button_W : constant Natural :=
+                    (if Column = 0 then Buttons.First_Button_Width else Buttons.Second_Button_Width);
                   X : constant Natural :=
-                    Saturating_Add (Text_X, Saturating_Multiply (Column, Base_Button_W + Gap));
+                    (if Column = 0 then Buttons.First_Button_X else Buttons.Second_Button_X);
                   Y : constant Natural :=
                     Saturating_Add
                       (Pane_Y,
@@ -3832,9 +4397,11 @@ package body Files.Rendering is
                   Add_Rect (X, Y, Button_W, Line_Height, (if Enabled then Input_Color else Pane_Color));
                   Add_Border (X, Y, Button_W, Line_Height, Border_Color);
                   Add_Text
-                    (X + 2,
+                    (Saturating_Add (X, Files.UI.Input_Field_Padding),
                      Y,
-                     (if Button_W > 4 then Button_W - 4 else 0),
+                     (if Button_W > 2 * Files.UI.Input_Field_Padding
+                      then Button_W - 2 * Files.UI.Input_Field_Padding
+                      else 0),
                      Line_Height,
                      Command_Label (Command),
                      (if Enabled then Muted_Text_Color else Disabled_Text_Color),
@@ -3924,48 +4491,66 @@ package body Files.Rendering is
       end if;
 
       if Snapshot.Command_Palette_Open then
-         Add_Drop_Shadow (Palette.X, Palette.Y, Palette.Width, Palette.Height);
-         Add_Rect (Palette.X, Palette.Y, Palette.Width, Palette.Height, Overlay_Color);
-         Add_Border (Palette.X, Palette.Y, Palette.Width, Palette.Height, Border_Color);
-         Add_Rect (Palette.X, Palette.Y, Palette.Width, Natural'Min (3, Palette.Height), Selection_Color);
-         Add_Accessibility_Node
-           (Role_Dialog,
-            Palette.X,
-            Palette.Y,
-            Palette.Width,
-            Palette.Height,
-            Localized ("command.palette.open"));
-         Add_Rect (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height, Input_Color);
-         Add_Text
-           (Palette.Search_X + 4,
-            Palette.Search_Y,
-            (if Palette.Search_Width > 8 then Palette.Search_Width - 8 else 0),
-            Palette.Search_Height,
-            Snapshot.Command_Palette_Query,
-            Fit => True);
-         if Snapshot.Focus = Files.Types.Focus_Command_Palette then
-            Add_Border
-              (Palette.Search_X,
+         declare
+            Search_Text_Y : constant Natural :=
+              (if Palette.Search_Height > 2 * Files.UI.Input_Field_Padding
+               then Saturating_Add (Palette.Search_Y, Files.UI.Input_Field_Padding)
+               else Palette.Search_Y);
+            Search_Text_H : constant Natural :=
+              (if Palette.Search_Height > 2 * Files.UI.Input_Field_Padding
+               then Natural'Min (Line_Height, Palette.Search_Height - 2 * Files.UI.Input_Field_Padding)
+               else Palette.Search_Height);
+         begin
+            Add_Drop_Shadow (Palette.X, Palette.Y, Palette.Width, Palette.Height);
+            Add_Rect (Palette.X, Palette.Y, Palette.Width, Palette.Height, Pane_Color);
+            Add_Border (Palette.X, Palette.Y, Palette.Width, Palette.Height, Border_Color);
+            Add_Rect (Palette.X, Palette.Y, Palette.Width, Natural'Min (3, Palette.Height), Selection_Color);
+            Add_Accessibility_Node
+              (Role_Dialog,
+               Palette.X,
+               Palette.Y,
+               Palette.Width,
+               Palette.Height,
+               Localized ("command.palette.open"));
+            Add_Rect (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height, Input_Color);
+            Add_Text
+              (Saturating_Add (Palette.Search_X, Files.UI.Input_Field_Padding),
+               Search_Text_Y,
+               (if Palette.Search_Width > 2 * Files.UI.Input_Field_Padding
+                then Palette.Search_Width - 2 * Files.UI.Input_Field_Padding
+                else 0),
+               Search_Text_H,
+               Snapshot.Command_Palette_Query,
+               Fit => True);
+            if Snapshot.Focus = Files.Types.Focus_Command_Palette then
+               Add_Border
+                 (Palette.Search_X,
+                  Palette.Search_Y,
+                  Palette.Search_Width,
+                  Palette.Search_Height,
+                  Border_Color);
+               Add_Focus_Ring
+                 (Palette.Search_X,
+                  Palette.Search_Y,
+                  Palette.Search_Width,
+                  Palette.Search_Height);
+               Add_Caret
+                 (Palette.Search_X,
+                  Palette.Search_Y,
+                  Palette.Search_Width,
+                  Palette.Search_Height,
+                  Snapshot.Command_Palette_Query);
+            end if;
+            Add_Accessibility_Node
+              (Role_Text_Input,
+               Palette.Search_X,
                Palette.Search_Y,
                Palette.Search_Width,
                Palette.Search_Height,
-               Border_Color);
-            Add_Focus_Ring
-              (Palette.Search_X,
-               Palette.Search_Y,
-               Palette.Search_Width,
-               Palette.Search_Height);
-            Add_Caret (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height);
-         end if;
-         Add_Accessibility_Node
-           (Role_Text_Input,
-            Palette.Search_X,
-            Palette.Search_Y,
-            Palette.Search_Width,
-            Palette.Search_Height,
-            Localized ("accessibility.command_palette_search"),
-            Snapshot.Command_Palette_Query,
-            Focused => Snapshot.Focus = Files.Types.Focus_Command_Palette);
+               Localized ("accessibility.command_palette_search"),
+               Snapshot.Command_Palette_Query,
+               Focused => Snapshot.Focus = Files.Types.Focus_Command_Palette);
+         end;
 
          if Snapshot.Command_Palette_Results.Is_Empty and then Palette.Results_Height > 0 then
             Add_Rect
@@ -4008,7 +4593,8 @@ package body Files.Rendering is
                  (if Length (Command.Shortcut_Text) = 0 then 0
                   else Natural'Min
                     (Natural'Min
-                       (Saturating_Multiply (Length (Command.Shortcut_Text), Line_Height / 2),
+                       (Saturating_Multiply
+                          (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)), Line_Height / 2),
                         160),
                      (if Row.Width > 16 then Row.Width / 3 else 0)));
                Label_Width : constant Natural :=
@@ -4029,7 +4615,7 @@ package body Files.Rendering is
                    elsif Pressed then Pressed_Color
                    elsif Hovered then Hover_Color
                    elsif not Row.Enabled then Pane_Color
-                   else Overlay_Color));
+                   else Pane_Color));
                if Row.Selected then
                   Add_Rect
                     (Row.X,
@@ -4092,23 +4678,40 @@ package body Files.Rendering is
       end if;
 
       if Snapshot.Root_Selector_Open then
-         Add_Drop_Shadow
-           (Root_Selector.X,
-            Root_Selector.Y,
-            Root_Selector.Width,
-            Root_Selector.Height);
-         Add_Rect
-           (Root_Selector.X,
-            Root_Selector.Y,
-            Root_Selector.Width,
-            Root_Selector.Height,
-            Overlay_Color);
-         Add_Border
-           (Root_Selector.X,
-            Root_Selector.Y,
-            Root_Selector.Width,
-            Root_Selector.Height,
-            Border_Color);
+         if Root_Selector.Width > 0 and then Root_Selector.Height > 0 then
+            Add_Overlay_Rect
+              (Saturating_Add (Root_Selector.X, 3),
+               Saturating_Add (Root_Selector.Y, Root_Selector.Height),
+               Root_Selector.Width,
+               3,
+               Pane_Color);
+            Add_Overlay_Rect
+              (Saturating_Add (Root_Selector.X, Root_Selector.Width),
+               Saturating_Add (Root_Selector.Y, 3),
+               3,
+               Root_Selector.Height,
+               Pane_Color);
+            Add_Overlay_Rect
+              (Root_Selector.X,
+               Root_Selector.Y,
+               Root_Selector.Width,
+               Root_Selector.Height,
+               Overlay_Color);
+            Add_Overlay_Rect (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, 1, Border_Color);
+            Add_Overlay_Rect (Root_Selector.X, Root_Selector.Y, 1, Root_Selector.Height, Border_Color);
+            Add_Overlay_Rect
+              (Root_Selector.X,
+               Saturating_Add (Root_Selector.Y, Root_Selector.Height - 1),
+               Root_Selector.Width,
+               1,
+               Border_Color);
+            Add_Overlay_Rect
+              (Saturating_Add (Root_Selector.X, Root_Selector.Width - 1),
+               Root_Selector.Y,
+               1,
+               Root_Selector.Height,
+               Border_Color);
+         end if;
          Add_Accessibility_Node
            (Role_List,
             Root_Selector.X,
@@ -4120,23 +4723,36 @@ package body Files.Rendering is
          for Index in 1 .. Natural (Root_Rows.Length) loop
             declare
                Row       : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
-               Glyph_Size : constant Natural :=
-                 (if Row.Height > 6 then Natural'Min (Line_Height, Row.Height) - 4 else 0);
-               Glyph_X    : constant Natural := Saturating_Add (Row.X, 4);
+               Toolbar_Icon_Size : constant Natural :=
+                 Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2));
+               Row_Pad    : constant Natural := Natural'Min (Root_Selector_Padding, Row.Height);
+               Inner_H    : constant Natural :=
+                 (if Row.Height > Saturating_Multiply (Row_Pad, 2)
+                  then Row.Height - Saturating_Multiply (Row_Pad, 2)
+                  else Row.Height);
+               Glyph_Size : constant Natural := Natural'Min (Toolbar_Icon_Size, Inner_H);
+               Glyph_X    : constant Natural := Saturating_Add (Row.X, Row_Pad);
                Glyph_Y    : constant Natural :=
-                 (if Row.Height > Glyph_Size
+                  (if Row.Height > Glyph_Size
                   then Saturating_Add (Row.Y, (Row.Height - Glyph_Size) / 2)
                   else Row.Y);
-               Text_X     : constant Natural := Saturating_Add (Row.X, Saturating_Add (Glyph_Size, 10));
+               Text_X     : constant Natural :=
+                 Saturating_Add (Glyph_X, Saturating_Add (Glyph_Size, Root_Selector_Padding));
+               Text_H     : constant Natural :=
+                 Natural'Min (Line_Height, Inner_H);
+               Text_Y     : constant Natural :=
+                 (if Row.Height > Text_H
+                  then Saturating_Add (Row.Y, (Row.Height - Text_H) / 2)
+                  else Row.Y);
                Text_W     : constant Natural :=
-                 (if Row.Width > Saturating_Add (Glyph_Size, 14)
-                  then Row.Width - Saturating_Add (Glyph_Size, 14)
+                 (if Row.Width > Saturating_Add (Glyph_Size, Saturating_Multiply (Root_Selector_Padding, 3))
+                  then Row.Width - Saturating_Add (Glyph_Size, Saturating_Multiply (Root_Selector_Padding, 3))
                   else 0);
                Hovered    : constant Boolean :=
                  Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
                Pressed    : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
             begin
-               Add_Rect
+               Add_Overlay_Rect
                  (Row.X,
                   Row.Y,
                   Row.Width,
@@ -4146,10 +4762,10 @@ package body Files.Rendering is
                    elsif Hovered then Hover_Color
                    else Overlay_Color));
                if Index > 1 then
-                  Add_Rect (Row.X, Row.Y, Row.Width, 1, Border_Color);
+                  Add_Overlay_Rect (Row.X, Row.Y, Row.Width, 1, Border_Color);
                end if;
                if Row.Selected then
-                  Add_Rect
+                  Add_Overlay_Rect
                     (Row.X,
                      Row.Y,
                      Natural'Min (3, Row.Width),
@@ -4157,24 +4773,24 @@ package body Files.Rendering is
                      Border_Color);
                end if;
                if Glyph_Size > 0 then
-                  Add_Rect
+                  Add_Overlay_Rect
                     (Glyph_X,
                      Saturating_Add (Glyph_Y, Glyph_Size / 4),
                      Glyph_Size,
                      Natural'Max (1, Glyph_Size / 2),
                      Icon_Directory_Color);
-                  Add_Rect
+                  Add_Overlay_Rect
                     (Saturating_Add (Glyph_X, Glyph_Size / 4),
                      Glyph_Y,
                      Natural'Max (1, Glyph_Size / 2),
                      Natural'Max (1, Glyph_Size / 4),
                      Icon_Directory_Color);
                end if;
-               Add_Text
+               Add_Overlay_Text
                  (Text_X,
-                  Row.Y,
+                  Text_Y,
                   Text_W,
-                  Row.Height,
+                  Text_H,
                   Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
                   Fit => True);
                Add_Tooltip
@@ -4205,8 +4821,27 @@ package body Files.Rendering is
 
    function Default_Font_Path return String is
    begin
-      return "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
+      return Files.Fonts.Default_Font_Path;
    end Default_Font_Path;
+
+   function Font_Path_For_Frame
+     (Frame : Frame_Commands)
+      return String
+   is
+      Text : Unbounded_String;
+   begin
+      for Command of Frame.Text loop
+         Append (Text, Command.Text);
+         Append (Text, " ");
+      end loop;
+
+      for Command of Frame.Overlay_Text loop
+         Append (Text, Command.Text);
+         Append (Text, " ");
+      end loop;
+
+      return Files.Fonts.Font_Path_For_Text (To_String (Text));
+   end Font_Path_For_Frame;
 
    function Initialize_Text
      (Renderer     : in out Text_Renderer;
@@ -4258,6 +4893,19 @@ package body Files.Rendering is
    is
       use type Textrender.Status_Code;
       Result : Text_Render_Result;
+
+      function Pixel_Snapped
+        (Value : Float)
+         return Float is
+      begin
+         if Value <= 0.0 then
+            return 0.0;
+         elsif Value >= Float (Integer'Last - 1) then
+            return Float (Integer'Last - 1);
+         else
+            return Float (Integer (Value + 0.5));
+         end if;
+      end Pixel_Snapped;
    begin
       if not Renderer.Loaded then
          return Result;
@@ -4268,48 +4916,145 @@ package body Files.Rendering is
       Result.Atlas_Height := Renderer.Atlas_Height;
       Result.Atlas_Bytes := Saturating_Multiply (Renderer.Atlas_Width, Renderer.Atlas_Height);
 
-      for Text of Frame.Text loop
-         declare
-            Content : constant String := To_String (Text.Text);
-            Cell_X  : Float := Float (Text.X);
-            Cell_Y  : constant Float := Float (Text.Y);
-            Limit_X : constant Float := Float (Saturating_Add (Text.X, Text.Width));
+      declare
+         procedure Append_Glyphs
+           (Commands : Text_Command_Vectors.Vector;
+            Glyphs   : in out Glyph_Command_Vectors.Vector)
+         is
          begin
-            for Character_Value of Content loop
-               exit when Cell_X + Float (Renderer.Cell_Width) > Limit_X;
-
+            for Text of Commands loop
                declare
-                  Codepoint : constant Textrender.Codepoint := Character'Pos (Character_Value);
-                  Metrics   : Textrender.Glyph_Metric;
-                  Placement : Textrender.Glyph_Placement;
-                  Status    : constant Textrender.Status_Code := Textrender.Get_Glyph (Codepoint, Metrics);
+                  Content : constant String := To_String (Text.Text);
+                  Cell_X  : Float := Float (Text.X);
+                  Cell_Y  : constant Float := Float (Text.Y);
+                  Limit_X : constant Float := Float (Saturating_Add (Text.X, Text.Width));
+                  Base_X  : Float := Float (Text.X);
+                  Index   : Integer := Content'First;
                begin
-                  if Status /= Textrender.Success and then Status /= Textrender.Glyph_Missing then
-                     Result.Status := Text_Render_Glyph_Failed;
-                     return Result;
-                  end if;
+                  while Index <= Content'Last loop
+                     declare
+                        Unit_Start : constant Integer := Index;
+                        Decoded_Codepoint : Natural;
+                        Codepoint : Textrender.Codepoint;
+                        Metrics   : Textrender.Glyph_Metric;
+                        Placement : Textrender.Glyph_Placement;
+                        Status    : Textrender.Status_Code;
+                        Unit_Width : Natural;
+                     begin
+                        Files.UTF8.Decode_Next_Display_Codepoint
+                          (Content,
+                           Index,
+                           Decoded_Codepoint);
+                        Unit_Width := Files.UTF8.Display_Units (Content (Unit_Start .. Index - 1));
+                        if Unit_Width > 0
+                          and then Cell_X + Float (Saturating_Multiply (Unit_Width, Renderer.Cell_Width)) > Limit_X
+                        then
+                           exit;
+                        end if;
 
-                  if Metrics.W > 0.0 and then Metrics.H > 0.0 then
-                     Placement := Textrender.Place_Glyph_In_Cell (Metrics, Cell_X, Cell_Y);
-                     Result.Glyphs.Append
-                       (Glyph_Command'
-                          (X         => Placement.X,
-                           Y         => Placement.Y,
-                           Width     => Metrics.W,
-                           Height    => Metrics.H,
-                           U0        => Metrics.U0,
-                           V0        => Metrics.V0,
-                           U1        => Metrics.U1,
-                           V1        => Metrics.V1,
-                           Color     => Text.Color,
-                           Codepoint => Natural (Codepoint)));
-                  end if;
+                        Codepoint := Textrender.Codepoint (Decoded_Codepoint);
+                        Status := Textrender.Get_Glyph (Codepoint, Metrics);
+
+                        if Status /= Textrender.Success then
+                           if Unit_Width > 0 then
+                              Result.Missing_Glyph_Count :=
+                                Saturating_Add (Result.Missing_Glyph_Count, 1);
+                              Codepoint := Textrender.Codepoint (Character'Pos ('?'));
+                              Status := Textrender.Get_Glyph (Codepoint, Metrics);
+                              if Status /= Textrender.Success then
+                                 Metrics :=
+                                   (X         => 0.0,
+                                    Y         => 0.0,
+                                    W         => 0.0,
+                                    H         => 0.0,
+                                    U0        => 0.0,
+                                    V0        => 0.0,
+                                    U1        => 0.0,
+                                    V1        => 0.0,
+                                    Advance_X => 0.0,
+                                    Bearing_X => 0.0,
+                                    Bearing_Y => 0.0);
+                              end if;
+                           else
+                              if Files.UTF8.Is_Required_Zero_Width_Codepoint (Decoded_Codepoint) then
+                                 Result.Missing_Glyph_Count :=
+                                   Saturating_Add (Result.Missing_Glyph_Count, 1);
+                              end if;
+                              Metrics :=
+                                (X         => 0.0,
+                                 Y         => 0.0,
+                                 W         => 0.0,
+                                 H         => 0.0,
+                                 U0        => 0.0,
+                                 V0        => 0.0,
+                                 U1        => 0.0,
+                                 V1        => 0.0,
+                                 Advance_X => 0.0,
+                                 Bearing_X => 0.0,
+                                 Bearing_Y => 0.0);
+                           end if;
+                        end if;
+
+                        if Metrics.W > 0.0 and then Metrics.H > 0.0 then
+                           declare
+                              Origin_X : constant Float := (if Unit_Width = 0 then Base_X else Cell_X);
+                              Scale    : constant Float :=
+                                (if Text.Scale_To_Box
+                                 then Float'Max
+                                   (1.0,
+                                    0.86
+                                    * Float'Min
+                                      (Float (Text.Width) / Metrics.W,
+                                       Float (Text.Height) / Metrics.H))
+                                 else 1.0);
+                              Scaled_W : constant Float := Metrics.W * Scale;
+                              Scaled_H : constant Float := Metrics.H * Scale;
+                              Draw_X   : Float;
+                              Draw_Y   : Float;
+                           begin
+                              Placement :=
+                                Textrender.Place_Glyph_In_Cell
+                                  (Metrics,
+                                   Origin_X,
+                                   Cell_Y);
+                              if Text.Scale_To_Box then
+                                 Draw_X := Float (Text.X) + (Float (Text.Width) - Scaled_W) / 2.0;
+                                 Draw_Y := Float (Text.Y) + (Float (Text.Height) - Scaled_H) / 2.0;
+                              else
+                                 Draw_X := Placement.X;
+                                 Draw_Y := Placement.Y;
+                              end if;
+                              Glyphs.Append
+                                (Glyph_Command'
+                                   (X         => Pixel_Snapped (Draw_X),
+                                    Y         => Pixel_Snapped (Draw_Y),
+                                    Width     => Pixel_Snapped (Scaled_W),
+                                    Height    => Pixel_Snapped (Scaled_H),
+                                    U0        => Metrics.U0,
+                                    V0        => Metrics.V0,
+                                    U1        => Metrics.U1,
+                                    V1        => Metrics.V1,
+                                    Color     => Text.Color,
+                                    Codepoint => Natural (Codepoint)));
+                           end;
+                        end if;
+
+                        if Unit_Width > 0 then
+                           Base_X := Cell_X;
+                           Cell_X :=
+                             Cell_X + Float (Saturating_Multiply (Unit_Width, Renderer.Cell_Width));
+                        end if;
+                     end;
+                  end loop;
                end;
-
-               Cell_X := Cell_X + Float (Renderer.Cell_Width);
             end loop;
-         end;
-      end loop;
+         end Append_Glyphs;
+      begin
+         Append_Glyphs (Frame.Text, Result.Glyphs);
+         if Result.Status = Text_Render_Success then
+            Append_Glyphs (Frame.Overlay_Text, Result.Overlay_Glyphs);
+         end if;
+      end;
 
       Result.Atlas_Dirty := Textrender.Atlas_Dirty;
       if Textrender.Atlas_Pixels /= null then

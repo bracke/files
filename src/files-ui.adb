@@ -1,3 +1,6 @@
+with Files.Localization;
+with Files.UTF8;
+
 package body Files.UI is
 
    function Within
@@ -64,29 +67,69 @@ package body Files.UI is
            Saturating_Multiply (Value mod Denominator, Numerator) / Denominator);
    end Scaled_Down;
 
+   function Label_Pixel_Width
+     (Text   : String;
+      Cell_W : Natural)
+      return Natural is
+   begin
+      return Saturating_Multiply (Files.UTF8.Display_Units (Text), Cell_W);
+   end Label_Pixel_Width;
+
    function Calculate_Toolbar_Layout
      (Width : Natural)
       return Toolbar_Layout
    is
-      Side : constant Natural := Width / 5;
+      Preferred_Left : constant Natural := Saturating_Multiply (Toolbar_Button_Width, Toolbar_Button_Count);
+      Side           : constant Natural := Width / 5;
+      Left           : constant Natural := (if Width >= Preferred_Left then Preferred_Left else 0);
+      Right          : constant Natural := Natural'Min (Side, Width - Left);
    begin
       return
         (Left_X       => 0,
-         Left_Width   => Side,
-         Middle_X     => Side,
-         Middle_Width => Width - (Side * 2),
-         Right_X      => Width - Side,
-         Right_Width  => Side);
+         Left_Width   => Left,
+         Middle_X     => Left,
+         Middle_Width => Width - Left - Right,
+         Right_X      => Width - Right,
+         Right_Width  => Right);
    end Calculate_Toolbar_Layout;
+
+   function Toolbar_Input_Height
+     (Line_Height : Positive := 20)
+      return Natural
+   is
+      Toolbar_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Wanted_H  : constant Natural :=
+        Saturating_Add (Line_Height, Saturating_Multiply (Input_Field_Padding, 2));
+   begin
+      return Natural'Min (Toolbar_H, Wanted_H);
+   end Toolbar_Input_Height;
+
+   function Toolbar_Input_Y
+     (Line_Height : Positive := 20)
+      return Natural
+   is
+      Toolbar_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Input_H   : constant Natural := Toolbar_Input_Height (Line_Height);
+   begin
+      if Toolbar_H > Input_H then
+         return (Toolbar_H - Input_H) / 2;
+      end if;
+
+      return 0;
+   end Toolbar_Input_Y;
 
    function Toolbar_Left_Button_X
      (Toolbar      : Toolbar_Layout;
       Button_Index : Natural)
       return Natural
    is
-      Clamped_Index : constant Natural := Natural'Min (Button_Index, 6);
+      Clamped_Index : constant Natural := Natural'Min (Button_Index, Toolbar_Button_Count);
    begin
-      return Saturating_Add (Toolbar.Left_X, Scaled_Down (Toolbar.Left_Width, Clamped_Index, 6));
+      if Toolbar.Left_Width >= Saturating_Multiply (Toolbar_Button_Width, Toolbar_Button_Count) then
+         return Saturating_Add (Toolbar.Left_X, Saturating_Multiply (Toolbar_Button_Width, Clamped_Index));
+      end if;
+
+      return Saturating_Add (Toolbar.Left_X, Scaled_Down (Toolbar.Left_Width, Clamped_Index, Toolbar_Button_Count));
    end Toolbar_Left_Button_X;
 
    function Toolbar_Left_Button_Width
@@ -109,24 +152,57 @@ package body Files.UI is
       Line_Height : Positive := 20)
       return Bottom_Bar_Layout
    is
-      Button_W       : constant Natural := Saturating_Multiply (Line_Height, 4);
-      Preferred_View : constant Natural := Saturating_Multiply (Button_W, 3);
-      View_W         : constant Natural := Natural'Min (Width, Preferred_View);
-      Remaining      : constant Natural := Width - View_W;
-      Toggle_W       : constant Natural := Natural'Min (Remaining, Button_W);
+      Cell_W         : constant Natural := Natural'Max (1, Line_Height / 2);
+      Button_Padding : constant Natural := Saturating_Multiply (Bottom_Bar_Padding, 3);
+      Minimum_Button : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Small_Needed   : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Label_Pixel_Width (Files.Localization.Text ("command.view.small.short"), Cell_W),
+              Button_Padding));
+      Large_Needed   : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Label_Pixel_Width (Files.Localization.Text ("command.view.large.short"), Cell_W),
+              Button_Padding));
+      Details_Needed : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Label_Pixel_Width (Files.Localization.Text ("command.view.details.short"), Cell_W),
+              Button_Padding));
+      Info_Needed    : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Label_Pixel_Width (Files.Localization.Text ("command.info.toggle.short"), Cell_W),
+              Button_Padding));
+      Preferred_View : constant Natural :=
+        Saturating_Add (Small_Needed, Saturating_Add (Large_Needed, Details_Needed));
+      Toggle_Wanted  : constant Natural := Info_Needed;
+      Content_X      : constant Natural := (if Width > Saturating_Multiply (Bottom_Bar_Padding, 2)
+                                            then Bottom_Bar_Padding * 2 else 0);
+      Content_W      : constant Natural :=
+        (if Width > Saturating_Multiply (Content_X, 2) then Width - Saturating_Multiply (Content_X, 2)
+         else Width);
+      View_W         : constant Natural := Natural'Min (Content_W, Preferred_View);
+      Remaining      : constant Natural := Content_W - View_W;
+      Toggle_W       : constant Natural := Natural'Min (Remaining, Toggle_Wanted);
       Info_W         : constant Natural := Remaining - Toggle_W;
-      Small_W        : constant Natural := Natural'Min (Button_W, View_W);
-      Large_W        : constant Natural := Natural'Min (Button_W, View_W - Small_W);
+      Small_W        : constant Natural := Natural'Min (Small_Needed, View_W);
+      Large_W        : constant Natural := Natural'Min (Large_Needed, View_W - Small_W);
       Details_W      : constant Natural := View_W - Small_W - Large_W;
-      Large_X        : constant Natural := Small_W;
-      Details_X      : constant Natural := Small_W + Large_W;
-      Info_X         : constant Natural := View_W;
-      Toggle_X       : constant Natural := View_W + Info_W;
+      Large_X        : constant Natural := Content_X + Small_W;
+      Details_X      : constant Natural := Content_X + Small_W + Large_W;
+      Info_X         : constant Natural := Content_X + View_W;
+      Toggle_X       : constant Natural := Content_X + View_W + Info_W;
    begin
       return
-        (View_Mode_X          => 0,
+        (View_Mode_X          => Content_X,
          View_Mode_Width      => View_W,
-         Small_Button_X       => 0,
+         Small_Button_X       => Content_X,
          Small_Button_Width   => Small_W,
          Large_Button_X       => Large_X,
          Large_Button_Width   => Large_W,
@@ -138,6 +214,119 @@ package body Files.UI is
          Info_Pane_Width      => Toggle_W);
    end Calculate_Bottom_Bar_Layout;
 
+   function Calculate_Settings_Entry_Button_Layout
+     (Pane_X      : Natural;
+      Pane_Width  : Natural;
+      Line_Height : Positive := 20)
+      return Settings_Entry_Button_Layout
+   is
+      Cell_W         : constant Natural := Natural'Max (1, Line_Height / 2);
+      Edge_Padding   : constant Natural := Input_Field_Padding;
+      Button_Gap     : constant Natural := 4;
+      Minimum_Button : constant Natural := 34;
+      Add_Wanted     : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Label_Pixel_Width (Files.Localization.Text ("settings.add"), Cell_W),
+              Saturating_Multiply (Input_Field_Padding, 2)));
+      Remove_Wanted  : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Label_Pixel_Width (Files.Localization.Text ("settings.remove"), Cell_W),
+              Saturating_Multiply (Input_Field_Padding, 2)));
+      Available      : constant Natural :=
+        (if Pane_Width > Saturating_Multiply (Edge_Padding, 2)
+         then Pane_Width - Saturating_Multiply (Edge_Padding, 2)
+         else Pane_Width);
+      Desired_Total  : constant Natural := Saturating_Add (Add_Wanted, Saturating_Add (Button_Gap, Remove_Wanted));
+      Usable_Total   : constant Natural := Natural'Min (Available, Desired_Total);
+      Add_W          : Natural := 0;
+      Remove_W       : Natural := 0;
+      Gap_W          : Natural := 0;
+      Total_W        : Natural := 0;
+      Total_X        : Natural := Pane_X;
+      Remove_X       : Natural := Pane_X;
+   begin
+      if Usable_Total = 0 then
+         return (others => <>);
+      elsif Usable_Total <= Button_Gap then
+         Add_W := Usable_Total;
+      elsif Desired_Total <= Available then
+         Add_W := Add_Wanted;
+         Remove_W := Remove_Wanted;
+         Gap_W := Button_Gap;
+      else
+         Gap_W := Button_Gap;
+         Add_W := Natural'Min (Add_Wanted, (Usable_Total - Gap_W) / 2);
+         Remove_W := Usable_Total - Gap_W - Add_W;
+      end if;
+
+      Total_W := Saturating_Add (Add_W, Saturating_Add (Gap_W, Remove_W));
+      if Pane_Width > Saturating_Add (Total_W, Edge_Padding) then
+         Total_X := Saturating_Add (Pane_X, Pane_Width - Total_W - Edge_Padding);
+      end if;
+
+      Remove_X := Saturating_Add (Total_X, Saturating_Add (Add_W, Gap_W));
+
+      return
+        (Add_Button_X        => Total_X,
+         Add_Button_Width    => Add_W,
+         Remove_Button_X     => Remove_X,
+         Remove_Button_Width => Remove_W,
+         Total_X             => Total_X,
+         Total_Width         => Total_W);
+   end Calculate_Settings_Entry_Button_Layout;
+
+   function Calculate_Settings_Action_Button_Layout
+     (Text_X     : Natural;
+      Text_Width : Natural)
+      return Settings_Action_Button_Layout
+   is
+      Gap      : constant Natural := 4;
+      First_W  : constant Natural := (if Text_Width > Gap then (Text_Width - Gap) / 2 else 0);
+      Offset   : constant Natural := Saturating_Add (First_W, Gap);
+      Second_W : constant Natural := (if Text_Width > Offset then Text_Width - Offset else 0);
+      Second_X : constant Natural := Saturating_Add (Text_X, Offset);
+      Total_W  : constant Natural := Saturating_Add (Offset, Second_W);
+   begin
+      return
+        (First_Button_X      => Text_X,
+         First_Button_Width  => First_W,
+         Second_Button_X     => Second_X,
+         Second_Button_Width => Second_W,
+         Total_X             => Text_X,
+         Total_Width         => Total_W);
+   end Calculate_Settings_Action_Button_Layout;
+
+   function Calculate_Settings_Pane_Layout
+     (Width          : Natural;
+      Height         : Natural;
+      Toolbar_Height : Natural;
+      Line_Height    : Positive := 20)
+      return Settings_Pane_Layout
+   is
+      Wanted_W : constant Natural := Natural'Max (240, Scaled_Down (Width, 2, 5));
+      Pane_W : constant Natural := Natural'Min (Width, Wanted_W);
+      Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);
+      Pane_X : constant Natural := (if Width > Pane_W then (Width - Pane_W) / 2 else 0);
+      Pane_Y : constant Natural :=
+        (if Height > Pane_H
+         then Natural'Max (Saturating_Add (Toolbar_Height, 8), Height / 6)
+         else Toolbar_Height);
+      Text_X : constant Natural := Saturating_Add (Pane_X, 8);
+      Text_W : constant Natural := (if Pane_W > 16 then Pane_W - 16 else 0);
+   begin
+      return
+        (X          => Pane_X,
+         Y          => Pane_Y,
+         Width      => Pane_W,
+         Height     => Pane_H,
+         Text_X     => Text_X,
+         Text_Width => Text_W);
+   end Calculate_Settings_Pane_Layout;
+
    function Toolbar_Command_At
      (X           : Natural;
       Y           : Natural;
@@ -146,24 +335,28 @@ package body Files.UI is
       return Files.Commands.Command_Id
    is
       Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width);
-      Input_Y  : constant Natural := Line_Height / 2;
+      Input_Y  : constant Natural := Toolbar_Input_Y (Line_Height);
+      Input_H  : constant Natural := Toolbar_Input_Height (Line_Height);
       Toolbar_H : constant Natural := Saturating_Multiply (Line_Height, 2);
    begin
       if Width = 0 or else Y >= Toolbar_H then
          return Files.Commands.No_Command;
-      elsif Within_Rect (X, Y, Toolbar.Middle_X, Input_Y, Toolbar.Middle_Width, Line_Height) then
+      elsif Within_Rect (X, Y, Toolbar.Middle_X, Input_Y, Toolbar.Middle_Width, Input_H) then
          return Files.Commands.Focus_Path_Input_Command;
-      elsif Within_Rect (X, Y, Toolbar.Right_X, Input_Y, Toolbar.Right_Width, Line_Height) then
+      elsif Within_Rect (X, Y, Toolbar.Right_X, Input_Y, Toolbar.Right_Width, Input_H) then
          return Files.Commands.Focus_Filter_Input_Command;
       elsif not Within (X, Toolbar.Left_X, Toolbar.Left_Width) then
          return Files.Commands.No_Command;
       end if;
 
       for Button_Index in 0 .. 5 loop
-         if Within
+         if Within_Rect
               (X,
+               Y,
                Toolbar_Left_Button_X (Toolbar, Button_Index),
-               Toolbar_Left_Button_Width (Toolbar, Button_Index))
+               Input_Y,
+               Toolbar_Left_Button_Width (Toolbar, Button_Index),
+               Input_H)
          then
             case Button_Index is
                when 0 =>
@@ -194,9 +387,15 @@ package body Files.UI is
       return Files.Commands.Command_Id
    is
       Bottom   : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Line_Height);
-      Bottom_Y : constant Natural := (if Height > Line_Height then Height - Line_Height else 0);
+      Bottom_H : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
+      Content_Y : constant Natural := Saturating_Add (Bottom_Y, Bottom_Bar_Padding);
    begin
-      if Width = 0 or else Height = 0 or else Y < Bottom_Y or else Y >= Height then
+      if Width = 0
+        or else Height = 0
+        or else Y < Content_Y
+        or else Y >= Saturating_Add (Content_Y, Line_Height)
+      then
          return Files.Commands.No_Command;
       elsif Within (X, Bottom.Small_Button_X, Bottom.Small_Button_Width) then
          return Files.Commands.Select_Small_Icons_Command;

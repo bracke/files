@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.Model;
 with Files.Settings;
 with Files.Types;
@@ -100,6 +101,26 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Poll the current directory and refresh only when its signature changed.
+   --
+   --  @param Model Window model containing the last loaded directory signature.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Refresh_If_Changed
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Replace the current view with recursive search results for the filter text.
+   --
+   --  @param Model Window model containing the current path and filter query.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Run_Recursive_Search
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Commit the current path-input text by validating and loading the destination.
    --
    --  @param Model Window model to update.
@@ -198,6 +219,41 @@ package Files.Operations is
    function Delete_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Permanently delete selected items through the explicit advanced command.
+   --
+   --  This is intentionally separate from Delete_Selected, which always uses
+   --  platform trash/recycle-bin semantics.
+   --
+   --  @param Model Window model to inspect and refresh after mutation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Delete_Selected_Permanently
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Generate cached thumbnails for selected regular files.
+   --
+   --  @param Model Window model to inspect.
+   --  @return Structured operation result with first generated thumbnail path.
+   function Generate_Selected_Thumbnails
+     (Model : in out Files.Model.Window_Model)
+      return Operation_Result;
+
+   --  Import dropped paths into the current directory and refresh the model.
+   --
+   --  @param Model Window model receiving the dropped paths.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @param Source_Paths Dropped filesystem paths.
+   --  @param Mode Copy or move mode.
+   --  @return Structured operation result with first imported destination path.
+   function Import_Dropped_Paths
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Operation_Result;
 
    --  Commit the active create-file temporary item to the filesystem.

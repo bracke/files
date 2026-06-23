@@ -1,7 +1,7 @@
 with Ada.Strings.Unbounded;
 
 with Files.Command_Palette;
-with Files.File_System;
+with Files.UTF8;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -92,7 +92,9 @@ package body Files.Controller is
             return
               Make_Result
                 (Controller_Ignored, Id, Disabled_Operation ("error.history.forward_unavailable"));
-         when Files.Commands.Open_Selected_Items_Command | Files.Commands.Delete_Selected_Items_Command =>
+         when Files.Commands.Open_Selected_Items_Command
+            | Files.Commands.Delete_Selected_Items_Command
+            | Files.Commands.Toggle_Info_Pane_Command =>
             return
               Make_Result
                 (Controller_Ignored, Id, Disabled_Operation ("error.selection.empty"));
@@ -434,85 +436,20 @@ package body Files.Controller is
       return Make_Result (Controller_Text_Updated);
    end Append_Focused_Text;
 
-   function Is_UTF8_Continuation (Value : Character) return Boolean is
-      Code : constant Natural := Character'Pos (Value);
-   begin
-      return Code >= 16#80# and then Code <= 16#BF#;
-   end Is_UTF8_Continuation;
-
-   function UTF8_Continuation_At
-     (Text     : String;
-      Position : Natural)
-      return Boolean
-   is
-      Index : constant Natural := Text'First + Position;
-      Lead  : Natural := Position;
-   begin
-      if Position = 0
-        or else Position >= Text'Length
-        or else not Is_UTF8_Continuation (Text (Index))
-      then
-         return False;
-      end if;
-
-      while Lead > 0 and then Is_UTF8_Continuation (Text (Text'First + Lead)) loop
-         Lead := Lead - 1;
-      end loop;
-
-      declare
-         Lead_Code : constant Natural := Character'Pos (Text (Text'First + Lead));
-         Expected  : Natural := 0;
-      begin
-         if Lead_Code in 16#C2# .. 16#DF# then
-            Expected := 1;
-         elsif Lead_Code in 16#E0# .. 16#EF# then
-            Expected := 2;
-         elsif Lead_Code in 16#F0# .. 16#F4# then
-            Expected := 3;
-         else
-            return False;
-         end if;
-
-         return Position - Lead <= Expected;
-      end;
-   end UTF8_Continuation_At;
-
    function Previous_Text_Boundary
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
+      return Natural is
    begin
-      if Position = 0 then
-         return 0;
-      end if;
-
-      Position := Position - 1;
-      while Position > 0 and then UTF8_Continuation_At (Text, Position) loop
-         Position := Position - 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Previous_Boundary (Text, Cursor);
    end Previous_Text_Boundary;
 
    function Next_Text_Boundary
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
+      return Natural is
    begin
-      if Position >= Text'Length then
-         return Text'Length;
-      end if;
-
-      Position := Position + 1;
-      while Position < Text'Length and then UTF8_Continuation_At (Text, Position) loop
-         Position := Position + 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Next_Boundary (Text, Cursor);
    end Next_Text_Boundary;
 
    function Remove_Text_Range
@@ -580,127 +517,20 @@ package body Files.Controller is
       return Make_Result (Controller_Text_Updated);
    end Delete_Focused_Text_Forward;
 
-   function Is_Word_Separator (Value : Character) return Boolean is
-   begin
-      return Value = ' '
-        or else Value = ASCII.HT
-        or else Value = ASCII.LF
-        or else Value = ASCII.CR
-        or else Value = ASCII.VT
-        or else Value = ASCII.FF
-        or else Character'Pos (Value) = 133
-        or else Value = '/'
-        or else Value = '\'
-        or else Value = '.'
-        or else Value = '-'
-        or else Value = '_';
-   end Is_Word_Separator;
-
-   function UTF8_Word_Separator_Length
-     (Text     : String;
-      Position : Natural)
-      return Natural
-   is
-      Index : constant Natural := Text'First + Position;
-      B1    : Natural;
-      B2    : Natural;
-      B3    : Natural;
-   begin
-      if Position >= Text'Length then
-         return 0;
-      elsif Is_Word_Separator (Text (Index)) then
-         return 1;
-      end if;
-
-      B1 := Character'Pos (Text (Index));
-      if B1 = 16#C2# and then Position + 1 < Text'Length then
-         B2 := Character'Pos (Text (Index + 1));
-         if B2 = 16#85# or else B2 = 16#A0# then
-            return 2;
-         end if;
-      elsif B1 = 16#E1# and then Position + 2 < Text'Length then
-         B2 := Character'Pos (Text (Index + 1));
-         B3 := Character'Pos (Text (Index + 2));
-         if B2 = 16#9A# and then B3 = 16#80# then
-            return 3;
-         end if;
-      elsif B1 = 16#E2# and then Position + 2 < Text'Length then
-         B2 := Character'Pos (Text (Index + 1));
-         B3 := Character'Pos (Text (Index + 2));
-         if B2 = 16#80#
-           and then (B3 in 16#80# .. 16#8A# or else B3 = 16#A8# or else B3 = 16#A9# or else B3 = 16#AF#)
-         then
-            return 3;
-         elsif B2 = 16#81# and then B3 = 16#9F# then
-            return 3;
-         end if;
-      elsif B1 = 16#E3# and then Position + 2 < Text'Length then
-         B2 := Character'Pos (Text (Index + 1));
-         B3 := Character'Pos (Text (Index + 2));
-         if B2 = 16#80# and then B3 = 16#80# then
-            return 3;
-         end if;
-      end if;
-
-      return 0;
-   end UTF8_Word_Separator_Length;
-
-   function Previous_UTF8_Word_Separator_Length
-     (Text     : String;
-      Position : Natural)
-      return Natural
-   is
-      Max_Length : constant Natural := Natural'Min (3, Position);
-   begin
-      for Length in reverse 1 .. Max_Length loop
-         if UTF8_Word_Separator_Length (Text, Position - Length) = Length then
-            return Length;
-         end if;
-      end loop;
-
-      return 0;
-   end Previous_UTF8_Word_Separator_Length;
-
    function Previous_Word_Boundary
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
-      Separator_Length : Natural;
+      return Natural is
    begin
-      loop
-         Separator_Length := Previous_UTF8_Word_Separator_Length (Text, Position);
-         exit when Separator_Length = 0;
-         Position := Position - Separator_Length;
-      end loop;
-
-      while Position > 0 and then Previous_UTF8_Word_Separator_Length (Text, Position) = 0 loop
-         Position := Position - 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Previous_Word_Boundary (Text, Cursor);
    end Previous_Word_Boundary;
 
    function Next_Word_Boundary
      (Text   : String;
       Cursor : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Text'Length);
-      Separator_Length : Natural;
+      return Natural is
    begin
-      loop
-         Separator_Length := UTF8_Word_Separator_Length (Text, Position);
-         exit when Separator_Length = 0;
-         Position := Natural'Min (Position + Separator_Length, Text'Length);
-      end loop;
-
-      while Position < Text'Length and then UTF8_Word_Separator_Length (Text, Position) = 0 loop
-         Position := Position + 1;
-      end loop;
-
-      return Position;
+      return Files.UTF8.Next_Word_Boundary (Text, Cursor);
    end Next_Word_Boundary;
 
    function Delete_Focused_Text_Word_Backward
@@ -773,6 +603,12 @@ package body Files.Controller is
             Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
          when Files.Commands.Delete_Selected_Items_Command =>
             Operation := Files.Operations.Delete_Selected (Model, Settings);
+         when Files.Commands.Delete_Selected_Permanently_Command =>
+            Operation := Files.Operations.Delete_Selected_Permanently (Model, Settings);
+         when Files.Commands.Generate_Thumbnails_Command =>
+            Operation := Files.Operations.Generate_Selected_Thumbnails (Model);
+         when Files.Commands.Search_Recursive_Command =>
+            Operation := Files.Operations.Run_Recursive_Search (Model, Settings);
          when Files.Commands.Refresh_Directory_Command =>
             Operation := Files.Operations.Refresh (Model, Settings);
          when Files.Commands.Open_Selected_Root_Command =>
@@ -1074,6 +910,19 @@ package body Files.Controller is
 
       return Make_Result (Controller_Selection_Moved);
    end Handle_Item_Click;
+
+   function Handle_Drop_Import
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Controller_Result
+   is
+      Operation : constant Files.Operations.Operation_Result :=
+        Files.Operations.Import_Dropped_Paths (Model, Settings, Source_Paths, Mode);
+   begin
+      return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
+   end Handle_Drop_Import;
 
    function Scroll_Info_Result
      (Model : in out Files.Model.Window_Model;

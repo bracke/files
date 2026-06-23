@@ -1,0 +1,8 @@
+files-icon-v1
+name=toolbar-forward
+grid=16
+rect=7,3,2,2,border
+rect=8,5,2,2,border
+rect=4,7,8,2,border
+rect=8,9,2,2,border
+rect=7,11,2,2,border

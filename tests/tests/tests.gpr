@@ -17,7 +17,8 @@ project Tests is
    end Binder;
 
    package Linker is
-      for Default_Switches ("Ada") use ("-lvulkan");
+      for Default_Switches ("Ada") use
+        ("-lvulkan", "-lz", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
    end Linker;
 
    package Builder is

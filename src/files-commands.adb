@@ -87,10 +87,14 @@ package body Files.Commands is
             return "file.create";
          when Delete_Selected_Items_Command =>
             return "file.delete_selected";
+         when Delete_Selected_Permanently_Command =>
+            return "file.delete_permanently";
          when Rename_Selected_Items_Command =>
             return "file.rename";
          when Open_Selected_Items_Command =>
             return "file.open_selected";
+         when Generate_Thumbnails_Command =>
+            return "file.generate_thumbnails";
          when Focus_Filter_Input_Command =>
             return "filter.focus";
          when Open_Command_Palette_Command =>
@@ -105,6 +109,10 @@ package body Files.Commands is
             return "drive.eject_selected";
          when Clear_Filter_Command =>
             return "filter.clear";
+         when Select_All_Command =>
+            return "selection.select_all";
+         when Search_Recursive_Command =>
+            return "directory.search_recursive";
          when Refresh_Directory_Command =>
             return "directory.refresh";
          when Import_Settings_Command =>
@@ -147,10 +155,14 @@ package body Files.Commands is
             return "command.file.create";
          when Delete_Selected_Items_Command =>
             return "command.file.delete";
+         when Delete_Selected_Permanently_Command =>
+            return "command.file.delete_permanently";
          when Rename_Selected_Items_Command =>
             return "command.file.rename";
          when Open_Selected_Items_Command =>
             return "command.file.open";
+         when Generate_Thumbnails_Command =>
+            return "command.file.generate_thumbnails";
          when Focus_Filter_Input_Command =>
             return "command.filter.focus";
          when Open_Command_Palette_Command =>
@@ -165,6 +177,10 @@ package body Files.Commands is
             return "command.drive.eject_selected";
          when Clear_Filter_Command =>
             return "command.filter.clear";
+         when Select_All_Command =>
+            return "command.selection.select_all";
+         when Search_Recursive_Command =>
+            return "command.directory.search_recursive";
          when Refresh_Directory_Command =>
             return "command.directory.refresh";
          when Import_Settings_Command =>
@@ -207,10 +223,14 @@ package body Files.Commands is
             return "command.file.create.description";
          when Delete_Selected_Items_Command =>
             return "command.file.delete.description";
+         when Delete_Selected_Permanently_Command =>
+            return "command.file.delete_permanently.description";
          when Rename_Selected_Items_Command =>
             return "command.file.rename.description";
          when Open_Selected_Items_Command =>
             return "command.file.open.description";
+         when Generate_Thumbnails_Command =>
+            return "command.file.generate_thumbnails.description";
          when Focus_Filter_Input_Command =>
             return "command.filter.focus.description";
          when Open_Command_Palette_Command =>
@@ -225,6 +245,10 @@ package body Files.Commands is
             return "command.drive.eject_selected.description";
          when Clear_Filter_Command =>
             return "command.filter.clear.description";
+         when Select_All_Command =>
+            return "command.selection.select_all.description";
+         when Search_Recursive_Command =>
+            return "command.directory.search_recursive.description";
          when Refresh_Directory_Command =>
             return "command.directory.refresh.description";
          when Import_Settings_Command =>
@@ -267,6 +291,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_Right, Alt);
          when Create_File_Command =>
             return (True, Files.Types.Key_N, Ctrl);
+         when Select_All_Command =>
+            return (True, Files.Types.Key_A, Ctrl);
          when Open_Command_Palette_Command =>
             return (True, Files.Types.Key_P, Ctrl);
          when Focus_Filter_Input_Command =>
@@ -275,6 +301,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_D, Ctrl);
          when Clear_Filter_Command =>
             return (True, Files.Types.Key_F, Ctrl_Shift);
+         when Search_Recursive_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Refresh_Directory_Command =>
             return (True, Files.Types.Key_R, Ctrl);
          when Import_Settings_Command | Export_Settings_Command =>
@@ -287,6 +315,10 @@ package body Files.Commands is
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Delete_Selected_Items_Command =>
             return (True, Files.Types.Key_Delete, Files.Types.No_Modifiers);
+         when Delete_Selected_Permanently_Command =>
+            return (True, Files.Types.Key_Delete, [Files.Types.Shift_Key => True, others => False]);
+         when Generate_Thumbnails_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Rename_Selected_Items_Command =>
             return (True, Files.Types.Key_F2, Files.Types.No_Modifiers);
          when Close_Command_Palette_Command =>
@@ -323,6 +355,8 @@ package body Files.Commands is
             return "3";
          when Files.Types.Key_4 =>
             return "4";
+         when Files.Types.Key_A =>
+            return "a";
          when Files.Types.Key_D =>
             return "d";
          when Files.Types.Key_F =>
@@ -515,6 +549,8 @@ package body Files.Commands is
             | Reset_Settings_Command
             | Eject_Selected_Root_Command =>
             return Command_Palette_Only;
+         when Select_All_Command =>
+            return Command_Palette_Only;
          when others =>
             return Command_Palette_Only;
       end case;
@@ -586,8 +622,14 @@ package body Files.Commands is
          when Delete_Selected_Items_Command | Open_Selected_Items_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Delete_Selected_Permanently_Command | Generate_Thumbnails_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model);
          when Create_File_Command =>
             return not Files.Model.Temporary_Item_Is_Active (Model);
+         when Toggle_Info_Pane_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model);
          when Rename_Selected_Items_Command =>
             return Files.Model.Rename_Is_Enabled (Model) or else Files.Model.Rename_Is_Active (Model);
          when Close_Command_Palette_Command =>
@@ -606,6 +648,11 @@ package body Files.Commands is
               and then Files.Model.Root_Is_Removable (Model, Files.Model.Root_Selected_Index (Model));
          when Clear_Filter_Command =>
             return Files.Model.Filter_Text (Model) /= "";
+         when Search_Recursive_Command =>
+            return Files.Model.Filter_Text (Model) /= "";
+         when Select_All_Command =>
+            return Files.Model.Visible_Count (Model) > 0
+              and then not Files.Model.Temporary_Item_Is_Active (Model);
          when Import_Settings_Command
             | Export_Settings_Command
             | Save_Settings_Command
@@ -678,9 +725,13 @@ package body Files.Commands is
             null;
          when Delete_Selected_Items_Command =>
             null;
+         when Delete_Selected_Permanently_Command =>
+            null;
          when Rename_Selected_Items_Command =>
             Files.Model.Toggle_Rename (Model);
          when Open_Selected_Items_Command =>
+            null;
+         when Generate_Thumbnails_Command =>
             null;
          when Focus_Filter_Input_Command =>
             Files.Model.Focus_Filter_Input (Model);
@@ -702,6 +753,10 @@ package body Files.Commands is
             null;
          when Clear_Filter_Command =>
             Files.Model.Clear_Filter (Model);
+         when Select_All_Command =>
+            Files.Model.Select_All_Visible (Model);
+         when Search_Recursive_Command =>
+            null;
          when Refresh_Directory_Command =>
             null;
          when Import_Settings_Command =>

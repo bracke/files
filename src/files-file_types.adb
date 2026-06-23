@@ -1,38 +1,56 @@
+with Files.UTF8;
+
 package body Files.File_Types is
 
    function Trim_Name (Name : String) return String is
-      First : Natural := Name'First;
-      Last  : Natural := Name'Last;
+      First_Offset      : Natural := 0;
+      Last_Content_Last : Natural := 0;
    begin
-      while First <= Last
-        and then (Name (First) = ' '
-                  or else Name (First) = ASCII.HT
-                  or else Name (First) = ASCII.CR
-                  or else Name (First) = ASCII.LF
-                  or else Name (First) = ASCII.VT
-                  or else Name (First) = ASCII.FF
-                  or else Character'Pos (Name (First)) = 133)
-      loop
-         First := First + 1;
-      end loop;
-
-      while Last >= First
-        and then (Name (Last) = ' '
-                  or else Name (Last) = ASCII.HT
-                  or else Name (Last) = ASCII.CR
-                  or else Name (Last) = ASCII.LF
-                  or else Name (Last) = ASCII.VT
-                  or else Name (Last) = ASCII.FF
-                  or else Character'Pos (Name (Last)) = 133)
-      loop
-         Last := Last - 1;
-      end loop;
-
-      if First > Last then
+      if Name = "" then
          return "";
       end if;
 
-      return Name (First .. Last);
+      while First_Offset < Name'Length loop
+         declare
+            Separator_Length : constant Natural := Files.UTF8.Whitespace_Separator_Length (Name, First_Offset);
+         begin
+            exit when Separator_Length = 0;
+            First_Offset := First_Offset + Separator_Length;
+         end;
+      end loop;
+
+      if First_Offset >= Name'Length then
+         return "";
+      end if;
+
+      declare
+         Position : Natural := First_Offset;
+      begin
+         while Position < Name'Length loop
+            declare
+               Separator_Length : constant Natural := Files.UTF8.Whitespace_Separator_Length (Name, Position);
+               Next_Position    : Natural := Position;
+            begin
+               if Separator_Length > 0 then
+                  Next_Position := Position + Separator_Length;
+               else
+                  Next_Position := Files.UTF8.Next_Boundary (Name, Position);
+                  if Next_Position <= Position then
+                     Next_Position := Position + 1;
+                  end if;
+                  Last_Content_Last := Name'First + Next_Position - 1;
+               end if;
+
+               Position := Next_Position;
+            end;
+         end loop;
+      end;
+
+      if Last_Content_Last < Name'First + First_Offset then
+         return "";
+      end if;
+
+      return Name (Name'First + First_Offset .. Last_Content_Last);
    end Trim_Name;
 
    function Leaf_Name (Name : String) return String is

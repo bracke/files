@@ -1720,8 +1720,44 @@ procedure Check_All is
          "localization catalog must include runtime smoke glyph labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
+         "en.runtime.smoke.missing_glyphs = ",
+         "localization catalog must include runtime smoke missing-glyph labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.font = ",
+         "localization catalog must include runtime smoke font labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
          "en.runtime.smoke.vertices = ",
          "localization catalog must include runtime smoke vertex labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.vulkan_status = ",
+         "localization catalog must include runtime smoke Vulkan status labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.vulkan_result = ",
+         "localization catalog must include runtime smoke Vulkan result labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.framebuffer_readback = ",
+         "localization catalog must include runtime smoke framebuffer readback labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.frames_attempted = ",
+         "localization catalog must include runtime smoke attempted-frame labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.frames_presented = ",
+         "localization catalog must include runtime smoke presented-frame labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.framebuffer_hash = ",
+         "localization catalog must include runtime smoke framebuffer hash labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.runtime.smoke.framebuffer_bytes = ",
+         "localization catalog must include runtime smoke framebuffer byte-count labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
          "en.runtime.smoke.text_failed = ",
@@ -1828,6 +1864,10 @@ procedure Check_All is
          "localization catalog must include details-view column labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
+         "en.details.size.unit.bytes = ",
+         "localization catalog must include details-view size units");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
          "en.settings.title = ",
          "localization catalog must include settings pane labels");
       Project_Tools.Files.Require_Contains
@@ -1882,6 +1922,18 @@ procedure Check_All is
         (Catalog,
          "en.error.open_action.unsafe_placeholder = ",
          "localization catalog must include unsafe open-action placeholder errors");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.command.file.delete_permanently = ",
+         "localization catalog must include permanent-delete command labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.command.file.generate_thumbnails = ",
+         "localization catalog must include thumbnail-generation command labels");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.command.directory.search_recursive = ",
+         "localization catalog must include recursive-search command labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
          "en.error.settings.save = ",
@@ -2296,6 +2348,14 @@ procedure Check_All is
          "runtime smoke tests must build expected metric labels through localization");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
+         "runtime smoke report exposes missing-glyph fallback count",
+         "runtime smoke tests must cover missing-glyph fallback diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "runtime smoke report exposes selected text font path",
+         "runtime smoke tests must cover selected font diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
          "CLI help flag description is localized",
          "localization tests must cover help-flag CLI text");
       Project_Tools.Files.Require_Contains
@@ -2375,51 +2435,57 @@ procedure Check_All is
       end if;
    end Require_Not_Contains;
 
-   procedure Check_First_Milestone_Non_Goals is
+   procedure Check_Feature_Scope_Policy is
       Feature_Spec   : constant String := Root & "/src/files-features.ads";
       Feature_Policy : constant String := Root & "/src/files-features.adb";
+      File_System_Spec : constant String := Root & "/src/files-file_system.ads";
       Tests          : constant String := Root & "/tests/tests/src/files_suite.adb";
    begin
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "type Feature_Id is",
-         "first milestone feature policy must expose stable feature identifiers");
+         "feature policy must expose stable feature identifiers");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Drag_And_Drop,",
-         "first milestone feature policy must name drag-and-drop as an explicit non-goal");
+         "feature policy must name drag-and-drop explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Thumbnail_Generation,",
-         "first milestone feature policy must name thumbnail generation as an explicit non-goal");
+         "feature policy must name thumbnail generation explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Recursive_Search,",
-         "first milestone feature policy must name recursive search as an explicit non-goal");
+         "feature policy must name recursive search explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "File_Watching,",
-         "first milestone feature policy must name file watching as an explicit non-goal");
+         "feature policy must name file watching explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Permanent_Delete,",
-         "first milestone feature policy must name permanent deletion as an explicit non-goal");
+         "feature policy must name permanent deletion explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Network_Filesystem_Special_Handling,",
-         "first milestone feature policy must name network special handling as an explicit non-goal");
+         "feature policy must name network special handling explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Shell_Open_By_Default,",
-         "first milestone feature policy must name implicit shell opening as an explicit non-goal");
+         "feature policy must name implicit shell opening explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "Gpu_Screenshot_Tests,",
-         "first milestone feature policy must name GPU screenshot tests as an explicit non-goal");
+         "feature policy must name GPU screenshot tests explicitly");
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
          "function Included_In_First_Implementation",
-         "first milestone feature policy must expose a testable inclusion predicate");
+         "feature policy must expose a testable inclusion predicate");
+      Project_Tools.Files.Require_Contains
+        (Feature_Policy,
+         "when Shell_Open_By_Default =>" & ASCII.LF
+         & "            return False;",
+         "feature policy must keep only implicit shell execution excluded");
       Project_Tools.Files.Require_Contains
         (Feature_Policy,
          "when Drag_And_Drop" & ASCII.LF
@@ -2428,84 +2494,227 @@ procedure Check_All is
          & "            | File_Watching" & ASCII.LF
          & "            | Permanent_Delete" & ASCII.LF
          & "            | Network_Filesystem_Special_Handling" & ASCII.LF
-         & "            | Shell_Open_By_Default" & ASCII.LF
-         & "            | Gpu_Screenshot_Tests =>" & ASCII.LF
-         & "            return False;",
-         "first milestone feature policy must keep non-goals excluded");
-      Project_Tools.Files.Require_Contains
-        (Feature_Policy,
-         "when Platform_Trash" & ASCII.LF
+         & "            | Gpu_Screenshot_Tests" & ASCII.LF
+         & "            | Platform_Trash" & ASCII.LF
          & "            | Root_Discovery" & ASCII.LF
          & "            | Open_Action_Execution" & ASCII.LF
          & "            | Settings_Editing" & ASCII.LF
          & "            | Desktop_Packaging =>" & ASCII.LF
          & "            return True;",
-         "first milestone feature policy must keep implemented features included");
-      Require_Not_Contains
+         "feature policy must include advanced desktop filesystem features");
+      Project_Tools.Files.Require_Contains
         (Root & "/src/files-file_system.adb",
-         """/Network""",
-         "first milestone must not add network-specific root discovery");
-      Require_Not_Contains
+         "function Is_Network_Filesystem_Type",
+         "feature scope must classify network filesystem mounts");
+      Project_Tools.Files.Require_Contains
         (Root & "/src/files-file_system.adb",
-         "Permanent_Delete    => True",
-         "first milestone must not enable permanent deletion");
+         "Root_Network_Mount",
+         "feature scope must add network-specific root discovery");
       Require_Not_Contains
         (Root & "/src/files-file_system.adb",
          "Uses_Mime_Sniffing         => True",
-         "first milestone must not enable MIME sniffing");
+         "feature scope must not enable MIME sniffing without an implementation");
       Require_Not_Contains
         (Root & "/src/files-file_system.adb",
          "Parses_Media_Codecs        => True",
-         "first milestone must not claim media codec parsing");
+         "feature scope must not claim media codec parsing without an implementation");
       Require_Not_Contains
         (Root & "/src/files-operations.adb",
          "Shell_Requires_Explicit_Opt_In => False",
-         "first milestone must not make shell open actions implicit");
+         "feature scope must not make shell open actions implicit");
+      Project_Tools.Files.Require_Contains
+        (File_System_Spec,
+         "function Plan_Drop_Import",
+         "advanced scope must expose drag-and-drop import planning");
+      Project_Tools.Files.Require_Contains
+        (File_System_Spec,
+         "function Execute_Drop_Import",
+         "advanced scope must expose drag-and-drop import execution");
+      Project_Tools.Files.Require_Contains
+        (File_System_Spec,
+         "function Generate_Thumbnail",
+         "advanced scope must expose thumbnail generation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "Try_Write_Decoded_P3_Thumbnail",
+         "thumbnail generation must decode supported source images before fallback rendering");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "Try_Write_Decoded_Png_Thumbnail",
+         "thumbnail generation must decode PNG source pixels before fallback rendering");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "Try_Write_Gdk_Pixbuf_Thumbnail",
+         "thumbnail generation must use a native image loader for JPEG thumbnails");
+      Project_Tools.Files.Require_Contains
+        (File_System_Spec,
+         "function Search_Recursive",
+         "advanced scope must expose recursive search");
+      Project_Tools.Files.Require_Contains
+        (File_System_Spec,
+         "function Detect_Directory_Change",
+         "advanced scope must expose polling-based file watching");
+      Project_Tools.Files.Require_Contains
+        (File_System_Spec,
+         "function Delete_Permanently",
+         "advanced scope must expose explicit permanent deletion");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-operations.ads",
+         "function Delete_Selected_Permanently",
+         "advanced scope must expose permanent delete as a command operation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-operations.ads",
+         "function Generate_Selected_Thumbnails",
+         "advanced scope must expose thumbnail generation as a command operation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-model.ads",
+         "function Directory_Signature_Of",
+         "model must store the directory signature used by polling file watching");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-model.ads",
+         "procedure Set_Directory_Signature",
+         "model must expose controlled updates for the watched directory signature");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-operations.ads",
+         "function Refresh_If_Changed",
+         "operations must expose polling refresh for file watching");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-operations.ads",
+         "function Run_Recursive_Search",
+         "operations must expose recursive search as a command operation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-operations.ads",
+         "function Import_Dropped_Paths",
+         "operations must expose drag-and-drop import as a command operation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-controller.adb",
+         "when Files.Commands.Delete_Selected_Permanently_Command =>",
+         "controller must route permanent delete through the central command registry");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-controller.adb",
+         "when Files.Commands.Generate_Thumbnails_Command =>",
+         "controller must route thumbnail generation through the central command registry");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-controller.adb",
+         "when Files.Commands.Search_Recursive_Command =>",
+         "controller must route recursive search through the central command registry");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-controller.ads",
+         "function Handle_Drop_Import",
+         "controller must expose a drop-import entry point for window events");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/glfw-windows-drop.adb",
+         "glfwSetDropCallback",
+         "desktop runtime must bind native GLFW file-drop callbacks");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "Pending_Drops",
+         "desktop runtime must queue native file drops per window");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "Handle_Drop_Input",
+         "desktop runtime must drain native file drops through controller routing");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "glfwWaitEventsTimeout",
+         "desktop runtime must wake periodically while waiting for native events");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "Handle_File_Watch_Poll",
+         "desktop runtime must poll directory changes from the event loop");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "inotify_init1",
+         "desktop runtime must use native filesystem watching when available");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "Drain_Native_Watch",
+         "desktop runtime must drain native filesystem watch events");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "drag-and-drop remains outside the first implementation",
-         "first milestone tests must cover drag-and-drop exclusion");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "thumbnail generation remains outside the first implementation",
-         "first milestone tests must cover thumbnail generation exclusion");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "recursive search remains outside the first implementation",
-         "first milestone tests must cover recursive search exclusion");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "file watching remains outside the first implementation",
-         "first milestone tests must cover file watching exclusion");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "permanent deletion remains outside the first implementation",
-         "first milestone tests must cover permanent deletion exclusion");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "network filesystem special handling remains outside the first implementation",
-         "first milestone tests must cover network filesystem special handling exclusion");
+         "network filesystem special handling belongs to the implementation",
+         "feature tests must cover network filesystem special handling inclusion");
       Project_Tools.Files.Require_Contains
         (Tests,
          "shell open actions remain opt-in",
-         "first milestone tests must cover shell execution opt-in policy");
+         "feature tests must cover shell execution opt-in policy");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "GPU screenshot tests remain outside the first implementation",
-         "first milestone tests must cover GPU screenshot test exclusion");
+         "GPU screenshot comparison tests belong to the implementation",
+         "feature tests must cover GPU screenshot comparison inclusion");
       Project_Tools.Files.Require_Contains
         (Tests,
          "all project helper tooling remains implemented in Ada",
-         "first milestone tests must cover the Ada-only helper tooling policy");
+         "feature tests must cover the Ada-only helper tooling policy");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "drag-and-drop import belongs to the implementation",
+         "feature tests must cover drag-and-drop inclusion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "thumbnail generation belongs to the implementation",
+         "feature tests must cover thumbnail generation inclusion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "recursive search belongs to the implementation",
+         "feature tests must cover recursive search inclusion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "file watching belongs to the implementation",
+         "feature tests must cover file watching inclusion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "permanent deletion belongs to the implementation",
+         "feature tests must cover permanent deletion inclusion");
       Project_Tools.Files.Require_Contains
         (Tests,
          "platform trash belongs to the first implementation",
-         "first milestone tests must cover platform trash inclusion");
+         "feature tests must cover platform trash inclusion");
       Project_Tools.Files.Require_Contains
         (Tests,
          "open-action execution belongs to the first implementation",
-         "first milestone tests must cover open-action execution inclusion");
-   end Check_First_Milestone_Non_Goals;
+         "feature tests must cover open-action execution inclusion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "thumbnail generation writes a cache artifact",
+         "advanced filesystem tests must cover thumbnail artifact creation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "drop import copy executes",
+         "advanced filesystem tests must cover drag-and-drop import execution");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "controller drop import succeeds",
+         "advanced filesystem tests must cover controller drop-import routing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "recursive search finds nested matches",
+         "advanced filesystem tests must cover recursive search results");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "polling directory watcher detects added entries",
+         "advanced filesystem tests must cover directory change detection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "changed directory watcher refresh succeeds",
+         "advanced filesystem tests must cover polling watcher refresh");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "explicit permanent delete removes a tree",
+         "advanced filesystem tests must cover permanent delete execution");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "permanent delete routes through command registry",
+         "advanced filesystem tests must cover permanent-delete command routing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "thumbnail generation routes through command registry",
+         "advanced filesystem tests must cover thumbnail-generation command routing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "recursive search routes through command registry",
+         "advanced filesystem tests must cover recursive-search command routing");
+   end Check_Feature_Scope_Policy;
 
    procedure Check_Open_Action_Shell_Safety is
       Settings_Body   : constant String := Root & "/src/files-settings.adb";
@@ -2641,9 +2850,18 @@ procedure Check_All is
          "settings helper validation must reject line breaks in serializable fields");
       Project_Tools.Files.Require_Contains
         (Settings_Body,
-         "or else Character_Value = ASCII.VT" & ASCII.LF
-         & "           or else Character_Value = ASCII.FF",
+         "Files.UTF8.Decode_Next_Codepoint (Text, Index, Codepoint);",
+         "settings helper validation must decode UTF-8 before rejecting Unicode line separators");
+      Project_Tools.Files.Require_Contains
+        (Settings_Body,
+         "or else Byte_Value = Character'Pos (ASCII.VT)" & ASCII.LF
+         & "              or else Byte_Value = Character'Pos (ASCII.FF)",
          "settings helper validation must reject vertical-tab and form-feed controls");
+      Project_Tools.Files.Require_Contains
+        (Settings_Body,
+         "or else Codepoint = 16#2028#" & ASCII.LF
+         & "           or else Codepoint = 16#2029#",
+         "settings helper validation must reject Unicode line and paragraph separators");
       Project_Tools.Files.Require_Contains
         (Settings_Body,
          "not Mapping_Key_Is_Valid (Key) or else not Mapping_Value_Is_Valid (Value)",
@@ -2770,12 +2988,20 @@ procedure Check_All is
          "direct extension mapping vertical-tab key validation must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "direct extension mapping ignores Unicode line-separator extension keys",
+         "direct extension mapping Unicode line-separator key validation must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "direct extension mapping ignores unrepresentable values",
          "direct extension mapping value validation must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
          "direct extension mapping ignores form-feed values",
          "direct extension mapping form-feed value validation must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct extension mapping ignores Unicode line-separator values",
+         "direct extension mapping Unicode line-separator value validation must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
          "direct icon mapping trims values and replaces existing entries",
@@ -2802,12 +3028,20 @@ procedure Check_All is
          "direct icon mapping vertical-tab key validation must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "direct icon mapping ignores Unicode line-separator filetype keys",
+         "direct icon mapping Unicode line-separator key validation must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "direct icon mapping ignores unrepresentable values",
          "direct icon mapping value validation must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
          "direct icon mapping ignores form-feed values",
          "direct icon mapping form-feed value validation must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct icon mapping ignores Unicode line-separator values",
+         "direct icon mapping Unicode line-separator value validation must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
          "direct open-action insertion ignores trailing modifier separator after a modifier",
@@ -2870,6 +3104,14 @@ procedure Check_All is
          "direct open-action argument vertical-tab rejection must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "direct open-action insertion ignores executable Unicode line separators",
+         "direct open-action executable Unicode separator rejection must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct open-action insertion ignores argument Unicode line separators",
+         "direct open-action argument Unicode separator rejection must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "unknown open-action modifier is rejected",
          "settings parser unknown modifier rejection must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
@@ -2920,6 +3162,14 @@ procedure Check_All is
         (Tests,
          "open-action argument form feeds are rejected",
          "settings parser argument control-character rejection must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "settings parser rejects Unicode line-separator mapping values",
+         "settings parser Unicode separator mapping rejection must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "settings parser rejects Unicode line-separator open actions",
+         "settings parser Unicode separator open-action rejection must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
          "unterminated quoted open action reports deterministic diagnostic key",
@@ -3033,8 +3283,16 @@ procedure Check_All is
          "placeholder expansion must guard filename extraction errors");
       Project_Tools.Files.Require_Contains
         (Settings_Body,
-         "if Value (Index) = '/' or else Value (Index) = '\' then",
+         "if Is_Path_Separator (Value (Index)) then",
          "placeholder expansion must recognize Unix and Windows separators");
+      Project_Tools.Files.Require_Contains
+        (Settings_Body,
+         "function Is_Path_Separator",
+         "placeholder expansion must centralize path separator recognition");
+      Project_Tools.Files.Require_Contains
+        (Settings_Body,
+         "function UNC_Share_Root_Last",
+         "placeholder expansion must recognize UNC share roots");
       Project_Tools.Files.Require_Contains
         (Settings_Body,
          "return Value (Separator + 1 .. Value'Last);",
@@ -3115,8 +3373,20 @@ procedure Check_All is
          "placeholder tests must cover Windows-style parent expansion");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "Windows drive-root path parent keeps root separator",
+         "placeholder tests must cover Windows drive-root parent expansion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "Windows placeholder extension ignores dotted directory names",
          "placeholder tests must cover Windows-style leaf extension extraction");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "UNC placeholder parent expands without losing the share root",
+         "placeholder tests must cover UNC leaf parent expansion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "UNC share-root parent preserves the share root",
+         "placeholder tests must cover UNC share-root parent expansion");
       Project_Tools.Files.Require_Contains
         (Tests,
          "trailing separator name expands from trimmed path",
@@ -3463,6 +3733,19 @@ procedure Check_All is
          "settings export must serialize the active settings model");
       Project_Tools.Files.Require_Contains
         (Settings_Body,
+         "function Load_File" & ASCII.LF
+         & "     (Path : String)" & ASCII.LF
+         & "      return Settings_Parse_Result" & ASCII.LF
+         & "   is" & ASCII.LF
+         & "      File : Ada.Text_IO.File_Type;" & ASCII.LF
+         & "      Text : Unbounded_String := Null_Unbounded_String;" & ASCII.LF
+         & "   begin" & ASCII.LF
+         & "      if Path = """" then" & ASCII.LF
+         & "         return" & ASCII.LF
+         & "           (Success   => False,",
+         "settings loader must reject empty settings paths before missing-file fallback");
+      Project_Tools.Files.Require_Contains
+        (Settings_Body,
          "procedure Safe_Close",
          "settings persistence must centralize guarded file cleanup");
       Project_Tools.Files.Require_Contains
@@ -3509,6 +3792,14 @@ procedure Check_All is
         (Tests,
          "serialized settings text parses",
          "settings serialization round-trip must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "empty settings file path is rejected",
+         "settings tests must cover rejected empty settings load paths");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "empty settings import path is rejected",
+         "settings tests must cover rejected empty settings import paths");
       Project_Tools.Files.Require_Contains
         (Tests,
          "serialized quoted action preserves placeholder argument",
@@ -3824,6 +4115,10 @@ procedure Check_All is
          "settings editor tests must cover closed-pane import before path validation");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "open settings pane rejects empty import path",
+         "settings controller tests must cover open-pane empty import path rejection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "closed settings export reports a localized disabled error",
          "settings editor tests must cover closed-pane export diagnostics");
       Project_Tools.Files.Require_Contains
@@ -3963,6 +4258,10 @@ procedure Check_All is
          "create-file mutation exception handling must remove newly-created failed destinations");
       Project_Tools.Files.Require_Contains
         (File_System_Body,
+         "and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File",
+         "create-file mutation cleanup must only delete ordinary files it created");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
          "or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory",
          "create-file mutation must require an existing directory parent");
       Project_Tools.Files.Require_Contains
@@ -3991,7 +4290,7 @@ procedure Check_All is
          "rename mutation must allow same-path renames as successful no-ops");
       Project_Tools.Files.Require_Contains
         (File_System_Body,
-         "or else Exists_Safely (To_Path)",
+         "elsif Exists_Safely (To_Path)",
          "rename mutation must refuse existing destinations");
       Project_Tools.Files.Require_Contains
         (File_System_Body,
@@ -4152,85 +4451,136 @@ procedure Check_All is
          "Delete_Info_File_If_Present;",
          "trash failures must clean up metadata sidecars after failed moves");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (Root & "/src/files-file_system.ads",
          "function Valid_Leaf_Name",
-         "file create and rename operations must share leaf-name validation");
+         "filesystem mutation API must expose shared leaf-name validation");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
+         "function Valid_Leaf_Name",
+         "filesystem mutations must own shared leaf-name validation");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Mutation_Leaf_Name",
+         "direct filesystem mutations must extract destination leaf names safely");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "elsif not Valid_Leaf_Name (Name) then",
+         "direct file creation must reject invalid leaf names before mutation");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "elsif not Valid_Leaf_Name (Name) then" & ASCII.LF
+         & "         return" & ASCII.LF
+         & "           (Success   => False," & ASCII.LF
+         & "            Error_Key => To_Unbounded_String (""error.name.invalid""));",
+         "direct rename must reject invalid leaf names before mutation");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
          "Name = """"",
          "file mutation leaf-name validation must reject empty names");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Name = "".""",
          "file mutation leaf-name validation must reject dot names");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Name = ""..""",
          "file mutation leaf-name validation must reject parent-directory names");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Name (Name'Last) = ' '",
          "file mutation leaf-name validation must reject trailing spaces");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Name (Name'Last) = '.'",
          "file mutation leaf-name validation must reject trailing dots");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Is_Windows_Device_Name (Name)",
          "file mutation leaf-name validation must reject reserved device names");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Base = ""CONIN$""",
          "file mutation leaf-name validation must reject console input device names");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Base = ""CONOUT$""",
          "file mutation leaf-name validation must reject console output device names");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Character_Value = '/'",
          "file mutation leaf-name validation must reject path separators");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
+        (File_System_Body,
          "Character_Value = '\'",
          "file mutation leaf-name validation must reject platform path separators");
       Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "Character'Pos (Character_Value) < 32",
+        (File_System_Body,
+         "Codepoint < 32",
          "file mutation leaf-name validation must reject control characters");
       Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "not Files.UTF8.Is_Valid (Name)",
+         "file mutation leaf-name validation must use the shared UTF-8 validator");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Is_All_Whitespace",
+         "file mutation leaf-name validation must reject whitespace-only names");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Ends_With_Whitespace",
+         "file mutation leaf-name validation must reject trailing Unicode whitespace");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Files.UTF8.Whitespace_Separator_Length (Name, Position)",
+         "file mutation leaf-name validation must use the shared UTF-8 whitespace helper");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Files.UTF8.Decode_Next_Codepoint",
+         "file mutation leaf-name validation must decode through the shared UTF-8 helper");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Codepoint in 16#80# .. 16#9F#",
+         "file mutation leaf-name validation must reject encoded C1 controls explicitly");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Codepoint < 128",
+         "file mutation leaf-name validation must still inspect ASCII reserved filename characters");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Is_Valid",
+         "shared UTF-8 helper must expose strict validation for mutation paths");
+      Require_Not_Contains
         (Operations_Body,
          "function Valid_UTF8_Sequence_Length",
-         "file mutation leaf-name validation must distinguish valid UTF-8 from raw controls");
+         "file mutation leaf-name validation must not keep a local UTF-8 parser");
+      Require_Not_Contains
+        (Operations_Body,
+         "function Valid_Leaf_Name",
+         "operations must not duplicate filesystem leaf-name validation");
+      Require_Not_Contains
+        (Operations_Body,
+         "function Windows_Device_Basename",
+         "operations must not duplicate reserved-device validation helpers");
+      Require_Not_Contains
+        (Operations_Body,
+         "function Is_All_Whitespace",
+         "operations must not duplicate whitespace-only validation helpers");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper rejects overlong multibyte text",
+         "tests must cover strict shared UTF-8 validation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct create rejects invalid leaf names",
+         "tests must cover direct filesystem create leaf-name validation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct rename rejects invalid leaf names",
+         "tests must cover direct filesystem rename leaf-name validation");
       Project_Tools.Files.Require_Contains
         (Operations_Body,
-         "First >= 16#C2# and then First <= 16#DF#",
-         "file mutation leaf-name validation must accept valid two-byte UTF-8 sequences");
-      Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "First = 16#C2#",
-         "file mutation leaf-name validation must handle encoded C1 controls explicitly");
-      Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "Byte_Of (Name, Index + 1) >= 16#A0#",
-         "file mutation leaf-name validation must reject UTF-8 encoded C1 controls");
-      Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "First = 16#E0#",
-         "file mutation leaf-name validation must reject overlong three-byte UTF-8 sequences");
-      Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "First = 16#ED#",
-         "file mutation leaf-name validation must reject UTF-8 surrogate sequences");
-      Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "First = 16#F4#",
-         "file mutation leaf-name validation must cap four-byte UTF-8 at Unicode's range");
-      Project_Tools.Files.Require_Contains
-        (Operations_Body,
-         "elsif not Valid_Leaf_Name (Name) then",
-         "create-file commit must validate the requested leaf name before mutation");
+         "elsif not Files.File_System.Valid_Leaf_Name (Name) then",
+         "create-file commit must use shared filesystem leaf-name validation before mutation");
       Project_Tools.Files.Require_Contains
         (Operations_Body,
          "Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, Name);",
@@ -4245,8 +4595,8 @@ procedure Check_All is
          "create-file commit must clear edit and error state after a successful reload");
       Project_Tools.Files.Require_Contains
         (Operations_Body,
-         "if not Valid_Leaf_Name (New_Name) then",
-         "rename commit must validate the requested leaf name before mutation");
+         "if not Files.File_System.Valid_Leaf_Name (New_Name) then",
+         "rename commit must use shared filesystem leaf-name validation before mutation");
       Project_Tools.Files.Require_Contains
         (Operations_Body,
          "Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, New_Name);",
@@ -4497,6 +4847,18 @@ procedure Check_All is
          "create trailing-space invalid-name behavior must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "create rejects NBSP-only names",
+         "create Unicode whitespace-only invalid-name behavior must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "create rejects trailing NBSP names",
+         "create trailing Unicode whitespace behavior must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "create rejects trailing ideographic-space names",
+         "create trailing wide Unicode whitespace behavior must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "create rejects reserved device names",
          "create reserved-device invalid-name behavior must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
@@ -4539,6 +4901,18 @@ procedure Check_All is
         (Tests,
          "rename rejects trailing-space names",
          "rename trailing-space invalid-name behavior must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "rename rejects ideographic-space-only names",
+         "rename Unicode whitespace-only invalid-name behavior must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "rename rejects trailing NBSP names",
+         "rename trailing Unicode whitespace behavior must remain covered by AUnit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "rename rejects trailing ideographic-space names",
+         "rename trailing wide Unicode whitespace behavior must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
         (Tests,
          "rename rejects reserved device names",
@@ -4626,9 +5000,12 @@ procedure Check_All is
          "filetype detection must only use extension mappings after kind-specific cases");
       Project_Tools.Files.Require_Contains
         (File_Types_Body,
-         "or else Name (First) = ASCII.VT" & ASCII.LF
-         & "                  or else Name (First) = ASCII.FF",
-         "filetype filename trimming must recognize vertical-tab and form-feed controls");
+         "Files.UTF8.Whitespace_Separator_Length (Name, First_Offset)",
+         "filetype filename trimming must use the shared UTF-8 whitespace helper");
+      Project_Tools.Files.Require_Contains
+        (File_Types_Body,
+         "Files.UTF8.Next_Boundary (Name, Position)",
+         "filetype filename trimming must advance over whole UTF-8 units");
       Project_Tools.Files.Require_Contains
         (File_Types_Body,
          "function Leaf_Name (Name : String) return String is",
@@ -4647,8 +5024,24 @@ procedure Check_All is
          "filetype detection tests must cover control whitespace extension trimming");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
+         "extension extraction trims UTF-8 NBSP whitespace",
+         "filetype detection tests must cover UTF-8 NBSP extension trimming");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "extension extraction trims UTF-8 line-separator whitespace",
+         "filetype detection tests must cover UTF-8 line-separator extension trimming");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
          "filetype detection trims vertical-tab and form-feed filename whitespace before mapping",
          "filetype detection tests must cover control whitespace detection trimming");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "filetype detection trims UTF-8 NBSP filename whitespace before mapping",
+         "filetype detection tests must cover UTF-8 NBSP detection trimming");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "filetype detection trims UTF-8 line-separator filename whitespace before mapping",
+         "filetype detection tests must cover UTF-8 line-separator detection trimming");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
          "settings-aware executable helper item ignores extension mappings",
@@ -5123,6 +5516,19 @@ procedure Check_All is
          "Toggle_Info_Pane_Command",
          "command registry must include info-pane command");
       Project_Tools.Files.Require_Contains
+        (Commands_Body,
+         "when Toggle_Info_Pane_Command =>" & ASCII.LF
+         & "            return Files.Model.Selected_Count (Model) > 0",
+         "info-pane toggle command must require a selected item");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "info toggle disabled with no selection",
+         "command enablement tests must cover disabled info toggle without selection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "info toggle enabled with selection",
+         "command enablement tests must cover enabled info toggle with selection");
+      Project_Tools.Files.Require_Contains
         (Commands_Spec,
          "Toggle_Settings_Pane_Command",
          "command registry must include settings-pane command");
@@ -5188,6 +5594,10 @@ procedure Check_All is
          "command registry must include clear-filter command");
       Project_Tools.Files.Require_Contains
         (Commands_Spec,
+         "Select_All_Command",
+         "command registry must include select-all command");
+      Project_Tools.Files.Require_Contains
+        (Commands_Spec,
          "Refresh_Directory_Command",
          "command registry must include refresh-directory command");
       Project_Tools.Files.Require_Contains
@@ -5206,6 +5616,18 @@ procedure Check_All is
         (Commands_Spec,
          "Reset_Settings_Command",
          "command registry must include settings reset command");
+      Project_Tools.Files.Require_Contains
+        (Commands_Spec,
+         "Delete_Selected_Permanently_Command",
+         "command registry must include explicit permanent delete command");
+      Project_Tools.Files.Require_Contains
+        (Commands_Spec,
+         "Generate_Thumbnails_Command",
+         "command registry must include thumbnail generation command");
+      Project_Tools.Files.Require_Contains
+        (Commands_Spec,
+         "Search_Recursive_Command",
+         "command registry must include recursive search command");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "return ""view.small"";",
@@ -5252,12 +5674,20 @@ procedure Check_All is
          "delete-selected command must have a stable identifier");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
+         "return ""file.delete_permanently"";",
+         "permanent-delete command must have a stable identifier");
+      Project_Tools.Files.Require_Contains
+        (Commands_Body,
          "return ""file.rename"";",
          "rename command must have a stable identifier");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "return ""file.open_selected"";",
          "open-selected command must have a stable identifier");
+      Project_Tools.Files.Require_Contains
+        (Commands_Body,
+         "return ""file.generate_thumbnails"";",
+         "thumbnail-generation command must have a stable identifier");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "return ""filter.focus"";",
@@ -5286,6 +5716,10 @@ procedure Check_All is
         (Commands_Body,
          "return ""filter.clear"";",
          "clear-filter command must have a stable identifier");
+      Project_Tools.Files.Require_Contains
+        (Commands_Body,
+         "return ""directory.search_recursive"";",
+         "recursive-search command must have a stable identifier");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "return ""directory.refresh"";",
@@ -5344,6 +5778,10 @@ procedure Check_All is
          "create-file shortcut must remain Control+N");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
+         "return (True, Files.Types.Key_A, Ctrl);",
+         "select-all shortcut must remain Control+A");
+      Project_Tools.Files.Require_Contains
+        (Commands_Body,
          "return (True, Files.Types.Key_P, Ctrl);",
          "command-palette shortcut must remain Control+P");
       Project_Tools.Files.Require_Contains
@@ -5370,6 +5808,10 @@ procedure Check_All is
         (Commands_Body,
          "return (True, Files.Types.Key_Delete, Files.Types.No_Modifiers);",
          "delete-selected primary shortcut must remain Delete");
+      Project_Tools.Files.Require_Contains
+        (Commands_Body,
+         "return (True, Files.Types.Key_Delete, [Files.Types.Shift_Key => True, others => False]);",
+         "permanent-delete shortcut must remain Shift+Delete");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "return (True, Files.Types.Key_Backspace, Files.Types.No_Modifiers);",
@@ -5439,6 +5881,30 @@ procedure Check_All is
         (Tests,
          "all expected commands are registered",
          "command registry tests must cover the full registered command count");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "permanent delete command identifier is registered",
+         "command registry tests must cover permanent-delete command registration");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "thumbnail generation command identifier is registered",
+         "command registry tests must cover thumbnail-generation command registration");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "recursive search command identifier is registered",
+         "command registry tests must cover recursive-search command registration");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "permanent delete command is palette-only metadata",
+         "command registry tests must cover permanent-delete command placement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "thumbnail generation command is palette-only metadata",
+         "command registry tests must cover thumbnail-generation command placement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "recursive search command is palette-only metadata",
+         "command registry tests must cover recursive-search command placement");
       Project_Tools.Files.Require_Contains
         (Tests,
          "no-command has no toolbar or palette placement",
@@ -5527,6 +5993,18 @@ procedure Check_All is
         (Tests,
          "control+n dispatches create-file command",
          "command registry tests must cover Control+N dispatch");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "control+a dispatches select-all command",
+         "command registry tests must cover Control+A dispatch");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "select-all selects every visible loaded item",
+         "model tests must cover select-all visible selection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "Control+A routes select-all command",
+         "controller tests must cover select-all keyboard routing");
       Project_Tools.Files.Require_Contains
         (Tests,
          "control+f dispatches filter focus command",
@@ -5728,26 +6206,28 @@ procedure Check_All is
          "rendering tests must cover palette disabled-state accessibility metadata");
       Project_Tools.Files.Require_Contains
         (Palette_Body,
-         "function Is_Query_Separator",
-         "command-palette search must centralize query-token separator handling");
+         "Files.UTF8.Whitespace_Separator_Length (Query, Position)",
+         "command-palette search must use the shared UTF-8 whitespace separator helper");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Whitespace_Separator_Length",
+         "shared UTF-8 helper must expose whitespace-separator measurement");
+      Require_Not_Contains
         (Palette_Body,
          "function Query_Separator_Length",
-         "command-palette search must recognize multibyte query-token separators");
+         "command-palette search must not keep a local UTF-8 query separator parser");
       Project_Tools.Files.Require_Contains
         (Palette_Body,
          "function Has_Query_Token",
          "command-palette search must distinguish whitespace-only queries from non-empty token searches");
       Project_Tools.Files.Require_Contains
-        (Palette_Body,
-         "return Value = ' '" & ASCII.LF
-         & "        or else Value = ASCII.HT" & ASCII.LF
-         & "        or else Value = ASCII.LF" & ASCII.LF
-         & "        or else Value = ASCII.CR" & ASCII.LF
-         & "        or else Value = ASCII.VT" & ASCII.LF
-         & "        or else Value = ASCII.FF" & ASCII.LF
-         & "        or else Character'Pos (Value) = 133;",
-         "command-palette search must treat ASCII and C1 whitespace controls as token separators");
+        (Tests,
+         "shared UTF-8 helper recognizes ASCII whitespace separators",
+         "tests must cover shared UTF-8 whitespace separator handling");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper does not treat punctuation as whitespace separator",
+         "tests must cover punctuation not splitting whitespace-token queries");
       Project_Tools.Files.Require_Contains
         (Palette_Body,
          "Natural'Min" & ASCII.LF
@@ -6018,12 +6498,56 @@ procedure Check_All is
          "root discovery must include mounted filesystems from platform metadata");
       Project_Tools.Files.Require_Contains
         (File_System_Body,
+         "function Is_Displayable_Root_Mount",
+         "root discovery must filter raw platform mounts before showing drive choices");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Is_Pseudo_Mount_Type",
+         "root discovery must exclude pseudo filesystem mounts from the drive chooser");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Is_Network_Filesystem_Type",
+         "root discovery must classify network filesystem mounts");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Is_User_Visible_Mount_Point",
+         "root discovery must limit proc mount rows to user-visible mount locations");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "function Is_Mount_Container",
+         "root discovery must distinguish drive containers from selectable drives");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "return not Is_Mount_Container",
+         "root discovery must exclude mount container directories from proc mount rows");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
          "Append_Children (""/mnt"", Root_Mount);",
          "root discovery must inspect conventional mount roots");
       Project_Tools.Files.Require_Contains
         (File_System_Body,
+         "Parent = ""/media"" or else Parent = ""/run/media""",
+         "root discovery must recognize Linux media user-container directories");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Append_Children (Full, Kind);",
+         "root discovery must scan media user containers without presenting them as drives");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Append_Children (Join_Path (Xdg_Runtime_Dir, ""gvfs""), Root_Network_Mount);",
+         "root discovery must classify GVFS share mounts as network roots");
+      Require_Not_Contains
+        (File_System_Body,
+         "Append_If_Directory (Run_Media_User, Root_User_Mount);",
+         "root discovery must not present /run/media/$USER itself as a removable drive");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
          "Append_If_Directory (String'(1 => Drive) & "":\"", Root_Windows_Drive);",
          "root discovery must inspect Windows drive roots");
+      Project_Tools.Files.Require_Contains
+        (File_System_Body,
+         "Append_If_Directory (Home_Share, Root_Network_Mount);",
+         "root discovery must classify Windows home shares as network roots");
       Project_Tools.Files.Require_Contains
         (File_System_Body,
          "Append_If_Directory (Home_Drive_Profile, Root_User_Mount);",
@@ -6047,8 +6571,44 @@ procedure Check_All is
          "root selector model must store the current root metadata entries");
       Project_Tools.Files.Require_Contains
         (Model_Body,
-         "Model.Root_Selected := (if Roots.Is_Empty then 0 else 1);",
-         "root selector model must select the first row or no row deterministically");
+         "Model.Root_Selector_Open := not Roots.Is_Empty;",
+         "root selector model must not leave an invisible empty dropdown open");
+      Project_Tools.Files.Require_Contains
+        (Model_Body,
+         "Model.Root_Selected := (if Model.Root_Selector_Open then 1 else 0);",
+         "root selector model must select the first row only when a row exists");
+      Project_Tools.Files.Require_Contains
+        (Model_Body,
+         "Model.Root_Entries.Clear;",
+         "closing the root selector must clear stale root entries");
+      Project_Tools.Files.Require_Contains
+        (Model_Body,
+         "procedure Clear_Root_Selector_State",
+         "root selector model must centralize closed-state cleanup");
+      Project_Tools.Files.Require_Contains
+        (Model_Body,
+         "Clear_Root_Selector_State (Model);",
+         "root selector model transitions must reuse closed-state cleanup");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct navigation clears stale root selector entries",
+         "root selector tests must cover stale root entry cleanup after navigation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct rename clears stale root selector entries",
+         "root selector tests must cover stale root entry cleanup after rename");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "direct create clears stale root selector entries",
+         "root selector tests must cover stale root entry cleanup after create");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "empty root selector does not create an invisible modal command blocker",
+         "root selector tests must cover empty-root invisible modal prevention");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "close command clears closed root selector entries",
+         "root selector tests must cover clearing stale entries after close");
       Project_Tools.Files.Require_Contains
         (Model_Body,
          "Model.Settings_Pane_Open := False;",
@@ -6109,6 +6669,10 @@ procedure Check_All is
         (Tests,
          "available roots include HOMEDRIVE and HOMEPATH profile directory",
          "root selector tests must cover Windows drive profile root discovery");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "root discovery excludes mount container rows",
+         "root selector tests must cover mount-container exclusion guards");
       Project_Tools.Files.Require_Contains
         (Tests,
          "available roots collapse duplicate HOME and USERPROFILE directories",
@@ -6413,6 +6977,10 @@ procedure Check_All is
          "event translation tests must cover root-selector wheel overlay blocking");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "drive toolbar toggle closes open root selector",
+         "event translation tests must cover drive button toggling an open root selector");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "palette over root selector keeps palette wheel target",
          "event translation tests must cover palette wheel priority over root selector");
       Project_Tools.Files.Require_Contains
@@ -6440,13 +7008,24 @@ procedure Check_All is
          "text hit testing must keep cursor placement centralized");
       Project_Tools.Files.Require_Contains
         (Events_Body,
-         "return Natural'Min" & ASCII.LF
-         & "           (Text_Length,",
-         "text hit testing must clamp cursor placement to the text length");
+         "Files.UTF8.Byte_Offset_For_Display_Column (Raw, Click_Column)",
+         "text hit testing must convert clicked display columns to UTF-8 byte cursor offsets");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W",
          "text hit testing must avoid cursor-position addition overflow");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter click returns UTF-8 byte boundary after clicked character",
+         "event translation tests must cover UTF-8-aware text click cursor offsets");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter click skips trailing combining marks at display-cell boundaries",
+         "event translation tests must cover combining-mark text click cursor offsets");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter click counts malformed UTF-8 byte as replacement cell",
+         "event translation tests must cover malformed UTF-8 replacement-cell cursor offsets");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "function Palette_Scrollbar_Click return Input_Action",
@@ -6510,25 +7089,69 @@ procedure Check_All is
          "return Settings_Click (Field, 101);",
          "settings modal remove-button clicks must use stable remove action codes");
       Project_Tools.Files.Require_Contains
-        (Events_Body,
-         "Pane_W : constant Natural := Natural'Max (240, Scaled_Down (Width, 2, 5));",
-         "settings modal hit testing must use overflow-safe proportional pane width");
+        (Root & "/src/files-ui.ads",
+         "function Calculate_Settings_Entry_Button_Layout",
+         "UI must expose shared settings add/remove button layout");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.ads",
+         "function Calculate_Settings_Action_Button_Layout",
+         "UI must expose shared settings action button layout");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.ads",
+         "function Calculate_Settings_Pane_Layout",
+         "UI must expose shared settings pane layout");
       Project_Tools.Files.Require_Contains
         (Events_Body,
-         "Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);",
-         "settings modal hit testing must use saturating pane height calculations");
-      Project_Tools.Files.Require_Contains
-        (Events_Body,
-         "Action_Second_Button_W : constant Natural :=",
-         "settings modal command-button hit testing must assign remainder width to the second button");
-      Project_Tools.Files.Require_Contains
-        (Events_Body,
-         "Saturating_Add (Action_Button_Offset, Action_Second_Button_W)",
-         "settings modal command-button hit testing must keep action width overflow-safe");
+         "Files.UI.Calculate_Settings_Pane_Layout",
+         "settings modal hit testing must use shared settings pane layout");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Second_Button_W : constant Natural :=",
-         "settings modal command-button rendering must assign remainder width to the second button");
+         "Files.UI.Calculate_Settings_Pane_Layout",
+         "settings modal rendering must use shared settings pane layout");
+      Project_Tools.Files.Require_Contains
+        (Events_Body,
+         "Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height)",
+         "settings modal add/remove hit testing must use the shared localized button layout");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height)",
+         "settings modal add/remove rendering must use the shared localized button layout");
+      Project_Tools.Files.Require_Contains
+        (Events_Body,
+         "Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W)",
+         "settings modal action hit testing must use the shared button layout");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W)",
+         "settings modal action rendering must use the shared button layout");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.adb",
+         "Pane_W : constant Natural := Natural'Min (Width, Wanted_W);",
+         "shared settings modal layout must clamp preferred pane width to the window width");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "narrow settings pane clamps to the window width",
+         "event tests must cover narrow settings pane width clamping");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "narrow settings pane rejects clicks beyond the window width",
+         "event tests must cover narrow settings pane hit-test clamping");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.adb",
+         "Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);",
+         "shared settings modal layout must use saturating pane height calculations");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.adb",
+         "Second_W : constant Natural := (if Text_Width > Offset then Text_Width - Offset else 0);",
+         "shared settings action layout must assign remainder width to the second button");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.adb",
+         "Total_W  : constant Natural := Saturating_Add (Offset, Second_W);",
+         "shared settings action layout must keep action width overflow-safe");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "settings hit tests use shared action button layout",
+         "event hit-test tests must cover shared settings action layout");
       Project_Tools.Files.Require_Contains
         (Tests,
          "settings action remainder click maps export command",
@@ -6537,6 +7160,10 @@ procedure Check_All is
         (Tests,
          "settings save remainder click maps save command",
          "event hit-test tests must cover settings save-button remainder pixels");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "settings hit tests use shared pane layout height",
+         "event hit-test tests must cover shared settings pane layout");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "function Translate_Scroll_At",
@@ -6643,6 +7270,10 @@ procedure Check_All is
          "event hit-test tests must cover main-view scrollbar lower-track clicks");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "main scrollbar ignores click below padded track",
+         "event hit-test tests must cover padded main scrollbar track bounds");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "saturated settings click avoids overflow",
          "event hit-test tests must cover saturated settings modal geometry");
       Project_Tools.Files.Require_Contains
@@ -6713,6 +7344,14 @@ procedure Check_All is
         (Tests,
          "settings remove click returns remove action code",
          "event hit-test tests must cover settings collection remove hit testing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "settings remove button sizes to localized label",
+         "event hit-test tests must cover localized settings add/remove button layout");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame sizes settings remove button text to localized label",
+         "rendering tests must cover localized settings remove button sizing");
       Project_Tools.Files.Require_Contains
         (Tests,
          "settings diagnostic row stays inside modal pane",
@@ -6796,9 +7435,26 @@ procedure Check_All is
          "if Whole > Natural'Last / Numerator then",
          "event proportional hit testing must avoid raw scaled-product overflow");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-events.adb",
+         "return Scaled_Down (Value, Factor, Denominator);",
+         "event proportional hit testing must preserve scale when raw multiplication would overflow");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-ui.ads",
+         "Toolbar_Button_Width : constant Natural := 40;",
+         "toolbar button width must be fixed so icons do not shrink with the window");
+      Project_Tools.Files.Require_Contains
         (UI_Body,
-         "return Saturating_Add (Toolbar.Left_X, Scaled_Down (Toolbar.Left_Width, Clamped_Index, 6));",
-         "toolbar button origins must use saturated proportional placement");
+         "if Toolbar.Left_Width >= Saturating_Multiply (Toolbar_Button_Width, Toolbar_Button_Count) then",
+         "toolbar button origins must use fixed placement when the left toolbar has room");
+      Project_Tools.Files.Require_Contains
+        (UI_Body,
+         "Left           : constant Natural := (if Width >= Preferred_Left then Preferred_Left else 0);",
+         "toolbar layout must hide left icon buttons when fixed-width buttons cannot fit");
+      Project_Tools.Files.Require_Contains
+        (UI_Body,
+         "return Saturating_Add (Toolbar.Left_X, Scaled_Down "
+         & "(Toolbar.Left_Width, Clamped_Index, Toolbar_Button_Count));",
+         "toolbar button origins must keep saturated proportional fallback placement");
       Project_Tools.Files.Require_Contains
         (UI_Body,
          "if Button_Index >= 6 or else Next_X <= Button_X then" & ASCII.LF
@@ -6806,7 +7462,7 @@ procedure Check_All is
          "toolbar button widths must reject invalid or saturated button ranges");
       Project_Tools.Files.Require_Contains
         (UI_Body,
-         "Input_Y  : constant Natural := Line_Height / 2;",
+         "Input_Y  : constant Natural := Toolbar_Input_Y (Line_Height);",
          "toolbar input hit testing must account for vertical input padding");
       Project_Tools.Files.Require_Contains
         (UI_Body,
@@ -6850,20 +7506,33 @@ procedure Check_All is
          "UI must keep bottom-bar hit testing centralized");
       Project_Tools.Files.Require_Contains
         (UI_Body,
-         "Button_W       : constant Natural := Saturating_Multiply (Line_Height, 4);",
-         "bottom-bar layout must derive command button widths from saturated text metrics");
+         "Small_Needed   : constant Natural :=",
+         "bottom-bar layout must derive compact command button widths from short labels");
       Project_Tools.Files.Require_Contains
         (UI_Body,
-         "Toggle_W       : constant Natural := Natural'Min (Remaining, Button_W);",
+         "Files.UTF8.Display_Units (Text)",
+         "bottom-bar layout must measure localized labels through the shared UTF-8 helper");
+      Project_Tools.Files.Require_Contains
+        (UI_Body,
+         "Label_Pixel_Width (Files.Localization.Text (""command.view.small.short""), Cell_W)",
+         "bottom-bar layout must size short labels through UTF-8-aware text measurement");
+      Require_Not_Contains
+        (UI_Body,
+         "command.view.small.short"")'Length",
+         "bottom-bar layout must not size localized labels by UTF-8 byte length");
+      Project_Tools.Files.Require_Contains
+        (UI_Body,
+         "Toggle_W       : constant Natural := Natural'Min (Remaining, Toggle_Wanted);",
          "bottom-bar layout must clamp the info-pane toggle to available width");
       Project_Tools.Files.Require_Contains
         (UI_Body,
-         "Bottom_Y : constant Natural := (if Height > Line_Height then Height - Line_Height else 0);",
-         "bottom-bar hit testing must handle windows shorter than one text line");
+         "Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);",
+         "bottom-bar hit testing must handle windows shorter than the padded bar");
       Project_Tools.Files.Require_Contains
         (UI_Body,
-         "if Width = 0 or else Height = 0 or else Y < Bottom_Y or else Y >= Height then",
-         "bottom-bar hit testing must reject zero-size and out-of-band coordinates");
+         "or else Y < Content_Y" & ASCII.LF
+         & "        or else Y >= Saturating_Add (Content_Y, Line_Height)",
+         "bottom-bar hit testing must reject zero-size and padded out-of-band coordinates");
       Project_Tools.Files.Require_Contains
         (UI_Body,
          "return Files.Commands.Select_Small_Icons_Command;",
@@ -6890,40 +7559,40 @@ procedure Check_All is
          "UI tests must cover toolbar home command mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test maps first separator pixel to home button",
-         "UI tests must cover toolbar separator ownership");
+         "toolbar hit test keeps drive button at fixed width",
+         "UI tests must cover fixed-width drive button ownership");
       Project_Tools.Files.Require_Contains
         (Tests,
          "toolbar hit test maps back button to command",
          "UI tests must cover toolbar back command mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test maps second separator pixel to back button",
-         "UI tests must cover toolbar back separator ownership");
+         "toolbar hit test keeps back button at fixed width",
+         "UI tests must cover fixed-width back button ownership");
       Project_Tools.Files.Require_Contains
         (Tests,
          "toolbar hit test maps forward button to command",
          "UI tests must cover toolbar forward command mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test maps third separator pixel to forward button",
-         "UI tests must cover toolbar forward separator ownership");
+         "toolbar hit test keeps forward button at fixed width",
+         "UI tests must cover fixed-width forward button ownership");
       Project_Tools.Files.Require_Contains
         (Tests,
          "toolbar hit test maps create button to command",
          "UI tests must cover toolbar create-file command mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test maps fourth separator pixel to create button",
-         "UI tests must cover toolbar create separator ownership");
+         "toolbar hit test keeps create button at fixed width",
+         "UI tests must cover fixed-width create button ownership");
       Project_Tools.Files.Require_Contains
         (Tests,
          "toolbar hit test maps delete button to command",
          "UI tests must cover toolbar delete command mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test maps fifth separator pixel to delete button",
-         "UI tests must cover toolbar delete separator ownership");
+         "toolbar hit test keeps delete button at fixed width",
+         "UI tests must cover fixed-width delete button ownership");
       Project_Tools.Files.Require_Contains
         (Tests,
          "toolbar hit test maps left section end to path input",
@@ -6942,16 +7611,16 @@ procedure Check_All is
          "UI tests must cover proportional toolbar button remainder handling");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test ignores path input top padding",
-         "UI tests must cover path-input vertical padding rejection");
+         "toolbar hit test includes path input top padding",
+         "UI tests must cover path-input vertical padding inclusion");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test ignores path input bottom padding",
-         "UI tests must cover path-input bottom padding rejection");
+         "toolbar hit test ignores coordinates below padded path input",
+         "UI tests must cover path-input outside-bottom rejection");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "toolbar hit test ignores filter input top padding",
-         "UI tests must cover filter-input vertical padding rejection");
+         "toolbar hit test includes filter input top padding",
+         "UI tests must cover filter-input vertical padding inclusion");
       Project_Tools.Files.Require_Contains
         (Tests,
          "toolbar hit test ignores coordinates below toolbar",
@@ -6970,8 +7639,16 @@ procedure Check_All is
          "UI tests must cover saturated toolbar button origin helpers");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "narrow toolbar hit test does not leak zero-width left commands",
-         "UI tests must cover collapsed toolbar command hit testing");
+         "narrow toolbar hit test includes padded path input top edge",
+         "UI tests must cover collapsed toolbar padded input hit testing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "narrow toolbar hides fixed-width icon buttons",
+         "UI tests must cover hidden toolbar icon buttons on narrow windows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "toolbar hit test hides icon buttons when fixed width cannot fit",
+         "UI tests must cover narrow toolbar icon hit-test suppression");
       Project_Tools.Files.Require_Contains
         (Tests,
          "zero-width toolbar hit test stays empty",
@@ -7026,7 +7703,7 @@ procedure Check_All is
          "UI tests must cover bottom-bar below-window rejection");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "short bottom-bar hit test ignores coordinate at short window bottom edge",
+         "short bottom-bar hit test ignores clipped top padding",
          "UI tests must cover short-window bottom-bar edge handling");
       Project_Tools.Files.Require_Contains
         (Tests,
@@ -7034,7 +7711,7 @@ procedure Check_All is
          "UI tests must cover saturated bottom-bar coordinate handling");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "bottom-bar layout saturates large line height",
+         "bottom-bar layout keeps a usable button at large line height",
          "UI tests must cover saturated bottom-bar line-height layout");
       Project_Tools.Files.Require_Contains
         (Tests,
@@ -7111,6 +7788,14 @@ procedure Check_All is
         (Controller_Body,
          "elsif not Files.Commands.Is_Enabled (Id, Model) then",
          "controller command routing must check command enablement centrally");
+      Project_Tools.Files.Require_Contains
+        (Controller_Body,
+         "| Files.Commands.Toggle_Info_Pane_Command =>",
+         "disabled info-pane toggle must report a selection error operation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "disabled info toggle returns operation data",
+         "controller tests must cover disabled info-toggle operation data");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
          "if Operation.Status = Files.Operations.Operation_Disabled" & ASCII.LF
@@ -7412,20 +8097,24 @@ procedure Check_All is
          "controller tests must cover text-field Delete command suppression");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-controller.adb",
-         "function Previous_Text_Boundary",
-         "controller text deletion must use UTF-8-aware previous boundaries");
+         "Files.UTF8.Previous_Boundary (Text, Cursor)",
+         "controller text deletion must use the shared UTF-8 previous-boundary helper");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-controller.adb",
-         "function Next_Text_Boundary",
-         "controller text deletion must use UTF-8-aware next boundaries");
+         "Files.UTF8.Next_Boundary (Text, Cursor)",
+         "controller text deletion must use the shared UTF-8 next-boundary helper");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-events.adb",
+         "Files.UTF8.Byte_Offset_For_Display_Column (Raw, Click_Column)",
+         "event click cursor placement must use the shared UTF-8 display-column helper");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-model.adb",
-         "function Previous_Text_Boundary",
-         "model text cursor movement must use UTF-8-aware previous boundaries");
+         "Files.UTF8.Previous_Boundary (Text, Cursor)",
+         "model text cursor movement must use the shared UTF-8 previous-boundary helper");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-model.adb",
-         "function Text_Boundary_At_Or_Before",
-         "model text cursor setting must normalize UTF-8 cursor boundaries");
+         "Files.UTF8.Boundary_At_Or_Before (Text, Cursor)",
+         "model text cursor setting must normalize through the shared UTF-8 boundary helper");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-model.adb",
          "return Text_Boundary_At_Or_Before (Settings_Field_Text (Model), Model.Settings_Field_Cursor);",
@@ -7434,6 +8123,22 @@ procedure Check_All is
         (Tests,
          "filter Left moves over whole UTF-8 input",
          "controller tests must cover UTF-8-aware left cursor movement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter Left moves over base and trailing combining marks together",
+         "controller tests must cover combining-aware left cursor movement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "model cursor setter snaps combining mark starts to the base boundary",
+         "model tests must cover combining-aware direct cursor placement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter Right moves over base and trailing combining marks together",
+         "controller tests must cover combining-aware right cursor movement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter append leaves cursor after appended trailing combining mark",
+         "controller tests must cover combining-aware append cursor placement");
       Project_Tools.Files.Require_Contains
         (Tests,
          "filter click snaps UTF-8 cursor to character boundary",
@@ -7452,8 +8157,40 @@ procedure Check_All is
          "controller tests must cover UTF-8-aware backward deletion");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "filter Backspace removes base and trailing combining marks together",
+         "controller tests must cover combining-aware backward deletion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "filter Delete removes whole UTF-8 input",
          "controller tests must cover UTF-8-aware forward deletion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter Delete removes base and trailing combining marks together",
+         "controller tests must cover combining-aware forward deletion");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper moves previous boundary over whole multibyte units",
+         "tests must cover shared UTF-8 previous-boundary movement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper moves next boundary over whole multibyte units",
+         "tests must cover shared UTF-8 next-boundary movement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper snaps interior offsets to earlier boundaries",
+         "tests must cover shared UTF-8 boundary normalization");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper snaps combining mark starts to the base boundary",
+         "tests must cover combining-aware boundary normalization");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper counts display units before byte cursor",
+         "tests must cover shared UTF-8 display count before cursor");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper maps display column to UTF-8 byte offset",
+         "tests must cover shared UTF-8 display-column byte mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
          "Control+P routes through command registry from filter input",
@@ -7479,20 +8216,52 @@ procedure Check_All is
          "palette Control+Delete removes next query word",
          "controller tests must cover command-palette word deletion");
       Project_Tools.Files.Require_Contains
-        (Root & "/src/files-controller.adb",
-         "or else Value = ASCII.LF" & ASCII.LF
-         & "        or else Value = ASCII.CR" & ASCII.LF
-         & "        or else Value = ASCII.VT" & ASCII.LF
-         & "        or else Value = ASCII.FF",
-         "focused text word separators must include ASCII line-break whitespace");
+        (Root & "/src/files-utf8.adb",
+         "or else Codepoint = 10" & ASCII.LF
+         & "        or else Codepoint = 11" & ASCII.LF
+         & "        or else Codepoint = 12" & ASCII.LF
+         & "        or else Codepoint = 13",
+         "shared UTF-8 word separators must include ASCII line-break whitespace");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Word_Separator_Length",
+         "shared UTF-8 helper must expose word-separator measurement");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-controller.adb",
+         "Files.UTF8.Previous_Word_Boundary (Text, Cursor)",
+         "focused text previous-word movement must use the shared UTF-8 helper");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-controller.adb",
+         "Files.UTF8.Next_Word_Boundary (Text, Cursor)",
+         "focused text next-word movement must use the shared UTF-8 helper");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "Position := Previous_Boundary (Content, Position);",
+         "shared previous-word helper must step by UTF-8 text boundaries");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "Position := Next_Boundary (Content, Position);",
+         "shared next-word helper must step by UTF-8 text boundaries");
+      Require_Not_Contains
         (Root & "/src/files-controller.adb",
          "function UTF8_Word_Separator_Length",
-         "focused text word separators must recognize UTF-8 encoded whitespace");
+         "controller must not keep a local UTF-8 word-separator scanner");
       Project_Tools.Files.Require_Contains
-        (Root & "/src/files-controller.adb",
-         "function Previous_UTF8_Word_Separator_Length",
-         "focused text previous-word movement must skip full UTF-8 separators");
+        (Tests,
+         "shared UTF-8 helper finds previous word boundary",
+         "tests must cover shared UTF-8 previous-word helper");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper finds next word boundary",
+         "tests must cover shared UTF-8 next-word helper");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper moves previous word boundary over whole multibyte text",
+         "tests must cover previous-word movement over multibyte text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper moves next word boundary over combining text",
+         "tests must cover next-word movement over combining text");
       Project_Tools.Files.Require_Contains
         (Tests,
          "Control+Left treats line feed as word separator",
@@ -7924,6 +8693,18 @@ procedure Check_All is
         (Tests,
          "filtered-out selection moves to first visible item",
          "model tests must cover selection reconciliation after filtering");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-types.adb",
+         "Character'Pos (Text (Index)) = 16#C3#",
+         "shared case folding must recognize UTF-8 Latin-1 uppercase lead bytes");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-types.adb",
+         "and then Character'Pos (Text (Index)) in 16#C2# .. 16#DF#",
+         "shared case folding must preserve valid lowercase UTF-8 units");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter matches UTF-8 Latin-1 item names case-insensitively",
+         "model tests must cover UTF-8 Latin-1 case-insensitive filtering");
       Project_Tools.Files.Require_Contains
         (Tests,
          "selection becomes empty when no items are visible",
@@ -8553,8 +9334,8 @@ procedure Check_All is
          "startup tests must cover settings-driven directory loading");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "startup windows pass headless render smoke test",
-         "startup tests must cover headless render smoke on resolved windows");
+         "startup windows with Unicode and fallback filenames pass headless render smoke test",
+         "startup tests must cover Unicode and fallback filename headless render smoke on resolved windows");
       Project_Tools.Files.Require_Contains
         (Tests,
          "startup creates missing default settings file",
@@ -8628,6 +9409,10 @@ procedure Check_All is
          "application CLI surface must expose localized help text");
       Project_Tools.Files.Require_Contains
         (Application_Spec,
+         "function Version_Text",
+         "application CLI surface must expose version text");
+      Project_Tools.Files.Require_Contains
+        (Application_Spec,
          "Run the application entry point using process command-line arguments.",
          "application CLI surface must document the command-line entry point");
       Project_Tools.Files.Require_Contains
@@ -8646,6 +9431,10 @@ procedure Check_All is
         (Application_Body,
          """--help""",
          "files executable must expose long help");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         """--version""",
+         "files executable must expose version reporting");
       Project_Tools.Files.Require_Contains
         (Application_Body,
          """-h""",
@@ -8692,6 +9481,14 @@ procedure Check_All is
          "CLI help option text must be loaded through localization");
       Project_Tools.Files.Require_Contains
         (Application_Body,
+         "Files.Localization.Text (""cli.help.option.version"", Locale)",
+         "CLI version option text must be loaded through localization");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "return Files_Config.Crate_Name & "" "" & Files_Config.Crate_Version;",
+         "version text must come from generated crate metadata");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
          "Runtime_Smoke_Report (Result)",
          "headless smoke mode must route through the runtime smoke report");
       Project_Tools.Files.Require_Contains
@@ -8706,6 +9503,62 @@ procedure Check_All is
         (Application_Body,
          "Files.Rendering.Build_Text_Glyphs (Text_Renderer, Frame);",
          "runtime smoke report must exercise text glyph construction");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "Glyphs.Status /= Files.Rendering.Text_Render_Success",
+         "runtime smoke report must fail when glyph construction fails");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "Glyphs.Glyphs.Is_Empty",
+         "runtime smoke report must fail when text rendering emits no glyphs");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "runtime.smoke.missing_glyphs",
+         "runtime smoke report must include missing-glyph fallback diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "runtime.smoke.font",
+         "runtime smoke report must include selected text font diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "runtime smoke reports zero-glyph text batches as failures",
+         "runtime smoke tests must cover zero-glyph text batch failures");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section UTF-8 item names emit Unicode glyphs in every view mode",
+         "text rendering tests must cover UTF-8 item names across all main view modes");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section UTF-8 item name glyphs reach Vulkan submission",
+         "text rendering tests must cover UTF-8 item glyph handoff to Vulkan submission");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "Unit_Width := Files.UTF8.Display_Units (Content (Unit_Start .. Index - 1));",
+         "text glyph rendering must advance by UTF-8 display cells");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "if Unit_Width = 0 then Base_X",
+         "text glyph rendering must place zero-width combining glyphs on the base cell");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "(if Unit_Width = 0 then Base_X else Cell_X)",
+         "text glyph rendering must anchor visible glyphs at their reserved display-cell origin");
+      Require_Not_Contains
+        (Root & "/src/files-rendering.adb",
+         "Unit_Width - 1",
+         "text glyph rendering must not half-shift wide Unicode filename glyphs");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "text renderer advances after CJK glyphs by wide display cells",
+         "text rendering tests must cover wide-glyph advancement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "text renderer anchors CJK glyphs at the reserved wide-cell origin",
+         "text rendering tests must cover wide-glyph placement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "text renderer places combining marks on the previous base cell",
+         "text rendering tests must cover zero-width combining glyph placement");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-rendering.adb",
          "Result.Atlas_Bytes := Saturating_Multiply (Renderer.Atlas_Width, Renderer.Atlas_Height);",
@@ -8731,6 +9584,10 @@ procedure Check_All is
          "Config.Mode = Help_Run",
          "help mode must return before startup path resolution");
       Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "Config.Mode = Version_Run",
+         "version mode must return before startup path resolution");
+      Project_Tools.Files.Require_Contains
         (Tests,
          "Test_Run_Configuration_Parsing",
          "runtime CLI parsing must remain covered by AUnit");
@@ -8750,6 +9607,14 @@ procedure Check_All is
         (Tests,
          "later run mode flag wins deterministically",
          "runtime CLI tests must cover deterministic repeated mode flags");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "version flag selects version mode",
+         "runtime CLI tests must cover version flag parsing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "version text uses generated crate metadata",
+         "runtime CLI tests must cover generated version text");
       Project_Tools.Files.Require_Contains
         (Tests,
          "unknown option is treated as a path",
@@ -8783,6 +9648,10 @@ procedure Check_All is
          "Help_Text",
          "runtime CLI help text must remain covered by AUnit");
       Project_Tools.Files.Require_Contains
+        (Root & "/share/files.catalog",
+         "en.cli.help.option.version = ",
+         "localized catalog must include version help text");
+      Project_Tools.Files.Require_Contains
         (Tests,
          "runtime smoke report uses localized empty-startup diagnostic",
          "runtime smoke tests must cover empty-startup diagnostics");
@@ -8805,7 +9674,15 @@ procedure Check_All is
          Args            => [1 => new String'("-h")],
          Output_Path     => "/tmp/files-check-help-short.txt",
          Required_First  => "Usage: files",
-          Required_Second => "--help, -h");
+         Required_Second => "--help, -h");
+      Run_And_Require_Output
+        (Label   => "files version",
+         Dir             => Root,
+         Program         => "./bin/files",
+         Args            => [1 => new String'("--version")],
+         Output_Path     => "/tmp/files-check-version.txt",
+         Required_First  => "files ",
+         Required_Second => "0.1.0-dev");
    end Check_Executable_CLI_Help;
 
    procedure Check_Desktop_Runtime_Contract is
@@ -8830,8 +9707,116 @@ procedure Check_All is
          "headless smoke must reject empty rendered frames");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
+         "Text_Status /= Files.Rendering.Text_Render_Success",
+         "headless smoke must reject failed text renderer initialization");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame)",
+         "headless smoke must initialize text rendering with a frame-specific font");
+      Require_Not_Contains
+        (Windows_Body,
+         "Glyphs.Missing_Glyph_Count /= 0",
+         "headless smoke must not reject otherwise visible frames solely for missing-glyph fallback");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "startup windows with Unicode and fallback filenames pass headless render smoke test",
+         "startup tests must cover headless smoke with degraded but visible filename glyphs");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Text_Font_Path  : Unbounded_String;",
+         "live window runtime must remember the currently loaded text font");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Process_Text_Font_Path  : Unbounded_String;",
+         "live window runtime must track textrender's process-global font path");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Current_Text_Key : constant Unbounded_String := Frame_Text_Key (Frame);",
+         "live rendering must key font resolution by frame text content");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Frame_Font_Path := Runtime.Text_Content_Font_Path;",
+         "live rendering must reuse cached frame font paths while text is unchanged");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Process_Text_Font_Path /= Frame_Font_Path",
+         "live rendering must reload when another window changed the process-global text font");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Process_Text_Font_Path := Null_Unbounded_String;",
+         "live rendering must clear process-global text font tracking when windows are released");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Set_Raw_Window_Hint (GLFW_Client_API, GLFW_No_API);",
+         "desktop runtime must create Vulkan windows with GLFW_NO_API");
+      Require_Not_Contains
+        (Windows_Body,
+         "Glfw.Windows.Context.Make_Current",
+         "desktop Vulkan runtime must not make an OpenGL context current");
+      Require_Not_Contains
+        (Windows_Body,
+         "Glfw.Windows.Context.Swap_Buffers",
+         "desktop Vulkan runtime must not swap OpenGL buffers");
+      Require_Not_Contains
+        (Windows_Body,
+         "Glfw.Windows.Context.Set_Swap_Interval",
+         "desktop Vulkan runtime must not configure OpenGL swap interval");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
          "function Runtime_Capabilities return Desktop_Capabilities",
          "desktop runtime must expose observable capability metadata");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "Native_Drop_Callbacks",
+         "desktop runtime must advertise native file-drop callback support");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "Native_Drop_Automation",
+         "desktop runtime must distinguish native drops from OS drag automation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "runtime capabilities do not claim portable native drop automation",
+         "desktop runtime tests must cover unsupported OS drag automation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "type Native_Drag_Automation_Profile is record",
+         "desktop runtime must expose structured native drag automation blockers");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "function Native_Drag_Automation_Profile_Of_Current_Runtime",
+         "desktop runtime must report native drag automation blocker metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "drag automation profile records X11 Xdnd requirement",
+         "desktop runtime tests must cover X11 drag automation blocker metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "drag automation profile records Wayland source protocol requirement",
+         "desktop runtime tests must cover Wayland drag automation blocker metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "drag automation profile records Windows native injection requirement",
+         "desktop runtime tests must cover Windows drag automation blocker metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "drag automation profile records macOS native injection requirement",
+         "desktop runtime tests must cover macOS drag automation blocker metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "desktop capability report exposes unsupported OS drag automation",
+         "desktop capability policy tests must expose OS drag automation status");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.ads",
+         "Live framebuffer",
+         "Vulkan readback API comments must distinguish live readback from headless comparison");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "Directory_Watch_Polling",
+         "desktop runtime must advertise directory watch polling support");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "Native_File_Watching",
+         "desktop runtime must advertise native file watching support");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
          "function Safe_Environment_Value (Name : String) return String",
@@ -8923,8 +9908,8 @@ procedure Check_All is
          "desktop runtime must expose a deterministic live-smoke plan");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
-         "Frame_Count      => 1",
-         "live-smoke plan must keep bounded frame count by default");
+         "Frame_Count      => 2",
+         "live-smoke plan must render enough frames for framebuffer readback");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
          "Input_Poll_Count => 1",
@@ -8953,6 +9938,22 @@ procedure Check_All is
         (Windows_Body,
          "Result.Error_Key := To_Unbounded_String (""runtime.smoke.no_windows"");",
          "live-smoke runner must report empty startup without creating windows");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "function Any_Runtime_Frame_Rendered",
+         "live smoke must derive rendered-frame status from runtime window diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented",
+         "live smoke must require a successfully presented Vulkan frame");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Runtime.Last_Glyph_Count > 0",
+         "live smoke must require visible text glyphs");
+      Require_Not_Contains
+        (Windows_Body,
+         "Runtime.Last_Missing_Glyph_Count = 0",
+         "live smoke must not reject otherwise visible frames solely for missing-glyph fallback");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
          "Release_All (Runtime_Windows);",
@@ -9067,8 +10068,44 @@ procedure Check_All is
          "desktop runtime tests must cover settings-path handoff rejection");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "live smoke plan records deterministic frame count",
-         "desktop runtime tests must cover bounded live-smoke frame count");
+         "live smoke plan records two frames for readback validation",
+         "desktop runtime tests must cover live-smoke readback frame count");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "Frames_Attempted   : Natural := 0;",
+         "live-smoke result must expose attempted frame accounting");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.ads",
+         "Frames_Presented   : Natural := 0;",
+         "live-smoke result must expose presented frame accounting");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Result.Frames_Attempted := Result.Frames_Attempted + 1;",
+         "live-smoke runner must count attempted frames");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Result.Frames_Presented := Result.Frames_Presented + 1;",
+         "live-smoke runner must count presented frames");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application.adb",
+         "runtime.smoke.frames_attempted",
+         "live-smoke CLI must print attempted frame count");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application.adb",
+         "runtime.smoke.frames_presented",
+         "live-smoke CLI must print presented frame count");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "live smoke preflight reports zero attempted frames",
+         "desktop runtime tests must cover preflight frame counters");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "empty live smoke startup reports zero attempted frames",
+         "desktop runtime tests must cover empty live-smoke frame counters");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "skipped live smoke startup reports zero attempted frames",
+         "desktop runtime tests must cover skipped live-smoke frame counters");
       Project_Tools.Files.Require_Contains
         (Tests,
          "live smoke plan records requested width",
@@ -9118,6 +10155,10 @@ procedure Check_All is
    procedure Check_Rendering_Architecture is
       Rendering_Body : constant String := Root & "/src/files-rendering.adb";
       Rendering_Spec : constant String := Root & "/src/files-rendering.ads";
+      Fonts_Body     : constant String := Root & "/src/files-fonts.adb";
+      Fonts_Spec     : constant String := Root & "/src/files-fonts.ads";
+      Application_Body : constant String := Root & "/src/files-application.adb";
+      Windows_Body   : constant String := Root & "/src/files-application-windows.adb";
       Vulkan_Body    : constant String := Root & "/src/files-rendering-vulkan.adb";
       Vulkan_Spec    : constant String := Root & "/src/files-rendering-vulkan.ads";
       Tests          : constant String := Root & "/tests/tests/src/files_suite.adb";
@@ -9333,6 +10374,279 @@ procedure Check_All is
       Check_Rendering_Unit (Vulkan_Spec, "Vulkan rendering spec");
       Check_Rendering_Unit (Vulkan_Body, "Vulkan rendering body");
       Project_Tools.Files.Require_Contains
+        (Fonts_Spec,
+         "function Default_Font_Path return String;",
+         "font discovery spec must expose default font path lookup");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Spec,
+         "available font file best suited for broad filename text",
+         "font discovery spec must not claim only TrueType font files are supported");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "function Is_Ordinary_File",
+         "font discovery must centralize candidate file validation");
+      Require_Not_Contains
+        (Fonts_Body,
+         "or else Has_Suffix (Lower, "".ttc"")",
+         "font discovery must not select TTC collections that the text renderer cannot initialize");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Ada.Directories.Exists (Path)",
+         "font discovery must probe candidate font files outside the renderer");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File",
+         "font discovery must reject non-file font candidates");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Safe_Environment_Value (""FILES_FONT_PATH"")",
+         "font discovery must safely honor FILES_FONT_PATH overrides");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "function Is_Loadable_Font",
+         "font discovery must centralize supported font validation");
+      Require_Not_Contains
+        (Fonts_Body,
+         "Textrender.Reset",
+         "font discovery must not reset process-global text renderer state");
+      Require_Not_Contains
+        (Fonts_Body,
+         "Textrender.Load_Font",
+         "font discovery must not load fonts through the live text renderer");
+      Require_Not_Contains
+        (Fonts_Body,
+         "Textrender.Get_Glyph",
+         "font discovery must not probe glyphs through the live text renderer");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "if Is_Loadable_Font (Override_Path) then",
+         "font discovery must validate FILES_FONT_PATH as a loadable font");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "and then not Is_Known_Unsupported_Renderer_Font (To_String (Path))",
+         "font discovery must filter fixed candidates through renderer-supported font extensions");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "function Is_Known_Unsupported_Renderer_Font",
+         "font discovery must blacklist font files known to fail renderer batching");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "droidsansfallbackfull.ttf",
+         "font discovery must reject Droid fallback when it fails renderer batching");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "notocoloremoji.ttf",
+         "font discovery must reject color emoji fonts that do not produce filename glyph geometry");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "unifont.ttf",
+         "font discovery must reject Unifont when it fails renderer initialization");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "NotoSansCJK-Regular.ttc",
+         "font discovery must probe common Noto CJK filename fonts");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "procedure Scan_Font_Directory",
+         "font discovery must scan common system font directories for Unicode filename coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Max_Discovered_Fonts",
+         "font discovery directory scanning must remain bounded");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "procedure Sort_Paths",
+         "font discovery must sort recursively discovered paths for deterministic fallback selection");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Scan_Font_Directory (Discovered, To_String (Root), 0);",
+         "font discovery must keep scanned paths separate from fixed priority candidates");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Is_Font_File (Full)",
+         "font discovery directory scanning must filter supported font file extensions");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "PingFang.ttc",
+         "font discovery must probe common macOS Unicode filename fonts");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "C:\Windows\Fonts\segoeui.ttf",
+         "font discovery must probe common Windows Unicode filename fonts");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "function Glyph_Coverage_Score",
+         "font discovery must score candidate fonts by direct glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Textrender.Fonts.Lookup_Glyph",
+         "font discovery must reject missing-glyph fallback as filename coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "not Glyph.Is_Empty",
+         "font discovery must score only fonts with drawable glyph outlines");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "16#0627#",
+         "font discovery must score Arabic filename glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "16#0905#",
+         "font discovery must score Devanagari filename glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "16#3042#",
+         "font discovery must score Japanese filename glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "16#AC00#",
+         "font discovery must score Korean filename glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Text_Score = Integer'First or else Static_Score < 0",
+         "font discovery must skip invalid candidates instead of comparing them as weak fallbacks");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Spec,
+         "function Font_Path_For_Text",
+         "font discovery spec must expose text-specific font path lookup");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "function Text_Coverage_Score",
+         "font discovery must score candidate fonts against actual frame text");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "VL-Gothic-Regular.ttf",
+         "font discovery must prefer the monospace VL Gothic candidate when available");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "DejaVuSansMono.ttf",
+         "font discovery must prefer a stable monospace default UI font when available");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "procedure Consider_Font",
+         "font discovery must compare configured and discovered fonts through one coverage path");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "elsif Is_Loadable_Font (Override_Path) then" & ASCII.LF
+         & "         Consider_Font (Override_Path);",
+         "text-specific font discovery must not let FILES_FONT_PATH bypass Unicode filename coverage discovery");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Files.UTF8.Is_Required_Zero_Width_Codepoint (Codepoint)",
+         "font discovery must use shared required zero-width glyph classification");
+      Require_Not_Contains
+        (Fonts_Body,
+         "function Is_Required_Zero_Width_Codepoint",
+         "font discovery must not keep a local required zero-width glyph classifier");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Files.UTF8.Decode_Next_Display_Codepoint",
+         "font discovery must decode actual filename text before glyph coverage checks");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "Missing := Missing + 1;",
+         "font discovery must count missing visible filename glyphs");
+      Project_Tools.Files.Require_Contains
+        (Fonts_Body,
+         "return Score - Integer (Missing) * 1_000;",
+         "font discovery must penalize incomplete Unicode filename coverage");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "font discovery selected Unicode filename font covers every visible filename glyph",
+         "font discovery tests must require complete Unicode filename glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "default text font prefers stable monospace UI glyphs",
+         "font discovery tests must guard against proportional default UI text fonts");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "return Files.Fonts.Default_Font_Path;",
+         "rendering default font lookup must delegate filesystem probing to Files.Fonts");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Spec,
+         "function Font_Path_For_Frame",
+         "rendering spec must expose frame-specific font selection");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "return Files.Fonts.Font_Path_For_Text (To_String (Text));",
+         "rendering font selection must use actual frame text");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "function Pixel_Snapped",
+         "text rendering must snap glyph rectangles to whole pixels before Vulkan submission");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "text renderer snaps glyph rectangles to whole pixels",
+         "rendering tests must cover whole-pixel glyph rectangle emission");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "Frame_Font_Path : constant String := Files.Rendering.Font_Path_For_Frame (Frame);",
+         "runtime smoke must compute a frame-specific font path");
+      Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "Font_Path   => Frame_Font_Path",
+         "runtime smoke must initialize text rendering with the frame-specific font");
+      Require_Not_Contains
+        (Windows_Body,
+         "Glyphs.Missing_Glyph_Count > 0",
+         "live rendering must not reload fonts during every frame with missing glyphs");
+      Require_Not_Contains
+        (Rendering_Body,
+         "/usr/share/fonts",
+         "rendering body must not hard-code system font paths");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "rendering default font delegates to startup font discovery",
+         "rendering tests must cover default font discovery delegation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "FILES_FONT_PATH selects a loadable font file override",
+         "rendering tests must cover valid configured font path overrides");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "FILES_FONT_PATH rejects ordinary non-font file overrides",
+         "rendering tests must reject invalid configured font path overrides");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "FILES_FONT_PATH rejects directory overrides",
+         "rendering tests must cover rejected directory font overrides");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "default text font directly covers non-ASCII filename glyphs",
+         "rendering tests must cover direct non-ASCII filename glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "font discovery can select a font for main-section Unicode filename text",
+         "rendering tests must cover text-specific font selection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "weak FILES_FONT_PATH does not pin main-section Unicode filename rendering",
+         "rendering tests must cover weak font override fallback for Unicode filenames");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame text selects a concrete font path for main-section Unicode item names",
+         "rendering tests must cover frame-specific Unicode font selection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "FILES_FONT_PATH ignores missing font overrides",
+         "rendering tests must cover rejected missing font overrides");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section non-Latin item names emit visible Unicode glyphs in every view mode",
+         "rendering tests must cover non-Latin filename glyphs in the main view");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame omits image icon asset outer border",
+         "rendering tests must reject image icon outer borders");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame omits Ada icon asset outer border",
+         "rendering tests must reject Ada icon outer borders");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame omits unknown icon asset outer border",
+         "rendering tests must reject unknown icon outer borders");
+      Project_Tools.Files.Require_Contains
         (Rendering_Spec,
          "type View_Snapshot is record",
          "rendering spec must expose immutable view snapshot records");
@@ -9366,7 +10680,7 @@ procedure Check_All is
          "rendering spec must expose pure info-pane layout calculation");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Info_Rows_Per_Item : constant Natural := 9;",
+         "Info_Rows_Per_Item : constant Natural := 27;",
          "info-pane rendering must reserve rows for all required selected-file metadata");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
@@ -9382,7 +10696,7 @@ procedure Check_All is
          "rendering proportional layout must avoid raw scaled-product overflow");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Caret_X     : constant Natural := (if Item_Rect.Text_X > 4 then Item_Rect.Text_X - 4 else 0);",
+         "Item_Rect.Text_X - Files.UI.Input_Field_Padding",
          "focused rename caret rendering must not underflow narrow item text origins");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
@@ -9390,8 +10704,180 @@ procedure Check_All is
          "focused rename caret rendering must keep caret field width overflow-safe");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
+         "Files.UTF8.Display_Units_Before (Raw, Snapshot.Text_Cursor_Position)",
+         "focused text caret rendering must convert UTF-8 byte cursor offsets to display columns");
+      Require_Not_Contains
+        (Rendering_Body,
+         "Add_Border (X, Y, Draw_Size, Draw_Size, Border_Color);",
+         "main-section icon assets must not draw an extra outer square border");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Icon_Size : constant Natural :=" & ASCII.LF
+         & "              (if Button_W >= Files.UI.Toolbar_Button_Width",
+         "toolbar icon rendering must keep a fixed icon box when toolbar buttons have fixed width");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "procedure Add_Toolbar_Asset_Icon",
+         "toolbar icon rendering must use icon assets for non-drive toolbar icons");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Icon_Id    => To_Unbounded_String (Icon_Name)",
+         "toolbar icon rendering must emit icon commands instead of text glyphs");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "procedure Add_Toolbar_Drive_Icon",
+         "drive chooser toolbar icon must use a purpose-built hamburger shape");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "if Command = Files.Commands.Select_Drive_Command then" & ASCII.LF
+         & "               Add_Toolbar_Drive_Icon",
+         "drive chooser toolbar icon must not use a generic font glyph");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Add_Bar (0);" & ASCII.LF
+         & "         Add_Bar (1);" & ASCII.LF
+         & "         Add_Bar (2);",
+         "drive chooser toolbar icon must render three hamburger bars");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Bar_W     : constant Natural := Natural'Max (1, (Size * 2) / 3);",
+         "drive chooser toolbar icon must use centered standard hamburger bars");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Root_Selector_Padding : constant Natural := 8;",
+         "root selector menu must define explicit padding");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2))",
+         "root selector row icons must match toolbar icon size");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Scale    : constant Float :=",
+         "text rendering must keep toolbar glyph scaling explicitly gated");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Metrics.W * Scale",
+         "text rendering must scale only commands marked for icon boxes");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Draw_X := Float (Text.X) + (Float (Text.Width) - Scaled_W) / 2.0;",
+         "toolbar glyph rendering must center scaled glyphs inside their icon box");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Draw_Y := Float (Text.Y) + (Float (Text.Height) - Scaled_H) / 2.0;",
+         "toolbar glyph rendering must vertically center scaled glyphs inside their icon box");
+      Require_Not_Contains
+        (Rendering_Body,
+         "procedure Add_Pixel_Icon",
+         "toolbar icon rendering must not use enlarged 7x7 pixel glyphs");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter caret renders after UTF-8 characters, not bytes",
+         "rendering tests must cover UTF-8-aware caret x position");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter caret counts malformed UTF-8 byte as replacement cell",
+         "rendering tests must cover malformed UTF-8 replacement-cell caret x position");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders toolbar icons as centered icon assets",
+         "rendering tests must cover centered toolbar icon assets");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders visible toolbar icon geometry",
+         "rendering tests must cover visible toolbar icon geometry");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders toolbar icon diagonals as triangles",
+         "rendering tests must cover non-blocky toolbar diagonal geometry");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "procedure Add_Triangle",
+         "toolbar rendering must have a triangle primitive for diagonal icons");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "Triangle_Vertex_Count",
+         "Vulkan submission must account for triangle icon primitives");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Details_Column_Padding : constant Natural := 6;",
+         "details view must keep horizontal cell padding");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Item_Content_Padding : constant Natural := 4;",
+         "main-view item content must keep padding inside hover and selection blocks");
+      Require_Not_Contains
+        (Rendering_Body,
+         "Item_State_Inset",
+         "main-view hover and selection blocks must include the item padding area");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details name column has cell padding",
+         "rendering tests must cover details column padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders hover fill around padded visible item",
+         "rendering tests must cover hover fill including item padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "small-icons content has vertical padding inside hover box",
+         "rendering tests must cover vertical item hover-box padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders opaque command-palette panel",
+         "rendering tests must cover opaque command-palette panel rendering");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders command-palette rows opaque",
+         "rendering tests must reject transparent command-palette rows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders drive chooser toolbar hamburger top bar",
+         "rendering tests must cover the drive chooser hamburger top bar");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders drive chooser toolbar hamburger middle bar",
+         "rendering tests must cover the drive chooser hamburger middle bar");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame renders drive chooser toolbar hamburger bottom bar",
+         "rendering tests must cover the drive chooser hamburger bottom bar");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame does not render drive chooser as a square glyph",
+         "rendering tests must reject the old drive chooser square glyph");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "large-icons item name is centered beneath the icon",
+         "rendering tests must cover large-icon centered item names");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "text renderer supports explicit box-scaled glyphs",
+         "rendering tests must cover explicit glyph scaling");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "Icon_Atlas_Tile_Size : constant Positive := 64;",
+         "Vulkan icon atlas must render icons at high enough resolution for toolbar use");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "renderer exposes bundled toolbar home icon asset text",
+         "rendering tests must cover bundled toolbar icon assets");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "toolbar trash icon asset uses a bin shape instead of an x shape",
+         "rendering tests must reject x-shaped move-to-trash toolbar icons");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
          "Saturating_Add (Row.X, Row.Width - Shortcut_Width - 4)",
          "command-palette shortcut placement must keep right-aligned text coordinates overflow-safe");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Files.UTF8.Display_Units (To_String (Command.Shortcut_Text))",
+         "command-palette shortcut width must use UTF-8 display cells instead of byte length");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame sizes command-palette UTF-8 shortcut text by display cells",
+         "rendering tests must cover UTF-8 command-palette shortcut width");
       Project_Tools.Files.Require_Contains
         (Tests,
          "narrow rename frame clips rectangle width",
@@ -9402,10 +10888,42 @@ procedure Check_All is
          "info-pane layout must expose scrollbar visibility for overflowing metadata");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Layout.Main_Height > 0" & ASCII.LF
+         "Info_Pane.Scrollbar_Track_Height",
+         "info-pane scrollbar rendering must use the explicit track height");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-events.adb",
+         "Within (Y, Info_Pane.Scrollbar_Y, Info_Pane.Scrollbar_Track_Height)",
+         "info-pane scrollbar hit testing must use the explicit track height");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "info pane exposes explicit scrollbar track height",
+         "event tests must cover explicit info-pane scrollbar track height");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "info scrollbar ignores clicks below track height",
+         "event tests must cover info-pane scrollbar track hit limits");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "View_H > 0" & ASCII.LF
          & "        and then Bar_W > 0" & ASCII.LF
-         & "        and then Content_H > Layout.Main_Height",
+         & "        and then Content_Total_H > View_H",
          "main-view layout must not expose a scrollbar when the scrollbar width is zero");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Spec,
+         "Scrollbar_Track_Height : Natural := 0;",
+         "main-view layout must expose explicit scrollbar track height");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Scrollbar_Track_Height => (if Visible then View_H else 0)",
+         "main-view scrollbar layout must use the padded content height as the track");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Main_View.Scrollbar_Track_Height",
+         "main-view scrollbar rendering must use the explicit padded track height");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-events.adb",
+         "Within (Y, Main_View.Scrollbar_Y, Main_View.Scrollbar_Track_Height)",
+         "main-view scrollbar hit testing must use the explicit padded track height");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "and then Layout.Info_Pane_Width > 0" & ASCII.LF
@@ -9541,15 +11059,33 @@ procedure Check_All is
          "command-palette result layout must clip partial final rows");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Missing_Info (""info.size"")",
+         "Add_Info_Value" & ASCII.LF
+         & "                    (2," & ASCII.LF
+         & "                     To_Unbounded_String (Files.Localization.Text (""status.missing_metadata""))",
          "info-pane rendering must use localized fallback text for missing sizes");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Time_Text (Info.Creation_Available, Info.Creation_Time, ""info.created"")",
+         "Details_Row_Padding : constant Natural := 4;",
+         "details rows must have internal padding");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Details_Row_Gap : constant Natural := 4;",
+         "details rows must leave separation between rows");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "return Null_Unbounded_String;",
+         "details view must render missing file sizes as blank text");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Files.Localization.Text (""details.size.unit.bytes"")",
+         "details view must render file sizes with a localized byte unit");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Add_Info_Value (3, Metadata_Value (Info.Creation_Available, Info.Creation_Time), Muted_Text_Color);",
          "info-pane rendering must localize missing creation timestamps");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Missing_Info (""info.permissions"")",
+         "Length (Info.Permissions) = 0",
          "info-pane rendering must use localized fallback text for missing permissions");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
@@ -9625,6 +11161,52 @@ procedure Check_All is
          "Vulkan presentation must record mixed text and icon texture usage");
       Project_Tools.Files.Require_Contains
         (Vulkan_Body,
+         "function Compare_Gpu_Screenshot",
+         "Vulkan rendering must expose deterministic GPU screenshot comparison support");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "Vk.IMAGE_USAGE_COLOR_ATTACHMENT_BIT or Vk.IMAGE_USAGE_TRANSFER_SRC_BIT",
+         "Vulkan swapchain images must support framebuffer readback transfers");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "Vk.Cmd_Copy_Image_To_Buffer",
+         "Vulkan command buffers must copy rendered swapchain images to readback buffers");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "if Renderer.Readback_Enabled then" & ASCII.LF
+         & "               Capture_Completed_Readback (Renderer);" & ASCII.LF
+         & "            end if;",
+         "Vulkan presentation must hash framebuffer readback only when diagnostics are enabled");
+      Project_Tools.Files.Require_Contains
+        (Windows_Body,
+         "Files.Rendering.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);",
+         "live smoke must explicitly enable framebuffer readback diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "vulkan framebuffer readback diagnostics are disabled by default",
+         "Vulkan tests must guard readback diagnostics against default-on regressions");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "Framebuffer_Readback_Ready => Renderer.Readback_Ready",
+         "Vulkan diagnostics must expose completed framebuffer readback status");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "GPU screenshot comparison detects changed vertex colors",
+         "Vulkan tests must cover screenshot comparison mismatches");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "Renderer.Command_Buffers (Positive (Image_Index + 1))",
+         "Vulkan presentation must convert zero-based swapchain image indexes after adding one");
+      Require_Not_Contains
+        (Vulkan_Body,
+         "Renderer.Command_Buffers (Positive (Image_Index) + 1)",
+         "Vulkan presentation must not convert zero image indexes to Positive before adding one");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "return Scaled_Down (Value, Factor, Denominator);",
+         "Vulkan proportional layout arithmetic must preserve scale when raw multiplication would overflow");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
          "Renderer.Presented_Frames := Renderer.Presented_Frames + 1;",
          "Vulkan presentation must count successfully presented frames");
       Project_Tools.Files.Require_Contains
@@ -9635,6 +11217,10 @@ procedure Check_All is
         (Vulkan_Body,
          "Renderer.Failed_Frames := Renderer.Failed_Frames + 1;",
          "Vulkan presentation must count failed frame submissions");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "height    => -Framebuffer_Height,",
+         "Vulkan viewport must flip Y so top-left UI coordinates render upright");
       Project_Tools.Files.Require_Contains
         (Tests,
          "snapshot construction does not mutate stale palette selection",
@@ -9857,16 +11443,265 @@ procedure Check_All is
          "rendering tests must cover localized UTF-8 metadata projection");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-rendering.adb",
-         "function UTF8_Safe_Prefix_Length",
-         "rendering fitted text must clamp truncation to UTF-8 boundaries");
+         "function Fitted_Text_For",
+         "rendering fitted text must centralize UTF-8 display-unit truncation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "Files.UTF8.Prefix_By_Units",
+         "rendering fitted text must clamp truncation through the shared UTF-8 helper");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Display_Units",
+         "shared UTF-8 helper must expose display-cell measurement");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Prefix_By_Units",
+         "shared UTF-8 helper must expose display-cell prefix clamping");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Display_Units_Before",
+         "shared UTF-8 helper must expose cursor display-cell counting");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Byte_Offset_For_Display_Column",
+         "shared UTF-8 helper must expose display-column byte mapping");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "function Codepoint_Display_Units",
+         "shared UTF-8 helper must centralize codepoint display-cell width");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "function Is_Wide_Codepoint",
+         "shared UTF-8 helper must recognize wide item-name glyphs");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "function Is_Combining_Codepoint",
+         "shared UTF-8 helper must recognize zero-width combining marks");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "Codepoint in 16#FE00# .. 16#FE0F#",
+         "shared UTF-8 helper must recognize zero-width variation selectors");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "Codepoint in 16#E0100# .. 16#E01EF#",
+         "shared UTF-8 helper must recognize supplementary variation selectors");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.adb",
+         "function Next_Unit_Boundary",
+         "shared UTF-8 helper must keep raw UTF-8 unit stepping separate from visual boundaries");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "procedure Decode_Next_Codepoint",
+         "shared UTF-8 helper must expose codepoint decoding");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "procedure Decode_Next_Display_Codepoint",
+         "shared UTF-8 helper must expose tolerant display codepoint decoding");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-utf8.ads",
+         "function Is_Required_Zero_Width_Codepoint",
+         "shared UTF-8 helper must expose required zero-width glyph classification");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "Files.UTF8.Decode_Next_Display_Codepoint",
+         "text glyph rendering must use the shared UTF-8 display decoder");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Spec,
+         "Missing_Glyph_Count : Natural := 0;",
+         "text render results must expose missing-glyph fallback accounting");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "if Status /= Textrender.Success then",
+         "text glyph rendering must count missing-glyph fallback usage");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Files.UTF8.Is_Required_Zero_Width_Codepoint (Decoded_Codepoint)",
+         "text glyph rendering must use shared required zero-width glyph classification");
+      Require_Not_Contains
+        (Rendering_Body,
+         "function Is_Required_Zero_Width_Codepoint",
+         "text glyph rendering must not keep a local required zero-width glyph classifier");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Codepoint := Textrender.Codepoint (Character'Pos ('?'));",
+         "text glyph rendering must emit a visible marker for missing filename glyphs");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "missing filename glyph emits a visible replacement marker",
+         "rendering tests must cover visible fallback glyphs for unsupported filename text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "variation-selector filename text does not emit visible fallback marker",
+         "rendering tests must reject visible fallback markers for zero-width filename text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section UTF-8 item name renders without missing-glyph fallback",
+         "rendering tests must reject missing-glyph fallback for UTF-8 item names");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "directory-loaded UTF-8 item names render without missing-glyph fallback",
+         "rendering tests must reject missing-glyph fallback for filesystem-loaded UTF-8 item names");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "directory load preserves decomposed UTF-8 item name",
+         "filesystem rendering tests must preserve decomposed UTF-8 item names");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "directory-loaded CJK UTF-8 item name emits Unicode glyph codepoint",
+         "filesystem rendering tests must cover non-Latin directory-loaded item names");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "directory-loaded decomposed UTF-8 item name emits accent glyph",
+         "filesystem rendering tests must cover decomposed accent glyph emission");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper marks combining accents as required zero-width glyphs",
+         "shared UTF-8 tests must cover required zero-width combining marks");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper does not require variation selector glyphs",
+         "shared UTF-8 tests must keep variation selectors optional");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "Frame_Font_Path := To_Unbounded_String (Files.Rendering.Font_Path_For_Frame (Frame));",
+         "filesystem-loaded UTF-8 rendering tests must use frame-specific font selection");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section frame commands preserve composed UTF-8 item names before rasterization",
+         "filesystem-loaded UTF-8 rendering tests must preserve composed frame-command text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section frame commands preserve decomposed UTF-8 item names before rasterization",
+         "filesystem-loaded UTF-8 rendering tests must preserve decomposed frame-command text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section frame commands preserve CJK item names before rasterization",
+         "filesystem-loaded UTF-8 rendering tests must preserve CJK frame-command text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "UTF-8 directory-loaded main view font covers composed filename glyphs",
+         "filesystem-loaded UTF-8 rendering tests must verify composed glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "UTF-8 directory-loaded main view font covers decomposed accent glyphs",
+         "filesystem-loaded UTF-8 rendering tests must verify decomposed accent glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "UTF-8 directory-loaded main view font covers every CJK filename glyph",
+         "filesystem-loaded UTF-8 rendering tests must verify complete non-Latin glyph coverage");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "if Files.UTF8.Is_Required_Zero_Width_Codepoint (Decoded_Codepoint) then",
+         "text glyph rendering must report missing required zero-width marks without visible fallback");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section Unicode item names render without missing-glyph fallback in every view mode",
+         "rendering tests must reject missing-glyph fallback in every main view mode");
+      Require_Not_Contains
+        (Root & "/src/files-rendering.adb",
+         "procedure Decode_Next_Codepoint" & ASCII.LF
+         & "           (Content   : String;",
+         "text glyph rendering must not keep a local UTF-8 decoder");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "Files.UTF8.Display_Units_Before (Raw, Snapshot.Text_Cursor_Position)",
+         "rendering caret placement must use the shared UTF-8 cursor display helper");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper counts multibyte and malformed units as display cells",
+         "rendering tests must cover shared UTF-8 display-cell measurement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper treats combining marks as zero-width cells",
+         "rendering tests must cover zero-width UTF-8 display-cell measurement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper treats variation selectors as zero-width cells",
+         "rendering tests must cover variation-selector display-cell measurement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper treats supplementary variation selectors as zero-width cells",
+         "rendering tests must cover supplementary variation-selector display-cell measurement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper treats CJK item-name glyphs as double-width cells",
+         "rendering tests must cover wide UTF-8 display-cell measurement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper preserves whole multibyte prefixes",
+         "rendering tests must cover shared UTF-8 prefix clamping");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper moves previous boundary over trailing combining marks",
+         "rendering tests must cover previous visual boundary over combining marks");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper moves next boundary over trailing combining marks",
+         "rendering tests must cover next visual boundary over combining marks");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper preserves trailing combining marks within display capacity",
+         "rendering tests must cover combining-mark prefix preservation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper preserves trailing variation selectors within display capacity",
+         "rendering tests must cover variation-selector prefix preservation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper does not fit a double-width glyph into one cell",
+         "rendering tests must cover wide UTF-8 prefix clamping");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper maps display columns after trailing combining marks",
+         "rendering tests must cover display-column mapping after combining marks");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper decodes multibyte codepoints",
+         "rendering tests must cover shared UTF-8 codepoint decoding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 helper decodes malformed bytes as replacement codepoints",
+         "rendering tests must cover shared UTF-8 malformed codepoint decoding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shared UTF-8 display decoder preserves legacy non-ASCII filename bytes",
+         "rendering tests must cover tolerant legacy filename byte decoding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "main-section legacy non-ASCII item name emits Latin-1 fallback glyph",
+         "rendering tests must cover legacy non-ASCII filename glyph rendering");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame fitting treats one UTF-8 character as one display cell",
+         "rendering tests must cover single-cell UTF-8 fitted text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame fitting preserves combining item-name marks before ellipsis",
+         "rendering tests must cover combining-mark fitted text truncation");
       Project_Tools.Files.Require_Contains
         (Tests,
          "frame UTF-8 fitting does not split a multibyte name character",
          "rendering tests must cover UTF-8-safe fitted text truncation");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "frame uses ellipsis when fitted text has exact ellipsis capacity",
+         "frame CJK fitting keeps whole wide item-name glyphs in narrow cells",
+         "rendering tests must cover wide UTF-8 fitted text truncation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame keeps a prefix when a visible ellipsis would hide all useful text",
          "rendering tests must cover exact-width ellipsis fitting");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "overlay fitting uses full ellipsis capacity",
+         "rendering tests must cover overlay fitted text ellipsis capacity");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "overlay UTF-8 fitting keeps full multibyte character before ellipsis",
+         "rendering tests must cover UTF-8-safe overlay text truncation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "overlay fitting treats one UTF-8 character as one display cell",
+         "rendering tests must cover single-cell UTF-8 overlay fitted text");
       Project_Tools.Files.Require_Contains
         (Tests,
          "frame exposes settings add accessibility node",
@@ -9985,6 +11820,26 @@ procedure Check_All is
          "rendering tests must cover empty details column separators");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "details rows advance by padded row height",
+         "rendering tests must cover padded details row spacing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details row height leaves a separator gap",
+         "rendering tests must cover details row gap geometry");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details frame leaves missing size blank",
+         "rendering tests must cover blank missing details sizes");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details size includes byte unit",
+         "rendering tests must cover details size units");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details modified timestamp is not abbreviated",
+         "rendering tests must cover full details modified timestamps");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "root selector clips long root lists to visible rows",
          "rendering tests must cover clipped root-selector rows");
       Project_Tools.Files.Require_Contains
@@ -10068,9 +11923,29 @@ procedure Check_All is
          "Float (Source_Icon_Index + 1) / Float (Icon_Count)",
          "Vulkan icon atlas coordinates must not derive from emitted quad counts");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "mag_Filter               => Vk.FILTER_NEAREST",
+         "Vulkan atlas samplers must use nearest magnification for crisp UI rendering");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "min_Filter               => Vk.FILTER_NEAREST",
+         "Vulkan atlas samplers must use nearest minification for crisp UI rendering");
+      Require_Not_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "mag_Filter               => Vk.FILTER_LINEAR",
+         "Vulkan atlas samplers must not blur UI atlases with linear magnification");
+      Require_Not_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "min_Filter               => Vk.FILTER_LINEAR",
+         "Vulkan atlas samplers must not blur UI atlases with linear minification");
+      Project_Tools.Files.Require_Contains
         (Tests,
          "oversized rectangle batch caps vertices before GPU upload",
          "rendering tests must cover Vulkan batch vertex capping");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "vulkan batch appends tooltip overlay text after normal content",
+         "rendering tests must cover tooltip overlay draw order");
       Project_Tools.Files.Require_Contains
         (Tests,
          "vulkan skipped source icon batch advances source atlas tile coordinates",
@@ -10081,8 +11956,8 @@ procedure Check_All is
          "rendering tests must cover skipped-frame diagnostics");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "vulkan diagnostics record mixed text and icon texture submission",
-         "rendering tests must cover mixed texture submission diagnostics");
+         "vulkan diagnostics record covered-icon fallback avoidance for mixed frames",
+         "rendering tests must cover mixed text/icon fallback avoidance diagnostics");
    end Check_Rendering_Architecture;
 
    procedure Check_Icon_Accessibility_Contract is
@@ -10146,6 +12021,10 @@ procedure Check_All is
         (Rendering_Body,
          "Asset_Format        => To_Unbounded_String (""files-icon-v1"")",
          "icon theme metadata must record the checked asset format");
+      Require_Not_Contains
+        (Rendering_Body,
+         "function Toolbar_Header",
+         "toolbar icons must not keep unused rectangle-asset header helpers");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Corner_Role : constant String := (if Theme_Name = ""files-high-contrast"" then ""border"" else ""muted"");",
@@ -10194,6 +12073,38 @@ procedure Check_All is
         (Rendering_Body,
          "Result.Tooltips.Append",
          "frame command construction must emit tooltip commands");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);",
+         "hover tooltip sizing must use UTF-8 display cells instead of byte length");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Raw_Text_W  : constant Natural := Saturating_Multiply (Text_Len, Cell_W);",
+         "hover tooltip sizing must not force a wide minimum panel width");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "if not Has_Hover or else Text_Len = 0 or else Text_W = 0 then",
+         "hover tooltip rendering must skip empty panels when no text cells fit");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame sizes UTF-8 hover tooltip by display cells",
+         "rendering tests must cover UTF-8 display-cell hover tooltip sizing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame does not size UTF-8 hover tooltip by bytes",
+         "rendering tests must reject byte-count hover tooltip sizing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame sizes short hover tooltip by content width",
+         "rendering tests must cover content-width short hover tooltips");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame does not force a wide minimum hover tooltip width",
+         "rendering tests must reject artificial minimum hover tooltip widths");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "narrow frame omits empty hover tooltip panel when no text cells fit",
+         "rendering tests must cover narrow hover tooltip suppression");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Result.Accessibility.Append",
@@ -10564,6 +12475,14 @@ procedure Check_All is
           To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-macos-volumes.adb")],
          "files platform-specific and unsupported fallback bodies must be present");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-platform.ads",
+         "function Current_API_Profile return Files.File_System.Native_Platform_API_Profile;",
+         "platform namespace must expose the current host native API profile");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-platform.adb",
+         "return Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Linux);",
+         "current platform profile must delegate to the host adapter profile");
+      Project_Tools.Files.Require_Contains
         (Root & "/files.gpr",
          "src/platform/windows",
          "files.gpr must select Windows platform bodies for Windows targets");
@@ -10630,6 +12549,18 @@ procedure Check_All is
         (Tests,
          "Linux native profile records volume binding unit",
          "platform tests must cover Linux volume binding unit metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "platform current API profile follows the host adapter",
+         "platform tests must cover current API profile adapter routing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "platform current API profile follows host volume status",
+         "platform tests must cover current API profile volume routing");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "platform current API profile exposes host binding unit",
+         "platform tests must cover current API profile binding unit metadata");
       Project_Tools.Files.Require_Contains
         (Tests,
          "Windows native profile is not active on this target",
@@ -10901,6 +12832,10 @@ procedure Check_All is
          "dialog tests must cover import dialog extension constraints");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "settings import dialog handles Windows-style parent paths",
+         "dialog tests must cover Windows-style import dialog parent paths");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "settings export uses a native save-file dialog request",
          "dialog tests must cover settings export dialog mode");
       Project_Tools.Files.Require_Contains
@@ -10923,6 +12858,10 @@ procedure Check_All is
         (Tests,
          "settings export dialog has a deterministic empty-path filename fallback",
          "dialog tests must cover export dialog empty-path filename fallback");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "settings export dialog preserves Windows drive-root parent paths",
+         "dialog tests must cover Windows-style export dialog drive-root paths");
    end Check_Platform_Dialog_Contract;
 
    procedure Check_Packaging_Metadata is
@@ -11177,6 +13116,10 @@ procedure Check_All is
         ([To_Unbounded_String (Root & "/share/applications/files.desktop"),
           To_Unbounded_String (Root & "/share/icons/hicolor/scalable/apps/files.svg"),
           To_Unbounded_String (Root & "/share/metainfo/dk.bracke.files.metainfo.xml"),
+          To_Unbounded_String (Root & "/share/doc/files/quick-start.md"),
+          To_Unbounded_String (Root & "/share/doc/files/settings-format.md"),
+          To_Unbounded_String (Root & "/share/doc/files/platform-support.md"),
+          To_Unbounded_String (Root & "/share/doc/files/release-notes.md"),
           To_Unbounded_String (Root & "/share/files/package.manifest")],
          "files desktop packaging metadata must be present");
       Project_Tools.Files.Require_Contains
@@ -11187,6 +13130,18 @@ procedure Check_All is
         (Root & "/share/applications/files.desktop",
          "Type=Application",
          "files desktop entry must declare an application entry type");
+      Project_Tools.Files.Require_Contains
+        (Root & "/share/doc/files/quick-start.md",
+         "`Control+A` selects every visible item.",
+         "quick-start guide must document the select-all shortcut");
+      Project_Tools.Files.Require_Contains
+        (Root & "/share/doc/files/platform-support.md",
+         "Portable OS drag-event automation requires native event-source backends.",
+         "platform support documentation must record native drag automation limits");
+      Project_Tools.Files.Require_Contains
+        (Root & "/share/doc/files/platform-support.md",
+         "Accessibility data is exported as render metadata",
+         "platform support documentation must record accessibility bridge limits");
       Project_Tools.Files.Require_Contains
         (Root & "/share/applications/files.desktop",
          "MimeType=inode/directory;",
@@ -11296,6 +13251,18 @@ procedure Check_All is
         ("share/metainfo/dk.bracke.files.metainfo.xml",
          "files package manifest must include AppStream metadata");
       Require_Manifest_Entry
+        ("share/doc/files/quick-start.md",
+         "files package manifest must include quick-start documentation");
+      Require_Manifest_Entry
+        ("share/doc/files/settings-format.md",
+         "files package manifest must include settings format documentation");
+      Require_Manifest_Entry
+        ("share/doc/files/platform-support.md",
+         "files package manifest must include platform support documentation");
+      Require_Manifest_Entry
+        ("share/doc/files/release-notes.md",
+         "files package manifest must include release notes");
+      Require_Manifest_Entry
         ("share/files/package.manifest",
          "files package manifest must include the release manifest");
       Require_Manifest_Entry
@@ -11359,6 +13326,10 @@ procedure Check_All is
         ([To_Unbounded_String (Stage & "/share/applications/files.desktop"),
           To_Unbounded_String (Stage & "/share/icons/hicolor/scalable/apps/files.svg"),
           To_Unbounded_String (Stage & "/share/metainfo/dk.bracke.files.metainfo.xml"),
+          To_Unbounded_String (Stage & "/share/doc/files/quick-start.md"),
+          To_Unbounded_String (Stage & "/share/doc/files/settings-format.md"),
+          To_Unbounded_String (Stage & "/share/doc/files/platform-support.md"),
+          To_Unbounded_String (Stage & "/share/doc/files/release-notes.md"),
           To_Unbounded_String (Stage & "/share/files/package.manifest"),
           To_Unbounded_String (Stage & "/share/files.catalog"),
           To_Unbounded_String (Stage & "/share/files/icons/folder.icon"),
@@ -11511,7 +13482,7 @@ begin
    Check_Crate_Structure;
    Check_Startup_Path_Contract;
    Check_Application_CLI_Surface;
-   Check_First_Milestone_Non_Goals;
+   Check_Feature_Scope_Policy;
    Check_Open_Action_Shell_Safety;
    Check_Open_Action_Settings_Validation;
    Check_Open_Action_Placeholder_Contract;
