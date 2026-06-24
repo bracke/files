@@ -173,6 +173,33 @@ package body Files.UI is
            Saturating_Add
              (Label_Pixel_Width (Files.Localization.Text ("command.view.details.short"), Cell_W),
               Button_Padding));
+
+      function Sort_Label_Needed (Key : String) return Natural is
+      begin
+         return
+           Label_Pixel_Width
+             (Files.Localization.Text (Key)
+              & " "
+              & Files.Localization.Text ("sort.direction.ascending"),
+              Cell_W);
+      end Sort_Label_Needed;
+
+      Sort_Label_W  : constant Natural :=
+        Natural'Max
+          (Sort_Label_Needed ("command.sort.name"),
+           Natural'Max
+             (Sort_Label_Needed ("command.sort.size"),
+              Natural'Max
+                (Sort_Label_Needed ("command.sort.type"),
+                 Natural'Max
+                   (Sort_Label_Needed ("command.sort.created"),
+                    Sort_Label_Needed ("command.sort.changed")))));
+      Sort_Needed    : constant Natural :=
+        Natural'Max
+          (Minimum_Button,
+           Saturating_Add
+             (Sort_Label_W,
+              Saturating_Multiply (Input_Field_Padding, 2)));
       Info_Needed    : constant Natural :=
         Natural'Max
           (Minimum_Button,
@@ -181,6 +208,7 @@ package body Files.UI is
               Button_Padding));
       Preferred_View : constant Natural :=
         Saturating_Add (Small_Needed, Saturating_Add (Large_Needed, Details_Needed));
+      Preferred_Sort : constant Natural := Sort_Needed;
       Toggle_Wanted  : constant Natural := Info_Needed;
       Content_X      : constant Natural := (if Width > Saturating_Multiply (Bottom_Bar_Padding, 2)
                                             then Bottom_Bar_Padding * 2 else 0);
@@ -188,7 +216,9 @@ package body Files.UI is
         (if Width > Saturating_Multiply (Content_X, 2) then Width - Saturating_Multiply (Content_X, 2)
          else Width);
       View_W         : constant Natural := Natural'Min (Content_W, Preferred_View);
-      Remaining      : constant Natural := Content_W - View_W;
+      After_View     : constant Natural := Content_W - View_W;
+      Sort_W         : constant Natural := (if After_View >= Preferred_Sort then Preferred_Sort else 0);
+      Remaining      : constant Natural := After_View - Sort_W;
       Toggle_W       : constant Natural := Natural'Min (Remaining, Toggle_Wanted);
       Info_W         : constant Natural := Remaining - Toggle_W;
       Small_W        : constant Natural := Natural'Min (Small_Needed, View_W);
@@ -196,8 +226,9 @@ package body Files.UI is
       Details_W      : constant Natural := View_W - Small_W - Large_W;
       Large_X        : constant Natural := Content_X + Small_W;
       Details_X      : constant Natural := Content_X + Small_W + Large_W;
-      Info_X         : constant Natural := Content_X + View_W;
-      Toggle_X       : constant Natural := Content_X + View_W + Info_W;
+      Sort_X         : constant Natural := Content_X + View_W;
+      Info_X         : constant Natural := Content_X + View_W + Sort_W;
+      Toggle_X       : constant Natural := Content_X + View_W + Sort_W + Info_W;
    begin
       return
         (View_Mode_X          => Content_X,
@@ -208,6 +239,8 @@ package body Files.UI is
          Large_Button_Width   => Large_W,
          Details_Button_X     => Details_X,
          Details_Button_Width => Details_W,
+         Sort_Button_X        => Sort_X,
+         Sort_Button_Width    => Sort_W,
          Info_X               => Info_X,
          Info_Width           => Info_W,
          Info_Pane_X          => Toggle_X,
@@ -221,7 +254,7 @@ package body Files.UI is
       return Settings_Entry_Button_Layout
    is
       Cell_W         : constant Natural := Natural'Max (1, Line_Height / 2);
-      Edge_Padding   : constant Natural := Input_Field_Padding;
+      Edge_Padding   : constant Natural := Settings_Pane_Padding;
       Button_Gap     : constant Natural := 4;
       Minimum_Button : constant Natural := 34;
       Add_Wanted     : constant Natural :=
@@ -307,16 +340,27 @@ package body Files.UI is
       Line_Height    : Positive := 20)
       return Settings_Pane_Layout
    is
-      Wanted_W : constant Natural := Natural'Max (240, Scaled_Down (Width, 2, 5));
+      Wanted_W : constant Natural := Natural'Max (440, Scaled_Down (Width, 4, 5));
       Pane_W : constant Natural := Natural'Min (Width, Wanted_W);
-      Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);
+      Content_H : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Line_Height, 22),
+           Saturating_Multiply (Settings_Row_Gap, 21));
+      Pane_H : constant Natural :=
+        Natural'Max
+          (Saturating_Add (Content_H, Saturating_Multiply (Settings_Pane_Padding, 2)),
+           Height / 3);
       Pane_X : constant Natural := (if Width > Pane_W then (Width - Pane_W) / 2 else 0);
       Pane_Y : constant Natural :=
         (if Height > Pane_H
          then Natural'Max (Saturating_Add (Toolbar_Height, 8), Height / 6)
          else Toolbar_Height);
-      Text_X : constant Natural := Saturating_Add (Pane_X, 8);
-      Text_W : constant Natural := (if Pane_W > 16 then Pane_W - 16 else 0);
+      Text_X : constant Natural := Saturating_Add (Pane_X, Settings_Pane_Padding);
+      Text_Y : constant Natural := Saturating_Add (Pane_Y, Settings_Pane_Padding);
+      Text_W : constant Natural :=
+        (if Pane_W > Saturating_Multiply (Settings_Pane_Padding, 2)
+         then Pane_W - Saturating_Multiply (Settings_Pane_Padding, 2)
+         else 0);
    begin
       return
         (X          => Pane_X,
@@ -324,6 +368,7 @@ package body Files.UI is
          Width      => Pane_W,
          Height     => Pane_H,
          Text_X     => Text_X,
+         Text_Y     => Text_Y,
          Text_Width => Text_W);
    end Calculate_Settings_Pane_Layout;
 
@@ -403,11 +448,60 @@ package body Files.UI is
          return Files.Commands.Select_Large_Icons_Command;
       elsif Within (X, Bottom.Details_Button_X, Bottom.Details_Button_Width) then
          return Files.Commands.Select_Details_Command;
+      elsif Within (X, Bottom.Sort_Button_X, Bottom.Sort_Button_Width) then
+         return Files.Commands.Toggle_Sort_Menu_Command;
       elsif Within (X, Bottom.Info_Pane_X, Bottom.Info_Pane_Width) then
          return Files.Commands.Toggle_Info_Pane_Command;
       else
          return Files.Commands.No_Command;
       end if;
    end Bottom_Bar_Command_At;
+
+   function Bottom_Bar_Sort_Menu_Command_At
+     (X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive := 20)
+      return Files.Commands.Command_Id
+   is
+      Bottom       : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Line_Height);
+      Row_Count    : constant Natural := 5;
+      Row_H        : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Menu_H       : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
+      Bottom_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Bottom_Y     : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
+      Menu_Y       : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
+      Rows_Y       : constant Natural := Saturating_Add (Menu_Y, Sort_Menu_Padding);
+      Relative_Row : Natural := 0;
+   begin
+      if Bottom.Sort_Button_Width = 0
+        or else X < Bottom.Sort_Button_X
+        or else X >= Saturating_Add (Bottom.Sort_Button_X, Bottom.Sort_Button_Width)
+        or else Y < Rows_Y
+        or else Y >= Saturating_Add (Rows_Y, Saturating_Multiply (Row_H, Row_Count))
+        or else Row_H = 0
+      then
+         return Files.Commands.No_Command;
+      end if;
+
+      Relative_Row := (Y - Rows_Y) / Row_H;
+      case Relative_Row is
+         when 0 =>
+            return Files.Commands.Sort_By_Name_Command;
+         when 1 =>
+            return Files.Commands.Sort_By_Size_Command;
+         when 2 =>
+            return Files.Commands.Sort_By_Type_Command;
+         when 3 =>
+            return Files.Commands.Sort_By_Created_Command;
+         when 4 =>
+            return Files.Commands.Sort_By_Changed_Command;
+         when others =>
+            return Files.Commands.No_Command;
+      end case;
+   end Bottom_Bar_Sort_Menu_Command_At;
 
 end Files.UI;

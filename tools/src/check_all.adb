@@ -143,6 +143,19 @@ procedure Check_All is
          raise;
    end Run_And_Require_Output;
 
+   procedure Check_CLDR_Importer is
+   begin
+      Run_And_Require_Output
+        (Label           => "CLDR catalog importer fixture",
+         Dir             => Root,
+         Program         => Root & "/tools/bin/cldr_to_catalog",
+         Args            =>
+           [1 => new String'(Root & "/tools/testdata/cldr/main/zz.xml")],
+         Output_Path     => "/tmp/files_cldr_to_catalog_fixture.out",
+         Required_First  => "zz-ZZ.time.locale.datetime_pattern = %d %b %Y at %H.%M.%S",
+         Required_Second => "zz-ZZ.details.size.unit.mib = zmb");
+   end Check_CLDR_Importer;
+
    procedure Check_Line_Lengths_In_File (Path : String) is
       Content : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
       Line    : Natural := 1;
@@ -1359,7 +1372,6 @@ procedure Check_All is
         or else Literal = "DeletionDate="
         or else Literal = "default_view_mode = "
         or else Literal = "show_hidden_files = "
-        or else Literal = "sort_directories_first = "
         or else Literal = "sort_field = "
         or else Literal = "sort_ascending = "
         or else Literal = "high_contrast_theme = "
@@ -1613,6 +1625,7 @@ procedure Check_All is
          return
            (Char >= 'a' and then Char <= 'z')
            or else (Char >= 'A' and then Char <= 'Z')
+           or else (Char >= '0' and then Char <= '9')
            or else Char = '_'
            or else Char = '-';
       end Is_Locale_Character;
@@ -1836,6 +1849,10 @@ procedure Check_All is
          "localization catalog must include directory empty-state text");
       Project_Tools.Files.Require_Contains
         (Catalog,
+         "en.filter.placeholder = find",
+         "localization catalog must include filter placeholder text");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
          "en.status.items = ",
          "localization catalog must include item-count status labels");
       Project_Tools.Files.Require_Contains
@@ -1866,6 +1883,18 @@ procedure Check_All is
         (Catalog,
          "en.details.size.unit.bytes = ",
          "localization catalog must include details-view size units");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.details.size.unit.kib = ",
+         "localization catalog must include scaled KB details-view size unit");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.details.size.unit.mib = ",
+         "localization catalog must include scaled MB details-view size unit");
+      Project_Tools.Files.Require_Contains
+        (Catalog,
+         "en.details.size.unit.gib = ",
+         "localization catalog must include scaled GB details-view size unit");
       Project_Tools.Files.Require_Contains
         (Catalog,
          "en.settings.title = ",
@@ -2277,7 +2306,6 @@ procedure Check_All is
         (Check_Source,
          "or else Literal = ""default_view_mode = """ & ASCII.LF
          & "        or else Literal = ""show_hidden_files = """ & ASCII.LF
-         & "        or else Literal = ""sort_directories_first = """ & ASCII.LF
          & "        or else Literal = ""sort_field = """ & ASCII.LF
          & "        or else Literal = ""sort_ascending = """ & ASCII.LF
          & "        or else Literal = ""high_contrast_theme = """ & ASCII.LF
@@ -2360,8 +2388,28 @@ procedure Check_All is
          "localization tests must cover help-flag CLI text");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
-         "missing locale falls back through default locale",
-         "localization tests must cover missing-locale fallback");
+         "detected Danish locale loads translated app catalog resources",
+         "localization tests must cover translated locale resource loading");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/platform/windows/files-platform-windows.adb",
+         "GetUserDefaultLocaleName",
+         "Windows locale detection must use the native user-default locale API");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/platform/macos/files-platform-macos.adb",
+         "CFLocaleCopyCurrent",
+         "macOS locale detection must use the native CoreFoundation locale API");
+      Project_Tools.Files.Require_Contains
+        (Root & "/files.gpr",
+         """-framework"", ""CoreFoundation""",
+         "macOS locale detection must link CoreFoundation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "Windows native locale detection binds GetUserDefaultLocaleName",
+         "locale tests must cover Windows native locale binding");
+      Project_Tools.Files.Require_Contains
+        (Root & "/tests/tests/src/files_suite.adb",
+         "macOS native locale detection binds CoreFoundation locale APIs",
+         "locale tests must cover macOS native locale binding");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
          "unknown localization key falls back to key text",
@@ -4020,11 +4068,11 @@ procedure Check_All is
          "settings editor result reporting must not rely only on mapping lengths and indexes");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
-         "or else Field > 13",
+         "or else Field > 12",
          "settings click handling must reject out-of-range field identifiers before model clamping");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
-         "return Field in 8 | 10 | 12;",
+         "return Field in 7 | 9 | 11;",
          "settings click add/remove actions must only accept rendered mapping button fields");
       Project_Tools.Files.Require_Contains
         (Tests,
@@ -5174,10 +5222,11 @@ procedure Check_All is
         (File_System_Body,
          "Item.Error_Key := To_Unbounded_String (""error.metadata.read"");",
          "directory loading must report partial metadata errors with localized keys");
-      Project_Tools.Files.Require_Contains
-        (File_System_Body,
-         "if Settings.Sort_Directories_First and then Is_Directory (Left) /= Is_Directory (Right) then",
-         "directory loading must group directories before non-directories when configured");
+      if Contains (File_System_Body, "Sort_Directories_First") then
+         Put_Line ("directory loading must not group directories separately from files");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
       Project_Tools.Files.Require_Contains
         (File_System_Body,
          "return Field_Less (Left, Right, Settings);",
@@ -5204,8 +5253,8 @@ procedure Check_All is
          "directory loading tests must cover configured item projection");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "directories sort before files",
-         "directory loading tests must cover directory grouping");
+         "directory items sort by name with files",
+         "directory loading tests must cover non-grouped directory ordering");
       Project_Tools.Files.Require_Contains
         (Tests,
          "case-insensitive equal names use deterministic fallback order",
@@ -5236,16 +5285,16 @@ procedure Check_All is
          "directory loading tests must cover hidden-directory visibility settings");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "hidden directories group with directories",
-         "directory loading tests must keep hidden directories in directory groups");
+         "hidden directories sort by name with files",
+         "directory loading tests must keep hidden directories in normal name ordering");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "visible directories stay in grouped name order",
-         "directory loading tests must keep visible directory ordering deterministic with hidden directories");
+         "hidden files remain in deterministic order",
+         "directory loading tests must keep hidden file ordering deterministic");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "hidden files follow grouped directories",
-         "directory loading tests must keep hidden files after grouped directories");
+         "hidden files sort by name with other items",
+         "directory loading tests must keep hidden files in normal name ordering");
       Project_Tools.Files.Require_Contains
         (Tests,
          "ascending size ties use name fallback",
@@ -6785,8 +6834,9 @@ procedure Check_All is
          "click command translation must preserve activation through centralized command actions");
       Project_Tools.Files.Require_Contains
         (Events_Body,
-         "if Modifiers = Files.Types.No_Modifiers then",
-         "arrow-key selection movement must only use unmodified arrow keys");
+         "or else" & ASCII.LF
+         & "          (Modifiers (Files.Types.Shift_Key)",
+         "arrow-key selection movement must allow Shift range selection");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "function Selection_Action",
@@ -6798,23 +6848,35 @@ procedure Check_All is
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "when Files.Types.Key_Left =>" & ASCII.LF
-         & "               return Selection_Action (Files.Types.Move_Left);",
+         & "               return" & ASCII.LF
+         & "                 (Kind            => Selection_Input_Action," & ASCII.LF
+         & "                  Direction       => Files.Types.Move_Left,",
          "left-arrow event translation must preserve left movement");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "when Files.Types.Key_Right =>" & ASCII.LF
-         & "               return Selection_Action (Files.Types.Move_Right);",
+         & "               return" & ASCII.LF
+         & "                 (Kind            => Selection_Input_Action," & ASCII.LF
+         & "                  Direction       => Files.Types.Move_Right,",
          "right-arrow event translation must preserve right movement");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "when Files.Types.Key_Up =>" & ASCII.LF
-         & "               return Selection_Action (Files.Types.Move_Up);",
+         & "               return" & ASCII.LF
+         & "                 (Kind            => Selection_Input_Action," & ASCII.LF
+         & "                  Direction       => Files.Types.Move_Up,",
          "up-arrow event translation must preserve upward movement");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "when Files.Types.Key_Down =>" & ASCII.LF
-         & "               return Selection_Action (Files.Types.Move_Down);",
+         & "               return" & ASCII.LF
+         & "                 (Kind            => Selection_Input_Action," & ASCII.LF
+         & "                  Direction       => Files.Types.Move_Down,",
          "down-arrow event translation must preserve downward movement");
+      Project_Tools.Files.Require_Contains
+        (Events_Body,
+         "Range_Selection => Modifiers (Files.Types.Shift_Key)",
+         "arrow-key event translation must request Shift range selection");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "Toggle_Selection => Modifiers (Files.Types.Control_Key)",
@@ -6923,6 +6985,10 @@ procedure Check_All is
         (Tests,
          "left arrow maps to left selection movement",
          "event translation must cover arrow-key selection movement");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "shift-down requests range selection",
+         "event translation tests must cover Shift-arrow range selection");
       Project_Tools.Files.Require_Contains
         (Tests,
          "control-click item action requests selection toggle",
@@ -7138,7 +7204,7 @@ procedure Check_All is
          "event tests must cover narrow settings pane hit-test clamping");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-ui.adb",
-         "Pane_H : constant Natural := Natural'Max (Saturating_Multiply (Line_Height, 23), Height / 3);",
+         "Saturating_Add (Content_H, Saturating_Multiply (Settings_Pane_Padding, 2))",
          "shared settings modal layout must use saturating pane height calculations");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-ui.adb",
@@ -7687,8 +7753,8 @@ procedure Check_All is
          "UI tests must cover inert bottom-bar information area");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "bottom-bar hit test maps details-info separator to inert information section",
-         "UI tests must cover bottom-bar details-info separator ownership");
+         "bottom-bar hit test maps details-info separator ownership through sort button",
+         "UI tests must cover bottom-bar details-sort separator ownership");
       Project_Tools.Files.Require_Contains
         (Tests,
          "bottom-bar hit test ignores coordinates above bottom bar",
@@ -7747,8 +7813,8 @@ procedure Check_All is
          "command-palette selection reconciliation must clamp missing or stale selections");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
-         "Visible_Rows : constant Natural := 5;",
-         "command-palette selection offset logic must use a stable visible-row page size");
+         "Visible_Rows : constant Natural := 4;",
+         "command-palette selection offset logic must use a complete-row page size");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
          "elsif Offset > Count - Visible_Rows then" & ASCII.LF
@@ -7764,8 +7830,8 @@ procedure Check_All is
          "controller must keep command-palette page movement explicit");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
-         "Step    : constant Natural := 5;",
-         "command-palette page movement must match the visible-row page size");
+         "Step    : constant Natural := 4;",
+         "command-palette page movement must match the complete-row page size");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
          "procedure Jump_Palette_Selection",
@@ -8825,6 +8891,7 @@ procedure Check_All is
           To_Unbounded_String (Tools_Manifest),
           To_Unbounded_String (Tools_Project),
           To_Unbounded_String (Root & "/tools/src/check_all.adb"),
+          To_Unbounded_String (Root & "/tools/src/cldr_to_catalog.adb"),
           To_Unbounded_String (Main_Ignore),
           To_Unbounded_String (Top_Tests_Ignore),
           To_Unbounded_String (Tests_Ignore),
@@ -9040,8 +9107,8 @@ procedure Check_All is
          "checker tooling must be a named Alire crate");
       Project_Tools.Files.Require_Contains
         (Tools_Manifest,
-         "executables = [""check_all""]",
-         "checker tooling crate must build the check_all executable");
+         "executables = [""check_all"", ""cldr_to_catalog""]",
+         "checker tooling crate must build all Ada helper executables");
       Project_Tools.Files.Require_Contains
         (Tools_Manifest,
          "project_tools = ""*""",
@@ -9052,12 +9119,16 @@ procedure Check_All is
          "checker tooling must pin project_tools to the local relative crate");
       Project_Tools.Files.Require_Contains
         (Tools_Project,
-         "for Main use (""check_all.adb"");",
-         "checker tooling project must build the Ada checker main");
+         "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"");",
+         "checker tooling project must build Ada tool mains");
       Project_Tools.Files.Require_Contains
         (Tools_Project,
          "for Executable (""check_all.adb"") use ""check_all"";",
          "checker tooling project must produce the expected checker executable");
+      Project_Tools.Files.Require_Contains
+        (Tools_Project,
+         "for Executable (""cldr_to_catalog.adb"") use ""cldr_to_catalog"";",
+         "checker tooling project must produce the CLDR importer executable");
       Project_Tools.Files.Require_Contains
         (Tools_Project,
          """-gnat2022""",
@@ -10680,16 +10751,16 @@ procedure Check_All is
          "rendering spec must expose pure info-pane layout calculation");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Info_Rows_Per_Item : constant Natural := 27;",
-         "info-pane rendering must reserve rows for all required selected-file metadata");
+         "function Info_Section_Row_Count",
+         "info-pane rendering must measure rows for wrapped selected-file metadata");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Content_H     : constant Natural :=",
          "info-pane layout must compute overflow from selected-item metadata sections");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Saturating_Multiply (Natural (Snapshot.Selected_Info.Length), Info_Rows_Per_Item)",
-         "info-pane content height must scale by selected-file section count");
+         "Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height)",
+         "info-pane content height must scale by wrapped metadata value rows");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Saturating_Multiply (Value / Denominator, Numerator)",
@@ -10806,6 +10877,18 @@ procedure Check_All is
         (Rendering_Body,
          "Item_Content_Padding : constant Natural := 4;",
          "main-view item content must keep padding inside hover and selection blocks");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Command_Palette_Padding : constant Natural := 8;",
+         "command palette must keep content padding inside the panel");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Command_Result_Row_Padding : constant Natural := 4;",
+         "command palette result rows must keep vertical padding");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Command_Palette_Scrollbar_Gap : constant Natural := 8;",
+         "command palette content must leave horizontal padding before the scrollbar");
       Require_Not_Contains
         (Rendering_Body,
          "Item_State_Inset",
@@ -10824,12 +10907,48 @@ procedure Check_All is
          "rendering tests must cover vertical item hover-box padding");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "large-icons item name has padding below the icon",
+         "rendering tests must cover large-icon label padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "frame renders opaque command-palette panel",
          "rendering tests must cover opaque command-palette panel rendering");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "palette results follow padded search input with a gap",
+         "rendering tests must cover command-palette panel padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "palette result row includes vertical padding",
+         "rendering tests must cover command-palette result row padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame keeps command-palette text out of scrollbar gutter",
+         "rendering tests must cover command-palette scrollbar gutter padding");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "frame renders command-palette rows opaque",
          "rendering tests must reject transparent command-palette rows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "frame hides file item text behind command palette",
+         "rendering tests must reject file item text leaking through the command palette");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Drawing_Command_Palette : Boolean := False;",
+         "normal text rendering must distinguish command-palette text from occluded background text");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "and then not Drawing_Command_Palette",
+         "normal text rendering must suppress background text under the command palette");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details frame redraws column separators after alternating row fills",
+         "rendering tests must cover details column separators over alternating rows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details frame stops column separators at last visible row",
+         "rendering tests must cover details column separator height");
       Project_Tools.Files.Require_Contains
         (Tests,
          "frame renders drive chooser toolbar hamburger top bar",
@@ -10868,7 +10987,7 @@ procedure Check_All is
          "rendering tests must reject x-shaped move-to-trash toolbar icons");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Saturating_Add (Row.X, Row.Width - Shortcut_Width - 4)",
+         "Saturating_Add (Row_Text_X, Row_Text_W - Shortcut_Width)",
          "command-palette shortcut placement must keep right-aligned text coordinates overflow-safe");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
@@ -11047,21 +11166,19 @@ procedure Check_All is
          "snapshot construction must expose theme focus-ring color");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Visible_Rows : constant Natural := Visible_Row_Count (Layout.Results_Height, Layout.Row_Height);",
-         "command-palette result layout must derive visible rows from clipped result height");
+         "Visible_Rows : constant Natural := Complete_Visible_Row_Count (Layout.Results_Height, Layout.Row_Height);",
+         "command-palette result layout must use only complete visible result rows");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Offset       : constant Natural := Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset);",
          "command-palette result layout must clamp stale offsets to the last visible page");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Row_H     : constant Natural := Natural'Min (Layout.Row_Height, Remaining);",
-         "command-palette result layout must clip partial final rows");
+         "exit when Remaining < Layout.Row_Height;",
+         "command-palette result layout must not emit partial final rows");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Add_Info_Value" & ASCII.LF
-         & "                    (2," & ASCII.LF
-         & "                     To_Unbounded_String (Files.Localization.Text (""status.missing_metadata""))",
+         "Info_Field_Value (Info, 2)",
          "info-pane rendering must use localized fallback text for missing sizes");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
@@ -11077,11 +11194,15 @@ procedure Check_All is
          "details view must render missing file sizes as blank text");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Files.Localization.Text (""details.size.unit.bytes"")",
-         "details view must render file sizes with a localized byte unit");
+         "Scaled_Number & "" "" & Files.Localization.Text (Unit_Key, Locale)",
+         "details view must render file sizes with localized scaled units");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Add_Info_Value (3, Metadata_Value (Info.Creation_Available, Info.Creation_Time), Muted_Text_Color);",
+         "Files.Localization.System_Number_Locale",
+         "details view must use the detected numeric locale for size formatting");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Info_Metadata_Text (Info.Creation_Available, Info.Creation_Time)",
          "info-pane rendering must localize missing creation timestamps");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
@@ -11407,6 +11528,14 @@ procedure Check_All is
          "rendering tests must cover empty-filter panel geometry");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "empty filter input renders localized placeholder text",
+         "rendering tests must cover the localized filter placeholder");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "filter placeholder uses a real ellipsis",
+         "rendering tests must reject three-dot filter placeholder text");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "info pane frame includes localized name row",
          "rendering tests must cover info-pane name rows");
       Project_Tools.Files.Require_Contains
@@ -11445,6 +11574,18 @@ procedure Check_All is
         (Root & "/src/files-rendering.adb",
          "function Fitted_Text_For",
          "rendering fitted text must centralize UTF-8 display-unit truncation");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "Ellipsis_Text : constant String :=",
+         "rendering fitted text must use a real ellipsis character");
+      Require_Not_Contains
+        (Root & "/src/files-rendering.adb",
+         "Prefix & ""...""",
+         "rendering fitted text must not append three ASCII dots");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering.adb",
+         "Was_Truncated : constant Boolean := Fit and then To_String (Fitted) /= Raw;",
+         "rendering fitted text must detect truncation by content, not byte length");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-rendering.adb",
          "Files.UTF8.Prefix_By_Units",
@@ -11688,7 +11829,7 @@ procedure Check_All is
          "rendering tests must cover wide UTF-8 fitted text truncation");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "frame keeps a prefix when a visible ellipsis would hide all useful text",
+         "frame keeps a useful prefix before the ellipsis",
          "rendering tests must cover exact-width ellipsis fitting");
       Project_Tools.Files.Require_Contains
         (Tests,
@@ -11792,6 +11933,14 @@ procedure Check_All is
          "rendering tests must cover vertical section spacing for selected files");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "info pane wraps long data rows without abbreviation",
+         "rendering tests must cover wrapped info-pane data rows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "info pane continues wrapped data on the next row",
+         "rendering tests must cover multi-row info-pane data values");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "overflow info pane exposes scrollbar",
          "rendering tests must cover overflowing info-pane scrollbar visibility");
       Project_Tools.Files.Require_Contains
@@ -11808,8 +11957,12 @@ procedure Check_All is
          "rendering tests must build frame commands from immutable snapshots");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "palette layout clips final partial row height",
-         "rendering tests must cover clipped command-palette result rows");
+         "partial palette result area emits no clipped row",
+         "rendering tests must reject clipped command-palette result rows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "palette layout only includes complete visible rows",
+         "rendering tests must cover complete command-palette result rows");
       Project_Tools.Files.Require_Contains
         (Tests,
          "empty details frame includes header band",
@@ -11820,12 +11973,44 @@ procedure Check_All is
          "rendering tests must cover empty details column separators");
       Project_Tools.Files.Require_Contains
         (Tests,
+         "Command.Height = Empty_Header_H",
+         "rendering tests must ensure empty details separators stop at the header");
+      Project_Tools.Files.Require_Contains
+        (Tests,
          "details rows advance by padded row height",
          "rendering tests must cover padded details row spacing");
       Project_Tools.Files.Require_Contains
         (Tests,
          "details row height leaves a separator gap",
          "rendering tests must cover details row gap geometry");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details frame renders folder icon asset",
+         "rendering tests must cover folder asset icons in details view");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "details frame does not render folder as a plain square",
+         "rendering tests must reject plain-square folder icons in details view");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Add_Icon (Item, X, Y, Size);",
+         "details view icons must use the shared asset-aware icon renderer");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "partially scrolled details icon does not shrink",
+         "rendering tests must reject shrinking icons on partially scrolled rows");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "next complete details row keeps stable icon size while scrolling",
+         "rendering tests must cover stable icon size during main-view scrolling");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Hidden_Px = 0 and then Rows_H >= Saturating_Add (Visible_Row, Row_Step)",
+         "details layout must only render complete rows so icons do not shrink while scrolling");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Hidden_Px = 0 and then Content_H >= Saturating_Add (Visible_Row, Cell_H)",
+         "grid layout must only render complete cells so icons do not shrink while scrolling");
       Project_Tools.Files.Require_Contains
         (Tests,
          "details frame leaves missing size blank",
@@ -11862,6 +12047,14 @@ procedure Check_All is
         (Tests,
          "partial details main height is represented",
          "rendering tests must cover partial details viewport heights");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "partial details row does not draw metadata columns under bottom bar",
+         "rendering tests must cover clipped details metadata columns");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "if Snapshot.View_Mode = Files.Types.Details and then Item_Rect.Height > 0 then",
+         "details metadata columns must not render for clipped-out rows");
       Project_Tools.Files.Require_Contains
         (Tests,
          "frame commands preserve layout metrics",
@@ -13188,12 +13381,12 @@ procedure Check_All is
          "files application icon must retain the blue folder body");
       Project_Tools.Files.Require_Contains
         (Root & "/share/icons/hicolor/scalable/apps/files.svg",
-         "fill=""#f2c14e""",
-         "files application icon must retain the folder tab accent");
+         "fill=""#62b7f0""",
+         "files application icon must retain the blue folder tab accent");
       Project_Tools.Files.Require_Contains
         (Root & "/share/icons/hicolor/scalable/apps/files.svg",
-         "stroke=""#f7fbff""",
-         "files application icon must retain visible file-row strokes");
+         "stroke=""#b9e2ff""",
+         "files application icon must retain visible blue folder highlight strokes");
       Project_Tools.Files.Require_Contains
         (Root & "/share/metainfo/dk.bracke.files.metainfo.xml",
          "<?xml version=""1.0"" encoding=""UTF-8""?>",
@@ -13399,12 +13592,12 @@ procedure Check_All is
          "files staged application icon must preserve the folder body");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/icons/hicolor/scalable/apps/files.svg",
-         "fill=""#f2c14e""",
-         "files staged application icon must preserve the folder tab accent");
+         "fill=""#62b7f0""",
+         "files staged application icon must preserve the blue folder tab accent");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/icons/hicolor/scalable/apps/files.svg",
-         "stroke=""#f7fbff""",
-         "files staged application icon must preserve file-row strokes");
+         "stroke=""#b9e2ff""",
+         "files staged application icon must preserve blue folder highlight strokes");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/metainfo/dk.bracke.files.metainfo.xml",
          "<?xml version=""1.0"" encoding=""UTF-8""?>",
@@ -13497,6 +13690,7 @@ begin
    Check_Platform_Bodies;
    Check_Platform_Dialog_Contract;
    Check_Packaging_Metadata;
+   Check_CLDR_Importer;
    Run ("files build", Root, Alr, [1 => new String'("build")]);
    Check_Executable_CLI_Help;
    Check_Desktop_Runtime_Contract;

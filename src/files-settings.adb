@@ -950,21 +950,6 @@ package body Files.Settings is
                                     Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                               end if;
                            end;
-                        elsif Setting_Key = "sort_directories_first" then
-                           declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
-                           begin
-                              if Boolean_Value = "true" then
-                                 Settings.Sort_Directories_First := True;
-                              elsif Boolean_Value = "false" then
-                                 Settings.Sort_Directories_First := False;
-                              else
-                                 return
-                                   (Success   => False,
-                                    Settings  => Settings,
-                                    Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
-                              end if;
-                           end;
                         elsif Setting_Key = "sort_field" then
                            declare
                               Field : constant String := Files.Types.To_Lower (Value);
@@ -1203,7 +1188,6 @@ package body Files.Settings is
       Append_Line ("[settings]");
       Append_Line ("default_view_mode = " & View_Mode_Name (Settings.Default_View));
       Append_Line ("show_hidden_files = " & Boolean_Name (Settings.Show_Hidden_Files));
-      Append_Line ("sort_directories_first = " & Boolean_Name (Settings.Sort_Directories_First));
       Append_Line ("sort_field = " & Sort_Field_Name (Settings.Sort_Field_Value));
       Append_Line ("sort_ascending = " & Boolean_Name (Settings.Sort_Ascending));
       Append_Line ("high_contrast_theme = " & Boolean_Name (Settings.High_Contrast_Theme));
@@ -1320,7 +1304,6 @@ package body Files.Settings is
       return
         (Default_View_Mode      => To_Unbounded_String (View_Mode_Name (Settings.Default_View)),
          Show_Hidden_Files      => To_Unbounded_String (Boolean_Name (Settings.Show_Hidden_Files)),
-         Sort_Directories_First => To_Unbounded_String (Boolean_Name (Settings.Sort_Directories_First)),
          Sort_Field_Value       => To_Unbounded_String (Sort_Field_Name (Settings.Sort_Field_Value)),
          Sort_Ascending         => To_Unbounded_String (Boolean_Name (Settings.Sort_Ascending)),
          High_Contrast_Theme    => To_Unbounded_String (Boolean_Name (Settings.High_Contrast_Theme)),
@@ -1539,7 +1522,6 @@ package body Files.Settings is
       Append_Line ("[settings]");
       Append_Line ("default_view_mode = " & To_String (Draft.Default_View_Mode));
       Append_Line ("show_hidden_files = " & To_String (Draft.Show_Hidden_Files));
-      Append_Line ("sort_directories_first = " & To_String (Draft.Sort_Directories_First));
       Append_Line ("sort_field = " & To_String (Draft.Sort_Field_Value));
       Append_Line ("sort_ascending = " & To_String (Draft.Sort_Ascending));
       Append_Line ("high_contrast_theme = " & To_String (Draft.High_Contrast_Theme));
@@ -1622,15 +1604,15 @@ package body Files.Settings is
          case Field is
             when 1 =>
                return "error.settings.invalid_view_mode";
-            when 2 | 3 | 5 | 6 =>
+            when 2 | 4 | 5 =>
                return "error.settings.invalid_boolean";
-            when 4 =>
+            when 3 =>
                return "error.settings.invalid_sort_field";
-            when 7 =>
+            when 6 =>
                return "error.settings.invalid_icon_theme";
-            when 8 .. 11 =>
+            when 7 .. 10 =>
                return "error.settings.invalid_mapping";
-            when 12 | 13 =>
+            when 11 | 12 =>
                return "error.settings.invalid_open_action";
             when others =>
                return "error.settings.invalid";
@@ -1652,7 +1634,7 @@ package body Files.Settings is
                end if;
                return "error.settings.invalid_view_mode";
             end;
-         when 2 | 3 | 5 | 6 =>
+         when 2 | 4 | 5 =>
             declare
                Value : constant String := Files.Types.To_Lower (Clean);
             begin
@@ -1661,7 +1643,7 @@ package body Files.Settings is
                end if;
                return "error.settings.invalid_boolean";
             end;
-         when 4 =>
+         when 3 =>
             declare
                Value : constant String := Files.Types.To_Lower (Clean);
             begin
@@ -1670,19 +1652,19 @@ package body Files.Settings is
                end if;
                return "error.settings.invalid_sort_field";
             end;
-         when 7 =>
+         when 6 =>
             return (if Icon_Theme_Name_Is_Valid (Clean) then "" else "error.settings.invalid_icon_theme");
-         when 8 =>
+         when 7 =>
             declare
                Key : constant String := Normalize_Extension (Clean);
             begin
                return (if not Mapping_Key_Is_Valid (Key) then "error.settings.invalid_mapping" else "");
             end;
-         when 9 | 11 =>
+         when 8 | 10 =>
             return (if Clean = "" then "error.settings.invalid_mapping" else "");
-         when 10 =>
+         when 9 =>
             return (if not Mapping_Key_Is_Valid (Clean) then "error.settings.invalid_mapping" else "");
-         when 12 =>
+         when 11 =>
             declare
                Key  : constant String := Normalize_Action_Token (Clean);
                Plus : constant Natural := Modifier_Suffix_Start (Key);
@@ -1697,7 +1679,7 @@ package body Files.Settings is
                end if;
                return "";
             end;
-         when 13 =>
+         when 12 =>
             declare
                Action : constant Open_Action := Parse_Action (Clean);
             begin
@@ -1759,7 +1741,6 @@ package body Files.Settings is
 
       Result.Default_View := Parsed.Settings.Default_View;
       Result.Show_Hidden_Files := Parsed.Settings.Show_Hidden_Files;
-      Result.Sort_Directories_First := Parsed.Settings.Sort_Directories_First;
       Result.Sort_Field_Value := Parsed.Settings.Sort_Field_Value;
       Result.Sort_Ascending := Parsed.Settings.Sort_Ascending;
       Result.High_Contrast_Theme := Parsed.Settings.High_Contrast_Theme;

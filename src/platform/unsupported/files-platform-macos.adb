@@ -22,6 +22,11 @@ package body Files.Platform.Macos is
          Volume_Can_Query      => Files.Platform.Macos.Volumes.Can_Query);
    end API_Profile;
 
+   function Native_Locale return String is
+   begin
+      return "";
+   end Native_Locale;
+
    function Evaluate_Trash
      (Request : Files.File_System.Native_Trash_Request)
       return Files.File_System.Native_Trash_Result

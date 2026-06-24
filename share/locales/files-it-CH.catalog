@@ -1,0 +1,4 @@
+it-CH.time.format.clock = %H:%M:%S
+it-CH.time.locale.date_pattern = %d-%b-%Y
+it-CH.number.decimal = .
+it-CH.number.group = '

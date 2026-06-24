@@ -7,6 +7,11 @@ package Files.Platform.Macos is
    --  @return macOS trash and volume binding profile.
    function API_Profile return Files.File_System.Native_Platform_API_Profile;
 
+   --  Return the macOS current locale identifier.
+   --
+   --  @return Locale identifier from CoreFoundation, or an empty string.
+   function Native_Locale return String;
+
    --  Evaluate whether Request can be handled by the macOS trash binding.
    --
    --  @param Request Native trash request to evaluate.

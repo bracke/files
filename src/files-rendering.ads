@@ -97,6 +97,9 @@ package Files.Rendering is
    type View_Snapshot is record
       Current_Path         : UString;
       View_Mode            : Files.Types.View_Mode := Files.Types.Small_Icons;
+      Sort_Field           : Files.Model.Sort_Field := Files.Model.Sort_Name;
+      Sort_Ascending       : Boolean := True;
+      Sort_Menu_Open       : Boolean := False;
       Item_Count           : Natural := 0;
       Visible_Count        : Natural := 0;
       Selected_Count        : Natural := 0;
@@ -119,8 +122,6 @@ package Files.Rendering is
       Settings_Hidden_Files_Token : UString;
       Settings_Sort               : UString;
       Settings_Sort_Field_Token   : UString;
-      Settings_Sort_Dirs          : UString;
-      Settings_Sort_Dirs_Token    : UString;
       Settings_Sort_Ascending       : UString;
       Settings_Sort_Ascending_Token : UString;
       Settings_High_Contrast        : UString;
@@ -206,6 +207,7 @@ package Files.Rendering is
       Element_Type => Item_Layout);
 
    type Main_View_Layout is record
+      Columns           : Positive := 1;
       Content_Height    : Natural := 0;
       Scroll_Lines      : Natural := 0;
       Scroll_Pixels     : Natural := 0;
@@ -645,6 +647,22 @@ package Files.Rendering is
       X     : Natural;
       Y     : Natural)
       return Natural;
+
+   --  Return the sort command for a details header click.
+   --
+   --  @param Snapshot Immutable view snapshot.
+   --  @param Layout Calculated frame layout.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Sort command for the clicked details header column, or No_Command.
+   function Details_Header_Command_At
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Files.Commands.Command_Id;
 
    --  Calculate command-palette search and result-section rectangles.
    --

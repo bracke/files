@@ -8,6 +8,13 @@ with Files.Types;
 package Files.Model is
    subtype UString is Files.Types.UString;
 
+   type Sort_Field is
+     (Sort_Name,
+      Sort_Size,
+      Sort_Type,
+      Sort_Created,
+      Sort_Changed);
+
    type Window_Model is private;
 
    --  Initialize a window model for a loaded directory.
@@ -71,6 +78,53 @@ package Files.Model is
    procedure Set_View_Mode
      (Model : in out Window_Model;
       Mode  : Files.Types.View_Mode);
+
+   --  Return the active item sort field.
+   --
+   --  @param Model Model to inspect.
+   --  @return Active sort field.
+   function Sort_Field_Of
+     (Model : Window_Model)
+      return Sort_Field;
+
+   --  Return whether item sorting is ascending.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when sorting ascends by the active field.
+   function Sort_Is_Ascending
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Select or toggle the active item sort field.
+   --
+   --  Selecting the current field toggles sort direction. Selecting a different
+   --  field makes that field ascending.
+   --
+   --  @param Model Model to update.
+   --  @param Field Sort field to select.
+   procedure Select_Sort_Field
+     (Model : in out Window_Model;
+      Field : Sort_Field);
+
+   --  Toggle the bottom-bar sort menu visibility.
+   --
+   --  @param Model Model to update.
+   procedure Toggle_Sort_Menu
+     (Model : in out Window_Model);
+
+   --  Close the bottom-bar sort menu.
+   --
+   --  @param Model Model to update.
+   procedure Close_Sort_Menu
+     (Model : in out Window_Model);
+
+   --  Return whether the bottom-bar sort menu is open.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the sort menu is open.
+   function Sort_Menu_Is_Open
+     (Model : Window_Model)
+      return Boolean;
 
    --  Return the number of loaded directory items.
    --
@@ -168,6 +222,22 @@ package Files.Model is
    procedure Move_Selection
      (Model     : in out Window_Model;
       Direction : Files.Types.Navigation_Direction);
+
+   --  Set the visible grid column count used by vertical selection movement.
+   --
+   --  @param Model Model to update.
+   --  @param Columns Number of visible item columns; values below one are ignored.
+   procedure Set_Selection_Grid_Columns
+     (Model   : in out Window_Model;
+      Columns : Positive);
+
+   --  Return the visible grid column count used by vertical selection movement.
+   --
+   --  @param Model Model to inspect.
+   --  @return Number of visible item columns used as the vertical movement stride.
+   function Selection_Grid_Columns
+     (Model : Window_Model)
+      return Positive;
 
    --  Return whether a visible item is selected.
    --
@@ -844,7 +914,11 @@ private
       Filter_Value         : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
+      Selection_Columns   : Positive := 1;
       View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;
+      Sort_Field_Value     : Sort_Field := Sort_Name;
+      Sort_Ascending       : Boolean := True;
+      Sort_Menu_Open       : Boolean := False;
       Back_History         : Files.Types.String_Vectors.Vector;
       Forward_History      : Files.Types.String_Vectors.Vector;
       Focus_Value          : Files.Types.Focus_Target := Files.Types.Focus_None;

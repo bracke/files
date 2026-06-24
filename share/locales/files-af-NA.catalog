@@ -1,0 +1,5 @@
+af-NA.time.format.clock = %H:%M:%S
+af-NA.time.format.full = %d %b %Y %H:%M:%S
+af-NA.time.locale.datetime_pattern = %d %b %Y %H:%M:%S
+af-NA.time.locale.date_pattern = %d %b %Y
+af-NA.time.locale.time_pattern = %H:%M:%S

@@ -4,6 +4,7 @@ with Files.Commands;
 package Files.UI is
 
    Bottom_Bar_Padding : constant Natural := 4;
+   Sort_Menu_Padding : constant Natural := 8;
    Input_Field_Padding : constant Natural := 8;
    Toolbar_Button_Width : constant Natural := 40;
    Toolbar_Button_Count : constant Natural := 6;
@@ -42,6 +43,8 @@ package Files.UI is
       Large_Button_Width   : Natural := 0;
       Details_Button_X     : Natural := 0;
       Details_Button_Width : Natural := 0;
+      Sort_Button_X        : Natural := 0;
+      Sort_Button_Width    : Natural := 0;
       Info_X               : Natural := 0;
       Info_Width           : Natural := 0;
       Info_Pane_X          : Natural := 0;
@@ -72,8 +75,12 @@ package Files.UI is
       Width      : Natural := 0;
       Height     : Natural := 0;
       Text_X     : Natural := 0;
+      Text_Y     : Natural := 0;
       Text_Width : Natural := 0;
    end record;
+
+   Settings_Pane_Padding : constant Natural := 14;
+   Settings_Row_Gap      : constant Natural := 8;
 
    --  Calculate toolbar section widths for a window.
    --
@@ -172,6 +179,22 @@ package Files.UI is
    --  @param Line_Height Text line height in pixels.
    --  @return Matching command or No_Command.
    function Bottom_Bar_Command_At
+     (X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive := 20)
+      return Files.Commands.Command_Id;
+
+   --  Return the command for a bottom-bar sort menu row.
+   --
+   --  @param X Mouse X coordinate.
+   --  @param Y Mouse Y coordinate.
+   --  @param Width Window width.
+   --  @param Height Window height.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Sort command for the row, or No_Command outside the menu.
+   function Bottom_Bar_Sort_Menu_Command_At
      (X           : Natural;
       Y           : Natural;
       Width       : Natural;

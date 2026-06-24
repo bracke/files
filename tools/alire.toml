@@ -9,7 +9,7 @@ licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
 website = ""
 tags = ["tools", "checks"]
 
-executables = ["check_all"]
+executables = ["check_all", "cldr_to_catalog"]
 
 [[depends-on]]
 project_tools = "*"

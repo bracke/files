@@ -1268,10 +1268,6 @@ package body Files.File_System is
       declare
          function Less (Left : Directory_Item; Right : Directory_Item) return Boolean is
          begin
-            if Settings.Sort_Directories_First and then Is_Directory (Left) /= Is_Directory (Right) then
-               return Is_Directory (Left);
-            end if;
-
             return Field_Less (Left, Right, Settings);
          end Less;
 

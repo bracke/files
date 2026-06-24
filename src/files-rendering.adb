@@ -1,8 +1,12 @@
 with Ada.Calendar.Formatting;
+with Ada.Characters.Handling;
+with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Textrender;
+with Util.Dates.Formats;
+with Util.Properties;
 
 with Files.Command_Palette;
 with Files.File_Types;
@@ -13,12 +17,15 @@ with Files.UI;
 
 package body Files.Rendering is
    use Ada.Strings.Unbounded;
+   use type Ada.Calendar.Time;
    use type Files.Commands.Registered_Command_Id;
+   use type Files.Model.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
 
-   Info_Rows_Per_Item : constant Natural := 27;
+   Ellipsis_Text : constant String :=
+     [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
    Info_Pane_Padding : constant Natural := 10;
    Main_Content_Padding : constant Natural := 8;
    Main_Grid_Gap : constant Natural := 8;
@@ -26,7 +33,128 @@ package body Files.Rendering is
    Details_Row_Padding : constant Natural := 4;
    Details_Row_Gap : constant Natural := 4;
    Details_Column_Padding : constant Natural := 6;
+   Command_Palette_Padding : constant Natural := 8;
+   Command_Result_Row_Padding : constant Natural := 4;
+   Command_Palette_Scrollbar_Gap : constant Natural := 8;
    Root_Selector_Padding : constant Natural := 8;
+
+   function Date_Bundle return Util.Properties.Manager is
+      Result : Util.Properties.Manager;
+      Locale : constant String := Files.Localization.System_Time_Locale;
+
+      procedure Set_Text
+        (Util_Key : String;
+         Text_Key : String)
+      is
+      begin
+         Result.Set (Util_Key, Files.Localization.Text (Text_Key, Locale));
+      end Set_Text;
+   begin
+      Set_Text (Util.Dates.Formats.DATE_TIME_LOCALE_NAME, "time.locale.datetime_pattern");
+      Set_Text (Util.Dates.Formats.DATE_LOCALE_NAME, "time.locale.date_pattern");
+      Set_Text (Util.Dates.Formats.TIME_LOCALE_NAME, "time.locale.time_pattern");
+      Set_Text (Util.Dates.Formats.AM_NAME, "time.locale.am");
+      Set_Text (Util.Dates.Formats.PM_NAME, "time.locale.pm");
+
+      for Index in 1 .. 12 loop
+         declare
+            Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+         begin
+            Set_Text ("util.month" & Image & ".short", "time.month" & Image & ".short");
+            Set_Text ("util.month" & Image & ".long", "time.month" & Image & ".long");
+         end;
+      end loop;
+
+      for Index in 0 .. 6 loop
+         declare
+            Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+         begin
+            Set_Text ("util.day" & Image & ".short", "time.day" & Image & ".short");
+            Set_Text ("util.day" & Image & ".long", "time.day" & Image & ".long");
+         end;
+      end loop;
+
+      return Result;
+   end Date_Bundle;
+
+   function Formatted_Time_Text
+     (Value  : Ada.Calendar.Time;
+      Format : String)
+      return String is
+   begin
+      return Util.Dates.Formats.Format (Pattern => Format, Date => Value, Bundle => Date_Bundle);
+   end Formatted_Time_Text;
+
+   function Clock_Time_Text (Value : Ada.Calendar.Time) return String is
+   begin
+      return
+        Formatted_Time_Text
+          (Value, Files.Localization.Text ("time.format.clock", Files.Localization.System_Time_Locale));
+   end Clock_Time_Text;
+
+   function Full_Time_Text (Value : Ada.Calendar.Time) return String is
+   begin
+      return
+        Formatted_Time_Text
+          (Value, Files.Localization.Text ("time.format.full", Files.Localization.System_Time_Locale));
+   end Full_Time_Text;
+
+   function Weekday_Key (Value : Ada.Calendar.Time) return String is
+   begin
+      case Ada.Calendar.Formatting.Day_Of_Week (Value) is
+         when Ada.Calendar.Formatting.Monday =>
+            return "time.weekday.monday";
+         when Ada.Calendar.Formatting.Tuesday =>
+            return "time.weekday.tuesday";
+         when Ada.Calendar.Formatting.Wednesday =>
+            return "time.weekday.wednesday";
+         when Ada.Calendar.Formatting.Thursday =>
+            return "time.weekday.thursday";
+         when Ada.Calendar.Formatting.Friday =>
+            return "time.weekday.friday";
+         when Ada.Calendar.Formatting.Saturday =>
+            return "time.weekday.saturday";
+         when Ada.Calendar.Formatting.Sunday =>
+            return "time.weekday.sunday";
+      end case;
+   end Weekday_Key;
+
+   function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time is
+      Year    : Ada.Calendar.Year_Number;
+      Month   : Ada.Calendar.Month_Number;
+      Day     : Ada.Calendar.Day_Number;
+      Seconds : Ada.Calendar.Day_Duration;
+   begin
+      Ada.Calendar.Split (Value, Year, Month, Day, Seconds);
+      return Ada.Calendar.Time_Of (Year, Month, Day);
+   end Day_Start;
+
+   function Humanized_Time_Text
+     (Value : Ada.Calendar.Time;
+      Now   : Ada.Calendar.Time := Ada.Calendar.Clock)
+      return String
+   is
+      Full_Text : constant String := Full_Time_Text (Value);
+      Today    : constant Ada.Calendar.Time := Day_Start (Now);
+      Date     : constant Ada.Calendar.Time := Day_Start (Value);
+      Locale   : constant String := Files.Localization.System_Time_Locale;
+   begin
+      if abs (Now - Value) < 60.0 then
+         return Files.Localization.Text ("time.relative.now", Locale);
+      elsif Date = Today then
+         return Files.Localization.Text ("time.relative.today", Locale) & " " & Clock_Time_Text (Value);
+      elsif Date = Today - 86_400.0 then
+         return Files.Localization.Text ("time.relative.yesterday", Locale) & " " & Clock_Time_Text (Value);
+      else
+         for Days_Ago in 2 .. 6 loop
+            if Date = Today - Duration (Days_Ago) * 86_400.0 then
+               return Files.Localization.Text (Weekday_Key (Value), Locale) & " " & Clock_Time_Text (Value);
+            end if;
+         end loop;
+      end if;
+
+      return Full_Text;
+   end Humanized_Time_Text;
 
    function Contains_Rectangle_Point
      (X        : Natural;
@@ -92,6 +220,154 @@ package body Files.Rendering is
       return Natural'Min (Natural (Keys.Length), Natural (Values.Length));
    end Paired_Row_Count;
 
+   function Integer_Text (Value : Long_Long_Integer) return String is
+      Image : constant String := Long_Long_Integer'Image (Value);
+   begin
+      if Image'Length > 0 and then Image (Image'First) = ' ' then
+         return Image (Image'First + 1 .. Image'Last);
+      end if;
+
+      return Image;
+   end Integer_Text;
+
+   function Number_Symbol
+     (Key      : String;
+      Fallback : String)
+      return String
+   is
+      Locale : constant String := Files.Localization.System_Number_Locale;
+      Text   : constant String := Files.Localization.Text (Key, Locale);
+   begin
+      if Text = Key then
+         return Fallback;
+      end if;
+
+      return Text;
+   end Number_Symbol;
+
+   function Decimal_Separator return String is
+   begin
+      return Number_Symbol ("number.decimal", ".");
+   end Decimal_Separator;
+
+   function Group_Separator return String is
+   begin
+      return Number_Symbol ("number.group", ",");
+   end Group_Separator;
+
+   function Grouped_Integer_Text (Value : Long_Long_Integer) return String is
+      Number_Text : constant String := Integer_Text (Value);
+      Separator  : constant String := Group_Separator;
+      First_Size : Natural := Number_Text'Length mod 3;
+      Result     : Unbounded_String;
+   begin
+      if Separator'Length = 0 or else Number_Text'Length <= 3 then
+         return Number_Text;
+      end if;
+
+      if First_Size = 0 then
+         First_Size := 3;
+      end if;
+
+      for Index in Number_Text'Range loop
+         if Index > Number_Text'First
+           and then (Index - Number_Text'First - First_Size) mod 3 = 0
+         then
+            Append (Result, Separator);
+         end if;
+         Append (Result, Number_Text (Index));
+      end loop;
+
+      return To_String (Result);
+   end Grouped_Integer_Text;
+
+   function Localized_Number_Text
+     (Tenths       : Long_Long_Integer;
+      Use_Decimal  : Boolean)
+      return String
+   is
+      Whole   : constant Long_Long_Integer := Tenths / 10;
+      Decimal : constant Long_Long_Integer := Tenths mod 10;
+   begin
+      if not Use_Decimal or else Decimal = 0 then
+         return Grouped_Integer_Text (Whole);
+      end if;
+
+      return Grouped_Integer_Text (Whole) & Decimal_Separator & Integer_Text (Decimal);
+   end Localized_Number_Text;
+
+   function Size_Text (Value : Long_Long_Integer) return String is
+      Unit_Index : Natural := 0;
+      Divisor    : Long_Long_Integer := 1;
+      Locale     : constant String := Files.Localization.System_Number_Locale;
+
+      function Unit_Key return String is
+      begin
+         case Unit_Index is
+            when 0 =>
+               return "details.size.unit.bytes";
+            when 1 =>
+               return "details.size.unit.kib";
+            when 2 =>
+               return "details.size.unit.mib";
+            when 3 =>
+               return "details.size.unit.gib";
+            when 4 =>
+               return "details.size.unit.tib";
+            when others =>
+               return "details.size.unit.pib";
+         end case;
+      end Unit_Key;
+
+      function Scaled_Number return String is
+         Whole     : constant Long_Long_Integer := Value / Divisor;
+         Remainder : constant Long_Long_Integer := Value mod Divisor;
+         Tenths    : constant Long_Long_Integer :=
+           Whole * 10 + ((Remainder * 10) + Divisor / 2) / Divisor;
+      begin
+         return Localized_Number_Text (Tenths, Unit_Index /= 0);
+      end Scaled_Number;
+   begin
+      while Unit_Index < 5 and then Value >= Divisor * 1024 loop
+         Unit_Index := Unit_Index + 1;
+         Divisor := Divisor * 1024;
+      end loop;
+
+      return Scaled_Number & " " & Files.Localization.Text (Unit_Key, Locale);
+   end Size_Text;
+
+   function Permission_Text (Permissions : String) return String is
+      Result : Unbounded_String;
+
+      procedure Append_Part (Key : String) is
+      begin
+         if Length (Result) > 0 then
+            Append (Result, ASCII.LF);
+         end if;
+         Append (Result, Files.Localization.Text (Key));
+      end Append_Part;
+   begin
+      if Permissions'Length < 3 then
+         return Permissions;
+      end if;
+
+      if Permissions (Permissions'First) = 'r' then
+         Append_Part ("info.permissions.readable");
+      end if;
+      if Permissions (Permissions'First + 1) = 'w' then
+         Append_Part ("info.permissions.writable");
+      end if;
+      if Permissions (Permissions'First + 2) = 'x' then
+         Append_Part ("info.permissions.executable");
+      end if;
+
+      if Length (Result) = 0 then
+         return Files.Localization.Text ("info.permissions.none");
+      end if;
+
+      return To_String (Result);
+   end Permission_Text;
+
    function Bounded_Product_Divide
      (Value       : Natural;
       Factor      : Natural;
@@ -119,6 +395,18 @@ package body Files.Rendering is
       return Available_Height / Row_Height
         + (if Available_Height mod Row_Height = 0 then 0 else 1);
    end Visible_Row_Count;
+
+   function Complete_Visible_Row_Count
+     (Available_Height : Natural;
+      Row_Height       : Natural)
+      return Natural is
+   begin
+      if Available_Height = 0 or else Row_Height = 0 then
+         return 0;
+      end if;
+
+      return Available_Height / Row_Height;
+   end Complete_Visible_Row_Count;
 
    function Saturating_Integer_Add
      (Left  : Integer;
@@ -715,6 +1003,26 @@ package body Files.Rendering is
         (Item : Files.File_System.Directory_Item)
          return UString
       is
+         function Upper_Extension (Extension : String) return String is
+            Result : String (Extension'Range);
+         begin
+            for Index in Extension'Range loop
+               Result (Index) := Ada.Characters.Handling.To_Upper (Extension (Index));
+            end loop;
+
+            return Result;
+         end Upper_Extension;
+
+         function Extension_File_Label return UString is
+            Extension : constant String := Files.File_Types.Extension_Of (To_String (Item.Name));
+         begin
+            if Extension = "" then
+               return To_Unbounded_String (Files.Localization.Text ("info.kind.file"));
+            end if;
+
+            return
+              To_Unbounded_String (Upper_Extension (Extension));
+         end Extension_File_Label;
       begin
          case Item.Kind is
             when Files.Types.Directory_Item =>
@@ -761,13 +1069,14 @@ package body Files.Rendering is
                elsif To_String (Item.Filetype) = "video/mp4" then
                   return To_Unbounded_String (Files.Localization.Text ("info.kind.video"));
                end if;
+
+               return Extension_File_Label;
             when Files.Types.Other_Item =>
                return To_Unbounded_String (Files.Localization.Text ("info.kind.other"));
             when Files.Types.Unknown_Item =>
                return To_Unbounded_String (Files.Localization.Text ("info.kind.unknown"));
          end case;
 
-         return To_Unbounded_String (Files.Localization.Text ("info.kind.file"));
       end Filetype_Detail;
 
       function Filetype_Extra
@@ -778,6 +1087,53 @@ package body Files.Rendering is
 
          function Token_Detail (Token : String) return UString is
             Separator : constant Natural := Ada.Strings.Fixed.Index (Token, "|");
+
+            function Prefix_Value
+              (Prefix_Key : String;
+               Value      : String;
+               Suffix_Key : String)
+               return String
+            is
+               Prefix : constant String :=
+                 Ada.Strings.Fixed.Trim (Files.Localization.Text (Prefix_Key), Ada.Strings.Right);
+               Suffix : constant String :=
+                 Ada.Strings.Fixed.Trim (Files.Localization.Text (Suffix_Key), Ada.Strings.Left);
+            begin
+               if Suffix'Length > 0
+                 and then Ada.Characters.Handling.Is_Alphanumeric (Suffix (Suffix'First))
+               then
+                  return Prefix & " " & Value & " " & Suffix;
+               else
+                  return Prefix & " " & Value & Suffix;
+               end if;
+            end Prefix_Value;
+
+            function Prefix_Localized_Value
+              (Prefix_Key : String;
+               Value_Key  : String;
+               Suffix_Key : String)
+               return String
+            is
+            begin
+               return Prefix_Value (Prefix_Key, Files.Localization.Text (Value_Key), Suffix_Key);
+            end Prefix_Localized_Value;
+
+            function Lines_And_Encoding
+              (Lines_Prefix_Key : String;
+               Lines            : String;
+               Lines_Suffix_Key : String;
+               Encoding         : String)
+               return String
+            is
+            begin
+               return
+                 Prefix_Value (Lines_Prefix_Key, Lines, Lines_Suffix_Key)
+                 & " "
+                 & Prefix_Localized_Value
+                   ("info.extra.encoding.prefix",
+                    "info.extra.encoding." & Encoding,
+                    "info.extra.encoding.suffix");
+            end Lines_And_Encoding;
          begin
             if Separator <= Token'First or else Separator >= Token'Last then
                return Null_Unbounded_String;
@@ -791,21 +1147,19 @@ package body Files.Rendering is
                if Key = "executable.format" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.executable.format.prefix")
-                       & Files.Localization.Text ("info.extra.executable.format." & Value)
-                       & Files.Localization.Text ("info.extra.executable.format.suffix"));
+                      (Prefix_Localized_Value
+                         ("info.extra.executable.format.prefix",
+                          "info.extra.executable.format." & Value,
+                          "info.extra.executable.format.suffix"));
                elsif Key = "directory.count" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.directory.count.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.directory.count.suffix"));
+                      (Prefix_Value
+                         ("info.extra.directory.count.prefix", Value, "info.extra.directory.count.suffix"));
                elsif Key = "text.lines" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.text.lines.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.text.lines.suffix"));
+                      (Prefix_Value ("info.extra.text.lines.prefix", Value, "info.extra.text.lines.suffix"));
                elsif Key = "text.lines_encoding" and then Second > Value'First then
                   declare
                      Lines    : constant String := Value (Value'First .. Second - 1);
@@ -813,20 +1167,17 @@ package body Files.Rendering is
                   begin
                      return
                        To_Unbounded_String
-                         (Files.Localization.Text ("info.extra.text.lines.prefix")
-                          & Lines
-                          & Files.Localization.Text ("info.extra.text.lines.suffix")
-                          & " "
-                          & Files.Localization.Text ("info.extra.encoding.prefix")
-                          & Files.Localization.Text ("info.extra.encoding." & Encoding)
-                          & Files.Localization.Text ("info.extra.encoding.suffix"));
+                         (Lines_And_Encoding
+                            ("info.extra.text.lines.prefix",
+                             Lines,
+                             "info.extra.text.lines.suffix",
+                             Encoding));
                   end;
                elsif Key = "markdown.lines" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.markdown.lines.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.markdown.lines.suffix"));
+                      (Prefix_Value
+                         ("info.extra.markdown.lines.prefix", Value, "info.extra.markdown.lines.suffix"));
                elsif Key = "markdown.lines_encoding" and then Second > Value'First then
                   declare
                      Lines    : constant String := Value (Value'First .. Second - 1);
@@ -834,58 +1185,50 @@ package body Files.Rendering is
                   begin
                      return
                        To_Unbounded_String
-                         (Files.Localization.Text ("info.extra.markdown.lines.prefix")
-                          & Lines
-                          & Files.Localization.Text ("info.extra.markdown.lines.suffix")
-                          & " "
-                          & Files.Localization.Text ("info.extra.encoding.prefix")
-                          & Files.Localization.Text ("info.extra.encoding." & Encoding)
-                          & Files.Localization.Text ("info.extra.encoding.suffix"));
+                         (Lines_And_Encoding
+                            ("info.extra.markdown.lines.prefix",
+                             Lines,
+                             "info.extra.markdown.lines.suffix",
+                             Encoding));
                   end;
                elsif Key = "image.dimensions" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.image.dimensions.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.image.dimensions.suffix"));
+                      (Prefix_Value
+                         ("info.extra.image.dimensions.prefix", Value, "info.extra.image.dimensions.suffix"));
                elsif Key = "symlink.target" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.symlink.target.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.symlink.target.suffix"));
+                      (Prefix_Value ("info.extra.symlink.target.prefix", Value, "info.extra.symlink.target.suffix"));
                elsif Key = "document.kind" then
                   return To_Unbounded_String (Files.Localization.Text ("info.extra.document." & Value));
                elsif Key = "document.pdf.pages" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.document.pdf.pages.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.document.pdf.pages.suffix"));
+                      (Prefix_Value
+                         ("info.extra.document.pdf.pages.prefix", Value, "info.extra.document.pdf.pages.suffix"));
                elsif Key = "archive.format" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.archive.format.prefix")
-                       & Files.Localization.Text ("info.extra.archive.format." & Value)
-                       & Files.Localization.Text ("info.extra.archive.format.suffix"));
+                      (Prefix_Localized_Value
+                         ("info.extra.archive.format.prefix",
+                          "info.extra.archive.format." & Value,
+                          "info.extra.archive.format.suffix"));
                elsif Key = "archive.zip.entries" or else Key = "archive.gzip-tar.entries" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.archive.entries.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.archive.entries.suffix"));
+                      (Prefix_Value
+                         ("info.extra.archive.entries.prefix", Value, "info.extra.archive.entries.suffix"));
                elsif Key = "office.docx.entries" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.office.docx.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.office.entries.suffix"));
+                      (Prefix_Value
+                         ("info.extra.office.docx.prefix", Value, "info.extra.office.entries.suffix"));
                elsif Key = "office.xlsx.entries" then
                   return
                     To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.office.xlsx.prefix")
-                       & Value
-                       & Files.Localization.Text ("info.extra.office.entries.suffix"));
+                      (Prefix_Value
+                         ("info.extra.office.xlsx.prefix", Value, "info.extra.office.entries.suffix"));
                elsif Key = "media.kind" then
                   return To_Unbounded_String (Files.Localization.Text ("info.extra.media." & Value));
                elsif Key = "source.ada.lines_encoding" and then Second > Value'First then
@@ -895,13 +1238,11 @@ package body Files.Rendering is
                   begin
                      return
                        To_Unbounded_String
-                         (Files.Localization.Text ("info.extra.source.ada.prefix")
-                          & Lines
-                          & Files.Localization.Text ("info.extra.source.lines.suffix")
-                          & " "
-                          & Files.Localization.Text ("info.extra.encoding.prefix")
-                          & Files.Localization.Text ("info.extra.encoding." & Encoding)
-                          & Files.Localization.Text ("info.extra.encoding.suffix"));
+                         (Lines_And_Encoding
+                            ("info.extra.source.ada.prefix",
+                             Lines,
+                             "info.extra.source.lines.suffix",
+                             Encoding));
                   end;
                elsif Key = "source.json.lines_encoding" and then Second > Value'First then
                   declare
@@ -910,13 +1251,11 @@ package body Files.Rendering is
                   begin
                      return
                        To_Unbounded_String
-                         (Files.Localization.Text ("info.extra.source.json.prefix")
-                          & Lines
-                          & Files.Localization.Text ("info.extra.source.lines.suffix")
-                          & " "
-                          & Files.Localization.Text ("info.extra.encoding.prefix")
-                          & Files.Localization.Text ("info.extra.encoding." & Encoding)
-                          & Files.Localization.Text ("info.extra.encoding.suffix"));
+                         (Lines_And_Encoding
+                            ("info.extra.source.json.prefix",
+                             Lines,
+                             "info.extra.source.lines.suffix",
+                             Encoding));
                   end;
                elsif Key = "source.xml.lines_encoding" and then Second > Value'First then
                   declare
@@ -925,13 +1264,11 @@ package body Files.Rendering is
                   begin
                      return
                        To_Unbounded_String
-                         (Files.Localization.Text ("info.extra.source.xml.prefix")
-                          & Lines
-                          & Files.Localization.Text ("info.extra.source.lines.suffix")
-                          & " "
-                          & Files.Localization.Text ("info.extra.encoding.prefix")
-                          & Files.Localization.Text ("info.extra.encoding." & Encoding)
-                          & Files.Localization.Text ("info.extra.encoding.suffix"));
+                         (Lines_And_Encoding
+                            ("info.extra.source.xml.prefix",
+                             Lines,
+                             "info.extra.source.lines.suffix",
+                             Encoding));
                   end;
                end if;
             end;
@@ -972,13 +1309,27 @@ package body Files.Rendering is
                return To_Unbounded_String (Files.Localization.Text ("info.extra.symlink"));
             when Files.Types.Executable_Item =>
                if Item.Size_Available then
-                  return
-                    To_Unbounded_String
-                      (Files.Localization.Text ("info.extra.executable.size.prefix")
-                       & Ada.Strings.Fixed.Trim (Long_Long_Integer'Image (Item.Size), Ada.Strings.Both)
-                       & Files.Localization.Text ("info.extra.executable.size.suffix"));
+                  declare
+                     Prefix : constant String :=
+                       Ada.Strings.Fixed.Trim
+                         (Files.Localization.Text ("info.extra.executable.size.prefix"), Ada.Strings.Right);
+                     Suffix : constant String :=
+                       Ada.Strings.Fixed.Trim
+                         (Files.Localization.Text ("info.extra.executable.size.suffix"), Ada.Strings.Left);
+                     Size_Text : constant String :=
+                       Ada.Strings.Fixed.Trim (Long_Long_Integer'Image (Item.Size), Ada.Strings.Both);
+                  begin
+                     if Suffix'Length > 0
+                       and then Ada.Characters.Handling.Is_Alphanumeric (Suffix (Suffix'First))
+                     then
+                        return To_Unbounded_String (Prefix & " " & Size_Text & " " & Suffix);
+                     else
+                        return To_Unbounded_String (Prefix & " " & Size_Text & Suffix);
+                     end if;
+                  end;
                else
-                  return To_Unbounded_String (Files.Localization.Text ("info.extra.executable"));
+                  return
+                    To_Unbounded_String (Files.Localization.Text ("info.extra.executable"));
                end if;
             when Files.Types.Other_Item =>
                return To_Unbounded_String (Files.Localization.Text ("info.extra.other"));
@@ -1053,6 +1404,9 @@ package body Files.Rendering is
    begin
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.View_Mode := Files.Model.View_Mode_Of (Model);
+      Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
+      Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
+      Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
       Snapshot.Item_Count := Files.Model.Item_Count (Model);
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
       Snapshot.Selected_Count := Files.Model.Selected_Count (Model);
@@ -1079,8 +1433,6 @@ package body Files.Rendering is
            & Files.Localization.Text
              ((if Settings.Sort_Ascending then "settings.sort.ascending" else "settings.sort.descending")));
       Snapshot.Settings_Sort_Field_Token := To_Unbounded_String (Sort_Field_Token (Settings.Sort_Field_Value));
-      Snapshot.Settings_Sort_Dirs := To_Unbounded_String (Boolean_Text (Settings.Sort_Directories_First));
-      Snapshot.Settings_Sort_Dirs_Token := To_Unbounded_String (Boolean_Token (Settings.Sort_Directories_First));
       Snapshot.Settings_Sort_Ascending := To_Unbounded_String (Boolean_Text (Settings.Sort_Ascending));
       Snapshot.Settings_Sort_Ascending_Token := To_Unbounded_String (Boolean_Token (Settings.Sort_Ascending));
       Snapshot.Settings_High_Contrast := To_Unbounded_String (Boolean_Text (Settings.High_Contrast_Theme));
@@ -1103,9 +1455,6 @@ package body Files.Rendering is
                Snapshot.Settings_Hidden_Files := Draft.Show_Hidden_Files;
                Snapshot.Settings_Hidden_Files_Token :=
                  To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Show_Hidden_Files)));
-               Snapshot.Settings_Sort_Dirs := Draft.Sort_Directories_First;
-               Snapshot.Settings_Sort_Dirs_Token :=
-                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Sort_Directories_First)));
                Snapshot.Settings_Sort := Draft.Sort_Field_Value;
                Snapshot.Settings_Sort_Field_Token :=
                  To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Sort_Field_Value)));
@@ -1144,45 +1493,45 @@ package body Files.Rendering is
               To_Unbounded_String (Files.Localization.Text ("settings.help.default_view"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.default_view"));
-         when 2 | 3 | 5 | 6 =>
+         when 2 | 4 | 5 =>
             Snapshot.Settings_Field_Help := To_Unbounded_String (Files.Localization.Text ("settings.help.boolean"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.boolean"));
-         when 4 =>
+         when 3 =>
             Snapshot.Settings_Field_Help := To_Unbounded_String (Files.Localization.Text ("settings.help.sort"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.sort"));
-         when 7 =>
+         when 6 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.icon_theme"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.icon_theme"));
-         when 8 =>
+         when 7 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_extension"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 9 =>
+         when 8 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_value"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 10 =>
+         when 9 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.icon_filetype"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 11 =>
+         when 10 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.icon_value"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 12 =>
+         when 11 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_token"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 13 =>
+         when 12 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_command"));
             Snapshot.Settings_Control_Options :=
@@ -1291,6 +1640,88 @@ package body Files.Rendering is
                   Visible_Index      => Index));
          end;
       end loop;
+
+      declare
+         function Name_Less (Left : Item_Snapshot; Right : Item_Snapshot) return Boolean is
+            Left_Text       : constant String := To_String (Left.Name);
+            Right_Text      : constant String := To_String (Right.Name);
+            Left_Lowercase  : constant String := Files.Types.To_Lower (Left_Text);
+            Right_Lowercase : constant String := Files.Types.To_Lower (Right_Text);
+         begin
+            if Left_Lowercase /= Right_Lowercase then
+               return Left_Lowercase < Right_Lowercase;
+            else
+               return Left_Text < Right_Text;
+            end if;
+         end Name_Less;
+
+         function Field_Less (Left : Item_Snapshot; Right : Item_Snapshot) return Boolean is
+            Forward_Order : Boolean := False;
+            Reverse_Order : Boolean := False;
+         begin
+            case Snapshot.Sort_Field is
+               when Files.Model.Sort_Name =>
+                  Forward_Order := Name_Less (Left => Left, Right => Right);
+                  Reverse_Order := Name_Less (Left => Right, Right => Left);
+               when Files.Model.Sort_Size =>
+                  if Left.Size_Available /= Right.Size_Available then
+                     return Left.Size_Available;
+                  elsif Left.Size /= Right.Size then
+                     Forward_Order := Left.Size < Right.Size;
+                     Reverse_Order := Right.Size < Left.Size;
+                  end if;
+               when Files.Model.Sort_Type =>
+                  declare
+                     Left_Type       : constant String := To_String (Left.Filetype);
+                     Right_Type      : constant String := To_String (Right.Filetype);
+                     Left_Lowercase  : constant String := Files.Types.To_Lower (Left_Type);
+                     Right_Lowercase : constant String := Files.Types.To_Lower (Right_Type);
+                  begin
+                     if Left_Lowercase /= Right_Lowercase then
+                        Forward_Order := Left_Lowercase < Right_Lowercase;
+                        Reverse_Order := Right_Lowercase < Left_Lowercase;
+                     elsif Left_Type /= Right_Type then
+                        Forward_Order := Left_Type < Right_Type;
+                        Reverse_Order := Right_Type < Left_Type;
+                     end if;
+                  end;
+               when Files.Model.Sort_Created =>
+                  if Left.Creation_Available /= Right.Creation_Available then
+                     return Left.Creation_Available;
+                  elsif Left.Creation_Time /= Right.Creation_Time then
+                     Forward_Order := Left.Creation_Time < Right.Creation_Time;
+                     Reverse_Order := Right.Creation_Time < Left.Creation_Time;
+                  end if;
+               when Files.Model.Sort_Changed =>
+                  if Left.Modified_Available /= Right.Modified_Available then
+                     return Left.Modified_Available;
+                  elsif Left.Modified_Time /= Right.Modified_Time then
+                     Forward_Order := Left.Modified_Time < Right.Modified_Time;
+                     Reverse_Order := Right.Modified_Time < Left.Modified_Time;
+                  end if;
+            end case;
+
+            if Snapshot.Sort_Field /= Files.Model.Sort_Name
+              and then not Forward_Order
+              and then not Reverse_Order
+            then
+               return Name_Less (Left, Right);
+            elsif Snapshot.Sort_Ascending then
+               return Forward_Order;
+            else
+               return Reverse_Order;
+            end if;
+         end Field_Less;
+
+         function Less (Left : Item_Snapshot; Right : Item_Snapshot) return Boolean is
+         begin
+            return Field_Less (Left, Right);
+         end Less;
+
+         package Sorting is new Item_Snapshot_Vectors.Generic_Sorting ("<" => Less);
+      begin
+         Sorting.Sort (Snapshot.Items);
+      end;
 
       if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
          declare
@@ -1447,10 +1878,8 @@ package body Files.Rendering is
             then Natural'Min (Cell_W, Content_W - Cell_Offset)
             else 0);
          Cell_Height : constant Natural :=
-           (if Hidden_Px = Cell_H
-            then 0
-            elsif Content_H > Visible_Row
-            then Natural'Min (Cell_H - Hidden_Px, Content_H - Visible_Row)
+           (if Hidden_Px = 0 and then Content_H >= Saturating_Add (Visible_Row, Cell_H)
+            then Cell_H
             else 0);
          Draw_Icon   : constant Natural := Natural'Min (Icon_Size, Natural'Min (Cell_Width, Cell_Height));
          Content_Pad : constant Natural := Natural'Min (Item_Content_Padding, Natural'Min (Cell_Width, Cell_Height));
@@ -1479,7 +1908,9 @@ package body Files.Rendering is
            (if Large
             then Saturating_Add (Inner_X, (if Inner_W > Large_Text_W then (Inner_W - Large_Text_W) / 2 else 0))
             else Saturating_Add (Inner_X, Used_X));
-         Text_Y      : constant Natural := (if Large then Saturating_Add (Inner_Y, Padded_Icon) else Inner_Y);
+         Text_Y      : constant Natural :=
+           (if Large then Saturating_Add (Saturating_Add (Inner_Y, Padded_Icon), Item_Content_Padding)
+            else Inner_Y);
          Text_W      : constant Natural :=
            (if Large then Large_Text_W else Saturating_Subtract (Inner_W, Used_X));
       begin
@@ -1538,10 +1969,8 @@ package body Files.Rendering is
                   Visible_Row : constant Natural := Saturating_Subtract (Row_Offset, Scroll_Pixels);
                   Row_Y      : constant Natural := Saturating_Add (Rows_Y, Visible_Row);
                   Row_H      : constant Natural :=
-                    (if Hidden_Px = Row_Step
-                     then 0
-                     elsif Rows_H > Visible_Row
-                     then Natural'Min (Row_Step - Hidden_Px, Rows_H - Visible_Row)
+                    (if Hidden_Px = 0 and then Rows_H >= Saturating_Add (Visible_Row, Row_Step)
+                     then Row_Step
                      else 0);
                   Row_Draw_H : constant Natural :=
                     (if Row_H > Details_Row_Gap then Row_H - Details_Row_Gap else Row_H);
@@ -1674,7 +2103,8 @@ package body Files.Rendering is
          else Saturating_Add (Layout.Main_Y, Padding));
    begin
       return
-        (Content_Height    => Content_Total_H,
+        (Columns           => Positive'Max (1, Positive (Columns)),
+         Content_Height    => Content_Total_H,
          Scroll_Lines      => Scroll_Lines,
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
@@ -1703,6 +2133,80 @@ package body Files.Rendering is
       return 0;
    end Item_At;
 
+   function Details_Header_Command_At
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Files.Commands.Command_Id
+   is
+      Padding   : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+      Content_W : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Width);
+      Content_H : constant Natural :=
+        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Height);
+      Header_H  : constant Natural :=
+        Natural'Min
+          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+      Icon_Gap   : constant Natural := Saturating_Add (Line_Height, 6);
+      Header_Content_X : constant Natural :=
+        Saturating_Add (Saturating_Add (Content_X, Header_Pad), Icon_Gap);
+      Available : constant Natural :=
+        (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Header_Pad, 2))
+         then Content_W - Icon_Gap - Saturating_Multiply (Header_Pad, 2)
+         else 0);
+      Reserved_Name_W : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 6));
+      Metadata_W : constant Natural := (if Available > Reserved_Name_W then Available - Reserved_Name_W else 0);
+      Type_W    : constant Natural := Natural'Min (180, Metadata_W / 4);
+      Size_W    : constant Natural := Natural'Min (120, Metadata_W / 7);
+      Modified_W : constant Natural := Natural'Min (220, Metadata_W / 3);
+      Name_X    : constant Natural := Header_Content_X;
+      Name_W    : constant Natural :=
+        (if Available > Saturating_Add (Saturating_Add (Type_W, Size_W), Modified_W)
+         then Available - Type_W - Size_W - Modified_W
+         else 0);
+      Modified_X : constant Natural := Saturating_Add (Name_X, Name_W);
+      Size_X    : constant Natural := Saturating_Add (Modified_X, Modified_W);
+      Type_X    : constant Natural := Saturating_Add (Size_X, Size_W);
+
+      function Within
+        (Start  : Natural;
+         Extent : Natural)
+         return Boolean is
+      begin
+         return Contains_Rectangle_Point (Start, Content_Y, Extent, Header_H, X, Y);
+      end Within;
+   begin
+      if Snapshot.View_Mode /= Files.Types.Details
+        or else Header_H = 0
+        or else not Contains_Rectangle_Point (Content_X, Content_Y, Content_W, Header_H, X, Y)
+      then
+         return Files.Commands.No_Command;
+      elsif Within (Name_X, Name_W) then
+         return Files.Commands.Sort_By_Name_Command;
+      elsif Within (Modified_X, Modified_W) then
+         return Files.Commands.Sort_By_Changed_Command;
+      elsif Within (Size_X, Size_W) then
+         return Files.Commands.Sort_By_Size_Command;
+      elsif Within (Type_X, Type_W) then
+         return Files.Commands.Sort_By_Type_Command;
+      else
+         return Files.Commands.No_Command;
+      end if;
+   end Details_Header_Command_At;
+
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
@@ -1711,23 +2215,40 @@ package body Files.Rendering is
       Search_H  : constant Natural :=
         Natural'Min
           (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
-           Layout.Command_Height);
-      Results_Y : constant Natural := Saturating_Add (Layout.Command_Y, Search_H);
+           (if Layout.Command_Height > Saturating_Multiply (Command_Palette_Padding, 2)
+            then Layout.Command_Height - Saturating_Multiply (Command_Palette_Padding, 2)
+            else Layout.Command_Height));
+      Content_X : constant Natural := Saturating_Add (Layout.Command_X, Command_Palette_Padding);
+      Content_Y : constant Natural := Saturating_Add (Layout.Command_Y, Command_Palette_Padding);
+      Content_W : constant Natural :=
+        (if Layout.Command_Width > Saturating_Multiply (Command_Palette_Padding, 2)
+         then Layout.Command_Width - Saturating_Multiply (Command_Palette_Padding, 2)
+         else Layout.Command_Width);
+      Content_H : constant Natural :=
+        (if Layout.Command_Height > Saturating_Multiply (Command_Palette_Padding, 2)
+         then Layout.Command_Height - Saturating_Multiply (Command_Palette_Padding, 2)
+         else Layout.Command_Height);
+      Results_Y : constant Natural :=
+        Saturating_Add (Content_Y, Saturating_Add (Search_H, Command_Palette_Padding));
+      Used_H    : constant Natural := Saturating_Add (Search_H, Command_Palette_Padding);
    begin
       return
         (X              => Layout.Command_X,
          Y              => Layout.Command_Y,
          Width          => Layout.Command_Width,
          Height         => Layout.Command_Height,
-         Search_X       => Layout.Command_X,
-         Search_Y       => Layout.Command_Y,
-         Search_Width   => Layout.Command_Width,
+         Search_X       => Content_X,
+         Search_Y       => Content_Y,
+         Search_Width   => Content_W,
          Search_Height  => Search_H,
-         Results_X      => Layout.Command_X,
+         Results_X      => Content_X,
          Results_Y      => Results_Y,
-         Results_Width  => Layout.Command_Width,
-         Results_Height => (if Layout.Command_Height > Search_H then Layout.Command_Height - Search_H else 0),
-         Row_Height     => Saturating_Multiply (Line_Height, 2));
+         Results_Width  => Content_W,
+         Results_Height => (if Content_H > Used_H then Content_H - Used_H else 0),
+         Row_Height     =>
+           Saturating_Add
+             (Saturating_Multiply (Line_Height, 2),
+              Saturating_Multiply (Command_Result_Row_Padding, 2)));
    end Calculate_Command_Palette_Layout;
 
    function Calculate_Command_Result_Layout
@@ -1737,7 +2258,7 @@ package body Files.Rendering is
    is
       Result : Command_Result_Layout_Vectors.Vector;
       Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
-      Visible_Rows : constant Natural := Visible_Row_Count (Layout.Results_Height, Layout.Row_Height);
+      Visible_Rows : constant Natural := Complete_Visible_Row_Count (Layout.Results_Height, Layout.Row_Height);
       Max_Offset   : constant Natural :=
         (if Visible_Rows = 0 or else Result_Count <= Visible_Rows then 0 else Result_Count - Visible_Rows);
       Offset       : constant Natural := Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset);
@@ -1756,15 +2277,16 @@ package body Files.Rendering is
             exit when Result_Y >= Results_End_Y;
             declare
                Remaining : constant Natural := Results_End_Y - Result_Y;
-               Row_H     : constant Natural := Natural'Min (Layout.Row_Height, Remaining);
             begin
+               exit when Remaining < Layout.Row_Height;
+
                Result.Append
                  (Command_Result_Layout'
                     (Result_Index => Index,
                      X            => Layout.Results_X,
                      Y            => Result_Y,
                      Width        => Layout.Results_Width,
-                     Height       => Row_H,
+                     Height       => Layout.Row_Height,
                      Selected     => Snapshot.Command_Palette_Results.Element (Positive (Index)).Selected,
                      Enabled      => Snapshot.Command_Palette_Results.Element (Positive (Index)).Enabled));
             end;
@@ -1907,21 +2429,206 @@ package body Files.Rendering is
       return 0;
    end Root_Path_At;
 
+   function Info_Metadata_Text
+     (Available : Boolean;
+      Value     : Ada.Calendar.Time)
+      return UString
+   is
+   begin
+      if not Available then
+         return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
+      end if;
+
+      return
+        To_Unbounded_String (Humanized_Time_Text (Value));
+   end Info_Metadata_Text;
+
+   function Info_Field_Value
+     (Info  : Info_Snapshot;
+      Field : Natural)
+      return UString
+   is
+   begin
+      case Field is
+         when 0 =>
+            return Info.Name;
+         when 1 =>
+            return Info.Filetype_Detail;
+         when 2 =>
+            return
+              (if Info.Size_Available
+               then To_Unbounded_String (Size_Text (Info.Size))
+               else To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")));
+         when 3 =>
+            return Info_Metadata_Text (Info.Creation_Available, Info.Creation_Time);
+         when 4 =>
+            return Info_Metadata_Text (Info.Modified_Available, Info.Modified_Time);
+         when 5 =>
+            return
+              (if Length (Info.Permissions) = 0
+               then To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"))
+               else To_Unbounded_String (Permission_Text (To_String (Info.Permissions))));
+         when 6 =>
+            return
+              (if Info.Metadata_Error
+               then To_Unbounded_String (Files.Localization.Text (To_String (Info.Error_Key)))
+               else To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")));
+         when 7 =>
+            return Info.Filetype_Detail;
+         when 8 =>
+            return Info.Filetype_Extra;
+         when others =>
+            return Null_Unbounded_String;
+      end case;
+   end Info_Field_Value;
+
+   function Info_Field_Display_Value
+     (Info  : Info_Snapshot;
+      Field : Natural)
+      return UString
+   is
+      Value : constant UString := Info_Field_Value (Info, Field);
+   begin
+      if Field /= 8 then
+         return Value;
+      end if;
+
+      declare
+         Raw    : constant String := To_String (Value);
+         Result : Unbounded_String;
+         Index  : Integer := Raw'First;
+      begin
+         while Index <= Raw'Last loop
+            if Index < Raw'Last
+              and then Raw (Index) = '.'
+              and then Raw (Index + 1) = ' '
+            then
+               Append (Result, ".");
+               Append (Result, ASCII.LF);
+               Index := Index + 2;
+            else
+               Append (Result, Raw (Index));
+               Index := Index + 1;
+            end if;
+         end loop;
+
+         return Result;
+      end;
+   end Info_Field_Display_Value;
+
+   function Wrapped_Line_Count
+     (Text        : UString;
+      Text_W      : Natural;
+      Line_Height : Positive)
+      return Natural
+   is
+      Cell_W   : constant Positive := Positive'Max (1, Line_Height / 2);
+      Capacity : constant Natural := Text_W / Cell_W;
+      Raw      : constant String := To_String (Text);
+
+      function Segment_Row_Count
+        (First : Integer;
+         Last  : Integer)
+         return Natural
+      is
+         Units : constant Natural :=
+           (if Last < First then 0 else Files.UTF8.Display_Units (Raw (First .. Last)));
+      begin
+         if Capacity = 0 or else Units = 0 then
+            return 1;
+         end if;
+
+         return Units / Capacity + (if Units mod Capacity = 0 then 0 else 1);
+      end Segment_Row_Count;
+
+      Rows       : Natural := 0;
+      Line_First : Integer := Raw'First;
+   begin
+      if Raw'Length = 0 then
+         return 1;
+      end if;
+
+      for Position in Raw'Range loop
+         if Raw (Position) = ASCII.LF then
+            Rows := Saturating_Add (Rows, Segment_Row_Count (Line_First, Position - 1));
+            Line_First := Position + 1;
+         end if;
+      end loop;
+
+      if Line_First <= Raw'Last then
+         Rows := Saturating_Add (Rows, Segment_Row_Count (Line_First, Raw'Last));
+      elsif Raw (Raw'Last) = ASCII.LF then
+         Rows := Saturating_Add (Rows, 1);
+      end if;
+
+      return Rows;
+   end Wrapped_Line_Count;
+
+   function Info_Text_Width
+     (Layout      : Layout_Metrics;
+      Scrollbar_W : Natural)
+      return Natural
+   is
+      Reserved_W : constant Natural :=
+        Saturating_Add (Scrollbar_W, Saturating_Multiply (Info_Pane_Padding, 2));
+   begin
+      return
+        (if Layout.Info_Pane_Width > Reserved_W
+         then Layout.Info_Pane_Width - Reserved_W
+         else 0);
+   end Info_Text_Width;
+
+   function Info_Section_Row_Count
+     (Info        : Info_Snapshot;
+      Text_W      : Natural;
+      Line_Height : Positive)
+      return Natural
+   is
+      Rows : Natural := 0;
+   begin
+      for Field in 0 .. 8 loop
+         Rows :=
+           Saturating_Add
+             (Rows,
+              Saturating_Add
+                 (2,
+                 Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height)));
+      end loop;
+
+      return Rows;
+   end Info_Section_Row_Count;
+
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Info_Pane_Layout
    is
+      function Total_Info_Rows return Natural is
+         Rows : Natural := 0;
+      begin
+         for Info of Snapshot.Selected_Info loop
+            Rows :=
+              Saturating_Add
+                (Rows,
+                 Info_Section_Row_Count
+                   (Info,
+                    Info_Text_Width (Layout, Scrollbar_W => Natural'Min (6, Layout.Info_Pane_Width)),
+                    Line_Height));
+         end loop;
+
+         return Rows;
+      end Total_Info_Rows;
+
       Pane_X        : constant Natural := Layout.Main_Width;
-      Raw_Content_H : constant Natural :=
-        Saturating_Multiply
-          (Saturating_Multiply (Natural (Snapshot.Selected_Info.Length), Info_Rows_Per_Item), Line_Height);
+      Bar_W         : constant Natural := Natural'Min (6, Layout.Info_Pane_Width);
+      Text_W        : constant Natural := Info_Text_Width (Layout, Bar_W);
+      Content_Rows  : constant Natural := Total_Info_Rows;
+      Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
       Content_H     : constant Natural :=
         (if Raw_Content_H > 0
          then Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding, 2))
          else 0);
-      Bar_W         : constant Natural := Natural'Min (6, Layout.Info_Pane_Width);
       Visible       : constant Boolean :=
         Snapshot.Info_Pane_Open
         and then Layout.Info_Pane_Width > 0
@@ -2009,6 +2716,8 @@ package body Files.Rendering is
       Root_Rows     : constant Root_Path_Layout_Vectors.Vector :=
         Calculate_Root_Path_Layout (Snapshot, Root_Selector);
       Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
+      Settings_Pane : constant Files.UI.Settings_Pane_Layout :=
+        Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Bottom_Y      : constant Natural :=
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
       Bottom_Content_Y : constant Natural := Saturating_Add (Bottom_Y, Files.UI.Bottom_Bar_Padding);
@@ -2016,6 +2725,30 @@ package body Files.Rendering is
         (if Layout.Bottom_Bar_Height > Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
          then Layout.Bottom_Bar_Height - Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
          else Layout.Bottom_Bar_Height);
+      Drawing_Settings_Pane : Boolean := False;
+      Drawing_Command_Palette : Boolean := False;
+
+      function Intersects
+        (Left_X   : Natural;
+         Left_Y   : Natural;
+         Left_W   : Natural;
+         Left_H   : Natural;
+         Right_X  : Natural;
+         Right_Y  : Natural;
+         Right_W  : Natural;
+         Right_H  : Natural)
+         return Boolean
+      is
+      begin
+         return Left_W > 0
+           and then Left_H > 0
+           and then Right_W > 0
+           and then Right_H > 0
+           and then Left_X < Saturating_Add (Right_X, Right_W)
+           and then Right_X < Saturating_Add (Left_X, Left_W)
+           and then Left_Y < Saturating_Add (Right_Y, Right_H)
+           and then Right_Y < Saturating_Add (Left_Y, Left_H);
+      end Intersects;
 
       function Clipped_Size
         (Start : Natural;
@@ -2030,6 +2763,27 @@ package body Files.Rendering is
             return Natural'Min (Size, Limit - Start);
          end if;
       end Clipped_Size;
+
+      function Hidden_By_Settings_Pane
+        (X      : Natural;
+         Y      : Natural;
+         Item_W : Natural;
+         Item_H : Natural)
+         return Boolean
+      is
+      begin
+         return Snapshot.Settings_Pane_Open
+           and then not Drawing_Settings_Pane
+           and then Intersects
+             (X,
+              Y,
+              Item_W,
+              Item_H,
+              Settings_Pane.X,
+              Settings_Pane.Y,
+              Settings_Pane.Width,
+              Settings_Pane.Height);
+      end Hidden_By_Settings_Pane;
 
       procedure Add_Rect
         (X      : Natural;
@@ -2109,16 +2863,16 @@ package body Files.Rendering is
             return Null_Unbounded_String;
          elsif Files.UTF8.Display_Units (Raw) <= Capacity then
             return Text;
-         elsif Capacity < 4 then
+         elsif Capacity < 2 then
             return To_Unbounded_String (Files.UTF8.Prefix_By_Units (Raw, Capacity));
          else
             declare
-               Prefix : constant String := Files.UTF8.Prefix_By_Units (Raw, Capacity - 3);
+               Prefix : constant String := Files.UTF8.Prefix_By_Units (Raw, Capacity - 1);
             begin
                if Prefix = "" then
                   return To_Unbounded_String (Files.UTF8.Prefix_By_Units (Raw, Capacity));
                else
-                  return To_Unbounded_String (Prefix & "...");
+                  return To_Unbounded_String (Prefix & Ellipsis_Text);
                end if;
             end;
          end if;
@@ -2140,8 +2894,25 @@ package body Files.Rendering is
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
-         Was_Truncated : constant Boolean := Fit and then Length (Fitted) < Raw'Length;
+         Was_Truncated : constant Boolean := Fit and then To_String (Fitted) /= Raw;
       begin
+         if Hidden_By_Settings_Pane (X, Y, Draw_W, Draw_H) then
+            return;
+         elsif Snapshot.Command_Palette_Open
+           and then not Drawing_Command_Palette
+           and then Intersects
+             (X,
+              Y,
+              Draw_W,
+              Draw_H,
+              Palette.X,
+              Palette.Y,
+              Palette.Width,
+              Palette.Height)
+         then
+            return;
+         end if;
+
          if Draw_W > 0 and then Draw_H > 0 and then Length (Fitted) > 0 then
             Result.Text.Append
               (Text_Command'
@@ -2171,7 +2942,7 @@ package body Files.Rendering is
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
-         Was_Truncated : constant Boolean := Fit and then Length (Fitted) < Raw'Length;
+         Was_Truncated : constant Boolean := Fit and then To_String (Fitted) /= Raw;
       begin
          if Draw_W > 0 and then Draw_H > 0 and then Length (Fitted) > 0 then
             Result.Overlay_Text.Append
@@ -2208,6 +2979,57 @@ package body Files.Rendering is
                   Text   => To_Unbounded_String (Text)));
          end if;
       end Add_Tooltip;
+
+      procedure Add_Tooltip_Text
+        (X        : Natural;
+         Y        : Natural;
+         Tip_W    : Natural;
+         Tip_H    : Natural;
+         Text     : UString);
+
+      function Command_Tooltip_Text
+        (Command : Files.Commands.Command_Id)
+         return UString
+      is
+         Primary   : constant String := Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Command));
+         Secondary : constant String := Files.Commands.Shortcut_Text (Files.Commands.Secondary_Shortcut_For (Command));
+         Result    : UString :=
+           To_Unbounded_String (Files.Localization.Text (Files.Commands.Description_Key (Command)));
+      begin
+         if Primary /= "" and then Secondary /= "" then
+            Result :=
+              Result
+              & To_Unbounded_String (" (")
+              & To_Unbounded_String (Primary)
+              & To_Unbounded_String (" / ")
+              & To_Unbounded_String (Secondary)
+              & To_Unbounded_String (")");
+         elsif Primary /= "" then
+            Result :=
+              Result
+              & To_Unbounded_String (" (")
+              & To_Unbounded_String (Primary)
+              & To_Unbounded_String (")");
+         elsif Secondary /= "" then
+            Result :=
+              Result
+              & To_Unbounded_String (" (")
+              & To_Unbounded_String (Secondary)
+              & To_Unbounded_String (")");
+         end if;
+
+         return Result;
+      end Command_Tooltip_Text;
+
+      procedure Add_Command_Tooltip
+        (X       : Natural;
+         Y       : Natural;
+         Tip_W   : Natural;
+         Tip_H   : Natural;
+         Command : Files.Commands.Command_Id) is
+      begin
+         Add_Tooltip_Text (X, Y, Tip_W, Tip_H, Command_Tooltip_Text (Command));
+      end Add_Command_Tooltip;
 
       procedure Add_Tooltip_Text
         (X        : Natural;
@@ -2683,7 +3505,7 @@ package body Files.Rendering is
 
       procedure Add_Palette_Scrollbar is
          Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
-         Visible_Rows : constant Natural := Visible_Row_Count (Palette.Results_Height, Palette.Row_Height);
+         Visible_Rows : constant Natural := Complete_Visible_Row_Count (Palette.Results_Height, Palette.Row_Height);
          Bar_W       : constant Natural := Natural'Min (6, Palette.Results_Width);
          Track_H     : constant Natural := Palette.Results_Height;
          Thumb_H     : Natural := 0;
@@ -2884,6 +3706,8 @@ package body Files.Rendering is
          Resolved_Name : constant String := Resolved_Icon_Name;
       begin
          if Draw_Size = 0 then
+            return;
+         elsif Hidden_By_Settings_Pane (X, Y, Draw_Size, Draw_Size) then
             return;
          end if;
 
@@ -3093,16 +3917,8 @@ package body Files.Rendering is
          Y    : Natural;
          Size : Natural)
       is
-         Draw_Size : constant Natural :=
-           Natural'Min
-             (Size,
-              Natural'Min
-                (Clipped_Size (X, Size, Layout.Width),
-                 Clipped_Size (Y, Size, Layout.Height)));
       begin
-         if Draw_Size > 0 then
-            Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_Color (Item.Kind));
-         end if;
+         Add_Icon (Item, X, Y, Size);
       end Add_Details_Icon;
 
       procedure Add_Button
@@ -3114,15 +3930,15 @@ package body Files.Rendering is
       begin
          Add_Rect
            (X,
-            Bottom_Content_Y,
+            Bottom_Y,
             Button_W,
-            Bottom_Content_H,
+            Layout.Bottom_Bar_Height,
             (if Selected then Selection_Color
              elsif Pressed then Pressed_Color
              elsif Hovered then Hover_Color
              else Bottom_Bar_Color));
          if Selected then
-            Add_Border (X, Bottom_Content_Y, Button_W, Bottom_Content_H, Border_Color);
+            Add_Border (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height, Border_Color);
          end if;
       end Add_Button;
 
@@ -3142,10 +3958,60 @@ package body Files.Rendering is
                return To_Unbounded_String (Files.Localization.Text ("command.view.details.short"));
             when Files.Commands.Toggle_Info_Pane_Command =>
                return To_Unbounded_String (Files.Localization.Text ("command.info.toggle.short"));
+            when Files.Commands.Toggle_Sort_Menu_Command =>
+               return To_Unbounded_String (Files.Localization.Text ("command.sort.name"));
             when others =>
                return Command_Label (Id);
          end case;
       end Bottom_Command_Label;
+
+      function Sort_Field_Label
+        (Field : Files.Model.Sort_Field)
+         return String is
+      begin
+         case Field is
+            when Files.Model.Sort_Name =>
+               return Files.Localization.Text ("command.sort.name");
+            when Files.Model.Sort_Size =>
+               return Files.Localization.Text ("command.sort.size");
+            when Files.Model.Sort_Type =>
+               return Files.Localization.Text ("command.sort.type");
+            when Files.Model.Sort_Created =>
+               return Files.Localization.Text ("command.sort.created");
+            when Files.Model.Sort_Changed =>
+               return Files.Localization.Text ("command.sort.changed");
+         end case;
+      end Sort_Field_Label;
+
+      function Sort_Field_Command
+        (Field : Files.Model.Sort_Field)
+         return Files.Commands.Registered_Command_Id is
+      begin
+         case Field is
+            when Files.Model.Sort_Name =>
+               return Files.Commands.Sort_By_Name_Command;
+            when Files.Model.Sort_Size =>
+               return Files.Commands.Sort_By_Size_Command;
+            when Files.Model.Sort_Type =>
+               return Files.Commands.Sort_By_Type_Command;
+            when Files.Model.Sort_Created =>
+               return Files.Commands.Sort_By_Created_Command;
+            when Files.Model.Sort_Changed =>
+               return Files.Commands.Sort_By_Changed_Command;
+         end case;
+      end Sort_Field_Command;
+
+      function Direction_Text return String is
+      begin
+         return
+           Files.Localization.Text
+             ((if Snapshot.Sort_Ascending then "sort.direction.ascending" else "sort.direction.descending"));
+      end Direction_Text;
+
+      function Sort_Button_Label return UString is
+      begin
+         return To_Unbounded_String (Sort_Field_Label (Snapshot.Sort_Field) & " " & Direction_Text);
+      end Sort_Button_Label;
 
       function Command_Color (Id : Files.Commands.Registered_Command_Id) return Render_Color is
       begin
@@ -3159,8 +4025,8 @@ package body Files.Rendering is
          Selected : Boolean)
       is
          Hovered : constant Boolean :=
-           Has_Hover and then Contains_Point (X, Bottom_Content_Y, Button_W, Bottom_Content_H, Hover_X, Hover_Y);
-         Pressed : constant Boolean := Is_Pressed (X, Bottom_Content_Y, Button_W, Bottom_Content_H);
+           Has_Hover and then Contains_Point (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y);
+         Pressed : constant Boolean := Is_Pressed (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height);
       begin
          Add_Button (X, Button_W, Selected, Hovered, Pressed);
          Add_Text
@@ -3171,12 +4037,12 @@ package body Files.Rendering is
             Bottom_Command_Label (Command),
             Command_Color (Command),
             Fit => True);
-         Add_Tooltip
+         Add_Command_Tooltip
            (X,
             Bottom_Content_Y,
             Button_W,
             Bottom_Content_H,
-            Files.Commands.Description_Key (Command));
+            Command);
          Add_Accessibility_Node
            (Role_Button,
             X,
@@ -3302,21 +4168,53 @@ package body Files.Rendering is
          return
            Info_Value
              (Label_Key,
-              Ada.Calendar.Formatting.Image
-                (Date                  => Value,
-                 Include_Time_Fraction => False,
-                 Time_Zone             => 0));
+              Humanized_Time_Text (Value));
       end Time_Text;
 
       function Detail_Size_Text (Item : Item_Snapshot) return UString is
+         Unit_Index : Natural := 0;
+         Divisor    : Long_Long_Integer := 1;
+         Locale     : constant String := Files.Localization.System_Number_Locale;
+
+         function Unit_Key return String is
+         begin
+            case Unit_Index is
+               when 0 =>
+                  return "details.size.unit.bytes";
+               when 1 =>
+                  return "details.size.unit.kib";
+               when 2 =>
+                  return "details.size.unit.mib";
+               when 3 =>
+                  return "details.size.unit.gib";
+               when 4 =>
+                  return "details.size.unit.tib";
+               when others =>
+                  return "details.size.unit.pib";
+            end case;
+         end Unit_Key;
+
+         function Scaled_Number return String is
+            Whole     : constant Long_Long_Integer := Item.Size / Divisor;
+            Remainder : constant Long_Long_Integer := Item.Size mod Divisor;
+            Tenths    : constant Long_Long_Integer :=
+              Whole * 10 + ((Remainder * 10) + Divisor / 2) / Divisor;
+         begin
+            return Localized_Number_Text (Tenths, Unit_Index /= 0);
+         end Scaled_Number;
       begin
          if not Item.Size_Available then
             return Null_Unbounded_String;
          end if;
 
+         while Unit_Index < 5 and then Item.Size >= Divisor * 1024 loop
+            Unit_Index := Unit_Index + 1;
+            Divisor := Divisor * 1024;
+         end loop;
+
          return
            To_Unbounded_String
-             (Integer_Text (Item.Size) & " " & Files.Localization.Text ("details.size.unit.bytes"));
+             (Scaled_Number & " " & Files.Localization.Text (Unit_Key, Locale));
       end Detail_Size_Text;
 
       function Detail_Time_Text (Item : Item_Snapshot) return UString is
@@ -3326,11 +4224,7 @@ package body Files.Rendering is
          end if;
 
          return
-           To_Unbounded_String
-             (Ada.Calendar.Formatting.Image
-                (Date                  => Item.Modified_Time,
-                 Include_Time_Fraction => False,
-                 Time_Zone             => 0));
+           To_Unbounded_String (Humanized_Time_Text (Item.Modified_Time));
       end Detail_Time_Text;
 
       function Permission_Text (Permissions : String) return String is
@@ -3460,12 +4354,12 @@ package body Files.Rendering is
             else
                Add_Toolbar_Asset_Icon (Command, Icon_X, Icon_Y, Icon_Size, Enabled);
             end if;
-            Add_Tooltip
+            Add_Command_Tooltip
               (Button_X,
                Button_Y,
                Button_W,
                Button_H,
-               Files.Commands.Description_Key (Command));
+               Command);
             Add_Accessibility_Node
               (Role_Button,
                Button_X,
@@ -3518,12 +4412,12 @@ package body Files.Rendering is
             Toolbar_Input_H,
             Snapshot.Path_Input_Text);
       end if;
-      Add_Tooltip
+      Add_Command_Tooltip
         (Toolbar.Middle_X,
          Toolbar_Input_Y,
          Toolbar.Middle_Width,
          Toolbar_Input_H,
-         Files.Commands.Description_Key (Files.Commands.Focus_Path_Input_Command));
+         Files.Commands.Focus_Path_Input_Command);
       Add_Accessibility_Node
         (Role_Text_Input,
          Toolbar.Middle_X,
@@ -3570,12 +4464,12 @@ package body Files.Rendering is
       if Is_Pressed (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H) then
          Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Pressed_Color);
       end if;
-      Add_Tooltip
+      Add_Command_Tooltip
         (Toolbar.Right_X,
          Toolbar_Input_Y,
          Toolbar.Right_Width,
          Toolbar_Input_H,
-         Files.Commands.Description_Key (Files.Commands.Focus_Filter_Input_Command));
+         Files.Commands.Focus_Filter_Input_Command);
       Add_Accessibility_Node
         (Role_Text_Input,
          Toolbar.Right_X,
@@ -3608,6 +4502,47 @@ package body Files.Rendering is
          Bottom.Details_Button_Width,
          Files.Commands.Select_Details_Command,
          Snapshot.View_Mode = Files.Types.Details);
+      declare
+         Hovered : constant Boolean :=
+           Has_Hover
+           and then Contains_Point
+             (Bottom.Sort_Button_X,
+              Bottom_Y,
+              Bottom.Sort_Button_Width,
+              Layout.Bottom_Bar_Height,
+              Hover_X,
+              Hover_Y);
+         Pressed : constant Boolean :=
+           Is_Pressed (Bottom.Sort_Button_X, Bottom_Y, Bottom.Sort_Button_Width, Layout.Bottom_Bar_Height);
+      begin
+         Add_Button (Bottom.Sort_Button_X, Bottom.Sort_Button_Width, Snapshot.Sort_Menu_Open, Hovered, Pressed);
+         Add_Text
+           (Saturating_Add (Bottom.Sort_Button_X, Files.UI.Input_Field_Padding),
+            Bottom_Content_Y,
+            (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+             then Bottom.Sort_Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+             else 0),
+            Bottom_Content_H,
+            Sort_Button_Label,
+            Command_Color (Files.Commands.Toggle_Sort_Menu_Command),
+            Fit => False);
+         Add_Command_Tooltip
+           (Bottom.Sort_Button_X,
+            Bottom_Content_Y,
+            Bottom.Sort_Button_Width,
+            Bottom_Content_H,
+            Files.Commands.Toggle_Sort_Menu_Command);
+         Add_Accessibility_Node
+           (Role_Button,
+            Bottom.Sort_Button_X,
+            Bottom_Content_Y,
+            Bottom.Sort_Button_Width,
+            Bottom_Content_H,
+            Sort_Button_Label,
+            Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Sort_Menu_Command)),
+            Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Sort_Menu_Command),
+            Selected => Snapshot.Sort_Menu_Open);
+      end;
       Add_Rect
         (Bottom.Info_X,
          Bottom_Content_Y,
@@ -3637,24 +4572,24 @@ package body Files.Rendering is
          Bottom_Info_Text);
       Add_Rect
         (Bottom.Info_Pane_X,
-         Bottom_Content_Y,
+         Bottom_Y,
          Bottom.Info_Pane_Width,
-         Bottom_Content_H,
+         Layout.Bottom_Bar_Height,
          (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command) then Pane_Color
           elsif Snapshot.Info_Pane_Open
           then Selection_Color
           elsif Is_Pressed
             (Bottom.Info_Pane_X,
-             Bottom_Content_Y,
+             Bottom_Y,
              Bottom.Info_Pane_Width,
-             Bottom_Content_H)
+             Layout.Bottom_Bar_Height)
           then Pressed_Color
           elsif Has_Hover
             and then Contains_Point
               (Bottom.Info_Pane_X,
-               Bottom_Content_Y,
+               Bottom_Y,
                Bottom.Info_Pane_Width,
-               Bottom_Content_H,
+               Layout.Bottom_Bar_Height,
                Hover_X,
                Hover_Y)
           then Hover_Color
@@ -3667,12 +4602,12 @@ package body Files.Rendering is
          Bottom_Command_Label (Files.Commands.Toggle_Info_Pane_Command),
          Command_Color (Files.Commands.Toggle_Info_Pane_Command),
          Fit => True);
-      Add_Tooltip
+      Add_Command_Tooltip
         (Bottom.Info_Pane_X,
          Bottom_Content_Y,
          Bottom.Info_Pane_Width,
          Bottom_Content_H,
-         Files.Commands.Description_Key (Files.Commands.Toggle_Info_Pane_Command));
+         Files.Commands.Toggle_Info_Pane_Command);
       Add_Accessibility_Node
         (Role_Button,
          Bottom.Info_Pane_X,
@@ -3683,6 +4618,12 @@ package body Files.Rendering is
          Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Info_Pane_Command)),
          Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command),
          Selected => Snapshot.Info_Pane_Open);
+      if Layout.Bottom_Bar_Height > 0
+        and then Bottom.Sort_Button_X > 0
+        and then Bottom.Sort_Button_Width > 0
+      then
+         Add_Rect (Bottom.Sort_Button_X, Bottom_Y, 1, Layout.Bottom_Bar_Height, Border_Color);
+      end if;
       if Layout.Bottom_Bar_Height > 0 and then Bottom.Info_X > 0 then
          Add_Rect (Bottom.Info_X, Bottom_Y, 1, Layout.Bottom_Bar_Height, Border_Color);
       end if;
@@ -3744,6 +4685,20 @@ package body Files.Rendering is
             begin
                return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
             end Cell_W;
+
+            function Header_Text
+              (Key   : String;
+               Field : Files.Model.Sort_Field)
+               return UString
+            is
+               Label : constant String := Files.Localization.Text (Key);
+            begin
+               if Snapshot.Sort_Field = Field then
+                  return To_Unbounded_String (Label & " " & Direction_Text);
+               else
+                  return To_Unbounded_String (Label);
+               end if;
+            end Header_Text;
          begin
             Add_Rect (Content_X, Header_Y, Header_W, Header_H, Pane_Color);
             Add_Border (Content_X, Header_Y, Header_W, Header_H, Border_Color);
@@ -3752,7 +4707,7 @@ package body Files.Rendering is
                Text_Y,
                Cell_W (Name_W),
                Line_Height,
-               To_Unbounded_String (Files.Localization.Text ("details.name")),
+               Header_Text ("details.name", Files.Model.Sort_Name),
                Muted_Text_Color,
                Fit => True);
             Add_Text
@@ -3760,7 +4715,7 @@ package body Files.Rendering is
                Text_Y,
                Cell_W (Modified_W),
                Line_Height,
-               To_Unbounded_String (Files.Localization.Text ("details.modified")),
+               Header_Text ("details.modified", Files.Model.Sort_Changed),
                Muted_Text_Color,
                Fit => True);
             Add_Text
@@ -3768,7 +4723,7 @@ package body Files.Rendering is
                Text_Y,
                Cell_W (Size_W),
                Line_Height,
-               To_Unbounded_String (Files.Localization.Text ("details.size")),
+               Header_Text ("details.size", Files.Model.Sort_Size),
                Muted_Text_Color,
                Fit => True);
             Add_Text
@@ -3776,7 +4731,7 @@ package body Files.Rendering is
                Text_Y,
                Cell_W (Type_W),
                Line_Height,
-               To_Unbounded_String (Files.Localization.Text ("details.filetype")),
+               Header_Text ("details.filetype", Files.Model.Sort_Type),
                Muted_Text_Color,
                Fit => True);
             Add_Accessibility_Node
@@ -3793,9 +4748,9 @@ package body Files.Rendering is
                   Files.Localization.Text ("details.filetype")));
 
             if Header_H > 0 then
-               Add_Rect ((if Modified_X > 2 then Modified_X - 2 else 0), Header_Y, 1, Content_H, Border_Color);
-               Add_Rect ((if Size_X > 2 then Size_X - 2 else 0), Header_Y, 1, Content_H, Border_Color);
-               Add_Rect ((if Type_X > 2 then Type_X - 2 else 0), Header_Y, 1, Content_H, Border_Color);
+               Add_Rect ((if Modified_X > 2 then Modified_X - 2 else 0), Header_Y, 1, Header_H, Border_Color);
+               Add_Rect ((if Size_X > 2 then Size_X - 2 else 0), Header_Y, 1, Header_H, Border_Color);
+               Add_Rect ((if Type_X > 2 then Type_X - 2 else 0), Header_Y, 1, Header_H, Border_Color);
                Add_Rect
                  (Content_X,
                   Saturating_Add (Header_Y, Header_H - Natural'Min (2, Header_H)),
@@ -3876,27 +4831,33 @@ package body Files.Rendering is
                end;
             end if;
 
-            if Snapshot.View_Mode = Files.Types.Details then
-               if Item_Rect.Height > 0 then
-                  Add_Rect
-                    (Item_Rect.X,
-                     Item_Rect.Y + Item_Rect.Height - 1,
-                     Item_Rect.Width,
-                     1,
-                     Border_Color);
-               end if;
+            if Snapshot.View_Mode = Files.Types.Details and then Item_Rect.Height > 0 then
+               Add_Rect
+                 (Item_Rect.X,
+                  Item_Rect.Y + Item_Rect.Height - 1,
+                  Item_Rect.Width,
+                  1,
+                  Border_Color);
                Add_Text
                  (Detail_Cell_X (Item_Rect.Modified_X),
                   Item_Rect.Text_Y,
                   Detail_Cell_W (Item_Rect.Modified_Width),
-                  Line_Height,
+                  Natural'Min (Line_Height, Item_Rect.Height),
                   Detail_Time_Text (Item),
                   Muted_Text_Color);
+               if Item.Modified_Available then
+                  Add_Tooltip_Text
+                    (Detail_Cell_X (Item_Rect.Modified_X),
+                     Item_Rect.Text_Y,
+                     Detail_Cell_W (Item_Rect.Modified_Width),
+                     Natural'Min (Line_Height, Item_Rect.Height),
+                     To_Unbounded_String (Full_Time_Text (Item.Modified_Time)));
+               end if;
                Add_Text
                  (Detail_Cell_X (Item_Rect.Size_X),
                   Item_Rect.Text_Y,
                   Detail_Cell_W (Item_Rect.Size_Width),
-                  Line_Height,
+                  Natural'Min (Line_Height, Item_Rect.Height),
                   Detail_Size_Text (Item),
                   Muted_Text_Color,
                   Fit => True);
@@ -3904,7 +4865,7 @@ package body Files.Rendering is
                  (Detail_Cell_X (Item_Rect.Filetype_X),
                   Item_Rect.Text_Y,
                   Detail_Cell_W (Item_Rect.Filetype_Width),
-                  Line_Height,
+                  Natural'Min (Line_Height, Item_Rect.Height),
                   Item.Filetype_Detail,
                   Muted_Text_Color,
                   Fit => True);
@@ -3936,6 +4897,33 @@ package body Files.Rendering is
             end;
          end;
       end loop;
+
+      if Snapshot.View_Mode = Files.Types.Details and then not Items.Is_Empty then
+         declare
+            Padding   : constant Natural :=
+              (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+                 and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+               then Main_Content_Padding
+               else 0);
+            Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+            First_Row : constant Item_Layout := Items.Element (1);
+            Last_Row  : constant Item_Layout := Items.Element (Positive (Items.Length));
+            Separator_Y : constant Natural := Content_Y;
+            Separator_H : constant Natural :=
+              (if Last_Row.Y >= Content_Y
+               then Saturating_Add (Last_Row.Y - Content_Y, (if Last_Row.Height > 0 then Last_Row.Height - 1 else 0))
+               else Saturating_Add ((if Last_Row.Height > 0 then Last_Row.Height - 1 else 0), Content_Y - Last_Row.Y));
+
+            procedure Add_Column_Separator (Column_X : Natural) is
+            begin
+               Add_Rect ((if Column_X > 2 then Column_X - 2 else 0), Separator_Y, 1, Separator_H, Border_Color);
+            end Add_Column_Separator;
+         begin
+            Add_Column_Separator (First_Row.Modified_X);
+            Add_Column_Separator (First_Row.Size_X);
+            Add_Column_Separator (First_Row.Filetype_X);
+         end;
+      end if;
 
       if Empty_State_Key /= "" and then Layout.Main_Width > 0 and then Layout.Main_Height > 0 then
          declare
@@ -4012,190 +5000,209 @@ package body Files.Rendering is
             Info_Pane.Width,
             Info_Pane.Height,
             Localized ("accessibility.info_pane"));
-         for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
-            declare
-               Info   : constant Info_Snapshot := Snapshot.Selected_Info.Element (Positive (Index));
-               Section_Offset : constant Natural :=
-                 Saturating_Multiply
-                   (Saturating_Multiply (Natural (Index - 1), Line_Height),
-                    Info_Rows_Per_Item);
-               Base_Y : constant Integer :=
-                 Saturating_Integer_Add
-                   (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)), Section_Offset);
-               Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
-               Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
-               Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
-               Reserved_W : constant Natural :=
-                 Saturating_Add
-                   ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
-                    Saturating_Multiply (Info_Pane_Padding, 2));
-               Text_W : constant Natural :=
-                 (if Layout.Info_Pane_Width > Reserved_W
-                  then Layout.Info_Pane_Width - Reserved_W
-                  else 0);
-
-               procedure Add_Info_Text
-                 (Offset : Natural;
-                  Text   : UString;
-                  Color  : Render_Color := Text_Color)
-               is
-                  Y : constant Integer :=
-                    Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
-               begin
-                  if Y >= Integer (Info_Pane.Y)
-                    and then Y < Integer (Info_Bottom)
-                  then
-                     Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => True);
-                  end if;
-               end Add_Info_Text;
-
-               procedure Add_Info_Label
-                 (Field : Natural;
-                  Key   : String)
-               is
-                  Row : constant Natural := Saturating_Multiply (Field, 3);
-                  Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
-               begin
-                  Add_Info_Text (Row, Text, Text_Color);
-                  if Text_W > 1 then
-                     declare
-                        Y : constant Integer :=
-                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
-                     begin
-                        if Y >= Integer (Info_Pane.Y)
-                          and then Y < Integer (Info_Bottom)
-                        then
-                           Add_Text
-                             (Saturating_Add (Text_X, 1),
-                              Natural (Y),
-                              Text_W - 1,
-                              Line_Height,
-                              Text,
-                              Text_Color,
-                              Fit => True);
-                        end if;
-                     end;
-                  end if;
-               end Add_Info_Label;
-
-               procedure Add_Info_Value
-                 (Field : Natural;
-                  Text  : UString;
-                  Color : Render_Color := Muted_Text_Color)
-               is
-               begin
-                  Add_Info_Text (Saturating_Add (Saturating_Multiply (Field, 3), 1), Text, Color);
-               end Add_Info_Value;
-
-               function Metadata_Value
-                 (Available : Boolean;
-                  Value     : Ada.Calendar.Time)
-                  return UString
-               is
-               begin
-                  if not Available then
-                     return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
-                  end if;
-
-                  return
-                    To_Unbounded_String
-                      (Ada.Calendar.Formatting.Image
-                         (Date                  => Value,
-                          Include_Time_Fraction => False,
-                          Time_Zone             => 0));
-               end Metadata_Value;
-            begin
-               Add_Info_Label (0, "info.name");
-               Add_Info_Value (0, Info.Name);
-               Add_Info_Label (1, "info.filetype");
-               Add_Info_Value (1, Info.Filetype);
-               Add_Info_Label (2, "info.size");
-               if Info.Size_Available then
-                  Add_Info_Value
-                    (2,
-                     To_Unbounded_String (Integer_Text (Info.Size)),
-                     Muted_Text_Color);
-               else
-                  Add_Info_Value
-                    (2,
-                     To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")),
-                     Muted_Text_Color);
-               end if;
-               Add_Info_Label (3, "info.created");
-               Add_Info_Value (3, Metadata_Value (Info.Creation_Available, Info.Creation_Time), Muted_Text_Color);
-               Add_Info_Label (4, "info.modified");
-               Add_Info_Value (4, Metadata_Value (Info.Modified_Available, Info.Modified_Time), Muted_Text_Color);
-               Add_Info_Label (5, "info.permissions");
-               if Length (Info.Permissions) = 0 then
-                  Add_Info_Value
-                    (5,
-                     To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")),
-                     Muted_Text_Color);
-               else
-                  Add_Info_Value
-                    (5,
-                     To_Unbounded_String (Permission_Text (To_String (Info.Permissions))),
-                     Muted_Text_Color);
-               end if;
-               Add_Info_Label (6, "info.metadata_error");
-               if Info.Metadata_Error then
-                  Add_Info_Value
-                    (6,
-                     To_Unbounded_String (Files.Localization.Text (To_String (Info.Error_Key))),
-                     Muted_Text_Color);
-               else
-                  Add_Info_Value
-                    (6,
-                     To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")),
-                     Muted_Text_Color);
-               end if;
-               Add_Info_Label (7, "info.kind");
-               Add_Info_Value (7, Info.Filetype_Detail, Muted_Text_Color);
-               Add_Info_Label (8, "info.extra");
-               Add_Info_Value (8, Info.Filetype_Extra, Muted_Text_Color);
+         declare
+            Section_Offset_Rows : Natural := 0;
+         begin
+            for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
                declare
-                  Section_H : constant Natural :=
-                    Natural'Min
-                      (Saturating_Multiply (Line_Height, Info_Rows_Per_Item),
-                       Info_Pane.Height);
-                  Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
-                  Raw_Bottom : constant Integer :=
-                    Integer'Min
-                      (Saturating_Integer_Add (Row_Y, Section_H),
-                       Integer (Info_Bottom));
-                  Visible_H : constant Natural :=
-                    (if Raw_Bottom > Visible_Y then Natural (Raw_Bottom - Visible_Y) else 0);
-                  Size_Text : constant String :=
-                    (if Info.Size_Available
-                     then Integer_Text (Info.Size)
-                     else Files.Localization.Text ("status.missing_metadata"));
-                  Modified_Text : constant String :=
-                    To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"));
-                  Description : Unbounded_String :=
-                    To_Unbounded_String
-                      (Files.Localization.Text ("info.filetype") & ": " & To_String (Info.Filetype) & ", " &
-                       Files.Localization.Text ("info.size") & ": " & Size_Text & ", " &
-                       Modified_Text);
-               begin
-                  if Info.Metadata_Error then
-                     Append
-                       (Description,
-                        ", " &
-                        Files.Localization.Text ("info.metadata_error") & ": " &
-                        Files.Localization.Text (To_String (Info.Error_Key)));
-                  end if;
+                  Info   : constant Info_Snapshot := Snapshot.Selected_Info.Element (Positive (Index));
+                  Section_Offset : constant Natural := Saturating_Multiply (Section_Offset_Rows, Line_Height);
+                  Base_Y : constant Integer :=
+                    Saturating_Integer_Add
+                      (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)), Section_Offset);
+                  Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
+                  Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
+                  Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
+                  Reserved_W : constant Natural :=
+                    Saturating_Add
+                      ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
+                       Saturating_Multiply (Info_Pane_Padding, 2));
+                  Text_W : constant Natural :=
+                    (if Layout.Info_Pane_Width > Reserved_W
+                     then Layout.Info_Pane_Width - Reserved_W
+                     else 0);
 
-                  Add_Accessibility_Node
-                    (Role_List_Item,
-                     Info_Pane.X,
-                     Natural (Visible_Y),
-                     Text_W,
-                     Visible_H,
-                     Info.Name,
-                     Description);
+                  procedure Add_Info_Text
+                    (Offset : Natural;
+                     Text   : UString;
+                     Color  : Render_Color := Text_Color;
+                     Fit    : Boolean := True)
+                  is
+                     Y : constant Integer :=
+                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
+                  begin
+                     if Y >= Integer (Info_Pane.Y)
+                       and then Y < Integer (Info_Bottom)
+                     then
+                        Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => Fit);
+                     end if;
+                  end Add_Info_Text;
+
+                  procedure Add_Info_Label
+                    (Row : Natural;
+                     Key : String)
+                  is
+                     Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+                  begin
+                     Add_Info_Text (Row, Text, Text_Color);
+                     if Text_W > 1 then
+                        declare
+                           Y : constant Integer :=
+                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                        begin
+                           if Y >= Integer (Info_Pane.Y)
+                             and then Y < Integer (Info_Bottom)
+                           then
+                              Add_Text
+                                (Saturating_Add (Text_X, 1),
+                                 Natural (Y),
+                                 Text_W - 1,
+                                 Line_Height,
+                                 Text,
+                                 Text_Color,
+                                 Fit => True);
+                           end if;
+                        end;
+                     end if;
+                  end Add_Info_Label;
+
+                  procedure Add_Info_Wrapped_Value
+                    (Row   : Natural;
+                     Text  : UString;
+                     Color : Render_Color := Muted_Text_Color)
+                  is
+                     Raw        : constant String := To_String (Text);
+                     Cell_W     : constant Positive := Positive'Max (1, Line_Height / 2);
+                     Capacity   : constant Natural := Text_W / Cell_W;
+                     Line_Index : Natural := 0;
+
+                     procedure Add_Wrapped_Segment
+                       (Segment_First : Integer;
+                        Segment_Last  : Integer)
+                     is
+                        Start : Integer := Segment_First;
+                     begin
+                        if Segment_Last < Segment_First then
+                           Line_Index := Saturating_Add (Line_Index, 1);
+                           return;
+                        end if;
+
+                        while Start <= Segment_Last loop
+                           declare
+                              Prefix : constant String :=
+                                Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
+                              Last   : constant Integer :=
+                                (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                           begin
+                              Add_Info_Text
+                                (Saturating_Add (Row, Line_Index),
+                                 To_Unbounded_String (Raw (Start .. Last)),
+                                 Color,
+                                 Fit => False);
+                              exit when Last >= Segment_Last;
+                              Start := Last + 1;
+                              Line_Index := Saturating_Add (Line_Index, 1);
+                           end;
+                        end loop;
+
+                        Line_Index := Saturating_Add (Line_Index, 1);
+                     end Add_Wrapped_Segment;
+
+                     Line_First : Integer := Raw'First;
+                  begin
+                     if Raw'Length = 0 or else Capacity = 0 then
+                        Add_Info_Text (Row, Text, Color, Fit => False);
+                        return;
+                     end if;
+
+                     for Position in Raw'Range loop
+                        if Raw (Position) = ASCII.LF then
+                           Add_Wrapped_Segment (Line_First, Position - 1);
+                           Line_First := Position + 1;
+                        end if;
+                     end loop;
+
+                     if Line_First <= Raw'Last then
+                        Add_Wrapped_Segment (Line_First, Raw'Last);
+                     elsif Raw (Raw'Last) = ASCII.LF then
+                        Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
+                     end if;
+                  end Add_Info_Wrapped_Value;
+
+                  Current_Row : Natural := 0;
+
+                  procedure Add_Info_Field
+                    (Key   : String;
+                     Value : UString;
+                     Field : Natural;
+                     Color : Render_Color := Muted_Text_Color)
+                  is
+                     Display_Value : constant UString :=
+                       (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value);
+                     Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
+                  begin
+                     Add_Info_Label (Current_Row, Key);
+                     Current_Row := Saturating_Add (Current_Row, 1);
+                     Add_Info_Wrapped_Value (Current_Row, Display_Value, Color);
+                     Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
+                  end Add_Info_Field;
+               begin
+                  Add_Info_Field ("info.name", Info_Field_Value (Info, 0), 0);
+                  Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
+                  Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
+                  Add_Info_Field ("info.created", Info_Field_Value (Info, 3), 3);
+                  Add_Info_Field ("info.modified", Info_Field_Value (Info, 4), 4);
+                  Add_Info_Field ("info.permissions", Info_Field_Value (Info, 5), 5);
+                  Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
+                  Add_Info_Field ("info.kind", Info_Field_Value (Info, 7), 7);
+                  Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
+                  declare
+                     Section_H : constant Natural :=
+                       Natural'Min
+                         (Saturating_Multiply
+                            (Line_Height, Info_Section_Row_Count (Info, Text_W, Line_Height)),
+                          Info_Pane.Height);
+                     Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
+                     Raw_Bottom : constant Integer :=
+                       Integer'Min
+                         (Saturating_Integer_Add (Row_Y, Section_H),
+                          Integer (Info_Bottom));
+                     Visible_H : constant Natural :=
+                       (if Raw_Bottom > Visible_Y then Natural (Raw_Bottom - Visible_Y) else 0);
+                     Size_Text : constant String := To_String (Info_Field_Value (Info, 2));
+                     Modified_Text : constant String :=
+                       To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"));
+                     Description : Unbounded_String :=
+                       To_Unbounded_String
+                         (Files.Localization.Text ("info.filetype") & ": " &
+                          To_String (Info_Field_Value (Info, 1)) & ", " &
+                          Files.Localization.Text ("info.size") & ": " &
+                          Size_Text & ", " &
+                          Modified_Text);
+                  begin
+                     if Info.Metadata_Error then
+                        Append
+                          (Description,
+                           ", " &
+                           Files.Localization.Text ("info.metadata_error") & ": " &
+                           Files.Localization.Text (To_String (Info.Error_Key)));
+                     end if;
+
+                     Add_Accessibility_Node
+                       (Role_List_Item,
+                        Info_Pane.X,
+                        Natural (Visible_Y),
+                        Text_W,
+                        Visible_H,
+                        Info.Name,
+                        Description);
+                  end;
+                  Section_Offset_Rows :=
+                    Saturating_Add
+                      (Section_Offset_Rows, Info_Section_Row_Count (Info, Text_W, Line_Height));
                end;
-            end;
-         end loop;
+            end loop;
+         end;
 
          if Info_Pane.Scrollbar_Visible then
             Add_Scrollbar
@@ -4209,23 +5216,29 @@ package body Files.Rendering is
       end if;
 
       if Snapshot.Settings_Pane_Open then
+         Drawing_Settings_Pane := True;
          declare
-            Pane : constant Files.UI.Settings_Pane_Layout :=
-              Files.UI.Calculate_Settings_Pane_Layout
-                (Width, Height, Layout.Toolbar_Height, Line_Height);
+            Pane : constant Files.UI.Settings_Pane_Layout := Settings_Pane;
             Pane_W : constant Natural := Pane.Width;
             Pane_H : constant Natural := Pane.Height;
             Pane_X : constant Natural := Pane.X;
             Pane_Y : constant Natural := Pane.Y;
             Text_X : constant Natural := Pane.Text_X;
+            Text_Y : constant Natural := Pane.Text_Y;
             Text_W : constant Natural := Pane.Text_Width;
+            Row_Step : constant Natural := Saturating_Add (Line_Height, Files.UI.Settings_Row_Gap);
+
+            function Settings_Row_Y (Row : Natural) return Natural is
+            begin
+               return Saturating_Add (Text_Y, Saturating_Multiply (Row, Row_Step));
+            end Settings_Row_Y;
 
             procedure Add_Settings_Row
               (Row   : Natural;
                Key   : String;
                Color : Render_Color := Muted_Text_Color)
             is
-               Y : constant Natural := Saturating_Add (Pane_Y, Saturating_Multiply (Row, Line_Height));
+               Y : constant Natural := Settings_Row_Y (Row);
             begin
                Add_Text
                  (Text_X,
@@ -4243,7 +5256,7 @@ package body Files.Rendering is
                Value : UString;
                Index : Natural)
             is
-               Y : constant Natural := Saturating_Add (Pane_Y, Saturating_Multiply (Row, Line_Height));
+               Y : constant Natural := Settings_Row_Y (Row);
             begin
                if Snapshot.Settings_Field_Index = Index then
                   Add_Rect (Text_X - 2, Y, Text_W + 4, Line_Height, Selection_Color);
@@ -4266,7 +5279,7 @@ package body Files.Rendering is
             end Add_Settings_Value;
 
             procedure Add_Settings_Control_Options (Row : Natural) is
-               Y : constant Natural := Saturating_Add (Pane_Y, Saturating_Multiply (Row, Line_Height));
+               Y : constant Natural := Settings_Row_Y (Row);
                Cell_W : constant Natural := (if Text_W > 0 then Text_W / 4 else 0);
 
                procedure Add_Cell
@@ -4307,20 +5320,17 @@ package body Files.Rendering is
                      Add_Cell (0, "settings.value.true", Snapshot.Settings_Hidden_Files_Token = "true");
                      Add_Cell (1, "settings.value.false", Snapshot.Settings_Hidden_Files_Token = "false");
                   when 3 =>
-                     Add_Cell (0, "settings.value.true", Snapshot.Settings_Sort_Dirs_Token = "true");
-                     Add_Cell (1, "settings.value.false", Snapshot.Settings_Sort_Dirs_Token = "false");
-                  when 4 =>
                      Add_Cell (0, "settings.sort.name", Current = "name");
                      Add_Cell (1, "settings.sort.filetype", Current = "filetype");
                      Add_Cell (2, "settings.sort.size", Current = "size");
                      Add_Cell (3, "settings.sort.modified", Current = "modified");
-                  when 5 =>
+                  when 4 =>
                      Add_Cell (0, "settings.value.true", Snapshot.Settings_Sort_Ascending_Token = "true");
                      Add_Cell (1, "settings.value.false", Snapshot.Settings_Sort_Ascending_Token = "false");
-                  when 6 =>
+                  when 5 =>
                      Add_Cell (0, "settings.value.true", Snapshot.Settings_High_Contrast_Token = "true");
                      Add_Cell (1, "settings.value.false", Snapshot.Settings_High_Contrast_Token = "false");
-                  when 7 =>
+                  when 6 =>
                      Add_Cell (0, "settings.icon_theme.basic", Snapshot.Settings_Icon_Theme = "files-basic");
                      Add_Cell
                        (1,
@@ -4334,7 +5344,7 @@ package body Files.Rendering is
             procedure Add_Settings_Entry_Buttons (Row : Natural) is
                Buttons  : constant Files.UI.Settings_Entry_Button_Layout :=
                  Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
-               Y        : constant Natural := Saturating_Add (Pane_Y, Saturating_Multiply (Row, Line_Height));
+               Y        : constant Natural := Settings_Row_Y (Row);
 
                procedure Add_Button
                  (Button_X : Natural;
@@ -4386,9 +5396,7 @@ package body Files.Rendering is
                   X : constant Natural :=
                     (if Column = 0 then Buttons.First_Button_X else Buttons.Second_Button_X);
                   Y : constant Natural :=
-                    Saturating_Add
-                      (Pane_Y,
-                       Saturating_Multiply (Saturating_Add (Row, Line), Line_Height));
+                    Settings_Row_Y (Saturating_Add (Row, Line));
                begin
                   if Button_W = 0 then
                      return;
@@ -4406,12 +5414,12 @@ package body Files.Rendering is
                      Command_Label (Command),
                      (if Enabled then Muted_Text_Color else Disabled_Text_Color),
                      Fit => True);
-                  Add_Tooltip
+                  Add_Command_Tooltip
                     (X,
                      Y,
                      Button_W,
                      Line_Height,
-                     Files.Commands.Description_Key (Command));
+                     Command);
                   Add_Accessibility_Node
                     (Role_Button,
                      X,
@@ -4430,7 +5438,7 @@ package body Files.Rendering is
             end Add_Settings_Action_Buttons;
          begin
             Add_Drop_Shadow (Pane_X, Pane_Y, Pane_W, Pane_H);
-            Add_Rect (Pane_X, Pane_Y, Pane_W, Pane_H, Overlay_Color);
+            Add_Rect (Pane_X, Pane_Y, Pane_W, Pane_H, Pane_Color);
             Add_Border (Pane_X, Pane_Y, Pane_W, Pane_H, Border_Color);
             Add_Rect (Pane_X, Pane_Y, Pane_W, Natural'Min (3, Pane_H), Selection_Color);
             Add_Accessibility_Node
@@ -4444,27 +5452,26 @@ package body Files.Rendering is
             Add_Settings_Action_Buttons (1);
             Add_Settings_Value (3, "settings.default_view", Snapshot.Settings_Default_View, 1);
             Add_Settings_Value (4, "settings.hidden_files", Snapshot.Settings_Hidden_Files, 2);
-            Add_Settings_Value (5, "settings.sort_directories_first", Snapshot.Settings_Sort_Dirs, 3);
-            Add_Settings_Value (6, "settings.sort", Snapshot.Settings_Sort, 4);
-            Add_Settings_Value (7, "settings.sort_ascending", Snapshot.Settings_Sort_Ascending, 5);
-            Add_Settings_Value (8, "settings.high_contrast_theme", Snapshot.Settings_High_Contrast, 6);
-            Add_Settings_Value (9, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 7);
-            Add_Settings_Value (10, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
-            Add_Settings_Entry_Buttons (10);
-            Add_Settings_Value (11, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 8);
-            Add_Settings_Value (12, "settings.filetype_value", Snapshot.Settings_Filetype_Value, 9);
-            Add_Settings_Value (13, "settings.icons", Snapshot.Settings_Icons, 0);
-            Add_Settings_Entry_Buttons (13);
-            Add_Settings_Value (14, "settings.icon_filetype", Snapshot.Settings_Icon_Filetype, 10);
-            Add_Settings_Value (15, "settings.icon_value", Snapshot.Settings_Icon_Value, 11);
-            Add_Settings_Value (16, "settings.open_actions", Snapshot.Settings_Open_Actions, 0);
-            Add_Settings_Entry_Buttons (16);
-            Add_Settings_Value (17, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 12);
-            Add_Settings_Value (18, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 13);
+            Add_Settings_Value (5, "settings.sort", Snapshot.Settings_Sort, 3);
+            Add_Settings_Value (6, "settings.sort_ascending", Snapshot.Settings_Sort_Ascending, 4);
+            Add_Settings_Value (7, "settings.high_contrast_theme", Snapshot.Settings_High_Contrast, 5);
+            Add_Settings_Value (8, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 6);
+            Add_Settings_Value (9, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
+            Add_Settings_Entry_Buttons (9);
+            Add_Settings_Value (10, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 7);
+            Add_Settings_Value (11, "settings.filetype_value", Snapshot.Settings_Filetype_Value, 8);
+            Add_Settings_Value (12, "settings.icons", Snapshot.Settings_Icons, 0);
+            Add_Settings_Entry_Buttons (12);
+            Add_Settings_Value (13, "settings.icon_filetype", Snapshot.Settings_Icon_Filetype, 9);
+            Add_Settings_Value (14, "settings.icon_value", Snapshot.Settings_Icon_Value, 10);
+            Add_Settings_Value (15, "settings.open_actions", Snapshot.Settings_Open_Actions, 0);
+            Add_Settings_Entry_Buttons (15);
+            Add_Settings_Value (16, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 11);
+            Add_Settings_Value (17, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 12);
             if Length (Snapshot.Settings_Field_Help) > 0 then
                Add_Text
                  (Text_X,
-                  Saturating_Add (Pane_Y, Saturating_Multiply (19, Line_Height)),
+                  Settings_Row_Y (18),
                   Text_W,
                   Line_Height,
                   Snapshot.Settings_Field_Help,
@@ -4474,23 +5481,25 @@ package body Files.Rendering is
             if Length (Snapshot.Settings_Control_Options) > 0 then
                Add_Text
                  (Text_X,
-                  Saturating_Add (Pane_Y, Saturating_Multiply (20, Line_Height)),
+                  Settings_Row_Y (19),
                   Text_W,
                   Line_Height,
                   Snapshot.Settings_Control_Options,
                   Muted_Text_Color,
                   Fit => True);
             end if;
-            if Snapshot.Settings_Field_Index in 1 .. 7 then
-               Add_Settings_Control_Options (21);
+            if Snapshot.Settings_Field_Index in 1 .. 6 then
+               Add_Settings_Control_Options (20);
             end if;
             if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then
-               Add_Settings_Row (22, To_String (Snapshot.Settings_Draft_Error), Error_Text_Color);
+               Add_Settings_Row (21, To_String (Snapshot.Settings_Draft_Error), Error_Text_Color);
             end if;
          end;
+         Drawing_Settings_Pane := False;
       end if;
 
       if Snapshot.Command_Palette_Open then
+         Drawing_Command_Palette := True;
          declare
             Search_Text_Y : constant Natural :=
               (if Palette.Search_Height > 2 * Files.UI.Input_Field_Padding
@@ -4568,7 +5577,10 @@ package body Files.Rendering is
             Add_Text
               (Saturating_Add (Palette.Results_X, 8),
                Palette.Results_Y,
-               (if Palette.Results_Width > 16 then Palette.Results_Width - 16 else Palette.Results_Width),
+               (if Palette.Results_Width >
+                   Saturating_Add (16, Saturating_Add (6, Command_Palette_Scrollbar_Gap))
+                then Palette.Results_Width - 16 - 6 - Command_Palette_Scrollbar_Gap
+                else 0),
                Natural'Min (Line_Height, Palette.Results_Height),
                Localized ("command.palette.empty"),
                Muted_Text_Color,
@@ -4589,18 +5601,33 @@ package body Files.Rendering is
                  Snapshot.Command_Palette_Results.Element (Positive (Row.Result_Index));
                Accessible_Description : constant UString :=
                  Command_Result_Accessible_Description (Command);
+               Row_Text_X : constant Natural := Saturating_Add (Row.X, Command_Palette_Padding);
+               Row_Text_Y : constant Natural := Saturating_Add (Row.Y, Command_Result_Row_Padding);
+               Reserved_Scrollbar_W : constant Natural :=
+                 (if Palette.Results_Width > 0
+                  then Saturating_Add (Natural'Min (6, Palette.Results_Width), Command_Palette_Scrollbar_Gap)
+                  else 0);
+               Row_Text_End_X : constant Natural :=
+                 (if Row.Width > Saturating_Add (Command_Palette_Padding, Reserved_Scrollbar_W)
+                  then Saturating_Add (Row.X, Row.Width - Reserved_Scrollbar_W)
+                  else Row_Text_X);
+               Row_Text_W : constant Natural :=
+                 (if Row_Text_End_X > Saturating_Add (Row_Text_X, Command_Palette_Padding)
+                  then Row_Text_End_X - Row_Text_X - Command_Palette_Padding
+                  else 0);
                Shortcut_Width : constant Natural :=
                  (if Length (Command.Shortcut_Text) = 0 then 0
                   else Natural'Min
                     (Natural'Min
-                       (Saturating_Multiply
+                      (Saturating_Multiply
                           (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)), Line_Height / 2),
                         160),
-                     (if Row.Width > 16 then Row.Width / 3 else 0)));
+                     (if Row_Text_W > 0 then Natural'Min (Row_Text_W, Row_Text_W / 3) else 0)));
                Label_Width : constant Natural :=
-                 (if Row.Width <= 8 then 0
-                  elsif Shortcut_Width = 0 then Row.Width - 8
-                  elsif Row.Width > Shortcut_Width + 16 then Row.Width - Shortcut_Width - 16
+                 (if Row_Text_W = 0 then 0
+                  elsif Shortcut_Width = 0 then Row_Text_W
+                  elsif Row_Text_W > Shortcut_Width + Command_Palette_Padding
+                  then Row_Text_W - Shortcut_Width - Command_Palette_Padding
                   else 0);
                Hovered : constant Boolean :=
                  Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
@@ -4626,15 +5653,21 @@ package body Files.Rendering is
                end if;
                if not Row.Enabled and then Row.Height > 0 then
                   Add_Rect
-                    (Saturating_Add (Row.X, 4),
-                     Saturating_Add (Row.Y, Natural'Min (Row.Height - 1, Line_Height - 1)),
-                     (if Row.Width > 8 then Row.Width - 8 else 0),
+                    (Row_Text_X,
+                     Saturating_Add
+                       (Row_Text_Y,
+                        Natural'Min
+                          ((if Row.Height > Command_Result_Row_Padding
+                            then Row.Height - Command_Result_Row_Padding - 1
+                            else 0),
+                           Line_Height - 1)),
+                     Row_Text_W,
                      1,
                      Disabled_Text_Color);
                end if;
                Add_Text
-                 (Saturating_Add (Row.X, 4),
-                  Row.Y,
+                 (Row_Text_X,
+                  Row_Text_Y,
                   Label_Width,
                   Natural'Min (Line_Height, Row.Height),
                   Command.Label,
@@ -4642,8 +5675,8 @@ package body Files.Rendering is
                   Fit => True);
                if Shortcut_Width > 0 then
                   Add_Text
-                    (Saturating_Add (Row.X, Row.Width - Shortcut_Width - 4),
-                     Row.Y,
+                    (Saturating_Add (Row_Text_X, Row_Text_W - Shortcut_Width),
+                     Row_Text_Y,
                      Shortcut_Width,
                      Natural'Min (Line_Height, Row.Height),
                      Command.Shortcut_Text,
@@ -4652,10 +5685,14 @@ package body Files.Rendering is
                end if;
                if Row.Height > Line_Height then
                   Add_Text
-                    (Saturating_Add (Row.X, 4),
-                     Saturating_Add (Row.Y, Line_Height),
-                     (if Row.Width > 8 then Row.Width - 8 else 0),
-                     Natural'Min (Line_Height, Row.Height - Line_Height),
+                    (Row_Text_X,
+                     Saturating_Add (Row_Text_Y, Line_Height),
+                     Row_Text_W,
+                     Natural'Min
+                       (Line_Height,
+                        (if Row.Height > Saturating_Add (Command_Result_Row_Padding, Line_Height)
+                         then Row.Height - Command_Result_Row_Padding - Line_Height
+                         else 0)),
                      Command.Description,
                      (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color),
                   Fit => True);
@@ -4675,6 +5712,104 @@ package body Files.Rendering is
          end loop;
 
          Add_Palette_Scrollbar;
+         Drawing_Command_Palette := False;
+      end if;
+
+      if Snapshot.Sort_Menu_Open and then Bottom.Sort_Button_Width > 0 then
+         declare
+            Row_Count : constant Natural := 5;
+            Row_H     : constant Natural :=
+              Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2));
+            Rows_H    : constant Natural := Saturating_Multiply (Row_H, Row_Count);
+            Menu_H    : constant Natural :=
+              Saturating_Add (Rows_H, Saturating_Multiply (Files.UI.Sort_Menu_Padding, 2));
+            Menu_X    : constant Natural := Bottom.Sort_Button_X;
+            Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
+            Menu_W    : constant Natural := Bottom.Sort_Button_Width;
+            Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Files.UI.Sort_Menu_Padding);
+            Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
+            Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
+            Text_X    : constant Natural :=
+              Saturating_Add (Row_X, Files.UI.Input_Field_Padding);
+            Text_W    : constant Natural :=
+              (if Row_W > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+               then Row_W - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+               else 0);
+
+            type Sort_Field_Array is array (Positive range <>) of Files.Model.Sort_Field;
+            Fields : constant Sort_Field_Array :=
+              [Files.Model.Sort_Name,
+               Files.Model.Sort_Size,
+               Files.Model.Sort_Type,
+               Files.Model.Sort_Created,
+               Files.Model.Sort_Changed];
+         begin
+            Add_Overlay_Rect (Menu_X, Menu_Y, Menu_W, Menu_H, Overlay_Color);
+            Add_Overlay_Rect (Menu_X, Menu_Y, Menu_W, 1, Border_Color);
+            Add_Overlay_Rect (Menu_X, Menu_Y, 1, Menu_H, Border_Color);
+            if Menu_H > 0 then
+               Add_Overlay_Rect (Menu_X, Saturating_Add (Menu_Y, Menu_H - 1), Menu_W, 1, Border_Color);
+            end if;
+            if Menu_W > 0 then
+               Add_Overlay_Rect (Saturating_Add (Menu_X, Menu_W - 1), Menu_Y, 1, Menu_H, Border_Color);
+            end if;
+            Add_Accessibility_Node
+              (Role_List,
+               Menu_X,
+               Menu_Y,
+               Menu_W,
+               Menu_H,
+               Localized ("command.sort.menu"));
+
+            for Row in Fields'Range loop
+               declare
+                  Field     : constant Files.Model.Sort_Field := Fields (Row);
+                  Row_Y     : constant Natural :=
+                    Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
+                  Selected  : constant Boolean := Field = Snapshot.Sort_Field;
+                  Hovered   : constant Boolean :=
+                    Has_Hover and then Contains_Point (Menu_X, Row_Y, Menu_W, Row_H, Hover_X, Hover_Y);
+                  Pressed   : constant Boolean := Is_Pressed (Menu_X, Row_Y, Menu_W, Row_H);
+                  Label     : constant UString :=
+                    To_Unbounded_String
+                      (Sort_Field_Label (Field)
+                       & (if Selected then " " & Direction_Text else ""));
+               begin
+                  Add_Overlay_Rect
+                    (Row_X,
+                     Row_Y,
+                     Row_W,
+                     Row_H,
+                     (if Selected then Selection_Color
+                      elsif Pressed then Pressed_Color
+                      elsif Hovered then Hover_Color
+                      else Overlay_Color));
+                  if Row > Fields'First then
+                     Add_Overlay_Rect (Row_X, Row_Y, Row_W, 1, Border_Color);
+                  end if;
+                  Add_Overlay_Text
+                    (Text_X,
+                     Saturating_Add (Row_Y, Files.UI.Bottom_Bar_Padding),
+                     Text_W,
+                     Line_Height,
+                     Label,
+                     (if Snapshot.Command_Enabled (Sort_Field_Command (Field))
+                      then Text_Color
+                      else Disabled_Text_Color),
+                     Fit => False);
+                  Add_Accessibility_Node
+                    (Role_List_Item,
+                     Menu_X,
+                     Row_Y,
+                     Menu_W,
+                     Row_H,
+                     Label,
+                     Localized (Files.Commands.Description_Key (Sort_Field_Command (Field))),
+                     Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
+                     Selected => Selected);
+               end;
+            end loop;
+         end;
       end if;
 
       if Snapshot.Root_Selector_Open then
@@ -4793,12 +5928,12 @@ package body Files.Rendering is
                   Text_H,
                   Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
                   Fit => True);
-               Add_Tooltip
+               Add_Command_Tooltip
                  (Row.X,
                   Row.Y,
                   Row.Width,
                   Row.Height,
-                  Files.Commands.Description_Key (Files.Commands.Open_Selected_Root_Command));
+                  Files.Commands.Open_Selected_Root_Command);
                Add_Accessibility_Node
                  (Role_List_Item,
                   Row.X,

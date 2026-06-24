@@ -1,0 +1,5 @@
+en-BZ.time.format.clock = %H:%M:%S
+en-BZ.time.format.full = %d-%b-%Y %H:%M:%S
+en-BZ.time.locale.datetime_pattern = %d-%b-%Y %H:%M:%S
+en-BZ.time.locale.date_pattern = %d-%b-%Y
+en-BZ.time.locale.time_pattern = %H:%M:%S

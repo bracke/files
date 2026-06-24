@@ -75,6 +75,18 @@ package body Files.Commands is
             return "info.toggle";
          when Toggle_Settings_Pane_Command =>
             return "settings.toggle";
+         when Toggle_Sort_Menu_Command =>
+            return "sort.menu.toggle";
+         when Sort_By_Name_Command =>
+            return "sort.name";
+         when Sort_By_Size_Command =>
+            return "sort.size";
+         when Sort_By_Type_Command =>
+            return "sort.type";
+         when Sort_By_Created_Command =>
+            return "sort.created";
+         when Sort_By_Changed_Command =>
+            return "sort.changed";
          when Focus_Path_Input_Command =>
             return "path.focus";
          when Navigate_Home_Command =>
@@ -143,6 +155,18 @@ package body Files.Commands is
             return "command.info.toggle";
          when Toggle_Settings_Pane_Command =>
             return "command.settings.toggle";
+         when Toggle_Sort_Menu_Command =>
+            return "command.sort.menu";
+         when Sort_By_Name_Command =>
+            return "command.sort.name";
+         when Sort_By_Size_Command =>
+            return "command.sort.size";
+         when Sort_By_Type_Command =>
+            return "command.sort.type";
+         when Sort_By_Created_Command =>
+            return "command.sort.created";
+         when Sort_By_Changed_Command =>
+            return "command.sort.changed";
          when Focus_Path_Input_Command =>
             return "command.path.focus";
          when Navigate_Home_Command =>
@@ -211,6 +235,18 @@ package body Files.Commands is
             return "command.info.toggle.description";
          when Toggle_Settings_Pane_Command =>
             return "command.settings.toggle.description";
+         when Toggle_Sort_Menu_Command =>
+            return "command.sort.menu.description";
+         when Sort_By_Name_Command =>
+            return "command.sort.name.description";
+         when Sort_By_Size_Command =>
+            return "command.sort.size.description";
+         when Sort_By_Type_Command =>
+            return "command.sort.type.description";
+         when Sort_By_Created_Command =>
+            return "command.sort.created.description";
+         when Sort_By_Changed_Command =>
+            return "command.sort.changed.description";
          when Focus_Path_Input_Command =>
             return "command.path.focus.description";
          when Navigate_Home_Command =>
@@ -280,6 +316,13 @@ package body Files.Commands is
          when Toggle_Info_Pane_Command =>
             return (True, Files.Types.Key_4, Ctrl);
          when Toggle_Settings_Pane_Command =>
+            return (True, Files.Types.Key_Comma, Ctrl);
+         when Toggle_Sort_Menu_Command
+            | Sort_By_Name_Command
+            | Sort_By_Size_Command
+            | Sort_By_Type_Command
+            | Sort_By_Created_Command
+            | Sort_By_Changed_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Focus_Path_Input_Command =>
             return (True, Files.Types.Key_L, Ctrl);
@@ -371,6 +414,8 @@ package body Files.Commands is
             return "r";
          when Files.Types.Key_S =>
             return "s";
+         when Files.Types.Key_Comma =>
+            return ",";
          when Files.Types.Key_Backspace =>
             return "backspace";
          when Files.Types.Key_Delete =>
@@ -539,6 +584,7 @@ package body Files.Commands is
          when Select_Small_Icons_Command
             | Select_Large_Icons_Command
             | Select_Details_Command
+            | Toggle_Sort_Menu_Command
             | Toggle_Info_Pane_Command =>
             return Bottom_Bar;
          when Toggle_Settings_Pane_Command =>
@@ -635,6 +681,8 @@ package body Files.Commands is
          when Close_Command_Palette_Command =>
             return Files.Model.Command_Palette_Is_Open (Model)
               or else Files.Model.Root_Selector_Is_Open (Model)
+              or else Files.Model.Sort_Menu_Is_Open (Model)
+              or else Files.Model.Settings_Pane_Is_Open (Model)
               or else Files.Model.Focus (Model) /= Files.Types.Focus_None
               or else Files.Model.Rename_Is_Active (Model);
          when Open_Selected_Root_Command =>
@@ -713,6 +761,18 @@ package body Files.Commands is
             if Files.Model.Settings_Pane_Is_Open (Model) then
                Files.Model.Toggle_Settings_Pane (Model);
             end if;
+         when Toggle_Sort_Menu_Command =>
+            Files.Model.Toggle_Sort_Menu (Model);
+         when Sort_By_Name_Command =>
+            Files.Model.Select_Sort_Field (Model, Files.Model.Sort_Name);
+         when Sort_By_Size_Command =>
+            Files.Model.Select_Sort_Field (Model, Files.Model.Sort_Size);
+         when Sort_By_Type_Command =>
+            Files.Model.Select_Sort_Field (Model, Files.Model.Sort_Type);
+         when Sort_By_Created_Command =>
+            Files.Model.Select_Sort_Field (Model, Files.Model.Sort_Created);
+         when Sort_By_Changed_Command =>
+            Files.Model.Select_Sort_Field (Model, Files.Model.Sort_Changed);
          when Focus_Path_Input_Command =>
             Files.Model.Focus_Path_Input (Model);
          when Navigate_Home_Command =>
@@ -742,6 +802,10 @@ package body Files.Commands is
                Files.Model.Close_Command_Palette (Model);
             elsif Files.Model.Root_Selector_Is_Open (Model) then
                Files.Model.Close_Root_Selector (Model);
+            elsif Files.Model.Sort_Menu_Is_Open (Model) then
+               Files.Model.Close_Sort_Menu (Model);
+            elsif Files.Model.Settings_Pane_Is_Open (Model) then
+               Files.Model.Toggle_Settings_Pane (Model);
             else
                Files.Model.Cancel_Focus_Or_Edit (Model);
             end if;

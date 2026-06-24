@@ -161,7 +161,7 @@ package body Files.Controller is
       Index : Natural;
       Count : Natural)
    is
-      Visible_Rows : constant Natural := 5;
+      Visible_Rows : constant Natural := 4;
       Offset       : Natural := Files.Model.Command_Palette_Result_Offset (Model);
    begin
       if Count = 0 or else Index = 0 then
@@ -278,7 +278,7 @@ package body Files.Controller is
         Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
       Count   : constant Natural := Natural (Results.Length);
       Current : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-      Step    : constant Natural := 5;
+      Step    : constant Natural := 4;
       Next    : Natural := 0;
    begin
       if Count = 0 then
@@ -320,7 +320,6 @@ package body Files.Controller is
    begin
       return Left.Default_View_Mode = Right.Default_View_Mode
         and then Left.Show_Hidden_Files = Right.Show_Hidden_Files
-        and then Left.Sort_Directories_First = Right.Sort_Directories_First
         and then Left.Sort_Field_Value = Right.Sort_Field_Value
         and then Left.Sort_Ascending = Right.Sort_Ascending
         and then Left.High_Contrast_Theme = Right.High_Contrast_Theme
@@ -639,6 +638,8 @@ package body Files.Controller is
                Files.Model.Close_Command_Palette (Model);
             elsif Files.Model.Root_Selector_Is_Open (Model) then
                Files.Model.Close_Root_Selector (Model);
+            elsif Files.Model.Sort_Menu_Is_Open (Model) then
+               Files.Model.Close_Sort_Menu (Model);
             else
                Files.Model.Cancel_Focus_Or_Edit (Model);
             end if;
@@ -1116,15 +1117,15 @@ package body Files.Controller is
          if Option = 0 then
             return True;
          elsif Option = 100 or else Option = 101 then
-            return Field in 8 | 10 | 12;
+            return Field in 7 | 9 | 11;
          end if;
 
          case Field is
             when 1 =>
                return Option in 1 .. 3;
-            when 2 | 3 | 5 | 6 | 7 =>
+            when 2 | 4 | 5 | 6 =>
                return Option in 1 .. 2;
-            when 4 =>
+            when 3 =>
                return Option in 1 .. 4;
             when others =>
                return False;
@@ -1134,7 +1135,7 @@ package body Files.Controller is
       if Files.Model.Command_Palette_Is_Open (Model)
         or else not Files.Model.Settings_Pane_Is_Open (Model)
         or else Field = 0
-        or else Field > 13
+        or else Field > 12
         or else not Valid_Option
       then
          return Make_Result (Controller_Ignored);
@@ -1160,12 +1161,12 @@ package body Files.Controller is
                      when 3 => Files.Model.Set_Settings_Field_Text (Model, "details");
                      when others => null;
                   end case;
-               when 2 | 3 | 5 | 6 =>
+               when 2 | 4 | 5 =>
                   Files.Model.Set_Settings_Field_Text (Model, (if Option = 1 then "true" else "false"));
-               when 7 =>
+               when 6 =>
                   Files.Model.Set_Settings_Field_Text
                     (Model, (if Option = 1 then "files-basic" else "files-high-contrast"));
-               when 4 =>
+               when 3 =>
                   case Option is
                      when 1 => Files.Model.Set_Settings_Field_Text (Model, "name");
                      when 2 => Files.Model.Set_Settings_Field_Text (Model, "filetype");
@@ -1411,7 +1412,10 @@ package body Files.Controller is
       end if;
 
       if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
-         if Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
+         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+            Files.Model.Toggle_Settings_Pane (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
             Files.Model.Move_Settings_Field (Model, Files.Types.Move_Up);
             return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
          elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
@@ -1459,7 +1463,7 @@ package body Files.Controller is
             end;
          elsif (Key = Files.Types.Key_Left or else Key = Files.Types.Key_Right)
            and then Modifiers = Files.Types.No_Modifiers
-           and then Files.Model.Settings_Field_Index (Model) <= 7
+           and then Files.Model.Settings_Field_Index (Model) <= 6
          then
             declare
                Field   : constant Natural := Files.Model.Settings_Field_Index (Model);
@@ -1478,14 +1482,14 @@ package body Files.Controller is
                         Files.Model.Set_Settings_Field_Text
                           (Model, (if Forward then "small_icons" else "large_icons"));
                      end if;
-                  when 2 | 3 | 5 | 6 =>
+                  when 2 | 4 | 5 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model, (if Current = "true" then "false" else "true"));
-                  when 7 =>
+                  when 6 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model,
                         (if Current = "files-basic" then "files-high-contrast" else "files-basic"));
-                  when 4 =>
+                  when 3 =>
                      if Current = "name" then
                         Files.Model.Set_Settings_Field_Text (Model, (if Forward then "filetype" else "modified"));
                      elsif Current = "filetype" then
@@ -1644,7 +1648,12 @@ package body Files.Controller is
            and then not Files.Model.Rename_Is_Active (Model)
            and then not Files.Model.Temporary_Item_Is_Active (Model)
          then
-            return Make_Result (Controller_Ignored, Files.Commands.Close_Command_Palette_Command);
+            if Files.Model.Settings_Pane_Is_Open (Model) then
+               Files.Model.Toggle_Settings_Pane (Model);
+               return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+            else
+               return Make_Result (Controller_Ignored, Files.Commands.Close_Command_Palette_Command);
+            end if;
          else
             Files.Model.Cancel_Focus_Or_Edit (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
@@ -1661,8 +1670,40 @@ package body Files.Controller is
                declare
                   Old_Index : constant Natural := Files.Model.Selected_Index (Model);
                   Old_Count : constant Natural := Files.Model.Selected_Count (Model);
+                  Anchor    : Natural := Old_Index;
                begin
+                  if Action.Range_Selection and then Old_Count > 1 then
+                     declare
+                        First_Selected : Natural := 0;
+                        Last_Selected  : Natural := 0;
+                     begin
+                        for Index in 1 .. Files.Model.Visible_Count (Model) loop
+                           if Files.Model.Is_Selected (Model, Positive (Index)) then
+                              if First_Selected = 0 then
+                                 First_Selected := Index;
+                              end if;
+                              Last_Selected := Index;
+                           end if;
+                        end loop;
+
+                        if Old_Index = Last_Selected then
+                           Anchor := First_Selected;
+                        elsif Old_Index = First_Selected then
+                           Anchor := Last_Selected;
+                        end if;
+                     end;
+                  end if;
+
                   Files.Model.Move_Selection (Model, Action.Direction);
+                  if Action.Range_Selection then
+                     declare
+                        New_Index : constant Natural := Files.Model.Selected_Index (Model);
+                     begin
+                        if Anchor > 0 and then New_Index > 0 then
+                           Files.Model.Select_Visible_Range (Model, Positive (Anchor), Positive (New_Index));
+                        end if;
+                     end;
+                  end if;
                   return
                     Make_Result
                       (if Files.Model.Selected_Index (Model) = Old_Index

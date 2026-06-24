@@ -1,0 +1,6 @@
+es-CO.time.format.clock = %H:%M:%S
+es-CO.time.locale.date_pattern = %d/%m/%Y
+es-CO.time.locale.am = a. m.
+es-CO.time.locale.pm = p. m.
+es-CO.number.decimal = ,
+es-CO.number.group = .

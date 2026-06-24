@@ -38,7 +38,6 @@ package Files.Settings is
       Open_Actions           : Action_Maps.Map;
       Default_View           : Files.Types.View_Mode := Files.Types.Small_Icons;
       Show_Hidden_Files      : Boolean := False;
-      Sort_Directories_First : Boolean := True;
       Sort_Field_Value       : Sort_Field := Sort_By_Name;
       Sort_Ascending         : Boolean := True;
       High_Contrast_Theme    : Boolean := False;
@@ -67,7 +66,6 @@ package Files.Settings is
    type Settings_Draft is record
       Default_View_Mode      : UString;
       Show_Hidden_Files      : UString;
-      Sort_Directories_First : UString;
       Sort_Field_Value       : UString;
       Sort_Ascending         : UString;
       High_Contrast_Theme    : UString;

@@ -1,0 +1,17 @@
+es-MX.time.format.clock = %H:%M:%S
+es-MX.time.locale.date_pattern = %d/%m/%Y
+es-MX.time.locale.am = a.m.
+es-MX.time.locale.pm = p.m.
+es-MX.time.month1.short = ene
+es-MX.time.month2.short = feb
+es-MX.time.month3.short = mar
+es-MX.time.month4.short = abr
+es-MX.time.month5.short = may
+es-MX.time.month6.short = jun
+es-MX.time.month7.short = jul
+es-MX.time.month8.short = ago
+es-MX.time.month9.short = sep
+es-MX.time.month10.short = oct
+es-MX.time.month11.short = nov
+es-MX.time.month12.short = dic
+es-MX.details.size.unit.bytes = byte

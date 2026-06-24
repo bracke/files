@@ -24,8 +24,14 @@ project Files is
    end Binder;
 
    package Linker is
-      for Default_Switches ("Ada") use
-        ("-lvulkan", "-lz", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
+      case Files_Config.Alire_Host_OS is
+         when "macos" =>
+            for Default_Switches ("Ada") use
+              ("-lvulkan", "-lz", "-framework", "CoreFoundation");
+         when others =>
+            for Default_Switches ("Ada") use
+              ("-lvulkan", "-lz", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
+      end case;
    end Linker;
 
    package Builder is

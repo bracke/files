@@ -1,0 +1,4 @@
+es-419.time.format.clock = %H:%M:%S
+es-419.time.locale.time_pattern = %I:%M:%S %p
+es-419.number.decimal = .
+es-419.number.group = ,

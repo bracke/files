@@ -1,8 +1,10 @@
 with Ada.Calendar;
+with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Interfaces;
 with Interfaces.C.Strings;
+with Ada.Strings;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
@@ -75,6 +77,7 @@ package body Files_Suite is
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
+   use type Files.Model.Sort_Field;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
@@ -151,6 +154,7 @@ package body Files_Suite is
    procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -158,6 +162,7 @@ package body Files_Suite is
    procedure Test_Command_Palette_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Toggle_Shortcut (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -185,6 +190,7 @@ package body Files_Suite is
    procedure Test_Controller_Empty_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Render_Snapshot_And_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Bottom_Bar_Sort_Menu_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Loaded_UTF8_Item_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Event_Translation (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -417,6 +423,8 @@ package body Files_Suite is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Localization_Catalog'Access, "localization uses default catalog");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_System_Locale_Detection'Access, "system locale detection");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_First_Implementation_Feature_Policy'Access, "first implementation feature policy");
    end Register_Tests;
 
@@ -440,6 +448,8 @@ package body Files_Suite is
         (T, Test_Path_History'Access, "path history");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Path_Input_Validation'Access, "path input validation");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Runtime_Sort_State'Access, "runtime sort state");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Selector_And_Root_Selection'Access, "root selector and root selection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -520,6 +530,8 @@ package body Files_Suite is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Render_Snapshot_And_Layout'Access, "render snapshot and layout");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Bottom_Bar_Sort_Menu_Rendering'Access, "bottom bar sort menu rendering");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Directory_Loaded_UTF8_Item_Rendering'Access, "directory-loaded UTF-8 item rendering");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1675,15 +1687,17 @@ package body Files_Suite is
       Assert
         (Natural (Load.Items.Length) = 4,
          "all direct children are loaded; count=" & Natural'Image (Natural (Load.Items.Length)));
-      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directories sort before files");
+      Assert (To_String (Load.Items.Element (1).Name) = "A.txt", "directory items sort by name with files");
       Load := Files.File_System.Load_Directory (Dir & "/.", Settings);
       Assert (Load.Success, "non-normal directory path loads");
       Assert (To_String (Load.Items.Element (1).Parent_Path) = To_String (Load.Path), "item parent path is normalized");
-      Assert (To_String (Load.Items.Element (2).Name) = "A.txt", "case-insensitive file order is stable");
       Assert
-        (To_String (Load.Items.Element (3).Name) = "a.txt",
+        (To_String (Load.Items.Element (2).Name) = "a.txt",
          "case-insensitive equal names use deterministic fallback order");
-      Assert (To_String (Load.Items.Element (4).Name) = "b.txt", "fallback name order is deterministic");
+      Assert
+        (To_String (Load.Items.Element (3).Name) = "b.txt",
+         "fallback name order is deterministic");
+      Assert (To_String (Load.Items.Element (4).Name) = "zdir", "directories remain in normal name order");
 
       Load := Files.File_System.Load_Directory (Join (Root, "missing-directory"), Settings);
       Assert (not Load.Success, "missing directory load reports failure");
@@ -1713,13 +1727,6 @@ package body Files_Suite is
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Assert (Load.Success, "directory projection loads");
       Assert (Natural (Load.Items.Length) = 3, "hidden files are hidden by default");
-      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directories-first setting is applied");
-      Assert (To_String (Load.Items.Element (2).Name) = "afile.txt", "visible file remains after hidden filtering");
-      Assert (To_String (Load.Items.Element (3).Name) = "c.bin", "additional visible file remains loaded");
-
-      Settings.Sort_Directories_First := False;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (Natural (Load.Items.Length) = 3, "sort preference preserves hidden filtering");
       Assert (To_String (Load.Items.Element (1).Name) = "afile.txt", "name ordering can sort files before dirs");
       Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "name sort keeps files in deterministic order");
       Assert (To_String (Load.Items.Element (3).Name) = "zdir", "directory follows file when name sort wins");
@@ -1730,25 +1737,13 @@ package body Files_Suite is
       Assert (To_String (Load.Items.Element (2).Name) = "zdir", "filetype ties fall back to name order");
       Assert (To_String (Load.Items.Element (3).Name) = "afile.txt", "text file sorts after inode/filetype entries");
 
-      Settings.Sort_Directories_First := True;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directory grouping wins before filetype sort");
-      Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "filetype sort still orders grouped files");
-      Settings.Sort_Directories_First := False;
-
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
       Settings.Sort_Ascending := False;
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Assert (To_String (Load.Items.Element (1).Name) = "c.bin", "descending size sort uses metadata");
       Assert (To_String (Load.Items.Element (2).Name) = "afile.txt", "smaller file follows larger file");
 
-      Settings.Sort_Directories_First := True;
-      Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "zdir", "directory grouping wins before size sort");
-      Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "size sort still orders grouped files");
-
       Settings.Show_Hidden_Files := True;
-      Settings.Sort_Directories_First := False;
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Name;
       Settings.Sort_Ascending := True;
       Load := Files.File_System.Load_Directory (Dir, Settings);
@@ -1765,12 +1760,11 @@ package body Files_Suite is
       Assert (Natural (Load.Items.Length) = 3, "hidden directories are hidden by default");
 
       Settings.Show_Hidden_Files := True;
-      Settings.Sort_Directories_First := True;
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Assert (Natural (Load.Items.Length) = 6, "show-hidden setting exposes dot directories");
-      Assert (To_String (Load.Items.Element (1).Name) = ".vault", "hidden directories group with directories");
-      Assert (To_String (Load.Items.Element (2).Name) = "zdir", "visible directories stay in grouped name order");
-      Assert (To_String (Load.Items.Element (3).Name) = ".profile", "hidden files follow grouped directories");
+      Assert (To_String (Load.Items.Element (1).Name) = ".profile", "hidden files sort by name with other items");
+      Assert (To_String (Load.Items.Element (2).Name) = ".secret", "hidden files remain in deterministic order");
+      Assert (To_String (Load.Items.Element (3).Name) = ".vault", "hidden directories sort by name with files");
 
       Ada.Directories.Create_Path (Tie_Dir);
       Write_File (Join (Tie_Dir, "B_equal.txt"), "same");
@@ -1778,7 +1772,6 @@ package body Files_Suite is
       Write_File (Join (Tie_Dir, "later.txt"), "larger");
 
       Settings.Show_Hidden_Files := False;
-      Settings.Sort_Directories_First := False;
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
       Settings.Sort_Ascending := True;
       Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
@@ -2385,8 +2378,10 @@ package body Files_Suite is
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
       Ctrl     : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Shift    : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
    begin
       Ctrl (Files.Types.Control_Key) := True;
+      Shift (Files.Types.Shift_Key) := True;
       Files.Model.Move_Selection (Model, Files.Types.Move_Right);
       Assert (Files.Model.Selected_Index (Model) = 1, "first movement selects first visible item");
       Files.Model.Move_Selection (Model, Files.Types.Move_Left);
@@ -2399,6 +2394,31 @@ package body Files_Suite is
       Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first after up wrap");
       Files.Model.Move_Selection (Model, Files.Types.Move_Down);
       Assert (Files.Model.Selected_Index (Model) = 2, "down advances selection");
+      declare
+         Grid_Items : Files.File_System.Item_Vectors.Vector := Sample_Items;
+         Grid_Model : Files.Model.Window_Model;
+      begin
+         Grid_Items.Append
+           (Files.File_System.Make_Item (Root, "Kappa.txt", Files.Types.Regular_File_Item, "text/plain"));
+         Grid_Items.Append
+           (Files.File_System.Make_Item (Root, "Lambda.txt", Files.Types.Regular_File_Item, "text/plain"));
+         Files.Model.Initialize
+           (Grid_Model,
+            Directory_Path    => Root,
+            Items             => Grid_Items,
+            Home_Path         => "/home/test",
+            Default_View_Mode => Files.Types.Small_Icons);
+         Files.Model.Set_Selection_Grid_Columns (Grid_Model, 2);
+         Assert (Files.Model.Selection_Grid_Columns (Grid_Model) = 2, "model records rendered grid columns");
+         Files.Model.Select_Visible (Grid_Model, 1);
+         Files.Model.Move_Selection (Grid_Model, Files.Types.Move_Down);
+         Assert (Files.Model.Selected_Index (Grid_Model) = 3, "down moves to same column in next grid row");
+         Files.Model.Move_Selection (Grid_Model, Files.Types.Move_Up);
+         Assert (Files.Model.Selected_Index (Grid_Model) = 1, "up moves to same column in previous grid row");
+         Files.Model.Select_Visible (Grid_Model, 5);
+         Files.Model.Move_Selection (Grid_Model, Files.Types.Move_Down);
+         Assert (Files.Model.Selected_Index (Grid_Model) = 1, "down from last grid item wraps to first");
+      end;
       Files.Model.Toggle_Visible_Selection (Model, 1);
       Assert (Files.Model.Selected_Count (Model) = 2, "toggle adds a second deterministic selection");
       Assert (Files.Model.Is_Selected (Model, 1), "first toggled item is selected");
@@ -2420,6 +2440,20 @@ package body Files_Suite is
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "controller arrow moves selection");
       Assert (Files.Model.Selected_Index (Model) = 3, "controller down advances selection");
+      Files.Model.Select_Visible (Model, 1);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down, Shift);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "shift-down expands selection");
+      Assert (Files.Model.Selected_Index (Model) = 2, "shift-down moves primary selection to target item");
+      Assert (Files.Model.Selected_Count (Model) = 2, "shift-down keeps anchor and target selected");
+      Assert (Files.Model.Is_Selected (Model, 1), "shift-down keeps anchor item selected");
+      Assert (Files.Model.Is_Selected (Model, 2), "shift-down selects target item");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down, Shift);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "second shift-down expands selection");
+      Assert (Files.Model.Selected_Index (Model) = 3, "second shift-down moves primary selection to next item");
+      Assert (Files.Model.Selected_Count (Model) = 3, "second shift-down preserves range anchor");
+      Assert (Files.Model.Is_Selected (Model, 1), "second shift-down keeps original anchor selected");
+      Assert (Files.Model.Is_Selected (Model, 3), "second shift-down selects new target item");
+      Files.Model.Select_Visible (Model, 3);
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Modifiers => Ctrl);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "control-click toggles selection");
       Assert (Files.Model.Selected_Count (Model) = 2, "control-click adds to selection");
@@ -2649,6 +2683,102 @@ package body Files_Suite is
       Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/valid", "valid input changes path");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "valid path input clears focus");
    end Test_Path_Input_Validation;
+
+   procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Controller.Controller_Result;
+
+      function Item
+        (Name     : String;
+         Filetype : String;
+         Size     : Long_Long_Integer;
+         Created  : Ada.Calendar.Time;
+         Changed  : Ada.Calendar.Time)
+         return Files.File_System.Directory_Item
+      is
+         Value : Files.File_System.Directory_Item :=
+           Files.File_System.Make_Item (Root, Name, Files.Types.Regular_File_Item, Filetype);
+      begin
+         Value.Size_Available := True;
+         Value.Size := Size;
+         Value.Creation_Available := True;
+         Value.Creation_Time := Created;
+         Value.Modified_Available := True;
+         Value.Modified_Time := Changed;
+         return Value;
+      end Item;
+
+      function Snapshot_Name (Index : Positive) return String is
+         Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+      begin
+         return To_String (Snapshot.Items.Element (Index).Name);
+      end Snapshot_Name;
+   begin
+      Items.Append
+        (Item
+           ("bravo.txt",
+            "text/plain",
+            20,
+            Ada.Calendar.Time_Of (2024, 1, 2),
+            Ada.Calendar.Time_Of (2024, 1, 5)));
+      Items.Append
+        (Item
+           ("alpha.md",
+            "text/markdown",
+            30,
+            Ada.Calendar.Time_Of (2024, 1, 3),
+            Ada.Calendar.Time_Of (2024, 1, 4)));
+      Items.Append
+        (Item
+           ("charlie.bin",
+            "application/octet-stream",
+            10,
+            Ada.Calendar.Time_Of (2024, 1, 1),
+            Ada.Calendar.Time_Of (2024, 1, 6)));
+      Items.Append
+        (Files.File_System.Make_Item
+           (Root,
+            "zulu",
+            Files.Types.Directory_Item,
+            "inode/directory"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Name, "default runtime sort field is name");
+      Assert (Files.Model.Sort_Is_Ascending (Model), "default runtime sort direction is ascending");
+      Assert (Snapshot_Name (1) = "alpha.md", "default snapshot sorts by name ascending");
+      Assert (Snapshot_Name (4) = "zulu", "default snapshot does not group directories before files");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Toggle_Sort_Menu_Command, "sort menu command is routed");
+      Assert (Files.Model.Sort_Menu_Is_Open (Model), "sort menu opens");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Sort_By_Size_Command, "sort-by-size command is routed");
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size, "sort-by-size selects size field");
+      Assert (Files.Model.Sort_Is_Ascending (Model), "new sort field starts ascending");
+      Assert (not Files.Model.Sort_Menu_Is_Open (Model), "selecting a sort field closes the menu");
+      Assert (Snapshot_Name (1) = "charlie.bin", "size ascending sorts smallest file first");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
+      Assert (not Files.Model.Sort_Is_Ascending (Model), "selecting same sort field toggles descending");
+      Assert (Snapshot_Name (1) = "alpha.md", "size descending sorts largest file first");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Type_Command, Model, Settings);
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Type, "sort-by-type selects type field");
+      Assert (Files.Model.Sort_Is_Ascending (Model), "different sort field resets to ascending");
+      Assert (Snapshot_Name (1) = "charlie.bin", "type ascending sorts by filetype token");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Created_Command, Model, Settings);
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Created, "sort-by-created selects creation field");
+      Assert (Snapshot_Name (1) = "charlie.bin", "created ascending sorts oldest creation time first");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Changed_Command, Model, Settings);
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Changed, "sort-by-changed selects modified field");
+      Assert (Snapshot_Name (1) = "alpha.md", "changed ascending sorts oldest modified time first");
+   end Test_Runtime_Sort_State;
 
    procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2885,7 +3015,7 @@ package body Files_Suite is
       Assert
         (Files.Model.Settings_Field_Text (Model) = "true",
          "unsupported settings field does not mutate settings text");
-      Files.Model.Set_Settings_Field_Index (Model, 7);
+      Files.Model.Set_Settings_Field_Index (Model, 6);
       Files.Controller.Replace_Focused_Text (Model, "ab");
       Files.Model.Set_Text_Cursor_Position (Model, 1);
       declare
@@ -2905,7 +3035,7 @@ package body Files_Suite is
          Old_Mapping_Count : constant Natural :=
            Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length);
       begin
-         Result := Files.Controller.Handle_Settings_Click (Model, Field => 9, Option => 100);
+         Result := Files.Controller.Handle_Settings_Click (Model, Field => 8, Option => 100);
          Assert (Result.Status = Files.Controller.Controller_Ignored, "settings value-field add click is ignored");
          Assert (Files.Model.Settings_Field_Index (Model) = 2, "settings value-field add click does not move focus");
          Assert
@@ -2944,6 +3074,16 @@ package body Files_Suite is
       Assert (Files.Model.Last_Error_Key (Model) = "", "valid settings draft field validates on Return");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "controller closes settings pane");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Comma, Ctrl);
+      Assert (Result.Command = Files.Commands.Toggle_Settings_Pane_Command, "control+comma routes settings command");
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "control+comma opens settings pane");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Comma, Ctrl);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "control+comma closes open settings pane");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Comma, Ctrl);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "control+comma reopens settings pane");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "Escape closes unfocused settings pane");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 2);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "closed settings text click is ignored");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed settings text click does not focus input");
@@ -2993,8 +3133,11 @@ package body Files_Suite is
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
       Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings pane accepts settings text click");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Escape);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane remains open after focus Escape");
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after focus Escape");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "settings Escape clears settings focus");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane reopens after Escape close check");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
       Assert (Files.Model.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background selection keys");
@@ -4003,6 +4146,7 @@ package body Files_Suite is
       Ctrl_Shift    : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
       Small_Shortcut : Files.Commands.Shortcut;
       Drive_Shortcut : Files.Commands.Shortcut;
+      Settings_Shortcut : Files.Commands.Shortcut;
       Empty_Shortcut : Files.Commands.Shortcut;
       Delete_Secondary : Files.Commands.Shortcut;
       Empty_Secondary : Files.Commands.Shortcut;
@@ -4023,9 +4167,15 @@ package body Files_Suite is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 29, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 35, "all expected commands are registered");
       Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");
       Assert (Files.Commands.Contains ("settings.toggle"), "settings command identifier is registered");
+      Assert (Files.Commands.Contains ("sort.menu.toggle"), "sort menu command identifier is registered");
+      Assert (Files.Commands.Contains ("sort.name"), "sort by name command identifier is registered");
+      Assert (Files.Commands.Contains ("sort.size"), "sort by size command identifier is registered");
+      Assert (Files.Commands.Contains ("sort.type"), "sort by type command identifier is registered");
+      Assert (Files.Commands.Contains ("sort.created"), "sort by created command identifier is registered");
+      Assert (Files.Commands.Contains ("sort.changed"), "sort by changed command identifier is registered");
       Assert (Files.Commands.Contains ("selection.select_all"), "select-all command identifier is registered");
       Assert (Files.Commands.Contains ("settings.import"), "settings import command identifier is registered");
       Assert (Files.Commands.Contains ("settings.export"), "settings export command identifier is registered");
@@ -4180,6 +4330,10 @@ package body Files_Suite is
       Assert (Drive_Shortcut.Present, "drive selector exposes shortcut metadata");
       Assert (Drive_Shortcut.Key = Files.Types.Key_D, "drive selector shortcut uses D");
       Assert (Drive_Shortcut.Modifiers = Ctrl, "drive selector shortcut uses Control");
+      Settings_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Toggle_Settings_Pane_Command);
+      Assert (Settings_Shortcut.Present, "settings pane exposes shortcut metadata");
+      Assert (Settings_Shortcut.Key = Files.Types.Key_Comma, "settings pane shortcut uses comma");
+      Assert (Settings_Shortcut.Modifiers = Ctrl, "settings pane shortcut uses Control");
       Assert
         (Files.Commands.Placement_For (Files.Commands.Toggle_Settings_Pane_Command) =
          Files.Commands.Command_Palette_Only,
@@ -4226,6 +4380,10 @@ package body Files_Suite is
         (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command)) =
          "control+p",
          "primary shortcut text is normalized");
+      Assert
+        (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Toggle_Settings_Pane_Command)) =
+         "control+,",
+         "settings shortcut text includes comma");
       Assert
         (Ada.Strings.Fixed.Index
            (Files.Commands.Shortcut_Search_Text (Files.Commands.Delete_Selected_Items_Command),
@@ -4294,6 +4452,10 @@ package body Files_Suite is
       Assert
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_4, Ctrl) = Files.Commands.Toggle_Info_Pane_Command,
          "control+4 dispatches through registry");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Comma, Ctrl) =
+         Files.Commands.Toggle_Settings_Pane_Command,
+         "control+comma dispatches settings pane command");
       Assert
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_L, Ctrl) = Files.Commands.Focus_Path_Input_Command,
          "control+l dispatches through registry");
@@ -4960,6 +5122,23 @@ package body Files_Suite is
       begin
          Error_Keys.Append (To_Unbounded_String (Key));
       end Add_Error_Key;
+
+      procedure Assert_Western_Translation
+        (Locale : String)
+      is
+         Small_Label : constant String := Files.Localization.Text ("command.view.small", Locale);
+         Missing     : constant String := Files.Localization.Text ("error.path.missing", Locale);
+      begin
+         Assert
+           (Small_Label /= "Small Icons" and then Small_Label /= "command.view.small",
+            Locale & " command label is translated");
+         Assert
+           (Missing /= "Path does not exist." and then Missing /= "error.path.missing",
+            Locale & " error message is translated");
+         Assert
+           (Files.Localization.Text ("status.items", Locale) /= "status.items",
+            Locale & " status label resolves from catalog");
+      end Assert_Western_Translation;
    begin
       Assert
         (Files.Localization.Text ("command.view.small") = "Small Icons",
@@ -5048,9 +5227,16 @@ package body Files_Suite is
       Assert
         (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.help"), "--help, -h") > 0,
          "CLI help flag description is localized");
-      Assert
-        (Files.Localization.Text ("command.view.small", "da-DK") = "Small Icons",
-         "missing locale falls back through default locale");
+      Assert_Western_Translation ("da-DK");
+      Assert_Western_Translation ("de-DE");
+      Assert_Western_Translation ("es-ES");
+      Assert_Western_Translation ("fr-FR");
+      Assert_Western_Translation ("it-IT");
+      Assert_Western_Translation ("nl-NL");
+      Assert_Western_Translation ("pt-PT");
+      Assert_Western_Translation ("sv-SE");
+      Assert_Western_Translation ("nb-NO");
+      Assert_Western_Translation ("fi-FI");
       Assert
         (Files.Localization.Text ("missing.test.key") = "missing.test.key",
          "unknown localization key falls back to key text");
@@ -5158,6 +5344,221 @@ package body Files_Suite is
          end;
       end loop;
    end Test_Localization_Catalog;
+
+   procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Had_LC_All      : constant Boolean := Ada.Environment_Variables.Exists ("LC_ALL");
+      Had_LC_Messages : constant Boolean := Ada.Environment_Variables.Exists ("LC_MESSAGES");
+      Had_LC_Time     : constant Boolean := Ada.Environment_Variables.Exists ("LC_TIME");
+      Had_LC_Numeric  : constant Boolean := Ada.Environment_Variables.Exists ("LC_NUMERIC");
+      Had_Lang        : constant Boolean := Ada.Environment_Variables.Exists ("LANG");
+      Had_Home        : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Old_LC_All      : Unbounded_String;
+      Old_LC_Messages : Unbounded_String;
+      Old_LC_Time     : Unbounded_String;
+      Old_LC_Numeric  : Unbounded_String;
+      Old_Lang        : Unbounded_String;
+      Old_Home        : Unbounded_String;
+
+      function Repository_File_Contains
+        (Path    : String;
+         Pattern : String)
+         return Boolean is
+      begin
+         return
+           (Project_Tools.Files.File_Exists (Path)
+            and then Project_Tools.Files.File_Contains (Path, Pattern))
+           or else
+           (Project_Tools.Files.File_Exists ("../" & Path)
+            and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
+           or else
+           (Project_Tools.Files.File_Exists ("../../" & Path)
+            and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
+      end Repository_File_Contains;
+
+      procedure Restore_Environment is
+      begin
+         if Had_LC_All then
+            Ada.Environment_Variables.Set ("LC_ALL", To_String (Old_LC_All));
+         else
+            Ada.Environment_Variables.Clear ("LC_ALL");
+         end if;
+
+         if Had_LC_Messages then
+            Ada.Environment_Variables.Set ("LC_MESSAGES", To_String (Old_LC_Messages));
+         else
+            Ada.Environment_Variables.Clear ("LC_MESSAGES");
+         end if;
+
+         if Had_LC_Time then
+            Ada.Environment_Variables.Set ("LC_TIME", To_String (Old_LC_Time));
+         else
+            Ada.Environment_Variables.Clear ("LC_TIME");
+         end if;
+
+         if Had_LC_Numeric then
+            Ada.Environment_Variables.Set ("LC_NUMERIC", To_String (Old_LC_Numeric));
+         else
+            Ada.Environment_Variables.Clear ("LC_NUMERIC");
+         end if;
+
+         if Had_Lang then
+            Ada.Environment_Variables.Set ("LANG", To_String (Old_Lang));
+         else
+            Ada.Environment_Variables.Clear ("LANG");
+         end if;
+
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+      end Restore_Environment;
+   begin
+      if Had_LC_All then
+         Old_LC_All := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_ALL"));
+      end if;
+
+      if Had_LC_Messages then
+         Old_LC_Messages := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_MESSAGES"));
+      end if;
+
+      if Had_LC_Time then
+         Old_LC_Time := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_TIME"));
+      end if;
+
+      if Had_LC_Numeric then
+         Old_LC_Numeric := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_NUMERIC"));
+      end if;
+
+      if Had_Lang then
+         Old_Lang := To_Unbounded_String (Ada.Environment_Variables.Value ("LANG"));
+      end if;
+
+      if Had_Home then
+         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+
+      begin
+         Assert
+           (Files.Localization.Normalize_Locale ("da_DK.UTF-8") = "da-DK",
+            "locale normalization removes encoding and converts separator");
+         Assert
+           (Files.Localization.Normalize_Locale ("en_us") = "en-US",
+            "locale normalization canonicalizes language and region case");
+         Assert
+           (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin") = "sr-RS",
+            "locale normalization removes locale modifiers");
+         Assert (Files.Localization.Normalize_Locale ("C") = "en", "C locale falls back to English");
+         Assert (Files.Localization.Normalize_Locale ("POSIX") = "en", "POSIX locale falls back to English");
+
+         Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
+         Ada.Environment_Variables.Set ("LC_MESSAGES", "en_US.UTF-8");
+         Ada.Environment_Variables.Set ("LC_TIME", "sv_SE.UTF-8");
+         Ada.Environment_Variables.Set ("LC_NUMERIC", "fr_FR.UTF-8");
+         Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
+         Assert (Files.Localization.System_Locale = "da-DK", "LC_ALL has locale detection precedence");
+         Assert (Files.Localization.System_Time_Locale = "da-DK", "LC_ALL has time-locale detection precedence");
+         Assert
+           (Files.Localization.System_Number_Locale = "da-DK",
+            "LC_ALL has numeric-locale detection precedence");
+
+         Ada.Environment_Variables.Clear ("LC_ALL");
+         Assert (Files.Localization.System_Locale = "en-US", "LC_MESSAGES is used after LC_ALL");
+         Assert (Files.Localization.System_Time_Locale = "sv-SE", "LC_TIME is used for date/time after LC_ALL");
+         Assert
+           (Files.Localization.System_Number_Locale = "fr-FR",
+            "LC_NUMERIC is used for numbers after LC_ALL");
+
+         Ada.Environment_Variables.Clear ("LC_MESSAGES");
+         Assert (Files.Localization.System_Locale = "de-DE", "LANG is used after LC_MESSAGES");
+         Ada.Environment_Variables.Clear ("LC_TIME");
+         Assert (Files.Localization.System_Time_Locale = "de-DE", "LANG is used for date/time after LC_TIME");
+         Ada.Environment_Variables.Clear ("LC_NUMERIC");
+         Assert (Files.Localization.System_Number_Locale = "de-DE", "LANG is used for numbers after LC_NUMERIC");
+
+         Ada.Environment_Variables.Set ("LC_ALL", "C");
+         Assert (Files.Localization.System_Locale = "en", "C in LC_ALL overrides lower-precedence locale variables");
+         Assert (Files.Localization.System_Time_Locale = "en", "C in LC_ALL overrides lower-precedence time locale");
+         Assert
+           (Files.Localization.System_Number_Locale = "en",
+            "C in LC_ALL overrides lower-precedence numeric locale");
+
+         Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
+         Assert
+           (Files.Localization.Text ("command.view.small") /= "Small Icons"
+            and then Files.Localization.Text ("command.view.small") /= "command.view.small",
+            "detected Danish locale loads translated app catalog resources");
+         Assert
+           (Files.Localization.Text ("time.relative.today", Files.Localization.System_Time_Locale) = "I dag",
+            "detected Danish time locale uses date/time catalog resources");
+         Assert
+           (Files.Localization.Text ("time.format.locale_date", "da-DK") = "%x",
+            "Danish catalog includes named utilada date format patterns");
+         Assert
+           (Files.Localization.Text ("time.month1.long", "sv-SE") = "januari",
+            "regional locales fall back to generated base-language date resources");
+         Assert
+           (Files.Localization.Text ("time.relative.today", "de-DE") = "Heute",
+            "German catalog includes date/time resources");
+         Assert (Files.Localization.Text ("number.decimal", "de-DE") = ",", "German catalog has decimal symbol");
+         Assert (Files.Localization.Text ("number.group", "de-DE") = ".", "German catalog has group symbol");
+         Assert
+           (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
+            "German catalog has generated digital unit labels");
+         Assert
+           (Repository_File_Contains
+              ("src/platform/windows/files-platform-windows.adb",
+               "GetUserDefaultLocaleName"),
+            "Windows native locale detection binds GetUserDefaultLocaleName");
+         Assert
+           (Repository_File_Contains ("src/platform/macos/files-platform-macos.adb", "CFLocaleCopyCurrent")
+            and then Repository_File_Contains
+              ("files.gpr",
+               """-framework"", ""CoreFoundation"""),
+            "macOS native locale detection binds CoreFoundation locale APIs");
+         Assert
+           (Repository_File_Contains
+              ("src/files-localization.adb",
+               "Files.Platform.Windows.Native_Locale"),
+            "system locale detection falls back to Windows native locale");
+         Assert
+           (Repository_File_Contains
+              ("src/files-localization.adb",
+               "Files.Platform.Macos.Native_Locale"),
+            "system locale detection falls back to macOS native locale");
+
+         declare
+            Fake_Home   : constant String := Join (Root, "locale-home");
+            Config_Dir  : constant String := Join (Fake_Home, ".config");
+            Config_Path : constant String := Join (Config_Dir, "plasma-localerc");
+         begin
+            Ada.Directories.Create_Path (Config_Dir);
+            Write_File
+              (Config_Path,
+               "[Formats]" & ASCII.LF &
+               "LC_NUMERIC=da_DK.UTF-8" & ASCII.LF &
+               "LANG=de_DE.UTF-8" & ASCII.LF);
+            Ada.Environment_Variables.Clear ("LC_ALL");
+            Ada.Environment_Variables.Clear ("LC_TIME");
+            Ada.Environment_Variables.Clear ("LC_NUMERIC");
+            Ada.Environment_Variables.Set ("LANG", "C.UTF-8");
+            Ada.Environment_Variables.Set ("HOME", Fake_Home);
+            Assert
+              (Files.Localization.System_Time_Locale = "de-DE",
+               "portable process LANG falls back to KDE formats locale");
+            Assert
+              (Files.Localization.System_Number_Locale = "da-DK",
+               "portable process LANG falls back to KDE numeric formats locale");
+         end;
+
+         Restore_Environment;
+      exception
+         when others =>
+            Restore_Environment;
+            raise;
+      end;
+   end Test_System_Locale_Detection;
 
    procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5432,9 +5833,11 @@ package body Files_Suite is
          and then Repository_File_Contains ("tests/tests/tests.gpr", """-gnat2022"""),
          "nested tests project keeps Ada 2022 test sources wired");
       Assert
-        (Repository_File_Contains ("tools/files_check_all.gpr", "for Main use (""check_all.adb"")")
-         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""check_all"""),
-         "checker tooling project builds the expected Ada helper");
+        (Repository_File_Contains
+           ("tools/files_check_all.gpr", "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"")")
+         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""check_all""")
+         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""cldr_to_catalog"""),
+         "checker tooling project builds the expected Ada helpers");
       Assert
         (Repository_File_Contains ("tools/files_check_all.gpr", "for Source_Dirs use (""src"", ""config"")")
          and then Repository_File_Contains ("tools/files_check_all.gpr", """-gnat2022"""),
@@ -5514,7 +5917,6 @@ package body Files_Suite is
         ASCII.HT & "[ Settings ]" & ASCII.CR & ASCII.LF &
         ASCII.HT & "Default_View_Mode" & ASCII.HT & "=" & ASCII.HT & "DETAILS" & ASCII.CR & ASCII.LF &
         "Show_Hidden_Files = TRUE" & ASCII.CR & ASCII.LF &
-        "Sort_Directories_First = FALSE" & ASCII.CR & ASCII.LF &
         "Sort_Field = size" & ASCII.CR & ASCII.LF &
         "Sort_Ascending = FALSE" & ASCII.CR & ASCII.LF &
         "High_Contrast_Theme = TRUE" & ASCII.CR & ASCII.LF &
@@ -5559,7 +5961,6 @@ package body Files_Suite is
       Assert (Parsed.Success, "settings text parses");
       Assert (Parsed.Settings.Default_View = Files.Types.Details, "default view mode parses");
       Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
-      Assert (not Parsed.Settings.Sort_Directories_First, "section names tolerate whitespace");
       Assert (Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "sort field setting parses");
       Assert (not Parsed.Settings.Sort_Ascending, "sort direction setting parses");
       Assert (Parsed.Settings.High_Contrast_Theme, "high-contrast theme setting parses");
@@ -6463,38 +6864,38 @@ package body Files_Suite is
         (Files.Settings.Field_Diagnostic (2, "true" & ASCII.LF & "false") =
          "error.settings.invalid_boolean",
          "boolean field rejects line breaks");
-      Assert (Files.Settings.Field_Diagnostic (6, "false") = "", "settings field validates high-contrast boolean");
-      Assert (Files.Settings.Field_Diagnostic (7, "files-basic") = "", "settings field validates icon theme");
+      Assert (Files.Settings.Field_Diagnostic (5, "false") = "", "settings field validates high-contrast boolean");
+      Assert (Files.Settings.Field_Diagnostic (6, "files-basic") = "", "settings field validates icon theme");
       Assert
-        (Files.Settings.Field_Diagnostic (7, "unknown-theme") = "error.settings.invalid_icon_theme",
+        (Files.Settings.Field_Diagnostic (6, "unknown-theme") = "error.settings.invalid_icon_theme",
          "settings field reports invalid icon theme");
-      Assert (Files.Settings.Field_Diagnostic (4, "modified") = "", "settings field validates sort field");
+      Assert (Files.Settings.Field_Diagnostic (3, "modified") = "", "settings field validates sort field");
       Assert
-        (Files.Settings.Field_Diagnostic (4, "date") = "error.settings.invalid_sort_field",
+        (Files.Settings.Field_Diagnostic (3, "date") = "error.settings.invalid_sort_field",
          "settings field reports invalid sort field");
       Assert
-        (Files.Settings.Field_Diagnostic (9, "text/""quoted") = "",
+        (Files.Settings.Field_Diagnostic (8, "text/""quoted") = "",
          "filetype value field accepts raw quote-containing values");
       Assert
-        (Files.Settings.Field_Diagnostic (8, "bad=extension") = "error.settings.invalid_mapping",
+        (Files.Settings.Field_Diagnostic (7, "bad=extension") = "error.settings.invalid_mapping",
          "filetype extension field rejects unrepresentable keys");
       Assert
-        (Files.Settings.Field_Diagnostic (9, "text/plain" & ASCII.LF & "bad") =
+        (Files.Settings.Field_Diagnostic (8, "text/plain" & ASCII.LF & "bad") =
          "error.settings.invalid_mapping",
          "mapping value field rejects line breaks");
       Assert
-        (Files.Settings.Field_Diagnostic (9, "text/plain" & C1_Break & "bad") =
+        (Files.Settings.Field_Diagnostic (8, "text/plain" & C1_Break & "bad") =
          "error.settings.invalid_mapping",
          "mapping value field rejects C1 line breaks");
       Assert
-        (Files.Settings.Field_Diagnostic (9, "text/plain" & Line_Separator & "bad") =
+        (Files.Settings.Field_Diagnostic (8, "text/plain" & Line_Separator & "bad") =
          "error.settings.invalid_mapping",
          "mapping value field rejects Unicode line separators");
       Assert
-        (Files.Settings.Field_Diagnostic (11, "quote""icon") = "",
+        (Files.Settings.Field_Diagnostic (10, "quote""icon") = "",
          "icon value field accepts raw quote-containing values");
       Assert
-        (Files.Settings.Field_Diagnostic (10, "text/bad=icon") = "error.settings.invalid_mapping",
+        (Files.Settings.Field_Diagnostic (9, "text/bad=icon") = "error.settings.invalid_mapping",
          "icon filetype field rejects unrepresentable keys");
       declare
          Quote_Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Manual);
@@ -6648,62 +7049,62 @@ package body Files_Suite is
            (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
             "Unicode line-separator draft open-action command reports open-action diagnostic");
       end;
-      Assert (Files.Settings.Field_Diagnostic (12, "text/plain+control") = "", "action token field validates");
+      Assert (Files.Settings.Field_Diagnostic (11, "text/plain+control") = "", "action token field validates");
       Assert
-        (Files.Settings.Field_Diagnostic (12, "+control") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (11, "+control") = "error.settings.invalid_open_action",
          "action token field reports invalid action token");
       Assert
-        (Files.Settings.Field_Diagnostic (12, "text/bad=action") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (11, "text/bad=action") = "error.settings.invalid_open_action",
          "action token field rejects unrepresentable filetype keys");
       Assert
-        (Files.Settings.Field_Diagnostic (12, """text/quoted-action""") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (11, """text/quoted-action""") = "error.settings.invalid_open_action",
          "action token field rejects quoted filetype keys");
       Assert
-        (Files.Settings.Field_Diagnostic (12, "[text/bracketed-action]") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (11, "[text/bracketed-action]") = "error.settings.invalid_open_action",
          "action token field rejects bracketed filetype keys");
       Assert
-        (Files.Settings.Field_Diagnostic (12, "text/plain+control+") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (11, "text/plain+control+") = "error.settings.invalid_open_action",
          "action token field reports trailing modifier separator");
       Assert
-        (Files.Settings.Field_Diagnostic (12, "text/plain" & ASCII.LF & "text/html") =
+        (Files.Settings.Field_Diagnostic (11, "text/plain" & ASCII.LF & "text/html") =
          "error.settings.invalid_open_action",
          "action token field rejects line breaks");
-      Assert (Files.Settings.Field_Diagnostic (13, "viewer {path}") = "", "action command field validates");
+      Assert (Files.Settings.Field_Diagnostic (12, "viewer {path}") = "", "action command field validates");
       Assert
-        (Files.Settings.Field_Diagnostic (13, """quoted editor"" ""--project file"" ""{path}""") = "",
+        (Files.Settings.Field_Diagnostic (12, """quoted editor"" ""--project file"" ""{path}""") = "",
          "action command field validates quoted tokens");
       Assert
-        (Files.Settings.Field_Diagnostic (13, """quote""""runner"" ""arg """" inner""") = "",
+        (Files.Settings.Field_Diagnostic (12, """quote""""runner"" ""arg """" inner""") = "",
          "action command field validates doubled quotes");
       Assert
-        (Files.Settings.Field_Diagnostic (13, "runner """" after-empty") = "",
+        (Files.Settings.Field_Diagnostic (12, "runner """" after-empty") = "",
          "action command field validates empty quoted argument");
       Assert
-        (Files.Settings.Field_Diagnostic (13, "viewer prefix-{path}") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (12, "viewer prefix-{path}") = "error.settings.invalid_open_action",
          "action command field reports embedded placeholder");
       Assert
-        (Files.Settings.Field_Diagnostic (13, "viewer {path}" & ASCII.LF & "other") =
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & ASCII.LF & "other") =
          "error.settings.invalid_open_action",
          "action command field rejects line breaks");
       Assert
-        (Files.Settings.Field_Diagnostic (13, "viewer {path}" & C1_Break & "other") =
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & C1_Break & "other") =
          "error.settings.invalid_open_action",
          "action command field rejects C1 line breaks");
       Assert
-        (Files.Settings.Field_Diagnostic (13, "viewer {path}" & Line_Separator & "other") =
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & Line_Separator & "other") =
          "error.settings.invalid_open_action",
          "action command field rejects Unicode line separators");
       Assert
-        (Files.Settings.Field_Diagnostic (13, """unterminated") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (12, """unterminated") = "error.settings.invalid_open_action",
          "action command field reports unterminated quote");
       Assert
-        (Files.Settings.Field_Diagnostic (13, """editor""junk {path}") = "error.settings.invalid_open_action",
+        (Files.Settings.Field_Diagnostic (12, """editor""junk {path}") = "error.settings.invalid_open_action",
          "action command field reports quoted token trailing junk");
       Assert
         (Files.Settings.Field_Diagnostic (0, "details") = "error.settings.invalid",
          "unknown settings field reports a deterministic diagnostic");
       Assert
-        (Files.Settings.Field_Diagnostic (14, "details") = "error.settings.invalid",
+        (Files.Settings.Field_Diagnostic (13, "details") = "error.settings.invalid",
          "out-of-range settings field reports a deterministic diagnostic");
       declare
          Broken : Files.Settings.Settings_Parse_Result;
@@ -6886,7 +7287,6 @@ package body Files_Suite is
         (Settings_Path,
          "[settings]" & ASCII.LF &
          "show_hidden_files = true" & ASCII.LF &
-         "sort_directories_first = false" & ASCII.LF &
          "sort_field = modified" & ASCII.LF &
          "sort_ascending = false" & ASCII.LF &
          "high_contrast_theme = true" & ASCII.LF &
@@ -6895,7 +7295,6 @@ package body Files_Suite is
       Loaded := Files.Settings.Load_File (Settings_Path);
       Assert (Loaded.Success, "settings file parses from disk");
       Assert (Loaded.Settings.Show_Hidden_Files, "show-hidden setting loads from disk");
-      Assert (not Loaded.Settings.Sort_Directories_First, "sort preference loads from disk");
       Assert (Loaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified, "sort field loads from disk");
       Assert (not Loaded.Settings.Sort_Ascending, "sort direction loads from disk");
       Assert (Loaded.Settings.High_Contrast_Theme, "theme preference loads from disk");
@@ -7086,7 +7485,7 @@ package body Files_Suite is
             Empty_Settings.Open_Actions.Clear;
             Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 7);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
@@ -7123,7 +7522,7 @@ package body Files_Suite is
             Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
             Repair_Draft.Filetype_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 7);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -7138,7 +7537,7 @@ package body Files_Suite is
             Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
             Repair_Draft.Icon_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 11);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 10);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -7182,7 +7581,7 @@ package body Files_Suite is
             Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
             Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 7);
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "ada",
                "begin settings edit syncs stale filetype selection");
@@ -7200,11 +7599,11 @@ package body Files_Suite is
          Files.Controller.Replace_Focused_Text (Draft_Model, "details");
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Down);
          Files.Controller.Replace_Focused_Text (Draft_Model, "true");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 6);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 5);
          Files.Controller.Replace_Focused_Text (Draft_Model, "true");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 7);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 6);
          Files.Controller.Replace_Focused_Text (Draft_Model, "files-high-contrast");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 7);
          declare
             First_Extension : constant String := Files.Model.Settings_Field_Text (Draft_Model);
          begin
@@ -7219,43 +7618,43 @@ package body Files_Suite is
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_N, Ctrl);
          Assert (Files.Model.Settings_Field_Text (Draft_Model) = "", "settings add creates a blank mapping entry");
          Files.Controller.Replace_Focused_Text (Draft_Model, "tmpdel");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Delete, Ctrl);
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "tmpdel",
             "settings remove deletes the selected mapping entry");
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 100);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 7, Option => 100);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
             "settings add button reports update");
          Files.Controller.Replace_Focused_Text (Draft_Model, "buttondel");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-button-delete");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 101);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 7);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 7, Option => 101);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
             "settings remove button reports update");
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "buttondel",
             "settings remove button deletes the selected mapping entry");
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 9, Option => 101);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 101);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Ignored,
             "settings value-field remove button is ignored");
          Files.Controller.Replace_Focused_Text (Draft_Model, "cfg");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 10);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 12, Option => 100);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 11, Option => 100);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/markdown");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 13);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
          Files.Controller.Replace_Focused_Text (Draft_Model, "reader {path}");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 1);
          Files.Controller.Replace_Focused_Text (Draft_Model, "bad-view");
@@ -7270,7 +7669,7 @@ package body Files_Suite is
            (To_String (Controller_Result.Operation.Path) = Draft_Path,
             "controller invalid settings save reports settings path");
          Files.Controller.Replace_Focused_Text (Draft_Model, "details");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
          Assert
            (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
@@ -7616,9 +8015,9 @@ package body Files_Suite is
          "error.settings.unknown_key",
          "unknown settings key is rejected");
       Assert_Parse_Error
-        ("[settings]" & ASCII.LF & "sort_directories_first = maybe" & ASCII.LF,
-         "error.settings.invalid_boolean",
-         "invalid sort preference boolean is rejected");
+        ("[settings]" & ASCII.LF & "sort_directories_first = false" & ASCII.LF,
+         "error.settings.unknown_key",
+         "removed sort-directories setting is rejected");
       Assert_Parse_Error
         ("[settings]" & ASCII.LF & "sort_field = random" & ASCII.LF,
          "error.settings.invalid_sort_field",
@@ -8339,13 +8738,12 @@ package body Files_Suite is
          Guard_Directory : constant String := Join (Root, "guard-preflight-z-dir");
          First_File      : constant String := Join (Root, "guard-preflight-a.txt");
          Guard_Trash     : constant String := Join (Join (Guard_Directory, "xdg-data"), "Trash");
-         Guard_Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Guard_Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Guard_Load      : Files.File_System.Directory_Load_Result;
          Guard_Model     : Files.Model.Window_Model;
          Guard_Result    : Files.Controller.Controller_Result;
       begin
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Guard_Directory, "xdg-data"));
-         Guard_Settings.Sort_Directories_First := False;
          Write_File (First_File);
          Ada.Directories.Create_Path (Guard_Directory);
          Guard_Load := Files.File_System.Load_Directory (Root, Guard_Settings);
@@ -9953,6 +10351,51 @@ package body Files_Suite is
       Snapshot : Files.Rendering.View_Snapshot;
       Frame    : Files.Rendering.Frame_Commands;
 
+      function Detail_Value
+        (Prefix_Key : String;
+         Value      : String;
+         Suffix_Key : String)
+         return String
+      is
+         Prefix : constant String :=
+           Ada.Strings.Fixed.Trim (Files.Localization.Text (Prefix_Key), Ada.Strings.Right);
+         Suffix : constant String :=
+           Ada.Strings.Fixed.Trim (Files.Localization.Text (Suffix_Key), Ada.Strings.Left);
+      begin
+         if Suffix'Length > 0
+           and then Ada.Characters.Handling.Is_Alphanumeric (Suffix (Suffix'First))
+         then
+            return Prefix & " " & Value & " " & Suffix;
+         else
+            return Prefix & " " & Value & Suffix;
+         end if;
+      end Detail_Value;
+
+      function Detail_Localized_Value
+        (Prefix_Key : String;
+         Value_Key  : String;
+         Suffix_Key : String)
+         return String
+      is
+      begin
+         return Detail_Value (Prefix_Key, Files.Localization.Text (Value_Key), Suffix_Key);
+      end Detail_Localized_Value;
+
+      function Detail_Lines_Encoding
+        (Lines_Prefix_Key : String;
+         Lines            : String;
+         Lines_Suffix_Key : String;
+         Encoding_Key     : String)
+         return String
+      is
+      begin
+         return
+           Detail_Value (Lines_Prefix_Key, Lines, Lines_Suffix_Key)
+           & " "
+           & Detail_Localized_Value
+             ("info.extra.encoding.prefix", Encoding_Key, "info.extra.encoding.suffix");
+      end Detail_Lines_Encoding;
+
       procedure Assert_Localized_Extra
         (Name     : String;
          Filetype : String;
@@ -10008,13 +10451,11 @@ package body Files_Suite is
          "item snapshot captures modified time value");
       Assert
         (To_String (Snapshot.Items.Element (1).Filetype_Extra) =
-         Files.Localization.Text ("info.extra.text.lines.prefix") &
-         "1" &
-         Files.Localization.Text ("info.extra.text.lines.suffix") &
-         " " &
-         Files.Localization.Text ("info.extra.encoding.prefix") &
-         Files.Localization.Text ("info.extra.encoding.ascii") &
-         Files.Localization.Text ("info.extra.encoding.suffix"),
+         Detail_Lines_Encoding
+           ("info.extra.text.lines.prefix",
+            "1",
+            "info.extra.text.lines.suffix",
+            "info.extra.encoding.ascii"),
          "item snapshot captures filesystem-backed filetype extra metadata");
       Assert (not Snapshot.Items.Element (1).Metadata_Error, "item snapshot captures metadata error state");
       Assert (Snapshot.Selected_Info.Element (1).Size_Available, "info size availability is captured");
@@ -10036,13 +10477,11 @@ package body Files_Suite is
          "info pane captures filetype-specific detail");
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
-         Files.Localization.Text ("info.extra.text.lines.prefix") &
-         "1" &
-         Files.Localization.Text ("info.extra.text.lines.suffix") &
-         " " &
-         Files.Localization.Text ("info.extra.encoding.prefix") &
-         Files.Localization.Text ("info.extra.encoding.ascii") &
-         Files.Localization.Text ("info.extra.encoding.suffix"),
+         Detail_Lines_Encoding
+           ("info.extra.text.lines.prefix",
+            "1",
+            "info.extra.text.lines.suffix",
+            "info.extra.encoding.ascii"),
          "info pane captures loaded text line metadata");
       declare
          Found_Utf8_Metadata   : Boolean := False;
@@ -10057,77 +10496,63 @@ package body Files_Suite is
             if To_String (Item.Name) = "zutf8.txt" then
                Found_Utf8_Metadata :=
                  To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.text.lines.prefix") &
-                   "1" &
-                   Files.Localization.Text ("info.extra.text.lines.suffix") &
-                   " " &
-                   Files.Localization.Text ("info.extra.encoding.prefix") &
-                   Files.Localization.Text ("info.extra.encoding.utf8") &
-                   Files.Localization.Text ("info.extra.encoding.suffix");
+                   Detail_Lines_Encoding
+                     ("info.extra.text.lines.prefix",
+                      "1",
+                      "info.extra.text.lines.suffix",
+                      "info.extra.encoding.utf8");
             elsif To_String (Item.Name) = "zbinary.txt" then
                Found_Binary_Metadata :=
                  To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.text.lines.prefix") &
-                   "1" &
-                   Files.Localization.Text ("info.extra.text.lines.suffix") &
-                   " " &
-                   Files.Localization.Text ("info.extra.encoding.prefix") &
-                   Files.Localization.Text ("info.extra.encoding.binary") &
-                   Files.Localization.Text ("info.extra.encoding.suffix");
+                   Detail_Lines_Encoding
+                     ("info.extra.text.lines.prefix",
+                      "1",
+                      "info.extra.text.lines.suffix",
+                      "info.extra.encoding.binary");
             elsif To_String (Item.Name) = "zmarkdown.md" then
                Found_Markdown_Metadata :=
                  To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.markdown.lines.prefix") &
-                   "2" &
-                   Files.Localization.Text ("info.extra.markdown.lines.suffix") &
-                   " " &
-                   Files.Localization.Text ("info.extra.encoding.prefix") &
-                   Files.Localization.Text ("info.extra.encoding.ascii") &
-                   Files.Localization.Text ("info.extra.encoding.suffix");
+                   Detail_Lines_Encoding
+                     ("info.extra.markdown.lines.prefix",
+                      "2",
+                      "info.extra.markdown.lines.suffix",
+                      "info.extra.encoding.ascii");
             elsif To_String (Item.Name) = "zsheet.xlsx" then
                Found_Xlsx_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.document.spreadsheet")
                  and then To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.office.xlsx.prefix") &
-                   "1" &
-                   Files.Localization.Text ("info.extra.office.entries.suffix");
+                   Detail_Value ("info.extra.office.xlsx.prefix", "1", "info.extra.office.entries.suffix");
             elsif To_String (Item.Name) = "zunit.adb" then
                Found_Ada_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.source.ada")
                  and then To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.source.ada.prefix") &
-                   "4" &
-                   Files.Localization.Text ("info.extra.source.lines.suffix") &
-                   " " &
-                   Files.Localization.Text ("info.extra.encoding.prefix") &
-                   Files.Localization.Text ("info.extra.encoding.ascii") &
-                   Files.Localization.Text ("info.extra.encoding.suffix");
+                   Detail_Lines_Encoding
+                     ("info.extra.source.ada.prefix",
+                      "4",
+                      "info.extra.source.lines.suffix",
+                      "info.extra.encoding.ascii");
             elsif To_String (Item.Name) = "zdata.json" then
                Found_Json_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.source.json")
                  and then To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.source.json.prefix") &
-                   "1" &
-                   Files.Localization.Text ("info.extra.source.lines.suffix") &
-                   " " &
-                   Files.Localization.Text ("info.extra.encoding.prefix") &
-                   Files.Localization.Text ("info.extra.encoding.ascii") &
-                   Files.Localization.Text ("info.extra.encoding.suffix");
+                   Detail_Lines_Encoding
+                     ("info.extra.source.json.prefix",
+                      "1",
+                      "info.extra.source.lines.suffix",
+                      "info.extra.encoding.ascii");
             elsif To_String (Item.Name) = "zdoc.xml" then
                Found_Xml_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.source.xml")
                  and then To_String (Item.Filetype_Extra) =
-                   Files.Localization.Text ("info.extra.source.xml.prefix") &
-                   "1" &
-                   Files.Localization.Text ("info.extra.source.lines.suffix") &
-                   " " &
-                   Files.Localization.Text ("info.extra.encoding.prefix") &
-                   Files.Localization.Text ("info.extra.encoding.ascii") &
-                   Files.Localization.Text ("info.extra.encoding.suffix");
+                   Detail_Lines_Encoding
+                     ("info.extra.source.xml.prefix",
+                      "1",
+                      "info.extra.source.lines.suffix",
+                      "info.extra.encoding.ascii");
             end if;
          end loop;
 
@@ -10144,10 +10569,7 @@ package body Files_Suite is
         (Name     => "folder",
          Filetype => "inode/directory",
          Token    => "directory.count|7",
-         Expected =>
-           Files.Localization.Text ("info.extra.directory.count.prefix") &
-           "7" &
-           Files.Localization.Text ("info.extra.directory.count.suffix"),
+         Expected => Detail_Value ("info.extra.directory.count.prefix", "7", "info.extra.directory.count.suffix"),
          Message  => "item snapshot localizes directory count metadata",
          Kind     => Files.Types.Directory_Item);
       Assert_Localized_Extra
@@ -10155,9 +10577,10 @@ package body Files_Suite is
          Filetype => "application/x-executable",
          Token    => "executable.format|elf",
          Expected =>
-           Files.Localization.Text ("info.extra.executable.format.prefix") &
-           Files.Localization.Text ("info.extra.executable.format.elf") &
-           Files.Localization.Text ("info.extra.executable.format.suffix"),
+           Detail_Localized_Value
+             ("info.extra.executable.format.prefix",
+              "info.extra.executable.format.elf",
+              "info.extra.executable.format.suffix"),
          Message  => "item snapshot localizes executable format metadata",
          Kind     => Files.Types.Executable_Item);
       Assert_Localized_Extra
@@ -10165,18 +10588,14 @@ package body Files_Suite is
          Filetype => "image/png",
          Token    => "image.dimensions|32x16",
          Expected =>
-           Files.Localization.Text ("info.extra.image.dimensions.prefix") &
-           "32x16" &
-           Files.Localization.Text ("info.extra.image.dimensions.suffix"),
+           Detail_Value ("info.extra.image.dimensions.prefix", "32x16", "info.extra.image.dimensions.suffix"),
          Message  => "item snapshot localizes image dimension metadata");
       Assert_Localized_Extra
         (Name     => "link",
          Filetype => "inode/symlink",
          Token    => "symlink.target|target.txt",
          Expected =>
-           Files.Localization.Text ("info.extra.symlink.target.prefix") &
-           "target.txt" &
-           Files.Localization.Text ("info.extra.symlink.target.suffix"),
+           Detail_Value ("info.extra.symlink.target.prefix", "target.txt", "info.extra.symlink.target.suffix"),
          Message  => "item snapshot localizes symlink target metadata",
          Kind     => Files.Types.Symlink_Item);
       Assert_Localized_Extra
@@ -10184,36 +10603,29 @@ package body Files_Suite is
          Filetype => "application/pdf",
          Token    => "document.pdf.pages|3",
          Expected =>
-           Files.Localization.Text ("info.extra.document.pdf.pages.prefix") &
-           "3" &
-           Files.Localization.Text ("info.extra.document.pdf.pages.suffix"),
+           Detail_Value ("info.extra.document.pdf.pages.prefix", "3", "info.extra.document.pdf.pages.suffix"),
          Message  => "item snapshot localizes PDF page metadata");
       Assert_Localized_Extra
         (Name     => "archive.tar",
          Filetype => "application/x-tar",
          Token    => "archive.format|tar",
          Expected =>
-           Files.Localization.Text ("info.extra.archive.format.prefix") &
-           Files.Localization.Text ("info.extra.archive.format.tar") &
-           Files.Localization.Text ("info.extra.archive.format.suffix"),
+           Detail_Localized_Value
+             ("info.extra.archive.format.prefix",
+              "info.extra.archive.format.tar",
+              "info.extra.archive.format.suffix"),
          Message  => "item snapshot localizes archive format metadata");
       Assert_Localized_Extra
         (Name     => "bundle.zip",
          Filetype => "application/zip",
          Token    => "archive.zip.entries|5",
-         Expected =>
-           Files.Localization.Text ("info.extra.archive.entries.prefix") &
-           "5" &
-           Files.Localization.Text ("info.extra.archive.entries.suffix"),
+         Expected => Detail_Value ("info.extra.archive.entries.prefix", "5", "info.extra.archive.entries.suffix"),
          Message  => "item snapshot localizes archive entry metadata");
       Assert_Localized_Extra
         (Name     => "report.docx",
          Filetype => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
          Token    => "office.docx.entries|9",
-         Expected =>
-           Files.Localization.Text ("info.extra.office.docx.prefix") &
-           "9" &
-           Files.Localization.Text ("info.extra.office.entries.suffix"),
+         Expected => Detail_Value ("info.extra.office.docx.prefix", "9", "info.extra.office.entries.suffix"),
          Message  => "item snapshot localizes document package metadata");
       Assert_Localized_Extra
         (Name     => "track.mp3",
@@ -10233,7 +10645,7 @@ package body Files_Suite is
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 800, Line_Height => 20);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 800, Line_Height => 20);
       declare
          Found_Name         : Boolean := False;
          Found_Name_Value   : Boolean := False;
@@ -10241,12 +10653,20 @@ package body Files_Suite is
          Found_Filetype     : Boolean := False;
          Found_Filetype_Value : Boolean := False;
          Found_Size         : Boolean := False;
+         Found_Size_Value   : Boolean := False;
          Found_Created      : Boolean := False;
          Found_Modified     : Boolean := False;
          Found_Permissions  : Boolean := False;
+         Found_Permission_First : Boolean := False;
+         Found_Permission_Second : Boolean := False;
+         Permission_First_Y : Natural := 0;
          Found_Metadata_Key : Boolean := False;
          Found_Kind         : Boolean := False;
          Found_Extra        : Boolean := False;
+         Found_Extra_First  : Boolean := False;
+         Found_Extra_Second : Boolean := False;
+         Extra_First_Y      : Natural := 0;
+         Found_Relative_Time : Boolean := False;
          Found_A11y_Section : Boolean := False;
          Info_X             : constant Natural := Frame.Layout.Main_Width + 10;
          Info_Y             : constant Natural := Frame.Layout.Main_Y + 10;
@@ -10272,22 +10692,50 @@ package body Files_Suite is
                   Found_Name_Value := True;
                elsif Value = Files.Localization.Text ("info.filetype") then
                   Found_Filetype := True;
-               elsif Value = "text/plain" then
+               elsif Value = Files.Localization.Text ("info.kind.text") then
                   Found_Filetype_Value := True;
                elsif Value = Files.Localization.Text ("info.size") then
                   Found_Size := True;
+               elsif Ada.Strings.Fixed.Index
+                 (Value, " " & Files.Localization.Text ("details.size.unit.bytes")) > 1
+                 and then Value /= Files.Localization.Text ("info.size")
+               then
+                  Found_Size_Value := True;
                elsif Value = Files.Localization.Text ("info.created") then
                   Found_Created := True;
                elsif Value = Files.Localization.Text ("info.modified") then
                   Found_Modified := True;
                elsif Value = Files.Localization.Text ("info.permissions") then
                   Found_Permissions := True;
+               elsif Value = Files.Localization.Text ("info.permissions.readable") then
+                  Found_Permission_First := True;
+                  Permission_First_Y := Text.Y;
+               elsif Value = Files.Localization.Text ("info.permissions.writable") then
+                  Found_Permission_Second :=
+                    Permission_First_Y > 0 and then Text.Y = Permission_First_Y + 20;
                elsif Value = Files.Localization.Text ("info.metadata_error") then
                   Found_Metadata_Key := True;
                elsif Value = Files.Localization.Text ("info.kind") then
                   Found_Kind := True;
                elsif Value = Files.Localization.Text ("info.extra") then
                   Found_Extra := True;
+               elsif Value =
+                 Detail_Value ("info.extra.text.lines.prefix", "1", "info.extra.text.lines.suffix")
+               then
+                  Found_Extra_First := True;
+                  Extra_First_Y := Text.Y;
+               elsif Value =
+                 Detail_Localized_Value
+                   ("info.extra.encoding.prefix",
+                    "info.extra.encoding.ascii",
+                    "info.extra.encoding.suffix")
+               then
+                  Found_Extra_Second := Extra_First_Y > 0 and then Text.Y = Extra_First_Y + 20;
+               elsif Value = Files.Localization.Text ("time.relative.now")
+                 or else Ada.Strings.Fixed.Index
+                   (Value, Files.Localization.Text ("time.relative.today") & " ") = 1
+               then
+                  Found_Relative_Time := True;
                end if;
             end;
          end loop;
@@ -10296,7 +10744,9 @@ package body Files_Suite is
             if Node.Role = Files.Rendering.Role_List_Item
               and then To_String (Node.Name) = "meta.txt"
               and then Ada.Strings.Fixed.Index
-                (To_String (Node.Description), Files.Localization.Text ("info.filetype") & ": text/plain") > 0
+                (To_String (Node.Description),
+                 Files.Localization.Text ("info.filetype") & ": " &
+                 Files.Localization.Text ("info.kind.text")) > 0
               and then Ada.Strings.Fixed.Index
                 (To_String (Node.Description), Files.Localization.Text ("info.size") & ":") > 0
               and then Ada.Strings.Fixed.Index
@@ -10312,12 +10762,18 @@ package body Files_Suite is
          Assert (Found_Filetype, "info pane frame includes localized filetype row");
          Assert (Found_Filetype_Value, "info pane filetype value is separate from label");
          Assert (Found_Size, "info pane frame includes localized size row");
+         Assert (Found_Size_Value, "info pane frame includes size unit");
          Assert (Found_Created, "info pane frame includes localized missing creation row");
          Assert (Found_Modified, "info pane frame includes localized modified row");
          Assert (Found_Permissions, "info pane frame includes localized permissions row");
+         Assert (Found_Permission_First, "info pane frame includes first permission row");
+         Assert (Found_Permission_Second, "info pane frame includes second permission row");
          Assert (Found_Metadata_Key, "info pane frame includes localized metadata fallback row");
          Assert (Found_Kind, "info pane frame includes filetype-specific detail row");
          Assert (Found_Extra, "info pane frame includes filetype-specific extra metadata row");
+         Assert (Found_Extra_First, "info pane details renders first metadata item");
+         Assert (Found_Extra_Second, "info pane details renders second metadata item on separate row");
+         Assert (Found_Relative_Time, "info pane humanizes recent metadata timestamps");
          Assert (Found_A11y_Section, "info pane frame exposes accessible selected-file section");
       end;
 
@@ -10451,7 +10907,7 @@ package body Files_Suite is
            Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
          Info_Layout  : constant Files.Rendering.Info_Pane_Layout :=
            Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
-         Row_Stride   : constant Natural := 540;
+         Row_Stride   : constant Natural := (Info_Layout.Content_Height - 20) / 2;
          First_Name_Y  : Natural := 0;
          Second_Name_Y : Natural := 0;
          Name_Label    : constant String := Files.Localization.Text ("info.name");
@@ -11193,22 +11649,22 @@ package body Files_Suite is
          Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
          Assert (Files.Model.Command_Palette_Selected_Index (Model) = Result_Count, "stale offset move reaches end");
          Assert
-           (Files.Model.Command_Palette_Result_Offset (Model) = Result_Count - 5,
+           (Files.Model.Command_Palette_Result_Offset (Model) = Result_Count - 4,
             "stale palette offset clamps to last full page");
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
       Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette Home restores first result");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "palette PageDown updates selection");
-      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 6, "palette PageDown jumps by page");
+      Assert (Files.Model.Command_Palette_Selected_Index (Model) = 5, "palette PageDown jumps by page");
       Assert (Files.Model.Command_Palette_Result_Offset (Model) = 1, "palette PageDown scrolls selected row into view");
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 300, Line_Height => 20);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 360, Line_Height => 20);
       Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
       Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
       Found_Selected_Page_Row := False;
       for Row of Palette_Rows loop
-         if Row.Result_Index = 6 and then Row.Selected then
+         if Row.Result_Index = 5 and then Row.Selected then
             Found_Selected_Page_Row := True;
          end if;
       end loop;
@@ -11915,6 +12371,9 @@ package body Files_Suite is
          end loop;
 
          Assert (Found_Filter_Placeholder, "empty filter input renders localized placeholder text");
+         Assert
+           (Ada.Strings.Fixed.Index (Files.Localization.Text ("filter.placeholder"), "...") = 0,
+            "filter placeholder uses a real ellipsis");
       end;
 
       Files.Model.Begin_Create_File (Model, "draft.txt");
@@ -11925,10 +12384,18 @@ package body Files_Suite is
       Assert (Snapshot.Temporary_Item_Active, "snapshot captures temporary item state");
       Assert (To_String (Snapshot.Temporary_Item_Name) = "draft.txt", "snapshot captures temporary item name");
       Assert (Natural (Snapshot.Items.Length) = 4, "snapshot includes existing items and temporary item");
-      Assert
-        (To_String (Snapshot.Items.Element (4).Name) = "draft.txt",
-         "snapshot appends visible temporary item");
-      Assert (Snapshot.Items.Element (4).Selected, "snapshot captures selected temporary item");
+      declare
+         Found_Temporary : Boolean := False;
+      begin
+         for Item of Snapshot.Items loop
+            if To_String (Item.Name) = "draft.txt" then
+               Found_Temporary := True;
+               Assert (Item.Selected, "snapshot captures selected temporary item");
+            end if;
+         end loop;
+
+         Assert (Found_Temporary, "snapshot includes visible temporary item in sorted projection");
+      end;
       Assert (Snapshot.Selected_Info.Is_Empty, "snapshot skips closed info-pane selected metadata");
       Files.Model.Toggle_Info_Pane (Model);
       declare
@@ -11939,15 +12406,58 @@ package body Files_Suite is
            (To_String (Info_Snapshot.Selected_Info.Element (1).Name) = "draft.txt",
             "snapshot temporary item info uses pending name");
       end;
+      declare
+         Wrapped_Snapshot : Files.Rendering.View_Snapshot;
+         Wrapped_Frame    : Files.Rendering.Frame_Commands;
+         Found_First_Wrap : Boolean := False;
+         Found_Second_Wrap : Boolean := False;
+      begin
+         Wrapped_Snapshot.Info_Pane_Open := True;
+         Wrapped_Snapshot.Selected_Info.Append
+           (Files.Rendering.Info_Snapshot'
+              (Name            => To_Unbounded_String ("wrapped.txt"),
+               Filetype        => To_Unbounded_String ("application/octet-stream"),
+               Filetype_Detail => To_Unbounded_String ("abcdefghijklmnopqrstuvwxyz"),
+               Filetype_Extra  => To_Unbounded_String (""),
+               others          => <>));
+         Wrapped_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Wrapped_Snapshot, Width => 360, Height => 500, Line_Height => 20);
+         for Text of Wrapped_Frame.Text loop
+            Assert
+              (Ada.Strings.Fixed.Index (To_String (Text.Text), "...") = 0,
+               "info pane wrapped values do not use three-dot abbreviation");
+            if To_String (Text.Text) = "abcdef"
+              and then not Text.Truncated
+              and then Text.Color = Files.Rendering.Muted_Text_Color
+            then
+               Found_First_Wrap := True;
+            elsif To_String (Text.Text) = "ghijkl"
+              and then not Text.Truncated
+              and then Text.Color = Files.Rendering.Muted_Text_Color
+            then
+               Found_Second_Wrap := True;
+            end if;
+         end loop;
+
+         Assert (Found_First_Wrap, "info pane wraps long data rows without abbreviation");
+         Assert (Found_Second_Wrap, "info pane continues wrapped data on the next row");
+      end;
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
       declare
-         Rename_Rect         : constant Files.Rendering.Item_Layout := Small_Layout.Element (4);
+         Rename_Rect         : Files.Rendering.Item_Layout;
          Found_Rename_Border : Boolean := False;
       begin
+         for Item_Rect of Small_Layout loop
+            if Item_Rect.Visible_Index = 4 then
+               Rename_Rect := Item_Rect;
+            end if;
+         end loop;
+
          for Command of Frame.Rectangles loop
             if Command.X = Rename_Rect.X
               and then Command.Y = Rename_Rect.Y
@@ -12094,6 +12604,19 @@ package body Files_Suite is
             Assert (Found_Grip, "frame includes main-view scrollbar grip");
             Assert (Found_Grip, "frame includes overflow-safe scrollbar grip");
 
+            Overflow.Main_View_Scroll_Lines := 1;
+            Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 240, Height => 220, Line_Height => 20);
+            Excessive_Items := Files.Rendering.Calculate_Item_Layout (Overflow, Layout, Line_Height => 20);
+            Assert
+              (Excessive_Items.Element (1).Height = 0,
+               "partially scrolled details row is hidden instead of clipped");
+            Assert
+              (Excessive_Items.Element (1).Icon_Size = 0,
+               "partially scrolled details icon does not shrink");
+            Assert
+              (Excessive_Items.Element (2).Icon_Size = 20,
+               "next complete details row keeps stable icon size while scrolling");
+
             Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 0, Height => 120, Line_Height => 20);
             Main_View := Files.Rendering.Calculate_Main_View_Layout (Overflow, Layout, Line_Height => 20);
             Assert (Main_View.Content_Height > Layout.Main_Height, "zero-width main view still tracks overflow");
@@ -12101,15 +12624,15 @@ package body Files_Suite is
             Assert (Main_View.Scrollbar_Width = 0, "zero-width main view reports no scrollbar width");
 
             Overflow.Main_View_Scroll_Lines := 999;
-            Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 240, Height => 120, Line_Height => 20);
+            Layout := Files.Rendering.Calculate_Layout (Overflow, Width => 240, Height => 220, Line_Height => 20);
             Main_View := Files.Rendering.Calculate_Main_View_Layout (Overflow, Layout, Line_Height => 20);
             Excessive_Items := Files.Rendering.Calculate_Item_Layout (Overflow, Layout, Line_Height => 20);
-            Assert (Main_View.Scroll_Lines = 18, "main view layout clamps excessive scroll lines");
+            Assert (Main_View.Scroll_Lines = 13, "main view layout clamps excessive scroll lines");
             Assert
               (Overflow.Main_View_Scroll_Lines = 999,
                "main view layout clamp does not mutate snapshot scroll request");
             Assert
-              (Files.Rendering.Item_At (Excessive_Items, X => Layout.Main_X + 9, Y => Layout.Main_Y + 37) = 12,
+              (Files.Rendering.Item_At (Excessive_Items, X => Layout.Main_X + 9, Y => Layout.Main_Y + 49) = 10,
                "item layout uses clamped details scroll offset to reveal final rows");
          end;
       end;
@@ -12212,6 +12735,46 @@ package body Files_Suite is
         (To_String (Snapshot.Items.Element (1).Filetype_Detail) = Files.Localization.Text ("info.kind.text"),
          "snapshot captures localized item filetype detail");
 
+      declare
+         Unmapped_Items          : Files.File_System.Item_Vectors.Vector;
+         Unmapped_Model          : Files.Model.Window_Model;
+         Unmapped_Snapshot       : Files.Rendering.View_Snapshot;
+         Found_Extension_Label   : Boolean := False;
+         Found_Extensionless_Label : Boolean := False;
+      begin
+         Unmapped_Items.Append
+           (Files.File_System.Make_Item
+              (Root,
+               "custom.asset",
+               Files.Types.Regular_File_Item,
+               "application/octet-stream"));
+         Unmapped_Items.Append
+           (Files.File_System.Make_Item
+              (Root,
+               "README",
+               Files.Types.Regular_File_Item,
+               "application/octet-stream"));
+         Files.Model.Initialize
+           (Unmapped_Model,
+            Directory_Path => Root,
+            Items          => Unmapped_Items,
+            Home_Path      => "/home/test");
+         Unmapped_Snapshot := Files.Rendering.Build_Snapshot (Unmapped_Model);
+
+         for Item of Unmapped_Snapshot.Items loop
+            if To_String (Item.Name) = "custom.asset" then
+               Found_Extension_Label :=
+                 To_String (Item.Filetype_Detail) = "ASSET";
+            elsif To_String (Item.Name) = "README" then
+               Found_Extensionless_Label :=
+                 To_String (Item.Filetype_Detail) = Files.Localization.Text ("info.kind.file");
+            end if;
+         end loop;
+
+         Assert (Found_Extension_Label, "snapshot labels unknown extension files by extension");
+         Assert (Found_Extensionless_Label, "snapshot labels unknown extensionless files as generic files");
+      end;
+
       Files.Model.Set_Command_Palette_Query (Model, "file.delete_selected");
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
@@ -12275,13 +12838,13 @@ package body Files_Suite is
 
       declare
          Palette_Viewport : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 120, Line_Height => 20);
+           Files.Rendering.Calculate_Layout (Snapshot, Width => 1000, Height => 160, Line_Height => 20);
          Palette_Layout   : constant Files.Rendering.Command_Palette_Layout :=
            Files.Rendering.Calculate_Command_Palette_Layout (Palette_Viewport, Line_Height => 20);
          Bar_X            : constant Natural :=
            Palette_Layout.Results_X + Palette_Layout.Results_Width - 6;
          Palette_Frame : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 120, Line_Height => 20);
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 160, Line_Height => 20);
          Found_Track   : Boolean := False;
          Found_Thumb   : Boolean := False;
          Found_Grip    : Boolean := False;
@@ -12456,15 +13019,20 @@ package body Files_Suite is
 
       Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
       Assert (Palette_Layout.X = 100 and then Palette_Layout.Y = 20, "palette layout uses centered rectangle");
+      Assert (Palette_Layout.Search_X = 108, "palette search input is padded from panel edge");
+      Assert (Palette_Layout.Search_Y = 28, "palette search input has top panel padding");
+      Assert (Palette_Layout.Search_Width = 784, "palette search input leaves horizontal panel padding");
       Assert (Palette_Layout.Search_Height = 36, "palette search input includes vertical padding");
-      Assert (Palette_Layout.Results_Y = 56, "palette results follow padded search input");
-      Assert (Palette_Layout.Results_Height = 604, "palette results fill remaining palette height");
+      Assert (Palette_Layout.Results_X = 108, "palette results are padded from panel edge");
+      Assert (Palette_Layout.Results_Y = 72, "palette results follow padded search input with a gap");
+      Assert (Palette_Layout.Results_Width = 784, "palette results leave horizontal panel padding");
+      Assert (Palette_Layout.Results_Height = 580, "palette results fill remaining padded palette height");
       Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
       Assert (Natural (Palette_Rows.Length) = 1, "palette result layout includes matching result");
-      Assert (Palette_Rows.Element (1).X = 100, "palette result row uses palette x position");
-      Assert (Palette_Rows.Element (1).Y = 56, "palette first result row follows search input");
-      Assert (Palette_Rows.Element (1).Width = 800, "palette result row fills palette width");
-      Assert (Palette_Rows.Element (1).Height = 40, "palette result row uses label and description lines");
+      Assert (Palette_Rows.Element (1).X = 108, "palette result row uses padded palette x position");
+      Assert (Palette_Rows.Element (1).Y = 72, "palette first result row follows padded search input");
+      Assert (Palette_Rows.Element (1).Width = 784, "palette result row fills padded palette width");
+      Assert (Palette_Rows.Element (1).Height = 48, "palette result row includes vertical padding");
       Assert (Palette_Rows.Element (1).Selected, "palette result row captures selection state");
       Assert (not Palette_Rows.Element (1).Enabled, "palette result row captures disabled state");
       declare
@@ -12574,15 +13142,17 @@ package body Files_Suite is
          end;
       end;
       Assert
-        (Files.Rendering.Command_Result_At (Palette_Rows, X => 104, Y => Palette_Layout.Results_Y + 1) = 1,
+        (Files.Rendering.Command_Result_At
+           (Palette_Rows, X => Palette_Layout.Results_X + 1, Y => Palette_Layout.Results_Y + 1) = 1,
          "palette hit test returns result index");
       Assert
-        (Files.Rendering.Command_Result_At (Palette_Rows, X => 99, Y => Palette_Layout.Results_Y + 1) = 0,
+        (Files.Rendering.Command_Result_At
+           (Palette_Rows, X => Palette_Layout.Results_X - 1, Y => Palette_Layout.Results_Y + 1) = 0,
          "palette hit test rejects x before result row");
       Assert
         (Files.Rendering.Command_Result_At
            (Palette_Rows,
-            X => 104,
+            X => Palette_Layout.Results_X + 1,
             Y => Palette_Layout.Results_Y + Palette_Layout.Row_Height + 1) = 0,
          "palette hit test rejects y below result row");
       Files.Model.Close_Command_Palette (Model);
@@ -12703,6 +13273,9 @@ package body Files_Suite is
       Assert
         (Large_Layout.Element (1).Text_X > Large_Layout.Element (1).X,
          "large-icons item name is centered beneath the icon");
+      Assert
+        (Large_Layout.Element (1).Text_Y = Large_Layout.Element (1).Icon_Y + Large_Layout.Element (1).Icon_Size + 4,
+         "large-icons item name has padding below the icon");
       Assert (Large_Layout.Element (2).X = 156, "large-icons layout leaves a gutter between cells");
       Assert
         (Files.Rendering.Item_At (Large_Layout, X => 9, Y => Layout.Main_Y + 9) = 1,
@@ -12744,6 +13317,66 @@ package body Files_Suite is
       Assert
         (Files.Rendering.Item_At (Details_Layout, X => Layout.Main_Width, Y => Layout.Main_Y + 21) = 0,
          "details hit test rejects point after row width");
+      declare
+         Header_Y : constant Natural := Layout.Main_Y + 9;
+         Header_Action : Files.Events.Input_Action;
+         Header_Result : Files.Controller.Controller_Result;
+      begin
+         Assert
+           (Files.Rendering.Details_Header_Command_At
+              (Snapshot,
+               Layout,
+               X           => Details_Layout.Element (1).Name_X,
+               Y           => Header_Y,
+               Line_Height => 20) = Files.Commands.Sort_By_Name_Command,
+            "details name header maps to sort-by-name command");
+         Assert
+           (Files.Rendering.Details_Header_Command_At
+              (Snapshot,
+               Layout,
+               X           => Details_Layout.Element (1).Modified_X + 6,
+               Y           => Header_Y,
+               Line_Height => 20) = Files.Commands.Sort_By_Changed_Command,
+            "details changed header maps to sort-by-changed command");
+         Assert
+           (Files.Rendering.Details_Header_Command_At
+              (Snapshot,
+               Layout,
+               X           => Details_Layout.Element (1).Size_X + 6,
+               Y           => Header_Y,
+               Line_Height => 20) = Files.Commands.Sort_By_Size_Command,
+            "details size header maps to sort-by-size command");
+         Assert
+           (Files.Rendering.Details_Header_Command_At
+              (Snapshot,
+               Layout,
+               X           => Details_Layout.Element (1).Filetype_X + 6,
+               Y           => Header_Y,
+               Line_Height => 20) = Files.Commands.Sort_By_Type_Command,
+            "details type header maps to sort-by-type command");
+
+         Header_Action :=
+           Files.Events.Translate_Click
+             (Snapshot,
+              X           => Details_Layout.Element (1).Size_X + 6,
+              Y           => Header_Y,
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20);
+         Assert (Header_Action.Kind = Files.Events.Command_Input_Action, "details header click translates to command");
+         Assert
+           (Header_Action.Command = Files.Commands.Sort_By_Size_Command,
+            "details size header click dispatches sort-by-size command");
+         Header_Result :=
+           Files.Controller.Execute_Command
+             (Header_Action.Command, Model, Files.Settings.Default_Settings);
+         Assert (Header_Result.Command = Files.Commands.Sort_By_Size_Command, "details header sort command executes");
+         Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size, "details header click changes sort field");
+         Header_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Sort_By_Name_Command, Model, Files.Settings.Default_Settings);
+         Assert (Header_Result.Command = Files.Commands.Sort_By_Name_Command, "details header test restores name sort");
+      end;
 
       declare
          Edge_Items : Files.Rendering.Item_Layout_Vectors.Vector;
@@ -12786,6 +13419,16 @@ package body Files_Suite is
             "root hit test handles saturated lower-right coordinates");
       end;
 
+      for Index in 1 .. Natural (Snapshot.Items.Length) loop
+         declare
+            Item : Files.Rendering.Item_Snapshot := Snapshot.Items.Element (Positive (Index));
+         begin
+            Item.Selected := False;
+            Snapshot.Items.Replace_Element (Positive (Index), Item);
+         end;
+      end loop;
+      Snapshot.Selected_Count := 0;
+
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       declare
          Found_Modified : Boolean := False;
@@ -12799,12 +13442,17 @@ package body Files_Suite is
          Found_Header_A11y : Boolean := False;
          Found_Row_A11y : Boolean := False;
          Found_Row_Name_Line_Height : Boolean := False;
-         Details_Icon_Rect_Count : Natural := 0;
+         Alternating_Row_Index : Natural := 0;
+         Separator_After_Alternating_Row_Index : Natural := 0;
+         Found_Separator_Stops_At_Last_Row : Boolean := False;
+         Rectangle_Index : Natural := 0;
+         Found_Details_Icon_Command : Boolean := False;
          Frame_Details_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
            Files.Rendering.Calculate_Item_Layout (Snapshot, Frame.Layout, Line_Height => 20);
          Details_Header_Y : constant Natural := Frame_Details_Layout.Element (1).Y - 28;
       begin
          for Command of Frame.Rectangles loop
+            Rectangle_Index := Rectangle_Index + 1;
             if Command.X = Frame_Details_Layout.Element (1).X
               and then Command.Y = Details_Header_Y
               and then Command.Width > 0
@@ -12827,13 +13475,39 @@ package body Files_Suite is
               and then Command.Color = Files.Rendering.Border_Color
             then
                Found_Row_Divider := True;
-            elsif Command.X = Frame_Details_Layout.Element (1).Icon_X
-              and then Command.Y = Frame_Details_Layout.Element (1).Icon_Y
-              and then Command.Width = Frame_Details_Layout.Element (1).Icon_Size
-              and then Command.Height = Frame_Details_Layout.Element (1).Icon_Size
-              and then Command.Color = Files.Rendering.Icon_File_Color
+            elsif Command.X = Frame_Details_Layout.Element (2).X
+              and then Command.Y = Frame_Details_Layout.Element (2).Y
+              and then Command.Width = Frame_Details_Layout.Element (2).Width
+              and then Command.Height = Frame_Details_Layout.Element (2).Height
+              and then Command.Color = Files.Rendering.Detail_Alternate_Color
             then
-               Details_Icon_Rect_Count := Details_Icon_Rect_Count + 1;
+               Alternating_Row_Index := Rectangle_Index;
+            elsif Command.X =
+                (if Frame_Details_Layout.Element (2).Modified_X > 2
+                 then Frame_Details_Layout.Element (2).Modified_X - 2
+                 else 0)
+              and then Command.Y <= Frame_Details_Layout.Element (2).Y
+              and then Command.Y + Command.Height >=
+                Frame_Details_Layout.Element (2).Y + Frame_Details_Layout.Element (2).Height
+              and then Command.Width = 1
+              and then Command.Color = Files.Rendering.Border_Color
+            then
+               Separator_After_Alternating_Row_Index := Rectangle_Index;
+               if Command.Y = Details_Header_Y
+                 and then Command.Height =
+                   Frame_Details_Layout.Last_Element.Y - Details_Header_Y + Frame_Details_Layout.Last_Element.Height - 1
+               then
+                  Found_Separator_Stops_At_Last_Row := True;
+               end if;
+            end if;
+         end loop;
+
+         for Command of Frame.Icons loop
+            if Command.X = Frame_Details_Layout.Element (1).Icon_X
+              and then Command.Y = Frame_Details_Layout.Element (1).Icon_Y
+              and then Command.Size = Frame_Details_Layout.Element (1).Icon_Size
+            then
+               Found_Details_Icon_Command := True;
             end if;
          end loop;
 
@@ -12847,7 +13521,8 @@ package body Files_Suite is
             then
                Found_Missing_Size := True;
             elsif Command.X = Frame_Details_Layout.Element (1).Name_X
-              and then To_String (Command.Text) = Files.Localization.Text ("details.name")
+              and then To_String (Command.Text) =
+                Files.Localization.Text ("details.name") & " " & Files.Localization.Text ("sort.direction.ascending")
             then
                Found_Header_Name := True;
             elsif Command.X = Frame_Details_Layout.Element (1).Size_X + 6
@@ -12896,11 +13571,64 @@ package body Files_Suite is
          Assert (Found_Header_Border, "details frame includes header band");
          Assert (Found_Header_Accent, "details frame includes header accent rule");
          Assert (Found_Row_Divider, "details frame includes row divider");
+         Assert (Alternating_Row_Index > 0, "details frame includes alternating row fill");
+         Assert
+           (Separator_After_Alternating_Row_Index > Alternating_Row_Index,
+            "details frame redraws column separators after alternating row fills");
+         Assert (Found_Separator_Stops_At_Last_Row, "details frame stops column separators at last visible row");
          Assert (Found_Row_Name, "details frame includes row filename text");
          Assert (Found_Row_Name_Line_Height, "details row filename text uses line-height glyph box");
-         Assert (Details_Icon_Rect_Count = 1, "details frame emits one item icon rectangle");
+         Assert (Found_Details_Icon_Command, "details frame emits resolved item icon command");
          Assert (Found_Header_A11y, "details frame exposes accessible table header");
          Assert (Found_Row_A11y, "details frame exposes accessible table row columns");
+      end;
+      declare
+         Folder_Details : Files.Rendering.View_Snapshot;
+         Folder_Frame   : Files.Rendering.Frame_Commands;
+         Folder_Layout  : Files.Rendering.Item_Layout_Vectors.Vector;
+         Found_Folder_Icon : Boolean := False;
+         Found_Old_Folder_Square : Boolean := False;
+      begin
+         Folder_Details.View_Mode := Files.Types.Details;
+         Folder_Details.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name            => To_Unbounded_String ("src"),
+               Filetype        => To_Unbounded_String ("inode/directory"),
+               Filetype_Detail => To_Unbounded_String (Files.Localization.Text ("info.kind.directory")),
+               Icon_Id         => To_Unbounded_String ("folder"),
+               Kind            => Files.Types.Directory_Item,
+               Visible_Index   => 1,
+               others          => <>));
+         Folder_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Folder_Details, Width => 800, Height => 300, Line_Height => 20);
+         Folder_Layout :=
+           Files.Rendering.Calculate_Item_Layout
+             (Folder_Details, Folder_Frame.Layout, Line_Height => 20);
+
+         for Command of Folder_Frame.Icons loop
+            if To_String (Command.Icon_Id) = "folder"
+              and then Command.X = Folder_Layout.Element (1).Icon_X
+              and then Command.Y = Folder_Layout.Element (1).Icon_Y
+              and then Command.Size = Folder_Layout.Element (1).Icon_Size
+            then
+               Found_Folder_Icon := True;
+            end if;
+         end loop;
+
+         for Command of Folder_Frame.Rectangles loop
+            if Command.X = Folder_Layout.Element (1).Icon_X
+              and then Command.Y = Folder_Layout.Element (1).Icon_Y
+              and then Command.Width = Folder_Layout.Element (1).Icon_Size
+              and then Command.Height = Folder_Layout.Element (1).Icon_Size
+              and then Command.Color = Files.Rendering.Icon_Directory_Color
+            then
+               Found_Old_Folder_Square := True;
+            end if;
+         end loop;
+
+         Assert (Found_Folder_Icon, "details frame renders folder icon asset");
+         Assert (not Found_Old_Folder_Square, "details frame does not render folder as a plain square");
       end;
       declare
          Empty_Details : Files.Rendering.View_Snapshot := Snapshot;
@@ -12918,7 +13646,6 @@ package body Files_Suite is
          Empty_Header_Y : Natural := 0;
          Empty_Header_W : Natural := 0;
          Empty_Header_H : Natural := 0;
-         Empty_Content_H : Natural := 0;
          Empty_Name_X : Natural := 0;
          Empty_Modified_X : Natural := 0;
          Empty_Size_X : Natural := 0;
@@ -12935,7 +13662,6 @@ package body Files_Suite is
          Empty_Header_X := Empty_Frame.Layout.Main_X + 8;
          Empty_Header_Y := Empty_Frame.Layout.Main_Y + 8;
          Empty_Header_W := Empty_Frame.Layout.Main_Width - 16;
-         Empty_Content_H := Empty_Frame.Layout.Main_Height - 16;
          Empty_Header_H := 28;
          declare
             Header_Pad : constant Natural := 4;
@@ -12965,21 +13691,21 @@ package body Files_Suite is
             elsif Command.X = Empty_Modified_X - 2
               and then Command.Y = Empty_Header_Y
               and then Command.Width = 1
-              and then Command.Height = Empty_Content_H
+              and then Command.Height = Empty_Header_H
               and then Command.Color = Files.Rendering.Border_Color
             then
                Found_Empty_Modified_Separator := True;
             elsif Command.X = Empty_Size_X - 2
               and then Command.Y = Empty_Header_Y
               and then Command.Width = 1
-              and then Command.Height = Empty_Content_H
+              and then Command.Height = Empty_Header_H
               and then Command.Color = Files.Rendering.Border_Color
             then
                Found_Empty_Size_Separator := True;
             elsif Command.X = Empty_Filetype_X - 2
               and then Command.Y = Empty_Header_Y
               and then Command.Width = 1
-              and then Command.Height = Empty_Content_H
+              and then Command.Height = Empty_Header_H
               and then Command.Color = Files.Rendering.Border_Color
             then
                Found_Empty_Filetype_Separator := True;
@@ -12988,7 +13714,8 @@ package body Files_Suite is
 
          for Command of Empty_Frame.Text loop
             if Command.X = Empty_Name_X + 6
-              and then To_String (Command.Text) = Files.Localization.Text ("details.name")
+              and then To_String (Command.Text) =
+                Files.Localization.Text ("details.name") & " " & Files.Localization.Text ("sort.direction.ascending")
             then
                Found_Empty_Header_Name := True;
             elsif Command.X = Empty_Modified_X + 6
@@ -13131,8 +13858,10 @@ package body Files_Suite is
       Assert (Bottom_Bar.Large_Button_Width = 62, "bottom-bar large button sizes to short label");
       Assert (Bottom_Bar.Details_Button_X = 132, "bottom-bar details button follows compact large button");
       Assert (Bottom_Bar.Details_Button_Width = 82, "bottom-bar details button sizes to short label");
-      Assert (Bottom_Bar.Info_X = 214, "bottom-bar information section follows compact view selector");
-      Assert (Bottom_Bar.Info_Width = 726, "bottom-bar information section receives reclaimed width");
+      Assert (Bottom_Bar.Sort_Button_X = 214, "bottom-bar sort button follows compact view selector");
+      Assert (Bottom_Bar.Sort_Button_Width = 106, "bottom-bar sort button fits longest field and arrow");
+      Assert (Bottom_Bar.Info_X = 320, "bottom-bar information section follows sort button");
+      Assert (Bottom_Bar.Info_Width = 620, "bottom-bar information section receives reclaimed width");
       Assert (Bottom_Bar.Info_Pane_X = 940, "bottom-bar info-pane toggle is right aligned inside padding");
       Assert (Bottom_Bar.Info_Pane_Width = 52, "bottom-bar info-pane toggle sizes to short info label");
       Assert
@@ -13164,11 +13893,16 @@ package body Files_Suite is
          Files.Commands.Toggle_Info_Pane_Command,
          "bottom-bar hit test maps info-toggle separator to info-pane command");
       Assert
-        (Files.UI.Bottom_Bar_Command_At (300, 790, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
+        (Files.UI.Bottom_Bar_Command_At (300, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Toggle_Sort_Menu_Command,
+         "bottom-bar hit test maps sort button to command");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At (320, 790, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
          "bottom-bar hit test ignores information section");
       Assert
-        (Files.UI.Bottom_Bar_Command_At (214, 790, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
-         "bottom-bar hit test maps details-info separator to inert information section");
+        (Files.UI.Bottom_Bar_Command_At (214, 790, 1000, 800, Line_Height => 20) =
+         Files.Commands.Toggle_Sort_Menu_Command,
+         "bottom-bar hit test maps details-info separator ownership through sort button");
       Assert
         (Files.UI.Bottom_Bar_Command_At (10, 760, 1000, 800, Line_Height => 20) = Files.Commands.No_Command,
          "bottom-bar hit test ignores coordinates above bottom bar");
@@ -13200,20 +13934,17 @@ package body Files_Suite is
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 58, Line_Height => 20);
+      Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 88, Line_Height => 20);
       Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
       Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
       Assert (Palette_Layout.Results_Height = 10, "partial palette result area is represented");
-      Assert (Palette_Rows.Element (1).Height = 10, "partial palette result row is clipped");
+      Assert (Palette_Rows.Is_Empty, "partial palette result area emits no clipped row");
       Files.Model.Set_Command_Palette_Query (Model, "");
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Snapshot.Command_Palette_Result_Offset := 99;
       Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
-      Assert (Natural (Palette_Rows.Length) = 1, "partial palette layout keeps one clipped visible row");
-      Assert
-        (Palette_Rows.Element (1).Result_Index = Natural (Snapshot.Command_Palette_Results.Length),
-         "partial palette stale offset clamps to final visible row");
-      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 100, Height => 58, Line_Height => 20);
+      Assert (Palette_Rows.Is_Empty, "partial palette layout keeps results hidden until a full row fits");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 100, Height => 88, Line_Height => 20);
       declare
          Found_Partial_Track : Boolean := False;
          Found_Partial_Thumb : Boolean := False;
@@ -13236,19 +13967,19 @@ package body Files_Suite is
             end if;
          end loop;
 
-         Assert (Found_Partial_Track, "partial palette overflow renders scrollbar track");
-         Assert (Found_Partial_Thumb, "partial palette overflow renders scrollbar thumb");
+         Assert (not Found_Partial_Track, "partial palette without full rows omits scrollbar track");
+         Assert (not Found_Partial_Thumb, "partial palette without full rows omits scrollbar thumb");
       end;
-      Palette_Layout.Results_Height := 90;
+      Palette_Layout.Results_Height := 106;
       Snapshot.Command_Palette_Result_Offset := 99;
       Palette_Rows := Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
-      Assert (Natural (Palette_Rows.Length) = 3, "palette layout includes clipped extra visible row");
+      Assert (Natural (Palette_Rows.Length) = 2, "palette layout only includes complete visible rows");
       Assert
-        (Palette_Rows.Element (3).Height = 10,
-         "palette layout clips final partial row height");
+        (Palette_Rows.Element (2).Height = Palette_Layout.Row_Height,
+         "palette layout keeps final visible row complete");
       Assert
-        (Palette_Rows.Element (1).Result_Index = Natural (Snapshot.Command_Palette_Results.Length) - 2,
-         "palette stale offset clamps using clipped visible rows");
+        (Palette_Rows.Element (1).Result_Index = Natural (Snapshot.Command_Palette_Results.Length) - 1,
+         "palette stale offset clamps using complete visible rows");
 
       Files.Model.Open_Root_Selector (Model, Roots);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
@@ -13277,7 +14008,7 @@ package body Files_Suite is
         (Layout.Command_Y + Layout.Command_Height <= Layout.Height,
          "short command palette stays within the window height");
       Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
-      Assert (Palette_Layout.Results_Height = 4, "short palette result area saturates");
+      Assert (Palette_Layout.Results_Height = 0, "short palette result area saturates");
       Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 10, Line_Height => 20);
       Assert
         (Layout.Command_Y + Layout.Command_Height <= Layout.Height,
@@ -13286,8 +14017,8 @@ package body Files_Suite is
       Assert (Palette_Layout.Search_Height = 8, "tiny palette clamps search field to palette height");
       Assert (Palette_Layout.Results_Height = 0, "tiny palette has no negative result area");
       Assert
-        (Palette_Layout.Results_Y = Palette_Layout.Y + Palette_Layout.Search_Height,
-         "tiny palette results start after the clipped search field");
+        (Palette_Layout.Results_Y = Palette_Layout.Search_Y + Palette_Layout.Search_Height + 8,
+         "tiny palette results start after the clipped search field and padding gap");
       Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
       Root_Layout := Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height => 20);
       Assert (Root_Layout.Width = 40, "narrow root selector stays within window width");
@@ -13315,12 +14046,32 @@ package body Files_Suite is
       Assert (Layout.Main_Height = 5, "partial details main height is represented");
       Assert (Details_Layout.Element (1).Height = 0, "partial details row is hidden behind clipped header");
       Assert (Details_Layout.Element (1).Icon_Size = 0, "partial details icon is hidden behind clipped header");
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 100, Height => 73, Line_Height => 20);
+      declare
+         Found_Clipped_Metadata_Text : Boolean := False;
+      begin
+         for Command of Frame.Text loop
+            if Command.X >= Details_Layout.Element (1).Modified_X
+              and then Command.Y >= Layout.Main_Y
+              and then Command.Y < Layout.Main_Y + Layout.Main_Height + Layout.Bottom_Bar_Height
+              and then
+                (To_String (Command.Text) = Files.Localization.Text ("status.missing_metadata")
+                 or else To_String (Command.Text) = Files.Localization.Text ("info.kind.text"))
+            then
+               Found_Clipped_Metadata_Text := True;
+            end if;
+         end loop;
+
+         Assert
+           (not Found_Clipped_Metadata_Text,
+            "partial details row does not draw metadata columns under bottom bar");
+      end;
 
       Files.Model.Set_View_Mode (Model, Files.Types.Small_Icons);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
-      Assert (Small_Layout.Element (1).Height = 5, "partial small-icons cell height is clipped");
-      Assert (Small_Layout.Element (1).Icon_Size = 5, "partial small-icons icon size is clipped");
+      Assert (Small_Layout.Element (1).Height = 0, "partial small-icons cell is hidden until full row fits");
+      Assert (Small_Layout.Element (1).Icon_Size = 0, "partial small-icons icon does not shrink while scrolling");
 
       Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
       Small_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
@@ -13370,8 +14121,10 @@ package body Files_Suite is
            "x" & Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#E0100#));
          CJK_Text           : constant String :=
            Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#6587#));
-         Broken_Utf8_Text   : constant String := Utf8_Text (Utf8_Text'First .. Utf8_Text'First) & "...";
-         Broken_CJK_Text    : constant String := CJK_Text (CJK_Text'First .. CJK_Text'First) & "...";
+         Ellipsis_Text      : constant String :=
+           [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
+         Broken_Utf8_Text   : constant String := Utf8_Text (Utf8_Text'First .. Utf8_Text'First) & Ellipsis_Text;
+         Broken_CJK_Text    : constant String := CJK_Text (CJK_Text'First .. CJK_Text'First) & Ellipsis_Text;
          Found_Utf8_Fit     : Boolean := False;
          CJK_Name_Snapshot  : Files.Rendering.View_Snapshot;
          CJK_Name_Frame     : Files.Rendering.Frame_Commands;
@@ -13677,11 +14430,14 @@ package body Files_Suite is
                others        => <>));
          Long_Name_Frame := Files.Rendering.Build_Frame_Commands (Long_Name_Snapshot, Width => 100, Height => 120);
          for Command of Long_Name_Frame.Text loop
-            if To_String (Command.Text) = "th..." then
+            if Command.Truncated
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 0
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), "...") = 0
+            then
                Found_Truncated_Name := True;
             end if;
          end loop;
-         Assert (Found_Truncated_Name, "frame truncates long item text to fit visible cell");
+         Assert (Found_Truncated_Name, "frame truncates long item text with a single ellipsis");
 
          Utf8_Single_Snapshot.Items.Append
            (Files.Rendering.Item_Snapshot'
@@ -13715,7 +14471,7 @@ package body Files_Suite is
          Combining_Frame := Files.Rendering.Build_Frame_Commands (Combining_Snapshot, Width => 80, Height => 120);
          for Command of Combining_Frame.Text loop
             if Command.Truncated
-              and then To_String (Command.Text) = Combining_Text & "fi"
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 0
               and then Command.Color = Files.Rendering.Text_Color
             then
                Found_Combining_Fit := True;
@@ -13740,7 +14496,7 @@ package body Files_Suite is
               (To_String (Command.Text) /= Broken_Utf8_Text,
                "frame UTF-8 fitting does not split a multibyte name character");
             if Command.Truncated
-              and then To_String (Command.Text) = Utf8_Text & "f"
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 0
               and then Command.Color = Files.Rendering.Text_Color
             then
                Found_Utf8_Fit := True;
@@ -13763,7 +14519,7 @@ package body Files_Suite is
               (To_String (Command.Text) /= Broken_CJK_Text,
                "frame CJK fitting does not split a multibyte wide name character");
             if Command.Truncated
-              and then To_String (Command.Text) = CJK_Text & "f"
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 0
               and then Command.Color = Files.Rendering.Text_Color
             then
                Found_CJK_Fit := True;
@@ -13779,7 +14535,8 @@ package body Files_Suite is
            Files.Rendering.Build_Frame_Commands (Overlay_Name_Snapshot, Width => 116, Height => 140);
          for Command of Overlay_Name_Frame.Overlay_Text loop
             if Command.Truncated
-              and then To_String (Command.Text) = "a..."
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 0
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), "...") = 0
               and then Command.Color = Files.Rendering.Text_Color
             then
                Found_Overlay_Name_Fit := True;
@@ -13799,7 +14556,7 @@ package body Files_Suite is
               (To_String (Command.Text) /= Broken_Utf8_Text,
                "overlay UTF-8 fitting does not split a multibyte root label character");
             if Command.Truncated
-              and then To_String (Command.Text) = Utf8_Text & "..."
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 0
               and then Command.Color = Files.Rendering.Text_Color
             then
                Found_Overlay_Utf8_Fit := True;
@@ -13840,13 +14597,13 @@ package body Files_Suite is
            Files.Rendering.Build_Frame_Commands (Exact_Ellipsis_Snapshot, Width => 70, Height => 120);
          for Command of Exact_Ellipsis_Frame.Text loop
             if Command.Truncated
-              and then To_String (Command.Text) = "ab"
+              and then Ada.Strings.Fixed.Index (To_String (Command.Text), Ellipsis_Text) > 1
               and then Command.Color = Files.Rendering.Text_Color
             then
                Found_Exact_Ellipsis := True;
             end if;
          end loop;
-         Assert (Found_Exact_Ellipsis, "frame keeps a prefix when a visible ellipsis would hide all useful text");
+         Assert (Found_Exact_Ellipsis, "frame keeps a useful prefix before the ellipsis");
 
          Details_Snapshot.View_Mode := Files.Types.Details;
          Details_Snapshot.Items.Append
@@ -13862,23 +14619,120 @@ package body Files_Suite is
                Size               => 42,
                Visible_Index      => 1,
                others             => <>));
-         Details_Frame := Files.Rendering.Build_Frame_Commands (Details_Snapshot, Width => 1000, Height => 140);
+         Details_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name               => To_Unbounded_String ("archive.bin"),
+               Filetype           => To_Unbounded_String ("application/octet-stream"),
+               Filetype_Detail    => To_Unbounded_String ("application/octet-stream"),
+               Icon_Id            => To_Unbounded_String ("unknown"),
+               Kind               => Files.Types.Regular_File_Item,
+               Size_Available     => True,
+               Size               => 1536,
+               Visible_Index      => 2,
+               others             => <>));
+         Details_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name               => To_Unbounded_String ("image.raw"),
+               Filetype           => To_Unbounded_String ("application/octet-stream"),
+               Filetype_Detail    => To_Unbounded_String ("application/octet-stream"),
+               Icon_Id            => To_Unbounded_String ("unknown"),
+               Kind               => Files.Types.Regular_File_Item,
+               Size_Available     => True,
+               Size               => 1_048_576,
+               Visible_Index      => 3,
+               others             => <>));
+         Details_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name               => To_Unbounded_String ("disk.img"),
+               Filetype           => To_Unbounded_String ("application/octet-stream"),
+               Filetype_Detail    => To_Unbounded_String ("application/octet-stream"),
+               Icon_Id            => To_Unbounded_String ("unknown"),
+               Kind               => Files.Types.Regular_File_Item,
+               Size_Available     => True,
+               Size               => 5_368_709_120,
+               Visible_Index      => 4,
+               others             => <>));
+         Details_Snapshot.Items.Append
+           (Files.Rendering.Item_Snapshot'
+              (Name               => To_Unbounded_String ("recent.txt"),
+               Filetype           => To_Unbounded_String ("text/plain"),
+               Filetype_Detail    => To_Unbounded_String ("text/plain"),
+               Icon_Id            => To_Unbounded_String ("text"),
+               Kind               => Files.Types.Regular_File_Item,
+               Modified_Available => True,
+               Modified_Time      => Ada.Calendar.Clock,
+               Visible_Index      => 5,
+               others             => <>));
+         Details_Frame := Files.Rendering.Build_Frame_Commands (Details_Snapshot, Width => 1000, Height => 300);
          declare
             Found_Size_With_Unit : Boolean := False;
-            Found_Full_Modified : Boolean := False;
+            Found_Size_With_KB   : Boolean := False;
+            Found_Size_With_MB   : Boolean := False;
+            Found_Size_With_GB   : Boolean := False;
+            Found_Full_Modified  : Boolean := False;
+            Found_Relative_Time  : Boolean := False;
+            Found_Modified_Tooltip : Boolean := False;
+            Decimal_Separator    : constant String :=
+              Files.Localization.Text ("number.decimal", Files.Localization.System_Number_Locale);
+            Observed_Modified    : Unbounded_String;
          begin
             for Command of Details_Frame.Text loop
-               if To_String (Command.Text) = "42 B" then
+               if To_String (Command.Text) =
+                 "42 " & Files.Localization.Text
+                   ("details.size.unit.bytes",
+                    Files.Localization.System_Number_Locale)
+               then
                   Found_Size_With_Unit := True;
-               elsif Ada.Strings.Fixed.Index (To_String (Command.Text), "2026-06-") = 1
+               elsif To_String (Command.Text) =
+                 "1" & Decimal_Separator & "5 "
+                   & Files.Localization.Text
+                     ("details.size.unit.kib",
+                      Files.Localization.System_Number_Locale)
+               then
+                  Found_Size_With_KB := True;
+               elsif To_String (Command.Text) =
+                 "1 " & Files.Localization.Text
+                   ("details.size.unit.mib",
+                    Files.Localization.System_Number_Locale)
+               then
+                  Found_Size_With_MB := True;
+               elsif To_String (Command.Text) =
+                 "5 " & Files.Localization.Text
+                   ("details.size.unit.gib",
+                    Files.Localization.System_Number_Locale)
+               then
+                  Found_Size_With_GB := True;
+               elsif Ada.Strings.Fixed.Index (To_String (Command.Text), "/2026") > 0
                  and then Ada.Strings.Fixed.Index (To_String (Command.Text), ":") > 0
+                 and then To_String (Command.Text)'Length >= 19
                  and then not Command.Truncated
                then
                   Found_Full_Modified := True;
+               elsif To_String (Command.Text) = Files.Localization.Text ("time.relative.now") then
+                  Found_Relative_Time := True;
+               elsif Ada.Strings.Fixed.Index (To_String (Command.Text), "2026") > 0
+                 or else Ada.Strings.Fixed.Index (To_String (Command.Text), "06/17") > 0
+               then
+                  Observed_Modified := Command.Text;
+               end if;
+            end loop;
+            for Command of Details_Frame.Tooltips loop
+               if Ada.Strings.Fixed.Index (To_String (Command.Text), "/2026") > 0
+                 and then Ada.Strings.Fixed.Index (To_String (Command.Text), ":") > 0
+                 and then To_String (Command.Text)'Length >= 19
+               then
+                  Found_Modified_Tooltip := True;
                end if;
             end loop;
             Assert (Found_Size_With_Unit, "details size includes byte unit");
-            Assert (Found_Full_Modified, "details modified timestamp is not abbreviated");
+            Assert (Found_Size_With_KB, "details size scales to KB with one decimal");
+            Assert (Found_Size_With_MB, "details size scales to MB");
+            Assert (Found_Size_With_GB, "details size scales to GB");
+            Assert
+              (Found_Full_Modified,
+               "details modified timestamp is not abbreviated; observed: " & To_String (Observed_Modified));
+            Assert (Found_Relative_Time, "details modified timestamp humanizes current values");
+            Assert (Found_Modified_Tooltip, "details modified tooltip exposes full timestamp");
          end;
       end;
 
@@ -13886,8 +14740,8 @@ package body Files_Suite is
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 100, Height => 73, Line_Height => 20);
       Large_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
-      Assert (Large_Layout.Element (1).Height = 5, "partial large-icons cell height is clipped");
-      Assert (Large_Layout.Element (1).Icon_Size = 5, "partial large-icons icon size is clipped");
+      Assert (Large_Layout.Element (1).Height = 0, "partial large-icons cell is hidden until full row fits");
+      Assert (Large_Layout.Element (1).Icon_Size = 0, "partial large-icons icon does not shrink while scrolling");
 
       Layout := Files.Rendering.Calculate_Layout (Snapshot, Width => 40, Height => 50, Line_Height => 20);
       Large_Layout := Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
@@ -14035,10 +14889,15 @@ package body Files_Suite is
          Found_Palette_Selection_Accent : Boolean := False;
          Found_Palette_Disabled_Fill : Boolean := False;
          Found_Palette_Disabled_Rule : Boolean := False;
+         Found_Palette_Description_Gutter : Boolean := False;
+         Found_Palette_Shortcut_Gutter : Boolean := False;
          Found_Palette_Shortcut : Boolean := False;
          Found_Palette_Search_Padding : Boolean := False;
+         Found_Palette_Item_Text_Leak : Boolean := False;
          Found_Palette_Accessible_Shortcut : Boolean := False;
          Found_Palette_Accessible_Disabled : Boolean := False;
+         Palette_Text_Right_Edge : constant Natural :=
+           Palette_Layout.Results_X + Palette_Layout.Results_Width - 14;
          Utf8_Shortcut_Text : constant String :=
            "x" & Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#)) & "y";
          Utf8_Shortcut_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
@@ -14095,14 +14954,14 @@ package body Files_Suite is
             elsif Command.X = Palette_Layout.Results_X
               and then Command.Y = Palette_Layout.Results_Y
               and then Command.Width = 3
-              and then Command.Height = 40
+              and then Command.Height = 48
               and then Command.Color = Files.Rendering.Border_Color
             then
                Found_Palette_Selection_Accent := True;
             elsif Command.X = Palette_Layout.Results_X
               and then Command.Y = Palette_Layout.Results_Y
               and then Command.Width = Palette_Layout.Results_Width
-              and then Command.Height = 40
+              and then Command.Height = 48
               and then Command.Color = Files.Rendering.Pane_Color
             then
                Found_Palette_Disabled_Fill := True;
@@ -14113,9 +14972,9 @@ package body Files_Suite is
               and then Command.Color = Files.Rendering.Overlay_Color
             then
                Found_Palette_Transparent_Row := True;
-            elsif Command.X = Palette_Layout.Results_X + 4
-              and then Command.Y = Palette_Layout.Results_Y + 19
-              and then Command.Width = Palette_Layout.Results_Width - 8
+            elsif Command.X = Palette_Layout.Results_X + 8
+              and then Command.Y = Palette_Layout.Results_Y + 23
+              and then Command.Width = Palette_Layout.Results_Width - 30
               and then Command.Height = 1
               and then Command.Color = Files.Rendering.Disabled_Text_Color
             then
@@ -14128,16 +14987,24 @@ package body Files_Suite is
               and then Command.Color = Files.Rendering.Disabled_Text_Color
             then
                Found_Palette_Description := True;
+               if Command.X + Command.Width <= Palette_Text_Right_Edge then
+                  Found_Palette_Description_Gutter := True;
+               end if;
             elsif To_String (Command.Text) = "alt+left"
               and then Command.Color = Files.Rendering.Disabled_Text_Color
             then
                Found_Palette_Shortcut := True;
+               if Command.X + Command.Width <= Palette_Text_Right_Edge then
+                  Found_Palette_Shortcut_Gutter := True;
+               end if;
             elsif To_String (Command.Text) = To_String (Snapshot.Command_Palette_Query)
               and then Command.X = Palette_Layout.Search_X + Files.UI.Input_Field_Padding
               and then Command.Width =
                 Palette_Layout.Search_Width - 2 * Files.UI.Input_Field_Padding
             then
                Found_Palette_Search_Padding := True;
+            elsif To_String (Command.Text) = "Alpha.txt" then
+               Found_Palette_Item_Text_Leak := True;
             end if;
          end loop;
 
@@ -14170,7 +15037,11 @@ package body Files_Suite is
          Assert (Found_Palette_Top_Accent, "frame renders command-palette top accent");
          Assert (Found_Palette_Description, "frame renders command-palette result description");
          Assert (Found_Palette_Search_Padding, "frame renders command-palette input with inner padding");
+         Assert (not Found_Palette_Item_Text_Leak, "frame hides file item text behind command palette");
          Assert (Found_Palette_Shortcut, "frame renders command-palette result shortcut text");
+         Assert
+           (Found_Palette_Description_Gutter and then Found_Palette_Shortcut_Gutter,
+            "frame keeps command-palette text out of scrollbar gutter");
          Assert
            (Found_Utf8_Shortcut_Width,
             "frame sizes command-palette UTF-8 shortcut text by display cells");
@@ -14474,9 +15345,6 @@ package body Files_Suite is
         (To_String (Snapshot.Settings_Sort_Field_Token) = "size",
          "settings snapshot keeps raw sort-field token");
       Assert
-        (To_String (Snapshot.Settings_Sort_Dirs_Token) = "true",
-         "settings snapshot keeps raw sort-directories token");
-      Assert
         (To_String (Snapshot.Settings_Sort_Ascending_Token) = "false",
          "settings snapshot keeps raw sort-direction token");
       Assert
@@ -14505,11 +15373,11 @@ package body Files_Suite is
            (Draft_Count_Model,
             Files.Settings.Make_Draft (Draft_Count_Settings));
 
-         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 8);
+         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 7);
          Files.Model.Add_Settings_Entry (Draft_Count_Model);
          Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 10);
          Files.Model.Remove_Settings_Entry (Draft_Count_Model);
-         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 12);
+         Files.Model.Set_Settings_Field_Index (Draft_Count_Model, 11);
          Files.Model.Add_Settings_Entry (Draft_Count_Model);
 
          Draft_Count_Snapshot := Files.Rendering.Build_Snapshot (Draft_Count_Model, Draft_Count_Settings);
@@ -14837,12 +15705,14 @@ package body Files_Suite is
          Found_A11y_Settings_Export : Boolean := False;
          Found_A11y_Settings_Reset : Boolean := False;
          Found_A11y_Settings_Save : Boolean := False;
-         Pane_W : constant Natural := Natural'Max (240, (1000 * 2) / 5);
-         Pane_H : constant Natural := Natural'Max (20 * 23, 800 / 3);
-         Pane_X : constant Natural := (if 1000 > Pane_W then (1000 - Pane_W) / 2 else 0);
-         Pane_Y : constant Natural :=
-            (if 800 > Pane_H then Natural'Max (Frame.Layout.Toolbar_Height + 8, 800 / 6)
-             else Frame.Layout.Toolbar_Height);
+         Pane : constant Files.UI.Settings_Pane_Layout :=
+           Files.UI.Calculate_Settings_Pane_Layout (1000, 800, Frame.Layout.Toolbar_Height, Line_Height => 20);
+         Pane_W : constant Natural := Pane.Width;
+         Pane_H : constant Natural := Pane.Height;
+         Pane_X : constant Natural := Pane.X;
+         Pane_Y : constant Natural := Pane.Y;
+         Settings_Row_Step : constant Natural := 20 + Files.UI.Settings_Row_Gap;
+         Focus_Row_Y : constant Natural := Pane.Text_Y + 3 * Settings_Row_Step;
          Found_Settings_Shadow : Boolean := False;
          Found_Settings_Top_Accent : Boolean := False;
          Found_Settings_Field_Focus_Ring : Boolean := False;
@@ -14863,15 +15733,15 @@ package body Files_Suite is
               and then Command.Color = Files.Rendering.Selection_Color
             then
                Found_Settings_Top_Accent := True;
-            elsif Command.X = Pane_X + 5
-              and then Command.Y = Pane_Y + 3 * 20 - 1
-              and then Command.Width = Pane_W - 10
+            elsif Command.X = Pane.Text_X - 2
+              and then Command.Y = Focus_Row_Y
+              and then Command.Width = Pane.Text_Width + 4
               and then Command.Height = 1
               and then Command.Color = Files.Rendering.Border_Color
             then
                Found_Settings_Field_Focus_Ring := True;
-            elsif Command.X = Pane_X + 6
-              and then Command.Y = Pane_Y + 3 * 20
+            elsif Command.X = Pane.Text_X - 2
+              and then Command.Y = Focus_Row_Y
               and then Command.Width = 3
               and then Command.Height = 20
               and then Command.Color = Files.Rendering.Border_Color
@@ -14917,7 +15787,13 @@ package body Files_Suite is
                Found_Settings_Export_Tooltip := True;
             elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.reset.description") then
                Found_Settings_Reset_Tooltip := True;
-            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.save.description") then
+            elsif Ada.Strings.Fixed.Index
+              (To_String (Command.Text), Files.Localization.Text ("command.settings.save.description")) > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Command.Text),
+                 Files.Commands.Shortcut_Text
+                   (Files.Commands.Shortcut_For (Files.Commands.Save_Settings_Command))) > 0
+            then
                Found_Settings_Save_Tooltip := True;
             end if;
          end loop;
@@ -14994,12 +15870,7 @@ package body Files_Suite is
          Error_Result   : Files.Controller.Controller_Result;
          Error_Snapshot : Files.Rendering.View_Snapshot;
          Error_Frame    : Files.Rendering.Frame_Commands;
-         Error_Pane_W   : constant Natural := Natural'Max (240, (1000 * 2) / 5);
-         Error_Pane_H   : constant Natural := Natural'Max (20 * 23, 800 / 3);
-         Error_Pane_X   : constant Natural := (if 1000 > Error_Pane_W then (1000 - Error_Pane_W) / 2 else 0);
-         Error_Pane_Y   : constant Natural := Natural'Max (40 + 8, 800 / 6);
          Found_Error    : Boolean := False;
-         pragma Unreferenced (Error_Pane_X);
       begin
          Error_Result :=
            Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Error_Model, Settings);
@@ -15017,13 +15888,20 @@ package body Files_Suite is
             Width       => 1000,
             Height      => 800,
             Line_Height => 20);
-         for Command of Error_Frame.Text loop
-            if Ada.Strings.Fixed.Index (To_String (Command.Text), "Settings file contains") = 1
-              and then Command.Y = Error_Pane_Y + 22 * 20
-            then
-               Found_Error := True;
-            end if;
-         end loop;
+         declare
+            Error_Pane : constant Files.UI.Settings_Pane_Layout :=
+              Files.UI.Calculate_Settings_Pane_Layout
+                (1000, 800, Error_Frame.Layout.Toolbar_Height, Line_Height => 20);
+            Error_Row_Y : constant Natural := Error_Pane.Text_Y + 21 * (20 + Files.UI.Settings_Row_Gap);
+         begin
+            for Command of Error_Frame.Text loop
+               if Ada.Strings.Fixed.Index (To_String (Command.Text), "Settings file contains") = 1
+                 and then Command.Y = Error_Row_Y
+               then
+                  Found_Error := True;
+               end if;
+            end loop;
+         end;
          Assert (Found_Error, "frame renders settings draft error inside pane");
          Files.Model.Set_Settings_Field_Text (Error_Model, "true");
          Error_Snapshot := Files.Rendering.Build_Snapshot (Error_Model);
@@ -15404,7 +16282,7 @@ package body Files_Suite is
             then
                Found_Disabled_Back_Border := True;
             elsif Command.X = Bottom_For_Frame.Small_Button_X
-              and then Command.Y = Frame.Layout.Height - Frame.Layout.Bottom_Bar_Height + Files.UI.Bottom_Bar_Padding
+              and then Command.Y = Frame.Layout.Height - Frame.Layout.Bottom_Bar_Height
               and then Command.Width = Bottom_For_Frame.Small_Button_Width
               and then Command.Height = 1
               and then Command.Color = Files.Rendering.Border_Color
@@ -15526,9 +16404,21 @@ package body Files_Suite is
          end loop;
 
          for Command of Frame.Tooltips loop
-            if To_String (Command.Text) = Files.Localization.Text ("command.navigate.home.description") then
+            if Ada.Strings.Fixed.Index
+              (To_String (Command.Text), Files.Localization.Text ("command.navigate.home.description")) > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Command.Text),
+                 Files.Commands.Shortcut_Text
+                   (Files.Commands.Shortcut_For (Files.Commands.Navigate_Home_Command))) > 0
+            then
                Found_Home_Tooltip := True;
-            elsif To_String (Command.Text) = Files.Localization.Text ("command.info.toggle.description") then
+            elsif Ada.Strings.Fixed.Index
+              (To_String (Command.Text), Files.Localization.Text ("command.info.toggle.description")) > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Command.Text),
+                 Files.Commands.Shortcut_Text
+                   (Files.Commands.Shortcut_For (Files.Commands.Toggle_Info_Pane_Command))) > 0
+            then
                Found_Info_Tooltip := True;
             elsif To_String (Command.Text) = Files.Localization.Text ("command.drive.open_selected.description") then
                Found_Root_Tooltip := True;
@@ -15600,7 +16490,13 @@ package body Files_Suite is
          end loop;
 
          for Command of Hover_Frame.Overlay_Text loop
-            if To_String (Command.Text) = Files.Localization.Text ("command.navigate.home.description") then
+            if Ada.Strings.Fixed.Index
+              (To_String (Command.Text), Files.Localization.Text ("command.navigate.home.description")) > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Command.Text),
+                 Files.Commands.Shortcut_Text
+                   (Files.Commands.Shortcut_For (Files.Commands.Navigate_Home_Command))) > 0
+            then
                Found_Hover_Tooltip_Text := True;
             end if;
          end loop;
@@ -15616,7 +16512,12 @@ package body Files_Suite is
          end loop;
 
          for Command of Hover_Info_Frame.Overlay_Text loop
-            if To_String (Command.Text) = Files.Localization.Text ("command.info.toggle.description")
+            if Ada.Strings.Fixed.Index
+                (To_String (Command.Text), Files.Localization.Text ("command.info.toggle.description")) > 0
+              and then Ada.Strings.Fixed.Index
+                (To_String (Command.Text),
+                 Files.Commands.Shortcut_Text
+                   (Files.Commands.Shortcut_For (Files.Commands.Toggle_Info_Pane_Command))) > 0
               and then Command.X + Command.Width <= Hover_Info_Frame.Layout.Width
               and then Command.Y + Command.Height <= Hover_Info_Frame.Layout.Height
               and then Command.X < Hover_Info_X
@@ -17081,6 +17982,177 @@ package body Files_Suite is
          "vulkan shutdown clears pending swapchain recreation");
    end Test_Render_Snapshot_And_Layout;
 
+   procedure Test_Bottom_Bar_Sort_Menu_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model           : Files.Model.Window_Model := Sample_Model;
+      Settings        : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result          : Files.Controller.Controller_Result;
+      Snapshot        : Files.Rendering.View_Snapshot;
+      Frame           : Files.Rendering.Frame_Commands;
+      Bottom          : constant Files.UI.Bottom_Bar_Layout :=
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Line_Height => 20);
+      Bottom_Y        : constant Natural := 800 - (20 + Files.UI.Bottom_Bar_Padding * 2);
+      Sort_Button_Y   : constant Natural := Bottom_Y + Files.UI.Bottom_Bar_Padding;
+      Row_H           : constant Natural := 20 + Files.UI.Bottom_Bar_Padding * 2;
+      Menu_Y          : constant Natural := Bottom_Y - Row_H * 5 - Files.UI.Sort_Menu_Padding * 2;
+      Rows_Y          : constant Natural := Menu_Y + Files.UI.Sort_Menu_Padding;
+      Found_Button    : Boolean := False;
+      Found_Name_Up   : Boolean := False;
+      Found_Size_Plain : Boolean := False;
+      Found_Inset_Row  : Boolean := False;
+      Found_View_Fill  : Boolean := False;
+      Found_Sort_Fill  : Boolean := False;
+      Found_View_Sort_Border : Boolean := False;
+      Found_Info_Toggle_Fill : Boolean := False;
+      Found_Changed_Button : Boolean := False;
+      Found_Changed_Menu : Boolean := False;
+      Action          : Files.Events.Input_Action;
+   begin
+      Assert (Bottom.Sort_Button_Width > 0, "bottom bar allocates a sort button");
+      Assert
+        (Files.UI.Bottom_Bar_Command_At
+           (Bottom.Sort_Button_X, Sort_Button_Y, 1000, 800, Line_Height => 20) =
+         Files.Commands.Toggle_Sort_Menu_Command,
+         "bottom-bar hit test maps sort button to menu toggle");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Toggle_Sort_Menu_Command, "sort menu toggle result records command");
+      Assert (Files.Model.Sort_Menu_Is_Open (Model), "controller opens sort menu");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Sort_Menu_Open, "snapshot records open sort menu");
+      Assert (Snapshot.Sort_Field = Files.Model.Sort_Name, "snapshot records default sort field");
+      Assert (Snapshot.Sort_Ascending, "snapshot records default ascending sort");
+
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      for Command of Frame.Text loop
+         if To_String (Command.Text) =
+           Files.Localization.Text ("command.sort.name") & " " & Files.Localization.Text ("sort.direction.ascending")
+         then
+            Assert (not Command.Truncated, "bottom sort button text is never abbreviated");
+            Found_Button := True;
+         end if;
+      end loop;
+      for Command of Frame.Overlay_Text loop
+         if To_String (Command.Text) =
+           Files.Localization.Text ("command.sort.name") & " " & Files.Localization.Text ("sort.direction.ascending")
+         then
+            Assert (not Command.Truncated, "sort menu selected text is not abbreviated");
+            Found_Name_Up := True;
+         elsif To_String (Command.Text) = Files.Localization.Text ("command.sort.size") then
+            Assert (not Command.Truncated, "sort menu unselected text is not abbreviated");
+            Found_Size_Plain := True;
+         end if;
+      end loop;
+      for Command of Frame.Overlay_Rectangles loop
+         if Command.X = Bottom.Sort_Button_X + 1
+           and then Command.Y = Rows_Y
+           and then Command.Width = Bottom.Sort_Button_Width - 2
+           and then Command.Color = Files.Rendering.Selection_Color
+         then
+            Found_Inset_Row := True;
+         end if;
+      end loop;
+      for Command of Frame.Rectangles loop
+         if Command.X = Bottom.Small_Button_X
+           and then Command.Y = Bottom_Y
+           and then Command.Width = Bottom.Small_Button_Width
+           and then Command.Height = 20 + Files.UI.Bottom_Bar_Padding * 2
+           and then Command.Color = Files.Rendering.Selection_Color
+         then
+            Found_View_Fill := True;
+         elsif Command.X = Bottom.Sort_Button_X
+           and then Command.Y = Bottom_Y
+           and then Command.Width = Bottom.Sort_Button_Width
+           and then Command.Height = 20 + Files.UI.Bottom_Bar_Padding * 2
+           and then Command.Color = Files.Rendering.Selection_Color
+         then
+            Found_Sort_Fill := True;
+         elsif Command.X = Bottom.Sort_Button_X
+           and then Command.Y = Bottom_Y
+           and then Command.Width = 1
+           and then Command.Height = 20 + Files.UI.Bottom_Bar_Padding * 2
+           and then Command.Color = Files.Rendering.Border_Color
+         then
+            Found_View_Sort_Border := True;
+         end if;
+      end loop;
+
+      Assert (Found_Button, "bottom sort button displays selected field and direction");
+      Assert (Found_Name_Up, "sort menu marks selected field with ascending arrow");
+      Assert (Found_Size_Plain, "sort menu leaves non-selected fields unmarked");
+      Assert (Found_Inset_Row, "sort menu row fill stays inside left and right border");
+      Assert (Found_View_Fill, "selected view button fill covers full bottom-bar height");
+      Assert (Found_Sort_Fill, "selected sort button fill covers full bottom-bar height");
+      Assert (Found_View_Sort_Border, "bottom bar separates view selector from sort button");
+      declare
+         Info_Model    : Files.Model.Window_Model := Sample_Model;
+         Info_Snapshot : Files.Rendering.View_Snapshot;
+         Info_Frame    : Files.Rendering.Frame_Commands;
+      begin
+         Files.Model.Select_Visible (Info_Model, 1);
+         Files.Model.Toggle_Info_Pane (Info_Model);
+         Info_Snapshot := Files.Rendering.Build_Snapshot (Info_Model);
+         Info_Frame := Files.Rendering.Build_Frame_Commands
+           (Info_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+
+         for Command of Info_Frame.Rectangles loop
+            if Command.X = Bottom.Info_Pane_X
+              and then Command.Y = Bottom_Y
+              and then Command.Width = Bottom.Info_Pane_Width
+              and then Command.Height = 20 + Files.UI.Bottom_Bar_Padding * 2
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Info_Toggle_Fill := True;
+            end if;
+         end loop;
+      end;
+      Assert (Found_Info_Toggle_Fill, "selected info toggle fill covers full bottom-bar height");
+      Assert
+        (Files.UI.Bottom_Bar_Sort_Menu_Command_At
+           (Bottom.Sort_Button_X, Rows_Y + Row_H + 1, 1000, 800, Line_Height => 20) =
+         Files.Commands.Sort_By_Size_Command,
+         "sort menu second row maps to size command");
+
+      Action :=
+        Files.Events.Translate_Click
+          (Snapshot,
+           X           => Bottom.Sort_Button_X,
+           Y           => Rows_Y + Row_H + 1,
+           Width       => 1000,
+           Height      => 800,
+           Modifiers   => Files.Types.No_Modifiers,
+           Line_Height => 20);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "sort menu click becomes command action");
+      Assert (Action.Command = Files.Commands.Sort_By_Size_Command, "sort menu click dispatches selected row");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Changed_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Sort_By_Changed_Command, "changed sort command records command");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
+      Assert (Result.Command = Files.Commands.Toggle_Sort_Menu_Command, "sort menu reopens after changed sort");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+
+      for Command of Frame.Text loop
+         if To_String (Command.Text) =
+           Files.Localization.Text ("command.sort.changed") & " " & Files.Localization.Text ("sort.direction.ascending")
+         then
+            Assert (not Command.Truncated, "bottom sort button longest label is not abbreviated");
+            Found_Changed_Button := True;
+         end if;
+      end loop;
+      for Command of Frame.Overlay_Text loop
+         if To_String (Command.Text) =
+           Files.Localization.Text ("command.sort.changed") & " " & Files.Localization.Text ("sort.direction.ascending")
+         then
+            Assert (not Command.Truncated, "sort menu longest selected label is not abbreviated");
+            Found_Changed_Menu := True;
+         end if;
+      end loop;
+
+      Assert (Found_Changed_Button, "bottom sort button renders longest field and arrow");
+      Assert (Found_Changed_Menu, "sort menu renders longest selected field and arrow");
+   end Test_Bottom_Bar_Sort_Menu_Rendering;
+
    procedure Test_Directory_Loaded_UTF8_Item_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Utf8_Name : constant String := "caf" & Byte (16#C3#) & Byte (16#A9#) & ".txt";
@@ -17318,6 +18390,10 @@ package body Files_Suite is
       Action := Files.Events.Translate_Key (Files.Types.Key_Down, Files.Types.No_Modifiers);
       Assert (Action.Kind = Files.Events.Selection_Input_Action, "down arrow translates to selection action");
       Assert (Action.Direction = Files.Types.Move_Down, "down arrow maps to downward selection movement");
+      Action := Files.Events.Translate_Key (Files.Types.Key_Down, Shift);
+      Assert (Action.Kind = Files.Events.Selection_Input_Action, "shift-down translates to selection action");
+      Assert (Action.Direction = Files.Types.Move_Down, "shift-down maps to downward selection movement");
+      Assert (Action.Range_Selection, "shift-down requests range selection");
 
       Action := Files.Events.Translate_Key (Files.Types.Key_Delete, Files.Types.No_Modifiers);
       Assert (Action.Kind = Files.Events.Command_Input_Action, "Delete translates to command action");
@@ -17344,6 +18420,12 @@ package body Files_Suite is
       Action := Files.Events.Translate_Key (Files.Types.Key_Escape, Files.Types.No_Modifiers);
       Assert (Action.Kind = Files.Events.Command_Input_Action, "Escape translates to command action");
       Assert (Action.Command = Files.Commands.Close_Command_Palette_Command, "Escape maps to context cancel");
+
+      Action := Files.Events.Translate_Key (Files.Types.Key_Comma, Ctrl);
+      Assert (Action.Kind = Files.Events.Command_Input_Action, "Control+comma translates to command action");
+      Assert
+        (Action.Command = Files.Commands.Toggle_Settings_Pane_Command,
+         "Control+comma maps to settings command");
 
       Action := Files.Events.Translate_Key (Files.Types.Key_Left, Ctrl);
       Assert (Action.Kind = Files.Events.No_Input_Action, "modified arrow does not move selection");
@@ -17621,18 +18703,34 @@ package body Files_Suite is
          Pane_X            : constant Natural := Settings_Pane.X;
          Pane_Y            : constant Natural := Settings_Pane.Y;
          Text_X            : constant Natural := Settings_Pane.Text_X;
+         Text_Y            : constant Natural := Settings_Pane.Text_Y;
          Text_W            : constant Natural := Settings_Pane.Text_Width;
          Cell_W            : constant Natural := Text_W / 4;
+         Row_Step          : constant Natural := 20 + Files.UI.Settings_Row_Gap;
          Action_Buttons    : constant Files.UI.Settings_Action_Button_Layout :=
            Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W);
          Entry_Buttons     : constant Files.UI.Settings_Entry_Button_Layout :=
            Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height => 20);
+         Settings_Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Settings_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Found_Opaque_Settings_Background : Boolean := False;
+
+         function Row_Y (Row : Natural) return Natural is
+         begin
+            return Text_Y + Row * Row_Step;
+         end Row_Y;
       begin
          Assert
-           (Settings_Pane.Height = Natural'Max (20 * 23, 800 / 3),
+           (Settings_Pane.Height =
+            Natural'Max
+              (20 * 22 + Files.UI.Settings_Row_Gap * 21 + Files.UI.Settings_Pane_Padding * 2,
+               800 / 3),
             "settings hit tests use shared pane layout height");
          Assert
-           (Text_X = Pane_X + 8 and then Text_W = Pane_W - 16,
+           (Text_X = Pane_X + Files.UI.Settings_Pane_Padding
+            and then Text_Y = Pane_Y + Files.UI.Settings_Pane_Padding
+            and then Text_W = Pane_W - 2 * Files.UI.Settings_Pane_Padding,
             "settings hit tests use shared pane inner text layout");
          Assert
            (Action_Buttons.Total_X = Text_X and then Action_Buttons.Total_Width = Text_W,
@@ -17640,40 +18738,51 @@ package body Files_Suite is
          Assert
            (Entry_Buttons.Remove_Button_Width > Entry_Buttons.Add_Button_Width,
             "settings remove button sizes to localized label");
+         for Command of Settings_Frame.Rectangles loop
+            if Command.X = Pane_X
+              and then Command.Y = Pane_Y
+              and then Command.Width = Pane_W
+              and then Command.Height = Settings_Pane.Height
+              and then Command.Color = Files.Rendering.Pane_Color
+            then
+               Found_Opaque_Settings_Background := True;
+            end if;
+         end loop;
+         Assert (Found_Opaque_Settings_Background, "settings pane background is opaque");
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Text_X + 1,
-               Y      => Pane_Y + 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Text_X + 1,
+                  Y      => Row_Y (1) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Command_Input_Action, "settings import click translates");
          Assert (Action.Command = Files.Commands.Import_Settings_Command, "settings import click maps command");
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Action_Buttons.Second_Button_X + 1,
-               Y      => Pane_Y + 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Action_Buttons.Second_Button_X + 1,
+                  Y      => Row_Y (1) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Command_Input_Action, "settings export click translates");
          Assert (Action.Command = Files.Commands.Export_Settings_Command, "settings export click maps command");
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Text_X + 1,
-               Y      => Pane_Y + 2 * 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Text_X + 1,
+                  Y      => Row_Y (2) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Command_Input_Action, "settings reset click translates");
          Assert (Action.Command = Files.Commands.Reset_Settings_Command, "settings reset click maps command");
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Action_Buttons.Second_Button_X + 1,
-               Y      => Pane_Y + 2 * 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Action_Buttons.Second_Button_X + 1,
+                  Y      => Row_Y (2) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Command_Input_Action, "settings save click translates");
          Assert (Action.Command = Files.Commands.Save_Settings_Command, "settings save click maps command");
          declare
@@ -17682,11 +18791,11 @@ package body Files_Suite is
             Disabled_Settings.Settings_Can_Import := False;
             Action :=
               Files.Events.Translate_Click
-                 (Disabled_Settings,
-                  X      => Text_X + 1,
-                  Y      => Pane_Y + 20 + 1,
-                  Width  => 1000,
-                  Height => 800);
+                   (Disabled_Settings,
+                    X      => Text_X + 1,
+                    Y      => Row_Y (1) + 1,
+                    Width  => 1000,
+                    Height => 800);
             Assert
               (Action.Kind = Files.Events.No_Input_Action,
                "disabled settings import click is ignored by hit testing");
@@ -17695,11 +18804,11 @@ package body Files_Suite is
             Disabled_Settings.Settings_Can_Export := False;
             Action :=
               Files.Events.Translate_Click
-                 (Disabled_Settings,
-                  X      => Action_Buttons.Second_Button_X + 1,
-                  Y      => Pane_Y + 20 + 1,
-                  Width  => 1000,
-                  Height => 800);
+                   (Disabled_Settings,
+                    X      => Action_Buttons.Second_Button_X + 1,
+                    Y      => Row_Y (1) + 1,
+                    Width  => 1000,
+                    Height => 800);
             Assert
               (Action.Kind = Files.Events.No_Input_Action,
                "disabled settings export click is ignored by hit testing");
@@ -17708,11 +18817,11 @@ package body Files_Suite is
             Disabled_Settings.Settings_Can_Reset := False;
             Action :=
               Files.Events.Translate_Click
-                 (Disabled_Settings,
-                  X      => Text_X + 1,
-                  Y      => Pane_Y + 2 * 20 + 1,
-                  Width  => 1000,
-                  Height => 800);
+                   (Disabled_Settings,
+                    X      => Text_X + 1,
+                    Y      => Row_Y (2) + 1,
+                    Width  => 1000,
+                    Height => 800);
             Assert
               (Action.Kind = Files.Events.No_Input_Action,
                "disabled settings reset click is ignored by hit testing");
@@ -17721,11 +18830,11 @@ package body Files_Suite is
             Disabled_Settings.Settings_Can_Save := False;
             Action :=
               Files.Events.Translate_Click
-                 (Disabled_Settings,
-                  X      => Action_Buttons.Second_Button_X + 1,
-                  Y      => Pane_Y + 2 * 20 + 1,
-                  Width  => 1000,
-                  Height => 800);
+                   (Disabled_Settings,
+                    X      => Action_Buttons.Second_Button_X + 1,
+                    Y      => Row_Y (2) + 1,
+                    Width  => 1000,
+                    Height => 800);
             Assert
               (Action.Kind = Files.Events.No_Input_Action,
                "disabled settings save click is ignored by hit testing");
@@ -17743,9 +18852,9 @@ package body Files_Suite is
          begin
             Action :=
               Files.Events.Translate_Click
-                 (Odd_Snapshot,
-                  X      => Odd_Last_X,
-                  Y      => Odd_Pane.Y + 20 + 1,
+                  (Odd_Snapshot,
+                   X      => Odd_Last_X,
+                  Y      => Odd_Pane.Text_Y + Row_Step + 1,
                   Width  => Odd_Width,
                   Height => 800);
             Assert
@@ -17756,9 +18865,9 @@ package body Files_Suite is
                "settings action remainder click maps export command");
             Action :=
               Files.Events.Translate_Click
-                 (Odd_Snapshot,
-                  X      => Odd_Last_X,
-                  Y      => Odd_Pane.Y + 2 * 20 + 1,
+                  (Odd_Snapshot,
+                   X      => Odd_Last_X,
+                  Y      => Odd_Pane.Text_Y + 2 * Row_Step + 1,
                   Width  => Odd_Width,
                   Height => 800);
             Assert
@@ -17770,66 +18879,64 @@ package body Files_Suite is
          end;
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Text_X + Cell_W + 1,
-               Y      => Pane_Y + 21 * 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Text_X + Cell_W + 1,
+                  Y      => Row_Y (20) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Settings_Click_Input_Action, "settings option click translates");
          Assert (Action.Settings_Field = 1, "settings option click keeps active scalar field");
          Assert (Action.Settings_Option = 2, "settings option click returns option index");
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Text_X + 3 * Cell_W + 1,
-               Y      => Pane_Y + 21 * 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Text_X + 3 * Cell_W + 1,
+                  Y      => Row_Y (20) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.No_Input_Action, "settings blank option cell is inert");
-         Files.Model.Set_Settings_Field_Index (Model, 4);
+         Files.Model.Set_Settings_Field_Index (Model, 3);
          declare
             Sort_Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
-            Sort_Pane_W   : constant Natural := Natural'Max (240, (997 * 2) / 5);
-            Sort_Pane_Y   : constant Natural :=
-              Natural'Max
-                (Files.Rendering.Calculate_Layout
-                   (Sort_Snapshot, Width => 997, Height => 800, Line_Height => 20).Toolbar_Height + 8,
-                 800 / 6);
-            Sort_Text_X   : constant Natural := ((997 - Sort_Pane_W) / 2) + 8;
-            Sort_Text_W   : constant Natural := Sort_Pane_W - 16;
+            Sort_Layout   : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout (Sort_Snapshot, Width => 997, Height => 800, Line_Height => 20);
+            Sort_Pane     : constant Files.UI.Settings_Pane_Layout :=
+              Files.UI.Calculate_Settings_Pane_Layout (997, 800, Sort_Layout.Toolbar_Height, Line_Height => 20);
+            Sort_Text_X   : constant Natural := Sort_Pane.Text_X;
+            Sort_Text_W   : constant Natural := Sort_Pane.Text_Width;
          begin
             Action :=
               Files.Events.Translate_Click
-                 (Sort_Snapshot,
-                  X      => Sort_Text_X + Sort_Text_W - 1,
-                  Y      => Sort_Pane_Y + 21 * 20 + 1,
+                  (Sort_Snapshot,
+                   X      => Sort_Text_X + Sort_Text_W - 1,
+                  Y      => Sort_Pane.Text_Y + 20 * Row_Step + 1,
                   Width  => 997,
                   Height => 800);
             Assert
               (Action.Kind = Files.Events.Settings_Click_Input_Action,
                "settings sort remainder click translates");
-            Assert (Action.Settings_Field = 4, "settings sort remainder click keeps sort field");
+            Assert (Action.Settings_Field = 3, "settings sort remainder click keeps sort field");
             Assert (Action.Settings_Option = 4, "settings sort remainder click maps modified option");
          end;
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Entry_Buttons.Add_Button_X + 1,
-               Y      => Pane_Y + 10 * 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Entry_Buttons.Add_Button_X + 1,
+                  Y      => Row_Y (9) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Settings_Click_Input_Action, "settings add click translates");
-         Assert (Action.Settings_Field = 8, "settings add click targets filetype mappings");
+         Assert (Action.Settings_Field = 7, "settings add click targets filetype mappings");
          Assert (Action.Settings_Option = 100, "settings add click returns add action code");
          Action :=
            Files.Events.Translate_Click
-              (Settings_Snapshot,
-               X      => Entry_Buttons.Remove_Button_X + 1,
-               Y      => Pane_Y + 10 * 20 + 1,
-               Width  => 1000,
-               Height => 800);
+                  (Settings_Snapshot,
+                   X      => Entry_Buttons.Remove_Button_X + 1,
+                  Y      => Row_Y (9) + 1,
+                  Width  => 1000,
+                  Height => 800);
          Assert (Action.Kind = Files.Events.Settings_Click_Input_Action, "settings remove click translates");
-         Assert (Action.Settings_Field = 8, "settings remove click targets filetype mappings");
+         Assert (Action.Settings_Field = 7, "settings remove click targets filetype mappings");
          Assert (Action.Settings_Option = 101, "settings remove click returns remove action code");
          Action :=
            Files.Events.Translate_Click
@@ -17853,11 +18960,11 @@ package body Files_Suite is
                "narrow settings pane clamps to the window width");
             Action :=
               Files.Events.Translate_Click
-                 (Narrow_Snapshot,
-                  X      => Narrow_Width,
-                  Y      => Narrow_Pane.Y + 20 + 1,
-                  Width  => Narrow_Width,
-                  Height => 800);
+                   (Narrow_Snapshot,
+                    X      => Narrow_Width,
+                    Y      => Narrow_Pane.Text_Y + Row_Step + 1,
+                    Width  => Narrow_Width,
+                    Height => 800);
             Assert
               (Action.Kind = Files.Events.No_Input_Action,
                "narrow settings pane rejects clicks beyond the window width");
@@ -17878,16 +18985,15 @@ package body Files_Suite is
               Height => Natural'Last);
          Assert (Action.Kind = Files.Events.No_Input_Action, "saturated settings click avoids overflow");
          declare
-            Huge_Pane_W : constant Natural :=
-              Natural'Max (240, (Natural'Last / 5) * 2 + ((Natural'Last mod 5) * 2) / 5);
-            Huge_Pane_X : constant Natural := (Natural'Last - Huge_Pane_W) / 2;
-            Huge_Text_X : constant Natural := Huge_Pane_X + 8;
+            Huge_Pane : constant Files.UI.Settings_Pane_Layout :=
+              Files.UI.Calculate_Settings_Pane_Layout
+                (Natural'Last, Natural'Last, Huge_Layout.Toolbar_Height, Line_Height => 20);
          begin
             Action :=
               Files.Events.Translate_Click
                 (Huge_Snapshot,
-                 X      => Huge_Text_X + 1,
-                 Y      => Natural'Last / 6 + 21,
+                 X      => Huge_Pane.Text_X + 1,
+                 Y      => Huge_Pane.Text_Y + 20 + Files.UI.Settings_Row_Gap + 1,
                  Width  => Natural'Last,
                  Height => Natural'Last);
             Assert
@@ -17907,16 +19013,14 @@ package body Files_Suite is
            Files.Rendering.Calculate_Command_Palette_Layout (Palette_Layout, Line_Height => 20);
          Settings_Layout       : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout (Palette_Over_Settings, Width => 1000, Height => 800, Line_Height => 20);
-         Settings_Pane_W       : constant Natural := Natural'Max (240, (1000 * 2) / 5);
-         Settings_Pane_Y       : constant Natural :=
-           Natural'Max (Settings_Layout.Toolbar_Height + 8, 800 / 6);
-         Settings_Text_X       : constant Natural := ((1000 - Settings_Pane_W) / 2) + 8;
+         Settings_Pane         : constant Files.UI.Settings_Pane_Layout :=
+           Files.UI.Calculate_Settings_Pane_Layout (1000, 800, Settings_Layout.Toolbar_Height, Line_Height => 20);
       begin
          Action :=
            Files.Events.Translate_Click
              (Palette_Over_Settings,
-              X      => Settings_Text_X + 1,
-              Y      => Settings_Pane_Y + 20 + 1,
+              X      => Settings_Pane.Text_X + 1,
+              Y      => Settings_Pane.Text_Y + 20 + Files.UI.Settings_Row_Gap + 1,
               Width  => 1000,
               Height => 800);
          Assert
@@ -18103,7 +19207,7 @@ package body Files_Suite is
       Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
       Action :=
         Files.Events.Translate_Click
-          (Files.Rendering.Build_Snapshot (Model), X => 124, Y => 25, Width => 1000, Height => 800);
+          (Files.Rendering.Build_Snapshot (Model), X => 136, Y => 33, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "palette search click translates to text action");
       Assert
         (Action.Focus_Target = Files.Types.Focus_Command_Palette,
@@ -18111,11 +19215,11 @@ package body Files_Suite is
       Assert (Action.Cursor_Position = 2, "palette search click computes text cursor position");
       Action :=
         Files.Events.Translate_Click
-          (Files.Rendering.Build_Snapshot (Model), X => 100, Y => 25, Width => 1000, Height => 800);
+          (Files.Rendering.Build_Snapshot (Model), X => 108, Y => 33, Width => 1000, Height => 800);
       Assert (Action.Cursor_Position = 0, "palette search click clamps cursor to text start");
       Action :=
         Files.Events.Translate_Click
-          (Files.Rendering.Build_Snapshot (Model), X => 899, Y => 25, Width => 1000, Height => 800);
+          (Files.Rendering.Build_Snapshot (Model), X => 891, Y => 33, Width => 1000, Height => 800);
       Assert
         (Action.Cursor_Position = Palette_Query_Length,
          "palette search click clamps cursor to text end");
@@ -18160,14 +19264,22 @@ package body Files_Suite is
       begin
          Action :=
            Files.Events.Translate_Click
-             (Click_Snapshot, X => 104, Y => Click_Palette.Results_Y + 1, Width => 1000, Height => 800);
+             (Click_Snapshot,
+              X      => Click_Palette.Results_X + 1,
+              Y      => Click_Palette.Results_Y + 1,
+              Width  => 1000,
+              Height => 800);
          Assert
            (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
             "palette result click translates to result action");
          Assert (Action.Result_Index = 1, "palette result click returns result index");
          Action :=
            Files.Events.Translate_Click
-             (Click_Snapshot, X => 104, Y => Click_Palette.Results_Y + 21, Width => 1000, Height => 800);
+             (Click_Snapshot,
+              X      => Click_Palette.Results_X + 1,
+              Y      => Click_Palette.Results_Y + 25,
+              Width  => 1000,
+              Height => 800);
          Assert
            (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
             "palette result description click translates to result action");
@@ -18187,7 +19299,7 @@ package body Files_Suite is
          Files.Model.Set_Command_Palette_Result_Offset (Model, 1);
          Palette_Snapshot := Files.Rendering.Build_Snapshot (Model);
          Layout :=
-           Files.Rendering.Calculate_Layout (Palette_Snapshot, Width => 1000, Height => 120, Line_Height => 20);
+           Files.Rendering.Calculate_Layout (Palette_Snapshot, Width => 1000, Height => 160, Line_Height => 20);
          Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
          Track_X := Palette_Layout.Results_X + Palette_Layout.Results_Width - 1;
          Action :=
@@ -18196,7 +19308,7 @@ package body Files_Suite is
               X      => Track_X,
               Y      => Palette_Layout.Results_Y + Palette_Layout.Results_Height - 1,
               Width  => 1000,
-              Height => 120);
+              Height => 160);
          Assert (Action.Kind = Files.Events.Scroll_Input_Action, "palette scrollbar click translates to scroll");
          Assert (Action.Scroll_Area = Files.Events.Scroll_Command_Palette, "palette scrollbar targets palette");
          Assert (Action.Scroll_Lines = 5, "palette scrollbar below thumb scrolls down by a page step");
@@ -18207,7 +19319,7 @@ package body Files_Suite is
               X      => Track_X,
               Y      => Palette_Layout.Results_Y,
               Width  => 1000,
-              Height => 120);
+              Height => 160);
          Assert (Action.Kind = Files.Events.No_Input_Action, "palette thumb click is inert");
          Palette_Snapshot.Command_Palette_Result_Offset := 0;
 

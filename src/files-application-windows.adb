@@ -106,6 +106,7 @@ package body Files.Application.Windows is
       Tracked_P,
       Tracked_R,
       Tracked_S,
+      Tracked_Comma,
       Tracked_Backspace,
       Tracked_Delete,
       Tracked_F2,
@@ -491,6 +492,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.R;
          when Tracked_S =>
             return Glfw.Input.Keys.S;
+         when Tracked_Comma =>
+            return Glfw.Input.Keys.Comma;
          when Tracked_Backspace =>
             return Glfw.Input.Keys.Backspace;
          when Tracked_Delete =>
@@ -551,6 +554,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_R;
          when Tracked_S =>
             return Files.Types.Key_S;
+         when Tracked_Comma =>
+            return Files.Types.Key_Comma;
          when Tracked_Backspace =>
             return Files.Types.Key_Backspace;
          when Tracked_Delete =>
@@ -580,6 +585,33 @@ package body Files.Application.Windows is
       end case;
    end To_Key_Code;
 
+   procedure Refresh_Selection_Grid_Columns
+     (Runtime : in out Runtime_Window)
+   is
+      Window_W : Glfw.Size := 0;
+      Window_H : Glfw.Size := 0;
+      Frame_W  : Glfw.Size := 0;
+      Frame_H  : Glfw.Size := 0;
+   begin
+      if Runtime.Handle = null then
+         return;
+      end if;
+
+      Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+
+      declare
+         Snapshot  : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Layout    : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H));
+         Main_View : constant Files.Rendering.Main_View_Layout :=
+           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout);
+      begin
+         Files.Model.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
+      end;
+   end Refresh_Selection_Grid_Columns;
+
    procedure Handle_Pressed_Key
      (Runtime : in out Runtime_Window;
       Key     : Tracked_Key)
@@ -602,6 +634,7 @@ package body Files.Application.Windows is
       end if;
 
       Runtime.Pressed_Keys (Key) := True;
+      Refresh_Selection_Grid_Columns (Runtime);
       Result :=
         Files.Controller.Handle_Key
           (Model     => Runtime.Model,

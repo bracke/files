@@ -1,0 +1,4 @@
+en-ZA.time.format.clock = %H:%M:%S
+en-ZA.time.locale.date_pattern = %d %b %Y
+en-ZA.number.decimal = ,
+en-ZA.number.group =  

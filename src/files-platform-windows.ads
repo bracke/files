@@ -7,6 +7,11 @@ package Files.Platform.Windows is
    --  @return Windows trash and volume binding profile.
    function API_Profile return Files.File_System.Native_Platform_API_Profile;
 
+   --  Return the Windows user-default locale name.
+   --
+   --  @return Locale name from GetUserDefaultLocaleName, or an empty string.
+   function Native_Locale return String;
+
    --  Evaluate whether Request can be handled by the Windows Recycle Bin binding.
    --
    --  @param Request Native trash request to evaluate.

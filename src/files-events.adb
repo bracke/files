@@ -129,16 +129,38 @@ package body Files.Events is
          return Command_Action (Command);
       end if;
 
-      if Modifiers = Files.Types.No_Modifiers then
+      if Modifiers = Files.Types.No_Modifiers
+        or else
+          (Modifiers (Files.Types.Shift_Key)
+           and then not Modifiers (Files.Types.Control_Key)
+           and then not Modifiers (Files.Types.Alt_Key)
+           and then not Modifiers (Files.Types.Meta_Key))
+      then
          case Key is
             when Files.Types.Key_Left =>
-               return Selection_Action (Files.Types.Move_Left);
+               return
+                 (Kind            => Selection_Input_Action,
+                  Direction       => Files.Types.Move_Left,
+                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  others          => <>);
             when Files.Types.Key_Right =>
-               return Selection_Action (Files.Types.Move_Right);
+               return
+                 (Kind            => Selection_Input_Action,
+                  Direction       => Files.Types.Move_Right,
+                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  others          => <>);
             when Files.Types.Key_Up =>
-               return Selection_Action (Files.Types.Move_Up);
+               return
+                 (Kind            => Selection_Input_Action,
+                  Direction       => Files.Types.Move_Up,
+                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  others          => <>);
             when Files.Types.Key_Down =>
-               return Selection_Action (Files.Types.Move_Down);
+               return
+                 (Kind            => Selection_Input_Action,
+                  Direction       => Files.Types.Move_Down,
+                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  others          => <>);
             when others =>
                null;
          end case;
@@ -275,8 +297,7 @@ package body Files.Events is
             return 0;
          end if;
 
-         return Available_Height / Row_Height
-           + (if Available_Height mod Row_Height = 0 then 0 else 1);
+         return Available_Height / Row_Height;
       end Visible_Row_Count;
 
       function Cursor_At
@@ -430,10 +451,13 @@ package body Files.Events is
          Entry_Buttons : constant Files.UI.Settings_Entry_Button_Layout :=
            Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
          Text_X : constant Natural := Pane.Text_X;
+         Text_Y : constant Natural := Pane.Text_Y;
          Text_W : constant Natural := Pane.Text_Width;
          Action_Buttons : constant Files.UI.Settings_Action_Button_Layout :=
            Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W);
+         Row_Step : constant Natural := Saturating_Add (Line_Height, Files.UI.Settings_Row_Gap);
          Row    : Natural;
+         Row_Offset : Natural;
          Cell_W : Natural;
 
          function Option_Count (Field : Natural) return Natural is
@@ -441,9 +465,9 @@ package body Files.Events is
             case Field is
                when 1 =>
                   return 3;
-               when 2 | 3 | 5 | 6 | 7 =>
+               when 2 | 4 | 5 | 6 =>
                   return 2;
-               when 4 =>
+               when 3 =>
                   return 4;
                when others =>
                   return 0;
@@ -471,13 +495,12 @@ package body Files.Events is
                when 6 => return 4;
                when 7 => return 5;
                when 8 => return 6;
-               when 9 => return 7;
+               when 10 => return 7;
                when 11 => return 8;
-               when 12 => return 9;
+               when 13 => return 9;
                when 14 => return 10;
-               when 15 => return 11;
+               when 16 => return 11;
                when 17 => return 12;
-               when 18 => return 13;
                when others => return 0;
             end case;
          end Row_Field;
@@ -517,7 +540,16 @@ package body Files.Events is
             return No_Action (Activate);
          end if;
 
-         Row := (Y - Pane_Y) / Line_Height;
+         if Y < Text_Y or else Row_Step = 0 then
+            return No_Action (Activate);
+         end if;
+
+         Row := (Y - Text_Y) / Row_Step;
+         Row_Offset := (Y - Text_Y) mod Row_Step;
+         if Row_Offset >= Line_Height then
+            return No_Action (Activate);
+         end if;
+
          if Row in 1 .. 2
            and then Within (X, Action_Buttons.Total_X, Action_Buttons.Total_Width)
          then
@@ -538,7 +570,7 @@ package body Files.Events is
             then
                return Settings_Command_Click (Files.Commands.Save_Settings_Command);
             end if;
-         elsif Row = 21 and then Snapshot.Settings_Field_Index in 1 .. 7 then
+         elsif Row = 20 and then Snapshot.Settings_Field_Index in 1 .. 6 then
             Cell_W := (if Text_W > 0 then Text_W / 4 else 0);
             if Cell_W > 0
               and then Within
@@ -553,9 +585,9 @@ package body Files.Events is
                       (Option_Count (Snapshot.Settings_Field_Index),
                        (X - Text_X) / Cell_W + 1));
             end if;
-         elsif Row in 10 | 13 | 16 and then Within (X, Entry_Buttons.Total_X, Entry_Buttons.Total_Width) then
+         elsif Row in 9 | 12 | 15 and then Within (X, Entry_Buttons.Total_X, Entry_Buttons.Total_Width) then
             declare
-               Field : constant Natural := (case Row is when 10 => 8, when 13 => 10, when others => 12);
+               Field : constant Natural := (case Row is when 9 => 7, when 12 => 9, when others => 11);
             begin
                if Within (X, Entry_Buttons.Add_Button_X, Entry_Buttons.Add_Button_Width) then
                   return Settings_Click (Field, 100);
@@ -693,8 +725,15 @@ package body Files.Events is
              (Files.Types.Focus_Filter_Input,
               Cursor_At
                  (Text        => Snapshot.Filter_Text,
-                 Text_X      => Saturating_Add (Toolbar.Right_X, Files.UI.Input_Field_Padding),
-                 Click_X     => X));
+                  Text_X      => Saturating_Add (Toolbar.Right_X, Files.UI.Input_Field_Padding),
+                  Click_X     => X));
+      end if;
+
+      if Snapshot.Sort_Menu_Open then
+         Command := Files.UI.Bottom_Bar_Sort_Menu_Command_At (X, Y, Width, Height, Line_Height);
+         if Command /= Files.Commands.No_Command then
+            return Command_Action (Command, Activate);
+         end if;
       end if;
 
       Command := Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);
@@ -702,6 +741,11 @@ package body Files.Events is
          Command := Files.UI.Bottom_Bar_Command_At (X, Y, Width, Height, Line_Height);
       end if;
 
+      if Command /= Files.Commands.No_Command then
+         return Command_Action (Command, Activate);
+      end if;
+
+      Command := Files.Rendering.Details_Header_Command_At (Snapshot, Layout, X, Y, Line_Height);
       if Command /= Files.Commands.No_Command then
          return Command_Action (Command, Activate);
       end if;

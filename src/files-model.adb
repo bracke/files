@@ -365,6 +365,9 @@ package body Files.Model is
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.View_Value := Default_View_Mode;
+      Model.Sort_Field_Value := Sort_Name;
+      Model.Sort_Ascending := True;
+      Model.Sort_Menu_Open := False;
       Model.Back_History.Clear;
       Model.Forward_History.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
@@ -431,6 +434,54 @@ package body Files.Model is
       Model.View_Value := Mode;
       Model.Main_View_Scroll := 0;
    end Set_View_Mode;
+
+   function Sort_Field_Of
+     (Model : Window_Model)
+      return Sort_Field is
+   begin
+      return Model.Sort_Field_Value;
+   end Sort_Field_Of;
+
+   function Sort_Is_Ascending
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Sort_Ascending;
+   end Sort_Is_Ascending;
+
+   procedure Select_Sort_Field
+     (Model : in out Window_Model;
+      Field : Sort_Field) is
+   begin
+      if Model.Sort_Field_Value = Field then
+         Model.Sort_Ascending := not Model.Sort_Ascending;
+      else
+         Model.Sort_Field_Value := Field;
+         Model.Sort_Ascending := True;
+      end if;
+
+      Model.Sort_Menu_Open := False;
+      Model.Main_View_Scroll := 0;
+   end Select_Sort_Field;
+
+   procedure Toggle_Sort_Menu
+     (Model : in out Window_Model) is
+   begin
+      Model.Sort_Menu_Open := not Model.Sort_Menu_Open;
+   end Toggle_Sort_Menu;
+
+   procedure Close_Sort_Menu
+     (Model : in out Window_Model) is
+   begin
+      Model.Sort_Menu_Open := False;
+   end Close_Sort_Menu;
+
+   function Sort_Menu_Is_Open
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Sort_Menu_Open;
+   end Sort_Menu_Is_Open;
 
    function Item_Count
      (Model : Window_Model)
@@ -652,7 +703,22 @@ package body Files.Model is
    is
       Count   : constant Natural := Visible_Count (Model);
       Current : constant Natural := Selected_Index (Model);
+      Stride  : constant Natural :=
+        Natural'Max (1, Natural'Min (Natural (Model.Selection_Columns), Natural'Max (1, Count)));
       Next    : Natural;
+
+      function Last_In_Column
+        (Column : Positive)
+         return Natural
+      is
+         Candidate : Natural := Natural (Column);
+      begin
+         while Candidate + Stride <= Count loop
+            Candidate := Candidate + Stride;
+         end loop;
+
+         return Candidate;
+      end Last_In_Column;
    begin
       if Count = 0 then
          Clear_Selection (Model);
@@ -663,22 +729,52 @@ package body Files.Model is
       end if;
 
       case Direction is
-         when Files.Types.Move_Left | Files.Types.Move_Up =>
+         when Files.Types.Move_Left =>
             if Current = 1 then
                Next := Count;
             else
                Next := Current - 1;
             end if;
-         when Files.Types.Move_Right | Files.Types.Move_Down =>
+         when Files.Types.Move_Right =>
             if Current = Count then
                Next := 1;
             else
                Next := Current + 1;
             end if;
+         when Files.Types.Move_Up =>
+            if Current = 1 then
+               Next := Count;
+            elsif Current > Stride then
+               Next := Current - Stride;
+            else
+               Next := Last_In_Column (Positive (Current));
+            end if;
+         when Files.Types.Move_Down =>
+            if Current = Count then
+               Next := 1;
+            elsif Current + Stride <= Count then
+               Next := Current + Stride;
+            else
+               Next := ((Current - 1) mod Stride) + 1;
+            end if;
       end case;
 
       Select_Visible (Model, Positive (Next));
    end Move_Selection;
+
+   procedure Set_Selection_Grid_Columns
+     (Model   : in out Window_Model;
+      Columns : Positive) is
+   begin
+      Model.Selection_Columns := Columns;
+   end Set_Selection_Grid_Columns;
+
+   function Selection_Grid_Columns
+     (Model : Window_Model)
+      return Positive is
+   begin
+      return Model.Selection_Columns;
+   end Selection_Grid_Columns;
 
    function Is_Selected
      (Model         : Window_Model;
@@ -1400,8 +1496,8 @@ package body Files.Model is
    begin
       if Index = 0 then
          Model.Settings_Field := 1;
-      elsif Index > 13 then
-         Model.Settings_Field := 13;
+      elsif Index > 12 then
+         Model.Settings_Field := 12;
       else
          Model.Settings_Field := Index;
       end if;
@@ -1415,9 +1511,9 @@ package body Files.Model is
    begin
       case Direction is
          when Files.Types.Move_Left | Files.Types.Move_Up =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 13 else Model.Settings_Field - 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 12 else Model.Settings_Field - 1));
          when Files.Types.Move_Right | Files.Types.Move_Down =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 13 then 1 else Model.Settings_Field + 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 12 then 1 else Model.Settings_Field + 1));
       end case;
    end Move_Settings_Field;
 
@@ -1475,14 +1571,14 @@ package body Files.Model is
       end Next_Index;
    begin
       case Model.Settings_Field is
-         when 8 | 9 =>
+         when 7 | 8 =>
             Select_Filetype
               (Next_Index
                  (Draft.Filetype_Index,
                   Pair_Count (Draft.Filetype_Keys, Draft.Filetype_Values)));
-         when 10 | 11 =>
+         when 9 | 10 =>
             Select_Icon (Next_Index (Draft.Icon_Index, Pair_Count (Draft.Icon_Keys, Draft.Icon_Values)));
-         when 12 | 13 =>
+         when 11 | 12 =>
             Select_Action
               (Next_Index
                  (Draft.Open_Action_Index,
@@ -1503,27 +1599,27 @@ package body Files.Model is
       Edited : Boolean := True;
    begin
       case Model.Settings_Field is
-         when 8 | 9 =>
+         when 7 | 8 =>
             Draft.Filetype_Keys.Append (Null_Unbounded_String);
             Draft.Filetype_Values.Append (Null_Unbounded_String);
             Draft.Filetype_Index := Natural (Draft.Filetype_Keys.Length);
             Draft.Filetype_Extension := Null_Unbounded_String;
             Draft.Filetype_Value := Null_Unbounded_String;
-            Model.Settings_Field := 8;
-         when 10 | 11 =>
+            Model.Settings_Field := 7;
+         when 9 | 10 =>
             Draft.Icon_Keys.Append (Null_Unbounded_String);
             Draft.Icon_Values.Append (Null_Unbounded_String);
             Draft.Icon_Index := Natural (Draft.Icon_Keys.Length);
             Draft.Icon_Filetype := Null_Unbounded_String;
             Draft.Icon_Value := Null_Unbounded_String;
-            Model.Settings_Field := 10;
-         when 12 | 13 =>
+            Model.Settings_Field := 9;
+         when 11 | 12 =>
             Draft.Open_Action_Keys.Append (Null_Unbounded_String);
             Draft.Open_Action_Commands.Append (Null_Unbounded_String);
             Draft.Open_Action_Index := Natural (Draft.Open_Action_Keys.Length);
             Draft.Open_Action_Token := Null_Unbounded_String;
             Draft.Open_Action_Command := Null_Unbounded_String;
-            Model.Settings_Field := 12;
+            Model.Settings_Field := 11;
          when others =>
             Edited := False;
       end case;
@@ -1567,7 +1663,7 @@ package body Files.Model is
 
    begin
       case Model.Settings_Field is
-         when 8 | 9 =>
+         when 7 | 8 =>
             if Draft.Filetype_Index = 0
               or else
                 (Draft.Filetype_Index > Natural (Draft.Filetype_Keys.Length)
@@ -1588,8 +1684,8 @@ package body Files.Model is
                Draft.Filetype_Extension := Draft.Filetype_Keys.Element (Draft.Filetype_Index);
                Draft.Filetype_Value := Draft.Filetype_Values.Element (Draft.Filetype_Index);
             end if;
-            Model.Settings_Field := 8;
-         when 10 | 11 =>
+            Model.Settings_Field := 7;
+         when 9 | 10 =>
             if Draft.Icon_Index = 0
               or else
                 (Draft.Icon_Index > Natural (Draft.Icon_Keys.Length)
@@ -1610,8 +1706,8 @@ package body Files.Model is
                Draft.Icon_Filetype := Draft.Icon_Keys.Element (Draft.Icon_Index);
                Draft.Icon_Value := Draft.Icon_Values.Element (Draft.Icon_Index);
             end if;
-            Model.Settings_Field := 10;
-         when 12 | 13 =>
+            Model.Settings_Field := 9;
+         when 11 | 12 =>
             if Draft.Open_Action_Index = 0
               or else
                 (Draft.Open_Action_Index > Natural (Draft.Open_Action_Keys.Length)
@@ -1632,7 +1728,7 @@ package body Files.Model is
                Draft.Open_Action_Token := Draft.Open_Action_Keys.Element (Draft.Open_Action_Index);
                Draft.Open_Action_Command := Draft.Open_Action_Commands.Element (Draft.Open_Action_Index);
             end if;
-            Model.Settings_Field := 12;
+            Model.Settings_Field := 11;
          when others =>
             Edited := False;
       end case;
@@ -1655,26 +1751,24 @@ package body Files.Model is
          when 2 =>
             return To_String (Model.Settings_Draft_Value.Show_Hidden_Files);
          when 3 =>
-            return To_String (Model.Settings_Draft_Value.Sort_Directories_First);
-         when 4 =>
             return To_String (Model.Settings_Draft_Value.Sort_Field_Value);
-         when 5 =>
+         when 4 =>
             return To_String (Model.Settings_Draft_Value.Sort_Ascending);
-         when 6 =>
+         when 5 =>
             return To_String (Model.Settings_Draft_Value.High_Contrast_Theme);
-         when 7 =>
+         when 6 =>
             return To_String (Model.Settings_Draft_Value.Icon_Theme_Name);
-         when 8 =>
+         when 7 =>
             return To_String (Model.Settings_Draft_Value.Filetype_Extension);
-         when 9 =>
+         when 8 =>
             return To_String (Model.Settings_Draft_Value.Filetype_Value);
-         when 10 =>
+         when 9 =>
             return To_String (Model.Settings_Draft_Value.Icon_Filetype);
-         when 11 =>
+         when 10 =>
             return To_String (Model.Settings_Draft_Value.Icon_Value);
-         when 12 =>
+         when 11 =>
             return To_String (Model.Settings_Draft_Value.Open_Action_Token);
-         when 13 =>
+         when 12 =>
             return To_String (Model.Settings_Draft_Value.Open_Action_Command);
          when others =>
             return "";
@@ -1707,16 +1801,14 @@ package body Files.Model is
          when 2 =>
             Model.Settings_Draft_Value.Show_Hidden_Files := To_Unbounded_String (Text);
          when 3 =>
-            Model.Settings_Draft_Value.Sort_Directories_First := To_Unbounded_String (Text);
-         when 4 =>
             Model.Settings_Draft_Value.Sort_Field_Value := To_Unbounded_String (Text);
-         when 5 =>
+         when 4 =>
             Model.Settings_Draft_Value.Sort_Ascending := To_Unbounded_String (Text);
-         when 6 =>
+         when 5 =>
             Model.Settings_Draft_Value.High_Contrast_Theme := To_Unbounded_String (Text);
-         when 7 =>
+         when 6 =>
             Model.Settings_Draft_Value.Icon_Theme_Name := To_Unbounded_String (Text);
-         when 8 =>
+         when 7 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Filetype_Keys,
                   Model.Settings_Draft_Value.Filetype_Index,
@@ -1726,7 +1818,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 9 =>
+         when 8 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Filetype_Values,
                   Model.Settings_Draft_Value.Filetype_Index,
@@ -1736,7 +1828,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 10 =>
+         when 9 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Icon_Keys,
                   Model.Settings_Draft_Value.Icon_Index,
@@ -1746,7 +1838,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 11 =>
+         when 10 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Icon_Values,
                   Model.Settings_Draft_Value.Icon_Index,
@@ -1756,7 +1848,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 12 =>
+         when 11 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Open_Action_Keys,
                   Model.Settings_Draft_Value.Open_Action_Index,
@@ -1766,7 +1858,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 13 =>
+         when 12 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Open_Action_Commands,
                   Model.Settings_Draft_Value.Open_Action_Index,
