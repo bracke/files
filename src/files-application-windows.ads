@@ -11,7 +11,6 @@ package Files.Application.Windows is
    type Desktop_Capabilities is record
       Display_Available       : Boolean := False;
       Vulkan_Available        : Boolean := False;
-      Native_File_Dialogs     : Boolean := False;
       Headless_Rendering      : Boolean := True;
       Live_Window_Smoke_Ready : Boolean := False;
       Event_Translation_Model : Boolean := True;
@@ -27,33 +26,12 @@ package Files.Application.Windows is
    type Native_Drag_Automation_Profile is record
       Portable_GLFW_Automation        : Boolean := False;
       Native_Drop_Callbacks           : Boolean := True;
-      Requires_OS_Event_Source        : Boolean := True;
-      X11_Xdnd_Required               : Boolean := True;
-      Wayland_Source_Protocol_Required : Boolean := True;
-      Windows_Native_Injection_Required : Boolean := True;
-      Macos_Native_Injection_Required : Boolean := True;
+      Event_Source_Backend            : Boolean := True;
+      Queued_Drop_Imports             : Boolean := True;
+      Requires_OS_Event_Source        : Boolean := False;
+      Uses_Shell                      : Boolean := False;
+      Max_Paths                       : Positive := 256;
       Binding_Unit                    : UString;
-   end record;
-
-   type Native_File_Dialog_Mode is
-     (Open_File_Dialog,
-      Save_File_Dialog);
-
-   type Native_File_Dialog_Request is record
-      Mode               : Native_File_Dialog_Mode := Open_File_Dialog;
-      Title_Key          : UString;
-      Initial_Path       : UString;
-      Suggested_Name     : UString;
-      Required_Extension : UString;
-   end record;
-
-   type Native_File_Dialog_Result is record
-      Supported     : Boolean := False;
-      Attempted     : Boolean := False;
-      Completed     : Boolean := False;
-      Selected_Path : UString;
-      Backend_Name  : UString;
-      Error_Key     : UString;
    end record;
 
    type Live_Smoke_Plan is record
@@ -85,6 +63,20 @@ package Files.Application.Windows is
       Error_Key          : UString;
    end record;
 
+   type Headless_Render_Quality_Result is record
+      Window_Count        : Natural := 0;
+      Frame_Count         : Natural := 0;
+      Nonblank_Frames     : Natural := 0;
+      Text_Glyph_Frames   : Natural := 0;
+      Icon_Frames         : Natural := 0;
+      Toolbar_Icon_Frames : Natural := 0;
+      Drag_Preview_Frames : Natural := 0;
+      Missing_Glyph_Count : Natural := 0;
+      Failed_Frames       : Natural := 0;
+      Passed              : Boolean := False;
+      Error_Key           : UString;
+   end record;
+
    --  Create one GLFW window for each startup window and run until all close.
    --
    --  If GLFW cannot initialize or a native window cannot be created, this
@@ -101,6 +93,18 @@ package Files.Application.Windows is
    function Headless_Smoke_Test
      (Startup : Startup_Result)
       return Boolean;
+
+   --  Validate render quality gates without opening native windows.
+   --
+   --  @param Startup Startup result containing window models to validate.
+   --  @param Width Framebuffer width used for frame construction.
+   --  @param Height Framebuffer height used for frame construction.
+   --  @return Structured headless render-quality counters.
+   function Headless_Render_Quality_Report
+     (Startup : Startup_Result;
+      Width   : Natural := 1024;
+      Height  : Natural := 768)
+      return Headless_Render_Quality_Result;
 
    --  Return whether a live desktop display appears available.
    --
@@ -126,14 +130,6 @@ package Files.Application.Windows is
    --  @return Structured native drag automation capability and blocker metadata.
    function Native_Drag_Automation_Profile_Of_Current_Runtime
       return Native_Drag_Automation_Profile;
-
-   --  Return whether a controller result should continue through runtime settings-path handling.
-   --
-   --  @param Result Controller result produced by pure command routing.
-   --  @return True when runtime should provide settings path or native dialog behavior.
-   function Runtime_Should_Resolve_Settings_Path
-     (Result : Files.Controller.Controller_Result)
-      return Boolean;
 
    --  Accumulate a fractional scroll offset into whole scroll lines.
    --
@@ -176,87 +172,6 @@ package Files.Application.Windows is
       Source : Glfw.Size;
       Target : Glfw.Size)
       return Natural;
-
-   --  Return whether native file dialogs are available in this build/runtime.
-   --
-   --  @return True when the desktop backend can open OS file dialogs.
-   function Native_File_Dialogs_Available return Boolean;
-
-   --  Return whether a native file dialog mode is available in this build/runtime.
-   --
-   --  @param Mode Dialog mode to check.
-   --  @return True when the desktop backend can open that dialog mode.
-   function Native_File_Dialog_Mode_Available
-     (Mode : Native_File_Dialog_Mode)
-      return Boolean;
-
-   --  Evaluate native file dialog support without opening a native dialog.
-   --
-   --  @param Request Dialog request to evaluate.
-   --  @return Structured support result for tests and command preflight.
-   function Evaluate_Native_File_Dialog
-     (Request : Native_File_Dialog_Request)
-      return Native_File_Dialog_Result;
-
-   --  Open a native file dialog when supported.
-   --
-   --  The first implementation is conservative and returns a localized
-   --  unavailable result when no native backend is linked.
-   --
-   --  @param Request Dialog request to execute.
-   --  @return Structured dialog result.
-   function Open_Native_File_Dialog
-     (Request : Native_File_Dialog_Request)
-      return Native_File_Dialog_Result;
-
-   --  Build the native open-file dialog request for settings import.
-   --
-   --  @param Settings_Path Current central settings file path.
-   --  @return Dialog request using the settings path as initial location.
-   function Settings_Import_Dialog_Request
-     (Settings_Path : String)
-      return Native_File_Dialog_Request;
-
-   --  Build the native save-file dialog request for settings export.
-   --
-   --  @param Settings_Path Current central settings file path.
-   --  @return Dialog request using the settings path as initial location.
-   function Settings_Export_Dialog_Request
-     (Settings_Path : String)
-      return Native_File_Dialog_Request;
-
-   --  Resolve the settings path after a native dialog attempt.
-   --
-   --  @param Configured_Path Existing central settings file path.
-   --  @param Dialog_Result Native dialog result to apply.
-   --  @return Selected dialog path when completed, otherwise Configured_Path.
-   function Settings_Path_After_Dialog
-     (Configured_Path : String;
-      Dialog_Result   : Native_File_Dialog_Result)
-      return UString;
-
-   --  Resolve the settings path after a native dialog attempt and request policy.
-   --
-   --  Save dialogs append Required_Extension when the selected path has no
-   --  matching extension. Open dialogs leave the selected path unchanged.
-   --
-   --  @param Configured_Path Existing central settings file path.
-   --  @param Request Native dialog request that produced Dialog_Result.
-   --  @param Dialog_Result Native dialog result to apply.
-   --  @return Selected dialog path when completed, otherwise Configured_Path.
-   function Settings_Path_After_Dialog
-     (Configured_Path : String;
-      Request         : Native_File_Dialog_Request;
-      Dialog_Result   : Native_File_Dialog_Result)
-      return UString;
-
-   --  Return whether a native dialog result selected a usable path.
-   --
-   --  @param Dialog_Result Native dialog result to inspect.
-   --  @return True only when the dialog completed with a non-empty path.
-   function Settings_Path_Selected
-     (Dialog_Result : Native_File_Dialog_Result)
-      return Boolean;
 
    --  Return the live-window smoke-test plan for the current environment.
    --

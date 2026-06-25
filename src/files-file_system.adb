@@ -216,6 +216,329 @@ package body Files.File_System is
       return Files.Types.To_Lower (Safe_Environment_Value (Name)) = Expected;
    end Environment_Equals;
 
+   function Image_No_Space (Value : Natural) return String is
+      Image : constant String := Natural'Image (Value);
+   begin
+      return Image (Image'First + 1 .. Image'Last);
+   end Image_No_Space;
+
+   function Thumbnail_Extension
+     (Source_Path : String)
+      return String
+   is
+      Name : constant String := Ada.Directories.Simple_Name (Source_Path);
+   begin
+      for Index in reverse Name'Range loop
+         if Name (Index) = '.' and then Index < Name'Last then
+            return Files.Types.To_Lower (Name (Index + 1 .. Name'Last));
+         end if;
+      end loop;
+
+      return "file";
+   exception
+      when others =>
+         return "file";
+   end Thumbnail_Extension;
+
+   function Sanitized_Thumbnail_Extension
+     (Source_Path : String)
+      return String
+   is
+      Extension : constant String := Thumbnail_Extension (Source_Path);
+      Result    : Unbounded_String;
+   begin
+      for Value of Extension loop
+         if Ada.Characters.Handling.Is_Alphanumeric (Value) then
+            Append (Result, Value);
+         else
+            Append (Result, '_');
+         end if;
+      end loop;
+
+      if Length (Result) = 0 then
+         return "file";
+      end if;
+
+      return To_String (Result);
+   end Sanitized_Thumbnail_Extension;
+
+   function Thumbnail_Path_Checksum
+     (Source_Path : String)
+      return Natural
+   is
+      Modulus : constant Long_Long_Integer := 1_000_000_007;
+      Result  : Long_Long_Integer := 0;
+   begin
+      for Value of Source_Path loop
+         Result := (Result * 33 + Long_Long_Integer (Character'Pos (Value))) mod Modulus;
+      end loop;
+
+      return Natural (Result);
+   end Thumbnail_Path_Checksum;
+
+   function Default_Thumbnail_Cache_Directory
+     (Fallback_Directory : String)
+      return String
+   is
+      Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
+      Home      : constant String := Safe_Environment_Value ("HOME");
+   begin
+      if Xdg_Cache /= "" then
+         return Join_Path (Join_Path (Xdg_Cache, "files"), "thumbnails");
+      elsif Home /= "" then
+         return Join_Path (Join_Path (Join_Path (Home, ".cache"), "files"), "thumbnails");
+      else
+         return Join_Path (Fallback_Directory, ".files-thumbnails");
+      end if;
+   end Default_Thumbnail_Cache_Directory;
+
+   function Thumbnail_Path_For
+     (Source_Path      : String;
+      Cache_Directory : String;
+      Size            : Positive := 64)
+      return String is
+   begin
+      return
+        Join_Path
+          (Cache_Directory,
+           "thumb_"
+           & Sanitized_Thumbnail_Extension (Source_Path)
+           & "_"
+           & Image_No_Space (Size)
+           & "_"
+           & Image_No_Space (Thumbnail_Path_Checksum (Source_Path))
+           & ".ppm");
+   end Thumbnail_Path_For;
+
+   type Cached_Thumbnail is record
+      Loaded : Boolean := False;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+      Pixels : Files.Types.Byte_Vectors.Vector;
+   end record;
+
+   function Load_Cached_Thumbnail
+     (Path : String)
+      return Cached_Thumbnail
+   is
+      File    : Ada.Text_IO.File_Type;
+      Content : Unbounded_String;
+      Token   : Unbounded_String;
+      Cursor  : Positive := 1;
+      Result  : Cached_Thumbnail;
+
+      procedure Flush_Token
+        (Tokens : in out Files.Types.String_Vectors.Vector)
+      is
+      begin
+         if Length (Token) > 0 then
+            Tokens.Append (Token);
+            Token := Null_Unbounded_String;
+         end if;
+      end Flush_Token;
+
+      function Tokens return Files.Types.String_Vectors.Vector is
+         Values     : Files.Types.String_Vectors.Vector;
+         In_Comment : Boolean := False;
+      begin
+         for Value of To_String (Content) loop
+            if In_Comment then
+               if Value = ASCII.LF or else Value = ASCII.CR then
+                  In_Comment := False;
+               end if;
+            elsif Value = '#' then
+               Flush_Token (Values);
+               In_Comment := True;
+            elsif Value = ' ' or else Value = ASCII.HT or else Value = ASCII.LF or else Value = ASCII.CR then
+               Flush_Token (Values);
+            else
+               Append (Token, Value);
+            end if;
+         end loop;
+
+         Flush_Token (Values);
+         return Values;
+      end Tokens;
+
+      function Natural_Value
+        (Text : String;
+         Value : out Natural)
+         return Boolean
+      is
+      begin
+         Value := 0;
+         if Text = "" then
+            return False;
+         end if;
+
+         for Character_Value of Text loop
+            if Character_Value not in '0' .. '9'
+              or else Value > (Natural'Last - Character'Pos (Character_Value) + Character'Pos ('0')) / 10
+            then
+               return False;
+            end if;
+            Value := Value * 10 + Character'Pos (Character_Value) - Character'Pos ('0');
+         end loop;
+
+         return True;
+      end Natural_Value;
+
+      function Channel
+        (Value     : Natural;
+         Max_Value : Natural)
+         return Interfaces.Unsigned_8 is
+      begin
+         if Max_Value = 0 then
+            return 0;
+         elsif Max_Value = 255 then
+            return Interfaces.Unsigned_8 (Natural'Min (Value, 255));
+         else
+            return Interfaces.Unsigned_8 (Natural'Min ((Value * 255) / Max_Value, 255));
+         end if;
+      end Channel;
+   begin
+      if Path = ""
+        or else not Ada.Directories.Exists (Path)
+        or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
+      then
+         return Result;
+      end if;
+
+      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      while not Ada.Text_IO.End_Of_File (File) loop
+         declare
+            Line : constant String := Ada.Text_IO.Get_Line (File);
+         begin
+            Append (Content, Line);
+            Append (Content, ASCII.LF);
+         end;
+      end loop;
+      Ada.Text_IO.Close (File);
+
+      declare
+         Values    : constant Files.Types.String_Vectors.Vector := Tokens;
+         Width     : Natural;
+         Height    : Natural;
+         Max_Value : Natural;
+      begin
+         if Natural (Values.Length) < 4
+           or else To_String (Values.Element (1)) /= "P3"
+           or else not Natural_Value (To_String (Values.Element (2)), Width)
+           or else not Natural_Value (To_String (Values.Element (3)), Height)
+           or else not Natural_Value (To_String (Values.Element (4)), Max_Value)
+           or else Width = 0
+           or else Height = 0
+           or else Max_Value = 0
+           or else Natural (Values.Length) < 4 + Width * Height * 3
+         then
+            return Result;
+         end if;
+
+         Cursor := 5;
+         for Pixel in 1 .. Width * Height loop
+            declare
+               R : Natural;
+               G : Natural;
+               B : Natural;
+            begin
+               if not Natural_Value (To_String (Values.Element (Cursor)), R)
+                 or else not Natural_Value (To_String (Values.Element (Cursor + 1)), G)
+                 or else not Natural_Value (To_String (Values.Element (Cursor + 2)), B)
+               then
+                  return Result;
+               end if;
+
+               Result.Pixels.Append (Channel (R, Max_Value));
+               Result.Pixels.Append (Channel (G, Max_Value));
+               Result.Pixels.Append (Channel (B, Max_Value));
+               Result.Pixels.Append (255);
+               Cursor := Cursor + 3;
+            end;
+         end loop;
+
+         Result.Loaded := True;
+         Result.Width := Width;
+         Result.Height := Height;
+         return Result;
+      end;
+   exception
+      when others =>
+         if Ada.Text_IO.Is_Open (File) then
+            Ada.Text_IO.Close (File);
+         end if;
+         return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
+   end Load_Cached_Thumbnail;
+
+   function Starts_With
+     (Value  : String;
+      Prefix : String)
+      return Boolean is
+   begin
+      return Value'Length >= Prefix'Length
+        and then Value (Value'First .. Value'First + Prefix'Length - 1) = Prefix;
+   end Starts_With;
+
+   function Should_Auto_Generate_Thumbnail
+     (Kind     : Files.Types.Item_Kind;
+      Filetype : String;
+      Name     : String;
+      Icon_Id  : String)
+      return Boolean
+   is
+      Extension : constant String := Files.File_Types.Extension_Of (Name);
+   begin
+      if Kind = Files.Types.Directory_Item
+        or else Kind = Files.Types.Symlink_Item
+      then
+         return False;
+      end if;
+
+      return Starts_With (Files.Types.To_Lower (Filetype), "image/")
+        or else Files.Types.To_Lower (Icon_Id) = "image"
+        or else Extension = "png"
+        or else Extension = "jpg"
+        or else Extension = "jpeg"
+        or else Extension = "gif"
+        or else Extension = "bmp"
+        or else Extension = "webp"
+        or else Extension = "tif"
+        or else Extension = "tiff"
+        or else Extension = "ppm";
+   end Should_Auto_Generate_Thumbnail;
+
+   function Thumbnail_For_Item
+     (Full_Path       : String;
+      Kind            : Files.Types.Item_Kind;
+      Filetype        : String;
+      Name            : String;
+      Icon_Id         : String;
+      Cache_Directory : String;
+      Thumbnail_Path  : String)
+      return Cached_Thumbnail
+   is
+      Loaded : Cached_Thumbnail := Load_Cached_Thumbnail (Thumbnail_Path);
+   begin
+      if Loaded.Loaded
+        or else not Should_Auto_Generate_Thumbnail (Kind, Filetype, Name, Icon_Id)
+      then
+         return Loaded;
+      end if;
+
+      declare
+         Generated : constant Thumbnail_Result :=
+           Generate_Thumbnail (Full_Path, Cache_Directory);
+      begin
+         if Generated.Status = Thumbnail_Generated then
+            Loaded := Load_Cached_Thumbnail (To_String (Generated.Thumbnail_Path));
+         end if;
+      end;
+
+      return Loaded;
+   exception
+      when others =>
+         return Loaded;
+   end Thumbnail_For_Item;
+
    type U16_Array is array (Positive range <>) of C_U16
      with Convention => C;
 
@@ -1214,14 +1537,27 @@ package body Files.File_System is
                   Full     : constant String := Ada.Directories.Full_Name (Dir_Entry);
                   Kind     : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
                   Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
+                  Icon_Id  : constant String := Files.File_Types.Icon_Id_For (Settings, Kind, Filetype);
+                  Thumbnail_Cache : constant String :=
+                    Default_Thumbnail_Cache_Directory (To_String (Normalized_Path));
+                  Thumbnail_Path : constant String :=
+                    Thumbnail_Path_For (Full, Thumbnail_Cache);
+                  Thumbnail : constant Cached_Thumbnail :=
+                    Thumbnail_For_Item
+                      (Full_Path       => Full,
+                       Kind            => Kind,
+                       Filetype        => Filetype,
+                       Name            => Name,
+                       Icon_Id         => Icon_Id,
+                       Cache_Directory => Thumbnail_Cache,
+                       Thumbnail_Path  => Thumbnail_Path);
                   Item     : Directory_Item :=
                     (Name               => To_Unbounded_String (Name),
                      Full_Path          => To_Unbounded_String (Full),
                      Parent_Path        => Normalized_Path,
                      Kind               => Kind,
                      Filetype           => To_Unbounded_String (Filetype),
-                     Icon_Id            =>
-                       To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),
+                     Icon_Id            => To_Unbounded_String (Icon_Id),
                      Size_Available     => False,
                      Size               => 0,
                      Creation_Available => False,
@@ -1230,6 +1566,11 @@ package body Files.File_System is
                      Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
                      Permissions        => Null_Unbounded_String,
                      Filetype_Extra     => Null_Unbounded_String,
+                     Thumbnail_Available => False,
+                     Thumbnail_Path      => Null_Unbounded_String,
+                     Thumbnail_Width     => 0,
+                     Thumbnail_Height    => 0,
+                     Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
                      Metadata_Error     => False,
                      Error_Key          => Null_Unbounded_String);
                begin
@@ -1242,6 +1583,13 @@ package body Files.File_System is
                      if Kind /= Files.Types.Directory_Item then
                         Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
                         Item.Size_Available := True;
+                        if Thumbnail.Loaded then
+                           Item.Thumbnail_Available := True;
+                           Item.Thumbnail_Path := To_Unbounded_String (Thumbnail_Path);
+                           Item.Thumbnail_Width := Thumbnail.Width;
+                           Item.Thumbnail_Height := Thumbnail.Height;
+                           Item.Thumbnail_Pixels := Thumbnail.Pixels;
+                        end if;
                      end if;
                      Item.Creation_Time := Creation_Time_For (Full, Item.Creation_Available);
                      Item.Modified_Time := Ada.Directories.Modification_Time (Full);
@@ -1367,8 +1715,27 @@ package body Files.File_System is
         (Path                  => To_Unbounded_String (Path),
          Exists                => False,
          Entry_Count           => 0,
+         Entry_State_Checksum  => 0,
          Latest_Modified       => Ada.Calendar.Time_Of (1901, 1, 1),
          Latest_Modified_Known => False);
+
+      function Entry_Checksum
+        (Name : String;
+         Kind : Ada.Directories.File_Kind;
+         Size : Long_Long_Integer)
+         return Natural
+      is
+         Modulus : constant Long_Long_Integer := 1_000_000_007;
+         Value   : Long_Long_Integer := Long_Long_Integer (Ada.Directories.File_Kind'Pos (Kind) + 1);
+      begin
+         for Character_Value of Name loop
+            Value :=
+              (Value * 131 + Long_Long_Integer (Character'Pos (Character_Value))) mod Modulus;
+         end loop;
+
+         Value := (Value * 131 + Long_Long_Integer'Max (0, Size)) mod Modulus;
+         return Natural (Value);
+      end Entry_Checksum;
    begin
       if not Ada.Directories.Exists (Path)
         or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
@@ -1395,21 +1762,48 @@ package body Files.File_System is
          begin
             if Name /= "." and then Name /= ".." then
                Result.Entry_Count := Result.Entry_Count + 1;
+               declare
+                  Full     : constant String := Ada.Directories.Full_Name (Dir_Entry);
+                  Kind     : Ada.Directories.File_Kind := Ada.Directories.Special_File;
+                  Size     : Long_Long_Integer := 0;
+                  Modified : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
                begin
-                  declare
-                     Modified : constant Ada.Calendar.Time :=
-                       Ada.Directories.Modification_Time (Ada.Directories.Full_Name (Dir_Entry));
                   begin
+                     Kind := Ada.Directories.Kind (Dir_Entry);
+                  exception
+                     when others =>
+                        null;
+                  end;
+
+                  if Kind = Ada.Directories.Ordinary_File then
+                     begin
+                        Size := Long_Long_Integer (Ada.Directories.Size (Full));
+                     exception
+                        when others =>
+                           Size := 0;
+                     end;
+                  end if;
+
+                  Result.Entry_State_Checksum :=
+                    (Result.Entry_State_Checksum + Entry_Checksum (Name, Kind, Size)) mod 1_000_000_007;
+
+                  begin
+                     Modified := Ada.Directories.Modification_Time (Full);
                      if not Result.Latest_Modified_Known
                        or else Modified > Result.Latest_Modified
                      then
                         Result.Latest_Modified := Modified;
                         Result.Latest_Modified_Known := True;
                      end if;
+                  exception
+                     when others =>
+                        null;
                   end;
                exception
                   when others =>
-                     null;
+                     Result.Entry_State_Checksum :=
+                       (Result.Entry_State_Checksum
+                        + Entry_Checksum (Name, Ada.Directories.Special_File, 0)) mod 1_000_000_007;
                end;
             end if;
          end;
@@ -1432,6 +1826,7 @@ package body Files.File_System is
       Changed     : constant Boolean :=
         Before_State.Exists /= After_State.Exists
         or else Before_State.Entry_Count /= After_State.Entry_Count
+        or else Before_State.Entry_State_Checksum /= After_State.Entry_State_Checksum
         or else Before_State.Latest_Modified_Known /= After_State.Latest_Modified_Known
         or else
           (Before_State.Latest_Modified_Known
@@ -2525,6 +2920,11 @@ package body Files.File_System is
          Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
          Permissions        => Null_Unbounded_String,
          Filetype_Extra     => Null_Unbounded_String,
+         Thumbnail_Available => False,
+         Thumbnail_Path      => Null_Unbounded_String,
+         Thumbnail_Width     => 0,
+         Thumbnail_Height    => 0,
+         Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
          Metadata_Error     => False,
          Error_Key          => Null_Unbounded_String);
    end Make_Item;
@@ -2553,6 +2953,11 @@ package body Files.File_System is
          Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
          Permissions        => Null_Unbounded_String,
          Filetype_Extra     => Null_Unbounded_String,
+         Thumbnail_Available => False,
+         Thumbnail_Path      => Null_Unbounded_String,
+         Thumbnail_Width     => 0,
+         Thumbnail_Height    => 0,
+         Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
          Metadata_Error     => False,
          Error_Key          => Null_Unbounded_String);
    end Make_Item;
@@ -3533,55 +3938,6 @@ package body Files.File_System is
    is
       File : Ada.Text_IO.File_Type;
 
-      function Image_No_Space (Value : Natural) return String is
-         Image : constant String := Natural'Image (Value);
-      begin
-         return Image (Image'First + 1 .. Image'Last);
-      end Image_No_Space;
-
-      function Safe_Extension return String is
-         Name : constant String := Ada.Directories.Simple_Name (Source_Path);
-      begin
-         for Index in reverse Name'Range loop
-            if Name (Index) = '.' and then Index < Name'Last then
-               return Files.Types.To_Lower (Name (Index + 1 .. Name'Last));
-            end if;
-         end loop;
-         return "file";
-      exception
-         when others =>
-            return "file";
-      end Safe_Extension;
-
-      function Sanitized_Extension return String is
-         Extension : constant String := Safe_Extension;
-         Result    : Unbounded_String;
-      begin
-         for Value of Extension loop
-            if Ada.Characters.Handling.Is_Alphanumeric (Value) then
-               Append (Result, Value);
-            else
-               Append (Result, '_');
-            end if;
-         end loop;
-
-         if Length (Result) = 0 then
-            return "file";
-         end if;
-
-         return To_String (Result);
-      end Sanitized_Extension;
-
-      function Path_Checksum return Natural is
-         Modulus : constant Long_Long_Integer := 1_000_000_007;
-         Result  : Long_Long_Integer := 0;
-      begin
-         for Value of Source_Path loop
-            Result := (Result * 33 + Long_Long_Integer (Character'Pos (Value))) mod Modulus;
-         end loop;
-         return Natural (Result);
-      end Path_Checksum;
-
       function Clamp_Channel (Value : Natural) return Natural is
       begin
          return Value mod 256;
@@ -3594,17 +3950,6 @@ package body Files.File_System is
          when others =>
             return 0;
       end File_Size_Signal;
-
-      function Thumbnail_Name return String is
-      begin
-         return "thumb_"
-           & Sanitized_Extension
-           & "_"
-           & Image_No_Space (Size)
-           & "_"
-           & Image_No_Space (Path_Checksum)
-           & ".ppm";
-      end Thumbnail_Name;
 
       type Rgb_Pixel is record
          Red   : Natural := 0;
@@ -4150,7 +4495,7 @@ package body Files.File_System is
       end if;
 
       Ada.Directories.Create_Path (Cache_Directory);
-      Target := To_Unbounded_String (Join_Path (Cache_Directory, Thumbnail_Name));
+      Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
       if Try_Write_Decoded_Png_Thumbnail (To_String (Target))
         or else Try_Write_Decoded_P3_Thumbnail (To_String (Target))
         or else Try_Write_Gdk_Pixbuf_Thumbnail (To_String (Target))
@@ -4164,7 +4509,7 @@ package body Files.File_System is
             Error_Key      => Null_Unbounded_String);
       end if;
 
-      Checksum := Path_Checksum;
+      Checksum := Thumbnail_Path_Checksum (Source_Path);
       Size_Bias := File_Size_Signal;
 
       Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, To_String (Target));

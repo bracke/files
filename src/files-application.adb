@@ -368,6 +368,35 @@ package body Files.Application is
          return To_String (Report);
       end if;
 
+      declare
+         Quality : constant Files.Application.Windows.Headless_Render_Quality_Result :=
+           Files.Application.Windows.Headless_Render_Quality_Report
+             (Result,
+              Width  => Width,
+              Height => Height);
+      begin
+         Append_Line
+           ((if Quality.Passed
+             then Files.Localization.Text ("runtime.smoke.ready", Locale)
+             else Files.Localization.Text ("runtime.smoke.text_failed", Locale))
+            & "  "
+            & Files.Localization.Text ("runtime.smoke.frames_attempted", Locale)
+            & ": "
+            & Natural_Text (Quality.Frame_Count)
+            & "  "
+            & Files.Localization.Text ("runtime.smoke.frames_presented", Locale)
+            & ": "
+            & Natural_Text (Quality.Nonblank_Frames)
+            & "  "
+            & Files.Localization.Text ("runtime.smoke.glyphs", Locale)
+            & ": "
+            & Natural_Text (Quality.Text_Glyph_Frames)
+            & "  "
+            & Files.Localization.Text ("runtime.smoke.missing_glyphs", Locale)
+            & ": "
+            & Natural_Text (Quality.Missing_Glyph_Count));
+      end;
+
       for Window of Result.Windows loop
          declare
             Snapshot      : constant Files.Rendering.View_Snapshot :=

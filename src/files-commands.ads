@@ -37,8 +37,6 @@ package Files.Commands is
       Select_All_Command,
       Search_Recursive_Command,
       Refresh_Directory_Command,
-      Import_Settings_Command,
-      Export_Settings_Command,
       Save_Settings_Command,
       Reset_Settings_Command);
 

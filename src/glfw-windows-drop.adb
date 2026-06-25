@@ -25,4 +25,11 @@ package body Glfw.Windows.Drop is
    begin
       return Raw_Get_Window_User_Pointer (Window);
    end User_Pointer;
+
+   function Raw_Handle
+     (Window : not null access Glfw.Windows.Window)
+      return System.Address is
+   begin
+      return Window.Handle;
+   end Raw_Handle;
 end Glfw.Windows.Drop;

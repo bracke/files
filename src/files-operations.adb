@@ -978,24 +978,17 @@ package body Files.Operations is
    end Delete_Selected_Permanently;
 
    function Generate_Selected_Thumbnails
-     (Model : in out Files.Model.Window_Model)
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is
       Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       First_Path : Unbounded_String;
+      First_Name : Unbounded_String;
 
       function Cache_Directory return String is
-         Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
-         Home      : constant String := Safe_Environment_Value ("HOME");
       begin
-         if Xdg_Cache /= "" then
-            return Files.File_System.Join_Path (Files.File_System.Join_Path (Xdg_Cache, "files"), "thumbnails");
-         elsif Home /= "" then
-            return Files.File_System.Join_Path
-              (Files.File_System.Join_Path (Files.File_System.Join_Path (Home, ".cache"), "files"), "thumbnails");
-         else
-            return Files.File_System.Join_Path (Files.Model.Current_Path (Model), ".files-thumbnails");
-         end if;
+         return Files.File_System.Default_Thumbnail_Cache_Directory (Files.Model.Current_Path (Model));
       end Cache_Directory;
    begin
       if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
@@ -1013,11 +1006,19 @@ package body Files.Operations is
                  (Operation_Failed, To_String (Thumbnail.Error_Key), To_String (Item.Full_Path));
             elsif Length (First_Path) = 0 then
                First_Path := Thumbnail.Thumbnail_Path;
+               First_Name := Item.Name;
             end if;
          end;
       end loop;
 
       Files.Model.Set_Error (Model, "");
+      declare
+         Reload : constant Operation_Result :=
+           Reload_Current_Directory (Model, Settings, Select_Name => To_String (First_Name));
+         pragma Unreferenced (Reload);
+      begin
+         null;
+      end;
       return Make_Result (Operation_Success, Path => To_String (First_Path));
    end Generate_Selected_Thumbnails;
 
@@ -1062,6 +1063,49 @@ package body Files.Operations is
          return Make_Result (Operation_Success, Path => First_Path);
       end;
    end Import_Dropped_Paths;
+
+   function Import_Dropped_Paths_To
+     (Model                 : in out Files.Model.Window_Model;
+      Settings              : Files.Settings.Settings_Model;
+      Source_Paths          : Files.Types.String_Vectors.Vector;
+      Destination_Directory : String;
+      Mode                  : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result
+   is
+      Plans : Files.File_System.Drop_Import_Result;
+   begin
+      if Source_Paths.Is_Empty then
+         return Disabled (Model, "error.drop.invalid_source");
+      end if;
+
+      Plans := Files.File_System.Plan_Drop_Import (Source_Paths, Destination_Directory, Mode);
+      if not Plans.Success then
+         Files.Model.Set_Error (Model, To_String (Plans.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Plans.Error_Key), Destination_Directory);
+      end if;
+
+      declare
+         Mutation : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Execute_Drop_Import (Plans.Plans);
+      begin
+         if not Mutation.Success then
+            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Destination_Directory);
+         end if;
+      end;
+
+      declare
+         First_Path : constant String :=
+           (if Plans.Plans.Is_Empty then "" else To_String (Plans.Plans.First_Element.Destination_Path));
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+
+         return Make_Result (Operation_Success, Path => First_Path);
+      end;
+   end Import_Dropped_Paths_To;
 
    function Commit_Create_File
      (Model    : in out Files.Model.Window_Model;

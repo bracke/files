@@ -16,14 +16,15 @@ with Glfw.Input.Keys;
 with Glfw.Windows;
 with Glfw.Windows.Drop;
 with Glfw.Windows.Hints;
+with Glfw.Windows.Icon;
 with Glfw.Windows.Vulkan;
 
 with Files.Command_Palette;
 with Files.Commands;
+with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.Operations;
-with Files.Platform.Dialogs;
 with Files.Rendering;
 with Files.Settings;
 with Files.Types;
@@ -37,9 +38,9 @@ package body Files.Application.Windows is
    use type Glfw.Size;
    use type Files.Controller.Controller_Status;
    use type Files.Events.Input_Action_Kind;
-   use type Files.File_System.Native_API_Binding_Status;
    use type Files.Commands.Command_Id;
    use type Files.Operations.Operation_Status;
+   use type Files.Types.Item_Kind;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Rendering.Vulkan.Vulkan_Status;
    use type Interfaces.C.long;
@@ -52,7 +53,14 @@ package body Files.Application.Windows is
       Pending_Scroll : Integer := 0;
       Pending_Scroll_Remainder : Long_Float := 0.0;
       Pending_Left_Clicks : Natural := 0;
-      Pending_Drops : Files.Types.String_Vectors.Vector;
+      Pending_Left_Releases : Natural := 0;
+      Last_Mouse_X : Glfw.Input.Mouse.Coordinate := 0.0;
+      Last_Mouse_Y : Glfw.Input.Mouse.Coordinate := 0.0;
+      Drag_Start_X : Glfw.Input.Mouse.Coordinate := 0.0;
+      Drag_Start_Y : Glfw.Input.Mouse.Coordinate := 0.0;
+      Left_Mouse_Down : Boolean := False;
+      Drag_Moved : Boolean := False;
+      Drop_Source : Files.Drop_Events.Drop_Event_Source;
    end record;
 
    overriding procedure Character_Entered
@@ -82,10 +90,19 @@ package body Files.Application.Windows is
    type C_Path_Array is array (Positive range 1 .. Max_Drop_Paths) of Interfaces.C.Strings.chars_ptr;
    pragma Convention (C, C_Path_Array);
 
-   package Desktop_Window_Pointers is new System.Address_To_Access_Conversions (Desktop_Window);
    package C_Path_Array_Pointers is new System.Address_To_Access_Conversions (C_Path_Array);
-   use type Desktop_Window_Pointers.Object_Pointer;
    use type C_Path_Array_Pointers.Object_Pointer;
+
+   type Drop_Window_Registration is record
+      Raw_Window : System.Address := System.Null_Address;
+      Target     : Window_Access := null;
+   end record;
+
+   package Drop_Window_Registration_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Drop_Window_Registration);
+
+   Registered_Drop_Windows : Drop_Window_Registration_Vectors.Vector;
 
    procedure Raw_Drop_Callback
      (Window : System.Address;
@@ -131,6 +148,7 @@ package body Files.Application.Windows is
       Settings_Path   : Unbounded_String;
       Pressed_Keys    : Pressed_Key_Map := [others => False];
       Left_Mouse_Down : Boolean := False;
+      Drag_Source_Index : Natural := 0;
       Last_Click_Item : Natural := 0;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Text            : Files.Rendering.Text_Renderer;
@@ -250,32 +268,6 @@ package body Files.Application.Windows is
       return Files.Controller.Controller_Result
    is
       Settings_Path : constant String := To_String (Runtime.Settings_Path);
-
-      function Dialog_No_Selection_Result
-        (Dialog_Result : Native_File_Dialog_Result)
-         return Files.Controller.Controller_Result
-      is
-         Error_Key : constant UString :=
-           (if Length (Dialog_Result.Error_Key) > 0 then Dialog_Result.Error_Key
-            else Null_Unbounded_String);
-      begin
-         if Length (Error_Key) > 0 then
-            Files.Model.Set_Error (Runtime.Model, To_String (Error_Key));
-            return
-              (Status    => Files.Controller.Controller_Command_Executed,
-               Command   => Command,
-               Operation =>
-                 (Status    => Files.Operations.Operation_Disabled,
-                  Error_Key => Error_Key,
-                  Path      => To_Unbounded_String (Settings_Path),
-                  others    => <>));
-         end if;
-
-         return
-           (Status    => Files.Controller.Controller_Ignored,
-            Command   => Command,
-            Operation => <>);
-      end Dialog_No_Selection_Result;
    begin
       if not Files.Commands.Is_Enabled (Command, Runtime.Model) then
          return
@@ -284,36 +276,6 @@ package body Files.Application.Windows is
       end if;
 
       case Command is
-         when Files.Commands.Import_Settings_Command =>
-            declare
-               Request       : constant Native_File_Dialog_Request :=
-                 Settings_Import_Dialog_Request (Settings_Path);
-               Dialog_Result : constant Native_File_Dialog_Result :=
-                 Open_Native_File_Dialog (Request);
-               Selected_Path : constant String :=
-                 To_String (Settings_Path_After_Dialog (Settings_Path, Request, Dialog_Result));
-            begin
-               if not Settings_Path_Selected (Dialog_Result) then
-                  return Dialog_No_Selection_Result (Dialog_Result);
-               end if;
-
-               return Files.Controller.Import_Settings (Runtime.Model, Selected_Path);
-            end;
-         when Files.Commands.Export_Settings_Command =>
-            declare
-               Request       : constant Native_File_Dialog_Request :=
-                 Settings_Export_Dialog_Request (Settings_Path);
-               Dialog_Result : constant Native_File_Dialog_Result :=
-                 Open_Native_File_Dialog (Request);
-               Selected_Path : constant String :=
-                 To_String (Settings_Path_After_Dialog (Settings_Path, Request, Dialog_Result));
-            begin
-               if not Settings_Path_Selected (Dialog_Result) then
-                  return Dialog_No_Selection_Result (Dialog_Result);
-               end if;
-
-               return Files.Controller.Export_Settings (Runtime.Model, Runtime.Settings, Selected_Path);
-            end;
          when Files.Commands.Save_Settings_Command =>
             return
               Files.Controller.Save_Settings
@@ -330,26 +292,86 @@ package body Files.Application.Windows is
       return Glfw.Windows.Window_Reference (Handle);
    end As_Window;
 
+   procedure Register_Drop_Window
+     (Raw_Window : System.Address;
+      Target     : Window_Access) is
+   begin
+      if Raw_Window = System.Null_Address or else Target = null then
+         return;
+      end if;
+
+      for Index in Registered_Drop_Windows.First_Index .. Registered_Drop_Windows.Last_Index loop
+         if Registered_Drop_Windows.Element (Index).Raw_Window = Raw_Window then
+            Registered_Drop_Windows.Replace_Element
+              (Index,
+               Drop_Window_Registration'
+                 (Raw_Window => Raw_Window,
+                  Target     => Target));
+            return;
+         end if;
+      end loop;
+
+      Registered_Drop_Windows.Append
+        (Drop_Window_Registration'
+           (Raw_Window => Raw_Window,
+            Target     => Target));
+   end Register_Drop_Window;
+
+   procedure Unregister_Drop_Window
+     (Raw_Window : System.Address) is
+   begin
+      if Raw_Window = System.Null_Address then
+         return;
+      end if;
+
+      if Registered_Drop_Windows.Is_Empty then
+         return;
+      end if;
+
+      for Index in reverse Registered_Drop_Windows.First_Index .. Registered_Drop_Windows.Last_Index loop
+         if Registered_Drop_Windows.Element (Index).Raw_Window = Raw_Window then
+            Registered_Drop_Windows.Delete (Index);
+            return;
+         end if;
+      end loop;
+   end Unregister_Drop_Window;
+
+   function Registered_Drop_Target
+     (Raw_Window : System.Address)
+      return Window_Access is
+   begin
+      if Raw_Window = System.Null_Address then
+         return null;
+      end if;
+
+      for Registration of Registered_Drop_Windows loop
+         if Registration.Raw_Window = Raw_Window then
+            return Registration.Target;
+         end if;
+      end loop;
+
+      return null;
+   end Registered_Drop_Target;
+
    procedure Raw_Drop_Callback
      (Window : System.Address;
       Count  : Interfaces.C.int;
       Paths  : System.Address)
    is
-      User : constant System.Address := Glfw.Windows.Drop.User_Pointer (Window);
+      Target : constant Window_Access := Registered_Drop_Target (Window);
    begin
-      if User = System.Null_Address or else Paths = System.Null_Address or else Count <= 0 then
+      if Target = null or else Paths = System.Null_Address or else Count <= 0 then
          return;
       end if;
 
       declare
-         Target    : constant Desktop_Window_Pointers.Object_Pointer :=
-           Desktop_Window_Pointers.To_Pointer (User);
          Raw_Paths : constant C_Path_Array_Pointers.Object_Pointer :=
            C_Path_Array_Pointers.To_Pointer (Paths);
          Last      : constant Natural :=
-           Natural'Min (Natural (Count), Max_Drop_Paths);
+           Natural'Min (Natural (Count), Files.Drop_Events.Profile.Max_Paths);
+         Drops     : Files.Types.String_Vectors.Vector;
       begin
-         if Target = null or else Raw_Paths = null then
+         if Raw_Paths = null then
             return;
          end if;
 
@@ -358,12 +380,12 @@ package body Files.Application.Windows is
                declare
                   Path : constant String := Interfaces.C.Strings.Value (Raw_Paths.all (Index));
                begin
-                  if Path'Length > 0 then
-                     Target.Pending_Drops.Append (To_Unbounded_String (Path));
-                  end if;
+                  Drops.Append (To_Unbounded_String (Path));
                end;
             end if;
          end loop;
+
+         Files.Drop_Events.Queue (Target.Drop_Source, Drops);
       end;
    end Raw_Drop_Callback;
 
@@ -427,8 +449,19 @@ package body Files.Application.Windows is
    is
       pragma Unreferenced (Mods);
    begin
-      if Button = Glfw.Input.Mouse.Left_Button and then State = Glfw.Input.Pressed then
+      if Button /= Glfw.Input.Mouse.Left_Button then
+         return;
+      end if;
+
+      if State = Glfw.Input.Pressed then
          Object.Pending_Left_Clicks := Natural'Min (Object.Pending_Left_Clicks + 1, 8);
+         Object.Left_Mouse_Down := True;
+         Object.Drag_Start_X := Object.Last_Mouse_X;
+         Object.Drag_Start_Y := Object.Last_Mouse_Y;
+         Object.Drag_Moved := False;
+      else
+         Object.Pending_Left_Releases := Natural'Min (Object.Pending_Left_Releases + 1, 8);
+         Object.Left_Mouse_Down := False;
       end if;
    end Mouse_Button_Changed;
 
@@ -437,9 +470,18 @@ package body Files.Application.Windows is
       X      : Glfw.Input.Mouse.Coordinate;
       Y      : Glfw.Input.Mouse.Coordinate)
    is
-      pragma Unreferenced (Object, X, Y);
+      Delta_X : constant Glfw.Input.Mouse.Coordinate := X - Object.Drag_Start_X;
+      Delta_Y : constant Glfw.Input.Mouse.Coordinate := Y - Object.Drag_Start_Y;
+      Drag_Threshold : constant Glfw.Input.Mouse.Coordinate := 6.0;
    begin
-      null;
+      Object.Last_Mouse_X := X;
+      Object.Last_Mouse_Y := Y;
+
+      if Object.Left_Mouse_Down
+        and then (abs Delta_X >= Drag_Threshold or else abs Delta_Y >= Drag_Threshold)
+      then
+         Object.Drag_Moved := True;
+      end if;
    end Mouse_Position_Changed;
 
    function To_Modifiers
@@ -641,7 +683,7 @@ package body Files.Application.Windows is
            Settings  => Runtime.Settings,
            Key       => To_Key_Code (Key),
            Modifiers => To_Modifiers (As_Window (Runtime.Handle)));
-      if Runtime_Should_Resolve_Settings_Path (Result) then
+      if Result.Command = Files.Commands.Save_Settings_Command then
          Result := Execute_Runtime_Command (Runtime, Result.Command);
       end if;
       pragma Unreferenced (Result);
@@ -692,14 +734,14 @@ package body Files.Application.Windows is
    is
       Result : Files.Controller.Controller_Result;
       Drops  : Files.Types.String_Vectors.Vector;
+      Mode   : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
    begin
-      if Runtime.Handle = null or else Runtime.Handle.Pending_Drops.Is_Empty then
+      if Runtime.Handle = null or else not Files.Drop_Events.Has_Pending (Runtime.Handle.Drop_Source) then
          return;
       end if;
 
-      Drops := Runtime.Handle.Pending_Drops;
-      Runtime.Handle.Pending_Drops.Clear;
-      Result := Files.Controller.Handle_Drop_Import (Runtime.Model, Runtime.Settings, Drops);
+      Files.Drop_Events.Take (Runtime.Handle.Drop_Source, Drops, Mode);
+      Result := Files.Controller.Handle_Drop_Import (Runtime.Model, Runtime.Settings, Drops, Mode);
       pragma Unreferenced (Result);
    end Handle_Drop_Input;
 
@@ -1001,6 +1043,80 @@ package body Files.Application.Windows is
       pragma Unreferenced (Result);
    end Dispatch_Click_Action;
 
+   function Current_Click_Action
+     (Runtime   : in out Runtime_Window;
+      Window_W  : Glfw.Size;
+      Window_H  : Glfw.Size;
+      Frame_W   : Glfw.Size;
+      Frame_H   : Glfw.Size;
+      Cursor_X  : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y  : Glfw.Input.Mouse.Coordinate;
+      Modifiers : Files.Types.Modifier_Set)
+      return Files.Events.Input_Action
+   is
+      X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+      Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+   begin
+      return
+        Files.Events.Translate_Click
+          (Snapshot  => Snapshot,
+           X         => X,
+           Y         => Y,
+           Width     => Natural (Frame_W),
+           Height    => Natural (Frame_H),
+           Modifiers => Modifiers);
+   end Current_Click_Action;
+
+   function Selected_File_Paths
+     (Model : Files.Model.Window_Model)
+      return Files.Types.String_Vectors.Vector
+   is
+      Items  : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      Result : Files.Types.String_Vectors.Vector;
+   begin
+      for Item of Items loop
+         Result.Append (Item.Full_Path);
+      end loop;
+
+      return Result;
+   end Selected_File_Paths;
+
+   procedure Handle_Item_Drop
+     (Runtime      : in out Runtime_Window;
+      Target_Index : Natural;
+      Modifiers    : Files.Types.Modifier_Set)
+   is
+      Sources : constant Files.Types.String_Vectors.Vector := Selected_File_Paths (Runtime.Model);
+      Mode    : constant Files.File_System.Drop_Import_Mode :=
+        (if Modifiers (Files.Types.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
+      Result  : Files.Operations.Operation_Result;
+   begin
+      if Target_Index = 0 or else Sources.Is_Empty then
+         return;
+      end if;
+
+      declare
+         Target : constant Files.File_System.Directory_Item :=
+           Files.Model.Visible_Item (Runtime.Model, Positive (Target_Index));
+      begin
+         if Target.Kind /= Files.Types.Directory_Item then
+            return;
+         end if;
+
+         Result :=
+           Files.Operations.Import_Dropped_Paths_To
+             (Model                 => Runtime.Model,
+              Settings              => Runtime.Settings,
+              Source_Paths          => Sources,
+              Destination_Directory => To_String (Target.Full_Path),
+              Mode                  => Mode);
+      end;
+
+      pragma Unreferenced (Result);
+   end Handle_Item_Drop;
+
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)
    is
@@ -1011,7 +1127,11 @@ package body Files.Application.Windows is
       Cursor_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Cursor_Y : Glfw.Input.Mouse.Coordinate := 0.0;
    begin
-      if Runtime.Handle = null or else Runtime.Handle.Pending_Left_Clicks = 0 then
+      if Runtime.Handle = null
+        or else
+          (Runtime.Handle.Pending_Left_Clicks = 0
+           and then Runtime.Handle.Pending_Left_Releases = 0)
+      then
          return;
       end if;
 
@@ -1023,20 +1143,11 @@ package body Files.Application.Windows is
          Runtime.Handle.Pending_Left_Clicks := Runtime.Handle.Pending_Left_Clicks - 1;
 
          declare
-            X         : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
-            Y         : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Snapshot  : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
             Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
             Modifiers : constant Files.Types.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
             Action    : constant Files.Events.Input_Action :=
-              Files.Events.Translate_Click
-                (Snapshot  => Snapshot,
-                 X         => X,
-                 Y         => Y,
-                 Width     => Natural (Frame_W),
-                 Height    => Natural (Frame_H),
-                 Modifiers => Modifiers);
+              Current_Click_Action
+                (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
             Activate  : constant Boolean :=
               Action.Kind = Files.Events.Item_Click_Input_Action
               and then Action.Item_Index = Runtime.Last_Click_Item
@@ -1045,8 +1156,10 @@ package body Files.Application.Windows is
             if Action.Kind = Files.Events.Item_Click_Input_Action then
                Runtime.Last_Click_Item := Action.Item_Index;
                Runtime.Last_Click_Time := Now;
+               Runtime.Drag_Source_Index := Action.Item_Index;
             else
                Runtime.Last_Click_Item := 0;
+               Runtime.Drag_Source_Index := 0;
             end if;
 
             if Activate then
@@ -1060,6 +1173,28 @@ package body Files.Application.Windows is
                Dispatch_Click_Action (Runtime, Action, Modifiers);
             end if;
          end;
+      end loop;
+
+      while Runtime.Handle.Pending_Left_Releases > 0 loop
+         Runtime.Handle.Pending_Left_Releases := Runtime.Handle.Pending_Left_Releases - 1;
+
+         if Runtime.Handle.Drag_Moved and then Runtime.Drag_Source_Index /= 0 then
+            declare
+               Modifiers : constant Files.Types.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+               Action    : constant Files.Events.Input_Action :=
+                 Current_Click_Action
+                   (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
+            begin
+               if Action.Kind = Files.Events.Item_Click_Input_Action
+                 and then Action.Item_Index /= Runtime.Drag_Source_Index
+               then
+                  Handle_Item_Drop (Runtime, Action.Item_Index, Modifiers);
+               end if;
+            end;
+         end if;
+
+         Runtime.Drag_Source_Index := 0;
+         Runtime.Handle.Drag_Moved := False;
       end loop;
    end Handle_Mouse;
 
@@ -1112,6 +1247,7 @@ package body Files.Application.Windows is
 
          if Runtime.Handle /= null then
             if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
+               Unregister_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Runtime.Handle)));
                Glfw.Windows.Destroy (As_Window (Runtime.Handle));
             end if;
 
@@ -1164,6 +1300,8 @@ package body Files.Application.Windows is
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Button);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
+      Glfw.Windows.Icon.Set_Files_Icon (As_Window (Handle));
+      Register_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Handle)), Handle);
       Glfw.Windows.Drop.Set_Drop_Callback (As_Window (Handle), Raw_Drop_Callback'Access);
       Glfw.Windows.Show (As_Window (Handle));
       Runtime_Windows.Append
@@ -1174,6 +1312,7 @@ package body Files.Application.Windows is
             Settings_Path   => Settings_Path,
             Pressed_Keys    => [others => False],
             Left_Mouse_Down => False,
+            Drag_Source_Index => 0,
             Last_Click_Item => 0,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
@@ -1202,6 +1341,7 @@ package body Files.Application.Windows is
       when others =>
          if Handle /= null then
             if Glfw.Windows.Initialized (As_Window (Handle)) then
+               Unregister_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Handle)));
                Glfw.Windows.Destroy (As_Window (Handle));
             end if;
 
@@ -1252,7 +1392,14 @@ package body Files.Application.Windows is
               Has_Hover   => Width > 0 and then Height > 0 and then Window_W > 0 and then Window_H > 0,
               Pressed_X   => Hover_X,
               Pressed_Y   => Hover_Y,
-              Has_Press   => Mouse_Down);
+              Has_Press   => Mouse_Down,
+              Drag_Item_Index => Runtime.Drag_Source_Index,
+              Drag_X      => Hover_X,
+              Drag_Y      => Hover_Y,
+              Has_Drag    =>
+                Mouse_Down
+                and then Runtime.Drag_Source_Index /= 0
+                and then Runtime.Handle.Drag_Moved);
       begin
          Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
 
@@ -1497,6 +1644,155 @@ package body Files.Application.Windows is
          return False;
    end Headless_Smoke_Test;
 
+   function Headless_Render_Quality_Report
+     (Startup : Startup_Result;
+      Width   : Natural := 1024;
+      Height  : Natural := 768)
+      return Headless_Render_Quality_Result
+   is
+      Result : Headless_Render_Quality_Result :=
+        (Window_Count => Natural (Startup.Windows.Length),
+         others       => <>);
+
+      function Has_Toolbar_Icon
+        (Frame : Files.Rendering.Frame_Commands)
+         return Boolean is
+      begin
+         for Icon of Frame.Icons loop
+            if Ada.Strings.Fixed.Index (To_String (Icon.Icon_Id), "toolbar-") = 1 then
+               return True;
+            end if;
+         end loop;
+
+         return False;
+      end Has_Toolbar_Icon;
+   begin
+      if Startup.Windows.Is_Empty then
+         Result.Error_Key := To_Unbounded_String ("runtime.smoke.no_windows");
+         return Result;
+      end if;
+
+      for Startup_Window of Startup.Windows loop
+         Result.Frame_Count := Result.Frame_Count + 1;
+
+         declare
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Startup_Window.Model, Startup.Settings);
+            Frame    : constant Files.Rendering.Frame_Commands :=
+              Files.Rendering.Build_Frame_Commands
+                (Snapshot    => Snapshot,
+                 Width       => Width,
+                 Height      => Height,
+                 Line_Height => 20);
+            Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
+            Text     : Files.Rendering.Text_Renderer;
+            Text_Status : constant Files.Rendering.Text_Render_Status :=
+              Files.Rendering.Initialize_Text
+                (Renderer    => Text,
+                 Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame),
+                 Pixel_Size  => 16,
+                 Cell_Width  => 10,
+                 Cell_Height => 20);
+            Glyphs : Files.Rendering.Text_Render_Result;
+         begin
+            if Frame.Layout.Width = Width
+              and then Frame.Layout.Height = Height
+              and then not Frame.Rectangles.Is_Empty
+            then
+               Result.Nonblank_Frames := Result.Nonblank_Frames + 1;
+            end if;
+
+            if not Frame.Icons.Is_Empty then
+               Result.Icon_Frames := Result.Icon_Frames + 1;
+            end if;
+
+            if Has_Toolbar_Icon (Frame) then
+               Result.Toolbar_Icon_Frames := Result.Toolbar_Icon_Frames + 1;
+            end if;
+
+            if Drag_Snapshot.Items.Is_Empty then
+               Drag_Snapshot.Items.Append
+                 (Files.Rendering.Item_Snapshot'
+                    (Name               => To_Unbounded_String ("quality-drag.txt"),
+                     Filetype           => To_Unbounded_String ("text/plain"),
+                     Filetype_Detail    => To_Unbounded_String ("text"),
+                     Icon_Id            => To_Unbounded_String ("text"),
+                     Kind               => Files.Types.Regular_File_Item,
+                     Size_Available     => False,
+                     Size               => 0,
+                     Creation_Available => False,
+                     Creation_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
+                     Modified_Available => False,
+                     Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
+                     Permissions        => Null_Unbounded_String,
+                     Filetype_Extra     => Null_Unbounded_String,
+                     Thumbnail_Available => False,
+                     Thumbnail_Path      => Null_Unbounded_String,
+                     Thumbnail_Width     => 0,
+                     Thumbnail_Height    => 0,
+                     Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
+                     Metadata_Error     => False,
+                     Error_Key          => Null_Unbounded_String,
+                     Selected           => True,
+                     Visible_Index      => 1));
+            end if;
+
+            declare
+               Drag_Frame : constant Files.Rendering.Frame_Commands :=
+                 Files.Rendering.Build_Frame_Commands
+                   (Snapshot        => Drag_Snapshot,
+                    Width           => Width,
+                    Height          => Height,
+                    Line_Height     => 20,
+                    Hover_X         => Natural'Min (Width, 96),
+                    Hover_Y         => Natural'Min (Height, 96),
+                    Has_Hover       => Width > 0 and then Height > 0,
+                    Drag_Item_Index => Drag_Snapshot.Items.First_Element.Visible_Index,
+                    Drag_X          => Natural'Min (Width, 96),
+                    Drag_Y          => Natural'Min (Height, 96),
+                    Has_Drag        => Width > 0 and then Height > 0);
+            begin
+               if Natural (Drag_Frame.Icons.Length) > Natural (Frame.Icons.Length)
+                 and then Natural (Drag_Frame.Rectangles.Length) > Natural (Frame.Rectangles.Length)
+               then
+                  Result.Drag_Preview_Frames := Result.Drag_Preview_Frames + 1;
+               end if;
+            end;
+
+            if Text_Status = Files.Rendering.Text_Render_Success then
+               Glyphs := Files.Rendering.Build_Text_Glyphs (Text, Frame);
+               Result.Missing_Glyph_Count :=
+                 Result.Missing_Glyph_Count + Glyphs.Missing_Glyph_Count;
+               if Glyphs.Status = Files.Rendering.Text_Render_Success and then not Glyphs.Glyphs.Is_Empty then
+                  Result.Text_Glyph_Frames := Result.Text_Glyph_Frames + 1;
+               else
+                  Result.Failed_Frames := Result.Failed_Frames + 1;
+               end if;
+            else
+               Result.Failed_Frames := Result.Failed_Frames + 1;
+            end if;
+         exception
+            when others =>
+               Result.Failed_Frames := Result.Failed_Frames + 1;
+         end;
+      end loop;
+
+      Result.Passed :=
+        Result.Frame_Count = Result.Window_Count
+        and then Result.Window_Count > 0
+        and then Result.Failed_Frames = 0
+        and then Result.Nonblank_Frames = Result.Window_Count
+        and then Result.Text_Glyph_Frames = Result.Window_Count
+        and then Result.Icon_Frames = Result.Window_Count
+        and then Result.Toolbar_Icon_Frames = Result.Window_Count
+        and then Result.Drag_Preview_Frames = Result.Window_Count
+        and then Result.Missing_Glyph_Count = 0;
+
+      Result.Error_Key :=
+        To_Unbounded_String ((if Result.Passed then "runtime.smoke.ready" else "runtime.smoke.text_failed"));
+      return Result;
+   end Headless_Render_Quality_Report;
+
    function Live_Display_Available return Boolean is
       Display         : constant String := Safe_Environment_Value ("DISPLAY");
       Wayland_Display : constant String := Safe_Environment_Value ("WAYLAND_DISPLAY");
@@ -1527,19 +1823,19 @@ package body Files.Application.Windows is
    function Runtime_Capabilities return Desktop_Capabilities is
       Display : constant Boolean := Live_Display_Available;
       Vulkan  : constant Boolean := Vulkan_Runtime_Available;
+      Drop_Profile : constant Files.Drop_Events.Drop_Event_Source_Profile := Files.Drop_Events.Profile;
    begin
       return
         (Display_Available       => Display,
          Vulkan_Available        => Vulkan,
-         Native_File_Dialogs     => Native_File_Dialogs_Available,
          Headless_Rendering      => True,
          Live_Window_Smoke_Ready => Display and then Vulkan,
          Event_Translation_Model => True,
          Focus_Runtime_Model     => True,
          Resize_Runtime_Model    => True,
          Scroll_Runtime_Model    => True,
-         Native_Drop_Callbacks   => True,
-         Native_Drop_Automation  => False,
+         Native_Drop_Callbacks   => Drop_Profile.Native_Drop_Callbacks,
+         Native_Drop_Automation  => Drop_Profile.Event_Source_Backend,
          Directory_Watch_Polling => True,
          Native_File_Watching    => True);
    end Runtime_Capabilities;
@@ -1548,33 +1844,15 @@ package body Files.Application.Windows is
       return Native_Drag_Automation_Profile is
    begin
       return
-        (Portable_GLFW_Automation         => False,
-         Native_Drop_Callbacks            => True,
-         Requires_OS_Event_Source         => True,
-         X11_Xdnd_Required                => True,
-         Wayland_Source_Protocol_Required => True,
-         Windows_Native_Injection_Required => True,
-         Macos_Native_Injection_Required  => True,
-         Binding_Unit                     => To_Unbounded_String ("Files.Application.Windows"));
+        (Portable_GLFW_Automation => Files.Drop_Events.Profile.Portable_GLFW_Automation,
+         Native_Drop_Callbacks    => Files.Drop_Events.Profile.Native_Drop_Callbacks,
+         Event_Source_Backend     => Files.Drop_Events.Profile.Event_Source_Backend,
+         Queued_Drop_Imports      => Files.Drop_Events.Profile.Queued_Drop_Imports,
+         Requires_OS_Event_Source => Files.Drop_Events.Profile.Requires_OS_Event_Source,
+         Uses_Shell               => Files.Drop_Events.Profile.Uses_Shell,
+         Max_Paths                => Files.Drop_Events.Profile.Max_Paths,
+         Binding_Unit             => Files.Drop_Events.Profile.Binding_Unit);
    end Native_Drag_Automation_Profile_Of_Current_Runtime;
-
-   function Runtime_Should_Resolve_Settings_Path
-     (Result : Files.Controller.Controller_Result)
-      return Boolean is
-   begin
-      if not Files.Commands.Requires_Settings_Path (Result.Command) then
-         return False;
-      elsif Result.Status = Files.Controller.Controller_Command_Executed
-        and then Result.Operation.Status = Files.Operations.Operation_Disabled
-        and then Length (Result.Operation.Error_Key) = 0
-      then
-         return True;
-      end if;
-
-      return Result.Operation.Status = Files.Operations.Operation_Disabled
-        and then Result.Status /= Files.Controller.Controller_Command_Executed
-        and then To_String (Result.Operation.Error_Key) = "error.dialog.native_unavailable";
-   end Runtime_Should_Resolve_Settings_Path;
 
    function Accumulate_Scroll_Offset
      (Remainder : in out Long_Float;
@@ -1618,237 +1896,6 @@ package body Files.Application.Windows is
          return Current + Change;
       end if;
    end Add_Pending_Scroll;
-
-   function Native_File_Dialogs_Available return Boolean is
-   begin
-      return Files.Platform.Dialogs.Available;
-   end Native_File_Dialogs_Available;
-
-   function Native_File_Dialog_Mode_Available
-     (Mode : Native_File_Dialog_Mode)
-      return Boolean
-   is
-      Dialog_Profile : constant Files.Platform.Dialogs.Native_Dialog_Profile :=
-        Files.Platform.Dialogs.Profile;
-   begin
-      if Dialog_Profile.Uses_Shell
-        or else Dialog_Profile.Binding_Status /= Files.File_System.Native_API_Binding_Available
-      then
-         return False;
-      end if;
-
-      case Mode is
-         when Open_File_Dialog =>
-            return Dialog_Profile.Can_Open_File;
-         when Save_File_Dialog =>
-            return Dialog_Profile.Can_Save_File;
-      end case;
-   end Native_File_Dialog_Mode_Available;
-
-   function Evaluate_Native_File_Dialog
-     (Request : Native_File_Dialog_Request)
-      return Native_File_Dialog_Result
-   is
-      Supported : constant Boolean := Native_File_Dialog_Mode_Available (Request.Mode);
-   begin
-      return
-        (Supported     => Supported,
-         Attempted     => False,
-         Completed     => False,
-         Selected_Path => Null_Unbounded_String,
-         Backend_Name  => To_Unbounded_String (Files.Platform.Dialogs.Backend_Name),
-         Error_Key     =>
-           (if Supported then Null_Unbounded_String
-            else To_Unbounded_String ("error.dialog.native_unavailable")));
-   end Evaluate_Native_File_Dialog;
-
-   function Open_Native_File_Dialog
-     (Request : Native_File_Dialog_Request)
-      return Native_File_Dialog_Result
-   is
-      Result : Native_File_Dialog_Result := Evaluate_Native_File_Dialog (Request);
-   begin
-      if not Result.Supported then
-         return Result;
-      end if;
-
-      Result.Attempted := True;
-      Result.Completed := False;
-      Result.Selected_Path := Null_Unbounded_String;
-      Result.Error_Key := To_Unbounded_String ("error.dialog.native_unavailable");
-      return Result;
-   end Open_Native_File_Dialog;
-
-   function Settings_Dialog_Initial_Path
-     (Settings_Path : String)
-      return String
-   is
-      Separator : Natural := 0;
-   begin
-      if Settings_Path = "" then
-         return ".";
-      end if;
-
-      for Index in reverse Settings_Path'Range loop
-         if Settings_Path (Index) = '/' or else Settings_Path (Index) = '\' then
-            Separator := Index;
-            exit;
-         end if;
-      end loop;
-
-      if Separator = Settings_Path'First + 2
-        and then Settings_Path (Settings_Path'First + 1) = ':'
-      then
-         return Settings_Path (Settings_Path'First .. Separator);
-      elsif Separator > Settings_Path'First then
-         return Settings_Path (Settings_Path'First .. Separator - 1);
-      elsif Separator = Settings_Path'First then
-         return Settings_Path (Settings_Path'First .. Settings_Path'First);
-      end if;
-
-      declare
-         Parent : constant String := Ada.Directories.Containing_Directory (Settings_Path);
-      begin
-         return (if Parent = "" then "." else Parent);
-      end;
-   exception
-      when others =>
-         return ".";
-   end Settings_Dialog_Initial_Path;
-
-   function Settings_Dialog_Suggested_Name
-     (Settings_Path : String)
-      return String
-   is
-      Separator : Natural := 0;
-   begin
-      if Settings_Path = "" then
-         return "files.conf";
-      end if;
-
-      for Index in reverse Settings_Path'Range loop
-         if Settings_Path (Index) = '/' or else Settings_Path (Index) = '\' then
-            Separator := Index;
-            exit;
-         end if;
-      end loop;
-
-      if Separator > 0 and then Separator < Settings_Path'Last then
-         return Settings_Path (Separator + 1 .. Settings_Path'Last);
-      elsif Separator = Settings_Path'Last then
-         return "files.conf";
-      end if;
-
-      declare
-         Name : constant String := Ada.Directories.Simple_Name (Settings_Path);
-      begin
-         return (if Name = "" then "files.conf" else Name);
-      end;
-   exception
-      when others =>
-         return "files.conf";
-   end Settings_Dialog_Suggested_Name;
-
-   function Settings_Import_Dialog_Request
-     (Settings_Path : String)
-      return Native_File_Dialog_Request is
-   begin
-      return
-        (Mode               => Open_File_Dialog,
-         Title_Key          => To_Unbounded_String ("dialog.settings.import"),
-         Initial_Path       => To_Unbounded_String (Settings_Dialog_Initial_Path (Settings_Path)),
-         Suggested_Name     => To_Unbounded_String (Settings_Dialog_Suggested_Name (Settings_Path)),
-         Required_Extension => To_Unbounded_String ("conf"));
-   end Settings_Import_Dialog_Request;
-
-   function Settings_Export_Dialog_Request
-     (Settings_Path : String)
-      return Native_File_Dialog_Request is
-   begin
-      return
-        (Mode               => Save_File_Dialog,
-         Title_Key          => To_Unbounded_String ("dialog.settings.export"),
-         Initial_Path       => To_Unbounded_String (Settings_Dialog_Initial_Path (Settings_Path)),
-         Suggested_Name     => To_Unbounded_String (Settings_Dialog_Suggested_Name (Settings_Path)),
-         Required_Extension => To_Unbounded_String ("conf"));
-   end Settings_Export_Dialog_Request;
-
-   function Settings_Path_After_Dialog
-     (Configured_Path : String;
-      Dialog_Result   : Native_File_Dialog_Result)
-      return UString is
-   begin
-      if Settings_Path_Selected (Dialog_Result) then
-         return Dialog_Result.Selected_Path;
-      end if;
-
-      return To_Unbounded_String (Configured_Path);
-   end Settings_Path_After_Dialog;
-
-   function Normalized_Required_Extension
-     (Extension : String)
-      return String
-   is
-      Trimmed : constant String := Ada.Strings.Fixed.Trim (Extension, Ada.Strings.Both);
-      First   : Natural := Trimmed'First;
-   begin
-      while First <= Trimmed'Last and then Trimmed (First) = '.' loop
-         First := First + 1;
-      end loop;
-
-      if First > Trimmed'Last then
-         return "";
-      end if;
-
-      return Files.Types.To_Lower (Trimmed (First .. Trimmed'Last));
-   end Normalized_Required_Extension;
-
-   function Has_Required_Extension
-     (Path      : String;
-      Extension : String)
-      return Boolean
-   is
-      Clean_Extension : constant String := Normalized_Required_Extension (Extension);
-      Clean_Path      : constant String := Files.Types.To_Lower (Path);
-      Suffix          : constant String := "." & Clean_Extension;
-   begin
-      if Clean_Extension = "" then
-         return True;
-      elsif Clean_Path'Length < Suffix'Length then
-         return False;
-      end if;
-
-      return Clean_Path (Clean_Path'Last - Suffix'Length + 1 .. Clean_Path'Last) = Suffix;
-   end Has_Required_Extension;
-
-   function Settings_Path_After_Dialog
-     (Configured_Path : String;
-      Request         : Native_File_Dialog_Request;
-      Dialog_Result   : Native_File_Dialog_Result)
-      return UString
-   is
-      Selected_Path : constant UString := Settings_Path_After_Dialog (Configured_Path, Dialog_Result);
-      Path_Text     : constant String := To_String (Selected_Path);
-      Extension     : constant String := Normalized_Required_Extension (To_String (Request.Required_Extension));
-   begin
-      if not Settings_Path_Selected (Dialog_Result)
-        or else Request.Mode /= Save_File_Dialog
-        or else Has_Required_Extension (Path_Text, Extension)
-      then
-         return Selected_Path;
-      end if;
-
-      return To_Unbounded_String (Path_Text & "." & Extension);
-   end Settings_Path_After_Dialog;
-
-   function Settings_Path_Selected
-     (Dialog_Result : Native_File_Dialog_Result)
-      return Boolean is
-   begin
-      return Dialog_Result.Supported
-        and then Dialog_Result.Completed
-        and then Length (Dialog_Result.Selected_Path) > 0;
-   end Settings_Path_Selected;
 
    function Live_Window_Smoke_Plan
      (Width  : Natural := 1024;

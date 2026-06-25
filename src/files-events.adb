@@ -510,14 +510,6 @@ package body Files.Events is
             return Input_Action is
          begin
             case Command is
-               when Files.Commands.Import_Settings_Command =>
-                  if Snapshot.Settings_Can_Import then
-                     return Command_Action (Command, Activate);
-                  end if;
-               when Files.Commands.Export_Settings_Command =>
-                  if Snapshot.Settings_Can_Export then
-                     return Command_Action (Command, Activate);
-                  end if;
                when Files.Commands.Reset_Settings_Command =>
                   if Snapshot.Settings_Can_Reset then
                      return Command_Action (Command, Activate);
@@ -556,16 +548,8 @@ package body Files.Events is
             if Row = 1
               and then Within (X, Action_Buttons.First_Button_X, Action_Buttons.First_Button_Width)
             then
-               return Settings_Command_Click (Files.Commands.Import_Settings_Command);
-            elsif Row = 1
-              and then Within (X, Action_Buttons.Second_Button_X, Action_Buttons.Second_Button_Width)
-            then
-               return Settings_Command_Click (Files.Commands.Export_Settings_Command);
-            elsif Row = 2
-              and then Within (X, Action_Buttons.First_Button_X, Action_Buttons.First_Button_Width)
-            then
                return Settings_Command_Click (Files.Commands.Reset_Settings_Command);
-            elsif Row = 2
+            elsif Row = 1
               and then Within (X, Action_Buttons.Second_Button_X, Action_Buttons.Second_Button_Width)
             then
                return Settings_Command_Click (Files.Commands.Save_Settings_Command);

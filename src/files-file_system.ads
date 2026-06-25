@@ -34,6 +34,11 @@ package Files.File_System is
       Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Permissions        : UString;
       Filetype_Extra     : UString;
+      Thumbnail_Available : Boolean := False;
+      Thumbnail_Path      : UString;
+      Thumbnail_Width     : Natural := 0;
+      Thumbnail_Height    : Natural := 0;
+      Thumbnail_Pixels    : Files.Types.Byte_Vectors.Vector;
       Metadata_Error     : Boolean := False;
       Error_Key          : UString;
    end record;
@@ -61,6 +66,7 @@ package Files.File_System is
       Path               : UString;
       Exists             : Boolean := False;
       Entry_Count        : Natural := 0;
+      Entry_State_Checksum : Natural := 0;
       Latest_Modified    : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Latest_Modified_Known : Boolean := False;
    end record;
@@ -563,6 +569,26 @@ package Files.File_System is
    function Execute_Drop_Import
      (Plans : Drop_Import_Plan_Vectors.Vector)
       return Mutation_Result;
+
+   --  Return the default thumbnail cache directory for the current environment.
+   --
+   --  @param Fallback_Directory Directory used when no user cache location exists.
+   --  @return Directory path used for generated thumbnail artifacts.
+   function Default_Thumbnail_Cache_Directory
+     (Fallback_Directory : String)
+      return String;
+
+   --  Return the deterministic cached thumbnail path for a source file.
+   --
+   --  @param Source_Path Source file represented by the thumbnail.
+   --  @param Cache_Directory Thumbnail cache directory.
+   --  @param Size Thumbnail size in pixels.
+   --  @return Deterministic thumbnail artifact path.
+   function Thumbnail_Path_For
+     (Source_Path      : String;
+      Cache_Directory : String;
+      Size            : Positive := 64)
+      return String;
 
    --  Generate a cached thumbnail artifact for a regular file.
    --

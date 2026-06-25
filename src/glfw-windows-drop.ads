@@ -24,4 +24,12 @@ package Glfw.Windows.Drop is
    function User_Pointer
      (Window : System.Address)
       return System.Address;
+
+   --  Return the raw GLFW window handle for Window.
+   --
+   --  @param Window Ada GLFW window object.
+   --  @return Raw GLFWwindow pointer.
+   function Raw_Handle
+     (Window : not null access Glfw.Windows.Window)
+      return System.Address;
 end Glfw.Windows.Drop;

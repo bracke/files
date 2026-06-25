@@ -8,6 +8,7 @@ with Textrender;
 with Util.Dates.Formats;
 with Util.Properties;
 
+with Files.Accessibility;
 with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
@@ -465,15 +466,7 @@ package body Files.Rendering is
    function Accessibility_Integration_Profile_Of_Current_UI
       return Accessibility_Integration_Profile is
    begin
-      return
-        (Render_Node_Tree          => True,
-         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Missing,
-         Role_Metadata             => True,
-         Table_Metadata            => True,
-         Pane_Section_Metadata     => True,
-         Keyboard_Focus_Metadata   => True,
-         Binding_Unit              =>
-           To_Unbounded_String ("Files.Rendering.Frame_Commands.Accessibility"));
+      return Files.Accessibility.Integration_Profile;
    end Accessibility_Integration_Profile_Of_Current_UI;
 
    function Settings_Editor_Profile_Of_Current_UI return Settings_Editor_Profile is
@@ -484,13 +477,10 @@ package body Files.Rendering is
          Open_Action_Controls  => 2,
          Supports_Save         => True,
          Supports_Reset        => True,
-         Supports_Import       => True,
-         Supports_Export       => True,
          Per_Field_Diagnostics => True,
          Supports_Option_Cycling => True,
          Supports_Add_Remove_Mapping => True,
          Supports_Draft_Validation => True,
-         Supports_Native_Dialog_Policy => True,
          Saves_Central_Settings => True);
    end Settings_Editor_Profile_Of_Current_UI;
 
@@ -593,6 +583,15 @@ package body Files.Rendering is
               "rect=3,5,10,6,accent" & LF
               & "rect=4,8,4,2,border" & LF
               & "rect=8,7,4,3,border" & LF);
+      elsif Icon_Id = "thumbnail" then
+         return
+           Header ("thumbnail")
+           & "rect=1,1,14,14,border" & LF
+           & "rect=2,2,12,12,base" & LF
+           & "rect=3,3,10,7,accent" & LF
+           & "rect=4,8,4,2,border" & LF
+           & "rect=8,7,4,3,border" & LF
+           & "rect=3,12,10,1,muted" & LF;
       elsif Icon_Id = "executable" then
          return
            Document
@@ -1544,8 +1543,6 @@ package body Files.Rendering is
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
       Snapshot.Settings_Can_Save := Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model);
       Snapshot.Settings_Can_Reset := Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model);
-      Snapshot.Settings_Can_Import := Files.Commands.Is_Enabled (Files.Commands.Import_Settings_Command, Model);
-      Snapshot.Settings_Can_Export := Files.Commands.Is_Enabled (Files.Commands.Export_Settings_Command, Model);
       Snapshot.Theme_Name := Theme.Name;
       Snapshot.Theme_High_Contrast := Theme.High_Contrast;
       Snapshot.Theme_Focus_Ring := Theme.Focus_Ring;
@@ -1634,6 +1631,11 @@ package body Files.Rendering is
                   Modified_Time      => Item.Modified_Time,
                   Permissions        => Item.Permissions,
                   Filetype_Extra     => Filetype_Extra (Item),
+                  Thumbnail_Available => Item.Thumbnail_Available,
+                  Thumbnail_Path      => Item.Thumbnail_Path,
+                  Thumbnail_Width     => Item.Thumbnail_Width,
+                  Thumbnail_Height    => Item.Thumbnail_Height,
+                  Thumbnail_Pixels    => Item.Thumbnail_Pixels,
                   Metadata_Error     => Item.Metadata_Error,
                   Error_Key          => Item.Error_Key,
                   Selected           => Files.Model.Is_Selected (Model, Index),
@@ -2686,7 +2688,11 @@ package body Files.Rendering is
       Has_Hover   : Boolean := False;
       Pressed_X   : Natural := 0;
       Pressed_Y   : Natural := 0;
-      Has_Press   : Boolean := False)
+      Has_Press   : Boolean := False;
+      Drag_Item_Index : Natural := 0;
+      Drag_X      : Natural := 0;
+      Drag_Y      : Natural := 0;
+      Has_Drag    : Boolean := False)
       return Frame_Commands
    is
       Result        : Frame_Commands;
@@ -3420,7 +3426,10 @@ package body Files.Rendering is
                Size       => Size,
                Icon_Id    => To_Unbounded_String (Icon_Name),
                Theme_Name => To_Unbounded_String (Icon_Theme_Name),
-               Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon")));
+               Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon"),
+               Thumbnail_Width  => 0,
+               Thumbnail_Height => 0,
+               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
 
          if Id = Files.Commands.Navigate_Home_Command then
             Draw_Home;
@@ -3587,7 +3596,8 @@ package body Files.Rendering is
         (Item : Item_Snapshot;
          X    : Natural;
          Y    : Natural;
-         Size : Natural)
+         Size : Natural;
+         Use_Thumbnail : Boolean := False)
       is
          Base_Color : constant Render_Color := Icon_Color (Item.Kind);
          Type_Name  : constant String := To_String (Item.Filetype);
@@ -3682,7 +3692,12 @@ package body Files.Rendering is
 
          function Resolved_Icon_Name return String is
          begin
-            if Is_Bundled_Icon (Icon_Name) then
+            if Use_Thumbnail
+              and then Item.Thumbnail_Available
+              and then Length (Item.Thumbnail_Path) > 0
+            then
+               return "thumbnail";
+            elsif Is_Bundled_Icon (Icon_Name) then
                return Icon_Name;
             elsif Item.Kind = Files.Types.Directory_Item then
                return "folder";
@@ -3704,6 +3719,12 @@ package body Files.Rendering is
          end Resolved_Icon_Name;
 
          Resolved_Name : constant String := Resolved_Icon_Name;
+         Resolved_Asset_Path : constant UString :=
+           (if Use_Thumbnail
+              and then Item.Thumbnail_Available
+              and then Length (Item.Thumbnail_Path) > 0
+            then Item.Thumbnail_Path
+            else To_Unbounded_String (Icon_Asset_Directory & "/" & Resolved_Name & ".icon"));
       begin
          if Draw_Size = 0 then
             return;
@@ -3718,10 +3739,19 @@ package body Files.Rendering is
                Size       => Draw_Size,
                Icon_Id    => To_Unbounded_String (Resolved_Name),
                Theme_Name => To_Unbounded_String (Icon_Theme_Name),
-               Asset_Path =>
-                 To_Unbounded_String (Icon_Asset_Directory & "/" & Resolved_Name & ".icon")));
+               Asset_Path => Resolved_Asset_Path,
+               Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
+               Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
+               Thumbnail_Pixels =>
+                 (if Use_Thumbnail then Item.Thumbnail_Pixels else Files.Types.Byte_Vectors.Empty_Vector)));
 
-         if Add_Named_Asset (Icon_Name) then
+         if Use_Thumbnail
+           and then Item.Thumbnail_Available
+           and then Length (Item.Thumbnail_Path) > 0
+           and then Add_Named_Asset ("thumbnail")
+         then
+            return;
+         elsif Add_Named_Asset (Icon_Name) then
             return;
          elsif Item.Kind = Files.Types.Directory_Item and then Add_Named_Asset ("folder") then
             return;
@@ -4769,6 +4799,12 @@ package body Files.Rendering is
               Has_Hover
               and then Contains_Point
                 (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_X, Hover_Y);
+            Drop_Target : constant Boolean :=
+              Has_Drag
+              and then Drag_Item_Index /= 0
+              and then Item.Visible_Index /= Drag_Item_Index
+              and then Item.Kind = Files.Types.Directory_Item
+              and then Hovered;
 
             function Detail_Cell_X (Column_X : Natural) return Natural is
             begin
@@ -4780,7 +4816,16 @@ package body Files.Rendering is
                return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
             end Detail_Cell_W;
          begin
-            if Item.Selected then
+            if Drop_Target then
+               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
+               Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
+               Add_Rect
+                 (Item_Rect.X,
+                  Item_Rect.Y,
+                  Natural'Min (4, Item_Rect.Width),
+                  Item_Rect.Height,
+                  Selection_Color);
+            elsif Item.Selected then
                Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
                Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
                Add_Rect
@@ -4799,7 +4844,12 @@ package body Files.Rendering is
             if Snapshot.View_Mode = Files.Types.Details then
                Add_Details_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
             else
-               Add_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
+               Add_Icon
+                 (Item,
+                  Item_Rect.Icon_X,
+                  Item_Rect.Icon_Y,
+                  Item_Rect.Icon_Size,
+                  Use_Thumbnail => Snapshot.View_Mode = Files.Types.Large_Icons);
             end if;
             Add_Text
               (Item_Rect.Text_X,
@@ -4923,6 +4973,72 @@ package body Files.Rendering is
             Add_Column_Separator (First_Row.Size_X);
             Add_Column_Separator (First_Row.Filetype_X);
          end;
+      end if;
+
+      if Has_Drag
+        and then Drag_Item_Index /= 0
+        and then not Snapshot.Items.Is_Empty
+        and then Width > 0
+        and then Height > 0
+      then
+         for Index in 1 .. Natural (Snapshot.Items.Length) loop
+            declare
+               Item : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
+            begin
+               if Item.Visible_Index = Drag_Item_Index then
+                  declare
+                     Icon_Size : constant Natural := Natural'Min (Natural'Max (Line_Height, 28), 48);
+                     Pad       : constant Natural := 8;
+                     Gap       : constant Natural := 8;
+                     Panel_H   : constant Natural :=
+                       Saturating_Add (Icon_Size, Saturating_Multiply (Pad, 2));
+                     Panel_W   : constant Natural :=
+                       Natural'Min
+                         (Natural'Max
+                            (Saturating_Add
+                               (Saturating_Add (Icon_Size, Gap),
+                                Saturating_Multiply (Line_Height, 8)),
+                             Saturating_Add (Icon_Size, Saturating_Multiply (Pad, 2))),
+                          Natural'Max (1, Width));
+                     Offset    : constant Natural := 14;
+                     Panel_X   : constant Natural :=
+                       (if Drag_X <= Natural'Last - Offset
+                          and then Drag_X + Offset <= Width
+                          and then Width > Panel_W
+                        then Natural'Min (Drag_X + Offset, Width - Panel_W)
+                        elsif Width > Panel_W
+                        then Width - Panel_W
+                        else 0);
+                     Panel_Y   : constant Natural :=
+                       (if Drag_Y <= Natural'Last - Offset
+                          and then Drag_Y + Offset <= Height
+                          and then Height > Panel_H
+                        then Natural'Min (Drag_Y + Offset, Height - Panel_H)
+                        elsif Height > Panel_H
+                        then Height - Panel_H
+                        else 0);
+                     Icon_X    : constant Natural := Saturating_Add (Panel_X, Pad);
+                     Icon_Y    : constant Natural := Saturating_Add (Panel_Y, Pad);
+                     Text_X    : constant Natural := Saturating_Add (Icon_X, Saturating_Add (Icon_Size, Gap));
+                     Text_W    : constant Natural :=
+                       (if Panel_W > Saturating_Add (Icon_Size, Saturating_Add (Gap, Saturating_Multiply (Pad, 2)))
+                        then Panel_W - Icon_Size - Gap - Saturating_Multiply (Pad, 2)
+                        else 0);
+                     Text_Y    : constant Natural :=
+                       Saturating_Add
+                         (Panel_Y,
+                          (if Panel_H > Line_Height then (Panel_H - Line_Height) / 2 else 0));
+                  begin
+                     Add_Rect (Panel_X, Panel_Y, Panel_W, Panel_H, Hover_Color);
+                     Add_Border (Panel_X, Panel_Y, Panel_W, Panel_H, Selection_Color);
+                     Add_Icon (Item, Icon_X, Icon_Y, Icon_Size);
+                     Add_Text (Text_X, Text_Y, Text_W, Line_Height, Item.Name, Fit => True);
+                  end;
+
+                  exit;
+               end if;
+            end;
+         end loop;
       end if;
 
       if Empty_State_Key /= "" and then Layout.Main_Width > 0 and then Layout.Main_Height > 0 then
@@ -5431,10 +5547,8 @@ package body Files.Rendering is
                      Enabled => Enabled);
                end Add_Button;
             begin
-               Add_Button (0, 0, Files.Commands.Import_Settings_Command, Snapshot.Settings_Can_Import);
-               Add_Button (1, 0, Files.Commands.Export_Settings_Command, Snapshot.Settings_Can_Export);
-               Add_Button (0, 1, Files.Commands.Reset_Settings_Command, Snapshot.Settings_Can_Reset);
-               Add_Button (1, 1, Files.Commands.Save_Settings_Command, Snapshot.Settings_Can_Save);
+               Add_Button (0, 0, Files.Commands.Reset_Settings_Command, Snapshot.Settings_Can_Reset);
+               Add_Button (1, 0, Files.Commands.Save_Settings_Command, Snapshot.Settings_Can_Save);
             end Add_Settings_Action_Buttons;
          begin
             Add_Drop_Shadow (Pane_X, Pane_Y, Pane_W, Pane_H);

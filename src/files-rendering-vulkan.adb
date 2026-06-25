@@ -87,6 +87,14 @@ package body Files.Rendering.Vulkan is
       end if;
    end Bounded_Product_Divide;
 
+   function Is_Toolbar_Icon
+     (Icon_Id : String)
+      return Boolean is
+   begin
+      return Icon_Id'Length >= 8
+        and then Icon_Id (Icon_Id'First .. Icon_Id'First + 7) = "toolbar-";
+   end Is_Toolbar_Icon;
+
    type Gpu_Vertex is record
       X : Interfaces.C.C_float := 0.0;
       Y : Interfaces.C.C_float := 0.0;
@@ -97,6 +105,7 @@ package body Files.Rendering.Vulkan is
       B : Interfaces.C.C_float := 0.0;
       A : Interfaces.C.C_float := 1.0;
       Textured : Interfaces.C.C_float := 0.0;
+      Texture : Interfaces.C.C_float := 0.0;
    end record
      with Convention => C;
 
@@ -125,26 +134,29 @@ package body Files.Rendering.Vulkan is
      with Convention => C;
 
    Vertex_Shader_Code : aliased constant Shader_Code_Array :=
-     [119734787, 65536, 524299, 40, 0, 131089, 1, 393227,
+     [119734787, 65536, 524299, 43, 0, 131089, 1, 393227,
       1, 1280527431, 1685353262, 808793134, 0, 196622, 0, 1,
-      851983, 0, 4, 1852399981, 0, 13, 18, 28,
-      29, 31, 33, 36, 38, 196611, 2, 450,
-      262149, 4, 1852399981, 0,
-      393221, 11, 1348430951, 1700164197, 2019914866, 0, 393222, 11,
-      0, 1348430951, 1953067887, 7237481, 458758, 11, 1, 1348430951,
-      1953393007, 1702521171, 0, 458758, 11, 2, 1130327143, 1148217708,
-      1635021673, 6644590, 458758, 11, 3, 1130327143, 1147956341, 1635021673,
-      6644590, 196613, 13, 0, 262149, 18, 1885302377, 29551,
-      262149, 28, 1987403638, 0, 262149, 29, 1969188457, 118,
-      262149, 31, 1868783478, 7499628, 327685, 33, 1667198569, 1919904879,
-      0, 327685, 36, 1702125430, 1920300152, 25701, 327685, 38,
-      1952411241, 1970567269, 6579570, 196679, 11, 2, 327752, 11, 0, 11,
+      983055, 0, 4, 1852399981, 0, 13, 18, 28,
+      29, 31, 33, 36, 38, 40, 41, 196611,
+      2, 450, 262149, 4, 1852399981, 0, 393221, 11,
+      1348430951, 1700164197, 2019914866, 0, 393222, 11, 0, 1348430951,
+      1953067887, 7237481, 458758, 11, 1, 1348430951, 1953393007, 1702521171,
+      0, 458758, 11, 2, 1130327143, 1148217708, 1635021673, 6644590,
+      458758, 11, 3, 1130327143, 1147956341, 1635021673, 6644590, 196613,
+      13, 0, 262149, 18, 1885302377, 29551, 262149, 28,
+      1601467759, 30325, 262149, 29, 1969188457, 118, 327685, 31,
+      1601467759, 1869377379, 114, 327685, 33, 1667198569, 1919904879, 0,
+      393221, 36, 1601467759, 1954047348, 1684370037, 0, 327685, 38,
+      1952411241, 1970567269, 6579570, 458757, 40, 1601467759, 1954047348, 1600483957,
+      1920298867, 25955, 458757, 41, 1952411241, 1970567269, 1935631730, 1668445551,
+      101, 196679, 11, 2, 327752, 11, 0, 11,
       0, 327752, 11, 1, 11, 1, 327752, 11,
       2, 11, 3, 327752, 11, 3, 11, 4,
       262215, 18, 30, 0, 262215, 28, 30, 0,
       262215, 29, 30, 1, 262215, 31, 30, 1,
       262215, 33, 30, 2, 262215, 36, 30, 2,
-      262215, 38, 30, 3, 131091, 2, 196641, 3,
+      262215, 38, 30, 3, 262215, 40, 30, 3,
+      262215, 41, 30, 4, 131091, 2, 196641, 3,
       2, 196630, 6, 32, 262167, 7, 6, 4,
       262165, 8, 32, 0, 262187, 8, 9, 1,
       262172, 10, 6, 9, 393246, 11, 7, 6,
@@ -152,54 +164,83 @@ package body Files.Rendering.Vulkan is
       13, 3, 262165, 14, 32, 1, 262187, 14,
       15, 0, 262167, 16, 6, 2, 262176, 17,
       1, 16, 262203, 17, 18, 1, 262187, 6,
-      20, 0, 262187, 6, 21, 1065353216, 262176, 25, 3, 7,
-      262176, 27, 3, 16, 262203, 27, 28, 3, 262203, 17,
-      29, 1, 262203, 25, 31, 3, 262176, 32, 1, 7,
-      262203, 32, 33, 1, 262176, 35, 3, 6, 262203, 35,
-      36, 3, 262176, 37, 1, 6, 262203, 37, 38, 1,
-      327734, 2, 4, 0, 3, 131320, 5, 262205, 16, 19,
-      18, 327761, 6, 22, 19, 0, 327761, 6,
-      23, 19, 1, 458832, 7, 24, 22, 23,
-      20, 21, 327745, 25, 26, 13, 15, 196670,
-      26, 24, 262205, 16, 30, 29, 196670, 28, 30,
-      262205, 7, 34, 33, 196670, 31, 34,
-      262205, 6, 39, 38, 196670, 36, 39, 65789, 65592];
+      20, 0, 262187, 6, 21, 1065353216, 262176, 25,
+      3, 7, 262176, 27, 3, 16, 262203, 27,
+      28, 3, 262203, 17, 29, 1, 262203, 25,
+      31, 3, 262176, 32, 1, 7, 262203, 32,
+      33, 1, 262176, 35, 3, 6, 262203, 35,
+      36, 3, 262176, 37, 1, 6, 262203, 37,
+      38, 1, 262203, 35, 40, 3, 262203, 37,
+      41, 1, 327734, 2, 4, 0, 3, 131320,
+      5, 262205, 16, 19, 18, 327761, 6, 22,
+      19, 0, 327761, 6, 23, 19, 1, 458832,
+      7, 24, 22, 23, 20, 21, 327745, 25,
+      26, 13, 15, 196670, 26, 24, 262205, 16,
+      30, 29, 196670, 28, 30, 262205, 7, 34,
+      33, 196670, 31, 34, 262205, 6, 39, 38,
+      196670, 36, 39, 262205, 6, 42, 41, 196670,
+      40, 42, 65789, 65592];
 
    Fragment_Shader_Code : aliased constant Shader_Code_Array :=
-     [119734787, 65536, 524299, 51, 0, 131089, 1, 393227,
+     [119734787, 65536, 524299, 74, 0, 131089, 1, 393227,
       1, 1280527431, 1685353262, 808793134, 0, 196622, 0, 1,
-      589839, 4, 4, 1852399981, 0, 10, 25, 36,
-      38, 196624,
-      4, 7, 196611, 2, 450, 262149, 4, 1852399981,
-      0, 262149, 8, 1752198241, 97, 327685, 10, 1702125430,
-      1920300152, 25701, 393221, 21, 1634497633, 1634951027, 1701605485, 114,
-      262149, 25, 1987403638, 0, 327685, 36, 1601467759, 1869377379,
-      114, 262149, 38, 1868783478, 7499628, 262215, 10, 30, 2,
-      262215, 21, 33, 0, 262215, 21, 34, 0, 262215, 25,
-      30, 0, 262215, 36, 30, 0, 262215, 38, 30, 1,
-      131091, 2, 196641, 3, 2, 196630, 6, 32, 262176, 7,
-      7, 6, 262176, 9, 1, 6, 262203, 9, 10, 1,
-      262187, 6, 12, 1056964608, 131092, 13, 589849, 18, 6,
-      1, 0, 0, 0, 1, 0, 196635, 19, 18, 262176,
-      20, 0, 19, 262203, 20, 21, 0, 262167, 23, 6,
-      2, 262176, 24, 1, 23, 262203, 24, 25, 1, 262167,
-      27, 6, 4, 262165, 29, 32, 0, 262187, 29, 30,
-      0, 262187, 6, 33, 1065353216, 262176, 35, 3, 27,
-      262203, 35, 36, 3, 262176, 37, 1, 27, 262203, 37,
-      38, 1, 262167, 39, 6, 3, 262187, 29, 42, 3,
-      327734, 2, 4, 0, 3, 131320, 5, 262203, 7, 8,
-      7, 262203, 7, 15, 7, 262205, 6, 11, 10, 327866,
-      13, 14, 11, 12, 196855, 17, 0, 262394, 14, 16,
-      32, 131320, 16, 262205, 19, 22, 21, 262205, 23, 26,
-      25, 327767, 27, 28, 22, 26, 327761, 6, 31, 28,
-      0, 196670, 15, 31, 131321, 17, 131320, 32, 196670,
-      15, 33, 131321, 17, 131320, 17, 262205, 6, 34, 15,
-      196670, 8, 34, 262205, 27, 40, 38, 524367, 39, 41,
-      40, 40, 0, 1, 2, 327745, 9, 43, 38, 42,
-      262205, 6, 44, 43, 262205, 6, 45, 8, 327813, 6,
-      46, 44, 45, 327761, 6, 47, 41, 0, 327761, 6,
-      48, 41, 1, 327761, 6, 49, 41, 2, 458832, 27,
-      50, 47, 48, 49, 46, 196670, 36, 50, 65789, 65592];
+      655375, 4, 4, 1852399981, 0, 11, 14, 21,
+      35, 72, 196624, 4, 7, 196611, 2, 450,
+      262149, 4, 1852399981, 0, 262149, 9, 1869377379,
+      114, 327685, 11, 1667198569, 1919904879, 0, 327685, 14,
+      1952411241, 1970567269, 6579570, 458757, 21, 1952411241, 1970567269, 1935631730,
+      1668445551, 101, 393221, 27, 1886216563, 1667196268, 1919904879, 0,
+      327685, 31, 1852793705, 1819566431, 29537, 262149, 35, 1969188457,
+      118, 262149, 54, 1752198241, 97, 327685, 55, 1954047348,
+      1819566431, 29537, 327685, 72, 1601467759, 1869377379, 114, 262215,
+      11, 30, 1, 262215, 14, 30, 2, 262215,
+      21, 30, 3, 262215, 31, 33, 1, 262215,
+      31, 34, 0, 262215, 35, 30, 0, 262215,
+      55, 33, 0, 262215, 55, 34, 0, 262215,
+      72, 30, 0, 131091, 2, 196641, 3, 2,
+      196630, 6, 32, 262167, 7, 6, 4, 262176,
+      8, 7, 7, 262176, 10, 1, 7, 262203,
+      10, 11, 1, 262176, 13, 1, 6, 262203,
+      13, 14, 1, 262187, 6, 16, 1056964608, 131092,
+      17, 262203, 13, 21, 1, 262187, 6, 23,
+      1069547520, 589849, 28, 6, 1, 0, 0, 0,
+      1, 0, 196635, 29, 28, 262176, 30, 0,
+      29, 262203, 30, 31, 0, 262167, 33, 6,
+      2, 262176, 34, 1, 33, 262203, 34, 35,
+      1, 262167, 38, 6, 3, 262165, 41,
+      32, 0, 262187, 41, 42, 3, 262176, 43,
+      7, 6, 262203, 30, 55, 0, 262187, 41,
+      59, 0, 262176, 71, 3, 7, 262203, 71, 72,
+      3, 327734, 2, 4, 0, 3, 131320, 5,
+      262203, 8, 9, 7, 262203, 8, 27, 7,
+      262203, 43, 54, 7, 262205, 7, 12, 11,
+      196670, 9, 12, 262205, 6, 15, 14, 327866,
+      17, 18, 15, 16, 196855, 20, 0, 262394,
+      18, 19, 20, 131320, 19, 262205, 6, 22,
+      21, 327866, 17, 24, 22, 23, 196855, 26,
+      0, 262394, 24, 25, 53, 131320, 25, 262205,
+      29, 32, 31, 262205, 33, 36, 35, 327767,
+      7, 37, 32, 36, 196670, 27, 37, 262205,
+      7, 39, 27, 524367, 38, 40, 39, 39,
+      0, 1, 2, 327745, 43, 44, 27, 42,
+      262205, 6, 45, 44, 327745, 13, 46, 11,
+      42, 262205, 6, 47, 46, 327813, 6, 48,
+      45, 47, 327761, 6, 49, 40, 0, 327761,
+      6, 50, 40, 1, 327761, 6, 51, 40,
+      2, 458832, 7, 52, 49, 50, 51, 48,
+      196670, 9, 52, 131321, 26, 131320, 53, 262205,
+      29, 56, 55, 262205, 33, 57, 35, 327767,
+      7, 58, 56, 57, 327761, 6, 60, 58,
+      0, 327745, 13, 61, 11, 42, 262205, 6,
+      62, 61, 327813, 6, 63, 60, 62, 196670,
+      54, 63, 262205, 7, 64, 11, 524367, 38,
+      65, 64, 64, 0, 1, 2, 262205, 6,
+      66, 54, 327761, 6, 67, 65, 0, 327761,
+      6, 68, 65, 1, 327761, 6, 69, 65,
+      2, 458832, 7, 70, 67, 68, 69, 66,
+      196670, 9, 70, 131321, 26, 131320, 26, 131321,
+      20, 131320, 20, 262205, 7, 73, 9, 196670,
+      72, 73, 65789, 65592];
 
    type Surface_Format_Array is array (Positive range <>) of aliased Vk.Surface_Format_KHR_T
      with Convention => C;
@@ -403,7 +444,17 @@ package body Files.Rendering.Vulkan is
          A : Interfaces.C.C_float := 1.0)
          return Gpu_Vertex is
       begin
-         return (X => 0.0, Y => 0.0, U => 0.0, V => 0.0, R => R, G => G, B => B, A => A, Textured => 0.0);
+         return
+           (X        => 0.0,
+            Y        => 0.0,
+            U        => 0.0,
+            V        => 0.0,
+            R        => R,
+            G        => G,
+            B        => B,
+            A        => A,
+            Textured => 0.0,
+            Texture  => 0.0);
       end Make;
    begin
       case Color is
@@ -1007,7 +1058,7 @@ package body Files.Rendering.Vulkan is
             binding  => 0,
             format   => Vk.FORMAT_R32G32_SFLOAT,
             offset   => Interfaces.Unsigned_32 (2 * Interfaces.C.C_float'Size / 8))];
-      Textured_Attributes : aliased Vertex_Attribute_Array (1 .. 4) :=
+      Textured_Attributes : aliased Vertex_Attribute_Array (1 .. 5) :=
         [1 =>
            (location => 0,
             binding  => 0,
@@ -1027,14 +1078,19 @@ package body Files.Rendering.Vulkan is
            (location => 3,
             binding  => 0,
             format   => Vk.FORMAT_R32_SFLOAT,
-            offset   => Interfaces.Unsigned_32 (8 * Interfaces.C.C_float'Size / 8))];
+            offset   => Interfaces.Unsigned_32 (8 * Interfaces.C.C_float'Size / 8)),
+         5 =>
+           (location => 4,
+            binding  => 0,
+            format   => Vk.FORMAT_R32_SFLOAT,
+            offset   => Interfaces.Unsigned_32 (9 * Interfaces.C.C_float'Size / 8))];
       Vertex_Input : aliased Vk.Pipeline_Vertex_Input_State_Create_Info_T :=
         (s_Type                           => Vk.STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
          p_Next                           => System.Null_Address,
          flags                            => 0,
          vertex_Binding_Description_Count => 1,
          p_Vertex_Binding_Descriptions    => Binding'Address,
-         vertex_Attribute_Description_Count => 4,
+         vertex_Attribute_Description_Count => 5,
          p_Vertex_Attribute_Descriptions    => Textured_Attributes'Address);
       Input_Assembly : aliased Vk.Pipeline_Input_Assembly_State_Create_Info_T :=
         (s_Type                   => Vk.STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -1513,6 +1569,7 @@ package body Files.Rendering.Vulkan is
                Packed.U := Interfaces.C.C_float (Source.U);
                Packed.V := Interfaces.C.C_float (Source.V);
                Packed.Textured := (if Source.Textured then 1.0 else 0.0);
+               Packed.Texture := Interfaces.C.C_float (Texture_Source'Pos (Source.Texture));
                Mapped.all (Index) := Packed;
                Index := Index + 1;
             end;
@@ -3776,7 +3833,7 @@ package body Files.Rendering.Vulkan is
 
       procedure Build_Icon_Atlas is
          Tile_Size  : constant Positive := Icon_Atlas_Tile_Size;
-         Icon_Count : constant Natural := Natural (Frame.Icons.Length);
+         Icon_Count : Natural := 0;
 
          procedure Append_Clear_Pixels
            (Count : Natural) is
@@ -3804,18 +3861,25 @@ package body Files.Rendering.Vulkan is
          end Put_Pixel;
 
          procedure Role_Color
-           (Role : Files.Rendering.Icon_Asset_Color_Role;
-            R    : out Interfaces.Unsigned_8;
-            G    : out Interfaces.Unsigned_8;
-            B    : out Interfaces.Unsigned_8;
-            A    : out Interfaces.Unsigned_8)
+           (Icon_Id : String;
+            Role    : Files.Rendering.Icon_Asset_Color_Role;
+            R       : out Interfaces.Unsigned_8;
+            G       : out Interfaces.Unsigned_8;
+            B       : out Interfaces.Unsigned_8;
+            A       : out Interfaces.Unsigned_8)
          is
          begin
             case Role is
                when Files.Rendering.Icon_Asset_Base =>
-                  R := 184;
-                  G := 190;
-                  B := 198;
+                  if Icon_Id = "folder" then
+                     R := 82;
+                     G := 128;
+                     B := 209;
+                  else
+                     R := 184;
+                     G := 190;
+                     B := 198;
+                  end if;
                when Files.Rendering.Icon_Asset_Accent =>
                   R := 57;
                   G := 127;
@@ -3873,14 +3937,52 @@ package body Files.Rendering.Vulkan is
                   return;
                end if;
 
-               Role_Color (Rect.Role, R, G, B, A);
+               Role_Color (To_String (Icon.Icon_Id), Rect.Role, R, G, B, A);
                for Y in Y0 .. Y1 - 1 loop
                   for X in X0 .. X1 - 1 loop
                      Put_Pixel (X, Y, R, G, B, A);
                   end loop;
                end loop;
             end Fill_Rect;
+
+            function Rasterize_Thumbnail return Boolean is
+               Source_Width  : constant Natural := Icon.Thumbnail_Width;
+               Source_Height : constant Natural := Icon.Thumbnail_Height;
+               Tile_X        : constant Natural := Tile_Index * Tile_Size;
+            begin
+               if Source_Width = 0
+                 or else Source_Height = 0
+                 or else Natural (Icon.Thumbnail_Pixels.Length) /= Source_Width * Source_Height * 4
+               then
+                  return False;
+               end if;
+
+               for Y in 0 .. Tile_Size - 1 loop
+                  for X in 0 .. Tile_Size - 1 loop
+                     declare
+                        Source_X : constant Natural := (X * Source_Width) / Tile_Size;
+                        Source_Y : constant Natural := (Y * Source_Height) / Tile_Size;
+                        Offset   : constant Positive :=
+                          Positive (((Source_Y * Source_Width) + Source_X) * 4 + 1);
+                     begin
+                        Put_Pixel
+                          (Tile_X + X,
+                           Y,
+                           Icon.Thumbnail_Pixels.Element (Offset),
+                           Icon.Thumbnail_Pixels.Element (Offset + 1),
+                           Icon.Thumbnail_Pixels.Element (Offset + 2),
+                           Icon.Thumbnail_Pixels.Element (Offset + 3));
+                     end;
+                  end loop;
+               end loop;
+
+               return True;
+            end Rasterize_Thumbnail;
          begin
+            if Rasterize_Thumbnail then
+               return;
+            end if;
+
             if not Asset.Valid then
                Asset :=
                  Files.Rendering.Parse_Icon_Asset
@@ -3896,8 +3998,13 @@ package body Files.Rendering.Vulkan is
 
          Tile_Index : Natural := 0;
       begin
-         if Result.Text_Atlas_Used
-           or else Icon_Count = 0
+         for Icon of Frame.Icons loop
+            if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
+               Icon_Count := Icon_Count + 1;
+            end if;
+         end loop;
+
+         if Icon_Count = 0
            or else Icon_Count > Max_Icon_Atlas_Tiles
          then
             return;
@@ -3912,8 +4019,10 @@ package body Files.Rendering.Vulkan is
          Append_Clear_Pixels (Result.Icon_Atlas_Bytes);
 
          for Icon of Frame.Icons loop
-            Rasterize_Asset (Tile_Index, Icon);
-            Tile_Index := Tile_Index + 1;
+            if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
+               Rasterize_Asset (Tile_Index, Icon);
+               Tile_Index := Tile_Index + 1;
+            end if;
          end loop;
       end Build_Icon_Atlas;
    begin
@@ -3979,35 +4088,47 @@ package body Files.Rendering.Vulkan is
       if Result.Icon_Atlas_Dirty then
          declare
             Source_Icon_Index : Natural := 0;
+            Icon_Count : Natural := 0;
          begin
             for Icon of Frame.Icons loop
-               declare
-                  Before : constant Natural := Natural (Result.Vertices.Length);
-                  Icon_Count : constant Natural := Natural (Frame.Icons.Length);
-                  U0 : constant Float :=
-                    (if Icon_Count = 0 then 0.0 else Float (Source_Icon_Index) / Float (Icon_Count));
-                  U1 : constant Float :=
-                    (if Icon_Count = 0 then 0.0 else Float (Source_Icon_Index + 1) / Float (Icon_Count));
-               begin
-                  Append_Quad
-                    (X        => Float (Icon.X),
-                     Y        => Float (Icon.Y),
-                     Width    => Float (Icon.Size),
-                     Height   => Float (Icon.Size),
-                     U0       => U0,
-                     V0       => 0.0,
-                     U1       => U1,
-                     V1       => 1.0,
-                     Color    => Files.Rendering.Icon_File_Color,
-                     Textured => True,
-                     Texture  => Texture_Icon_Atlas);
-                  Result.Icon_Vertex_Count :=
-                    Result.Icon_Vertex_Count + Natural (Result.Vertices.Length) - Before;
-                  if Natural (Result.Vertices.Length) > Before then
-                     Result.Icon_Quad_Count := Result.Icon_Quad_Count + 1;
-                  end if;
-                  Source_Icon_Index := Source_Icon_Index + 1;
-               end;
+               if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
+                  Icon_Count := Icon_Count + 1;
+               end if;
+            end loop;
+
+            for Icon of Frame.Icons loop
+               if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
+                  declare
+                     Before : constant Natural := Natural (Result.Vertices.Length);
+                     U0     : constant Float :=
+                       (if Icon_Count = 0
+                        then 0.0
+                        else Float (Source_Icon_Index) / Float (Icon_Count));
+                     U1     : constant Float :=
+                       (if Icon_Count = 0
+                        then 0.0
+                        else Float (Source_Icon_Index + 1) / Float (Icon_Count));
+                  begin
+                     Append_Quad
+                       (X        => Float (Icon.X),
+                        Y        => Float (Icon.Y),
+                        Width    => Float (Icon.Size),
+                        Height   => Float (Icon.Size),
+                        U0       => U0,
+                        V0       => 0.0,
+                        U1       => U1,
+                        V1       => 1.0,
+                        Color    => Files.Rendering.Icon_File_Color,
+                        Textured => True,
+                        Texture  => Texture_Icon_Atlas);
+                     Result.Icon_Vertex_Count :=
+                       Result.Icon_Vertex_Count + Natural (Result.Vertices.Length) - Before;
+                     if Natural (Result.Vertices.Length) > Before then
+                        Result.Icon_Quad_Count := Result.Icon_Quad_Count + 1;
+                     end if;
+                     Source_Icon_Index := Source_Icon_Index + 1;
+                  end;
+               end if;
             end loop;
          end;
       end if;

@@ -49,6 +49,11 @@ package Files.Rendering is
       Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Permissions        : UString;
       Filetype_Extra     : UString;
+      Thumbnail_Available : Boolean := False;
+      Thumbnail_Path      : UString;
+      Thumbnail_Width     : Natural := 0;
+      Thumbnail_Height    : Natural := 0;
+      Thumbnail_Pixels    : Files.Types.Byte_Vectors.Vector;
       Metadata_Error     : Boolean := False;
       Error_Key          : UString;
       Selected           : Boolean := False;
@@ -143,8 +148,6 @@ package Files.Rendering is
       Settings_Draft_Error  : UString;
       Settings_Can_Save     : Boolean := False;
       Settings_Can_Reset    : Boolean := False;
-      Settings_Can_Import   : Boolean := False;
-      Settings_Can_Export   : Boolean := False;
       Theme_Name            : UString;
       Theme_High_Contrast   : Boolean := False;
       Theme_Focus_Ring      : Render_Color := Border_Color;
@@ -322,13 +325,10 @@ package Files.Rendering is
       Open_Action_Controls  : Natural := 0;
       Supports_Save         : Boolean := True;
       Supports_Reset        : Boolean := True;
-      Supports_Import       : Boolean := True;
-      Supports_Export       : Boolean := True;
       Per_Field_Diagnostics : Boolean := True;
       Supports_Option_Cycling : Boolean := True;
       Supports_Add_Remove_Mapping : Boolean := True;
       Supports_Draft_Validation : Boolean := True;
-      Supports_Native_Dialog_Policy : Boolean := True;
       Saves_Central_Settings : Boolean := True;
    end record;
 
@@ -495,6 +495,9 @@ package Files.Rendering is
       Icon_Id    : UString;
       Theme_Name : UString;
       Asset_Path : UString;
+      Thumbnail_Width  : Natural := 0;
+      Thumbnail_Height : Natural := 0;
+      Thumbnail_Pixels : Files.Types.Byte_Vectors.Vector;
    end record;
 
    package Icon_Command_Vectors is new Ada.Containers.Vectors
@@ -758,6 +761,10 @@ package Files.Rendering is
    --  @param Pressed_X Pressed pointer x coordinate in framebuffer pixels.
    --  @param Pressed_Y Pressed pointer y coordinate in framebuffer pixels.
    --  @param Has_Press Whether pressed coordinates are currently valid.
+   --  @param Drag_Item_Index Visible item index being dragged.
+   --  @param Drag_X Drag pointer x coordinate in framebuffer pixels.
+   --  @param Drag_Y Drag pointer y coordinate in framebuffer pixels.
+   --  @param Has_Drag Whether drag preview coordinates are currently valid.
    --  @return Frame command list for a renderer backend.
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
@@ -769,7 +776,11 @@ package Files.Rendering is
       Has_Hover   : Boolean := False;
       Pressed_X   : Natural := 0;
       Pressed_Y   : Natural := 0;
-      Has_Press   : Boolean := False)
+      Has_Press   : Boolean := False;
+      Drag_Item_Index : Natural := 0;
+      Drag_X      : Natural := 0;
+      Drag_Y      : Natural := 0;
+      Has_Drag    : Boolean := False)
       return Frame_Commands;
 
    --  Return the first known monospace TrueType font available on the system.

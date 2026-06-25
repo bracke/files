@@ -98,28 +98,6 @@ package Files.Controller is
       Settings_Path : String)
       return Controller_Result;
 
-   --  Import the central settings file into the editable draft.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings_Path Central settings file path.
-   --  @return Controller result with import operation details.
-   function Import_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings_Path : String)
-      return Controller_Result;
-
-   --  Export the current applied settings to the central settings file.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Settings model to export.
-   --  @param Settings_Path Central settings file path.
-   --  @return Controller result with export operation details.
-   function Export_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String)
-      return Controller_Result;
-
    --  Execute a command produced by a toolbar or bottom-bar hit test.
    --
    --  @param Id Command identifier from the clicked UI control.

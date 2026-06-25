@@ -1811,30 +1811,6 @@ package body Files.Settings is
       return Make_Draft (Default_Settings);
    end Reset_Draft_To_Defaults;
 
-   function Import_Draft
-     (Path : String)
-      return Settings_Parse_Result
-   is
-      Loaded : constant Settings_Parse_Result := Load_File (Path);
-   begin
-      if not Loaded.Success then
-         return Loaded;
-      end if;
-
-      return
-        (Success   => True,
-         Settings  => Loaded.Settings,
-         Error_Key => Null_Unbounded_String);
-   end Import_Draft;
-
-   function Export_Settings
-     (Path     : String;
-      Settings : Settings_Model)
-      return Settings_Write_Result is
-   begin
-      return Save_Text (Path, To_Text (Settings));
-   end Export_Settings;
-
    function Save_Text
      (Path : String;
       Text : String)

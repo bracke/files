@@ -249,24 +249,6 @@ package Files.Settings is
    --  @return Draft created from Default_Settings.
    function Reset_Draft_To_Defaults return Settings_Draft;
 
-   --  Import settings from Path into an editable draft.
-   --
-   --  @param Path Settings file path.
-   --  @return Parsed settings as a draft, or a diagnostic key.
-   function Import_Draft
-     (Path : String)
-      return Settings_Parse_Result;
-
-   --  Export settings to Path.
-   --
-   --  @param Path Destination settings file path.
-   --  @param Settings Settings model to export.
-   --  @return Write result with deterministic diagnostic key.
-   function Export_Settings
-     (Path     : String;
-      Settings : Settings_Model)
-      return Settings_Write_Result;
-
    --  Write default settings to Path when it does not already exist.
    --
    --  Parent directories are created as needed. Existing regular files are left

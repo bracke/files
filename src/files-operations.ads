@@ -237,9 +237,11 @@ package Files.Operations is
    --  Generate cached thumbnails for selected regular files.
    --
    --  @param Model Window model to inspect.
+   --  @param Settings Settings model used for directory reload classification.
    --  @return Structured operation result with first generated thumbnail path.
    function Generate_Selected_Thumbnails
-     (Model : in out Files.Model.Window_Model)
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
    --  Import dropped paths into the current directory and refresh the model.
@@ -254,6 +256,22 @@ package Files.Operations is
       Settings     : Files.Settings.Settings_Model;
       Source_Paths : Files.Types.String_Vectors.Vector;
       Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result;
+
+   --  Import dropped paths into a specific destination directory.
+   --
+   --  @param Model Window model to refresh after a successful import.
+   --  @param Settings Settings model used for directory classification.
+   --  @param Source_Paths Paths received from a drag-and-drop operation.
+   --  @param Destination_Directory Directory receiving the dropped entries.
+   --  @param Mode Copy or move mode for all valid plans.
+   --  @return Structured operation result.
+   function Import_Dropped_Paths_To
+     (Model                 : in out Files.Model.Window_Model;
+      Settings              : Files.Settings.Settings_Model;
+      Source_Paths          : Files.Types.String_Vectors.Vector;
+      Destination_Directory : String;
+      Mode                  : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Operation_Result;
 
    --  Commit the active create-file temporary item to the filesystem.

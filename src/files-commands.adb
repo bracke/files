@@ -46,8 +46,6 @@ package body Files.Commands is
    begin
       case Id is
          when Toggle_Settings_Pane_Command
-            | Import_Settings_Command
-            | Export_Settings_Command
             | Save_Settings_Command
             | Reset_Settings_Command
             | Open_Command_Palette_Command
@@ -127,10 +125,6 @@ package body Files.Commands is
             return "directory.search_recursive";
          when Refresh_Directory_Command =>
             return "directory.refresh";
-         when Import_Settings_Command =>
-            return "settings.import";
-         when Export_Settings_Command =>
-            return "settings.export";
          when Save_Settings_Command =>
             return "settings.save";
          when Reset_Settings_Command =>
@@ -207,10 +201,6 @@ package body Files.Commands is
             return "command.directory.search_recursive";
          when Refresh_Directory_Command =>
             return "command.directory.refresh";
-         when Import_Settings_Command =>
-            return "command.settings.import";
-         when Export_Settings_Command =>
-            return "command.settings.export";
          when Save_Settings_Command =>
             return "command.settings.save";
          when Reset_Settings_Command =>
@@ -287,10 +277,6 @@ package body Files.Commands is
             return "command.directory.search_recursive.description";
          when Refresh_Directory_Command =>
             return "command.directory.refresh.description";
-         when Import_Settings_Command =>
-            return "command.settings.import.description";
-         when Export_Settings_Command =>
-            return "command.settings.export.description";
          when Save_Settings_Command =>
             return "command.settings.save.description";
          when Reset_Settings_Command =>
@@ -348,8 +334,6 @@ package body Files.Commands is
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Refresh_Directory_Command =>
             return (True, Files.Types.Key_R, Ctrl);
-         when Import_Settings_Command | Export_Settings_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Save_Settings_Command =>
             return (True, Files.Types.Key_S, Ctrl);
          when Reset_Settings_Command =>
@@ -589,9 +573,7 @@ package body Files.Commands is
             return Bottom_Bar;
          when Toggle_Settings_Pane_Command =>
             return Command_Palette_Only;
-         when Import_Settings_Command
-            | Export_Settings_Command
-            | Save_Settings_Command
+         when Save_Settings_Command
             | Reset_Settings_Command
             | Eject_Selected_Root_Command =>
             return Command_Palette_Only;
@@ -614,9 +596,7 @@ package body Files.Commands is
       return Boolean is
    begin
       case Id is
-         when Import_Settings_Command
-            | Export_Settings_Command
-            | Save_Settings_Command =>
+         when Save_Settings_Command =>
             return True;
          when others =>
             return False;
@@ -701,9 +681,7 @@ package body Files.Commands is
          when Select_All_Command =>
             return Files.Model.Visible_Count (Model) > 0
               and then not Files.Model.Temporary_Item_Is_Active (Model);
-         when Import_Settings_Command
-            | Export_Settings_Command
-            | Save_Settings_Command
+         when Save_Settings_Command
             | Reset_Settings_Command =>
             return Files.Model.Settings_Pane_Is_Open (Model);
          when others =>
@@ -822,10 +800,6 @@ package body Files.Commands is
          when Search_Recursive_Command =>
             null;
          when Refresh_Directory_Command =>
-            null;
-         when Import_Settings_Command =>
-            null;
-         when Export_Settings_Command =>
             null;
          when Save_Settings_Command =>
             null;

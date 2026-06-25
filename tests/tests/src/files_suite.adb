@@ -23,11 +23,13 @@ with Glfw.Input.Mouse;
 with GNAT.OS_Lib;
 with Textrender.Fonts;
 
+with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
 with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
+with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.File_Types;
@@ -37,7 +39,6 @@ with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Platform;
-with Files.Platform.Dialogs;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
 with Files.Settings;
@@ -59,12 +60,12 @@ package body Files_Suite is
    use type Files.File_System.Native_API_Binding_Status;
    use type Files.File_System.Native_Platform_Adapter;
    use type Files.File_System.Path_Status;
+   use type Files.File_System.Drop_Import_Mode;
    use type Files.File_System.Root_Kind;
    use type Files.File_System.Root_Readiness;
    use type Files.File_System.Thumbnail_Status;
    use type Files.File_System.Trash_Backend;
    use type Files.Application.Run_Mode;
-   use type Files.Application.Windows.Native_File_Dialog_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
    use type Files.Rendering.Accessibility_Role;
@@ -989,7 +990,6 @@ package body Files_Suite is
    procedure Test_Startup_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir      : constant String := Join (Root, "report-dir");
-      Settings_File_Path : constant String := Join (Dir, "files.conf");
       Missing  : constant String := Join (Root, "missing-report-dir");
       Args     : Files.Types.String_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -999,12 +999,6 @@ package body Files_Suite is
       Caps     : Files.Application.Windows.Desktop_Capabilities;
       Plan     : Files.Application.Windows.Live_Smoke_Plan;
       Live_Result : Files.Application.Windows.Live_Smoke_Result;
-      Dialog_Request : Files.Application.Windows.Native_File_Dialog_Request;
-      Dialog_Result  : Files.Application.Windows.Native_File_Dialog_Result;
-      Import_Request : Files.Application.Windows.Native_File_Dialog_Request;
-      Export_Request : Files.Application.Windows.Native_File_Dialog_Request;
-      Dialog_Profile : Files.Platform.Dialogs.Native_Dialog_Profile;
-      Completed_Dialog : Files.Application.Windows.Native_File_Dialog_Result;
       Scroll_Remainder : Long_Float := 0.0;
       Scroll_Lines     : Integer;
    begin
@@ -1038,6 +1032,13 @@ package body Files_Suite is
            (To_String (Smoke), Files.Localization.Text ("runtime.smoke.vertices") & ": ") > 0,
          "runtime smoke report uses localized vertex-count label");
       Assert
+        (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.ready")) > 0,
+         "runtime smoke report exposes headless render quality status");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (To_String (Smoke), Files.Localization.Text ("runtime.smoke.frames_attempted") & ": 1") > 0,
+         "runtime smoke report exposes headless render quality frame count");
+      Assert
         (Ada.Strings.Fixed.Index
            (To_String (Smoke), Files.Localization.Text ("runtime.smoke.missing_glyphs") & ": 0") > 0,
          "runtime smoke report exposes missing-glyph fallback count");
@@ -1052,106 +1053,71 @@ package body Files_Suite is
         (Files.Application.Runtime_Smoke_Report ((others => <>)) =
          Files.Localization.Text ("runtime.smoke.no_windows"),
          "runtime smoke report uses localized empty-startup diagnostic");
+      declare
+         Quality : constant Files.Application.Windows.Headless_Render_Quality_Result :=
+           Files.Application.Windows.Headless_Render_Quality_Report (Startup, Width => 1000, Height => 800);
+      begin
+         Assert (Quality.Window_Count = 1, "headless render quality report counts windows");
+         Assert (Quality.Nonblank_Frames = 1, "headless render quality report catches blank frames");
+         Assert (Quality.Text_Glyph_Frames = 1, "headless render quality report catches missing text output");
+         Assert (Quality.Icon_Frames = 1, "headless render quality report catches missing icon output");
+         Assert (Quality.Toolbar_Icon_Frames = 1, "headless render quality report catches missing toolbar icons");
+         Assert (Quality.Drag_Preview_Frames = 1, "headless render quality report catches invisible drag previews");
+         Assert (Quality.Missing_Glyph_Count = 0, "headless render quality report catches missing glyphs");
+         Assert (Quality.Passed, "headless render quality report passes for startup windows");
+      end;
       Caps := Files.Application.Windows.Runtime_Capabilities;
       Assert (Caps.Headless_Rendering, "runtime capabilities advertise headless rendering");
       Assert
         (Caps.Live_Window_Smoke_Ready = (Caps.Display_Available and then Caps.Vulkan_Available),
          "runtime capabilities gate live window smoke on display and Vulkan");
-      Assert
-        (Caps.Native_File_Dialogs = Files.Application.Windows.Native_File_Dialogs_Available,
-         "runtime capabilities expose native file dialog availability");
       Assert (Caps.Event_Translation_Model, "runtime capabilities expose event translation model");
       Assert (Caps.Focus_Runtime_Model, "runtime capabilities expose focus model");
       Assert (Caps.Resize_Runtime_Model, "runtime capabilities expose resize model");
       Assert (Caps.Scroll_Runtime_Model, "runtime capabilities expose scroll model");
       Assert (Caps.Native_Drop_Callbacks, "runtime capabilities expose native drop callbacks");
       Assert
-        (not Caps.Native_Drop_Automation,
-         "runtime capabilities do not claim portable native drop automation");
+        (Caps.Native_Drop_Automation,
+         "runtime capabilities expose drop event-source automation");
       declare
          Drop_Profile : constant Files.Application.Windows.Native_Drag_Automation_Profile :=
            Files.Application.Windows.Native_Drag_Automation_Profile_Of_Current_Runtime;
+         Event_Profile : constant Files.Drop_Events.Drop_Event_Source_Profile := Files.Drop_Events.Profile;
+         Source        : Files.Drop_Events.Drop_Event_Source;
+         Paths         : Files.Types.String_Vectors.Vector;
+         Drained       : Files.Types.String_Vectors.Vector;
+         Mode          : Files.File_System.Drop_Import_Mode;
       begin
          Assert (Drop_Profile.Native_Drop_Callbacks, "drag automation profile keeps native drop callbacks separate");
          Assert
            (not Drop_Profile.Portable_GLFW_Automation,
             "drag automation profile rejects portable GLFW event synthesis");
+         Assert (Drop_Profile.Event_Source_Backend, "drag automation profile exposes an Ada event-source backend");
+         Assert (Drop_Profile.Queued_Drop_Imports, "drag automation profile supports queued drop imports");
          Assert
-           (Drop_Profile.Requires_OS_Event_Source,
-            "drag automation profile requires OS event-source backends");
-         Assert (Drop_Profile.X11_Xdnd_Required, "drag automation profile records X11 Xdnd requirement");
+           (not Drop_Profile.Requires_OS_Event_Source,
+            "drag automation profile no longer blocks on OS event-source backends");
          Assert
-           (Drop_Profile.Wayland_Source_Protocol_Required,
-            "drag automation profile records Wayland source protocol requirement");
+           (Drop_Profile.Max_Paths = Event_Profile.Max_Paths,
+            "drag automation profile uses the drop event backend path limit");
          Assert
-           (Drop_Profile.Windows_Native_Injection_Required,
-            "drag automation profile records Windows native injection requirement");
-         Assert
-           (Drop_Profile.Macos_Native_Injection_Required,
-            "drag automation profile records macOS native injection requirement");
-         Assert
-           (To_String (Drop_Profile.Binding_Unit) = "Files.Application.Windows",
-            "drag automation profile records owning binding unit");
+           (To_String (Drop_Profile.Binding_Unit) = "Files.Drop_Events",
+            "drag automation profile records owning backend unit");
+         Assert (Event_Profile.Event_Source_Backend, "drop event backend profile exposes event-source support");
+         Paths.Append (To_Unbounded_String (""));
+         Paths.Append (To_Unbounded_String ("  " & Dir & "  "));
+         Paths.Append (To_Unbounded_String ("  "));
+         Files.Drop_Events.Queue (Source, Paths, Files.File_System.Drop_Move);
+         Assert (Files.Drop_Events.Has_Pending (Source), "drop event source queues non-empty paths");
+         Assert (Files.Drop_Events.Pending_Count (Source) = 1, "drop event source filters empty paths");
+         Files.Drop_Events.Take (Source, Drained, Mode);
+         Assert (Mode = Files.File_System.Drop_Move, "drop event source preserves queued import mode");
+         Assert (Natural (Drained.Length) = 1, "drop event source drains one filtered path");
+         Assert (To_String (Drained.Element (1)) = Dir, "drop event source trims queued path text");
+         Assert (not Files.Drop_Events.Has_Pending (Source), "drop event source clears after drain");
       end;
       Assert (Caps.Directory_Watch_Polling, "runtime capabilities expose directory watch polling");
       Assert (Caps.Native_File_Watching, "runtime capabilities expose native file watching");
-      declare
-         Runtime_Model   : Files.Model.Window_Model := Sample_Model;
-         Runtime_Result  : Files.Controller.Controller_Result;
-         Runtime_Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      begin
-         Runtime_Result :=
-           Files.Controller.Execute_Command
-             (Files.Commands.Import_Settings_Command, Runtime_Model, Runtime_Settings);
-         Assert
-           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
-            "runtime does not open settings dialogs while settings pane is closed");
-         Runtime_Result :=
-           Files.Controller.Execute_Command
-             (Files.Commands.Toggle_Settings_Pane_Command, Runtime_Model, Runtime_Settings);
-         Runtime_Result :=
-           Files.Controller.Execute_Command
-             (Files.Commands.Import_Settings_Command, Runtime_Model, Runtime_Settings);
-         Assert
-           (Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
-            "runtime resolves settings import path after pure controller dialog preflight");
-         Runtime_Result :=
-           Files.Controller.Execute_Command
-             (Files.Commands.Save_Settings_Command, Runtime_Model, Runtime_Settings);
-         Assert
-           (Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
-            "runtime resolves settings save path after command execution");
-         Runtime_Result :=
-           (Status    => Files.Controller.Controller_Command_Executed,
-            Command   => Files.Commands.Save_Settings_Command,
-            Operation =>
-              (Status    => Files.Operations.Operation_Failed,
-               Error_Key => To_Unbounded_String ("error.settings.save"),
-               Path      => To_Unbounded_String ("/tmp/files-settings.conf"),
-               Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
-               others    => <>));
-         Assert
-           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
-            "runtime does not re-resolve a settings command after handled save failure");
-         Runtime_Result :=
-           (Status    => Files.Controller.Controller_Command_Executed,
-            Command   => Files.Commands.Export_Settings_Command,
-            Operation =>
-              (Status    => Files.Operations.Operation_Success,
-               Error_Key => Null_Unbounded_String,
-               Path      => To_Unbounded_String ("/tmp/files-export.conf"),
-               Action    => Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
-               others    => <>));
-         Assert
-           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
-            "runtime does not re-resolve a settings command after handled export success");
-         Runtime_Result :=
-           Files.Controller.Execute_Command
-             (Files.Commands.Reset_Settings_Command, Runtime_Model, Runtime_Settings);
-         Assert
-           (not Files.Application.Windows.Runtime_Should_Resolve_Settings_Path (Runtime_Result),
-            "runtime does not resolve paths for settings commands without path dependency");
-      end;
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.40);
       Assert (Scroll_Lines = 0, "fractional scroll starts below one line");
       Assert (abs (Scroll_Remainder - 0.40) < 0.000_001, "fractional scroll remainder is retained");
@@ -1216,209 +1182,6 @@ package body Files_Suite is
       Assert
         (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (0)) = 0,
          "runtime coordinate scaling rejects zero target dimensions");
-      Dialog_Profile := Files.Platform.Dialogs.Profile;
-      Assert
-        (Files.Platform.Dialogs.Available = Caps.Native_File_Dialogs,
-         "platform dialog availability feeds runtime capabilities");
-      Assert (Dialog_Profile.Mode_Preflight, "platform dialog profile exposes mode preflight");
-      Assert
-        (Dialog_Profile.Settings_Import_Export,
-         "platform dialog profile exposes settings import and export integration");
-      Assert (Dialog_Profile.Extension_Filtering, "platform dialog profile exposes extension filtering");
-      Assert (Dialog_Profile.User_Mediated, "platform dialog profile records user-mediated selection");
-      Assert
-        (Dialog_Profile.Path_Result_Normalization,
-         "platform dialog profile exposes selected path normalization");
-      Assert
-        (Files.Application.Windows.Native_File_Dialog_Mode_Available
-           (Files.Application.Windows.Open_File_Dialog) =
-         (Dialog_Profile.Binding_Status = Files.File_System.Native_API_Binding_Available
-          and then Dialog_Profile.Can_Open_File
-          and then not Dialog_Profile.Uses_Shell),
-         "open-file dialog availability follows platform dialog profile");
-      Assert
-        (Files.Application.Windows.Native_File_Dialog_Mode_Available
-           (Files.Application.Windows.Save_File_Dialog) =
-         (Dialog_Profile.Binding_Status = Files.File_System.Native_API_Binding_Available
-          and then Dialog_Profile.Can_Save_File
-          and then not Dialog_Profile.Uses_Shell),
-         "save-file dialog availability follows platform dialog profile");
-      Assert
-        (To_String (Dialog_Profile.Backend_Name) = Files.Platform.Dialogs.Backend_Name,
-         "platform dialog profile exposes stable backend name");
-      Assert
-        (To_String (Dialog_Profile.Binding_Unit) = "Files.Platform.Dialogs",
-         "platform dialog profile records the Ada binding unit");
-      Assert (not Dialog_Profile.Uses_Shell, "platform dialog profile does not claim shell dialogs");
-      Assert
-        (not Dialog_Profile.Can_Open_File or else Dialog_Profile.Binding_Status =
-           Files.File_System.Native_API_Binding_Available,
-         "platform dialog open support requires an available native binding");
-      Assert
-        (not Dialog_Profile.Can_Save_File or else Dialog_Profile.Binding_Status =
-           Files.File_System.Native_API_Binding_Available,
-         "platform dialog save support requires an available native binding");
-      Dialog_Request :=
-        (Mode               => Files.Application.Windows.Open_File_Dialog,
-         Title_Key          => To_Unbounded_String ("dialog.settings.import"),
-         Initial_Path       => To_Unbounded_String (Dir),
-         Suggested_Name     => To_Unbounded_String ("settings.conf"),
-         Required_Extension => To_Unbounded_String ("conf"));
-      Dialog_Result := Files.Application.Windows.Evaluate_Native_File_Dialog (Dialog_Request);
-      Assert
-        (Dialog_Result.Supported =
-         Files.Application.Windows.Native_File_Dialog_Mode_Available (Dialog_Request.Mode),
-         "native dialog preflight matches requested mode availability");
-      Assert (not Dialog_Result.Attempted, "native dialog preflight does not open a dialog");
-      Assert (not Dialog_Result.Completed, "native dialog preflight does not select a path");
-      Assert
-        (To_String (Dialog_Result.Backend_Name) = Files.Platform.Dialogs.Backend_Name,
-         "native dialog result identifies the platform backend state");
-      if not Dialog_Result.Supported then
-         Assert
-           (To_String (Dialog_Result.Error_Key) = "error.dialog.native_unavailable",
-            "native dialog preflight reports localized unavailable status");
-      end if;
-      Dialog_Result := Files.Application.Windows.Open_Native_File_Dialog (Dialog_Request);
-      Assert (not Dialog_Result.Completed, "native dialog execution reports no selection without a backend");
-      Assert
-        (To_String (Dialog_Result.Error_Key) = "error.dialog.native_unavailable",
-         "native dialog execution reports localized unavailable status");
-      Assert
-        (not Files.Application.Windows.Settings_Path_Selected (Dialog_Result),
-         "unavailable native dialog result is not treated as a selected settings path");
-      Assert
-        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Dialog_Result)) =
-         Settings_File_Path,
-         "settings dialog path falls back to configured path without a completed dialog");
-      Completed_Dialog :=
-        (Supported     => True,
-         Attempted     => True,
-         Completed     => True,
-         Selected_Path => To_Unbounded_String (Join (Dir, "chosen.conf")),
-         Backend_Name  => To_Unbounded_String ("test"),
-         Error_Key     => Null_Unbounded_String);
-      Assert
-        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Completed_Dialog)) =
-         Join (Dir, "chosen.conf"),
-         "settings dialog path uses completed native selection");
-      Assert
-        (Files.Application.Windows.Settings_Path_Selected (Completed_Dialog),
-         "completed native dialog result with a path is treated as selected");
-      Completed_Dialog.Supported := False;
-      Assert
-        (not Files.Application.Windows.Settings_Path_Selected (Completed_Dialog),
-         "unsupported native dialog result with a path is not treated as selected");
-      Assert
-        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Completed_Dialog)) =
-         Settings_File_Path,
-         "unsupported native dialog result with a path falls back to configured settings path");
-      Completed_Dialog.Supported := True;
-      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request (Settings_File_Path);
-      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "chosen"));
-      Assert
-        (To_String
-           (Files.Application.Windows.Settings_Path_After_Dialog
-              (Settings_File_Path, Export_Request, Completed_Dialog)) =
-         Join (Dir, "chosen.conf"),
-         "settings save dialog appends the required extension");
-      Export_Request.Required_Extension := To_Unbounded_String (".conf");
-      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "dotted"));
-      Assert
-        (To_String
-           (Files.Application.Windows.Settings_Path_After_Dialog
-              (Settings_File_Path, Export_Request, Completed_Dialog)) =
-         Join (Dir, "dotted.conf"),
-         "settings save dialog normalizes a dotted required extension before appending");
-      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "dotted.conf"));
-      Assert
-        (To_String
-           (Files.Application.Windows.Settings_Path_After_Dialog
-              (Settings_File_Path, Export_Request, Completed_Dialog)) =
-         Join (Dir, "dotted.conf"),
-         "settings save dialog normalizes a dotted required extension before comparison");
-      Export_Request.Required_Extension := To_Unbounded_String ("  .conf  ");
-      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "padded"));
-      Assert
-        (To_String
-           (Files.Application.Windows.Settings_Path_After_Dialog
-              (Settings_File_Path, Export_Request, Completed_Dialog)) =
-         Join (Dir, "padded.conf"),
-         "settings save dialog trims a padded required extension before appending");
-      Export_Request.Required_Extension := To_Unbounded_String ("conf");
-      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "chosen.CONF"));
-      Assert
-        (To_String
-           (Files.Application.Windows.Settings_Path_After_Dialog
-              (Settings_File_Path, Export_Request, Completed_Dialog)) =
-         Join (Dir, "chosen.CONF"),
-         "settings save dialog preserves an existing extension case-insensitively");
-      Import_Request := Files.Application.Windows.Settings_Import_Dialog_Request (Settings_File_Path);
-      Completed_Dialog.Selected_Path := To_Unbounded_String (Join (Dir, "chosen"));
-      Assert
-        (To_String
-           (Files.Application.Windows.Settings_Path_After_Dialog
-              (Settings_File_Path, Import_Request, Completed_Dialog)) =
-         Join (Dir, "chosen"),
-         "settings open dialog does not append the save extension");
-      Completed_Dialog.Selected_Path := Null_Unbounded_String;
-      Assert
-        (To_String (Files.Application.Windows.Settings_Path_After_Dialog (Settings_File_Path, Completed_Dialog)) =
-         Settings_File_Path,
-         "settings dialog path rejects empty completed selections");
-      Assert
-        (not Files.Application.Windows.Settings_Path_Selected (Completed_Dialog),
-         "completed native dialog result with an empty path is not treated as selected");
-      Import_Request := Files.Application.Windows.Settings_Import_Dialog_Request (Settings_File_Path);
-      Assert
-        (Import_Request.Mode = Files.Application.Windows.Open_File_Dialog,
-         "settings import uses a native open-file dialog request");
-      Assert
-        (To_String (Import_Request.Title_Key) = "dialog.settings.import",
-         "settings import dialog uses a localized title key");
-      Assert
-        (To_String (Import_Request.Initial_Path) = Dir,
-         "settings import dialog starts in the settings parent directory");
-      Assert
-        (To_String (Import_Request.Suggested_Name) = "files.conf",
-         "settings import dialog suggests the current settings filename");
-      Assert
-        (To_String (Import_Request.Required_Extension) = "conf",
-         "settings import dialog constrains settings file extension");
-      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request (Settings_File_Path);
-      Assert
-        (Export_Request.Mode = Files.Application.Windows.Save_File_Dialog,
-         "settings export uses a native save-file dialog request");
-      Assert
-        (To_String (Export_Request.Title_Key) = "dialog.settings.export",
-         "settings export dialog uses a localized title key");
-      Assert
-        (To_String (Export_Request.Initial_Path) = Dir,
-         "settings export dialog starts in the settings parent directory");
-      Assert
-        (To_String (Export_Request.Suggested_Name) = "files.conf",
-         "settings export dialog suggests the current settings filename");
-      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request ("");
-      Assert
-        (To_String (Export_Request.Initial_Path) = ".",
-         "settings export dialog has a deterministic empty-path directory fallback");
-      Assert
-        (To_String (Export_Request.Suggested_Name) = "files.conf",
-         "settings export dialog has a deterministic empty-path filename fallback");
-      Import_Request := Files.Application.Windows.Settings_Import_Dialog_Request ("C:\Users\Ada\files.conf");
-      Assert
-        (To_String (Import_Request.Initial_Path) = "C:\Users\Ada",
-         "settings import dialog handles Windows-style parent paths");
-      Assert
-        (To_String (Import_Request.Suggested_Name) = "files.conf",
-         "settings import dialog handles Windows-style suggested names");
-      Export_Request := Files.Application.Windows.Settings_Export_Dialog_Request ("C:\files.conf");
-      Assert
-        (To_String (Export_Request.Initial_Path) = "C:\",
-         "settings export dialog preserves Windows drive-root parent paths");
-      Assert
-        (To_String (Export_Request.Suggested_Name) = "files.conf",
-         "settings export dialog handles Windows drive-root suggested names");
       Plan := Files.Application.Windows.Live_Window_Smoke_Plan (Width => 640, Height => 360);
       Assert (Plan.Width = 640, "live smoke plan records requested width");
       Assert (Plan.Height = 360, "live smoke plan records requested height");
@@ -2930,12 +2693,6 @@ package body Files_Suite is
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
          "reset settings is disabled without settings pane");
-      Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Import_Settings_Command, Model),
-         "import settings is disabled without settings pane");
-      Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Export_Settings_Command, Model),
-         "export settings is disabled without settings pane");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens settings pane with editable draft");
       Assert
@@ -2969,8 +2726,6 @@ package body Files_Suite is
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller reopens settings pane with editable draft");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model), "save settings is enabled");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model), "reset settings is enabled");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Import_Settings_Command, Model), "import settings is enabled");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Export_Settings_Command, Model), "export settings is enabled");
       Files.Controller.Replace_Focused_Text (Model, "details");
       Assert (Files.Model.Settings_Field_Text (Model) = "details", "settings draft field is editable");
       Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
@@ -2979,19 +2734,6 @@ package body Files_Suite is
       Assert
         (Files.Model.Settings_Field_Text (Model) = "small_icons",
          "reset settings restores default draft view mode");
-      Result := Files.Controller.Execute_Command (Files.Commands.Import_Settings_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Import_Settings_Command, "pure import settings command is reported");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
-         "pure import settings command requires a runtime-selected path");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.dialog.native_unavailable",
-         "pure import settings command reports missing runtime dialog path");
-      Result := Files.Controller.Execute_Command (Files.Commands.Export_Settings_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Export_Settings_Command, "pure export settings command is reported");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
-         "pure export settings command requires a runtime-selected path");
       Result := Files.Controller.Execute_Command (Files.Commands.Save_Settings_Command, Model, Settings);
       Assert (Result.Command = Files.Commands.Save_Settings_Command, "pure save settings command is reported");
       Assert
@@ -4167,7 +3909,7 @@ package body Files_Suite is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 35, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 33, "all expected commands are registered");
       Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");
       Assert (Files.Commands.Contains ("settings.toggle"), "settings command identifier is registered");
       Assert (Files.Commands.Contains ("sort.menu.toggle"), "sort menu command identifier is registered");
@@ -4177,8 +3919,6 @@ package body Files_Suite is
       Assert (Files.Commands.Contains ("sort.created"), "sort by created command identifier is registered");
       Assert (Files.Commands.Contains ("sort.changed"), "sort by changed command identifier is registered");
       Assert (Files.Commands.Contains ("selection.select_all"), "select-all command identifier is registered");
-      Assert (Files.Commands.Contains ("settings.import"), "settings import command identifier is registered");
-      Assert (Files.Commands.Contains ("settings.export"), "settings export command identifier is registered");
       Assert (Files.Commands.Contains ("settings.save"), "settings save command identifier is registered");
       Assert (Files.Commands.Contains ("settings.reset"), "settings reset command identifier is registered");
       Assert (Files.Commands.Contains ("drive.eject_selected"), "drive eject command identifier is registered");
@@ -4346,20 +4086,8 @@ package body Files_Suite is
         (Files.Commands.Shortcut_For (Files.Commands.Save_Settings_Command).Key = Files.Types.Key_S,
          "settings save command uses S shortcut metadata");
       Assert
-        (not Files.Commands.Shortcut_For (Files.Commands.Import_Settings_Command).Present,
-         "settings import command is palette-only");
-      Assert
-        (not Files.Commands.Shortcut_For (Files.Commands.Export_Settings_Command).Present,
-         "settings export command is palette-only");
-      Assert
         (not Files.Commands.Shortcut_For (Files.Commands.Reset_Settings_Command).Present,
          "settings reset command is palette-only");
-      Assert
-        (Files.Commands.Requires_Settings_Path (Files.Commands.Import_Settings_Command),
-         "settings import requires a settings path");
-      Assert
-        (Files.Commands.Requires_Settings_Path (Files.Commands.Export_Settings_Command),
-         "settings export requires a settings path");
       Assert
         (Files.Commands.Requires_Settings_Path (Files.Commands.Save_Settings_Command),
          "settings save requires a settings path");
@@ -4434,9 +4162,6 @@ package body Files_Suite is
            (Files.Commands.Shortcut_Search_Text (Files.Commands.Open_Selected_Items_Command),
             "enter") > 0,
          "command shortcut search text includes return shortcut alias");
-      Assert
-        (Files.Commands.Shortcut_Search_Text (Files.Commands.Import_Settings_Command) = "",
-         "palette-only settings import has no shortcut search text");
       Assert
         (Files.Commands.Shortcut_Search_Text (Files.Commands.No_Command) = "",
          "no-command has no shortcut search text");
@@ -4604,14 +4329,6 @@ package body Files_Suite is
            Files.Commands.Command_Palette_Only,
          "settings reset command is palette-only metadata");
       Assert
-        (Files.Commands.Placement_For (Files.Commands.Import_Settings_Command) =
-           Files.Commands.Command_Palette_Only,
-         "settings import command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Export_Settings_Command) =
-           Files.Commands.Command_Palette_Only,
-         "settings export command is palette-only metadata");
-      Assert
         (Files.Commands.Placement_For (Files.Commands.Save_Settings_Command) =
            Files.Commands.Command_Palette_Only,
          "settings save command is palette-only metadata");
@@ -4644,10 +4361,6 @@ package body Files_Suite is
       Found_Root_Drive_Enabled : Boolean := False;
       Found_Reset_Disabled : Boolean := False;
       Found_Reset_Enabled  : Boolean := False;
-      Found_Import_Disabled : Boolean := False;
-      Found_Import_Enabled  : Boolean := False;
-      Found_Export_Disabled : Boolean := False;
-      Found_Export_Enabled  : Boolean := False;
       Found_Settings_Delete_Disabled : Boolean := False;
    begin
       All_Results := Files.Command_Palette.Search ("", Model);
@@ -4767,18 +4480,6 @@ package body Files_Suite is
          end if;
       end loop;
       Assert (Found_Reset_Disabled, "settings reset appears disabled when settings pane is closed");
-      for Result_Item of Files.Command_Palette.Search ("settings.import", Model) loop
-         if Result_Item.Command = Files.Commands.Import_Settings_Command and then not Result_Item.Enabled then
-            Found_Import_Disabled := True;
-         end if;
-      end loop;
-      Assert (Found_Import_Disabled, "settings import appears disabled when settings pane is closed");
-      for Result_Item of Files.Command_Palette.Search ("settings.export", Model) loop
-         if Result_Item.Command = Files.Commands.Export_Settings_Command and then not Result_Item.Enabled then
-            Found_Export_Disabled := True;
-         end if;
-      end loop;
-      Assert (Found_Export_Disabled, "settings export appears disabled when settings pane is closed");
       Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Files.Settings.Default_Settings));
       for Result_Item of Files.Command_Palette.Search ("Reset Settings", Model) loop
          if Result_Item.Command = Files.Commands.Reset_Settings_Command and then Result_Item.Enabled then
@@ -4786,18 +4487,6 @@ package body Files_Suite is
          end if;
       end loop;
       Assert (Found_Reset_Enabled, "palette search matches localized reset-settings label when enabled");
-      for Result_Item of Files.Command_Palette.Search ("Import Settings", Model) loop
-         if Result_Item.Command = Files.Commands.Import_Settings_Command and then Result_Item.Enabled then
-            Found_Import_Enabled := True;
-         end if;
-      end loop;
-      Assert (Found_Import_Enabled, "palette search matches localized import-settings label when enabled");
-      for Result_Item of Files.Command_Palette.Search ("Export Settings", Model) loop
-         if Result_Item.Command = Files.Commands.Export_Settings_Command and then Result_Item.Enabled then
-            Found_Export_Enabled := True;
-         end if;
-      end loop;
-      Assert (Found_Export_Enabled, "palette search matches localized export-settings label when enabled");
       Files.Model.Select_Visible (Model, 1);
       for Result_Item of Files.Command_Palette.Search ("file.delete_selected", Model) loop
          if Result_Item.Command = Files.Commands.Delete_Selected_Items_Command and then not Result_Item.Enabled then
@@ -5245,12 +4934,6 @@ package body Files_Suite is
       Assert (Files.Localization.Text ("status.visible") = "Visible", "visible-count label is localized");
       Assert (Files.Localization.Text ("status.selected") = "Selected", "selected-count label is localized");
       Assert
-        (Files.Localization.Text ("dialog.settings.import") = "Import Settings",
-         "import dialog title is localized");
-      Assert
-        (Files.Localization.Text ("dialog.settings.export") = "Export Settings",
-         "export dialog title is localized");
-      Assert
         (Files.Localization.Text ("status.missing_metadata") = "Unavailable",
          "missing metadata fallback is localized");
       Assert (Files.Localization.Text ("accessibility.toolbar") = "Toolbar", "toolbar landmark is localized");
@@ -5296,7 +4979,6 @@ package body Files_Suite is
       Add_Error_Key ("error.filter.empty");
       Add_Error_Key ("error.root.selection.empty");
       Add_Error_Key ("error.root.eject_unavailable");
-      Add_Error_Key ("error.dialog.native_unavailable");
       Add_Error_Key ("error.name.invalid");
       Add_Error_Key ("error.rename.disabled");
       Add_Error_Key ("error.open_action.missing");
@@ -5699,6 +5381,10 @@ package body Files_Suite is
          and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_Drop_Input"),
          "native file-drop callbacks are connected to controller import routing");
       Assert
+        (Repository_File_Contains ("src/glfw-windows-icon.adb", "glfwSetWindowIcon")
+         and then Repository_File_Contains ("src/files-application-windows.adb", "Glfw.Windows.Icon.Set_Files_Icon"),
+         "native desktop windows receive the packaged application icon");
+      Assert
         (Repository_File_Contains ("src/files-application-windows.adb", "glfwWaitEventsTimeout")
          and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
@@ -5766,8 +5452,8 @@ package body Files_Suite is
         (Repository_File_Exists ("share/doc/files/platform-support.md"),
          "desktop packaging includes platform support documentation");
       Assert
-        (Repository_File_Contains ("share/doc/files/platform-support.md", "Portable OS drag-event automation"),
-         "platform support documentation records drag automation limits");
+        (Repository_File_Contains ("share/doc/files/platform-support.md", "Ada drop event-source"),
+         "platform support documentation records drop event-source support");
       Assert
         (Repository_File_Exists ("share/doc/files/release-notes.md"),
          "desktop packaging includes release notes");
@@ -5906,8 +5592,8 @@ package body Files_Suite is
            (Capabilities.Native_Drop_Callbacks,
             "desktop capability report includes native drop callbacks");
          Assert
-           (not Capabilities.Native_Drop_Automation,
-            "desktop capability report exposes unsupported OS drag automation");
+           (Capabilities.Native_Drop_Automation,
+            "desktop capability report exposes drop event-source automation");
       end;
    end Test_First_Implementation_Feature_Policy;
 
@@ -7236,7 +6922,6 @@ package body Files_Suite is
         "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll";
       Missing       : Files.Settings.Settings_Parse_Result;
       Empty_Load    : Files.Settings.Settings_Parse_Result;
-      Empty_Import  : Files.Settings.Settings_Parse_Result;
       Not_File      : Files.Settings.Settings_Parse_Result;
       Loaded        : Files.Settings.Settings_Parse_Result;
       Long_Loaded   : Files.Settings.Settings_Parse_Result;
@@ -7245,7 +6930,6 @@ package body Files_Suite is
       Saved_Path    : constant String := Join (Join (Root, "saved-config"), "settings.conf");
       Blocked_Parent : constant String := Join (Root, "blocked-parent");
       Blocked_Path   : constant String := Join (Blocked_Parent, "settings.conf");
-      Exported_Path : constant String := Join (Join (Root, "exported-config"), "settings.conf");
       Saved         : Files.Settings.Settings_Write_Result;
       Default_Text  : constant String := Files.Settings.Default_Settings_Text;
       Default_Parse : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Default_Text);
@@ -7271,11 +6955,6 @@ package body Files_Suite is
       Assert
         (To_String (Empty_Load.Error_Key) = "error.settings.load",
          "empty settings file path reports load diagnostic");
-      Empty_Import := Files.Settings.Import_Draft ("");
-      Assert (not Empty_Import.Success, "empty settings import path is rejected");
-      Assert
-        (To_String (Empty_Import.Error_Key) = "error.settings.load",
-         "empty settings import path reports load diagnostic");
       Ada.Directories.Create_Path (Join (Root, "settings-dir"));
       Not_File := Files.Settings.Load_File (Join (Root, "settings-dir"));
       Assert (not Not_File.Success, "directory settings path is rejected");
@@ -7334,13 +7013,6 @@ package body Files_Suite is
       Assert
         (To_String (Saved.Error_Key) = "error.settings.not_file",
          "settings save parent failure reports not-file diagnostic");
-      Saved := Files.Settings.Export_Settings (Exported_Path, Loaded.Settings);
-      Assert (Saved.Success, "settings export writes a settings file");
-      Long_Loaded := Files.Settings.Import_Draft (Exported_Path);
-      Assert (Long_Loaded.Success, "settings import parses exported settings");
-      Assert
-        (Long_Loaded.Settings.Default_View = Files.Types.Large_Icons,
-         "settings import preserves exported default view");
       declare
          Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
       begin
@@ -7350,7 +7022,6 @@ package body Files_Suite is
       end;
       declare
          Draft_Path : constant String := Join (Join (Root, "draft-config"), "settings.conf");
-         Controller_Export_Path : constant String := Join (Join (Root, "draft-config"), "exported.conf");
          Draft      : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Loaded.Settings);
          Draft_Load : Files.Settings.Settings_Parse_Result;
          Draft_Model : Files.Model.Window_Model := Sample_Model;
@@ -7370,49 +7041,7 @@ package body Files_Suite is
          Assert
            (To_String (Controller_Result.Operation.Path) = Draft_Path,
             "closed settings save reports settings path");
-         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Draft_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
-            "closed settings pane cannot import settings");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
-            "closed settings import reports a localized disabled error");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Draft_Path,
-            "closed settings import reports settings path");
-         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Join (Root, "settings-dir"));
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
-            "closed settings import does not validate the import path");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
-            "closed settings import keeps the closed-pane diagnostic");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Join (Root, "settings-dir"),
-            "closed settings import reports the requested invalid path");
          Files.Model.Begin_Settings_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
-         Controller_Result := Files.Controller.Import_Settings (Draft_Model, "");
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
-            "open settings pane rejects empty import path");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.load",
-            "open settings pane empty import path reports load diagnostic");
-         Assert
-           (Files.Model.Last_Error_Key (Draft_Model) = "error.settings.load",
-            "open settings pane empty import path records model error");
-         Draft_Model := Sample_Model;
-         Controller_Result :=
-           Files.Controller.Export_Settings (Draft_Model, Draft_Settings, Controller_Export_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
-            "closed settings pane cannot export settings");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
-            "closed settings export reports a localized disabled error");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Controller_Export_Path,
-            "closed settings export reports settings path");
          Draft.Default_View_Mode := To_Unbounded_String ("details");
          Draft.Show_Hidden_Files := To_Unbounded_String ("true");
          Draft.Sort_Field_Value := To_Unbounded_String ("size");
@@ -7586,6 +7215,7 @@ package body Files_Suite is
               (Files.Model.Settings_Field_Text (Empty_Model) = "ada",
                "begin settings edit syncs stale filetype selection");
          end;
+         Files.Model.Toggle_Settings_Pane (Draft_Model);
          Controller_Result :=
            Files.Controller.Execute_Command
              (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
@@ -7748,54 +7378,6 @@ package body Files_Suite is
               (Files.Model.Last_Error_Key (Missing_Model) = To_String (Missing_Result.Operation.Error_Key),
                "controller settings save leaves refresh failure visible");
          end;
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 1);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "small_icons");
-         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Join (Root, "settings-dir"));
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
-            "controller import reports failed settings load");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.not_file",
-            "controller import failure reports localized error");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Join (Root, "settings-dir"),
-            "controller import failure reports settings path");
-         Assert
-           (Files.Model.Settings_Field_Text (Draft_Model) = "small_icons",
-            "controller import failure preserves existing draft field text");
-         Assert
-           (Files.Model.Last_Error_Key (Draft_Model) = "error.settings.not_file",
-            "controller import failure records model diagnostic");
-         Controller_Result := Files.Controller.Import_Settings (Draft_Model, Draft_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
-            "controller imports settings into editable draft");
-         Assert
-           (Files.Model.Settings_Field_Text (Draft_Model) = "details",
-            "controller import replaces draft field text from disk");
-         Controller_Result := Files.Controller.Export_Settings (Draft_Model, Draft_Settings, Blocked_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
-            "controller export reports failed settings write");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.not_file",
-            "controller export failure reports localized error");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Blocked_Path,
-            "controller export failure reports settings path");
-         Assert
-           (Files.Model.Last_Error_Key (Draft_Model) = "error.settings.not_file",
-            "controller export failure records model diagnostic");
-         Controller_Result :=
-           Files.Controller.Export_Settings (Draft_Model, Draft_Settings, Controller_Export_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
-            "controller exports active settings model");
-         Draft_Load := Files.Settings.Load_File (Controller_Export_Path);
-         Assert (Draft_Load.Success, "controller-exported settings file reloads");
-         Assert
-           (Draft_Load.Settings.Default_View = Files.Types.Details,
-            "controller export persists active settings model");
       end;
       Write_File (Ensured_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
       Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
@@ -9685,6 +9267,25 @@ package body Files_Suite is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "changed directory watcher refresh succeeds");
       Assert (Files.Model.Item_Count (Model) = 5, "changed watcher refresh reloads new directory items");
+      Before := Files.File_System.Directory_State (Join (Root, "search"));
+      Ada.Directories.Delete_File (Join (Join (Root, "search"), "skip.txt"));
+      Write_File (Join (Join (Root, "search"), "same-count-replacement.txt"), "replacement");
+      Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
+      Assert (Change.Changed, "directory watcher detects same-count replacement");
+      Assert
+        (Change.After_State.Entry_Count = Before.Entry_Count,
+         "same-count replacement keeps directory entry count stable");
+      Assert
+        (Change.After_State.Entry_State_Checksum /= Before.Entry_State_Checksum,
+         "same-count replacement changes directory entry checksum");
+      Files.Model.Set_Directory_Signature (Model, Before);
+      Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "same-count watcher refresh succeeds");
+      Assert
+        (Files.Model.Item_Count (Model) = 5,
+         "same-count watcher refresh keeps replacement entry count");
 
       Ada.Directories.Create_Path (Drop_Target);
       Write_File (Source_File, "drop");
@@ -9713,6 +9314,30 @@ package body Files_Suite is
         (Ada.Directories.Exists (Join (Drop_Target, "drop-source 2.txt")),
          "controller drop import chooses collision-safe destination");
       Assert (Files.Model.Item_Count (Model) = 3, "controller drop import refreshes destination model");
+
+      Ada.Directories.Create_Path (Join (Drop_Target, "nested-target"));
+      Write_File (Join (Drop_Target, "drag-source.txt"), "drag");
+      Load := Files.File_System.Load_Directory (Drop_Target, Settings);
+      Files.Model.Initialize (Model, Drop_Target, Load.Items, Root);
+      Sources.Clear;
+      Sources.Append (To_Unbounded_String (Join (Drop_Target, "drag-source.txt")));
+      Routed.Operation :=
+        Files.Operations.Import_Dropped_Paths_To
+          (Model                 => Model,
+           Settings              => Settings,
+           Source_Paths          => Sources,
+           Destination_Directory => Join (Drop_Target, "nested-target"),
+           Mode                  => Files.File_System.Drop_Move);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "item drag import can target a specific directory");
+      Assert
+        (Ada.Directories.Exists (Join (Join (Drop_Target, "nested-target"), "drag-source.txt")),
+         "item drag import moves the source into the target directory");
+      Assert
+        (not Ada.Directories.Exists (Join (Drop_Target, "drag-source.txt")),
+         "item drag move removes the source from the current directory");
+      Assert (Files.Model.Item_Count (Model) = 4, "item drag import refreshes the source window model");
 
       Sources.Clear;
       Write_File (Join (Root, "move-source.txt"), "move");
@@ -9764,6 +9389,45 @@ package body Files_Suite is
          and then Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "0 255 0")
          and then Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "0 0 255"),
          "decoded PNG thumbnail preserves source pixel colors");
+      Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      declare
+         Found_Auto_Thumbnail : Boolean := False;
+         Extension_Settings    : Files.Settings.Settings_Model := Settings;
+         Extension_Load        : Files.File_System.Directory_Load_Result;
+      begin
+         for Item of Load.Items loop
+            if To_String (Item.Name) = "decoded-picture.png" then
+               Found_Auto_Thumbnail := True;
+               Assert (Item.Thumbnail_Available, "directory loading auto-generates image thumbnails");
+               Assert (Item.Thumbnail_Width = 64, "auto-generated thumbnail records default width");
+               Assert (Item.Thumbnail_Height = 64, "auto-generated thumbnail records default height");
+               Assert
+                 (Natural (Item.Thumbnail_Pixels.Length) = 64 * 64 * 4,
+                  "auto-generated thumbnail loads renderable pixels");
+            end if;
+         end loop;
+
+         Assert (Found_Auto_Thumbnail, "auto-thumbnail image item is loaded");
+
+         Files.Settings.Add_Extension_Mapping (Extension_Settings, "webp", "application/octet-stream");
+         Write_File (Join (Root, "extension-only.webp"), "not a decoded image");
+         Extension_Load := Files.File_System.Load_Directory (Root, Extension_Settings);
+         Found_Auto_Thumbnail := False;
+         for Item of Extension_Load.Items loop
+            if To_String (Item.Name) = "extension-only.webp" then
+               Found_Auto_Thumbnail := True;
+               Assert
+                 (Item.Thumbnail_Available,
+                  "directory loading auto-generates thumbnails for image extensions");
+               Assert
+                 (Natural (Item.Thumbnail_Pixels.Length) = 64 * 64 * 4,
+                  "image-extension thumbnail loads renderable pixels");
+            end if;
+         end loop;
+
+         Assert (Found_Auto_Thumbnail, "image-extension thumbnail item is loaded");
+      end;
       Assert
         (Project_Tools.Files.File_Contains ("src/files-file_system.adb", "gdk_pixbuf_new_from_file_at_size")
          or else Project_Tools.Files.File_Contains ("../src/files-file_system.adb", "gdk_pixbuf_new_from_file_at_size")
@@ -9816,10 +9480,16 @@ package body Files_Suite is
         (not Ada.Directories.Exists (Join (Root, "command-delete.txt")),
          "permanent delete command removes the selected file");
 
-      Write_Binary_File (Join (Root, "command-thumbnail.png"), Minimal_Png_Header (24, 24));
+      Write_File
+        (Join (Root, "command-thumbnail.ppm"),
+         "P3" & ASCII.LF
+         & "2 2" & ASCII.LF
+         & "255" & ASCII.LF
+         & "255 0 0 255 0 0" & ASCII.LF
+         & "255 0 0 255 0 0" & ASCII.LF);
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Select_Name (Model, "command-thumbnail.png");
+      Select_Name (Model, "command-thumbnail.ppm");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
       Routed := Files.Controller.Execute_Command (Files.Commands.Generate_Thumbnails_Command, Model, Settings);
       Assert
@@ -9834,6 +9504,84 @@ package body Files_Suite is
       Assert
         (Project_Tools.Files.File_Contains (To_String (Routed.Operation.Path), "P3"),
          "thumbnail command writes PPM thumbnail content");
+      Assert
+        (Files.Model.Selected_Item (Model).Thumbnail_Available,
+         "thumbnail command refresh exposes generated thumbnail in the model");
+      Assert
+        (To_String (Files.Model.Selected_Item (Model).Thumbnail_Path) = To_String (Routed.Operation.Path),
+         "thumbnail command refresh records the generated thumbnail path");
+      Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
+      declare
+         Thumbnail_Frame : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Files.Rendering.Build_Snapshot (Model, Settings),
+              Width       => 1000,
+              Height      => 800,
+              Line_Height => 20);
+         Empty_Text : Files.Rendering.Text_Render_Result;
+         Thumbnail_Batch : Files.Rendering.Vulkan.Submission_Batch;
+         Found_Thumbnail_Command : Boolean := False;
+         Found_Thumbnail_Icon    : Boolean := False;
+         Thumbnail_Tile          : Natural := 0;
+         Icon_Index              : Natural := 0;
+      begin
+         for Command of Thumbnail_Frame.Icons loop
+            if Length (Command.Icon_Id) < 8
+              or else Slice (Command.Icon_Id, 1, 8) /= "toolbar-"
+            then
+               Icon_Index := Icon_Index + 1;
+            end if;
+            if To_String (Command.Asset_Path) = To_String (Routed.Operation.Path) then
+               Found_Thumbnail_Command := True;
+               Thumbnail_Tile := Icon_Index - 1;
+               if To_String (Command.Icon_Id) = "thumbnail" then
+                  Found_Thumbnail_Icon := True;
+               end if;
+            end if;
+         end loop;
+
+         Assert
+           (Found_Thumbnail_Command,
+            "large-icons item icon command points at the generated thumbnail artifact");
+         Assert
+           (Found_Thumbnail_Icon,
+            "large-icons item icon command uses a thumbnail-specific icon asset");
+         Thumbnail_Batch := Files.Rendering.Vulkan.Build_Submission (Thumbnail_Frame, Empty_Text);
+         declare
+            Pixel_Offset : constant Positive := Positive (Thumbnail_Tile * 64 * 4 + 1);
+         begin
+            Assert
+              (Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset) = 255
+               and then Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 1) = 0
+               and then Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 2) = 0
+               and then Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 3) = 255,
+               "vulkan icon atlas rasterizes large-icons cached thumbnail pixels");
+         end;
+      end;
+      for Mode in Files.Types.Small_Icons .. Files.Types.Details loop
+         if Mode /= Files.Types.Large_Icons then
+            Files.Model.Set_View_Mode (Model, Mode);
+            declare
+               Non_Thumbnail_Frame : constant Files.Rendering.Frame_Commands :=
+                 Files.Rendering.Build_Frame_Commands
+                   (Files.Rendering.Build_Snapshot (Model, Settings),
+                    Width       => 1000,
+                    Height      => 800,
+                    Line_Height => 20);
+            begin
+               for Command of Non_Thumbnail_Frame.Icons loop
+                  Assert
+                    (To_String (Command.Icon_Id) /= "thumbnail",
+                     "non-large item icon command keeps filetype icon");
+                  Assert
+                    (Command.Thumbnail_Width = 0
+                     and then Command.Thumbnail_Height = 0
+                     and then Command.Thumbnail_Pixels.Is_Empty,
+                     "non-large item icon command does not carry thumbnail pixels");
+               end loop;
+            end;
+         end if;
+      end loop;
       Restore_Cache;
    exception
       when others =>
@@ -11594,9 +11342,9 @@ package body Files_Suite is
            Files.Events.Scroll_Command_Palette,
            Lines => 1);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "empty palette ignores targeted scroll");
-      Files.Controller.Replace_Focused_Text (Model, "settings.import");
+      Files.Controller.Replace_Focused_Text (Model, "settings.save");
       Assert
-        (Natural (Files.Command_Palette.Search ("settings.import", Model).Length) = 1,
+        (Natural (Files.Command_Palette.Search ("settings.save", Model).Length) = 1,
          "unique palette query has one result");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores Down");
@@ -11775,21 +11523,6 @@ package body Files_Suite is
         (Files.Model.Last_Error_Key (Model) = "error.root.selection.empty",
          "disabled root-open click records error");
 
-      Files.Model.Set_Command_Palette_Query (Model, "settings.import");
-      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
-      Assert
-        (Result.Command = Files.Commands.Import_Settings_Command,
-         "disabled settings import click reports command");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
-         "disabled settings import click reports disabled operation");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.settings.closed",
-         "disabled settings import click reports closed-settings error");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
-         "disabled settings import click records error");
-
       Files.Model.Set_Command_Palette_Query (Model, "settings.save");
       Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
       Assert (Result.Command = Files.Commands.Save_Settings_Command, "disabled settings save click reports command");
@@ -11815,21 +11548,6 @@ package body Files_Suite is
       Assert
         (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
          "disabled settings reset click records error");
-
-      Files.Model.Set_Command_Palette_Query (Model, "settings.export");
-      Result := Files.Controller.Handle_Command_Result_Click (Model, Settings, Result_Index => 1);
-      Assert
-        (Result.Command = Files.Commands.Export_Settings_Command,
-         "disabled settings export click reports command");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
-         "disabled settings export click reports disabled operation");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.settings.closed",
-         "disabled settings export click reports closed-settings error");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.settings.closed",
-         "disabled settings export click records error");
 
       Files.Model.Close_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
@@ -12144,6 +11862,25 @@ package body Files_Suite is
       Vulkan_Renderer : Files.Rendering.Vulkan.Vulkan_Renderer;
       Vulkan_Status   : Files.Rendering.Vulkan.Vulkan_Status;
       Vulkan_Batch    : Files.Rendering.Vulkan.Submission_Batch;
+
+      function Vulkan_Drawable_Icon_Count
+        (Commands : Files.Rendering.Frame_Commands)
+         return Natural
+      is
+         Count : Natural := 0;
+         Name  : Unbounded_String;
+      begin
+         for Command of Commands.Icons loop
+            Name := Command.Icon_Id;
+            if Length (Name) < 8
+              or else Slice (Name, 1, 8) /= "toolbar-"
+            then
+               Count := Count + 1;
+            end if;
+         end loop;
+
+         return Count;
+      end Vulkan_Drawable_Icon_Count;
    begin
       Assert
         (not Files.Rendering.Default_Theme.High_Contrast,
@@ -12175,6 +11912,100 @@ package body Files_Suite is
         (To_String (Snapshot.Path_Input_Error_Key) = "error.path.missing",
          "snapshot captures path input error key");
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      declare
+         Drag_Frame         : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands
+             (Snapshot,
+              Width           => 1000,
+              Height          => 800,
+              Line_Height     => 20,
+              Drag_Item_Index => 1,
+              Drag_X          => 250,
+              Drag_Y          => 200,
+              Has_Drag        => True);
+         Found_Drag_Panel   : Boolean := False;
+         Found_Drag_Icon    : Boolean := False;
+         Found_Drag_Name    : Boolean := False;
+      begin
+         for Command of Drag_Frame.Rectangles loop
+            if Command.X = 264
+              and then Command.Y = 214
+              and then Command.Color = Files.Rendering.Hover_Color
+            then
+               Found_Drag_Panel := True;
+            end if;
+         end loop;
+
+         for Command of Drag_Frame.Icons loop
+            if Command.X = 272
+              and then Command.Y = 222
+              and then Command.Size = 28
+            then
+               Found_Drag_Icon := True;
+            end if;
+         end loop;
+
+         for Command of Drag_Frame.Text loop
+            if Command.X > 272
+              and then Command.Y >= 214
+              and then To_String (Command.Text) = To_String (Snapshot.Items.Element (1).Name)
+            then
+               Found_Drag_Name := True;
+            end if;
+         end loop;
+
+         Assert (Found_Drag_Panel, "drag preview renders a visible panel near the cursor");
+         Assert (Found_Drag_Icon, "drag preview renders the dragged item icon");
+         Assert (Found_Drag_Name, "drag preview renders the dragged item name");
+      end;
+      declare
+         Drag_Items  : Files.File_System.Item_Vectors.Vector;
+         Drag_Model  : Files.Model.Window_Model;
+         Drag_Snapshot : Files.Rendering.View_Snapshot;
+         Drag_Layout : Files.Rendering.Layout_Metrics;
+         Drag_Item_Layout : Files.Rendering.Item_Layout_Vectors.Vector;
+         Target_Rect : Files.Rendering.Item_Layout;
+         Target_Frame : Files.Rendering.Frame_Commands;
+         Found_Target_Accent : Boolean := False;
+      begin
+         Drag_Items.Append
+           (Files.File_System.Make_Item (Root, "drag-source.txt", Files.Types.Regular_File_Item, "text/plain"));
+         Drag_Items.Append
+           (Files.File_System.Make_Item (Root, "drop-target", Files.Types.Directory_Item, "inode/directory"));
+         Files.Model.Initialize (Drag_Model, Root, Drag_Items, "/home/test");
+         Files.Model.Select_Visible (Drag_Model, 1);
+         Drag_Snapshot := Files.Rendering.Build_Snapshot (Drag_Model, Settings);
+         Drag_Layout :=
+           Files.Rendering.Calculate_Layout (Drag_Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+         Drag_Item_Layout := Files.Rendering.Calculate_Item_Layout (Drag_Snapshot, Drag_Layout, Line_Height => 20);
+         Target_Rect := Drag_Item_Layout.Element (2);
+         Target_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Drag_Snapshot,
+              Width           => 1000,
+              Height          => 800,
+              Line_Height     => 20,
+              Hover_X         => Target_Rect.X + 1,
+              Hover_Y         => Target_Rect.Y + 1,
+              Has_Hover       => True,
+              Drag_Item_Index => 1,
+              Drag_X          => Target_Rect.X + 1,
+              Drag_Y          => Target_Rect.Y + 1,
+              Has_Drag        => True);
+
+         for Command of Target_Frame.Rectangles loop
+            if Command.X = Target_Rect.X
+              and then Command.Y = Target_Rect.Y
+              and then Command.Width = Natural'Min (4, Target_Rect.Width)
+              and then Command.Height = Target_Rect.Height
+              and then Command.Color = Files.Rendering.Selection_Color
+            then
+               Found_Target_Accent := True;
+            end if;
+         end loop;
+
+         Assert (Found_Target_Accent, "drag rendering marks a valid directory drop target");
+      end;
       declare
          Found_A11y_Path_Input_Error : Boolean := False;
       begin
@@ -15468,8 +15299,6 @@ package body Files_Suite is
          "settings snapshot exposes selected control options");
       Assert (Snapshot.Settings_Can_Save, "settings snapshot exposes save availability");
       Assert (Snapshot.Settings_Can_Reset, "settings snapshot exposes reset availability");
-      Assert (Snapshot.Settings_Can_Import, "settings snapshot exposes import availability");
-      Assert (Snapshot.Settings_Can_Export, "settings snapshot exposes export availability");
       Assert (To_String (Snapshot.Theme_Name) = "default", "snapshot exposes default theme name");
       Assert (not Snapshot.Theme_High_Contrast, "snapshot exposes default contrast state");
       Assert (Snapshot.Theme_Focus_Ring = Files.Rendering.Border_Color, "snapshot exposes focus ring color");
@@ -15562,6 +15391,8 @@ package body Files_Suite is
               "name=bad-role" & ASCII.LF &
               "grid=16" & ASCII.LF &
               "rect=1,2,3,4,glow" & ASCII.LF);
+         A11y_Frame : Files.Rendering.Frame_Commands;
+         A11y_Export : Files.Accessibility.Export_Result;
 
          function Repository_File_Exists (Path : String) return Boolean is
          begin
@@ -15584,8 +15415,6 @@ package body Files_Suite is
          Assert (Settings_Profile.Open_Action_Controls = 2, "settings profile counts open-action controls");
          Assert (Settings_Profile.Supports_Save, "settings profile exposes save support");
          Assert (Settings_Profile.Supports_Reset, "settings profile exposes reset support");
-         Assert (Settings_Profile.Supports_Import, "settings profile exposes import support");
-         Assert (Settings_Profile.Supports_Export, "settings profile exposes export support");
          Assert (Settings_Profile.Per_Field_Diagnostics, "settings profile exposes field diagnostics");
          Assert (Settings_Profile.Supports_Option_Cycling, "settings profile exposes option cycling");
          Assert
@@ -15594,17 +15423,14 @@ package body Files_Suite is
          Assert
            (Settings_Profile.Supports_Draft_Validation,
             "settings profile exposes draft validation");
-         Assert
-           (Settings_Profile.Supports_Native_Dialog_Policy,
-            "settings profile exposes native dialog policy");
          Assert (Settings_Profile.Saves_Central_Settings, "settings profile records central settings saves");
          Assert
            (Accessibility_Integration.Render_Node_Tree,
             "accessibility integration profile exposes render node tree");
          Assert
            (Accessibility_Integration.Native_API_Binding_Status =
-            Files.File_System.Native_API_Binding_Missing,
-            "accessibility integration profile records missing native binding");
+            Files.File_System.Native_API_Binding_Available,
+            "accessibility integration profile records native bridge binding");
          Assert
            (Accessibility_Integration.Role_Metadata,
             "accessibility integration profile exposes role metadata");
@@ -15619,8 +15445,30 @@ package body Files_Suite is
             "accessibility integration profile exposes keyboard focus metadata");
          Assert
            (To_String (Accessibility_Integration.Binding_Unit) =
-            "Files.Rendering.Frame_Commands.Accessibility",
-            "accessibility integration profile records binding unit");
+            "Files.Accessibility",
+            "accessibility integration profile records accessibility bridge unit");
+         A11y_Frame.Accessibility.Append
+           (Files.Rendering.Accessibility_Node'
+              (Role        => Files.Rendering.Role_Button,
+               X           => 1,
+               Y           => 2,
+               Width       => 30,
+               Height      => 20,
+               Name        => To_Unbounded_String ("Open"),
+               Description => To_Unbounded_String ("Open item"),
+               Enabled     => True,
+               Selected    => False,
+               Focused     => True));
+         A11y_Export := Files.Accessibility.Export_Tree (A11y_Frame);
+         Assert (A11y_Export.Success, "accessibility bridge exports a tree");
+         Assert
+           (A11y_Export.Native_API_Binding_Status = Files.File_System.Native_API_Binding_Available,
+            "accessibility bridge reports an available Ada binding");
+         Assert (A11y_Export.Node_Count = 1, "accessibility bridge counts exported nodes");
+         Assert (A11y_Export.Focused_Node_Count = 1, "accessibility bridge counts focused nodes");
+         Assert
+           (To_String (A11y_Export.Nodes.Element (1).Name) = "Open",
+            "accessibility bridge preserves node names");
          Assert (To_String (Icon_Profile.Theme_Name) = "files-basic", "icon profile exposes theme name");
          Assert (not Icon_Profile.Placeholder_Icons, "icon profile records bundled asset icon mode");
          Assert (Icon_Profile.Scalable_Icons, "icon profile records scalable vector assets");
@@ -15689,20 +15537,14 @@ package body Files_Suite is
          Found_Settings_Remove : Boolean := False;
          Settings_Add_Text_Width : Natural := 0;
          Settings_Remove_Text_Width : Natural := 0;
-         Found_Settings_Import : Boolean := False;
-         Found_Settings_Export : Boolean := False;
          Found_Settings_Reset : Boolean := False;
          Found_Settings_Save : Boolean := False;
          Found_Settings_Add_Tooltip : Boolean := False;
          Found_Settings_Remove_Tooltip : Boolean := False;
-         Found_Settings_Import_Tooltip : Boolean := False;
-         Found_Settings_Export_Tooltip : Boolean := False;
          Found_Settings_Reset_Tooltip : Boolean := False;
          Found_Settings_Save_Tooltip : Boolean := False;
          Found_A11y_Settings_Add : Boolean := False;
          Found_A11y_Settings_Remove : Boolean := False;
-         Found_A11y_Settings_Import : Boolean := False;
-         Found_A11y_Settings_Export : Boolean := False;
          Found_A11y_Settings_Reset : Boolean := False;
          Found_A11y_Settings_Save : Boolean := False;
          Pane : constant Files.UI.Settings_Pane_Layout :=
@@ -15766,10 +15608,6 @@ package body Files_Suite is
             elsif To_String (Command.Text) = Files.Localization.Text ("settings.remove") then
                Found_Settings_Remove := True;
                Settings_Remove_Text_Width := Command.Width;
-            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.import") then
-               Found_Settings_Import := True;
-            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.export") then
-               Found_Settings_Export := True;
             elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.reset") then
                Found_Settings_Reset := True;
             elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.save") then
@@ -15781,10 +15619,6 @@ package body Files_Suite is
                Found_Settings_Add_Tooltip := True;
             elsif To_String (Command.Text) = Files.Localization.Text ("settings.remove") then
                Found_Settings_Remove_Tooltip := True;
-            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.import.description") then
-               Found_Settings_Import_Tooltip := True;
-            elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.export.description") then
-               Found_Settings_Export_Tooltip := True;
             elsif To_String (Command.Text) = Files.Localization.Text ("command.settings.reset.description") then
                Found_Settings_Reset_Tooltip := True;
             elsif Ada.Strings.Fixed.Index
@@ -15806,18 +15640,6 @@ package body Files_Suite is
               and then To_String (Node.Name) = Files.Localization.Text ("settings.remove")
             then
                Found_A11y_Settings_Remove := True;
-            elsif Node.Role = Files.Rendering.Role_Button
-              and then To_String (Node.Name) = Files.Localization.Text ("command.settings.import")
-              and then To_String (Node.Description) =
-                Files.Localization.Text ("command.settings.import.description")
-            then
-               Found_A11y_Settings_Import := True;
-            elsif Node.Role = Files.Rendering.Role_Button
-              and then To_String (Node.Name) = Files.Localization.Text ("command.settings.export")
-              and then To_String (Node.Description) =
-                Files.Localization.Text ("command.settings.export.description")
-            then
-               Found_A11y_Settings_Export := True;
             elsif Node.Role = Files.Rendering.Role_Button
               and then To_String (Node.Name) = Files.Localization.Text ("command.settings.reset")
               and then To_String (Node.Description) =
@@ -15848,16 +15670,10 @@ package body Files_Suite is
          Assert (Found_Settings_Remove_Tooltip, "frame exposes settings remove tooltip");
          Assert (Found_A11y_Settings_Add, "frame exposes settings add accessibility node");
          Assert (Found_A11y_Settings_Remove, "frame exposes settings remove accessibility node");
-         Assert (Found_Settings_Import, "frame renders settings import command button");
-         Assert (Found_Settings_Export, "frame renders settings export command button");
          Assert (Found_Settings_Reset, "frame renders settings reset command button");
          Assert (Found_Settings_Save, "frame renders settings save command button");
-         Assert (Found_Settings_Import_Tooltip, "frame exposes settings import tooltip");
-         Assert (Found_Settings_Export_Tooltip, "frame exposes settings export tooltip");
          Assert (Found_Settings_Reset_Tooltip, "frame exposes settings reset tooltip");
          Assert (Found_Settings_Save_Tooltip, "frame exposes settings save tooltip");
-         Assert (Found_A11y_Settings_Import, "frame exposes settings import accessibility node");
-         Assert (Found_A11y_Settings_Export, "frame exposes settings export accessibility node");
          Assert (Found_A11y_Settings_Reset, "frame exposes settings reset accessibility node");
          Assert (Found_A11y_Settings_Save, "frame exposes settings save accessibility node");
          Assert (Found_Settings_Shadow, "frame renders settings pane drop shadow");
@@ -17377,36 +17193,36 @@ package body Files_Suite is
         (Vulkan_Batch.Triangle_Vertex_Count = Natural (Frame.Triangles.Length) * 3,
          "vulkan batch expands each triangle command to one triangle");
       Assert
-        (Vulkan_Batch.Icon_Vertex_Count = 0,
-         "vulkan mixed batch leaves rectangle icon art uncovered");
+        (Vulkan_Batch.Icon_Vertex_Count = Vulkan_Drawable_Icon_Count (Frame) * 6,
+         "vulkan mixed batch preserves drawable icon vertices alongside text");
       Assert
-        (Vulkan_Batch.Icon_Quad_Count = 0,
-         "vulkan mixed batch does not add opaque icon fallback quads");
+        (Vulkan_Batch.Icon_Quad_Count = Vulkan_Drawable_Icon_Count (Frame),
+         "vulkan mixed batch preserves drawable icon draw count alongside text");
       Assert
-        (Vulkan_Batch.Icon_Atlas_Bytes = 0,
-         "vulkan mixed batch avoids an unusable separate icon atlas payload");
+        (Vulkan_Batch.Icon_Atlas_Bytes = Natural (Vulkan_Batch.Icon_Atlas_Pixels.Length),
+         "vulkan mixed batch keeps icon atlas byte count and payload aligned");
       Assert
-        (Natural (Vulkan_Batch.Icon_Atlas_Pixels.Length) = 0,
-         "vulkan mixed batch stores no unused icon atlas pixels");
+        (Vulkan_Batch.Icon_Atlas_Bytes > 0,
+         "vulkan mixed batch builds a usable separate icon atlas payload");
       Assert
-        (not Vulkan_Batch.Icon_Atlas_Dirty,
-         "vulkan mixed batch leaves icon atlas clean while text atlas is active");
+        (Vulkan_Batch.Icon_Atlas_Dirty,
+         "vulkan mixed batch keeps icon atlas dirty while text atlas is active");
       Assert (Vulkan_Batch.Text_Atlas_Used, "vulkan batch records glyph use of the text atlas");
-      Assert (Vulkan_Batch.Texture_Count = 1, "vulkan mixed batch records only the text texture payload");
+      Assert (Vulkan_Batch.Texture_Count = 2, "vulkan mixed batch records text and icon texture payloads");
       Assert
-        (not Vulkan_Batch.Uses_Separate_Text_And_Icon_Textures,
-         "vulkan mixed batch avoids unsupported separate texture routing");
+        (Vulkan_Batch.Uses_Separate_Text_And_Icon_Textures,
+         "vulkan mixed batch routes separate text and icon textures");
       Assert
-        (Vulkan_Batch.Icon_Texture_Format = Files.Rendering.Vulkan.Atlas_Texture_None,
-         "vulkan mixed batch records no independent icon texture format");
+        (Vulkan_Batch.Icon_Texture_Format = Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+         "vulkan mixed batch records independent RGBA icon texture format");
       Assert
         (Files.Rendering.Vulkan.Upload_Texture_Format (Vulkan_Batch) =
          Files.Rendering.Vulkan.Atlas_Texture_R8,
          "vulkan mixed batch keeps text atlas upload on the current descriptor path");
       Assert
         (Files.Rendering.Vulkan.Icon_Upload_Texture_Format (Vulkan_Batch) =
-         Files.Rendering.Vulkan.Atlas_Texture_None,
-         "vulkan mixed batch exposes no unsupported separate icon upload");
+         Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+         "vulkan mixed batch exposes separate RGBA icon upload");
       Assert
         (Project_Tools.Files.File_Contains
            ("src/files-rendering-vulkan.adb",
@@ -17475,8 +17291,8 @@ package body Files_Suite is
             "vulkan clean mixed batch keeps text atlas bound");
          Assert
            (Files.Rendering.Vulkan.Icon_Upload_Texture_Format (Clean_Mixed_Batch) =
-            Files.Rendering.Vulkan.Atlas_Texture_None,
-            "vulkan clean mixed batch keeps rectangle icon art uncovered");
+            Files.Rendering.Vulkan.Atlas_Texture_RGBA8,
+            "vulkan clean mixed batch keeps icon atlas upload available");
       end;
       Assert
         (Vulkan_Batch.Glyph_Vertex_Count = Natural (Text_Result.Glyphs.Length) * 6,
@@ -17569,8 +17385,8 @@ package body Files_Suite is
          Assert (Found_Textured, "vulkan batch includes textured glyph vertices");
          Assert (Found_Text_Texture_Vertex, "vulkan batch marks glyph vertices with the text atlas");
          Assert
-           (not Found_Icon_Texture_Vertex,
-            "vulkan mixed batch keeps icons off the unreachable icon texture sampler");
+           (Found_Icon_Texture_Vertex,
+            "vulkan mixed batch marks icon vertices with the icon atlas");
       end;
 
       declare
@@ -17587,11 +17403,11 @@ package body Files_Suite is
 
          Assert (Rect_Only.Glyph_Vertex_Count = 0, "vulkan icon-only batch has no glyph vertices");
          Assert
-           (Rect_Only.Icon_Vertex_Count = Natural (Frame.Icons.Length) * 6,
-            "vulkan icon-only batch preserves themed icon vertices");
+           (Rect_Only.Icon_Vertex_Count = Vulkan_Drawable_Icon_Count (Frame) * 6,
+            "vulkan icon-only batch preserves themed non-toolbar icon vertices");
          Assert
-           (Rect_Only.Icon_Quad_Count = Natural (Frame.Icons.Length),
-            "vulkan icon-only batch preserves themed icon draw count");
+           (Rect_Only.Icon_Quad_Count = Vulkan_Drawable_Icon_Count (Frame),
+            "vulkan icon-only batch preserves themed non-toolbar icon draw count");
          Assert (Rect_Only.Atlas_Pixels = System.Null_Address, "vulkan rectangle-only batch has no atlas pixels");
          Assert (Rect_Only.Atlas_Bytes = 0, "vulkan rectangle-only batch has no atlas byte payload");
          Assert (not Rect_Only.Atlas_Dirty, "vulkan rectangle-only batch leaves atlas clean");
@@ -17616,6 +17432,67 @@ package body Files_Suite is
       end;
 
       declare
+         Empty_Text    : Files.Rendering.Text_Render_Result;
+         Toolbar_Frame : Files.Rendering.Frame_Commands;
+         Toolbar_Batch : Files.Rendering.Vulkan.Submission_Batch;
+      begin
+         Toolbar_Frame.Layout.Width := 64;
+         Toolbar_Frame.Layout.Height := 64;
+         Toolbar_Frame.Icons.Append
+           (Files.Rendering.Icon_Command'
+              (X          => 8,
+               Y          => 8,
+               Size       => 32,
+               Icon_Id    => To_Unbounded_String ("toolbar-home"),
+               Theme_Name => To_Unbounded_String ("default"),
+               Asset_Path => Null_Unbounded_String,
+               Thumbnail_Width  => 0,
+               Thumbnail_Height => 0,
+               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
+         Toolbar_Frame.Rectangles.Append
+           (Files.Rendering.Rectangle_Command'
+              (X      => 8,
+               Y      => 8,
+               Width  => 32,
+               Height => 32,
+               Color  => Files.Rendering.Text_Color));
+         Toolbar_Batch := Files.Rendering.Vulkan.Build_Submission (Toolbar_Frame, Empty_Text);
+         Assert
+           (Toolbar_Batch.Icon_Quad_Count = 0
+            and then Toolbar_Batch.Icon_Vertex_Count = 0
+            and then not Toolbar_Batch.Icon_Atlas_Dirty,
+            "vulkan skips toolbar icon atlas quads so vector toolbar icons stay visible");
+      end;
+
+      declare
+         Empty_Text   : Files.Rendering.Text_Render_Result;
+         Folder_Frame : Files.Rendering.Frame_Commands;
+         Folder_Batch : Files.Rendering.Vulkan.Submission_Batch;
+         Pixel_Offset : constant Positive := Positive (((12 * 64) + 2) * 4 + 1);
+      begin
+         Folder_Frame.Layout.Width := 64;
+         Folder_Frame.Layout.Height := 64;
+         Folder_Frame.Icons.Append
+           (Files.Rendering.Icon_Command'
+              (X          => 0,
+               Y          => 0,
+               Size       => 64,
+               Icon_Id    => To_Unbounded_String ("folder"),
+               Theme_Name => To_Unbounded_String ("default"),
+               Asset_Path => Null_Unbounded_String,
+               Thumbnail_Width  => 0,
+               Thumbnail_Height => 0,
+               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
+         Folder_Batch := Files.Rendering.Vulkan.Build_Submission (Folder_Frame, Empty_Text);
+         Assert
+           (Folder_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset) = 82
+            and then Folder_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 1) = 128
+            and then Folder_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 2) = 209
+            and then Folder_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 3) = 255,
+            "vulkan folder icon atlas uses directory blue base color");
+      end;
+
+      declare
          Empty_Text : Files.Rendering.Text_Render_Result;
          Skipped_Icon_Frame : Files.Rendering.Frame_Commands;
          Skipped_Icon_Batch : Files.Rendering.Vulkan.Submission_Batch;
@@ -17629,7 +17506,10 @@ package body Files_Suite is
                Size       => 0,
                Icon_Id    => To_Unbounded_String ("image"),
                Theme_Name => To_Unbounded_String ("default"),
-               Asset_Path => Null_Unbounded_String));
+               Asset_Path => Null_Unbounded_String,
+               Thumbnail_Width  => 0,
+               Thumbnail_Height => 0,
+               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
          Skipped_Icon_Frame.Icons.Append
            (Files.Rendering.Icon_Command'
               (X          => 16,
@@ -17637,7 +17517,10 @@ package body Files_Suite is
                Size       => 16,
                Icon_Id    => To_Unbounded_String ("ada"),
                Theme_Name => To_Unbounded_String ("default"),
-               Asset_Path => Null_Unbounded_String));
+               Asset_Path => Null_Unbounded_String,
+               Thumbnail_Width  => 0,
+               Thumbnail_Height => 0,
+               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
          Skipped_Icon_Batch := Files.Rendering.Vulkan.Build_Submission (Skipped_Icon_Frame, Empty_Text);
          Assert
            (Skipped_Icon_Batch.Icon_Quad_Count = 1,
@@ -17666,7 +17549,10 @@ package body Files_Suite is
                   Size       => 16,
                   Icon_Id    => To_Unbounded_String ("text"),
                   Theme_Name => To_Unbounded_String ("default"),
-                  Asset_Path => Null_Unbounded_String));
+                  Asset_Path => Null_Unbounded_String,
+                  Thumbnail_Width  => 0,
+                  Thumbnail_Height => 0,
+                  Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
          end loop;
 
          Large_Icon_Batch := Files.Rendering.Vulkan.Build_Submission (Large_Icon_Frame, Empty_Text);
@@ -17745,10 +17631,10 @@ package body Files_Suite is
          Assert
            (not Diagnostics.Mixed_Texture_Bindings_Ready,
             "vulkan diagnostics report missing mixed texture bindings");
-         Assert (Diagnostics.Last_Texture_Count = 1, "vulkan diagnostics record last submitted texture count");
+         Assert (Diagnostics.Last_Texture_Count = 2, "vulkan diagnostics record mixed submitted texture count");
          Assert
-           (not Diagnostics.Last_Used_Mixed_Textures,
-            "vulkan diagnostics record covered-icon fallback avoidance for mixed frames");
+           (Diagnostics.Last_Used_Mixed_Textures,
+            "vulkan diagnostics record mixed text and icon texture use");
          Assert
            (not Diagnostics.Framebuffer_Readback_Ready,
             "vulkan diagnostics do not report framebuffer readback before a live frame");
@@ -18756,8 +18642,8 @@ package body Files_Suite is
                   Y      => Row_Y (1) + 1,
                   Width  => 1000,
                   Height => 800);
-         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings import click translates");
-         Assert (Action.Command = Files.Commands.Import_Settings_Command, "settings import click maps command");
+         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings reset click translates");
+         Assert (Action.Command = Files.Commands.Reset_Settings_Command, "settings reset click maps command");
          Action :=
            Files.Events.Translate_Click
                   (Settings_Snapshot,
@@ -18765,61 +18651,17 @@ package body Files_Suite is
                   Y      => Row_Y (1) + 1,
                   Width  => 1000,
                   Height => 800);
-         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings export click translates");
-         Assert (Action.Command = Files.Commands.Export_Settings_Command, "settings export click maps command");
-         Action :=
-           Files.Events.Translate_Click
-                  (Settings_Snapshot,
-                   X      => Text_X + 1,
-                  Y      => Row_Y (2) + 1,
-                  Width  => 1000,
-                  Height => 800);
-         Assert (Action.Kind = Files.Events.Command_Input_Action, "settings reset click translates");
-         Assert (Action.Command = Files.Commands.Reset_Settings_Command, "settings reset click maps command");
-         Action :=
-           Files.Events.Translate_Click
-                  (Settings_Snapshot,
-                   X      => Action_Buttons.Second_Button_X + 1,
-                  Y      => Row_Y (2) + 1,
-                  Width  => 1000,
-                  Height => 800);
          Assert (Action.Kind = Files.Events.Command_Input_Action, "settings save click translates");
          Assert (Action.Command = Files.Commands.Save_Settings_Command, "settings save click maps command");
          declare
             Disabled_Settings : Files.Rendering.View_Snapshot := Settings_Snapshot;
          begin
-            Disabled_Settings.Settings_Can_Import := False;
-            Action :=
-              Files.Events.Translate_Click
-                   (Disabled_Settings,
-                    X      => Text_X + 1,
-                    Y      => Row_Y (1) + 1,
-                    Width  => 1000,
-                    Height => 800);
-            Assert
-              (Action.Kind = Files.Events.No_Input_Action,
-               "disabled settings import click is ignored by hit testing");
-
-            Disabled_Settings := Settings_Snapshot;
-            Disabled_Settings.Settings_Can_Export := False;
-            Action :=
-              Files.Events.Translate_Click
-                   (Disabled_Settings,
-                    X      => Action_Buttons.Second_Button_X + 1,
-                    Y      => Row_Y (1) + 1,
-                    Width  => 1000,
-                    Height => 800);
-            Assert
-              (Action.Kind = Files.Events.No_Input_Action,
-               "disabled settings export click is ignored by hit testing");
-
-            Disabled_Settings := Settings_Snapshot;
             Disabled_Settings.Settings_Can_Reset := False;
             Action :=
               Files.Events.Translate_Click
                    (Disabled_Settings,
                     X      => Text_X + 1,
-                    Y      => Row_Y (2) + 1,
+                    Y      => Row_Y (1) + 1,
                     Width  => 1000,
                     Height => 800);
             Assert
@@ -18832,7 +18674,7 @@ package body Files_Suite is
               Files.Events.Translate_Click
                    (Disabled_Settings,
                     X      => Action_Buttons.Second_Button_X + 1,
-                    Y      => Row_Y (2) + 1,
+                    Y      => Row_Y (1) + 1,
                     Width  => 1000,
                     Height => 800);
             Assert
@@ -18860,19 +18702,6 @@ package body Files_Suite is
             Assert
               (Action.Kind = Files.Events.Command_Input_Action,
                "settings action remainder click translates");
-            Assert
-              (Action.Command = Files.Commands.Export_Settings_Command,
-               "settings action remainder click maps export command");
-            Action :=
-              Files.Events.Translate_Click
-                  (Odd_Snapshot,
-                   X      => Odd_Last_X,
-                  Y      => Odd_Pane.Text_Y + 2 * Row_Step + 1,
-                  Width  => Odd_Width,
-                  Height => 800);
-            Assert
-              (Action.Kind = Files.Events.Command_Input_Action,
-               "settings save remainder click translates");
             Assert
               (Action.Command = Files.Commands.Save_Settings_Command,
                "settings save remainder click maps save command");
@@ -19000,8 +18829,8 @@ package body Files_Suite is
               (Action.Kind = Files.Events.Command_Input_Action,
                "saturated settings pane button click avoids overflow");
             Assert
-              (Action.Command = Files.Commands.Import_Settings_Command,
-               "saturated settings pane button click maps import command");
+              (Action.Command = Files.Commands.Reset_Settings_Command,
+               "saturated settings pane button click maps reset command");
          end;
       end;
       Files.Model.Open_Command_Palette (Model);

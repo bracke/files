@@ -1829,14 +1829,6 @@ procedure Check_All is
          "localization catalog must include command-palette empty-state text");
       Project_Tools.Files.Require_Contains
         (Catalog,
-         "en.dialog.settings.import = ",
-         "localization catalog must include native settings dialog titles");
-      Project_Tools.Files.Require_Contains
-        (Catalog,
-         "en.dialog.settings.export = ",
-         "localization catalog must include native settings export dialog titles");
-      Project_Tools.Files.Require_Contains
-        (Catalog,
          "en.root.filesystem = ",
          "localization catalog must include root-selector labels");
       Project_Tools.Files.Require_Contains
@@ -1935,10 +1927,6 @@ procedure Check_All is
         (Catalog,
          "en.error.path.missing = ",
          "localization catalog must include recoverable error messages");
-      Project_Tools.Files.Require_Contains
-        (Catalog,
-         "en.error.dialog.native_unavailable = ",
-         "localization catalog must include native-dialog availability errors");
       Project_Tools.Files.Require_Contains
         (Catalog,
          "en.error.rename.disabled = ",
@@ -2416,14 +2404,6 @@ procedure Check_All is
          "localization tests must cover unknown-key fallback");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
-         "import dialog title is localized",
-         "localization tests must cover import dialog titles");
-      Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
-         "export dialog title is localized",
-         "localization tests must cover export dialog titles");
-      Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
          "item-count label is localized",
          "localization tests must cover item-count status labels");
       Project_Tools.Files.Require_Contains
@@ -2595,6 +2575,26 @@ procedure Check_All is
          "Try_Write_Gdk_Pixbuf_Thumbnail",
          "thumbnail generation must use a native image loader for JPEG thumbnails");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "function Load_Cached_Thumbnail",
+         "directory loading must decode cached thumbnails into model-owned pixels");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "function Should_Auto_Generate_Thumbnail",
+         "directory loading must decide which files get automatic thumbnails");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "or else Extension = ""webp""",
+         "automatic thumbnails must not depend only on configured image filetypes");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.adb",
+         "function Thumbnail_For_Item",
+         "directory loading must auto-generate missing image thumbnails");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-file_system.ads",
+         "Thumbnail_Pixels    : Files.Types.Byte_Vectors.Vector;",
+         "directory items must carry cached thumbnail pixels");
+      Project_Tools.Files.Require_Contains
         (File_System_Spec,
          "function Search_Recursive",
          "advanced scope must expose recursive search");
@@ -2655,9 +2655,29 @@ procedure Check_All is
          "glfwSetDropCallback",
          "desktop runtime must bind native GLFW file-drop callbacks");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/glfw-windows-icon.adb",
+         "glfwSetWindowIcon",
+         "desktop runtime must bind the native GLFW window icon");
+      Project_Tools.Files.Require_Contains
         (Root & "/src/files-application-windows.adb",
-         "Pending_Drops",
-         "desktop runtime must queue native file drops per window");
+         "Glfw.Windows.Icon.Set_Files_Icon",
+         "desktop runtime must apply the application icon to created windows");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-application-windows.adb",
+         "Drop_Source : Files.Drop_Events.Drop_Event_Source",
+         "desktop runtime must queue native file drops through the event-source backend");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-drop_events.ads",
+         "type Drop_Event_Source is private",
+         "drop automation must expose a private Ada event-source backend");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-drop_events.ads",
+         "procedure Queue",
+         "drop automation must expose queued native event injection");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-drop_events.ads",
+         "procedure Take",
+         "drop automation must expose deterministic drop draining");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-application-windows.adb",
          "Handle_Drop_Input",
@@ -2726,6 +2746,22 @@ procedure Check_All is
         (Tests,
          "thumbnail generation writes a cache artifact",
          "advanced filesystem tests must cover thumbnail artifact creation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "directory loading auto-generates image thumbnails",
+         "advanced filesystem tests must cover normal directory thumbnail generation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "directory loading auto-generates thumbnails for image extensions",
+         "advanced filesystem tests must cover extension-based thumbnail generation");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "vulkan icon atlas rasterizes large-icons cached thumbnail pixels",
+         "advanced filesystem tests must cover rendered large-icons thumbnail pixels");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "non-large item icon command keeps filetype icon",
+         "advanced filesystem tests must reject thumbnails outside large-icons view");
       Project_Tools.Files.Require_Contains
         (Tests,
          "drop import copy executes",
@@ -3777,10 +3813,6 @@ procedure Check_All is
          "settings draft saves must serialize the applied settings model");
       Project_Tools.Files.Require_Contains
         (Settings_Body,
-         "return Save_Text (Path, To_Text (Settings));",
-         "settings export must serialize the active settings model");
-      Project_Tools.Files.Require_Contains
-        (Settings_Body,
          "function Load_File" & ASCII.LF
          & "     (Path : String)" & ASCII.LF
          & "      return Settings_Parse_Result" & ASCII.LF
@@ -3844,10 +3876,6 @@ procedure Check_All is
         (Tests,
          "empty settings file path is rejected",
          "settings tests must cover rejected empty settings load paths");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "empty settings import path is rejected",
-         "settings tests must cover rejected empty settings import paths");
       Project_Tools.Files.Require_Contains
         (Tests,
          "serialized quoted action preserves placeholder argument",
@@ -3914,10 +3942,6 @@ procedure Check_All is
          "default settings tests must cover built-in audio icon mapping");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "settings export writes a settings file",
-         "settings export serialization must remain covered by AUnit");
-      Project_Tools.Files.Require_Contains
-        (Tests,
          "settings text can be saved to a new path",
          "settings persistence tests must cover saving to a new settings path");
       Project_Tools.Files.Require_Contains
@@ -3964,8 +3988,6 @@ procedure Check_All is
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "Toggle_Settings_Pane_Command" & ASCII.LF
-         & "            | Import_Settings_Command" & ASCII.LF
-         & "            | Export_Settings_Command" & ASCII.LF
          & "            | Save_Settings_Command" & ASCII.LF
          & "            | Reset_Settings_Command" & ASCII.LF
          & "            | Open_Command_Palette_Command" & ASCII.LF
@@ -4039,10 +4061,6 @@ procedure Check_All is
         (Settings_Body,
          "return Make_Draft (Default_Settings);",
          "settings reset must restore the default settings draft");
-      Project_Tools.Files.Require_Contains
-        (Settings_Body,
-         "Loaded : constant Settings_Parse_Result := Load_File (Path);",
-         "settings import must load through the normal settings parser");
       Project_Tools.Files.Require_Contains
         (Controller_Body,
          "Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));",
@@ -4120,55 +4138,9 @@ procedure Check_All is
          "Operation := Files.Operations.Refresh (Model, Settings);",
          "controller settings save must refresh the current directory with new settings");
       Project_Tools.Files.Require_Contains
-        (Controller_Body,
-         "if not Files.Model.Settings_Pane_Is_Open (Model) then" & ASCII.LF
-         & "         return Settings_Closed_Result (Files.Commands.Import_Settings_Command, Model, Settings_Path);" &
-         ASCII.LF
-         & "      end if;" & ASCII.LF
-         & ASCII.LF
-         & "      declare" & ASCII.LF
-         & "         Imported : constant Files.Settings.Settings_Parse_Result :=",
-         "controller settings import must reject closed panes before parsing the selected file");
-      Project_Tools.Files.Require_Contains
-        (Controller_Body,
-         "Files.Settings.Import_Draft (Settings_Path);",
-         "controller settings import must parse the selected settings file after enablement checks");
-      Project_Tools.Files.Require_Contains
-        (Controller_Body,
-         "Files.Model.Set_Settings_Draft (Model, Files.Settings.Make_Draft (Imported.Settings));",
-         "controller settings import must replace the visible draft");
-      Project_Tools.Files.Require_Contains
-        (Controller_Body,
-         "Exported := Files.Settings.Export_Settings (Settings_Path, Settings);",
-         "controller settings export must write the active settings model");
-      Project_Tools.Files.Require_Contains
         (Tests,
          "closed settings pane cannot save settings",
          "settings editor tests must cover closed-pane save rejection");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "closed settings pane cannot import settings",
-         "settings editor tests must cover closed-pane import rejection");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "closed settings pane cannot export settings",
-         "settings editor tests must cover closed-pane export rejection");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "closed settings import reports a localized disabled error",
-         "settings editor tests must cover closed-pane import diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "closed settings import does not validate the import path",
-         "settings editor tests must cover closed-pane import before path validation");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "open settings pane rejects empty import path",
-         "settings controller tests must cover open-pane empty import path rejection");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "closed settings export reports a localized disabled error",
-         "settings editor tests must cover closed-pane export diagnostics");
       Project_Tools.Files.Require_Contains
         (Tests,
          "settings draft validates editable values",
@@ -4233,34 +4205,6 @@ procedure Check_All is
         (Tests,
          "controller settings save reports post-save refresh failure",
          "settings editor tests must cover post-save refresh failure reporting");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "controller import reports failed settings load",
-         "settings editor tests must cover controller import failures");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "controller import failure preserves existing draft field text",
-         "settings editor tests must cover import failure draft preservation");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "controller import failure records model diagnostic",
-         "settings editor tests must cover import failure diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import parses exported settings",
-         "settings editor tests must cover import parsing");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "controller export reports failed settings write",
-         "settings editor tests must cover controller export failures");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "controller export failure records model diagnostic",
-         "settings editor tests must cover export failure diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export writes a settings file",
-         "settings editor tests must cover export writing");
       Project_Tools.Files.Require_Contains
         (Tests,
          "reset settings draft restores default view mode",
@@ -5651,14 +5595,6 @@ procedure Check_All is
          "command registry must include refresh-directory command");
       Project_Tools.Files.Require_Contains
         (Commands_Spec,
-         "Import_Settings_Command",
-         "command registry must include settings import command");
-      Project_Tools.Files.Require_Contains
-        (Commands_Spec,
-         "Export_Settings_Command",
-         "command registry must include settings export command");
-      Project_Tools.Files.Require_Contains
-        (Commands_Spec,
          "Save_Settings_Command",
          "command registry must include settings save command");
       Project_Tools.Files.Require_Contains
@@ -5773,14 +5709,6 @@ procedure Check_All is
         (Commands_Body,
          "return ""directory.refresh"";",
          "refresh-directory command must have a stable identifier");
-      Project_Tools.Files.Require_Contains
-        (Commands_Body,
-         "return ""settings.import"";",
-         "settings import command must have a stable identifier");
-      Project_Tools.Files.Require_Contains
-        (Commands_Body,
-         "return ""settings.export"";",
-         "settings export command must have a stable identifier");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "return ""settings.save"";",
@@ -5904,8 +5832,6 @@ procedure Check_All is
       Project_Tools.Files.Require_Contains
         (Commands_Body,
          "when Toggle_Settings_Pane_Command" & ASCII.LF
-         & "            | Import_Settings_Command" & ASCII.LF
-         & "            | Export_Settings_Command" & ASCII.LF
          & "            | Save_Settings_Command" & ASCII.LF
          & "            | Reset_Settings_Command" & ASCII.LF
          & "            | Open_Command_Palette_Command" & ASCII.LF
@@ -5913,15 +5839,8 @@ procedure Check_All is
          "settings-pane gating must allow only settings and palette commands");
       Project_Tools.Files.Require_Contains
         (Commands_Body,
-         "when Import_Settings_Command" & ASCII.LF
-         & "            | Export_Settings_Command" & ASCII.LF
-         & "            | Save_Settings_Command =>",
-         "settings import, export, and save commands must require a settings path");
-      Project_Tools.Files.Require_Contains
-        (Commands_Body,
-         "when Import_Settings_Command | Export_Settings_Command =>" & ASCII.LF
-         & "            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);",
-         "settings import and export commands must not claim implicit shortcuts");
+         "when Save_Settings_Command =>",
+         "settings save command must require a settings path");
       Project_Tools.Files.Require_Contains
         (Tests,
          "command registry and shortcuts",
@@ -6128,10 +6047,6 @@ procedure Check_All is
          "command registry tests must cover return shortcut alias search text");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "palette-only settings import has no shortcut search text",
-         "command registry tests must cover shortcut search text for palette-only commands");
-      Project_Tools.Files.Require_Contains
-        (Tests,
          "no-command has no shortcut search text",
          "command registry tests must cover no-command shortcut search text");
       Project_Tools.Files.Require_Contains
@@ -6166,14 +6081,6 @@ procedure Check_All is
         (Tests,
          "settings save command is palette-only metadata",
          "command registry tests must cover settings-save placement metadata");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import requires a settings path",
-         "command registry tests must cover settings import path dependency");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export requires a settings path",
-         "command registry tests must cover settings export path dependency");
       Project_Tools.Files.Require_Contains
         (Tests,
          "settings save requires a settings path",
@@ -7118,14 +7025,6 @@ procedure Check_All is
          "settings modal hit testing must stay routed through the modal handler");
       Project_Tools.Files.Require_Contains
         (Events_Body,
-         "return Settings_Command_Click (Files.Commands.Import_Settings_Command);",
-         "settings modal import clicks must route through the central command registry");
-      Project_Tools.Files.Require_Contains
-        (Events_Body,
-         "return Settings_Command_Click (Files.Commands.Export_Settings_Command);",
-         "settings modal export clicks must route through the central command registry");
-      Project_Tools.Files.Require_Contains
-        (Events_Body,
          "return Settings_Command_Click (Files.Commands.Reset_Settings_Command);",
          "settings modal reset clicks must route through the central command registry");
       Project_Tools.Files.Require_Contains
@@ -7218,10 +7117,6 @@ procedure Check_All is
         (Tests,
          "settings hit tests use shared action button layout",
          "event hit-test tests must cover shared settings action layout");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings action remainder click maps export command",
-         "event hit-test tests must cover settings action-button remainder pixels");
       Project_Tools.Files.Require_Contains
         (Tests,
          "settings save remainder click maps save command",
@@ -7344,18 +7239,6 @@ procedure Check_All is
          "event hit-test tests must cover saturated settings modal geometry");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "saturated settings pane button click maps import command",
-         "event hit-test tests must cover saturated settings modal command hit testing");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import click maps command",
-         "event hit-test tests must cover settings import command hit testing");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export click maps command",
-         "event hit-test tests must cover settings export command hit testing");
-      Project_Tools.Files.Require_Contains
-        (Tests,
          "settings reset click maps command",
          "event hit-test tests must cover settings reset command hit testing");
       Project_Tools.Files.Require_Contains
@@ -7364,28 +7247,12 @@ procedure Check_All is
          "event hit-test tests must cover settings save command hit testing");
       Project_Tools.Files.Require_Contains
         (Events_Body,
-         "if Snapshot.Settings_Can_Import then",
-         "settings action hit testing must honor snapshot import enablement");
-      Project_Tools.Files.Require_Contains
-        (Events_Body,
-         "if Snapshot.Settings_Can_Export then",
-         "settings action hit testing must honor snapshot export enablement");
-      Project_Tools.Files.Require_Contains
-        (Events_Body,
          "if Snapshot.Settings_Can_Reset then",
          "settings action hit testing must honor snapshot reset enablement");
       Project_Tools.Files.Require_Contains
         (Events_Body,
          "if Snapshot.Settings_Can_Save then",
          "settings action hit testing must honor snapshot save enablement");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "disabled settings import click is ignored by hit testing",
-         "event hit-test tests must cover disabled settings import action button");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "disabled settings export click is ignored by hit testing",
-         "event hit-test tests must cover disabled settings export action button");
       Project_Tools.Files.Require_Contains
         (Tests,
          "disabled settings reset click is ignored by hit testing",
@@ -8131,20 +7998,12 @@ procedure Check_All is
          "controller tests must cover disabled root-open palette diagnostics");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "disabled settings import click reports closed-settings error",
-         "controller tests must cover disabled settings-import palette diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Tests,
          "disabled settings save click reports closed-settings error",
          "controller tests must cover disabled settings-save palette diagnostics");
       Project_Tools.Files.Require_Contains
         (Tests,
          "disabled settings reset click reports closed-settings error",
          "controller tests must cover disabled settings-reset palette diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "disabled settings export click reports closed-settings error",
-         "controller tests must cover disabled settings-export palette diagnostics");
       Project_Tools.Files.Require_Contains
         (Tests,
          "disabled create palette click reports pending-create error",
@@ -9591,6 +9450,14 @@ procedure Check_All is
          "runtime.smoke.font",
          "runtime smoke report must include selected text font diagnostics");
       Project_Tools.Files.Require_Contains
+        (Application_Body,
+         "Files.Application.Windows.Headless_Render_Quality_Report",
+         "runtime smoke report must include headless render quality diagnostics");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "runtime smoke report exposes headless render quality status",
+         "runtime smoke tests must cover headless render quality diagnostics");
+      Project_Tools.Files.Require_Contains
         (Tests,
          "runtime smoke reports zero-glyph text batches as failures",
          "runtime smoke tests must cover zero-glyph text batch failures");
@@ -9843,39 +9710,39 @@ procedure Check_All is
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-application-windows.ads",
          "Native_Drop_Automation",
-         "desktop runtime must distinguish native drops from OS drag automation");
+         "desktop runtime must advertise drop event-source automation");
       Project_Tools.Files.Require_Contains
         (Root & "/tests/tests/src/files_suite.adb",
-         "runtime capabilities do not claim portable native drop automation",
-         "desktop runtime tests must cover unsupported OS drag automation");
+         "runtime capabilities expose drop event-source automation",
+         "desktop runtime tests must cover drop event-source automation");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-application-windows.ads",
          "type Native_Drag_Automation_Profile is record",
-         "desktop runtime must expose structured native drag automation blockers");
+         "desktop runtime must expose structured native drag automation metadata");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
          "function Native_Drag_Automation_Profile_Of_Current_Runtime",
-         "desktop runtime must report native drag automation blocker metadata");
+         "desktop runtime must report native drag automation backend metadata");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "drag automation profile records X11 Xdnd requirement",
-         "desktop runtime tests must cover X11 drag automation blocker metadata");
+         "drag automation profile exposes an Ada event-source backend",
+         "desktop runtime tests must cover drop event-source backend metadata");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "drag automation profile records Wayland source protocol requirement",
-         "desktop runtime tests must cover Wayland drag automation blocker metadata");
+         "drag automation profile supports queued drop imports",
+         "desktop runtime tests must cover queued drop-import metadata");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "drag automation profile records Windows native injection requirement",
-         "desktop runtime tests must cover Windows drag automation blocker metadata");
+         "drop event source filters empty paths",
+         "desktop runtime tests must cover drop event-source filtering");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "drag automation profile records macOS native injection requirement",
-         "desktop runtime tests must cover macOS drag automation blocker metadata");
+         "drop event source clears after drain",
+         "desktop runtime tests must cover drop event-source draining");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "desktop capability report exposes unsupported OS drag automation",
-         "desktop capability policy tests must expose OS drag automation status");
+         "desktop capability report exposes drop event-source automation",
+         "desktop capability policy tests must expose drop event-source automation status");
       Project_Tools.Files.Require_Contains
         (Root & "/src/files-rendering-vulkan.ads",
          "Live framebuffer",
@@ -9949,30 +9816,6 @@ procedure Check_All is
          "Files.Controller.Execute_Command" & ASCII.LF
          & "             (Command, Runtime.Model, Runtime.Settings, Modifiers);",
          "disabled runtime commands must be delegated back through the controller");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "function Runtime_Should_Resolve_Settings_Path",
-         "desktop runtime must decide settings-path handoff from controller results");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "if not Files.Commands.Requires_Settings_Path (Result.Command) then",
-         "settings-path runtime handoff must be limited to commands that declare the dependency");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Result.Operation.Status = Files.Operations.Operation_Disabled",
-         "settings-path runtime handoff must allow dialog-preflight disabled results");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "and then Length (Result.Operation.Error_Key) = 0",
-         "settings-path runtime handoff must not reroute already handled operations");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "and then Result.Status /= Files.Controller.Controller_Command_Executed",
-         "settings-path runtime handoff must keep executed dialog results terminal");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "To_String (Result.Operation.Error_Key) = ""error.dialog.native_unavailable""",
-         "settings-path runtime handoff must recognize native dialog fallback diagnostics");
       Project_Tools.Files.Require_Contains
         (Windows_Body,
          "function Live_Window_Smoke_Plan",
@@ -10051,10 +9894,6 @@ procedure Check_All is
          "desktop runtime tests must cover live-smoke readiness gating");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "runtime capabilities expose native file dialog availability",
-         "desktop runtime tests must cover native file-dialog capability reporting");
-      Project_Tools.Files.Require_Contains
-        (Tests,
          "runtime capabilities expose event translation model",
          "desktop runtime tests must cover event-translation capability reporting");
       Project_Tools.Files.Require_Contains
@@ -10123,20 +9962,8 @@ procedure Check_All is
          "desktop runtime tests must cover invalid target dimension scaling");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "runtime resolves settings import path after pure controller dialog preflight",
-         "desktop runtime tests must cover settings import path handoff");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "runtime resolves settings save path after command execution",
+         "control+s reports settings save command execution for runtime persistence",
          "desktop runtime tests must cover settings save path handoff");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "runtime does not open settings dialogs while settings pane is closed",
-         "desktop runtime tests must cover closed-settings-pane dialog suppression");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "runtime does not resolve paths for settings commands without path dependency",
-         "desktop runtime tests must cover settings-path handoff rejection");
       Project_Tools.Files.Require_Contains
         (Tests,
          "live smoke plan records two frames for readback validation",
@@ -10328,14 +10155,6 @@ procedure Check_All is
             Label & " must not save settings drafts");
          Require_Not_Contains
            (Path,
-            "Files.Settings.Import_Draft",
-            Label & " must not import settings files");
-         Require_Not_Contains
-           (Path,
-            "Files.Settings.Export_Settings",
-            Label & " must not export settings files");
-         Require_Not_Contains
-           (Path,
             "Files.Settings.Ensure_Default_File",
             Label & " must not create settings files");
          Require_Not_Contains
@@ -10444,6 +10263,26 @@ procedure Check_All is
       Check_Rendering_Unit (Rendering_Body, "rendering body");
       Check_Rendering_Unit (Vulkan_Spec, "Vulkan rendering spec");
       Check_Rendering_Unit (Vulkan_Body, "Vulkan rendering body");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Spec,
+         "Thumbnail_Pixels : Files.Types.Byte_Vectors.Vector;",
+         "render snapshots must carry cached thumbnail pixels immutably");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "Thumbnail_Pixels    => Item.Thumbnail_Pixels",
+         "snapshot construction must copy cached thumbnail pixels from the model");
+      Project_Tools.Files.Require_Contains
+        (Rendering_Body,
+         "if Use_Thumbnail then Item.Thumbnail_Pixels else Files.Types.Byte_Vectors.Empty_Vector",
+         "frame command construction must pass cached thumbnail pixels only when thumbnails are enabled");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "function Rasterize_Thumbnail return Boolean",
+         "Vulkan icon atlas construction must rasterize cached thumbnail pixels");
+      Project_Tools.Files.Require_Contains
+        (Vulkan_Body,
+         "Icon.Thumbnail_Pixels.Element (Offset + 1)",
+         "Vulkan thumbnail rasterization must consume thumbnail pixel data");
       Project_Tools.Files.Require_Contains
         (Fonts_Spec,
          "function Default_Font_Path return String;",
@@ -10978,6 +10817,30 @@ procedure Check_All is
          "Icon_Atlas_Tile_Size : constant Positive := 64;",
          "Vulkan icon atlas must render icons at high enough resolution for toolbar use");
       Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "Texture : Interfaces.C.C_float := 0.0;",
+         "Vulkan GPU vertices must carry the selected texture source");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "location => 4",
+         "Vulkan pipeline must expose texture source as a vertex attribute");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "Texture_Source'Pos (Source.Texture)",
+         "Vulkan vertex upload must pass the texture source to the shader");
+      Project_Tools.Files.Require_Contains
+        (Root & "/src/files-rendering-vulkan.adb",
+         "if Icon_Id = ""folder"" then",
+         "Vulkan icon atlas must keep folder assets in the directory color");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "vulkan folder icon atlas uses directory blue base color",
+         "rendering tests must cover Vulkan folder icon atlas color");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "vulkan skips toolbar icon atlas quads so vector toolbar icons stay visible",
+         "rendering tests must ensure Vulkan does not draw dark toolbar atlas icons over vector icons");
+      Project_Tools.Files.Require_Contains
         (Tests,
          "renderer exposes bundled toolbar home icon asset text",
          "rendering tests must cover bundled toolbar icon assets");
@@ -11152,10 +11015,6 @@ procedure Check_All is
         (Rendering_Body,
          "Snapshot.Settings_Can_Save := Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model);",
          "snapshot construction must expose settings save command enablement");
-      Project_Tools.Files.Require_Contains
-        (Rendering_Body,
-         "Snapshot.Settings_Can_Import := Files.Commands.Is_Enabled (Files.Commands.Import_Settings_Command, Model);",
-         "snapshot construction must expose settings import command enablement");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Snapshot.Theme_Name := Theme.Name;",
@@ -12149,8 +12008,8 @@ procedure Check_All is
          "rendering tests must cover skipped-frame diagnostics");
       Project_Tools.Files.Require_Contains
         (Tests,
-         "vulkan diagnostics record covered-icon fallback avoidance for mixed frames",
-         "rendering tests must cover mixed text/icon fallback avoidance diagnostics");
+         "vulkan diagnostics record mixed text and icon texture use",
+         "rendering tests must cover mixed text/icon texture diagnostics");
    end Check_Rendering_Architecture;
 
    procedure Check_Icon_Accessibility_Contract is
@@ -12191,13 +12050,13 @@ procedure Check_All is
          "Screen_Reader_Role_Metadata => True",
          "accessibility profiles must advertise screen-reader role metadata");
       Project_Tools.Files.Require_Contains
-        (Rendering_Body,
-         "Render_Node_Tree          => True",
-         "accessibility integration must produce a render node tree");
+        (Root & "/src/files-accessibility.ads",
+         "function Export_Tree",
+         "accessibility integration must expose a bridge tree export");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
-         "Files.Rendering.Frame_Commands.Accessibility",
-         "accessibility integration must identify the frame-command binding unit");
+         "return Files.Accessibility.Integration_Profile;",
+         "rendering integration profile must delegate to the accessibility bridge");
       Project_Tools.Files.Require_Contains
         (Rendering_Body,
          "Theme_Name          => To_Unbounded_String (""files-basic"")",
@@ -12331,6 +12190,14 @@ procedure Check_All is
         (Tests,
          "accessibility integration profile exposes render node tree",
          "AUnit tests must cover accessibility integration metadata");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "accessibility bridge exports a tree",
+         "AUnit tests must cover accessibility bridge tree export");
+      Project_Tools.Files.Require_Contains
+        (Tests,
+         "accessibility bridge counts focused nodes",
+         "AUnit tests must cover accessibility bridge focus metadata");
       Project_Tools.Files.Require_Contains
         (Tests,
          "icon profile exposes theme name",
@@ -12780,283 +12647,6 @@ procedure Check_All is
          "platform tests must cover root volume adapter naming");
    end Check_Platform_Bodies;
 
-   procedure Check_Platform_Dialog_Contract is
-      Dialogs_Body : constant String := Root & "/src/files-platform-dialogs.adb";
-      Windows_Body : constant String := Root & "/src/files-application-windows.adb";
-      Windows_Spec : constant String := Root & "/src/files-application-windows.ads";
-      Tests        : constant String := Root & "/tests/tests/src/files_suite.adb";
-   begin
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Binding_Status     => Files.File_System.Native_API_Binding_Missing",
-         "default native dialog profile must report a missing Ada binding");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Backend_Name       => To_Unbounded_String (""none"")",
-         "default native dialog profile must expose a stable backend name");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Binding_Unit       => To_Unbounded_String (""Files.Platform.Dialogs"")",
-         "native dialog profile must record the Ada binding unit");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Uses_Shell         => False",
-         "native dialog profile must not claim shell-based dialogs");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Mode_Preflight     => True",
-         "native dialog profile must expose mode preflight support");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Settings_Import_Export => True",
-         "native dialog profile must expose settings import/export integration");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Extension_Filtering => True",
-         "native dialog profile must expose extension filtering metadata");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "User_Mediated      => True",
-         "native dialog profile must expose user-mediated selection metadata");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Path_Result_Normalization => True",
-         "native dialog profile must expose selected-path normalization");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "Dialog_Profile.Binding_Status = Files.File_System.Native_API_Binding_Available",
-         "native dialog availability must require an available native binding");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "and then Dialog_Profile.Can_Open_File",
-         "native dialog availability must require open-file support");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "and then Dialog_Profile.Can_Save_File",
-         "native dialog availability must require save-file support");
-      Project_Tools.Files.Require_Contains
-        (Dialogs_Body,
-         "and then not Dialog_Profile.Uses_Shell;",
-         "native dialog availability must reject shell-based backends");
-      Project_Tools.Files.Require_Contains
-        (Windows_Spec,
-         "function Evaluate_Native_File_Dialog",
-         "desktop runtime must expose native dialog preflight without opening dialogs");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "return Files.Platform.Dialogs.Available;",
-         "desktop native-dialog availability must delegate to the platform profile");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "if Dialog_Profile.Uses_Shell",
-         "desktop native-dialog mode availability must reject shell dialog backends");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Supported : constant Boolean := Native_File_Dialog_Mode_Available (Request.Mode);",
-         "native dialog preflight must use per-mode availability");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Attempted     => False",
-         "native dialog preflight must not open a native dialog");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "To_Unbounded_String (""error.dialog.native_unavailable""))",
-         "unsupported native dialog preflight must report a localized unavailable diagnostic");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Result : Native_File_Dialog_Result := Evaluate_Native_File_Dialog (Request);",
-         "native dialog execution must begin with the pure preflight result");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Result.Attempted := True;",
-         "native dialog execution must distinguish attempted dialogs from preflight");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Mode               => Open_File_Dialog",
-         "settings import dialog request must use open-file mode");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Mode               => Save_File_Dialog",
-         "settings export dialog request must use save-file mode");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "Required_Extension => To_Unbounded_String (""conf"")",
-         "settings dialog requests must constrain settings file extension");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "return To_Unbounded_String (Path_Text & ""."" & Extension);",
-         "settings save dialogs must append the required extension when needed");
-      Project_Tools.Files.Require_Contains
-        (Windows_Body,
-         "return Dialog_Result.Supported" & ASCII.LF
-         & "        and then Dialog_Result.Completed",
-         "settings dialog path selection must reject unsupported dialog results");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile exposes mode preflight",
-         "dialog tests must cover platform profile preflight policy");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile exposes settings import and export integration",
-         "dialog tests must cover settings import/export dialog metadata");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile exposes extension filtering",
-         "dialog tests must cover extension filtering metadata");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile records user-mediated selection",
-         "dialog tests must cover user-mediated selection metadata");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile exposes selected path normalization",
-         "dialog tests must cover selected-path normalization metadata");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog availability feeds runtime capabilities",
-         "dialog tests must cover runtime capability handoff");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "open-file dialog availability follows platform dialog profile",
-         "dialog tests must cover open-file mode availability");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "save-file dialog availability follows platform dialog profile",
-         "dialog tests must cover save-file mode availability");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile exposes stable backend name",
-         "dialog tests must cover stable backend names");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile records the Ada binding unit",
-         "dialog tests must cover binding unit metadata");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "platform dialog profile does not claim shell dialogs",
-         "dialog tests must cover non-shell dialog policy");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "unsupported native dialog result with a path falls back to configured settings path",
-         "dialog tests must cover inconsistent unsupported completed results");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "native dialog preflight does not open a dialog",
-         "dialog tests must cover preflight without native execution");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "native dialog preflight does not select a path",
-         "dialog tests must cover preflight without selected paths");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "native dialog result identifies the platform backend state",
-         "dialog tests must cover backend-state propagation");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "native dialog execution reports localized unavailable status",
-         "dialog tests must cover unsupported native dialog execution");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "unavailable native dialog result is not treated as a selected settings path",
-         "dialog tests must cover unavailable settings-path rejection");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "completed native dialog result with a path is treated as selected",
-         "dialog tests must cover completed settings-path selection");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings dialog path falls back to configured path without a completed dialog",
-         "dialog tests must cover incomplete settings-dialog path fallback");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings dialog path uses completed native selection",
-         "dialog tests must cover completed native settings-dialog path use");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings save dialog appends the required extension",
-         "dialog tests must cover save-extension normalization");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings save dialog normalizes a dotted required extension before appending",
-         "dialog tests must cover dotted save-extension append normalization");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings save dialog normalizes a dotted required extension before comparison",
-         "dialog tests must cover dotted save-extension comparison normalization");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings save dialog trims a padded required extension before appending",
-         "dialog tests must cover padded save-extension normalization");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings save dialog preserves an existing extension case-insensitively",
-         "dialog tests must cover case-insensitive save-extension preservation");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings open dialog does not append the save extension",
-         "dialog tests must cover import dialog path preservation");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings dialog path rejects empty completed selections",
-         "dialog tests must cover empty completed settings-dialog selections");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "completed native dialog result with an empty path is not treated as selected",
-         "dialog tests must cover empty selected settings paths");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import uses a native open-file dialog request",
-         "dialog tests must cover settings import dialog mode");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import dialog uses a localized title key",
-         "dialog tests must cover localized import dialog title keys");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import dialog starts in the settings parent directory",
-         "dialog tests must cover import dialog initial directory");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import dialog suggests the current settings filename",
-         "dialog tests must cover import dialog suggested filename");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import dialog constrains settings file extension",
-         "dialog tests must cover import dialog extension constraints");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings import dialog handles Windows-style parent paths",
-         "dialog tests must cover Windows-style import dialog parent paths");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export uses a native save-file dialog request",
-         "dialog tests must cover settings export dialog mode");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export dialog uses a localized title key",
-         "dialog tests must cover localized export dialog title keys");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export dialog starts in the settings parent directory",
-         "dialog tests must cover export dialog initial directory");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export dialog suggests the current settings filename",
-         "dialog tests must cover export dialog suggested filename");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export dialog has a deterministic empty-path directory fallback",
-         "dialog tests must cover export dialog empty-path directory fallback");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export dialog has a deterministic empty-path filename fallback",
-         "dialog tests must cover export dialog empty-path filename fallback");
-      Project_Tools.Files.Require_Contains
-        (Tests,
-         "settings export dialog preserves Windows drive-root parent paths",
-         "dialog tests must cover Windows-style export dialog drive-root paths");
-   end Check_Platform_Dialog_Contract;
-
    procedure Check_Packaging_Metadata is
       Stage : constant String := "/tmp/files_check_all_install_stage";
 
@@ -13329,12 +12919,12 @@ procedure Check_All is
          "quick-start guide must document the select-all shortcut");
       Project_Tools.Files.Require_Contains
         (Root & "/share/doc/files/platform-support.md",
-         "Portable OS drag-event automation requires native event-source backends.",
-         "platform support documentation must record native drag automation limits");
+         "Ada drop event-source",
+         "platform support documentation must record drop event-source support");
       Project_Tools.Files.Require_Contains
         (Root & "/share/doc/files/platform-support.md",
-         "Accessibility data is exported as render metadata",
-         "platform support documentation must record accessibility bridge limits");
+         "Ada accessibility bridge",
+         "platform support documentation must record accessibility bridge support");
       Project_Tools.Files.Require_Contains
         (Root & "/share/applications/files.desktop",
          "MimeType=inode/directory;",
@@ -13688,7 +13278,6 @@ begin
    Check_Icon_Accessibility_Contract;
    Check_Icon_Assets;
    Check_Platform_Bodies;
-   Check_Platform_Dialog_Contract;
    Check_Packaging_Metadata;
    Check_CLDR_Importer;
    Run ("files build", Root, Alr, [1 => new String'("build")]);

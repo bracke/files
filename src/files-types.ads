@@ -1,5 +1,6 @@
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
+with Interfaces;
 
 --  Shared value types used across the files model, commands, and rendering.
 package Files.Types is
@@ -9,6 +10,11 @@ package Files.Types is
      (Index_Type   => Positive,
       Element_Type => UString,
       "="          => Ada.Strings.Unbounded."=");
+
+   package Byte_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Interfaces.Unsigned_8,
+      "="          => Interfaces."=");
 
    type View_Mode is
      (Small_Icons,

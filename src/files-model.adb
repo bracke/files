@@ -334,10 +334,34 @@ package body Files.Model is
         (Path                  => To_Unbounded_String (Directory_Path),
          Exists                => True,
          Entry_Count           => Natural (Items.Length),
+         Entry_State_Checksum  => 0,
          Latest_Modified       => Ada.Calendar.Time_Of (1901, 1, 1),
          Latest_Modified_Known => False);
+
+      function Item_Checksum
+        (Item : Files.File_System.Directory_Item)
+         return Natural
+      is
+         Modulus : constant Long_Long_Integer := 1_000_000_007;
+         Value   : Long_Long_Integer := Long_Long_Integer (Files.Types.Item_Kind'Pos (Item.Kind) + 1);
+      begin
+         for Character_Value of To_String (Item.Name) loop
+            Value :=
+              (Value * 131 + Long_Long_Integer (Character'Pos (Character_Value))) mod Modulus;
+         end loop;
+
+         if Item.Size_Available then
+            Value := (Value * 131 + Long_Long_Integer'Max (0, Item.Size)) mod Modulus;
+         else
+            Value := (Value * 131) mod Modulus;
+         end if;
+
+         return Natural (Value);
+      end Item_Checksum;
    begin
       for Item of Items loop
+         Result.Entry_State_Checksum :=
+           (Result.Entry_State_Checksum + Item_Checksum (Item)) mod 1_000_000_007;
          if Item.Modified_Available
            and then (not Result.Latest_Modified_Known or else Item.Modified_Time > Result.Latest_Modified)
          then

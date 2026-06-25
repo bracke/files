@@ -132,7 +132,7 @@ package Files.UI is
       Line_Height : Positive := 20)
       return Settings_Entry_Button_Layout;
 
-   --  Calculate settings import/export/reset/save button rectangles.
+   --  Calculate settings reset/save button rectangles.
    --
    --  @param Text_X Settings pane text column origin.
    --  @param Text_Width Settings pane text column width.

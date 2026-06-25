@@ -118,13 +118,6 @@ package body Files.Controller is
             return
               Make_Result
                 (Controller_Ignored, Id, Disabled_Operation ("error.root.eject_unavailable"));
-         when Files.Commands.Import_Settings_Command | Files.Commands.Export_Settings_Command =>
-            if Files.Model.Settings_Pane_Is_Open (Model) then
-               return
-                 Make_Result
-                   (Controller_Ignored, Id, Disabled_Operation ("error.dialog.native_unavailable"));
-            end if;
-            return Settings_Closed_Result (Id, Model);
          when Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command =>
             return Settings_Closed_Result (Id, Model);
          when others =>
@@ -605,7 +598,7 @@ package body Files.Controller is
          when Files.Commands.Delete_Selected_Permanently_Command =>
             Operation := Files.Operations.Delete_Selected_Permanently (Model, Settings);
          when Files.Commands.Generate_Thumbnails_Command =>
-            Operation := Files.Operations.Generate_Selected_Thumbnails (Model);
+            Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
          when Files.Commands.Search_Recursive_Command =>
             Operation := Files.Operations.Run_Recursive_Search (Model, Settings);
          when Files.Commands.Refresh_Directory_Command =>
@@ -631,8 +624,6 @@ package body Files.Controller is
             Files.Model.Set_Settings_Field_Index (Model, 1);
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
-         when Files.Commands.Import_Settings_Command | Files.Commands.Export_Settings_Command =>
-            return Disabled_Command_Result (Id, Model);
          when Files.Commands.Close_Command_Palette_Command =>
             if Files.Model.Command_Palette_Is_Open (Model) then
                Files.Model.Close_Command_Palette (Model);
@@ -722,69 +713,6 @@ package body Files.Controller is
 
       return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
    end Save_Settings;
-
-   function Import_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings_Path : String)
-      return Controller_Result
-   is
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
-   begin
-      if not Files.Model.Settings_Pane_Is_Open (Model) then
-         return Settings_Closed_Result (Files.Commands.Import_Settings_Command, Model, Settings_Path);
-      end if;
-
-      declare
-         Imported : constant Files.Settings.Settings_Parse_Result :=
-           Files.Settings.Import_Draft (Settings_Path);
-      begin
-         if not Imported.Success then
-            Files.Model.Set_Error (Model, To_String (Imported.Error_Key));
-            Operation.Status := Files.Operations.Operation_Failed;
-            Operation.Path := To_Unbounded_String (Settings_Path);
-            Operation.Error_Key := Imported.Error_Key;
-            return Make_Result (Controller_Command_Executed, Files.Commands.Import_Settings_Command, Operation);
-         end if;
-
-         Files.Model.Set_Settings_Draft (Model, Files.Settings.Make_Draft (Imported.Settings));
-         Files.Model.Set_Settings_Field_Index (Model, 1);
-      end;
-
-      Files.Model.Set_Error (Model, "");
-      Operation.Status := Files.Operations.Operation_Success;
-      Operation.Path := To_Unbounded_String (Settings_Path);
-
-      return Make_Result (Controller_Command_Executed, Files.Commands.Import_Settings_Command, Operation);
-   end Import_Settings;
-
-   function Export_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String)
-      return Controller_Result
-   is
-      Exported  : Files.Settings.Settings_Write_Result;
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
-   begin
-      if not Files.Model.Settings_Pane_Is_Open (Model) then
-         return Settings_Closed_Result (Files.Commands.Export_Settings_Command, Model, Settings_Path);
-      end if;
-
-      Exported := Files.Settings.Export_Settings (Settings_Path, Settings);
-      if not Exported.Success then
-         Files.Model.Set_Error (Model, To_String (Exported.Error_Key));
-         Operation.Status := Files.Operations.Operation_Failed;
-         Operation.Path := To_Unbounded_String (Settings_Path);
-         Operation.Error_Key := Exported.Error_Key;
-         return Make_Result (Controller_Command_Executed, Files.Commands.Export_Settings_Command, Operation);
-      end if;
-
-      Files.Model.Set_Error (Model, "");
-      Operation.Status := Files.Operations.Operation_Success;
-      Operation.Path := To_Unbounded_String (Settings_Path);
-
-      return Make_Result (Controller_Command_Executed, Files.Commands.Export_Settings_Command, Operation);
-   end Export_Settings;
 
    function Handle_Command_Click
      (Id        : Files.Commands.Command_Id;
