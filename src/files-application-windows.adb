@@ -402,6 +402,15 @@ package body Files.Application.Windows is
             Result :=
               Files.Controller.Save_Settings
                 (Runtime.Model, Runtime.Settings, Settings_Path);
+            --  Apply a font-size change made in the settings pane live, the
+            --  same way Ctrl+scroll / Ctrl+= zoom does: sync the runtime size
+            --  and invalidate the glyph cache so text re-rasterizes now rather
+            --  than only on the next launch.
+            if Runtime.Settings.Font_Pixel_Size /= Runtime.Font_Pixel_Size then
+               Runtime.Font_Pixel_Size := Runtime.Settings.Font_Pixel_Size;
+               Runtime.Text_Ready := False;
+               Runtime.Text_Glyph_Key := Null_Unbounded_String;
+            end if;
          when Files.Commands.Toggle_Bookmark_Command =>
             declare
                Current : constant String :=
