@@ -1560,6 +1560,28 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Join (Drop_Target, "move-source.txt")), "drop move creates destination");
       Assert (not Ada.Directories.Exists (Join (Root, "move-source.txt")), "drop move removes source");
 
+      --  Moving an item into the directory it already lives in is a no-op, but
+      --  copying into the same directory still makes a numbered duplicate.
+      Sources.Clear;
+      Write_File (Join (Root, "stay.txt"), "stay");
+      Sources.Append (To_Unbounded_String (Join (Root, "stay.txt")));
+      Plans := Files.File_System.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Move);
+      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Assert (Mutation.Success, "same-directory move succeeds");
+      Assert (Ada.Directories.Exists (Join (Root, "stay.txt")), "same-directory move keeps the file in place");
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "stay 2.txt")),
+         "same-directory move does not create a numbered duplicate");
+
+      Sources.Clear;
+      Sources.Append (To_Unbounded_String (Join (Root, "stay.txt")));
+      Plans := Files.File_System.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Copy);
+      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Assert (Mutation.Success, "same-directory copy succeeds");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "stay 2.txt")),
+         "same-directory copy still creates a numbered duplicate");
+
       Ada.Directories.Create_Path (Delete_Dir);
       Write_File (Join (Delete_Dir, "doomed.txt"), "doomed");
       Ada.Directories.Create_Path (Join (Delete_Dir, "nested"));

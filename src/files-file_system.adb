@@ -3812,7 +3812,19 @@ package body Files.File_System is
                   Result.Error_Key := Plan.Error_Key;
                else
                   Plan.Valid := True;
-                  Plan.Destination_Path := To_Unbounded_String (Available_Destination (To_String (Leaf)));
+                  if Mode = Drop_Move
+                    and then Ada.Directories.Full_Name
+                               (Ada.Directories.Containing_Directory (Source_Text))
+                             = Ada.Directories.Full_Name (Destination_Directory)
+                  then
+                     --  Moving an item into the directory it already lives in is
+                     --  a no-op; keep its own path so Execute_Drop_Import skips
+                     --  it instead of creating a numbered duplicate. (A copy
+                     --  into the same directory still makes a numbered copy.)
+                     Plan.Destination_Path := Source;
+                  else
+                     Plan.Destination_Path := To_Unbounded_String (Available_Destination (To_String (Leaf)));
+                  end if;
                   Plan.Error_Key := Null_Unbounded_String;
                end if;
                Result.Plans.Append (Plan);
@@ -3899,19 +3911,21 @@ package body Files.File_System is
             Destination_Path : constant String := To_String (Plan.Destination_Path);
          begin
             if Plan.Mode = Drop_Move then
-               begin
-                  Ada.Directories.Rename (Source_Path, Destination_Path);
-               exception
-                  when others =>
-                     Copy_Tree (Source_Path, Destination_Path);
-                     declare
-                        Delete_Result : constant Mutation_Result := Delete_Permanently (Source_Path);
-                     begin
-                        if not Delete_Result.Success then
-                           return Delete_Result;
-                        end if;
-                     end;
-               end;
+               if Source_Path /= Destination_Path then
+                  begin
+                     Ada.Directories.Rename (Source_Path, Destination_Path);
+                  exception
+                     when others =>
+                        Copy_Tree (Source_Path, Destination_Path);
+                        declare
+                           Delete_Result : constant Mutation_Result := Delete_Permanently (Source_Path);
+                        begin
+                           if not Delete_Result.Success then
+                              return Delete_Result;
+                           end if;
+                        end;
+                  end;
+               end if;
             else
                Copy_Tree (Source_Path, Destination_Path);
             end if;
