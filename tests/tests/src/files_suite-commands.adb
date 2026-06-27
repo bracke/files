@@ -341,10 +341,17 @@ package body Files_Suite.Commands is
         (Result.Operation.Status = Files.Operations.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
       Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 2);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings option click reports update");
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "settings option click saves the changed setting");
+      Assert
+        (Result.Command = Files.Commands.Save_Settings_Command,
+         "settings option click reports the save command");
       Assert (Files.Model.Settings_Field_Text (Model) = "large_icons", "settings option click updates scalar value");
       Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 2);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "same settings option click is ignored");
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "repeated settings option click still saves");
       Files.Model.Set_Settings_Field_Index (Model, 2);
       Files.Controller.Replace_Focused_Text (Model, "true");
       Result := Files.Controller.Handle_Settings_Click (Model, Field => 2, Option => 4);
@@ -379,11 +386,28 @@ package body Files_Suite.Commands is
            Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length);
       begin
          Result := Files.Controller.Handle_Settings_Click (Model, Field => 8, Option => 100);
-         Assert (Result.Status = Files.Controller.Controller_Ignored, "settings value-field add click is ignored");
-         Assert (Files.Model.Settings_Field_Index (Model) = 2, "settings value-field add click does not move focus");
+         Assert
+           (Result.Status = Files.Controller.Controller_Command_Executed,
+            "settings value-field add click executes");
+         Assert
+           (Result.Command = Files.Commands.Save_Settings_Command,
+            "settings value-field add click reports the save command");
+         Assert
+           (Files.Model.Settings_Field_Index (Model) = 8,
+            "settings value-field add click moves focus to the clicked field");
+         Assert
+           (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length) = Old_Mapping_Count + 1,
+            "settings value-field add click creates a mapping row");
+         Result := Files.Controller.Handle_Settings_Click (Model, Field => 8, Option => 101);
+         Assert
+           (Result.Status = Files.Controller.Controller_Command_Executed,
+            "settings value-field remove click executes");
+         Assert
+           (Result.Command = Files.Commands.Save_Settings_Command,
+            "settings value-field remove click reports the save command");
          Assert
            (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length) = Old_Mapping_Count,
-            "settings value-field add click does not create a mapping row");
+            "settings value-field remove click drops the added mapping row");
       end;
       Files.Model.Set_Settings_Field_Index (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_S, Ctrl);
@@ -533,7 +557,7 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 33, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 37, "all expected commands are registered");
       Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");
       Assert (Files.Commands.Contains ("settings.toggle"), "settings command identifier is registered");
       Assert (Files.Commands.Contains ("sort.menu.toggle"), "sort menu command identifier is registered");

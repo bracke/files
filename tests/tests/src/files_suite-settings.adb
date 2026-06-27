@@ -127,6 +127,7 @@ package body Files_Suite.Settings is
         "Sort_Ascending = FALSE" & ASCII.CR & ASCII.LF &
         "High_Contrast_Theme = TRUE" & ASCII.CR & ASCII.LF &
         "Icon_Theme = files-high-contrast" & ASCII.CR & ASCII.LF &
+        "use_system_default_opener = false" & ASCII.CR & ASCII.LF &
         "# comment lines are ignored" & ASCII.LF &
         "[filetypes]" & ASCII.LF &
         "ada = text/x-ada" & ASCII.LF &
@@ -164,6 +165,9 @@ package body Files_Suite.Settings is
       Line_Separator : constant String :=
         Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
    begin
+      --  Exercise the genuine missing-action lookups deterministically; the
+      --  host opener fallback would otherwise resolve unmapped lookups.
+      Manual.Use_System_Default_Opener := False;
       Assert (Parsed.Success, "settings text parses");
       Assert (Parsed.Settings.Default_View = Files.Types.Details, "default view mode parses");
       Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
@@ -1633,21 +1637,24 @@ package body Files_Suite.Settings is
             Empty_Settings.Extension_Filetypes.Clear;
             Empty_Settings.Icon_Mappings.Clear;
             Empty_Settings.Open_Actions.Clear;
+            --  Keep missing open-action lookups deterministic by opting out of
+            --  the host opener fallback that would otherwise resolve.
+            Empty_Settings.Use_System_Default_Opener := False;
             Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 7);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
                "empty filetype list ignores mapping text without selected row");
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 10);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 11);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "text/x-ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
                "empty icon list ignores mapping text without selected row");
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 12);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 13);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "text/x-ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
@@ -1672,7 +1679,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
             Repair_Draft.Filetype_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 7);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -1687,7 +1694,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
             Repair_Draft.Icon_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 10);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 11);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -1702,7 +1709,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
             Repair_Draft.Open_Action_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 12);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 13);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -1731,7 +1738,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
             Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 7);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "ada",
                "begin settings edit syncs stale filetype selection");
@@ -1754,7 +1761,7 @@ package body Files_Suite.Settings is
          Files.Controller.Replace_Focused_Text (Draft_Model, "true");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 6);
          Files.Controller.Replace_Focused_Text (Draft_Model, "files-high-contrast");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 7);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
          declare
             First_Extension : constant String := Files.Model.Settings_Field_Text (Draft_Model);
          begin
@@ -1769,43 +1776,43 @@ package body Files_Suite.Settings is
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_N, Ctrl);
          Assert (Files.Model.Settings_Field_Text (Draft_Model) = "", "settings add creates a blank mapping entry");
          Files.Controller.Replace_Focused_Text (Draft_Model, "tmpdel");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Delete, Ctrl);
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "tmpdel",
             "settings remove deletes the selected mapping entry");
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 7, Option => 100);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 100);
          Assert
-           (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
-            "settings add button reports update");
+           (Controller_Result.Status = Files.Controller.Controller_Command_Executed,
+            "settings add button executes and saves");
          Files.Controller.Replace_Focused_Text (Draft_Model, "buttondel");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 10);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-button-delete");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 7);
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 7, Option => 101);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 101);
          Assert
-           (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
-            "settings remove button reports update");
+           (Controller_Result.Status = Files.Controller.Controller_Command_Executed,
+            "settings remove button executes and saves");
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "buttondel",
             "settings remove button deletes the selected mapping entry");
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 101);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 9, Option => 101);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Ignored,
             "settings value-field remove button is ignored");
          Files.Controller.Replace_Focused_Text (Draft_Model, "cfg");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 10);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 11, Option => 100);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/markdown");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 12, Option => 100);
+         Files.Controller.Replace_Focused_Text (Draft_Model, "text/markdown");
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 13);
          Files.Controller.Replace_Focused_Text (Draft_Model, "reader {path}");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 1);
          Files.Controller.Replace_Focused_Text (Draft_Model, "bad-view");
@@ -1820,7 +1827,7 @@ package body Files_Suite.Settings is
            (To_String (Controller_Result.Operation.Path) = Draft_Path,
             "controller invalid settings save reports settings path");
          Files.Controller.Replace_Focused_Text (Draft_Model, "details");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
          Assert
            (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,

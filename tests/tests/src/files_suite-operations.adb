@@ -652,6 +652,10 @@ package body Files_Suite.Operations is
       Policy    : constant Files.Operations.Open_Action_Execution_Policy :=
         Files.Operations.Open_Action_Policy;
    begin
+      --  Exercise the configured-action and missing-action contracts
+      --  deterministically; the host opener fallback would otherwise resolve
+      --  unmapped lookups in this environment.
+      Settings.Use_System_Default_Opener := False;
       Assert (Policy.Uses_Argument_Vector, "open-action policy requires argument vectors");
       Assert (Policy.Shell_Requires_Explicit_Opt_In, "open-action policy requires explicit shell opt-in");
       Assert (Policy.Checks_Executable_Before_Spawn, "open-action policy checks executables before spawn");
@@ -807,6 +811,9 @@ package body Files_Suite.Operations is
            (Preflight_Settings,
             "text/plain",
             Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+         --  Keep the missing-action preflight deterministic by opting out of
+         --  the host opener fallback for the unmapped second selection.
+         Preflight_Settings.Use_System_Default_Opener := False;
          Files.Model.Select_Visible (Preflight_Model, 1);
          Files.Model.Toggle_Visible_Selection (Preflight_Model, 3);
          Preflight_Result :=
@@ -869,45 +876,49 @@ package body Files_Suite.Operations is
       end;
 
       declare
-         Failure_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-         Failure_Model    : Files.Model.Window_Model := Sample_Model;
-         Failure_Result   : Files.Operations.Operation_Result;
+         Detached_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Detached_Model    : Files.Model.Window_Model := Sample_Model;
+         Detached_Result   : Files.Operations.Operation_Result;
       begin
+         --  Open actions are now launched detached (fire-and-forget) through a
+         --  backgrounding shell wrapper, so a launched application's own exit
+         --  code is no longer observable: even /bin/false reports success
+         --  because the wrapper shell itself exits zero after backgrounding.
          Files.Settings.Add_Open_Action
-           (Failure_Settings,
+           (Detached_Settings,
             "text/plain",
             Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
          Files.Settings.Add_Open_Action
-           (Failure_Settings,
+           (Detached_Settings,
             "text/markdown",
             Files.Settings.Make_Action ("/bin/false", Files.Settings.String_Vectors.Empty_Vector));
-         Files.Model.Select_Visible (Failure_Model, 1);
-         Files.Model.Toggle_Visible_Selection (Failure_Model, 3);
-         Failure_Result := Files.Operations.Open_Selected (Failure_Model, Failure_Settings);
+         Files.Model.Select_Visible (Detached_Model, 1);
+         Files.Model.Toggle_Visible_Selection (Detached_Model, 3);
+         Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);
          Assert
-           (Failure_Result.Status = Files.Operations.Operation_Failed,
-            "multi-file open execution failure is represented");
+           (Detached_Result.Status = Files.Operations.Operation_Action_Executed,
+            "multi-file detached open succeeds without surfacing app exit codes");
          Assert
-           (To_String (Failure_Result.Path) = Join (Root, "Gamma.md"),
-            "multi-file open execution failure reports failing path");
+           (To_String (Detached_Result.Path) = Join (Root, "Alpha.txt"),
+            "multi-file detached open reports first selected path");
          Assert
-           (To_String (Failure_Result.Action_Executable) = "/bin/false",
-            "multi-file open execution failure exposes failing executable");
+           (To_String (Detached_Result.Action_Executable) = "/bin/true",
+            "multi-file detached open exposes first action executable");
          Assert
-           (Failure_Result.Execution_Attempted,
-            "multi-file open execution failure records process attempt");
+           (Detached_Result.Execution_Attempted,
+            "multi-file detached open records process attempt");
          Assert
-           (Failure_Result.Executable_Found,
-            "multi-file open execution failure records executable discovery");
+           (Detached_Result.Executable_Found,
+            "multi-file detached open records executable discovery");
          Assert
-           (Failure_Result.Exit_Status_Known,
-            "multi-file open execution failure records exit status");
+           (Detached_Result.Exit_Status_Known,
+            "multi-file detached open records exit status");
          Assert
-           (Failure_Result.Exit_Status /= 0,
-            "multi-file open execution failure records nonzero exit status");
+           (Detached_Result.Exit_Status = 0,
+            "multi-file detached open records the wrapper shell zero exit");
          Assert
-           (Files.Model.Last_Error_Key (Failure_Model) = "error.open_action.execution",
-            "multi-file open execution failure records model diagnostic");
+           (Files.Model.Last_Error_Key (Detached_Model) = "",
+            "multi-file detached open clears stale error state");
       end;
 
       declare
@@ -1071,39 +1082,44 @@ package body Files_Suite.Operations is
             "text/plain",
             Files.Settings.Make_Action ("exit", Exit_Arguments, True));
       end;
+      --  Open actions are launched detached through a backgrounding shell
+      --  wrapper, so a launched command's own nonzero exit code is no longer
+      --  surfaced: the wrapper shell itself exits zero after backgrounding.
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
-        (Result.Status = Files.Operations.Operation_Failed,
-         "nonzero explicit shell builtin is represented");
+        (Result.Status = Files.Operations.Operation_Action_Executed,
+         "detached explicit shell builtin launches fire-and-forget");
       Assert
         (Result.Execution_Attempted,
-         "nonzero explicit shell builtin runs through the explicit shell");
+         "detached explicit shell builtin runs through the wrapper shell");
       Assert
         (Result.Executable_Found,
-         "nonzero explicit shell builtin records successful shell lookup");
+         "detached explicit shell builtin records successful shell lookup");
       Assert
-        (To_String (Result.Error_Key) = "error.open_action.execution",
-         "nonzero explicit shell builtin reports shell execution failure");
+        (Result.Exit_Status = 0,
+         "detached explicit shell builtin records the wrapper shell zero exit");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "",
+         "detached explicit shell builtin clears stale error state");
 
       Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action ("/bin/false", Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Failed, "failed open action execution is represented");
-      Assert (Result.Execution_Attempted, "failed process result records execution attempt");
-      Assert (Result.Executable_Found, "failed process result records executable discovery");
-      Assert (Result.Exit_Status_Known, "failed process result records exit status");
-      Assert (Result.Exit_Status /= 0, "failed process result records nonzero exit status");
       Assert
-        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Failed,
-         "failed process lifecycle records failed state");
+        (Result.Status = Files.Operations.Operation_Action_Executed,
+         "detached open action launches without surfacing app exit codes");
+      Assert (Result.Execution_Attempted, "detached process result records execution attempt");
+      Assert (Result.Executable_Found, "detached process result records executable discovery");
+      Assert (Result.Exit_Status_Known, "detached process result records exit status");
+      Assert (Result.Exit_Status = 0, "detached process result records the wrapper shell zero exit");
+      Assert
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Completed,
+         "detached process lifecycle records completed state");
       Assert
         (Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
-         "failed process lifecycle exposes known exit status");
+         "detached process lifecycle exposes known exit status");
       Assert
-        (To_String (Result.Error_Key) = "error.open_action.execution",
-         "failed open action returns execution error key");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.open_action.execution",
-         "failed open action stores localized error key");
+        (Files.Model.Last_Error_Key (Model) = "",
+         "detached open action clears localized error key");
 
       Files.Settings.Add_Open_Action
         (Settings,
@@ -1204,9 +1220,12 @@ package body Files_Suite.Operations is
    procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model := Sample_Model;
-      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Operations.Operation_Result;
    begin
+      --  Exercise the genuine missing-action contract deterministically by
+      --  opting out of the host opener fallback that would otherwise resolve.
+      Settings.Use_System_Default_Opener := False;
       Files.Model.Select_Visible (Model, 3);
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Missing_Open_Action, "prepare reports missing action");
