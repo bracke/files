@@ -212,6 +212,7 @@ de-DE.settings.value.false = falsch
 de-DE.settings.sort.name = Name
 de-DE.settings.sort.filetype = Dateityp
 de-DE.settings.sort.size = Größe
+de-DE.settings.sort.created = erstellt
 de-DE.settings.sort.modified = geändert
 de-DE.settings.sort.ascending =  aufsteigend
 de-DE.settings.sort.descending =  absteigend

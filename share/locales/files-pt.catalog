@@ -172,6 +172,7 @@ pt.settings.value.false = falso
 pt.settings.sort.name = nome
 pt.settings.sort.filetype = tipo de ficheiro
 pt.settings.sort.size = tamanho
+pt.settings.sort.created = criado
 pt.settings.sort.modified = alterado
 pt.settings.sort.ascending =  ascendente
 pt.settings.sort.descending =  descendente

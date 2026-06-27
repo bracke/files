@@ -172,6 +172,7 @@ sv.settings.value.false = falskt
 sv.settings.sort.name = namn
 sv.settings.sort.filetype = filtyp
 sv.settings.sort.size = storlek
+sv.settings.sort.created = skapad
 sv.settings.sort.modified = ändrad
 sv.settings.sort.ascending =  stigande
 sv.settings.sort.descending =  fallande

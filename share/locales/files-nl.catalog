@@ -172,6 +172,7 @@ nl.settings.value.false = onwaar
 nl.settings.sort.name = naam
 nl.settings.sort.filetype = bestandstype
 nl.settings.sort.size = grootte
+nl.settings.sort.created = aangemaakt
 nl.settings.sort.modified = gewijzigd
 nl.settings.sort.ascending =  oplopend
 nl.settings.sort.descending =  aflopend

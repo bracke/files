@@ -172,6 +172,7 @@ es.settings.value.false = falso
 es.settings.sort.name = nombre
 es.settings.sort.filetype = tipo de archivo
 es.settings.sort.size = tamaño
+es.settings.sort.created = creado
 es.settings.sort.modified = modificado
 es.settings.sort.ascending =  ascendente
 es.settings.sort.descending =  descendente

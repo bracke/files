@@ -172,6 +172,7 @@ da.settings.value.false = falsk
 da.settings.sort.name = navn
 da.settings.sort.filetype = filtype
 da.settings.sort.size = størrelse
+da.settings.sort.created = oprettet
 da.settings.sort.modified = ændret
 da.settings.sort.ascending =  stigende
 da.settings.sort.descending =  faldende

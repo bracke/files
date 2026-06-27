@@ -172,6 +172,7 @@ de.settings.value.false = falsch
 de.settings.sort.name = Name
 de.settings.sort.filetype = Dateityp
 de.settings.sort.size = Größe
+de.settings.sort.created = erstellt
 de.settings.sort.modified = geändert
 de.settings.sort.ascending =  aufsteigend
 de.settings.sort.descending =  absteigend

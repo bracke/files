@@ -172,6 +172,7 @@ nb.settings.value.false = falsk
 nb.settings.sort.name = navn
 nb.settings.sort.filetype = filtype
 nb.settings.sort.size = størrelse
+nb.settings.sort.created = opprettet
 nb.settings.sort.modified = endret
 nb.settings.sort.ascending =  stigende
 nb.settings.sort.descending =  synkende

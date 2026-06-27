@@ -172,6 +172,7 @@ fi.settings.value.false = epätosi
 fi.settings.sort.name = nimi
 fi.settings.sort.filetype = tiedostotyyppi
 fi.settings.sort.size = koko
+fi.settings.sort.created = luotu
 fi.settings.sort.modified = muokattu
 fi.settings.sort.ascending =  nouseva
 fi.settings.sort.descending =  laskeva
