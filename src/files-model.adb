@@ -1536,9 +1536,9 @@ package body Files.Model is
    begin
       case Direction is
          when Files.Types.Move_Left | Files.Types.Move_Up =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 12 else Model.Settings_Field - 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 13 else Model.Settings_Field - 1));
          when Files.Types.Move_Right | Files.Types.Move_Down =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 12 then 1 else Model.Settings_Field + 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 13 then 1 else Model.Settings_Field + 1));
       end case;
    end Move_Settings_Field;
 
