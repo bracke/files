@@ -89,6 +89,21 @@ package body Files_Suite is
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
 
+   function Click_Action
+     (Snapshot    : Files.Rendering.View_Snapshot;
+      X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Activate    : Boolean := False;
+      Modifiers   : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Line_Height : Positive := 20)
+      return Files.Events.Input_Action
+   is (Files.Events.Translate_Click
+         (Snapshot,
+          Files.Rendering.Build_Frame_Commands (Snapshot, Width, Height, Line_Height),
+          X, Y, Width, Height, Activate, Modifiers, Line_Height));
+
    type Startup_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
    type Model_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
    type Command_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -3226,7 +3241,8 @@ package body Files_Suite is
                | Files.File_System.Root_Mount
                | Files.File_System.Root_User_Mount
                | Files.File_System.Root_Network_Mount
-               | Files.File_System.Root_Windows_Drive =>
+               | Files.File_System.Root_Windows_Drive
+               | Files.File_System.Root_Bookmark =>
                null;
          end case;
          if Entries.Element (Index).Kind = Files.File_System.Root_Mount then
@@ -13187,7 +13203,7 @@ package body Files_Suite is
             "details type header maps to sort-by-type command");
 
          Header_Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Snapshot,
               X           => Details_Layout.Element (1).Size_X + 6,
               Y           => Header_Y,
@@ -16567,6 +16583,7 @@ package body Files_Suite is
                Text         => To_Unbounded_String ("stable text"),
                Color        => Files.Rendering.Text_Color,
                Truncated    => False,
+               Italic       => False,
                Scale_To_Box => False));
          Before_Text := Files.Rendering.Build_Text_Glyphs (Stable_Renderer, Stable_Frame);
          Assert
@@ -16749,6 +16766,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String ("x"),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Edge_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Edge_Frame);
          Assert
@@ -16769,6 +16787,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String (Files.UTF8.Encode_Codepoint (16#2302#)),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => True));
          Icon_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Icon_Frame);
          Assert
@@ -16809,6 +16828,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String (Wide_Name),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Wide_Glyph_Text := Files.Rendering.Build_Text_Glyphs (Wide_Renderer, Wide_Glyph_Frame);
          for Glyph of Wide_Glyph_Text.Glyphs loop
@@ -16849,6 +16869,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String (Combining_Name),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Combining_Glyph_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Combining_Glyph_Frame);
          for Glyph of Combining_Glyph_Text.Glyphs loop
@@ -16984,6 +17005,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String (Missing_Name),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Missing_Glyph_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Missing_Glyph_Frame);
 
@@ -17019,6 +17041,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String (Emoji_Name),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Emoji_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Emoji_Frame);
 
@@ -17056,6 +17079,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String (Variation_Name),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Variation_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Variation_Frame);
 
@@ -17331,6 +17355,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String ("main"),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Overlay_Frame.Overlay_Rectangles.Append
            (Files.Rendering.Rectangle_Command'
@@ -17348,6 +17373,7 @@ package body Files_Suite is
                Text      => To_Unbounded_String ("tip"),
                Color     => Files.Rendering.Text_Color,
                Truncated => False,
+               Italic       => False,
                Scale_To_Box => False));
          Overlay_Text := Files.Rendering.Build_Text_Glyphs (Text_Renderer, Overlay_Frame);
          Overlay_Batch := Files.Rendering.Vulkan.Build_Submission (Overlay_Frame, Overlay_Text);
@@ -18000,7 +18026,7 @@ package body Files_Suite is
          "sort menu second row maps to size command");
 
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Snapshot,
            X           => Bottom.Sort_Button_X,
            Y           => Rows_Y + Row_H + 1,
@@ -18532,7 +18558,7 @@ package body Files_Suite is
       Files.Model.Toggle_Settings_Pane (Model);
 
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 10, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Command_Input_Action, "toolbar click translates to command action");
       Assert (Action.Command = Files.Commands.Select_Drive_Command, "toolbar click maps drive command");
@@ -18544,7 +18570,7 @@ package body Files_Suite is
         Files.Rendering.Calculate_Layout
           (Files.Rendering.Build_Snapshot (Model), Width => 1000, Height => 800, Line_Height => 20);
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
            (Files.Rendering.Build_Snapshot (Model),
            X      => 10,
            Y      => Layout.Toolbar_Height + 10,
@@ -18553,7 +18579,7 @@ package body Files_Suite is
       Assert (Action.Kind = Files.Events.Root_Click_Input_Action, "root row click translates to root action");
       Assert (Action.Root_Index = 1, "root row click returns root index");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 10, Width => 1000, Height => 800);
       Assert
         (Action.Kind = Files.Events.Command_Input_Action,
@@ -18636,7 +18662,7 @@ package body Files_Suite is
          end loop;
          Assert (Found_Opaque_Settings_Background, "settings pane background is opaque");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                   (Settings_Snapshot,
                    X      => Text_X + 1,
                   Y      => Row_Y (1) + 1,
@@ -18645,7 +18671,7 @@ package body Files_Suite is
          Assert (Action.Kind = Files.Events.Command_Input_Action, "settings reset click translates");
          Assert (Action.Command = Files.Commands.Reset_Settings_Command, "settings reset click maps command");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                   (Settings_Snapshot,
                    X      => Action_Buttons.Second_Button_X + 1,
                   Y      => Row_Y (1) + 1,
@@ -18658,7 +18684,7 @@ package body Files_Suite is
          begin
             Disabled_Settings.Settings_Can_Reset := False;
             Action :=
-              Files.Events.Translate_Click
+              Click_Action
                    (Disabled_Settings,
                     X      => Text_X + 1,
                     Y      => Row_Y (1) + 1,
@@ -18671,7 +18697,7 @@ package body Files_Suite is
             Disabled_Settings := Settings_Snapshot;
             Disabled_Settings.Settings_Can_Save := False;
             Action :=
-              Files.Events.Translate_Click
+              Click_Action
                    (Disabled_Settings,
                     X      => Action_Buttons.Second_Button_X + 1,
                     Y      => Row_Y (1) + 1,
@@ -18693,7 +18719,7 @@ package body Files_Suite is
             Odd_Last_X     : constant Natural := Odd_Text_X + Odd_Text_W - 1;
          begin
             Action :=
-              Files.Events.Translate_Click
+              Click_Action
                   (Odd_Snapshot,
                    X      => Odd_Last_X,
                   Y      => Odd_Pane.Text_Y + Row_Step + 1,
@@ -18707,7 +18733,7 @@ package body Files_Suite is
                "settings save remainder click maps save command");
          end;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                   (Settings_Snapshot,
                    X      => Text_X + Cell_W + 1,
                   Y      => Row_Y (20) + 1,
@@ -18717,7 +18743,7 @@ package body Files_Suite is
          Assert (Action.Settings_Field = 1, "settings option click keeps active scalar field");
          Assert (Action.Settings_Option = 2, "settings option click returns option index");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                   (Settings_Snapshot,
                    X      => Text_X + 3 * Cell_W + 1,
                   Y      => Row_Y (20) + 1,
@@ -18735,7 +18761,7 @@ package body Files_Suite is
             Sort_Text_W   : constant Natural := Sort_Pane.Text_Width;
          begin
             Action :=
-              Files.Events.Translate_Click
+              Click_Action
                   (Sort_Snapshot,
                    X      => Sort_Text_X + Sort_Text_W - 1,
                   Y      => Sort_Pane.Text_Y + 20 * Row_Step + 1,
@@ -18748,7 +18774,7 @@ package body Files_Suite is
             Assert (Action.Settings_Option = 4, "settings sort remainder click maps modified option");
          end;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                   (Settings_Snapshot,
                    X      => Entry_Buttons.Add_Button_X + 1,
                   Y      => Row_Y (9) + 1,
@@ -18758,7 +18784,7 @@ package body Files_Suite is
          Assert (Action.Settings_Field = 7, "settings add click targets filetype mappings");
          Assert (Action.Settings_Option = 100, "settings add click returns add action code");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                   (Settings_Snapshot,
                    X      => Entry_Buttons.Remove_Button_X + 1,
                   Y      => Row_Y (9) + 1,
@@ -18768,7 +18794,7 @@ package body Files_Suite is
          Assert (Action.Settings_Field = 7, "settings remove click targets filetype mappings");
          Assert (Action.Settings_Option = 101, "settings remove click returns remove action code");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
                (Settings_Snapshot,
                 X      => Text_X + 1,
                Y      => Pane_Y + Settings_Pane.Height - 1,
@@ -18788,7 +18814,7 @@ package body Files_Suite is
               (Narrow_Pane.Width = Narrow_Width and then Narrow_Pane.X = 0,
                "narrow settings pane clamps to the window width");
             Action :=
-              Files.Events.Translate_Click
+              Click_Action
                    (Narrow_Snapshot,
                     X      => Narrow_Width,
                     Y      => Narrow_Pane.Text_Y + Row_Step + 1,
@@ -18806,7 +18832,7 @@ package body Files_Suite is
       begin
          Assert (Huge_Layout.Command_Width < Natural'Last, "saturated command palette width is bounded");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Huge_Snapshot,
               X      => Natural'Last,
               Y      => Natural'Last,
@@ -18819,7 +18845,7 @@ package body Files_Suite is
                 (Natural'Last, Natural'Last, Huge_Layout.Toolbar_Height, Line_Height => 20);
          begin
             Action :=
-              Files.Events.Translate_Click
+              Click_Action
                 (Huge_Snapshot,
                  X      => Huge_Pane.Text_X + 1,
                  Y      => Huge_Pane.Text_Y + 20 + Files.UI.Settings_Row_Gap + 1,
@@ -18846,7 +18872,7 @@ package body Files_Suite is
            Files.UI.Calculate_Settings_Pane_Layout (1000, 800, Settings_Layout.Toolbar_Height, Line_Height => 20);
       begin
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Palette_Over_Settings,
               X      => Settings_Pane.Text_X + 1,
               Y      => Settings_Pane.Text_Y + 20 + Files.UI.Settings_Row_Gap + 1,
@@ -18856,7 +18882,7 @@ package body Files_Suite is
            (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
             "palette claims settings modal clicks behind overlay");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Palette_Over_Settings,
               X      => Palette.Search_X + 1,
               Y      => Palette.Search_Y + 1,
@@ -18869,7 +18895,7 @@ package body Files_Suite is
            (Action.Focus_Target = Files.Types.Focus_Command_Palette,
             "palette search over settings targets command-palette input");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Palette_Over_Settings,
               X      => Palette.Results_X + 1,
               Y      => Palette.Results_Y + 1,
@@ -18894,7 +18920,7 @@ package body Files_Suite is
            Files.Rendering.Calculate_Command_Palette_Layout (Wide_Layout, Line_Height => 20);
       begin
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Wide_Snapshot,
               X      => Wide_Palette.Search_X + Wide_Palette.Search_Width - 1,
               Y      => Wide_Palette.Search_Y + 1,
@@ -18910,39 +18936,39 @@ package body Files_Suite is
       Files.Model.Close_Command_Palette (Model);
 
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 268, Y => 20, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "path click translates to text action");
       Assert (Action.Focus_Target = Files.Types.Focus_Path_Input, "path click targets path input");
       Assert (Action.Cursor_Position = 2, "path click computes text cursor position");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 240, Y => 20, Width => 1000, Height => 800);
       Assert (Action.Cursor_Position = 0, "path click clamps cursor to text start");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 799, Y => 20, Width => 1000, Height => 800);
       Assert (Action.Cursor_Position = Root'Length, "path click clamps cursor to text end");
 
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 268, Y => 5, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "path input top padding focuses text field");
       Assert (Action.Focus_Target = Files.Types.Focus_Path_Input, "path input top padding targets path input");
 
       Files.Model.Set_Filter (Model, "beta");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 824, Y => 20, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "filter click translates to text action");
       Assert (Action.Focus_Target = Files.Types.Focus_Filter_Input, "filter click targets filter input");
       Assert (Action.Cursor_Position = 2, "filter click computes text cursor position");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 800, Y => 20, Width => 1000, Height => 800);
       Assert (Action.Cursor_Position = 0, "filter click clamps cursor to text start");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 999, Y => 20, Width => 1000, Height => 800);
       Assert (Action.Cursor_Position = 4, "filter click clamps cursor to text end");
       declare
@@ -18953,35 +18979,35 @@ package body Files_Suite is
       begin
          Files.Model.Set_Filter (Model, "a" & Utf8_Text & "b");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Files.Rendering.Build_Snapshot (Model), X => 824, Y => 20, Width => 1000, Height => 800);
          Assert
            (Action.Cursor_Position = 3,
             "filter click returns UTF-8 byte boundary after clicked character");
          Files.Model.Set_Filter (Model, Combining_Text & "b");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Files.Rendering.Build_Snapshot (Model), X => 814, Y => 20, Width => 1000, Height => 800);
          Assert
            (Action.Cursor_Position = Combining_Text'Length,
             "filter click skips trailing combining marks at display-cell boundaries");
          Files.Model.Set_Filter (Model, "a" & Byte (16#A9#) & "b");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Files.Rendering.Build_Snapshot (Model), X => 824, Y => 20, Width => 1000, Height => 800);
          Assert
            (Action.Cursor_Position = 2,
             "filter click counts malformed UTF-8 byte as replacement cell");
       end;
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 824, Y => 30, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "filter input bottom padding focuses text field");
       Assert (Action.Focus_Target = Files.Types.Focus_Filter_Input, "filter input bottom padding targets filter input");
       Files.Model.Clear_Filter (Model);
 
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 170, Y => 790, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Command_Input_Action, "bottom-bar click translates to command action");
       Assert (Action.Command = Files.Commands.Select_Details_Command, "bottom-bar click maps details command");
@@ -18990,7 +19016,7 @@ package body Files_Suite is
         Files.Rendering.Calculate_Layout
           (Files.Rendering.Build_Snapshot (Model), Width => 1000, Height => 800, Line_Height => 20);
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model),
            X        => Layout.Main_X + 9,
            Y        => Layout.Main_Y + 9,
@@ -19002,7 +19028,7 @@ package body Files_Suite is
       Assert (Action.Activate, "main item double-click preserves activation flag");
       Assert (not Action.Range_Selection, "plain item click does not request range selection");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model),
            X         => Layout.Main_X + 9,
            Y         => Layout.Main_Y + 9,
@@ -19012,7 +19038,7 @@ package body Files_Suite is
       Assert (Action.Toggle_Selection, "control-click item action requests selection toggle");
       Assert (not Action.Range_Selection, "control-click item action does not request range selection");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model),
            X         => Layout.Main_X + 9,
            Y         => Layout.Main_Y + 9,
@@ -19022,7 +19048,7 @@ package body Files_Suite is
       Assert (Action.Range_Selection, "shift-click item action requests range selection");
       Assert (not Action.Toggle_Selection, "shift-click item action does not request toggle selection");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model),
            X         => Layout.Main_X + 9,
            Y         => Layout.Main_Y + 9,
@@ -19035,7 +19061,7 @@ package body Files_Suite is
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 136, Y => 33, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Text_Click_Input_Action, "palette search click translates to text action");
       Assert
@@ -19043,11 +19069,11 @@ package body Files_Suite is
          "palette search click targets command-palette input");
       Assert (Action.Cursor_Position = 2, "palette search click computes text cursor position");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 108, Y => 33, Width => 1000, Height => 800);
       Assert (Action.Cursor_Position = 0, "palette search click clamps cursor to text start");
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 891, Y => 33, Width => 1000, Height => 800);
       Assert
         (Action.Cursor_Position = Palette_Query_Length,
@@ -19060,7 +19086,7 @@ package body Files_Suite is
            Files.Rendering.Calculate_Command_Palette_Layout (Tiny_Layout, Line_Height => 20);
       begin
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Tiny_Snapshot,
               X      => Tiny_Palette.Search_X,
               Y      => Tiny_Palette.Search_Y + Tiny_Palette.Search_Height - 1,
@@ -19073,7 +19099,7 @@ package body Files_Suite is
            (Action.Focus_Target = Files.Types.Focus_Command_Palette,
             "tiny palette search click targets command-palette input");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Tiny_Snapshot,
               X      => Tiny_Palette.Search_X,
               Y      => Tiny_Palette.Search_Y + Tiny_Palette.Search_Height,
@@ -19092,7 +19118,7 @@ package body Files_Suite is
            Files.Rendering.Calculate_Command_Palette_Layout (Click_Layout, Line_Height => 20);
       begin
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Click_Snapshot,
               X      => Click_Palette.Results_X + 1,
               Y      => Click_Palette.Results_Y + 1,
@@ -19103,7 +19129,7 @@ package body Files_Suite is
             "palette result click translates to result action");
          Assert (Action.Result_Index = 1, "palette result click returns result index");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Click_Snapshot,
               X      => Click_Palette.Results_X + 1,
               Y      => Click_Palette.Results_Y + 25,
@@ -19115,7 +19141,7 @@ package body Files_Suite is
          Assert (Action.Result_Index = 1, "palette result description click returns result index");
       end;
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 10, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.No_Input_Action, "palette blocks toolbar clicks behind overlay");
 
@@ -19132,7 +19158,7 @@ package body Files_Suite is
          Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
          Track_X := Palette_Layout.Results_X + Palette_Layout.Results_Width - 1;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Palette_Snapshot,
               X      => Track_X,
               Y      => Palette_Layout.Results_Y + Palette_Layout.Results_Height - 1,
@@ -19143,7 +19169,7 @@ package body Files_Suite is
          Assert (Action.Scroll_Lines = 5, "palette scrollbar below thumb scrolls down by a page step");
          Palette_Snapshot.Command_Palette_Result_Offset := 0;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Palette_Snapshot,
               X      => Track_X,
               Y      => Palette_Layout.Results_Y,
@@ -19156,7 +19182,7 @@ package body Files_Suite is
            Files.Rendering.Calculate_Layout (Palette_Snapshot, Width => 100, Height => 100, Line_Height => 20);
          Palette_Layout := Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height => 20);
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
               (Palette_Snapshot,
                X      => Palette_Layout.Results_X + Palette_Layout.Results_Width - 1,
               Y      => Palette_Layout.Results_Y,
@@ -19184,7 +19210,7 @@ package body Files_Suite is
            (Info_Pane.Scrollbar_Track_Height = Info_Pane.Height,
             "info pane exposes explicit scrollbar track height");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
               (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X + 1,
               Y      => Info_Pane.Scrollbar_Y + 1,
@@ -19194,7 +19220,7 @@ package body Files_Suite is
          Assert (Action.Scroll_Area = Files.Events.Scroll_Info_Pane, "info scrollbar targets info pane");
          Assert (Action.Scroll_Lines = -10, "info scrollbar above thumb scrolls up by a page step");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X + 1,
               Y      => Info_Pane.Scrollbar_Y + Info_Pane.Height - 1,
@@ -19204,7 +19230,7 @@ package body Files_Suite is
          Assert (Action.Scroll_Area = Files.Events.Scroll_Info_Pane, "info scrollbar below thumb targets info pane");
          Assert (Action.Scroll_Lines = 10, "info scrollbar below thumb scrolls down by a page step");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X,
               Y      => Info_Pane.Scrollbar_Y + Info_Pane.Scrollbar_Track_Height,
@@ -19212,7 +19238,7 @@ package body Files_Suite is
               Height => 160);
          Assert (Action.Kind = Files.Events.No_Input_Action, "info scrollbar ignores clicks below track height");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X,
               Y      => Info_Pane.Scrollbar_Thumb_Y,
@@ -19221,7 +19247,7 @@ package body Files_Suite is
          Assert (Action.Kind = Files.Events.No_Input_Action, "info scrollbar thumb click is inert");
          Info_Snapshot.Command_Palette_Open := True;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X,
               Y      => Info_Pane.Scrollbar_Y,
@@ -19233,7 +19259,7 @@ package body Files_Suite is
          Info_Snapshot.Root_Labels.Clear;
          Info_Snapshot.Root_Selector_Open := True;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X,
               Y      => Info_Pane.Scrollbar_Y,
@@ -19243,7 +19269,7 @@ package body Files_Suite is
          Info_Snapshot.Root_Selector_Open := False;
          Info_Snapshot.Settings_Pane_Open := True;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Info_Snapshot,
               X      => Info_Pane.Scrollbar_X,
               Y      => Info_Pane.Scrollbar_Y,
@@ -19277,7 +19303,7 @@ package body Files_Suite is
          Main_View := Files.Rendering.Calculate_Main_View_Layout (Main_Snapshot, Layout, Line_Height => 20);
          Assert (Main_View.Scrollbar_Visible, "overflow main view exposes scrollbar for hit testing");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Y,
@@ -19287,7 +19313,7 @@ package body Files_Suite is
          Assert (Action.Scroll_Area = Files.Events.Scroll_Main_View, "main scrollbar targets main view");
          Assert (Action.Scroll_Lines = -10, "main scrollbar above thumb scrolls up by a page step");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Y + Main_View.Scrollbar_Track_Height - 1,
@@ -19297,7 +19323,7 @@ package body Files_Suite is
          Assert (Action.Scroll_Area = Files.Events.Scroll_Main_View, "main scrollbar below thumb targets main view");
          Assert (Action.Scroll_Lines = 10, "main scrollbar below thumb scrolls down by a page step");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Y + Main_View.Scrollbar_Track_Height,
@@ -19305,7 +19331,7 @@ package body Files_Suite is
               Height => 120);
          Assert (Action.Kind = Files.Events.No_Input_Action, "main scrollbar ignores click below padded track");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Thumb_Y,
@@ -19314,7 +19340,7 @@ package body Files_Suite is
          Assert (Action.Kind = Files.Events.No_Input_Action, "main scrollbar thumb click is inert");
          Main_Snapshot.Command_Palette_Open := True;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Y,
@@ -19326,7 +19352,7 @@ package body Files_Suite is
          Main_Snapshot.Root_Labels.Clear;
          Main_Snapshot.Root_Selector_Open := True;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Y,
@@ -19336,7 +19362,7 @@ package body Files_Suite is
          Main_Snapshot.Root_Selector_Open := False;
          Main_Snapshot.Settings_Pane_Open := True;
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Main_Snapshot,
               X      => Main_View.Scrollbar_X,
               Y      => Main_View.Scrollbar_Y,
@@ -19357,7 +19383,7 @@ package body Files_Suite is
          Row       : constant Files.Rendering.Item_Layout := Item_Rows.Element (1);
       begin
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Files.Rendering.Build_Snapshot (Model),
               X      => Row.Text_X + 24,
               Y      => Row.Text_Y + 1,
@@ -19367,7 +19393,7 @@ package body Files_Suite is
          Assert (Action.Focus_Target = Files.Types.Focus_Rename_Input, "rename click targets rename input");
          Assert (Action.Cursor_Position = 2, "rename click computes text cursor position");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Files.Rendering.Build_Snapshot (Model),
               X      => Row.Text_X,
               Y      => Row.Text_Y + 1,
@@ -19375,7 +19401,7 @@ package body Files_Suite is
               Height => 800);
          Assert (Action.Cursor_Position = 0, "rename click clamps cursor to text start");
          Action :=
-           Files.Events.Translate_Click
+           Click_Action
              (Files.Rendering.Build_Snapshot (Model),
               X      => Row.Text_X + Row.Text_Width - 1,
               Y      => Row.Text_Y + 1,
@@ -19391,20 +19417,20 @@ package body Files_Suite is
       Roots.Append (To_Unbounded_String ("/tmp"));
       Files.Model.Open_Root_Selector (Model, Roots);
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 50, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.Root_Click_Input_Action, "root row click translates to root action");
       Assert (Action.Root_Index = 1, "root row click returns root index");
       Files.Model.Open_Command_Palette (Model);
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 10, Y => 50, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.No_Input_Action, "palette blocks root row clicks behind overlay");
       Files.Model.Close_Command_Palette (Model);
       Files.Model.Close_Root_Selector (Model);
 
       Action :=
-        Files.Events.Translate_Click
+        Click_Action
           (Files.Rendering.Build_Snapshot (Model), X => 999, Y => 400, Width => 1000, Height => 800);
       Assert (Action.Kind = Files.Events.No_Input_Action, "empty click translates to no input action");
    end Test_Event_Translation;
