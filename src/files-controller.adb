@@ -992,7 +992,7 @@ package body Files.Controller is
             end;
          end if;
       elsif Files.Model.Settings_Pane_Is_Open (Model) then
-         return Make_Result (Controller_Ignored);
+         return Scroll_Settings_Result (Model, Lines);
       elsif Files.Model.Info_Pane_Is_Open (Model) then
          return Scroll_Info_Result (Model, Lines);
       end if;
