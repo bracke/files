@@ -1504,8 +1504,19 @@ package body Files.Application.Windows is
               X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
               and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
             Item_Index : Natural := 0;
+            --  A modal overlay (settings, palette, root selector, sort menu)
+            --  must swallow the click, exactly as left-clicks are suppressed
+            --  behind these overlays. Otherwise a right-click in the grid
+            --  region behind the modal would open a context menu on top and
+            --  the next left-click would execute file commands from a state
+            --  where they should be unreachable.
+            Overlay_Open : constant Boolean :=
+              Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+              or else Files.Model.Command_Palette_Is_Open (Runtime.Model)
+              or else Files.Model.Root_Selector_Is_Open (Runtime.Model)
+              or else Files.Model.Sort_Menu_Is_Open (Runtime.Model);
          begin
-            if In_Main then
+            if In_Main and then not Overlay_Open then
                Item_Index := Files.Rendering.Item_At (Item_Layout, X, Y);
                if Item_Index /= 0 then
                   --  Match desktop file-manager convention: right-click on an
