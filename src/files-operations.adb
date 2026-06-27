@@ -345,7 +345,9 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
-      return Reload_Current_Directory (Model, Settings);
+      --  Preserve the current selection across a manual refresh when the item
+      --  still exists (Reload re-selects by name; empty name => no selection).
+      return Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
    end Refresh;
 
    function Refresh_If_Changed
@@ -367,7 +369,9 @@ package body Files.Operations is
          return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
       end if;
 
-      return Reload_Current_Directory (Model, Settings);
+      --  Preserve the selection across an auto-refresh triggered by a
+      --  background directory change, when the item still exists.
+      return Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
    end Refresh_If_Changed;
 
    function Run_Recursive_Search

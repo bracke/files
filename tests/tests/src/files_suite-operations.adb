@@ -3043,7 +3043,7 @@ package body Files_Suite.Operations is
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second refresh operation succeeds");
       Assert (Files.Model.Item_Count (Model) = 3, "second refresh loads later item");
-      Assert (Files.Model.Selected_Count (Model) = 0, "refresh clears stale numeric selection");
+      Assert (Files.Model.Selected_Count (Model) = 1, "refresh preserves the selection by name");
 
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Open_Command_Palette (Model);
