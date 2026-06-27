@@ -882,7 +882,10 @@ package body Files.Controller is
 
       Files.Model.Cancel_Focus_Or_Edit (Model);
       if Visible_Index > Files.Model.Visible_Count (Model) then
-         return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         --  The clicked row was the trailing temporary (create-file) row, which
+         --  Cancel_Focus_Or_Edit just removed; report a successful state-only
+         --  cancel rather than an unrelated (close-palette) command id.
+         return Successful_Command_Result (Files.Commands.No_Command);
       end if;
 
       if Modifiers (Files.Types.Shift_Key) and then not Activate then
