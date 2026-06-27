@@ -1603,6 +1603,34 @@ package body Files_Suite.Operations is
           (Sources, Join (Root, "tree"), Files.File_System.Drop_Copy);
       Assert (not Plans.Success, "copying a directory into itself is rejected");
 
+      --  Two sources sharing a simple name from different directories must get
+      --  distinct destinations within one batch (no silent overwrite).
+      Ada.Directories.Create_Path (Join (Root, "src-a"));
+      Ada.Directories.Create_Path (Join (Root, "src-b"));
+      Write_File (Join (Join (Root, "src-a"), "dup.txt"), "a");
+      Write_File (Join (Join (Root, "src-b"), "dup.txt"), "b");
+      Ada.Directories.Create_Path (Join (Root, "dup-dest"));
+      Sources.Clear;
+      Sources.Append (To_Unbounded_String (Join (Join (Root, "src-a"), "dup.txt")));
+      Sources.Append (To_Unbounded_String (Join (Join (Root, "src-b"), "dup.txt")));
+      Plans :=
+        Files.File_System.Plan_Drop_Import
+          (Sources, Join (Root, "dup-dest"), Files.File_System.Drop_Copy);
+      Assert (Plans.Success, "same-name batch drop plans successfully");
+      Assert (Natural (Plans.Plans.Length) = 2, "batch drop plans both sources");
+      Assert
+        (To_String (Plans.Plans.Element (1).Destination_Path)
+           /= To_String (Plans.Plans.Element (2).Destination_Path),
+         "same-name sources get distinct destinations within a batch");
+      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Assert (Mutation.Success, "same-name batch copy executes");
+      Assert
+        (Ada.Directories.Exists (Join (Join (Root, "dup-dest"), "dup.txt")),
+         "first same-name file is copied");
+      Assert
+        (Ada.Directories.Exists (Join (Join (Root, "dup-dest"), "dup 2.txt")),
+         "second same-name file gets a distinct name instead of overwriting");
+
       Ada.Directories.Create_Path (Delete_Dir);
       Write_File (Join (Delete_Dir, "doomed.txt"), "doomed");
       Ada.Directories.Create_Path (Join (Delete_Dir, "nested"));

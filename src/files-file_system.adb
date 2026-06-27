@@ -3757,6 +3757,11 @@ package body Files.File_System is
         (Success   => False,
          Plans     => Drop_Import_Plan_Vectors.Empty_Vector,
          Error_Key => Null_Unbounded_String);
+      --  Destinations already assigned earlier in this batch. They do not yet
+      --  exist on disk, so without tracking them two sources sharing a simple
+      --  name (from different directories) would resolve to the same target and
+      --  the second would silently overwrite the first.
+      Claimed : Files.Types.String_Vectors.Vector;
 
       function Image_No_Space (Value : Natural) return String is
          Image : constant String := Natural'Image (Value);
@@ -3774,6 +3779,16 @@ package body Files.File_System is
          return 0;
       end Extension_Start;
 
+      function Is_Claimed (Path : String) return Boolean is
+      begin
+         for Existing of Claimed loop
+            if To_String (Existing) = Path then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Is_Claimed;
+
       function Available_Destination (Leaf : String) return String is
          Dot       : constant Natural := Extension_Start (Leaf);
          Stem      : constant String :=
@@ -3782,13 +3797,16 @@ package body Files.File_System is
            (if Dot = 0 then "" else Leaf (Dot .. Leaf'Last));
          Counter   : Positive := 2;
          Candidate : Unbounded_String := To_Unbounded_String (Leaf);
+         Full      : Unbounded_String :=
+           To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
       begin
-         while Ada.Directories.Exists (Join_Path (Destination_Directory, To_String (Candidate))) loop
+         while Ada.Directories.Exists (To_String (Full)) or else Is_Claimed (To_String (Full)) loop
             Candidate := To_Unbounded_String (Stem & " " & Image_No_Space (Counter) & Extension);
+            Full := To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
             exit when Counter = Positive'Last;
             Counter := Counter + 1;
          end loop;
-         return Join_Path (Destination_Directory, To_String (Candidate));
+         return To_String (Full);
       end Available_Destination;
 
       --  True when Inner is Outer itself or a descendant of Outer (normalized).
@@ -3850,6 +3868,7 @@ package body Files.File_System is
                   else
                      Plan.Destination_Path := To_Unbounded_String (Available_Destination (To_String (Leaf)));
                   end if;
+                  Claimed.Append (Plan.Destination_Path);
                   Plan.Error_Key := Null_Unbounded_String;
                end if;
                Result.Plans.Append (Plan);
