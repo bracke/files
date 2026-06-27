@@ -507,4 +507,29 @@ package body Files.UI is
       end case;
    end Bottom_Bar_Sort_Menu_Command_At;
 
+   function Bottom_Bar_Sort_Menu_Contains
+     (X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive := 20)
+      return Boolean
+   is
+      Bottom    : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Line_Height);
+      Row_Count : constant Natural := 5;
+      Row_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Menu_H    : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
+      Bottom_H  : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
+      Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
+   begin
+      return Bottom.Sort_Button_Width > 0
+        and then X >= Bottom.Sort_Button_X
+        and then X < Saturating_Add (Bottom.Sort_Button_X, Bottom.Sort_Button_Width)
+        and then Y >= Menu_Y
+        and then Y < Bottom_Y;
+   end Bottom_Bar_Sort_Menu_Contains;
+
 end Files.UI;

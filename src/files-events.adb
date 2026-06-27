@@ -660,6 +660,11 @@ package body Files.Events is
          Command := Files.UI.Bottom_Bar_Sort_Menu_Command_At (X, Y, Width, Height, Line_Height);
          if Command /= Files.Commands.No_Command then
             return Command_Action (Command, Activate);
+         elsif Files.UI.Bottom_Bar_Sort_Menu_Contains (X, Y, Width, Height, Line_Height) then
+            --  Click inside the open menu's rectangle but not on a row (its
+            --  padding bands): consume it so it cannot fall through and select
+            --  the item drawn underneath the menu.
+            return No_Action (Activate);
          end if;
       end if;
 

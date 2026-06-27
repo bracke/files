@@ -202,4 +202,21 @@ package Files.UI is
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
 
+   --  Return whether a point lies within the open sort-menu's full rectangle
+   --  (including its padding bands), so callers can treat the menu as modal.
+   --
+   --  @param X Mouse X coordinate.
+   --  @param Y Mouse Y coordinate.
+   --  @param Width Window width.
+   --  @param Height Window height.
+   --  @param Line_Height Text line height in pixels.
+   --  @return True when the point is inside the sort-menu rectangle.
+   function Bottom_Bar_Sort_Menu_Contains
+     (X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive := 20)
+      return Boolean;
+
 end Files.UI;
