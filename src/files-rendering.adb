@@ -1946,7 +1946,7 @@ package body Files.Rendering is
          Icon_Y      : constant Natural := Inner_Y;
          Name_Units  : constant Natural :=
            Files.UTF8.Display_Units (To_String (Snapshot.Items.Element (Index).Name));
-         Name_Pixels : constant Natural := Saturating_Multiply (Name_Units, Line_Height * 12 / 20);
+         Name_Pixels : constant Natural := Saturating_Multiply (Name_Units, Saturating_Multiply (Line_Height, 12) / 20);
          Large_Text_W : constant Natural := Natural'Min (Inner_W, Name_Pixels);
          Text_X      : constant Natural :=
            (if Large
@@ -2689,7 +2689,7 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Natural
    is
-      Cell_W   : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+      Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
       Capacity : constant Natural := Text_W / Cell_W;
       Raw      : constant String := To_String (Text);
 
@@ -3102,7 +3102,7 @@ package body Files.Rendering is
       is
          Draw_W   : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
          Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
-         Cell_W   : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+         Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
@@ -3140,7 +3140,7 @@ package body Files.Rendering is
       is
          Draw_W : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
          Draw_H : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
-         Cell_W   : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+         Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
@@ -3453,7 +3453,7 @@ package body Files.Rendering is
          Text        : constant UString := Tooltip_At (Hover_X, Hover_Y);
          Text_Raw    : constant String := To_String (Text);
          Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);
-         Cell_W      : constant Natural := Natural'Max (1, Line_Height * 12 / 20);
+         Cell_W      : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Max_Tip_W   : constant Natural :=
            (if Width > 2 * Margin then Width - 2 * Margin else Width);
          Raw_Text_W  : constant Natural := Saturating_Multiply (Text_Len, Cell_W);
@@ -3681,7 +3681,7 @@ package body Files.Rendering is
          Field_H : Natural;
          Text    : UString)
       is
-         Char_W : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+         Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Raw    : constant String := To_String (Text);
          Raw_X  : constant Natural :=
            Saturating_Add
@@ -5491,7 +5491,7 @@ package body Files.Rendering is
                      Color : Render_Color := Muted_Text_Color)
                   is
                      Raw        : constant String := To_String (Text);
-                     Cell_W     : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+                     Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
                      Capacity   : constant Natural := Text_W / Cell_W;
                      Line_Index : Natural := 0;
 
@@ -5718,7 +5718,7 @@ package body Files.Rendering is
 
             function Text_Y_In_Row (Y : Natural) return Natural is (Y);
 
-            Cell_W_Settings : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+            Cell_W_Settings : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
             Capacity_Settings : constant Natural := Text_W / Cell_W_Settings;
 
             function Wrap_To_Lines (Text : String; Capacity : Natural)
@@ -5834,7 +5834,7 @@ package body Files.Rendering is
                Toggle_W   : constant Natural := Saturating_Multiply (Line_Height, 2);
                Pad        : constant Natural := Files.UI.Input_Field_Padding;
                Label_W    : constant Natural :=
-                 (if Text_W > Toggle_W + Pad then Text_W - Toggle_W - Pad else Text_W);
+                 (if Text_W > Saturating_Add (Toggle_W, Pad) then Text_W - Toggle_W - Pad else Text_W);
                Label_Cap  : constant Natural :=
                  (if Label_W > 0 then Label_W / Cell_W_Settings else 0);
                Lines      : constant Files.Types.String_Vectors.Vector :=
@@ -6666,7 +6666,8 @@ package body Files.Rendering is
                   else Natural'Min
                     (Natural'Min
                       (Saturating_Multiply
-                          (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)), Line_Height * 12 / 20),
+                          (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)),
+                           Saturating_Multiply (Line_Height, 12) / 20),
                         160),
                      (if Row_Text_W > 0 then Natural'Min (Row_Text_W, Row_Text_W / 3) else 0)));
                Label_Width : constant Natural :=

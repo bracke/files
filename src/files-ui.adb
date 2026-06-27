@@ -152,7 +152,7 @@ package body Files.UI is
       Line_Height : Positive := 20)
       return Bottom_Bar_Layout
    is
-      Cell_W         : constant Natural := Natural'Max (1, Line_Height * 12 / 20);
+      Cell_W         : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
       Button_Padding : constant Natural := Saturating_Multiply (Bottom_Bar_Padding, 3);
       Minimum_Button : constant Natural := Saturating_Multiply (Line_Height, 2);
       Small_Needed   : constant Natural :=
@@ -253,7 +253,7 @@ package body Files.UI is
       Line_Height : Positive := 20)
       return Settings_Entry_Button_Layout
    is
-      Cell_W         : constant Natural := Natural'Max (1, Line_Height * 12 / 20);
+      Cell_W         : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
       Edge_Padding   : constant Natural := Settings_Pane_Padding;
       Button_Gap     : constant Natural := 4;
       Minimum_Button : constant Natural := 34;
