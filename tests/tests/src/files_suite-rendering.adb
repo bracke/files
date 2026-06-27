@@ -43,6 +43,7 @@ package body Files_Suite.Rendering is
    procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -70,6 +71,8 @@ package body Files_Suite.Rendering is
         (T, Test_Text_Glyph_Rasterization'Access, "frame text rasterizes through textrender");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Vulkan_Submission'Access, "frame builds a vulkan submission batch");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Scroll_Clamp'Access, "settings pane clamps over-scroll to its content");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -397,6 +400,23 @@ package body Files_Suite.Rendering is
          "each rectangle expands to two triangles (six vertices)");
       Assert (Batch.Glyph_Vertex_Count > 0, "rasterized glyphs reach the vulkan submission batch");
    end Test_Vulkan_Submission;
+
+   procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot;
+      Frame    : Frame_Commands;
+   begin
+      Snapshot.Settings_Pane_Open := True;
+      --  Request a wildly out-of-range scroll. The renderer measures the
+      --  settings content and clamps the offset, so content must remain on
+      --  screen (hit regions are only emitted for visible rows) rather than
+      --  scrolling off into blank space.
+      Snapshot.Settings_Pane_Scroll_Lines := 100_000;
+      Frame := Build_Frame_Commands (Snapshot, Width => 480, Height => 240, Line_Height => 20);
+      Assert
+        (Natural (Frame.Settings_Hits.Length) > 0,
+         "settings content stays reachable after an extreme scroll (scroll is clamped)");
+   end Test_Settings_Scroll_Clamp;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

@@ -1,4 +1,5 @@
 with Ada.Calendar.Formatting;
+with Ada.Containers;
 with Ada.Characters.Handling;
 with Ada.Strings;
 with Ada.Strings.Fixed;
@@ -5648,7 +5649,9 @@ package body Files.Rendering is
             Row_Step : constant Natural := Saturating_Add (Line_Height, Files.UI.Settings_Row_Gap);
             Inter_Row_Px : constant Natural :=
               Saturating_Multiply (Files.UI.Settings_Row_Gap, 2);
-            Scroll_Px : constant Natural :=
+            --  Requested scroll offset; clamped against measured content
+            --  height once the settings content has been measured below.
+            Scroll_Px : Natural :=
               Saturating_Multiply (Snapshot.Settings_Pane_Scroll_Lines, Line_Height);
             Pane_Bottom : constant Natural :=
               (if Pane_Y + Pane_H > Files.UI.Settings_Pane_Padding
@@ -6481,20 +6484,11 @@ package body Files.Rendering is
                end if;
                Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Action_Buttons;
-         begin
-            Add_Drop_Shadow (Pane_X, Pane_Y, Pane_W, Pane_H);
-            Add_Rect (Pane_X, Pane_Y, Pane_W, Pane_H, Pane_Color);
-            Add_Border (Pane_X, Pane_Y, Pane_W, Pane_H, Border_Color);
-            Add_Rect (Pane_X, Pane_Y, Pane_W, Natural'Min (3, Pane_H), Selection_Color);
-            Add_Accessibility_Node
-              (Role_Dialog,
-               Pane_X,
-               Pane_Y,
-               Pane_W,
-               Pane_H,
-               Localized ("settings.title"));
-            declare
-               Y_Cursor : Natural := 0;
+
+            --  Single source of truth for the settings field sequence, run by
+            --  both the measurement pass (to size content for scroll clamping)
+            --  and the real paint pass below.
+            procedure Draw_Settings_Fields (Y_Cursor : in out Natural) is
             begin
                Add_Settings_Row_At (Y_Cursor, "settings.title", Text_Color);
                Add_Settings_Action_Buttons (Y_Cursor);
@@ -6537,6 +6531,57 @@ package body Files.Rendering is
                if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then
                   Add_Wrapped_Row (Y_Cursor, To_String (Snapshot.Settings_Draft_Error), Error_Text_Color);
                end if;
+            end Draw_Settings_Fields;
+         begin
+            Add_Drop_Shadow (Pane_X, Pane_Y, Pane_W, Pane_H);
+            Add_Rect (Pane_X, Pane_Y, Pane_W, Pane_H, Pane_Color);
+            Add_Border (Pane_X, Pane_Y, Pane_W, Pane_H, Border_Color);
+            Add_Rect (Pane_X, Pane_Y, Pane_W, Natural'Min (3, Pane_H), Selection_Color);
+            Add_Accessibility_Node
+              (Role_Dialog,
+               Pane_X,
+               Pane_Y,
+               Pane_W,
+               Pane_H,
+               Localized ("settings.title"));
+            --  Measure the full content height (independent of the scroll
+            --  offset), discard the commands the measurement emitted, then
+            --  clamp the scroll so the pane cannot scroll past its content.
+            declare
+               R0  : constant Ada.Containers.Count_Type := Result.Rectangles.Length;
+               T0  : constant Ada.Containers.Count_Type := Result.Text.Length;
+               I0  : constant Ada.Containers.Count_Type := Result.Icons.Length;
+               OR0 : constant Ada.Containers.Count_Type := Result.Overlay_Rectangles.Length;
+               OT0 : constant Ada.Containers.Count_Type := Result.Overlay_Text.Length;
+               TR0 : constant Ada.Containers.Count_Type := Result.Triangles.Length;
+               TP0 : constant Ada.Containers.Count_Type := Result.Tooltips.Length;
+               AC0 : constant Ada.Containers.Count_Type := Result.Accessibility.Length;
+               SH0 : constant Ada.Containers.Count_Type := Result.Settings_Hits.Length;
+               Measured : Natural := 0;
+            begin
+               Draw_Settings_Fields (Measured);
+               Result.Rectangles.Set_Length (R0);
+               Result.Text.Set_Length (T0);
+               Result.Icons.Set_Length (I0);
+               Result.Overlay_Rectangles.Set_Length (OR0);
+               Result.Overlay_Text.Set_Length (OT0);
+               Result.Triangles.Set_Length (TR0);
+               Result.Tooltips.Set_Length (TP0);
+               Result.Accessibility.Set_Length (AC0);
+               Result.Settings_Hits.Set_Length (SH0);
+               declare
+                  Visible_H : constant Natural :=
+                    (if Pane_Bottom > Text_Y then Pane_Bottom - Text_Y else 0);
+                  Max_Scroll : constant Natural :=
+                    (if Measured > Visible_H then Measured - Visible_H else 0);
+               begin
+                  Scroll_Px := Natural'Min (Scroll_Px, Max_Scroll);
+               end;
+            end;
+            declare
+               Y_Cursor : Natural := 0;
+            begin
+               Draw_Settings_Fields (Y_Cursor);
             end;
          end;
          Drawing_Settings_Pane := False;
