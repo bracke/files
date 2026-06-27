@@ -2,12 +2,12 @@ name: CI
 
 # Builds the file manager and runs the AUnit test suite on every push/PR.
 #
-# PREREQUISITE: this project pins three sibling crates by local path in
-# alire.toml (project_tools, i18n, textrender). CI clones them next to the
-# checkout. They must therefore exist as fetchable GitHub repos under the
-# same owner. As of writing, `textrender` is published but `i18n` and
-# `project_tools` are NOT — push them to github.com/<owner>/<name> (or adjust
-# the clone URLs below) before this workflow can succeed.
+# PREREQUISITE: this project pins four sibling crates by local path in
+# alire.toml (project_tools, i18n, textrender, zlib). CI clones them next to
+# the checkout. They must therefore exist as fetchable GitHub repos under the
+# same owner. As of writing, `textrender` is published but `project_tools`,
+# `i18n`, and `zlib` are NOT — push them to github.com/<owner>/<name> (or
+# adjust the clone URLs below) before this workflow can succeed.
 
 on:
   push:
@@ -30,7 +30,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libvulkan-dev \
-            zlib1g-dev \
             libgdk-pixbuf-2.0-dev \
             libglib2.0-dev \
             libgtk-3-dev \
@@ -43,6 +42,7 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/project_tools.git" project_tools
           git clone --depth 1 "https://github.com/${owner}/i18n.git" i18n
           git clone --depth 1 "https://github.com/${owner}/textrender.git" textrender
+          git clone --depth 1 "https://github.com/${owner}/zlib.git" zlib
 
       - name: Set up Alire
         uses: alire-project/setup-alire@v4
