@@ -462,6 +462,27 @@ package body Files.Application.Windows is
             null;
       end case;
 
+      --  A sort change reorders the listing. The renderer re-sorts the snapshot
+      --  for display, but the model's item order (used by keyboard navigation)
+      --  is the load order, so re-list the directory to keep them in sync.
+      --  Sync above has already updated the settings sort field that Reload uses.
+      case Command is
+         when Files.Commands.Sort_By_Name_Command
+            | Files.Commands.Sort_By_Size_Command
+            | Files.Commands.Sort_By_Type_Command
+            | Files.Commands.Sort_By_Created_Command
+            | Files.Commands.Sort_By_Changed_Command =>
+            declare
+               Reloaded : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Refresh (Runtime.Model, Runtime.Settings);
+               pragma Unreferenced (Reloaded);
+            begin
+               null;
+            end;
+         when others =>
+            null;
+      end case;
+
       return Result;
    end Execute_Runtime_Command;
 
