@@ -4525,6 +4525,9 @@ package body Files.File_System is
             end loop;
 
             G_Object_Unref (Pixbuf);
+            Pixbuf := System.Null_Address;
+            --  Null the handle before any further work: Write_Pixels_As_Ppm can
+            --  raise, and the exception handler unrefs Pixbuf when non-null.
             Write_Pixels_As_Ppm (Target_Path, Decoded, Width, Height);
             return True;
          end;
