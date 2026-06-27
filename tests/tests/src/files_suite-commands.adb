@@ -352,6 +352,13 @@ package body Files_Suite.Commands is
       Assert
         (Result.Status = Files.Controller.Controller_Command_Executed,
          "repeated settings option click still saves");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 3, Option => 5);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "sort field accepts the fifth (created) option");
+      Assert
+        (Files.Model.Settings_Field_Text (Model) = "created",
+         "sort option 5 selects the created sort field");
       Files.Model.Set_Settings_Field_Index (Model, 2);
       Files.Controller.Replace_Focused_Text (Model, "true");
       Result := Files.Controller.Handle_Settings_Click (Model, Field => 2, Option => 4);

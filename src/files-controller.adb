@@ -1144,7 +1144,7 @@ package body Files.Controller is
             when 2 | 4 | 5 | 6 =>
                return Option in 1 .. 2;
             when 3 =>
-               return Option in 1 .. 4;
+               return Option in 1 .. 5;
             when others =>
                return False;
          end case;
@@ -1217,6 +1217,7 @@ package body Files.Controller is
                      when 2 => Files.Model.Set_Settings_Field_Text (Model, "filetype");
                      when 3 => Files.Model.Set_Settings_Field_Text (Model, "size");
                      when 4 => Files.Model.Set_Settings_Field_Text (Model, "modified");
+                     when 5 => Files.Model.Set_Settings_Field_Text (Model, "created");
                      when others => null;
                   end case;
                when others =>
@@ -1563,9 +1564,11 @@ package body Files.Controller is
                      elsif Current = "filetype" then
                         Files.Model.Set_Settings_Field_Text (Model, (if Forward then "size" else "name"));
                      elsif Current = "size" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "modified" else "filetype"));
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "created" else "filetype"));
+                     elsif Current = "created" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "modified" else "size"));
                      else
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "name" else "size"));
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "name" else "created"));
                      end if;
                      Touched := True;
                   when 7 =>
