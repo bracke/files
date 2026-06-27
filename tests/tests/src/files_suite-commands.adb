@@ -359,6 +359,19 @@ package body Files_Suite.Commands is
       Assert
         (Files.Model.Settings_Field_Text (Model) = "created",
          "sort option 5 selects the created sort field");
+      Files.Model.Set_Settings_Field_Index (Model, 7);
+      Files.Model.Set_Settings_Field_Text (Model, "32");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 7, Option => 151);
+      Assert
+        (Result.Status = Files.Controller.Controller_Ignored,
+         "font-size stepper at its max bound is a no-op");
+      Assert (Files.Model.Settings_Field_Text (Model) = "32", "font stepper at max keeps the value");
+      Files.Model.Set_Settings_Field_Text (Model, "16");
+      Result := Files.Controller.Handle_Settings_Click (Model, Field => 7, Option => 151);
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "font-size stepper below max increments and saves");
+      Assert (Files.Model.Settings_Field_Text (Model) = "17", "font stepper increments the value");
       Files.Model.Set_Settings_Field_Index (Model, 2);
       Files.Controller.Replace_Focused_Text (Model, "true");
       Result := Files.Controller.Handle_Settings_Click (Model, Field => 2, Option => 4);

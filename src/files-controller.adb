@@ -1167,6 +1167,7 @@ package body Files.Controller is
          Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
          Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
          Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         Stepper_No_Op : Boolean := False;
       begin
          Files.Model.Set_Settings_Field_Index (Model, Field);
          if Option = 100 then
@@ -1198,6 +1199,8 @@ package body Files.Controller is
                     (Model,
                      Ada.Strings.Fixed.Trim
                        (Integer'Image (Next_N), Ada.Strings.Both));
+               else
+                  Stepper_No_Op := True;
                end if;
             end;
          elsif Option > 0 then
@@ -1228,7 +1231,11 @@ package body Files.Controller is
             end case;
          end if;
 
-         if Option > 0 then
+         if Stepper_No_Op then
+            --  Font-size stepper already at its min/max bound: nothing changed,
+            --  so do not report a redundant save.
+            return Make_Result (Controller_Ignored);
+         elsif Option > 0 then
             return
               Make_Result
                 (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
@@ -1597,6 +1604,11 @@ package body Files.Controller is
                              (Model, Ada.Strings.Fixed.Trim
                                 (Integer'Image (Next_N), Ada.Strings.Both));
                            Touched := True;
+                        else
+                           --  Font-size stepper at its min/max bound: nothing
+                           --  changed, so report nothing rather than a spurious
+                           --  update.
+                           return Make_Result (Controller_Ignored);
                         end if;
                      end;
                   when others =>
