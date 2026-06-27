@@ -1858,6 +1858,8 @@ package body Files.File_System is
             return "root.network_mount|" & Ada.Directories.Simple_Name (Path);
          when Root_Windows_Drive =>
             return "root.drive|" & Path;
+         when Root_Bookmark =>
+            return "root.bookmark|" & Ada.Directories.Simple_Name (Path);
       end case;
    exception
       when others =>

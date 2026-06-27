@@ -43,10 +43,52 @@ package body Files.Application.Windows is
    use type Files.Types.Item_Kind;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Rendering.Vulkan.Vulkan_Status;
+   use type Files.Rendering.View_Snapshot;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
    use type Interfaces.C.Strings.chars_ptr;
    use type System.Address;
+
+   type Tracked_Key is
+     (Tracked_Key_1,
+      Tracked_Key_2,
+      Tracked_Key_3,
+      Tracked_Key_4,
+      Tracked_A,
+      Tracked_C,
+      Tracked_D,
+      Tracked_F,
+      Tracked_L,
+      Tracked_N,
+      Tracked_P,
+      Tracked_R,
+      Tracked_S,
+      Tracked_V,
+      Tracked_X,
+      Tracked_Comma,
+      Tracked_Backspace,
+      Tracked_Delete,
+      Tracked_F2,
+      Tracked_Escape,
+      Tracked_Enter,
+      Tracked_Numpad_Enter,
+      Tracked_Left,
+      Tracked_Right,
+      Tracked_Up,
+      Tracked_Down,
+      Tracked_Home,
+      Tracked_End,
+      Tracked_Page_Up,
+      Tracked_Page_Down,
+      Tracked_Equal,
+      Tracked_Minus,
+      Tracked_Right_Bracket,
+      Tracked_Slash,
+      Tracked_Numpad_Add,
+      Tracked_Numpad_Subtract,
+      Tracked_Space);
+
+   type Tracked_Key_Counts is array (Tracked_Key) of Natural;
 
    type Desktop_Window is new Glfw.Windows.Window with record
       Pending_Text : Unbounded_String;
@@ -54,6 +96,8 @@ package body Files.Application.Windows is
       Pending_Scroll_Remainder : Long_Float := 0.0;
       Pending_Left_Clicks : Natural := 0;
       Pending_Left_Releases : Natural := 0;
+      Pending_Right_Clicks : Natural := 0;
+      Pending_Key_Presses : Tracked_Key_Counts := [others => 0];
       Last_Mouse_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Last_Mouse_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Drag_Start_X : Glfw.Input.Mouse.Coordinate := 0.0;
@@ -66,6 +110,13 @@ package body Files.Application.Windows is
    overriding procedure Character_Entered
      (Object : not null access Desktop_Window;
       Char   : Wide_Wide_Character);
+
+   overriding procedure Key_Changed
+     (Object   : not null access Desktop_Window;
+      Key      : Glfw.Input.Keys.Key;
+      Scancode : Glfw.Input.Keys.Scancode;
+      Action   : Glfw.Input.Keys.Action;
+      Mods     : Glfw.Input.Keys.Modifiers);
 
    overriding procedure Mouse_Scrolled
      (Object : not null access Desktop_Window;
@@ -110,36 +161,29 @@ package body Files.Application.Windows is
       Paths  : System.Address)
    with Convention => C;
 
-   type Tracked_Key is
-     (Tracked_Key_1,
-      Tracked_Key_2,
-      Tracked_Key_3,
-      Tracked_Key_4,
-      Tracked_A,
-      Tracked_D,
-      Tracked_F,
-      Tracked_L,
-      Tracked_N,
-      Tracked_P,
-      Tracked_R,
-      Tracked_S,
-      Tracked_Comma,
-      Tracked_Backspace,
-      Tracked_Delete,
-      Tracked_F2,
-      Tracked_Escape,
-      Tracked_Enter,
-      Tracked_Numpad_Enter,
-      Tracked_Left,
-      Tracked_Right,
-      Tracked_Up,
-      Tracked_Down,
-      Tracked_Home,
-      Tracked_End,
-      Tracked_Page_Up,
-      Tracked_Page_Down);
-
    type Pressed_Key_Map is array (Tracked_Key) of Boolean;
+   type Key_Time_Map    is array (Tracked_Key) of Ada.Calendar.Time;
+
+   Key_Epoch : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+
+   Key_Repeat_Initial_Delay : constant Duration := 0.4;
+   Key_Repeat_Interval      : constant Duration := 0.04;
+
+   function Key_Repeats (Key : Tracked_Key) return Boolean is
+     (Key in Tracked_Left | Tracked_Right | Tracked_Up | Tracked_Down
+           | Tracked_Page_Up | Tracked_Page_Down
+           | Tracked_Backspace | Tracked_Delete
+           | Tracked_Equal | Tracked_Minus
+           | Tracked_Right_Bracket | Tracked_Slash
+           | Tracked_Numpad_Add | Tracked_Numpad_Subtract);
+
+   Min_Font_Pixel_Size : constant Positive := 10;
+   Max_Font_Pixel_Size : constant Positive := 32;
+
+   function Cell_Width_For  (Size : Positive) return Positive is
+     (Positive'Max (1, Size * 3 / 4));
+   function Cell_Height_For (Size : Positive) return Positive is
+     (Positive'Max (1, Size * 5 / 4));
 
    type Runtime_Window is record
       Handle          : Window_Access;
@@ -147,12 +191,17 @@ package body Files.Application.Windows is
       Settings        : Files.Settings.Settings_Model;
       Settings_Path   : Unbounded_String;
       Pressed_Keys    : Pressed_Key_Map := [others => False];
+      Key_Pressed_At  : Key_Time_Map := [others => Key_Epoch];
+      Key_Last_Fired  : Key_Time_Map := [others => Key_Epoch];
       Left_Mouse_Down : Boolean := False;
       Drag_Source_Index : Natural := 0;
+      Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
+      Scrollbar_Drag_Anchor : Integer := 0;
       Last_Click_Item : Natural := 0;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Text            : Files.Rendering.Text_Renderer;
       Text_Ready      : Boolean := False;
+      Font_Pixel_Size : Positive := 16;
       Text_Font_Path  : Unbounded_String;
       Text_Content_Key : Unbounded_String;
       Text_Content_Font_Path : Unbounded_String;
@@ -165,6 +214,21 @@ package body Files.Application.Windows is
       Last_Frame_Width  : Natural := 0;
       Last_Frame_Height : Natural := 0;
       Fallback_Frames : Natural := 0;
+      --  Frame command caching: when none of the rendering inputs change
+      --  between two Render_Window calls, skip the expensive layout and
+      --  Build_Frame_Commands rebuild and reuse the previously built data.
+      Frame_Cache_Valid    : Boolean := False;
+      Cached_Snapshot      : Files.Rendering.View_Snapshot;
+      Cached_Frame         : Files.Rendering.Frame_Commands;
+      Cached_Frame_W       : Natural := 0;
+      Cached_Frame_H       : Natural := 0;
+      Cached_Line_Height   : Positive := 20;
+      Cached_Hover_X       : Natural := 0;
+      Cached_Hover_Y       : Natural := 0;
+      Cached_Has_Hover     : Boolean := False;
+      Cached_Has_Press     : Boolean := False;
+      Cached_Drag_Item     : Natural := 0;
+      Cached_Has_Drag      : Boolean := False;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Files.Rendering.Vulkan.Vulkan_Status :=
@@ -261,6 +325,63 @@ package body Files.Application.Windows is
          return "";
    end Safe_Environment_Value;
 
+   procedure Persist_Settings (Runtime : in out Runtime_Window) is
+      Path  : constant String := To_String (Runtime.Settings_Path);
+      Saved : Files.Settings.Settings_Write_Result;
+   begin
+      if Path = "" then
+         return;
+      end if;
+      Saved :=
+        Files.Settings.Save_Text (Path, Files.Settings.To_Text (Runtime.Settings));
+      pragma Unreferenced (Saved);
+   end Persist_Settings;
+
+   --  Map the model's runtime sort enum onto the settings enum.
+   function Settings_Sort_Of
+     (Field : Files.Model.Sort_Field) return Files.Settings.Sort_Field is
+   begin
+      case Field is
+         when Files.Model.Sort_Name     => return Files.Settings.Sort_By_Name;
+         when Files.Model.Sort_Type     => return Files.Settings.Sort_By_Filetype;
+         when Files.Model.Sort_Size     => return Files.Settings.Sort_By_Size;
+         when Files.Model.Sort_Created  => return Files.Settings.Sort_By_Modified;
+         when Files.Model.Sort_Changed  => return Files.Settings.Sort_By_Modified;
+      end case;
+   end Settings_Sort_Of;
+
+   --  Copy the user-visible global UI state from the runtime model into the
+   --  settings record and persist it to disk. Called whenever a runtime
+   --  command flips one of the persisted toggles.
+   procedure Sync_Global_UI_State (Runtime : in out Runtime_Window) is
+      use type Files.Types.View_Mode;
+      use type Files.Settings.Sort_Field;
+
+      New_View  : constant Files.Types.View_Mode :=
+        Files.Model.View_Mode_Of (Runtime.Model);
+      New_Sort  : constant Files.Settings.Sort_Field :=
+        Settings_Sort_Of (Files.Model.Sort_Field_Of (Runtime.Model));
+      New_Asc   : constant Boolean :=
+        Files.Model.Sort_Is_Ascending (Runtime.Model);
+      New_Info  : constant Boolean :=
+        Files.Model.Info_Pane_Is_Open (Runtime.Model);
+      Changed   : constant Boolean :=
+        Runtime.Settings.Default_View /= New_View
+        or else Runtime.Settings.Sort_Field_Value /= New_Sort
+        or else Runtime.Settings.Sort_Ascending /= New_Asc
+        or else Runtime.Settings.Info_Pane_Open /= New_Info;
+   begin
+      if not Changed then
+         return;
+      end if;
+
+      Runtime.Settings.Default_View := New_View;
+      Runtime.Settings.Sort_Field_Value := New_Sort;
+      Runtime.Settings.Sort_Ascending := New_Asc;
+      Runtime.Settings.Info_Pane_Open := New_Info;
+      Persist_Settings (Runtime);
+   end Sync_Global_UI_State;
+
    function Execute_Runtime_Command
      (Runtime  : in out Runtime_Window;
       Command  : Files.Commands.Command_Id;
@@ -268,6 +389,7 @@ package body Files.Application.Windows is
       return Files.Controller.Controller_Result
    is
       Settings_Path : constant String := To_String (Runtime.Settings_Path);
+      Result        : Files.Controller.Controller_Result;
    begin
       if not Files.Commands.Is_Enabled (Command, Runtime.Model) then
          return
@@ -277,12 +399,61 @@ package body Files.Application.Windows is
 
       case Command is
          when Files.Commands.Save_Settings_Command =>
-            return
+            Result :=
               Files.Controller.Save_Settings
                 (Runtime.Model, Runtime.Settings, Settings_Path);
+         when Files.Commands.Toggle_Bookmark_Command =>
+            declare
+               Current : constant String :=
+                 Files.Model.Current_Path (Runtime.Model);
+               Existing : Boolean := False;
+               To_Remove : Natural := 0;
+            begin
+               if Current /= "" then
+                  for Index in
+                    Runtime.Settings.Bookmark_Paths.First_Index ..
+                    Runtime.Settings.Bookmark_Paths.Last_Index
+                  loop
+                     if To_String (Runtime.Settings.Bookmark_Paths.Element (Index))
+                       = Current
+                     then
+                        Existing := True;
+                        To_Remove := Index;
+                        exit;
+                     end if;
+                  end loop;
+                  if Existing then
+                     Runtime.Settings.Bookmark_Paths.Delete (To_Remove);
+                  else
+                     Runtime.Settings.Bookmark_Paths.Append
+                       (To_Unbounded_String (Current));
+                  end if;
+                  Persist_Settings (Runtime);
+               end if;
+               Result :=
+                 (Status  => Files.Controller.Controller_Command_Executed,
+                  others  => <>);
+            end;
          when others =>
-            return Files.Controller.Execute_Command (Command, Runtime.Model, Runtime.Settings, Modifiers);
+            Result := Files.Controller.Execute_Command (Command, Runtime.Model, Runtime.Settings, Modifiers);
       end case;
+
+      case Command is
+         when Files.Commands.Select_Small_Icons_Command
+            | Files.Commands.Select_Large_Icons_Command
+            | Files.Commands.Select_Details_Command
+            | Files.Commands.Sort_By_Name_Command
+            | Files.Commands.Sort_By_Size_Command
+            | Files.Commands.Sort_By_Type_Command
+            | Files.Commands.Sort_By_Created_Command
+            | Files.Commands.Sort_By_Changed_Command
+            | Files.Commands.Toggle_Info_Pane_Command =>
+            Sync_Global_UI_State (Runtime);
+         when others =>
+            null;
+      end case;
+
+      return Result;
    end Execute_Runtime_Command;
 
    function As_Window
@@ -389,6 +560,8 @@ package body Files.Application.Windows is
       end;
    end Raw_Drop_Callback;
 
+   function To_Glfw_Key (Key : Tracked_Key) return Glfw.Input.Keys.Key;
+
    function Text_Input_Bytes
      (Char : Wide_Wide_Character)
       return String
@@ -429,6 +602,29 @@ package body Files.Application.Windows is
       Append (Object.Pending_Text, Text_Input_Bytes (Char));
    end Character_Entered;
 
+   overriding procedure Key_Changed
+     (Object   : not null access Desktop_Window;
+      Key      : Glfw.Input.Keys.Key;
+      Scancode : Glfw.Input.Keys.Scancode;
+      Action   : Glfw.Input.Keys.Action;
+      Mods     : Glfw.Input.Keys.Modifiers)
+   is
+      use type Glfw.Input.Keys.Action;
+      use type Glfw.Input.Keys.Key;
+      pragma Unreferenced (Scancode, Mods);
+   begin
+      if Action /= Glfw.Input.Keys.Press then
+         return;
+      end if;
+      for T in Tracked_Key loop
+         if To_Glfw_Key (T) = Key then
+            Object.Pending_Key_Presses (T) :=
+              Natural'Min (Object.Pending_Key_Presses (T) + 1, 16);
+            exit;
+         end if;
+      end loop;
+   end Key_Changed;
+
    overriding procedure Mouse_Scrolled
      (Object : not null access Desktop_Window;
       X      : Glfw.Input.Mouse.Scroll_Offset;
@@ -449,7 +645,13 @@ package body Files.Application.Windows is
    is
       pragma Unreferenced (Mods);
    begin
-      if Button /= Glfw.Input.Mouse.Left_Button then
+      if Button = Glfw.Input.Mouse.Right_Button then
+         if State = Glfw.Input.Pressed then
+            Object.Pending_Right_Clicks :=
+              Natural'Min (Object.Pending_Right_Clicks + 1, 8);
+         end if;
+         return;
+      elsif Button /= Glfw.Input.Mouse.Left_Button then
          return;
       end if;
 
@@ -520,6 +722,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Key_4;
          when Tracked_A =>
             return Glfw.Input.Keys.A;
+         when Tracked_C =>
+            return Glfw.Input.Keys.C;
          when Tracked_D =>
             return Glfw.Input.Keys.D;
          when Tracked_F =>
@@ -534,6 +738,10 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.R;
          when Tracked_S =>
             return Glfw.Input.Keys.S;
+         when Tracked_V =>
+            return Glfw.Input.Keys.V;
+         when Tracked_X =>
+            return Glfw.Input.Keys.X;
          when Tracked_Comma =>
             return Glfw.Input.Keys.Comma;
          when Tracked_Backspace =>
@@ -564,6 +772,20 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Page_Up;
          when Tracked_Page_Down =>
             return Glfw.Input.Keys.Page_Down;
+         when Tracked_Equal =>
+            return Glfw.Input.Keys.Equal;
+         when Tracked_Minus =>
+            return Glfw.Input.Keys.Minus;
+         when Tracked_Right_Bracket =>
+            return Glfw.Input.Keys.Right_Bracket;
+         when Tracked_Slash =>
+            return Glfw.Input.Keys.Slash;
+         when Tracked_Numpad_Add =>
+            return Glfw.Input.Keys.Numpad_Add;
+         when Tracked_Numpad_Subtract =>
+            return Glfw.Input.Keys.Numpad_Substract;
+         when Tracked_Space =>
+            return Glfw.Input.Keys.Space;
       end case;
    end To_Glfw_Key;
 
@@ -582,6 +804,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_4;
          when Tracked_A =>
             return Files.Types.Key_A;
+         when Tracked_C =>
+            return Files.Types.Key_C;
          when Tracked_D =>
             return Files.Types.Key_D;
          when Tracked_F =>
@@ -596,6 +820,10 @@ package body Files.Application.Windows is
             return Files.Types.Key_R;
          when Tracked_S =>
             return Files.Types.Key_S;
+         when Tracked_V =>
+            return Files.Types.Key_V;
+         when Tracked_X =>
+            return Files.Types.Key_X;
          when Tracked_Comma =>
             return Files.Types.Key_Comma;
          when Tracked_Backspace =>
@@ -624,6 +852,12 @@ package body Files.Application.Windows is
             return Files.Types.Key_Page_Up;
          when Tracked_Page_Down =>
             return Files.Types.Key_Page_Down;
+         when Tracked_Equal | Tracked_Minus
+            | Tracked_Right_Bracket | Tracked_Slash
+            | Tracked_Numpad_Add | Tracked_Numpad_Subtract =>
+            return Files.Types.Key_Unknown;
+         when Tracked_Space =>
+            return Files.Types.Key_Space;
       end case;
    end To_Key_Code;
 
@@ -658,34 +892,106 @@ package body Files.Application.Windows is
      (Runtime : in out Runtime_Window;
       Key     : Tracked_Key)
    is
-      Pressed : Boolean;
-      Result : Files.Controller.Controller_Result;
+      Pressed   : Boolean;
+      Now       : Ada.Calendar.Time;
+      Pending   : Natural;
+      Fire_Count : Natural := 0;
+      Result    : Files.Controller.Controller_Result;
    begin
       if Runtime.Handle = null then
          return;
       end if;
 
+      --  Drain any press events the GLFW callback captured since last poll.
+      --  This catches rapid press/release cycles that finish between frames.
+      Pending := Runtime.Handle.Pending_Key_Presses (Key);
+      Runtime.Handle.Pending_Key_Presses (Key) := 0;
+
       Pressed := Glfw.Windows.Key_State (As_Window (Runtime.Handle), To_Glfw_Key (Key)) = Glfw.Input.Pressed;
       if not Pressed then
          Runtime.Pressed_Keys (Key) := False;
+         Fire_Count := Pending;
+      else
+         Now := Ada.Calendar.Clock;
+
+         if not Runtime.Pressed_Keys (Key) then
+            Runtime.Pressed_Keys (Key)   := True;
+            Runtime.Key_Pressed_At (Key) := Now;
+            Runtime.Key_Last_Fired (Key) := Now;
+            Fire_Count := Natural'Max (Pending, 1);
+         elsif Pending > 0 then
+            --  Re-pressed without our seeing the release. Treat as fresh
+            --  press(es) so the auto-repeat clock resets to the latest one.
+            Runtime.Key_Pressed_At (Key) := Now;
+            Runtime.Key_Last_Fired (Key) := Now;
+            Fire_Count := Pending;
+         elsif Key_Repeats (Key)
+           and then Now - Runtime.Key_Pressed_At (Key) >= Key_Repeat_Initial_Delay
+           and then Now - Runtime.Key_Last_Fired (Key) >= Key_Repeat_Interval
+         then
+            Runtime.Key_Last_Fired (Key) := Now;
+            Fire_Count := 1;
+         end if;
+      end if;
+
+      if Fire_Count = 0 then
          return;
       end if;
 
-      if Runtime.Pressed_Keys (Key) then
-         return;
+      --  Ctrl + Plus / Ctrl + Minus: live font-size adjustment. Handled here so
+      --  it bypasses the controller (which doesn't know about font sizing).
+      if Key in Tracked_Equal | Tracked_Minus
+              | Tracked_Right_Bracket | Tracked_Slash
+              | Tracked_Numpad_Add | Tracked_Numpad_Subtract
+      then
+         declare
+            Modifiers : constant Files.Types.Modifier_Set :=
+              To_Modifiers (As_Window (Runtime.Handle));
+            Is_Plus   : constant Boolean :=
+              Key in Tracked_Equal | Tracked_Right_Bracket | Tracked_Numpad_Add;
+            Step      : constant Integer := (if Is_Plus then 1 else -1);
+            New_Size  : Integer;
+         begin
+            if Modifiers (Files.Types.Control_Key) then
+               for I in 1 .. Fire_Count loop
+                  New_Size := Integer (Runtime.Font_Pixel_Size) + Step;
+                  if New_Size < Integer (Min_Font_Pixel_Size) then
+                     New_Size := Integer (Min_Font_Pixel_Size);
+                  elsif New_Size > Integer (Max_Font_Pixel_Size) then
+                     New_Size := Integer (Max_Font_Pixel_Size);
+                  end if;
+                  if Positive (New_Size) /= Runtime.Font_Pixel_Size then
+                     Runtime.Font_Pixel_Size := Positive (New_Size);
+                     Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
+                     Runtime.Text_Ready := False;
+                     Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                  end if;
+               end loop;
+               Persist_Settings (Runtime);
+               return;
+            end if;
+         end;
       end if;
 
-      Runtime.Pressed_Keys (Key) := True;
       Refresh_Selection_Grid_Columns (Runtime);
-      Result :=
-        Files.Controller.Handle_Key
-          (Model     => Runtime.Model,
-           Settings  => Runtime.Settings,
-           Key       => To_Key_Code (Key),
-           Modifiers => To_Modifiers (As_Window (Runtime.Handle)));
-      if Result.Command = Files.Commands.Save_Settings_Command then
-         Result := Execute_Runtime_Command (Runtime, Result.Command);
-      end if;
+      for I in 1 .. Fire_Count loop
+         Result :=
+           Files.Controller.Handle_Key
+             (Model     => Runtime.Model,
+              Settings  => Runtime.Settings,
+              Key       => To_Key_Code (Key),
+              Modifiers => To_Modifiers (As_Window (Runtime.Handle)));
+         if Result.Command = Files.Commands.Save_Settings_Command then
+            Result := Execute_Runtime_Command (Runtime, Result.Command);
+            --  Discard any character event the OS sent in parallel with the
+            --  key press (e.g. Space producing both a key event AND a ' '
+            --  character entry). Otherwise the focused settings field would
+            --  also get the space appended.
+            if Runtime.Handle /= null then
+               Runtime.Handle.Pending_Text := Null_Unbounded_String;
+            end if;
+         end if;
+      end loop;
       pragma Unreferenced (Result);
    end Handle_Pressed_Key;
 
@@ -889,6 +1195,33 @@ package body Files.Application.Windows is
 
       Offset := Runtime.Handle.Pending_Scroll;
       Runtime.Handle.Pending_Scroll := 0;
+
+      --  Ctrl + scroll: live font-size adjustment (zoom in / out).
+      declare
+         Modifiers : constant Files.Types.Modifier_Set :=
+           To_Modifiers (As_Window (Runtime.Handle));
+      begin
+         if Modifiers (Files.Types.Control_Key) then
+            declare
+               New_Size : Integer := Integer (Runtime.Font_Pixel_Size) + Offset;
+            begin
+               if New_Size < Integer (Min_Font_Pixel_Size) then
+                  New_Size := Integer (Min_Font_Pixel_Size);
+               elsif New_Size > Integer (Max_Font_Pixel_Size) then
+                  New_Size := Integer (Max_Font_Pixel_Size);
+               end if;
+               if Positive (New_Size) /= Runtime.Font_Pixel_Size then
+                  Runtime.Font_Pixel_Size := Positive (New_Size);
+                  Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
+                  Runtime.Text_Ready := False;
+                  Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                  Persist_Settings (Runtime);
+               end if;
+            end;
+            return;
+         end if;
+      end;
+
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
@@ -904,12 +1237,13 @@ package body Files.Application.Windows is
          begin
             Action :=
               Files.Events.Translate_Scroll_At
-                (Snapshot => Snapshot,
-                 X        => X,
-                 Y        => Y,
-                 Width    => Natural (Frame_W),
-                 Height   => Natural (Frame_H),
-                 Y_Offset => Offset);
+                (Snapshot    => Snapshot,
+                 X           => X,
+                 Y           => Y,
+                 Width       => Natural (Frame_W),
+                 Height      => Natural (Frame_H),
+                 Y_Offset    => Offset,
+                 Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
          end;
       end if;
 
@@ -1031,10 +1365,20 @@ package body Files.Application.Windows is
                 (Model  => Runtime.Model,
                  Field  => Action.Settings_Field,
                  Option => Action.Settings_Option);
+            if Result.Command = Files.Commands.Save_Settings_Command then
+               Result := Execute_Runtime_Command (Runtime, Result.Command);
+               if Runtime.Handle /= null then
+                  Runtime.Handle.Pending_Text := Null_Unbounded_String;
+               end if;
+            end if;
          when Files.Events.Scroll_Input_Action =>
             Result :=
               Files.Controller.Handle_Targeted_Scroll
                 (Runtime.Model, Action.Scroll_Area, Action.Scroll_Lines);
+         when Files.Events.Scrollbar_Drag_Begin_Input_Action =>
+            Runtime.Scrollbar_Drag_Target := Action.Scroll_Area;
+            Runtime.Scrollbar_Drag_Anchor := Action.Scroll_Drag_Anchor;
+            Result := (Status => Files.Controller.Controller_Ignored, others => <>);
          when Files.Events.No_Input_Action
             | Files.Events.Selection_Input_Action =>
             Result := (Status => Files.Controller.Controller_Ignored, others => <>);
@@ -1061,12 +1405,14 @@ package body Files.Application.Windows is
    begin
       return
         Files.Events.Translate_Click
-          (Snapshot  => Snapshot,
-           X         => X,
-           Y         => Y,
-           Width     => Natural (Frame_W),
-           Height    => Natural (Frame_H),
-           Modifiers => Modifiers);
+          (Snapshot    => Snapshot,
+           Frame       => Runtime.Cached_Frame,
+           X           => X,
+           Y           => Y,
+           Width       => Natural (Frame_W),
+           Height      => Natural (Frame_H),
+           Modifiers   => Modifiers,
+           Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
    end Current_Click_Action;
 
    function Selected_File_Paths
@@ -1130,7 +1476,8 @@ package body Files.Application.Windows is
       if Runtime.Handle = null
         or else
           (Runtime.Handle.Pending_Left_Clicks = 0
-           and then Runtime.Handle.Pending_Left_Releases = 0)
+           and then Runtime.Handle.Pending_Left_Releases = 0
+           and then Runtime.Handle.Pending_Right_Clicks = 0)
       then
          return;
       end if;
@@ -1139,8 +1486,95 @@ package body Files.Application.Windows is
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
 
+      while Runtime.Handle.Pending_Right_Clicks > 0 loop
+         Runtime.Handle.Pending_Right_Clicks := Runtime.Handle.Pending_Right_Clicks - 1;
+         declare
+            X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+            Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Layout   : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Snapshot, Natural (Frame_W), Natural (Frame_H),
+                 Cell_Height_For (Runtime.Font_Pixel_Size));
+            Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+              Files.Rendering.Calculate_Item_Layout
+                (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
+            In_Main : constant Boolean :=
+              X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
+              and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
+            Item_Index : Natural := 0;
+         begin
+            if In_Main then
+               Item_Index := Files.Rendering.Item_At (Item_Layout, X, Y);
+               if Item_Index /= 0 then
+                  --  Match desktop file-manager convention: right-click on an
+                  --  unselected item immediately selects it so the user can
+                  --  see what the menu commands will operate on. A right-click
+                  --  on something already part of the selection preserves the
+                  --  full multi-selection.
+                  if Item_Index <= Files.Model.Visible_Count (Runtime.Model)
+                    and then not Files.Model.Is_Selected
+                                   (Runtime.Model, Positive (Item_Index))
+                  then
+                     declare
+                        Click_Result : Files.Controller.Controller_Result;
+                        pragma Unreferenced (Click_Result);
+                     begin
+                        Files.Model.Clear_Selection (Runtime.Model);
+                        Click_Result :=
+                          Files.Controller.Handle_Item_Click
+                            (Model         => Runtime.Model,
+                             Settings      => Runtime.Settings,
+                             Visible_Index => Item_Index,
+                             Activate      => False,
+                             Modifiers     => Files.Types.No_Modifiers);
+                     end;
+                  end if;
+                  Files.Model.Open_Context_Menu
+                    (Runtime.Model, X, Y, Files.Model.Context_Menu_Item, Item_Index);
+               else
+                  Files.Model.Open_Context_Menu
+                    (Runtime.Model, X, Y, Files.Model.Context_Menu_Empty);
+               end if;
+            else
+               Files.Model.Close_Context_Menu (Runtime.Model);
+            end if;
+         end;
+      end loop;
+
       while Runtime.Handle.Pending_Left_Clicks > 0 loop
          Runtime.Handle.Pending_Left_Clicks := Runtime.Handle.Pending_Left_Clicks - 1;
+
+         if Files.Model.Context_Menu_Is_Open (Runtime.Model) then
+            declare
+               X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+               Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+               Snapshot : constant Files.Rendering.View_Snapshot :=
+                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+               Menu     : constant Files.Rendering.Context_Menu_Layout :=
+                 Files.Rendering.Calculate_Context_Menu_Layout
+                   (Snapshot, Natural (Frame_W), Natural (Frame_H),
+                    Cell_Height_For (Runtime.Font_Pixel_Size));
+               Row      : constant Natural := Files.Rendering.Context_Menu_Row_At (Menu, X, Y);
+               Modifiers : constant Files.Types.Modifier_Set :=
+                 To_Modifiers (As_Window (Runtime.Handle));
+               Result    : Files.Controller.Controller_Result;
+               pragma Unreferenced (Result);
+            begin
+               Files.Model.Close_Context_Menu (Runtime.Model);
+               if Row > 0 and then Row <= Menu.Row_Count then
+                  declare
+                     Command : constant Files.Commands.Command_Id := Menu.Commands (Row);
+                  begin
+                     if Command /= Files.Commands.No_Command then
+                        Result := Execute_Runtime_Command (Runtime, Command, Modifiers);
+                     end if;
+                  end;
+               end if;
+            end;
+            goto Continue_Left_Click_Loop;
+         end if;
 
          declare
             Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
@@ -1173,6 +1607,9 @@ package body Files.Application.Windows is
                Dispatch_Click_Action (Runtime, Action, Modifiers);
             end if;
          end;
+
+         <<Continue_Left_Click_Loop>>
+         null;
       end loop;
 
       while Runtime.Handle.Pending_Left_Releases > 0 loop
@@ -1224,6 +1661,10 @@ package body Files.Application.Windows is
          Append (Result, ":");
          Append (Result, Natural'Image (Command.Height));
          Append (Result, ":");
+         Append (Result, Files.Rendering.Render_Color'Image (Command.Color));
+         Append (Result, ":");
+         Append (Result, (if Command.Italic then "i" else "r"));
+         Append (Result, ":");
          Append (Result, Command.Text);
          Append (Result, ASCII.LF);
       end Append_Text_Key;
@@ -1242,6 +1683,26 @@ package body Files.Application.Windows is
    procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
       for Runtime of Runtime_Windows loop
+         if Runtime.Handle /= null
+           and then Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+         then
+            declare
+               Window_W : Glfw.Size := 0;
+               Window_H : Glfw.Size := 0;
+            begin
+               Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+               if Window_W > 0 and then Window_H > 0
+                 and then
+                   (Runtime.Settings.Window_Width /= Natural (Window_W)
+                    or else Runtime.Settings.Window_Height /= Natural (Window_H))
+               then
+                  Runtime.Settings.Window_Width := Natural (Window_W);
+                  Runtime.Settings.Window_Height := Natural (Window_H);
+                  Persist_Settings (Runtime);
+               end if;
+            end;
+         end if;
+
          Files.Rendering.Vulkan.Shutdown (Runtime.Vulkan);
          Release_Native_Watch (Runtime);
 
@@ -1297,6 +1758,7 @@ package body Files.Application.Windows is
          Title  => To_String (Startup_Window.Title));
       Glfw.Windows.Set_Title (As_Window (Handle), To_String (Startup_Window.Title));
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Char);
+      Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Key);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Button);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
@@ -1311,12 +1773,17 @@ package body Files.Application.Windows is
             Settings        => Settings,
             Settings_Path   => Settings_Path,
             Pressed_Keys    => [others => False],
+            Key_Pressed_At  => [others => Key_Epoch],
+            Key_Last_Fired  => [others => Key_Epoch],
             Left_Mouse_Down => False,
             Drag_Source_Index => 0,
+            Scrollbar_Drag_Target => Files.Events.Scroll_Auto,
+            Scrollbar_Drag_Anchor => 0,
             Last_Click_Item => 0,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
             Text_Ready      => False,
+            Font_Pixel_Size => Settings.Font_Pixel_Size,
             Text_Font_Path  => Null_Unbounded_String,
             Text_Content_Key => Null_Unbounded_String,
             Text_Content_Font_Path => Null_Unbounded_String,
@@ -1329,6 +1796,18 @@ package body Files.Application.Windows is
             Last_Frame_Width  => 0,
             Last_Frame_Height => 0,
             Fallback_Frames => 0,
+            Frame_Cache_Valid    => False,
+            Cached_Snapshot      => <>,
+            Cached_Frame         => <>,
+            Cached_Frame_W       => 0,
+            Cached_Frame_H       => 0,
+            Cached_Line_Height   => 20,
+            Cached_Hover_X       => 0,
+            Cached_Hover_Y       => 0,
+            Cached_Has_Hover     => False,
+            Cached_Has_Press     => False,
+            Cached_Drag_Item     => 0,
+            Cached_Has_Drag      => False,
             Last_Glyph_Count => 0,
             Last_Missing_Glyph_Count => 0,
             Last_Present_Status => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
@@ -1350,6 +1829,117 @@ package body Files.Application.Windows is
 
          raise Desktop_Error with "error.window.create";
    end Append_Runtime_Window;
+
+   procedure Update_Scrollbar_Drag
+     (Runtime    : in out Runtime_Window;
+      Cursor_X   : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y   : Glfw.Input.Mouse.Coordinate;
+      Window_W   : Glfw.Size;
+      Window_H   : Glfw.Size;
+      Frame_W    : Glfw.Size;
+      Frame_H    : Glfw.Size;
+      Mouse_Down : Boolean)
+   is
+      use type Files.Events.Scroll_Target;
+      pragma Unreferenced (Cursor_X);
+   begin
+      if Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Auto then
+         return;
+      elsif not Mouse_Down
+        or else Window_W = 0 or else Window_H = 0
+        or else Frame_W = 0 or else Frame_H = 0
+      then
+         Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
+         return;
+      end if;
+
+      declare
+         Y_Frame      : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+         Line_Height  : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Snapshot     : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Layout       : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout
+             (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+
+         procedure Apply_Drag
+           (Track_Y     : Natural;
+            Track_H     : Natural;
+            Thumb_H     : Natural;
+            Content_H   : Natural;
+            View_H      : Natural;
+            Apply_Lines : access procedure (Lines : Natural))
+         is
+            Drag_Range    : constant Integer := Integer'Max (0, Integer (Track_H) - Integer (Thumb_H));
+            Max_Scroll_Px : constant Integer := Integer'Max (0, Integer (Content_H) - Integer (View_H));
+            Wanted_Top    : constant Integer := Integer (Y_Frame) - Runtime.Scrollbar_Drag_Anchor;
+            Rel_Y         : Integer := Wanted_Top - Integer (Track_Y);
+            Scroll_Px     : Integer := 0;
+         begin
+            if Drag_Range <= 0 or else Max_Scroll_Px <= 0 then
+               return;
+            end if;
+            if Rel_Y < 0 then
+               Rel_Y := 0;
+            elsif Rel_Y > Drag_Range then
+               Rel_Y := Drag_Range;
+            end if;
+            Scroll_Px :=
+              Integer
+                (Long_Long_Integer (Rel_Y)
+                   * Long_Long_Integer (Max_Scroll_Px)
+                   / Long_Long_Integer (Drag_Range));
+            Apply_Lines.all (Natural'Max (0, Scroll_Px / Line_Height));
+         end Apply_Drag;
+
+         procedure Set_Main_Lines (Lines : Natural) is
+         begin
+            Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);
+         end Set_Main_Lines;
+
+         procedure Set_Info_Lines (Lines : Natural) is
+         begin
+            Files.Model.Set_Info_Pane_Scroll_Lines (Runtime.Model, Lines);
+         end Set_Info_Lines;
+      begin
+         case Runtime.Scrollbar_Drag_Target is
+            when Files.Events.Scroll_Main_View =>
+               declare
+                  Main_View : constant Files.Rendering.Main_View_Layout :=
+                    Files.Rendering.Calculate_Main_View_Layout
+                      (Snapshot, Layout, Line_Height);
+               begin
+                  if Main_View.Scrollbar_Visible then
+                     Apply_Drag
+                       (Track_Y     => Main_View.Scrollbar_Y,
+                        Track_H     => Main_View.Scrollbar_Track_Height,
+                        Thumb_H     => Main_View.Scrollbar_Height,
+                        Content_H   => Main_View.Content_Height,
+                        View_H      => Main_View.Scrollbar_Track_Height,
+                        Apply_Lines => Set_Main_Lines'Access);
+                  end if;
+               end;
+            when Files.Events.Scroll_Info_Pane =>
+               declare
+                  Info_Pane : constant Files.Rendering.Info_Pane_Layout :=
+                    Files.Rendering.Calculate_Info_Pane_Layout
+                      (Snapshot, Layout, Line_Height);
+               begin
+                  if Info_Pane.Scrollbar_Visible then
+                     Apply_Drag
+                       (Track_Y     => Info_Pane.Scrollbar_Y,
+                        Track_H     => Info_Pane.Scrollbar_Track_Height,
+                        Thumb_H     => Info_Pane.Scrollbar_Height,
+                        Content_H   => Info_Pane.Content_Height,
+                        View_H      => Info_Pane.Height,
+                        Apply_Lines => Set_Info_Lines'Access);
+                  end if;
+               end;
+            when others =>
+               null;
+         end case;
+      end;
+   end Update_Scrollbar_Drag;
 
    procedure Render_Window
      (Runtime : in out Runtime_Window)
@@ -1376,30 +1966,74 @@ package body Files.Application.Windows is
         Glfw.Windows.Mouse_Button_State (As_Window (Runtime.Handle), Glfw.Input.Mouse.Left_Button) =
         Glfw.Input.Pressed;
 
+      Update_Scrollbar_Drag
+        (Runtime    => Runtime,
+         Cursor_X   => Cursor_X,
+         Cursor_Y   => Cursor_Y,
+         Window_W   => Window_W,
+         Window_H   => Window_H,
+         Frame_W    => Width,
+         Frame_H    => Height,
+         Mouse_Down => Mouse_Down);
+
       declare
          Hover_X  : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Width);
          Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);
+         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Has_Hover_Now : constant Boolean :=
+           Width > 0 and then Height > 0 and then Window_W > 0 and then Window_H > 0;
+         Has_Drag_Now  : constant Boolean :=
+           Mouse_Down
+           and then Runtime.Drag_Source_Index /= 0
+           and then Runtime.Handle.Drag_Moved;
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-         Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands
-             (Snapshot    => Snapshot,
-              Width       => Natural (Width),
-              Height      => Natural (Height),
-              Line_Height => 20,
-              Hover_X     => Hover_X,
-              Hover_Y     => Hover_Y,
-              Has_Hover   => Width > 0 and then Height > 0 and then Window_W > 0 and then Window_H > 0,
-              Pressed_X   => Hover_X,
-              Pressed_Y   => Hover_Y,
-              Has_Press   => Mouse_Down,
-              Drag_Item_Index => Runtime.Drag_Source_Index,
-              Drag_X      => Hover_X,
-              Drag_Y      => Hover_Y,
-              Has_Drag    =>
-                Mouse_Down
-                and then Runtime.Drag_Source_Index /= 0
-                and then Runtime.Handle.Drag_Moved);
+         Inputs_Match : constant Boolean :=
+           Runtime.Frame_Cache_Valid
+           and then Runtime.Cached_Frame_W = Natural (Width)
+           and then Runtime.Cached_Frame_H = Natural (Height)
+           and then Runtime.Cached_Line_Height = Line_Height
+           and then Runtime.Cached_Hover_X = Hover_X
+           and then Runtime.Cached_Hover_Y = Hover_Y
+           and then Runtime.Cached_Has_Hover = Has_Hover_Now
+           and then Runtime.Cached_Has_Press = Mouse_Down
+           and then Runtime.Cached_Drag_Item = Runtime.Drag_Source_Index
+           and then Runtime.Cached_Has_Drag = Has_Drag_Now;
+      begin
+         if not Inputs_Match or else Snapshot /= Runtime.Cached_Snapshot then
+            Runtime.Cached_Snapshot := Snapshot;
+            Runtime.Cached_Frame :=
+              Files.Rendering.Build_Frame_Commands
+                (Snapshot    => Snapshot,
+                 Width       => Natural (Width),
+                 Height      => Natural (Height),
+                 Line_Height => Line_Height,
+                 Hover_X     => Hover_X,
+                 Hover_Y     => Hover_Y,
+                 Has_Hover   => Has_Hover_Now,
+                 Pressed_X   => Hover_X,
+                 Pressed_Y   => Hover_Y,
+                 Has_Press   => Mouse_Down,
+                 Drag_Item_Index => Runtime.Drag_Source_Index,
+                 Drag_X      => Hover_X,
+                 Drag_Y      => Hover_Y,
+                 Has_Drag    => Has_Drag_Now);
+            Runtime.Cached_Frame_W := Natural (Width);
+            Runtime.Cached_Frame_H := Natural (Height);
+            Runtime.Cached_Line_Height := Line_Height;
+            Runtime.Cached_Hover_X := Hover_X;
+            Runtime.Cached_Hover_Y := Hover_Y;
+            Runtime.Cached_Has_Hover := Has_Hover_Now;
+            Runtime.Cached_Has_Press := Mouse_Down;
+            Runtime.Cached_Drag_Item := Runtime.Drag_Source_Index;
+            Runtime.Cached_Has_Drag := Has_Drag_Now;
+            Runtime.Frame_Cache_Valid := True;
+         end if;
+      end;
+
+      declare
+         Frame : Files.Rendering.Frame_Commands renames Runtime.Cached_Frame;
+         Snapshot : Files.Rendering.View_Snapshot renames Runtime.Cached_Snapshot;
       begin
          Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
 
@@ -1479,9 +2113,9 @@ package body Files.Application.Windows is
                     Files.Rendering.Initialize_Text
                       (Renderer    => Runtime.Text,
                        Font_Path   => To_String (Frame_Font_Path),
-                       Pixel_Size  => 16,
-                       Cell_Width  => 10,
-                       Cell_Height => 20);
+                       Pixel_Size  => Runtime.Font_Pixel_Size,
+                       Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
+                       Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
                begin
                   Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
                   Runtime.Text_Font_Path :=
@@ -1620,7 +2254,7 @@ package body Files.Application.Windows is
                 (Renderer    => Text,
                  Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame),
                  Pixel_Size  => 16,
-                 Cell_Width  => 10,
+                 Cell_Width  => 12,
                  Cell_Height => 20);
             Glyphs : constant Files.Rendering.Text_Render_Result :=
               Files.Rendering.Build_Text_Glyphs (Text, Frame);
@@ -1691,7 +2325,7 @@ package body Files.Application.Windows is
                 (Renderer    => Text,
                  Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame),
                  Pixel_Size  => 16,
-                 Cell_Width  => 10,
+                 Cell_Width  => 12,
                  Cell_Height => 20);
             Glyphs : Files.Rendering.Text_Render_Result;
          begin
@@ -1734,7 +2368,8 @@ package body Files.Application.Windows is
                      Metadata_Error     => False,
                      Error_Key          => Null_Unbounded_String,
                      Selected           => True,
-                     Visible_Index      => 1));
+                     Visible_Index      => 1,
+                     Cut_Pending        => False));
             end if;
 
             declare
@@ -2102,8 +2737,14 @@ package body Files.Application.Windows is
             Startup_Window  => Startup_Window,
             Settings        => Startup.Settings,
             Settings_Path   => Startup.Settings_Path,
-            Width           => 1024,
-            Height          => 768);
+            Width           =>
+              (if Startup.Settings.Window_Width > 0
+               then Startup.Settings.Window_Width
+               else 1024),
+            Height          =>
+              (if Startup.Settings.Window_Height > 0
+               then Startup.Settings.Window_Height
+               else 768));
       end loop;
 
       for Frame_Index in 1 .. 3 loop

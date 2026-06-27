@@ -214,6 +214,31 @@ package body Files.Application is
       return Result;
    end Resolve_Startup;
 
+   --  Map the settings sort enum onto the runtime model's sort enum and
+   --  apply the persisted info-pane toggle. Used after Files.Model.Initialize
+   --  so every freshly created window reflects the last persisted UI state.
+   procedure Apply_Persisted_UI_State
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+   is
+      Mapped : Files.Model.Sort_Field;
+   begin
+      case Settings.Sort_Field_Value is
+         when Files.Settings.Sort_By_Name     => Mapped := Files.Model.Sort_Name;
+         when Files.Settings.Sort_By_Filetype => Mapped := Files.Model.Sort_Type;
+         when Files.Settings.Sort_By_Size     => Mapped := Files.Model.Sort_Size;
+         when Files.Settings.Sort_By_Modified => Mapped := Files.Model.Sort_Changed;
+      end case;
+
+      Files.Model.Select_Sort_Field (Model, Mapped);
+      if not Settings.Sort_Ascending and then Files.Model.Sort_Is_Ascending (Model) then
+         Files.Model.Select_Sort_Field (Model, Mapped);
+      end if;
+      if Settings.Info_Pane_Open and then not Files.Model.Info_Pane_Is_Open (Model) then
+         Files.Model.Toggle_Info_Pane (Model);
+      end if;
+   end Apply_Persisted_UI_State;
+
    function Resolve_Startup_Paths
      (Arguments : String_Vectors.Vector;
       Settings  : Files.Settings.Settings_Model)
@@ -263,6 +288,7 @@ package body Files.Application is
                               Items             => Load.Items,
                               Home_Path         => Home,
                               Default_View_Mode => Settings.Default_View);
+                           Apply_Persisted_UI_State (Window.Model, Settings);
                            Window.Path := Load.Path;
                            Window.Title := Load.Path;
                            Result.Windows.Append (Window);
@@ -417,7 +443,7 @@ package body Files.Application is
                 (Renderer    => Text_Renderer,
                  Font_Path   => Frame_Font_Path,
                  Pixel_Size  => 16,
-                 Cell_Width  => 10,
+                 Cell_Width  => 12,
                  Cell_Height => 20);
             Glyphs        : constant Files.Rendering.Text_Render_Result :=
               Files.Rendering.Build_Text_Glyphs (Text_Renderer, Frame);

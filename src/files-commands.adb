@@ -101,6 +101,12 @@ package body Files.Commands is
             return "file.delete_permanently";
          when Rename_Selected_Items_Command =>
             return "file.rename";
+         when Copy_Selected_Items_Command =>
+            return "file.copy";
+         when Cut_Selected_Items_Command =>
+            return "file.cut";
+         when Paste_Items_Command =>
+            return "file.paste";
          when Open_Selected_Items_Command =>
             return "file.open_selected";
          when Generate_Thumbnails_Command =>
@@ -129,6 +135,8 @@ package body Files.Commands is
             return "settings.save";
          when Reset_Settings_Command =>
             return "settings.reset";
+         when Toggle_Bookmark_Command =>
+            return "bookmark.toggle";
       end case;
    end Identifier;
 
@@ -177,6 +185,12 @@ package body Files.Commands is
             return "command.file.delete_permanently";
          when Rename_Selected_Items_Command =>
             return "command.file.rename";
+         when Copy_Selected_Items_Command =>
+            return "command.file.copy";
+         when Cut_Selected_Items_Command =>
+            return "command.file.cut";
+         when Paste_Items_Command =>
+            return "command.file.paste";
          when Open_Selected_Items_Command =>
             return "command.file.open";
          when Generate_Thumbnails_Command =>
@@ -205,6 +219,8 @@ package body Files.Commands is
             return "command.settings.save";
          when Reset_Settings_Command =>
             return "command.settings.reset";
+         when Toggle_Bookmark_Command =>
+            return "command.bookmark.toggle";
       end case;
    end Name_Key;
 
@@ -253,6 +269,12 @@ package body Files.Commands is
             return "command.file.delete_permanently.description";
          when Rename_Selected_Items_Command =>
             return "command.file.rename.description";
+         when Copy_Selected_Items_Command =>
+            return "command.file.copy.description";
+         when Cut_Selected_Items_Command =>
+            return "command.file.cut.description";
+         when Paste_Items_Command =>
+            return "command.file.paste.description";
          when Open_Selected_Items_Command =>
             return "command.file.open.description";
          when Generate_Thumbnails_Command =>
@@ -281,6 +303,8 @@ package body Files.Commands is
             return "command.settings.save.description";
          when Reset_Settings_Command =>
             return "command.settings.reset.description";
+         when Toggle_Bookmark_Command =>
+            return "command.bookmark.toggle.description";
       end case;
    end Description_Key;
 
@@ -338,6 +362,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_S, Ctrl);
          when Reset_Settings_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+         when Toggle_Bookmark_Command =>
+            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Open_Selected_Root_Command | Eject_Selected_Root_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Delete_Selected_Items_Command =>
@@ -348,6 +374,12 @@ package body Files.Commands is
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Rename_Selected_Items_Command =>
             return (True, Files.Types.Key_F2, Files.Types.No_Modifiers);
+         when Copy_Selected_Items_Command =>
+            return (True, Files.Types.Key_C, Ctrl);
+         when Cut_Selected_Items_Command =>
+            return (True, Files.Types.Key_X, Ctrl);
+         when Paste_Items_Command =>
+            return (True, Files.Types.Key_V, Ctrl);
          when Close_Command_Palette_Command =>
             return (True, Files.Types.Key_Escape, Files.Types.No_Modifiers);
          when Open_Selected_Items_Command =>
@@ -384,6 +416,8 @@ package body Files.Commands is
             return "4";
          when Files.Types.Key_A =>
             return "a";
+         when Files.Types.Key_C =>
+            return "c";
          when Files.Types.Key_D =>
             return "d";
          when Files.Types.Key_F =>
@@ -398,6 +432,10 @@ package body Files.Commands is
             return "r";
          when Files.Types.Key_S =>
             return "s";
+         when Files.Types.Key_V =>
+            return "v";
+         when Files.Types.Key_X =>
+            return "x";
          when Files.Types.Key_Comma =>
             return ",";
          when Files.Types.Key_Backspace =>
@@ -426,6 +464,8 @@ package body Files.Commands is
             return "pageup";
          when Files.Types.Key_Page_Down =>
             return "pagedown";
+         when Files.Types.Key_Space =>
+            return "space";
          when Files.Types.Key_Unknown =>
             return "";
       end case;
@@ -577,7 +617,10 @@ package body Files.Commands is
             | Reset_Settings_Command
             | Eject_Selected_Root_Command =>
             return Command_Palette_Only;
-         when Select_All_Command =>
+         when Select_All_Command
+            | Copy_Selected_Items_Command
+            | Cut_Selected_Items_Command
+            | Paste_Items_Command =>
             return Command_Palette_Only;
          when others =>
             return Command_Palette_Only;
@@ -651,6 +694,12 @@ package body Files.Commands is
          when Delete_Selected_Permanently_Command | Generate_Thumbnails_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Copy_Selected_Items_Command | Cut_Selected_Items_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Paste_Items_Command =>
+            return Files.Model.Clipboard_Has_Items (Model)
+              and then not Files.Model.Temporary_Item_Is_Active (Model);
          when Create_File_Command =>
             return not Files.Model.Temporary_Item_Is_Active (Model);
          when Toggle_Info_Pane_Command =>
@@ -659,7 +708,8 @@ package body Files.Commands is
          when Rename_Selected_Items_Command =>
             return Files.Model.Rename_Is_Enabled (Model) or else Files.Model.Rename_Is_Active (Model);
          when Close_Command_Palette_Command =>
-            return Files.Model.Command_Palette_Is_Open (Model)
+            return Files.Model.Context_Menu_Is_Open (Model)
+              or else Files.Model.Command_Palette_Is_Open (Model)
               or else Files.Model.Root_Selector_Is_Open (Model)
               or else Files.Model.Sort_Menu_Is_Open (Model)
               or else Files.Model.Settings_Pane_Is_Open (Model)
@@ -767,6 +817,12 @@ package body Files.Commands is
             null;
          when Rename_Selected_Items_Command =>
             Files.Model.Toggle_Rename (Model);
+         when Copy_Selected_Items_Command =>
+            null;
+         when Cut_Selected_Items_Command =>
+            null;
+         when Paste_Items_Command =>
+            null;
          when Open_Selected_Items_Command =>
             null;
          when Generate_Thumbnails_Command =>
@@ -776,7 +832,9 @@ package body Files.Commands is
          when Open_Command_Palette_Command =>
             Files.Model.Toggle_Command_Palette (Model);
          when Close_Command_Palette_Command =>
-            if Files.Model.Command_Palette_Is_Open (Model) then
+            if Files.Model.Context_Menu_Is_Open (Model) then
+               Files.Model.Close_Context_Menu (Model);
+            elsif Files.Model.Command_Palette_Is_Open (Model) then
                Files.Model.Close_Command_Palette (Model);
             elsif Files.Model.Root_Selector_Is_Open (Model) then
                Files.Model.Close_Root_Selector (Model);
@@ -804,6 +862,8 @@ package body Files.Commands is
          when Save_Settings_Command =>
             null;
          when Reset_Settings_Command =>
+            null;
+         when Toggle_Bookmark_Command =>
             null;
       end case;
    end Execute;

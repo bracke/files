@@ -1447,6 +1447,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
+      Model.Settings_Pane_Scroll := 0;
       if Model.Settings_Pane_Open then
          Clear_Edit_State (Model);
          Clear_Root_Selector_State (Model);
@@ -1520,8 +1521,8 @@ package body Files.Model is
    begin
       if Index = 0 then
          Model.Settings_Field := 1;
-      elsif Index > 12 then
-         Model.Settings_Field := 12;
+      elsif Index > 13 then
+         Model.Settings_Field := 13;
       else
          Model.Settings_Field := Index;
       end if;
@@ -1595,14 +1596,14 @@ package body Files.Model is
       end Next_Index;
    begin
       case Model.Settings_Field is
-         when 7 | 8 =>
+         when 8 | 9 =>
             Select_Filetype
               (Next_Index
                  (Draft.Filetype_Index,
                   Pair_Count (Draft.Filetype_Keys, Draft.Filetype_Values)));
-         when 9 | 10 =>
+         when 10 | 11 =>
             Select_Icon (Next_Index (Draft.Icon_Index, Pair_Count (Draft.Icon_Keys, Draft.Icon_Values)));
-         when 11 | 12 =>
+         when 12 | 13 =>
             Select_Action
               (Next_Index
                  (Draft.Open_Action_Index,
@@ -1623,27 +1624,27 @@ package body Files.Model is
       Edited : Boolean := True;
    begin
       case Model.Settings_Field is
-         when 7 | 8 =>
+         when 8 | 9 =>
             Draft.Filetype_Keys.Append (Null_Unbounded_String);
             Draft.Filetype_Values.Append (Null_Unbounded_String);
             Draft.Filetype_Index := Natural (Draft.Filetype_Keys.Length);
             Draft.Filetype_Extension := Null_Unbounded_String;
             Draft.Filetype_Value := Null_Unbounded_String;
-            Model.Settings_Field := 7;
-         when 9 | 10 =>
+            Model.Settings_Field := 8;
+         when 10 | 11 =>
             Draft.Icon_Keys.Append (Null_Unbounded_String);
             Draft.Icon_Values.Append (Null_Unbounded_String);
             Draft.Icon_Index := Natural (Draft.Icon_Keys.Length);
             Draft.Icon_Filetype := Null_Unbounded_String;
             Draft.Icon_Value := Null_Unbounded_String;
-            Model.Settings_Field := 9;
-         when 11 | 12 =>
+            Model.Settings_Field := 10;
+         when 12 | 13 =>
             Draft.Open_Action_Keys.Append (Null_Unbounded_String);
             Draft.Open_Action_Commands.Append (Null_Unbounded_String);
             Draft.Open_Action_Index := Natural (Draft.Open_Action_Keys.Length);
             Draft.Open_Action_Token := Null_Unbounded_String;
             Draft.Open_Action_Command := Null_Unbounded_String;
-            Model.Settings_Field := 11;
+            Model.Settings_Field := 12;
          when others =>
             Edited := False;
       end case;
@@ -1687,7 +1688,7 @@ package body Files.Model is
 
    begin
       case Model.Settings_Field is
-         when 7 | 8 =>
+         when 8 | 9 =>
             if Draft.Filetype_Index = 0
               or else
                 (Draft.Filetype_Index > Natural (Draft.Filetype_Keys.Length)
@@ -1708,8 +1709,8 @@ package body Files.Model is
                Draft.Filetype_Extension := Draft.Filetype_Keys.Element (Draft.Filetype_Index);
                Draft.Filetype_Value := Draft.Filetype_Values.Element (Draft.Filetype_Index);
             end if;
-            Model.Settings_Field := 7;
-         when 9 | 10 =>
+            Model.Settings_Field := 8;
+         when 10 | 11 =>
             if Draft.Icon_Index = 0
               or else
                 (Draft.Icon_Index > Natural (Draft.Icon_Keys.Length)
@@ -1730,8 +1731,8 @@ package body Files.Model is
                Draft.Icon_Filetype := Draft.Icon_Keys.Element (Draft.Icon_Index);
                Draft.Icon_Value := Draft.Icon_Values.Element (Draft.Icon_Index);
             end if;
-            Model.Settings_Field := 9;
-         when 11 | 12 =>
+            Model.Settings_Field := 10;
+         when 12 | 13 =>
             if Draft.Open_Action_Index = 0
               or else
                 (Draft.Open_Action_Index > Natural (Draft.Open_Action_Keys.Length)
@@ -1752,7 +1753,7 @@ package body Files.Model is
                Draft.Open_Action_Token := Draft.Open_Action_Keys.Element (Draft.Open_Action_Index);
                Draft.Open_Action_Command := Draft.Open_Action_Commands.Element (Draft.Open_Action_Index);
             end if;
-            Model.Settings_Field := 11;
+            Model.Settings_Field := 12;
          when others =>
             Edited := False;
       end case;
@@ -1783,16 +1784,18 @@ package body Files.Model is
          when 6 =>
             return To_String (Model.Settings_Draft_Value.Icon_Theme_Name);
          when 7 =>
-            return To_String (Model.Settings_Draft_Value.Filetype_Extension);
+            return To_String (Model.Settings_Draft_Value.Font_Pixel_Size);
          when 8 =>
-            return To_String (Model.Settings_Draft_Value.Filetype_Value);
+            return To_String (Model.Settings_Draft_Value.Filetype_Extension);
          when 9 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Filetype);
+            return To_String (Model.Settings_Draft_Value.Filetype_Value);
          when 10 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Value);
+            return To_String (Model.Settings_Draft_Value.Icon_Filetype);
          when 11 =>
-            return To_String (Model.Settings_Draft_Value.Open_Action_Token);
+            return To_String (Model.Settings_Draft_Value.Icon_Value);
          when 12 =>
+            return To_String (Model.Settings_Draft_Value.Open_Action_Token);
+         when 13 =>
             return To_String (Model.Settings_Draft_Value.Open_Action_Command);
          when others =>
             return "";
@@ -1833,6 +1836,8 @@ package body Files.Model is
          when 6 =>
             Model.Settings_Draft_Value.Icon_Theme_Name := To_Unbounded_String (Text);
          when 7 =>
+            Model.Settings_Draft_Value.Font_Pixel_Size := To_Unbounded_String (Text);
+         when 8 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Filetype_Keys,
                   Model.Settings_Draft_Value.Filetype_Index,
@@ -1842,7 +1847,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 8 =>
+         when 9 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Filetype_Values,
                   Model.Settings_Draft_Value.Filetype_Index,
@@ -1852,7 +1857,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 9 =>
+         when 10 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Icon_Keys,
                   Model.Settings_Draft_Value.Icon_Index,
@@ -1862,7 +1867,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 10 =>
+         when 11 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Icon_Values,
                   Model.Settings_Draft_Value.Icon_Index,
@@ -1872,7 +1877,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 11 =>
+         when 12 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Open_Action_Keys,
                   Model.Settings_Draft_Value.Open_Action_Index,
@@ -1882,7 +1887,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 12 =>
+         when 13 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Open_Action_Commands,
                   Model.Settings_Draft_Value.Open_Action_Index,
@@ -1928,6 +1933,49 @@ package body Files.Model is
    begin
       return Model.Info_Pane_Scroll;
    end Info_Pane_Scroll_Lines;
+
+   procedure Set_Info_Pane_Scroll_Lines
+     (Model : in out Window_Model;
+      Lines : Natural) is
+   begin
+      Model.Info_Pane_Scroll := Lines;
+   end Set_Info_Pane_Scroll_Lines;
+
+   procedure Set_Main_View_Scroll_Lines
+     (Model : in out Window_Model;
+      Lines : Natural) is
+   begin
+      Model.Main_View_Scroll := Lines;
+   end Set_Main_View_Scroll_Lines;
+
+   procedure Scroll_Settings_Pane
+     (Model : in out Window_Model;
+      Lines : Integer) is
+   begin
+      if not Model.Settings_Pane_Open or else Lines = 0 then
+         return;
+      elsif Lines < 0 then
+         declare
+            Step : constant Natural := Scroll_Step (Lines);
+         begin
+            if Step >= Model.Settings_Pane_Scroll then
+               Model.Settings_Pane_Scroll := 0;
+            else
+               Model.Settings_Pane_Scroll := Model.Settings_Pane_Scroll - Step;
+            end if;
+         end;
+      else
+         Model.Settings_Pane_Scroll :=
+           Saturating_Add (Model.Settings_Pane_Scroll, Scroll_Step (Lines));
+      end if;
+   end Scroll_Settings_Pane;
+
+   function Settings_Pane_Scroll_Lines
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Settings_Pane_Scroll;
+   end Settings_Pane_Scroll_Lines;
 
    procedure Scroll_Main_View
      (Model : in out Window_Model;
@@ -2268,5 +2316,101 @@ package body Files.Model is
    begin
       return To_String (Model.Last_Error);
    end Last_Error_Key;
+
+   procedure Set_Clipboard
+     (Model : in out Window_Model;
+      Paths : Files.Types.String_Vectors.Vector;
+      Mode  : Clipboard_Mode) is
+   begin
+      Model.Clipboard_Paths_Value := Paths;
+      Model.Clipboard_Mode_Value :=
+        (if Paths.Is_Empty then Clipboard_None else Mode);
+   end Set_Clipboard;
+
+   procedure Clear_Clipboard
+     (Model : in out Window_Model) is
+   begin
+      Model.Clipboard_Paths_Value.Clear;
+      Model.Clipboard_Mode_Value := Clipboard_None;
+   end Clear_Clipboard;
+
+   function Clipboard_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector is
+   begin
+      return Model.Clipboard_Paths_Value;
+   end Clipboard_Paths;
+
+   function Clipboard_Mode_Of
+     (Model : Window_Model)
+      return Clipboard_Mode is
+   begin
+      return Model.Clipboard_Mode_Value;
+   end Clipboard_Mode_Of;
+
+   function Clipboard_Has_Items
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return not Model.Clipboard_Paths_Value.Is_Empty
+        and then Model.Clipboard_Mode_Value /= Clipboard_None;
+   end Clipboard_Has_Items;
+
+   procedure Open_Context_Menu
+     (Model      : in out Window_Model;
+      X          : Natural;
+      Y          : Natural;
+      Target     : Context_Menu_Target;
+      Item_Index : Natural := 0) is
+   begin
+      Model.Context_Menu_Open_Value := True;
+      Model.Context_Menu_X_Value := X;
+      Model.Context_Menu_Y_Value := Y;
+      Model.Context_Menu_Target_Value := Target;
+      Model.Context_Menu_Item_Index_Value := Item_Index;
+   end Open_Context_Menu;
+
+   procedure Close_Context_Menu
+     (Model : in out Window_Model) is
+   begin
+      Model.Context_Menu_Open_Value := False;
+      Model.Context_Menu_Target_Value := Context_Menu_None;
+      Model.Context_Menu_Item_Index_Value := 0;
+   end Close_Context_Menu;
+
+   function Context_Menu_Is_Open
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Context_Menu_Open_Value;
+   end Context_Menu_Is_Open;
+
+   function Context_Menu_X
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Context_Menu_X_Value;
+   end Context_Menu_X;
+
+   function Context_Menu_Y
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Context_Menu_Y_Value;
+   end Context_Menu_Y;
+
+   function Context_Menu_Target_Of
+     (Model : Window_Model)
+      return Context_Menu_Target is
+   begin
+      return Model.Context_Menu_Target_Value;
+   end Context_Menu_Target_Of;
+
+   function Context_Menu_Item_Index
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Context_Menu_Item_Index_Value;
+   end Context_Menu_Item_Index;
 
 end Files.Model;

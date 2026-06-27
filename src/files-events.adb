@@ -29,7 +29,8 @@ package body Files.Events is
          Settings_Option => 0,
          Activate        => Activate,
          Toggle_Selection => False,
-         Range_Selection  => False);
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
    end No_Action;
 
    function Command_Action
@@ -52,7 +53,8 @@ package body Files.Events is
          Settings_Option => 0,
          Activate        => Activate,
          Toggle_Selection => False,
-         Range_Selection  => False);
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
    end Command_Action;
 
    function Selection_Action
@@ -74,7 +76,8 @@ package body Files.Events is
          Settings_Option => 0,
          Activate        => False,
          Toggle_Selection => False,
-         Range_Selection  => False);
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
    end Selection_Action;
 
    function Scroll_Action
@@ -98,8 +101,34 @@ package body Files.Events is
          Settings_Option => 0,
          Activate        => Activate,
          Toggle_Selection => False,
-         Range_Selection  => False);
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
    end Scroll_Action;
+
+   function Scroll_Drag_Begin_Action
+     (Target   : Scroll_Target;
+      Anchor   : Integer;
+      Activate : Boolean := False)
+      return Input_Action is
+   begin
+      return
+        (Kind             => Scrollbar_Drag_Begin_Input_Action,
+         Command          => Files.Commands.No_Command,
+         Direction        => Files.Types.Move_Down,
+         Item_Index       => 0,
+         Root_Index       => 0,
+         Result_Index     => 0,
+         Scroll_Lines     => 0,
+         Scroll_Area      => Target,
+         Focus_Target     => Files.Types.Focus_None,
+         Cursor_Position  => 0,
+         Settings_Field   => 0,
+         Settings_Option  => 0,
+         Activate         => Activate,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => Anchor);
+   end Scroll_Drag_Begin_Action;
 
    function Saturating_Negated_Triple (Value : Integer) return Integer is
    begin
@@ -171,6 +200,7 @@ package body Files.Events is
 
    function Translate_Click
      (Snapshot    : Files.Rendering.View_Snapshot;
+      Frame       : Files.Rendering.Frame_Commands;
       X           : Natural;
       Y           : Natural;
       Width       : Natural;
@@ -338,7 +368,8 @@ package body Files.Events is
             Settings_Option => 0,
             Activate        => Activate,
             Toggle_Selection => False,
-            Range_Selection  => False);
+            Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
       end Text_Click;
 
       function Scroll_Click
@@ -355,7 +386,9 @@ package body Files.Events is
            and then Y_Pos >= Thumb_Y
            and then Y_Pos - Thumb_Y < Thumb_Height
          then
-            return No_Action (Activate);
+            return
+              Scroll_Drag_Begin_Action
+                (Target, Integer (Y_Pos) - Integer (Thumb_Y), Activate);
          end if;
 
          return Scroll_Action (Target, Lines, Activate);
@@ -438,150 +471,58 @@ package body Files.Events is
             Settings_Option => Option,
             Activate        => Activate,
             Toggle_Selection => False,
-            Range_Selection  => False);
+            Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
       end Settings_Click;
 
       function Settings_Click_Hit return Input_Action is
          Pane : constant Files.UI.Settings_Pane_Layout :=
            Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
-         Pane_W : constant Natural := Pane.Width;
-         Pane_H : constant Natural := Pane.Height;
-         Pane_X : constant Natural := Pane.X;
-         Pane_Y : constant Natural := Pane.Y;
-         Entry_Buttons : constant Files.UI.Settings_Entry_Button_Layout :=
-           Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
-         Text_X : constant Natural := Pane.Text_X;
-         Text_Y : constant Natural := Pane.Text_Y;
-         Text_W : constant Natural := Pane.Text_Width;
-         Action_Buttons : constant Files.UI.Settings_Action_Button_Layout :=
-           Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W);
-         Row_Step : constant Natural := Saturating_Add (Line_Height, Files.UI.Settings_Row_Gap);
-         Row    : Natural;
-         Row_Offset : Natural;
-         Cell_W : Natural;
-
-         function Option_Count (Field : Natural) return Natural is
-         begin
-            case Field is
-               when 1 =>
-                  return 3;
-               when 2 | 4 | 5 | 6 =>
-                  return 2;
-               when 3 =>
-                  return 4;
-               when others =>
-                  return 0;
-            end case;
-         end Option_Count;
-
-         function Option_Hit_Width (Field : Natural) return Natural is
-            Count : constant Natural := Option_Count (Field);
-         begin
-            if Count = 0 or else Cell_W = 0 then
-               return 0;
-            elsif Count = 4 then
-               return Text_W;
-            else
-               return Natural'Min (Text_W, Saturating_Multiply (Count, Cell_W));
-            end if;
-         end Option_Hit_Width;
-
-         function Row_Field return Natural is
-         begin
-            case Row is
-               when 3 => return 1;
-               when 4 => return 2;
-               when 5 => return 3;
-               when 6 => return 4;
-               when 7 => return 5;
-               when 8 => return 6;
-               when 10 => return 7;
-               when 11 => return 8;
-               when 13 => return 9;
-               when 14 => return 10;
-               when 16 => return 11;
-               when 17 => return 12;
-               when others => return 0;
-            end case;
-         end Row_Field;
-
-         function Settings_Command_Click
-         (Command : Files.Commands.Command_Id)
-            return Input_Action is
-         begin
-            case Command is
-               when Files.Commands.Reset_Settings_Command =>
-                  if Snapshot.Settings_Can_Reset then
-                     return Command_Action (Command, Activate);
-                  end if;
-               when Files.Commands.Save_Settings_Command =>
-                  if Snapshot.Settings_Can_Save then
-                     return Command_Action (Command, Activate);
-                  end if;
-               when others =>
-                  return Command_Action (Command, Activate);
-            end case;
-
-            return No_Action (Activate);
-         end Settings_Command_Click;
+         Hit  : constant Files.Rendering.Settings_Hit_Region :=
+           Files.Rendering.Settings_Hit_At (Frame, X, Y);
+         use type Files.Rendering.Settings_Hit_Kind;
       begin
          if not Snapshot.Settings_Pane_Open
-           or else not Within (X, Pane_X, Pane_W)
-           or else not Within (Y, Pane_Y, Pane_H)
+           or else not Within (X, Pane.X, Pane.Width)
+           or else not Within (Y, Pane.Y, Pane.Height)
          then
             return No_Action (Activate);
          end if;
 
-         if Y < Text_Y or else Row_Step = 0 then
-            return No_Action (Activate);
-         end if;
-
-         Row := (Y - Text_Y) / Row_Step;
-         Row_Offset := (Y - Text_Y) mod Row_Step;
-         if Row_Offset >= Line_Height then
-            return No_Action (Activate);
-         end if;
-
-         if Row in 1 .. 2
-           and then Within (X, Action_Buttons.Total_X, Action_Buttons.Total_Width)
-         then
-            if Row = 1
-              and then Within (X, Action_Buttons.First_Button_X, Action_Buttons.First_Button_Width)
-            then
-               return Settings_Command_Click (Files.Commands.Reset_Settings_Command);
-            elsif Row = 1
-              and then Within (X, Action_Buttons.Second_Button_X, Action_Buttons.Second_Button_Width)
-            then
-               return Settings_Command_Click (Files.Commands.Save_Settings_Command);
-            end if;
-         elsif Row = 20 and then Snapshot.Settings_Field_Index in 1 .. 6 then
-            Cell_W := (if Text_W > 0 then Text_W / 4 else 0);
-            if Cell_W > 0
-              and then Within
-                (X,
-                 Text_X,
-                 Option_Hit_Width (Snapshot.Settings_Field_Index))
-            then
-               return
-                 Settings_Click
-                   (Snapshot.Settings_Field_Index,
-                    Natural'Min
-                      (Option_Count (Snapshot.Settings_Field_Index),
-                       (X - Text_X) / Cell_W + 1));
-            end if;
-         elsif Row in 9 | 12 | 15 and then Within (X, Entry_Buttons.Total_X, Entry_Buttons.Total_Width) then
-            declare
-               Field : constant Natural := (case Row is when 9 => 7, when 12 => 9, when others => 11);
-            begin
-               if Within (X, Entry_Buttons.Add_Button_X, Entry_Buttons.Add_Button_Width) then
-                  return Settings_Click (Field, 100);
-               elsif Within (X, Entry_Buttons.Remove_Button_X, Entry_Buttons.Remove_Button_Width) then
-                  return Settings_Click (Field, 101);
+         case Hit.Kind is
+            when Files.Rendering.Settings_Hit_Field =>
+               return Settings_Click (Hit.Field);
+            when Files.Rendering.Settings_Hit_Reset =>
+               if Snapshot.Settings_Can_Reset then
+                  return Command_Action (Files.Commands.Reset_Settings_Command, Activate);
                end if;
-            end;
-         elsif Row_Field /= 0 then
-            return Settings_Click (Row_Field);
-         end if;
+            when Files.Rendering.Settings_Hit_Segment =>
+               if Hit.Field /= 0 and then Hit.Option /= 0 then
+                  return Settings_Click (Hit.Field, Hit.Option);
+               end if;
+            when Files.Rendering.Settings_Hit_Toggle =>
+               if Hit.Field /= 0 and then Hit.Option /= 0 then
+                  return Settings_Click (Hit.Field, Hit.Option);
+               end if;
+            when Files.Rendering.Settings_Hit_Stepper_Down =>
+               if Hit.Field /= 0 then
+                  return Settings_Click (Hit.Field, 150);
+               end if;
+            when Files.Rendering.Settings_Hit_Stepper_Up =>
+               if Hit.Field /= 0 then
+                  return Settings_Click (Hit.Field, 151);
+               end if;
+            when Files.Rendering.Settings_Hit_Add =>
+               if Hit.Field /= 0 then
+                  return Settings_Click (Hit.Field, 100);
+               end if;
+            when Files.Rendering.Settings_Hit_Remove =>
+               if Hit.Field /= 0 then
+                  return Settings_Click (Hit.Field, 101);
+               end if;
+            when Files.Rendering.Settings_Hit_None =>
+               null;
+         end case;
 
          return No_Action (Activate);
       end Settings_Click_Hit;
@@ -625,7 +566,8 @@ package body Files.Events is
             Settings_Option => 0,
             Activate        => Activate,
             Toggle_Selection => False,
-            Range_Selection  => False);
+            Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
       elsif Snapshot.Command_Palette_Open then
          return No_Action (Activate);
       elsif Root_Index /= 0 then
@@ -644,7 +586,8 @@ package body Files.Events is
             Settings_Option => 0,
             Activate        => Activate,
             Toggle_Selection => False,
-            Range_Selection  => False);
+            Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
       elsif Snapshot.Root_Selector_Open then
          declare
             Root_Command : constant Files.Commands.Command_Id :=
@@ -771,7 +714,8 @@ package body Files.Events is
             Settings_Option => 0,
             Activate        => Activate,
             Toggle_Selection => Modifiers (Files.Types.Control_Key) and then not Modifiers (Files.Types.Shift_Key),
-            Range_Selection  => Modifiers (Files.Types.Shift_Key));
+            Range_Selection  => Modifiers (Files.Types.Shift_Key),
+            Scroll_Drag_Anchor => 0);
       end if;
 
       return No_Action (Activate);
@@ -833,7 +777,23 @@ package body Files.Events is
          return No_Action;
       end if;
 
-      if Snapshot.Root_Selector_Open or else Snapshot.Settings_Pane_Open then
+      if Snapshot.Root_Selector_Open then
+         return No_Action;
+      end if;
+
+      if Snapshot.Settings_Pane_Open then
+         declare
+            Settings_Pane : constant Files.UI.Settings_Pane_Layout :=
+              Files.UI.Calculate_Settings_Pane_Layout
+                (Width, Height, Layout.Toolbar_Height, Line_Height);
+         begin
+            if Within (X, Settings_Pane.X, Settings_Pane.Width)
+              and then Within (Y, Settings_Pane.Y, Settings_Pane.Height)
+            then
+               Action.Scroll_Area := Scroll_Settings_Pane;
+               return Action;
+            end if;
+         end;
          return No_Action;
       end if;
 

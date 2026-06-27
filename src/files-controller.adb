@@ -1,3 +1,4 @@
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Files.Command_Palette;
@@ -597,6 +598,55 @@ package body Files.Controller is
             Operation := Files.Operations.Delete_Selected (Model, Settings);
          when Files.Commands.Delete_Selected_Permanently_Command =>
             Operation := Files.Operations.Delete_Selected_Permanently (Model, Settings);
+         when Files.Commands.Copy_Selected_Items_Command =>
+            declare
+               Items : constant Files.File_System.Item_Vectors.Vector :=
+                 Files.Model.Selected_Items (Model);
+               Paths : Files.Types.String_Vectors.Vector;
+            begin
+               for Item of Items loop
+                  Paths.Append (Item.Full_Path);
+               end loop;
+               Files.Model.Set_Clipboard
+                 (Model, Paths, Files.Model.Clipboard_Copy);
+               Files.Model.Set_Error (Model, "");
+               Operation.Status := Files.Operations.Operation_Success;
+            end;
+         when Files.Commands.Cut_Selected_Items_Command =>
+            declare
+               Items : constant Files.File_System.Item_Vectors.Vector :=
+                 Files.Model.Selected_Items (Model);
+               Paths : Files.Types.String_Vectors.Vector;
+            begin
+               for Item of Items loop
+                  Paths.Append (Item.Full_Path);
+               end loop;
+               Files.Model.Set_Clipboard
+                 (Model, Paths, Files.Model.Clipboard_Cut);
+               Files.Model.Set_Error (Model, "");
+               Operation.Status := Files.Operations.Operation_Success;
+            end;
+         when Files.Commands.Paste_Items_Command =>
+            declare
+               use type Files.Model.Clipboard_Mode;
+               Paths : constant Files.Types.String_Vectors.Vector :=
+                 Files.Model.Clipboard_Paths (Model);
+               Mode  : constant Files.Model.Clipboard_Mode :=
+                 Files.Model.Clipboard_Mode_Of (Model);
+               Drop_Mode : constant Files.File_System.Drop_Import_Mode :=
+                 (if Mode = Files.Model.Clipboard_Cut
+                  then Files.File_System.Drop_Move
+                  else Files.File_System.Drop_Copy);
+            begin
+               Operation :=
+                 Files.Operations.Import_Dropped_Paths
+                   (Model, Settings, Paths, Drop_Mode);
+               if Operation.Status = Files.Operations.Operation_Success
+                 and then Mode = Files.Model.Clipboard_Cut
+               then
+                  Files.Model.Clear_Clipboard (Model);
+               end if;
+            end;
          when Files.Commands.Generate_Thumbnails_Command =>
             Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
          when Files.Commands.Search_Recursive_Command =>
@@ -616,7 +666,22 @@ package body Files.Controller is
             if Files.Model.Root_Selector_Is_Open (Model) then
                Files.Model.Close_Root_Selector (Model);
             else
-               Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Root_Entries);
+               declare
+                  Roots : Files.File_System.Root_Entry_Vectors.Vector :=
+                    Files.File_System.Available_Root_Entries;
+               begin
+                  for Path of Settings.Bookmark_Paths loop
+                     Roots.Append
+                       (Files.File_System.Root_Entry'
+                          (Path        => Path,
+                           Label       => Path,
+                           Kind        => Files.File_System.Root_Bookmark,
+                           Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
+                           Ready       => Files.File_System.Root_Ready,
+                           Removable   => False));
+                  end loop;
+                  Files.Model.Open_Root_Selector (Model, Roots);
+               end;
             end if;
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Reset_Settings_Command =>
@@ -625,7 +690,9 @@ package body Files.Controller is
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Close_Command_Palette_Command =>
-            if Files.Model.Command_Palette_Is_Open (Model) then
+            if Files.Model.Context_Menu_Is_Open (Model) then
+               Files.Model.Close_Context_Menu (Model);
+            elsif Files.Model.Command_Palette_Is_Open (Model) then
                Files.Model.Close_Command_Palette (Model);
             elsif Files.Model.Root_Selector_Is_Open (Model) then
                Files.Model.Close_Root_Selector (Model);
@@ -868,6 +935,21 @@ package body Files.Controller is
            else Controller_Command_Executed);
    end Scroll_Info_Result;
 
+   function Scroll_Settings_Result
+     (Model : in out Files.Model.Window_Model;
+      Lines : Integer)
+      return Controller_Result
+   is
+      Old_Lines : constant Natural := Files.Model.Settings_Pane_Scroll_Lines (Model);
+   begin
+      Files.Model.Scroll_Settings_Pane (Model, Lines);
+      return
+        Make_Result
+          (if Files.Model.Settings_Pane_Scroll_Lines (Model) = Old_Lines
+           then Controller_Ignored
+           else Controller_Command_Executed);
+   end Scroll_Settings_Result;
+
    function Scroll_Main_Result
      (Model : in out Files.Model.Window_Model;
       Lines : Integer)
@@ -936,6 +1018,8 @@ package body Files.Controller is
          return Make_Result (Controller_Ignored);
       elsif Files.Model.Settings_Pane_Is_Open (Model)
         and then not Files.Model.Command_Palette_Is_Open (Model)
+        and then Target /= Files.Events.Scroll_Auto
+        and then Target /= Files.Events.Scroll_Settings_Pane
       then
          return Make_Result (Controller_Ignored);
       end if;
@@ -960,6 +1044,10 @@ package body Files.Controller is
          when Files.Events.Scroll_Info_Pane =>
             if Files.Model.Info_Pane_Is_Open (Model) then
                return Scroll_Info_Result (Model, Lines);
+            end if;
+         when Files.Events.Scroll_Settings_Pane =>
+            if Files.Model.Settings_Pane_Is_Open (Model) then
+               return Scroll_Settings_Result (Model, Lines);
             end if;
          when Files.Events.Scroll_Main_View =>
             return Scroll_Main_Result (Model, Lines);
@@ -1045,7 +1133,9 @@ package body Files.Controller is
          if Option = 0 then
             return True;
          elsif Option = 100 or else Option = 101 then
-            return Field in 7 | 9 | 11;
+            return Field in 8 | 10 | 12;
+         elsif Option = 150 or else Option = 151 then
+            return Field = 7;
          end if;
 
          case Field is
@@ -1063,7 +1153,7 @@ package body Files.Controller is
       if Files.Model.Command_Palette_Is_Open (Model)
         or else not Files.Model.Settings_Pane_Is_Open (Model)
         or else Field = 0
-        or else Field > 12
+        or else Field > 13
         or else not Valid_Option
       then
          return Make_Result (Controller_Ignored);
@@ -1080,6 +1170,33 @@ package body Files.Controller is
             Files.Model.Add_Settings_Entry (Model);
          elsif Option = 101 then
             Files.Model.Remove_Settings_Entry (Model);
+         elsif Option = 150 or else Option = 151 then
+            declare
+               Min_Px : constant := 10;
+               Max_Px : constant := 32;
+               Step   : constant Integer := (if Option = 151 then 1 else -1);
+               Current_N : Integer := 16;
+               Next_N    : Integer;
+            begin
+               begin
+                  Current_N := Integer'Value (Files.Model.Settings_Field_Text (Model));
+               exception
+                  when Constraint_Error =>
+                     Current_N := 16;
+               end;
+               Next_N := Current_N + Step;
+               if Next_N < Min_Px then
+                  Next_N := Min_Px;
+               elsif Next_N > Max_Px then
+                  Next_N := Max_Px;
+               end if;
+               if Next_N /= Current_N then
+                  Files.Model.Set_Settings_Field_Text
+                    (Model,
+                     Ada.Strings.Fixed.Trim
+                       (Integer'Image (Next_N), Ada.Strings.Both));
+               end if;
+            end;
          elsif Option > 0 then
             case Field is
                when 1 =>
@@ -1105,6 +1222,12 @@ package body Files.Controller is
                when others =>
                   null;
             end case;
+         end if;
+
+         if Option > 0 then
+            return
+              Make_Result
+                (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
          end if;
 
          return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
@@ -1389,15 +1512,29 @@ package body Files.Controller is
                Files.Model.Move_Settings_Entry (Model, Files.Types.Move_Down);
                return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
             end;
-         elsif (Key = Files.Types.Key_Left or else Key = Files.Types.Key_Right)
+         elsif (Key = Files.Types.Key_Left or else Key = Files.Types.Key_Right
+                or else Key = Files.Types.Key_Space)
            and then Modifiers = Files.Types.No_Modifiers
-           and then Files.Model.Settings_Field_Index (Model) <= 6
+           and then Files.Model.Settings_Field_Index (Model) <= 7
          then
             declare
+               Min_Font_Pixel_Size : constant := 10;
+               Max_Font_Pixel_Size : constant := 32;
+
                Field   : constant Natural := Files.Model.Settings_Field_Index (Model);
                Current : constant String := Files.Types.To_Lower (Files.Model.Settings_Field_Text (Model));
-               Forward : constant Boolean := Key = Files.Types.Key_Right;
+               Forward : constant Boolean := Key /= Files.Types.Key_Left;
+               Touched : Boolean := False;
             begin
+               --  Space cycles fields that have inline toggle/segmented
+               --  controls (default_view + boolean fields). On other
+               --  multi-choice fields it falls through to text input.
+               if Key = Files.Types.Key_Space
+                 and then Field not in 1 | 2 | 4 | 5
+               then
+                  return Make_Result (Controller_Ignored);
+               end if;
+
                case Field is
                   when 1 =>
                      if Current = "small_icons" or else Current = "small" then
@@ -1410,13 +1547,16 @@ package body Files.Controller is
                         Files.Model.Set_Settings_Field_Text
                           (Model, (if Forward then "small_icons" else "large_icons"));
                      end if;
+                     Touched := True;
                   when 2 | 4 | 5 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model, (if Current = "true" then "false" else "true"));
+                     Touched := True;
                   when 6 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model,
                         (if Current = "files-basic" then "files-high-contrast" else "files-basic"));
+                     Touched := True;
                   when 3 =>
                      if Current = "name" then
                         Files.Model.Set_Settings_Field_Text (Model, (if Forward then "filetype" else "modified"));
@@ -1427,9 +1567,40 @@ package body Files.Controller is
                      else
                         Files.Model.Set_Settings_Field_Text (Model, (if Forward then "name" else "size"));
                      end if;
+                     Touched := True;
+                  when 7 =>
+                     declare
+                        Step    : constant Integer := (if Forward then 1 else -1);
+                        Current_N : Integer := 0;
+                        Next_N    : Integer;
+                     begin
+                        begin
+                           Current_N := Integer'Value (Files.Model.Settings_Field_Text (Model));
+                        exception
+                           when Constraint_Error =>
+                              Current_N := 16;
+                        end;
+                        Next_N := Current_N + Step;
+                        if Next_N < Min_Font_Pixel_Size then
+                           Next_N := Min_Font_Pixel_Size;
+                        elsif Next_N > Max_Font_Pixel_Size then
+                           Next_N := Max_Font_Pixel_Size;
+                        end if;
+                        if Next_N /= Current_N then
+                           Files.Model.Set_Settings_Field_Text
+                             (Model, Ada.Strings.Fixed.Trim
+                                (Integer'Image (Next_N), Ada.Strings.Both));
+                           Touched := True;
+                        end if;
+                     end;
                   when others =>
                      null;
                end case;
+
+               if Touched then
+                  return Make_Result
+                    (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
+               end if;
             end;
             return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
          end if;
@@ -1647,7 +1818,8 @@ package body Files.Controller is
             | Files.Events.Settings_Click_Input_Action
             | Files.Events.Item_Click_Input_Action
             | Files.Events.Root_Click_Input_Action
-            | Files.Events.Command_Result_Click_Input_Action =>
+            | Files.Events.Command_Result_Click_Input_Action
+            | Files.Events.Scrollbar_Drag_Begin_Input_Action =>
             null;
       end case;
 

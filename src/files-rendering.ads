@@ -58,6 +58,7 @@ package Files.Rendering is
       Error_Key          : UString;
       Selected           : Boolean := False;
       Visible_Index      : Natural := 0;
+      Cut_Pending        : Boolean := False;
    end record;
 
    package Item_Snapshot_Vectors is new Ada.Containers.Vectors
@@ -132,6 +133,7 @@ package Files.Rendering is
       Settings_High_Contrast        : UString;
       Settings_High_Contrast_Token  : UString;
       Settings_Icon_Theme           : UString;
+      Settings_Font_Pixel_Size      : UString;
       Settings_Filetypes            : UString;
       Settings_Icons                : UString;
       Settings_Open_Actions         : UString;
@@ -152,6 +154,7 @@ package Files.Rendering is
       Theme_High_Contrast   : Boolean := False;
       Theme_Focus_Ring      : Render_Color := Border_Color;
       Info_Pane_Scroll_Lines : Natural := 0;
+      Settings_Pane_Scroll_Lines : Natural := 0;
       Main_View_Scroll_Lines : Natural := 0;
       Root_Selector_Open    : Boolean := False;
       Root_Selected_Index   : Natural := 0;
@@ -165,7 +168,56 @@ package Files.Rendering is
       Command_Palette_Results        : Command_Result_Snapshot_Vectors.Vector;
       Items                          : Item_Snapshot_Vectors.Vector;
       Selected_Info                  : Info_Snapshot_Vectors.Vector;
+      Context_Menu_Open              : Boolean := False;
+      Context_Menu_X                 : Natural := 0;
+      Context_Menu_Y                 : Natural := 0;
+      Context_Menu_Target            : Files.Model.Context_Menu_Target :=
+        Files.Model.Context_Menu_None;
+      Context_Menu_Item_Index        : Natural := 0;
    end record;
+
+   Max_Context_Menu_Rows : constant := 6;
+   type Context_Menu_Command_Array is
+     array (1 .. Max_Context_Menu_Rows) of Files.Commands.Command_Id;
+
+   type Context_Menu_Layout is record
+      Visible    : Boolean := False;
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Row_Height : Natural := 0;
+      Padding    : Natural := 0;
+      Row_Count  : Natural := 0;
+      Commands   : Context_Menu_Command_Array :=
+        [others => Files.Commands.No_Command];
+   end record;
+
+   --  Calculate the context-menu popup rectangle and per-row geometry.
+   --
+   --  @param Snapshot Active view snapshot.
+   --  @param Width Window width in pixels.
+   --  @param Height Window height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Menu layout; Visible is false when no menu should be rendered.
+   function Calculate_Context_Menu_Layout
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive := 20)
+      return Context_Menu_Layout;
+
+   --  Return the row index at a window coordinate, or zero when outside.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param X Window X coordinate.
+   --  @param Y Window Y coordinate.
+   --  @return Row index between 1 and Row_Count, or 0 when outside the menu.
+   function Context_Menu_Row_At
+     (Menu : Context_Menu_Layout;
+      X    : Natural;
+      Y    : Natural)
+      return Natural;
 
    type Layout_Metrics is record
       Width             : Natural := 0;
@@ -470,6 +522,7 @@ package Files.Rendering is
       Color  : Render_Color := Text_Color;
       Truncated : Boolean := False;
       Scale_To_Box : Boolean := False;
+      Italic : Boolean := False;
    end record;
 
    package Text_Command_Vectors is new Ada.Containers.Vectors
@@ -534,6 +587,31 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Accessibility_Node);
 
+   type Settings_Hit_Kind is
+     (Settings_Hit_None,
+      Settings_Hit_Field,
+      Settings_Hit_Reset,
+      Settings_Hit_Add,
+      Settings_Hit_Remove,
+      Settings_Hit_Segment,
+      Settings_Hit_Toggle,
+      Settings_Hit_Stepper_Down,
+      Settings_Hit_Stepper_Up);
+
+   type Settings_Hit_Region is record
+      Kind   : Settings_Hit_Kind := Settings_Hit_None;
+      Field  : Natural := 0;
+      Option : Natural := 0;
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   package Settings_Hit_Region_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Settings_Hit_Region);
+
    type Frame_Commands is record
       Layout        : Layout_Metrics;
       Rectangles    : Rectangle_Command_Vectors.Vector;
@@ -544,7 +622,14 @@ package Files.Rendering is
       Overlay_Text       : Text_Command_Vectors.Vector;
       Tooltips      : Tooltip_Command_Vectors.Vector;
       Accessibility : Accessibility_Node_Vectors.Vector;
+      Settings_Hits : Settings_Hit_Region_Vectors.Vector;
    end record;
+
+   function Settings_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Settings_Hit_Region;
 
    type Text_Renderer is private;
 

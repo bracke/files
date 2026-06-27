@@ -99,7 +99,7 @@ package body Files.UI is
    is
       Toolbar_H : constant Natural := Saturating_Multiply (Line_Height, 2);
       Wanted_H  : constant Natural :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Input_Field_Padding, 2));
+        Saturating_Add (Line_Height, Input_Field_Padding);
    begin
       return Natural'Min (Toolbar_H, Wanted_H);
    end Toolbar_Input_Height;
@@ -152,7 +152,7 @@ package body Files.UI is
       Line_Height : Positive := 20)
       return Bottom_Bar_Layout
    is
-      Cell_W         : constant Natural := Natural'Max (1, Line_Height / 2);
+      Cell_W         : constant Natural := Natural'Max (1, Line_Height * 12 / 20);
       Button_Padding : constant Natural := Saturating_Multiply (Bottom_Bar_Padding, 3);
       Minimum_Button : constant Natural := Saturating_Multiply (Line_Height, 2);
       Small_Needed   : constant Natural :=
@@ -253,7 +253,7 @@ package body Files.UI is
       Line_Height : Positive := 20)
       return Settings_Entry_Button_Layout
    is
-      Cell_W         : constant Natural := Natural'Max (1, Line_Height / 2);
+      Cell_W         : constant Natural := Natural'Max (1, Line_Height * 12 / 20);
       Edge_Padding   : constant Natural := Settings_Pane_Padding;
       Button_Gap     : constant Natural := 4;
       Minimum_Button : constant Natural := 34;
@@ -346,15 +346,18 @@ package body Files.UI is
         Saturating_Add
           (Saturating_Multiply (Line_Height, 22),
            Saturating_Multiply (Settings_Row_Gap, 21));
-      Pane_H : constant Natural :=
+      Wanted_H : constant Natural :=
         Natural'Max
           (Saturating_Add (Content_H, Saturating_Multiply (Settings_Pane_Padding, 2)),
            Height / 3);
+      Top_Margin : constant Natural :=
+        Natural'Max (Saturating_Add (Toolbar_Height, 8), Height / 6);
+      Available_H : constant Natural :=
+        (if Height > Top_Margin then Height - Top_Margin else 0);
+      Pane_H : constant Natural := Natural'Min (Wanted_H, Available_H);
       Pane_X : constant Natural := (if Width > Pane_W then (Width - Pane_W) / 2 else 0);
       Pane_Y : constant Natural :=
-        (if Height > Pane_H
-         then Natural'Max (Saturating_Add (Toolbar_Height, 8), Height / 6)
-         else Toolbar_Height);
+        (if Available_H > 0 then Top_Margin else Toolbar_Height);
       Text_X : constant Natural := Saturating_Add (Pane_X, Settings_Pane_Padding);
       Text_Y : constant Natural := Saturating_Add (Pane_Y, Settings_Pane_Padding);
       Text_W : constant Natural :=

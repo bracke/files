@@ -171,7 +171,8 @@ package body Files.Operations is
 
    function Execute_Open_Action
      (Action      : Files.Settings.Open_Action;
-      Exit_Status : out Integer)
+      Exit_Status : out Integer;
+      Detach      : Boolean := False)
       return Boolean
    is
       Argument_Count : constant Natural := Natural (Action.Arguments.Length);
@@ -181,6 +182,37 @@ package body Files.Operations is
 
       if To_String (Action.Executable) = "" then
          return False;
+      end if;
+
+      --  Detached launches go through the shell with explicit backgrounding
+      --  and full stdin/stdout/stderr redirection so the desktop opener (e.g.
+      --  xdg-open) can fork its real handler without inheriting Files's GLFW /
+      --  Vulkan-related file descriptors or signal mask.
+      if Detach then
+         declare
+            Shell_Path   : constant String := Shell_Executable;
+            Shell_Option : constant String := Shell_Command_Option;
+            Cmd          : Unbounded_String;
+         begin
+            if Shell_Path = "" then
+               return False;
+            end if;
+
+            Append (Cmd, "(");
+            Append (Cmd, Shell_Quote (To_String (Action.Executable)));
+            for Argument of Action.Arguments loop
+               Append (Cmd, " ");
+               Append (Cmd, Shell_Quote (To_String (Argument)));
+            end loop;
+            Append (Cmd, " </dev/null >/dev/null 2>&1 &)");
+
+            Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
+            Args (1) := new String'(Shell_Option);
+            Args (2) := new String'(To_String (Cmd));
+            Exit_Status := GNAT.OS_Lib.Spawn (Shell_Path, Args.all);
+            GNAT.OS_Lib.Free (Args);
+            return Exit_Status = 0;
+         end;
       end if;
 
       if Action.Use_Shell then
@@ -641,8 +673,13 @@ package body Files.Operations is
                   Action : constant Files.Settings.Open_Action :=
                     Files.Settings.Expand_Placeholders (Lookup.Action, To_String (Item.Full_Path));
                   Exit_Status : Integer := 0;
+                  Spawn_OK    : constant Boolean :=
+                    Execute_Open_Action (Action, Exit_Status, Detach => True);
                begin
-                  if not Execute_Open_Action (Action, Exit_Status) then
+                  --  System-fallback handlers (xdg-open / open / cmd start)
+                  --  are launched detached: Spawn_OK reflects whether the
+                  --  fork+exec succeeded, not the handler's own exit code.
+                  if not Spawn_OK then
                      Files.Model.Set_Error (Model, "error.open_action.execution");
                      return
                        Make_Result
@@ -710,8 +747,15 @@ package body Files.Operations is
          else
             declare
                Exit_Status : Integer := 0;
+               Spawn_OK    : constant Boolean :=
+                 Execute_Open_Action
+                   (Prepared.Action, Exit_Status, Detach => True);
             begin
-               if Execute_Open_Action (Prepared.Action, Exit_Status) then
+               --  Open actions are always detached: the launched application
+               --  is fire-and-forget and inherits no Files-side FDs / signal
+               --  mask. Spawn_OK reflects whether the wrapper shell ran, not
+               --  the application's own exit code.
+               if Spawn_OK then
                   Files.Model.Set_Error (Model, "");
                   return
                     Make_Result

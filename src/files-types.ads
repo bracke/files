@@ -52,6 +52,7 @@ package Files.Types is
       Key_3,
       Key_4,
       Key_A,
+      Key_C,
       Key_D,
       Key_F,
       Key_L,
@@ -59,6 +60,8 @@ package Files.Types is
       Key_P,
       Key_R,
       Key_S,
+      Key_V,
+      Key_X,
       Key_Comma,
       Key_Backspace,
       Key_Delete,
@@ -72,7 +75,8 @@ package Files.Types is
       Key_Home,
       Key_End,
       Key_Page_Up,
-      Key_Page_Down);
+      Key_Page_Down,
+      Key_Space);
 
    type Focus_Target is
      (Focus_None,

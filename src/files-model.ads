@@ -683,6 +683,16 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Scroll the settings pane by logical text lines.
+   procedure Scroll_Settings_Pane
+     (Model : in out Window_Model;
+      Lines : Integer);
+
+   --  Return the current settings-pane scroll offset in logical text lines.
+   function Settings_Pane_Scroll_Lines
+     (Model : Window_Model)
+      return Natural;
+
    --  Scroll the main item view by logical text lines.
    --
    --  @param Model Model to update.
@@ -698,6 +708,18 @@ package Files.Model is
    function Main_View_Scroll_Lines
      (Model : Window_Model)
       return Natural;
+
+   --  Set the main-view scroll offset directly (clamped externally by the
+   --  renderer at draw time). Used by scrollbar drag-to-scroll.
+   procedure Set_Main_View_Scroll_Lines
+     (Model : in out Window_Model;
+      Lines : Natural);
+
+   --  Set the info-pane scroll offset directly (clamped externally by the
+   --  renderer at draw time). Used by scrollbar drag-to-scroll.
+   procedure Set_Info_Pane_Scroll_Lines
+     (Model : in out Window_Model;
+      Lines : Natural);
 
    --  Open the command palette.
    --
@@ -885,6 +907,98 @@ package Files.Model is
       Name  : String)
       return Boolean;
 
+   type Context_Menu_Target is
+     (Context_Menu_None,
+      Context_Menu_Item,
+      Context_Menu_Empty);
+
+   --  Open the right-click context menu at the given window position.
+   --
+   --  @param Model Model to update.
+   --  @param X Window-space X coordinate of the cursor.
+   --  @param Y Window-space Y coordinate of the cursor.
+   --  @param Target Whether the menu is anchored on an item or the empty grid.
+   --  @param Item_Index Visible item index when the menu is anchored on a row.
+   procedure Open_Context_Menu
+     (Model      : in out Window_Model;
+      X          : Natural;
+      Y          : Natural;
+      Target     : Context_Menu_Target;
+      Item_Index : Natural := 0);
+
+   --  Close the right-click context menu.
+   --
+   --  @param Model Model to update.
+   procedure Close_Context_Menu
+     (Model : in out Window_Model);
+
+   --  Return whether the context menu is open.
+   function Context_Menu_Is_Open
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return the anchor X coordinate.
+   function Context_Menu_X
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return the anchor Y coordinate.
+   function Context_Menu_Y
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return whether the menu was opened on an item or the empty area.
+   function Context_Menu_Target_Of
+     (Model : Window_Model)
+      return Context_Menu_Target;
+
+   --  Return the item index the menu was anchored to (0 when empty area).
+   function Context_Menu_Item_Index
+     (Model : Window_Model)
+      return Natural;
+
+   type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
+
+   --  Record a clipboard snapshot of source paths and a copy/cut mode.
+   --
+   --  @param Model Model to update.
+   --  @param Paths Filesystem paths to remember.
+   --  @param Mode  Copy or cut intent for the next paste.
+   procedure Set_Clipboard
+     (Model : in out Window_Model;
+      Paths : Files.Types.String_Vectors.Vector;
+      Mode  : Clipboard_Mode);
+
+   --  Clear any pending clipboard snapshot.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Clipboard
+     (Model : in out Window_Model);
+
+   --  Return the remembered clipboard source paths.
+   --
+   --  @param Model Model to inspect.
+   --  @return Filesystem paths captured on the last copy or cut.
+   function Clipboard_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
+   --  Return whether the clipboard intent is copy or cut.
+   --
+   --  @param Model Model to inspect.
+   --  @return Clipboard_None when no clipboard snapshot exists.
+   function Clipboard_Mode_Of
+     (Model : Window_Model)
+      return Clipboard_Mode;
+
+   --  Return whether the clipboard has at least one remembered path.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when paste can act.
+   function Clipboard_Has_Items
+     (Model : Window_Model)
+      return Boolean;
+
    --  Record a recoverable error key.
    --
    --  @param Model Model to update.
@@ -932,6 +1046,7 @@ private
       Settings_Field       : Natural := 1;
       Settings_Field_Cursor : Natural := 0;
       Info_Pane_Scroll     : Natural := 0;
+      Settings_Pane_Scroll : Natural := 0;
       Main_View_Scroll     : Natural := 0;
       Root_Selector_Open   : Boolean := False;
       Root_Entries         : Files.File_System.Root_Entry_Vectors.Vector;
@@ -949,5 +1064,12 @@ private
       Temporary_Name_Value : UString;
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
+      Clipboard_Paths_Value : Files.Types.String_Vectors.Vector;
+      Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
+      Context_Menu_Open_Value       : Boolean := False;
+      Context_Menu_X_Value          : Natural := 0;
+      Context_Menu_Y_Value          : Natural := 0;
+      Context_Menu_Target_Value     : Context_Menu_Target := Context_Menu_None;
+      Context_Menu_Item_Index_Value : Natural := 0;
    end record;
 end Files.Model;

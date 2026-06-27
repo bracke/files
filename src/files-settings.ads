@@ -42,6 +42,19 @@ package Files.Settings is
       Sort_Ascending         : Boolean := True;
       High_Contrast_Theme    : Boolean := False;
       Icon_Theme_Name        : UString;
+      Font_Pixel_Size        : Positive := 16;
+      --  Global UI state remembered across launches. Window_Width / Height
+      --  default to 0 meaning "use platform default". Info_Pane_Open mirrors
+      --  the runtime toggle so it persists between sessions.
+      Window_Width           : Natural := 0;
+      Window_Height          : Natural := 0;
+      Info_Pane_Open         : Boolean := False;
+      Bookmark_Paths         : String_Vectors.Vector;
+      --  When True (the default) and no per-filetype open action matches, fall
+      --  back to the host system's default opener (xdg-open on Linux, open on
+      --  macOS, cmd /c start on Windows). Set to False to force explicit
+      --  per-type configuration.
+      Use_System_Default_Opener : Boolean := True;
    end record;
 
    type Settings_Parse_Result is record
@@ -57,10 +70,11 @@ package Files.Settings is
    end record;
 
    type Action_Lookup_Result is record
-      Found     : Boolean := False;
-      Action    : Open_Action;
-      Token     : UString;
-      Error_Key : UString;
+      Found            : Boolean := False;
+      Action           : Open_Action;
+      Token            : UString;
+      Error_Key        : UString;
+      System_Fallback  : Boolean := False;
    end record;
 
    type Settings_Draft is record
@@ -70,6 +84,7 @@ package Files.Settings is
       Sort_Ascending         : UString;
       High_Contrast_Theme    : UString;
       Icon_Theme_Name        : UString;
+      Font_Pixel_Size        : UString;
       Filetype_Extension     : UString;
       Filetype_Value         : UString;
       Filetype_Keys          : String_Vectors.Vector;

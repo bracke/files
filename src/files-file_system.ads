@@ -202,7 +202,8 @@ package Files.File_System is
       Root_Mount,
       Root_User_Mount,
       Root_Network_Mount,
-      Root_Windows_Drive);
+      Root_Windows_Drive,
+      Root_Bookmark);
 
    type Root_Entry is record
       Path  : UString;

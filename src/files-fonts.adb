@@ -24,10 +24,10 @@ package body Files.Fonts is
    Max_Search_Depth : constant Natural := 4;
 
    Candidate_Paths : constant Font_Path_Array :=
-     [To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
+     [To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf"),
+      To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf"),

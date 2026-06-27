@@ -25,6 +25,9 @@ package Files.Commands is
       Delete_Selected_Items_Command,
       Delete_Selected_Permanently_Command,
       Rename_Selected_Items_Command,
+      Copy_Selected_Items_Command,
+      Cut_Selected_Items_Command,
+      Paste_Items_Command,
       Open_Selected_Items_Command,
       Generate_Thumbnails_Command,
       Focus_Filter_Input_Command,
@@ -38,10 +41,11 @@ package Files.Commands is
       Search_Recursive_Command,
       Refresh_Directory_Command,
       Save_Settings_Command,
-      Reset_Settings_Command);
+      Reset_Settings_Command,
+      Toggle_Bookmark_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Reset_Settings_Command;
+     Select_Small_Icons_Command .. Toggle_Bookmark_Command;
 
    type Command_Placement is
      (No_Placement,

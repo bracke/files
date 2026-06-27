@@ -1,3 +1,4 @@
+with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Unbounded;
 
 with Interfaces.C;
@@ -33,6 +34,7 @@ package body Files.Rendering.Vulkan is
      Max_Atlas_Bytes / (Icon_Atlas_Tile_Size * Icon_Atlas_Tile_Size * Icon_Atlas_Channels);
    Infinite_Timeout : constant Interfaces.Unsigned_64 := Interfaces.Unsigned_64'Last;
    Format_R8G8B8A8_Unorm : constant Vk.Format_T := Vk.Format_T (37);
+   Format_R8G8B8A8_Srgb  : constant Vk.Format_T := Vk.Format_T (43);
 
    function Saturating_Add
      (Left  : Natural;
@@ -437,6 +439,20 @@ package body Files.Rendering.Vulkan is
      (Color : Files.Rendering.Render_Color)
       return Gpu_Vertex
    is
+      function Pow (Base : Float; Exponent : Float) return Float is
+        (Ada.Numerics.Elementary_Functions.Exp
+           (Exponent * Ada.Numerics.Elementary_Functions.Log (Base)));
+
+      function To_Linear (S : Interfaces.C.C_float) return Interfaces.C.C_float is
+         F : constant Float := Float (S);
+      begin
+         if F <= 0.04045 then
+            return Interfaces.C.C_float (F / 12.92);
+         else
+            return Interfaces.C.C_float (Pow ((F + 0.055) / 1.055, 2.4));
+         end if;
+      end To_Linear;
+
       function Make
         (R : Interfaces.C.C_float;
          G : Interfaces.C.C_float;
@@ -449,9 +465,9 @@ package body Files.Rendering.Vulkan is
             Y        => 0.0,
             U        => 0.0,
             V        => 0.0,
-            R        => R,
-            G        => G,
-            B        => B,
+            R        => To_Linear (R),
+            G        => To_Linear (G),
+            B        => To_Linear (B),
             A        => A,
             Textured => 0.0,
             Texture  => 0.0);
@@ -461,9 +477,9 @@ package body Files.Rendering.Vulkan is
          when Files.Rendering.Canvas_Color =>
             return Make (0.08, 0.09, 0.10);
          when Files.Rendering.Toolbar_Color =>
-            return Make (0.14, 0.15, 0.16);
+            return Make (0.07, 0.08, 0.09);
          when Files.Rendering.Bottom_Bar_Color =>
-            return Make (0.12, 0.13, 0.14);
+            return Make (0.07, 0.08, 0.09);
          when Files.Rendering.Main_Color =>
             return Make (0.10, 0.11, 0.12);
          when Files.Rendering.Detail_Alternate_Color =>
@@ -1769,7 +1785,7 @@ package body Files.Rendering.Vulkan is
          elsif Use_Icon_Atlas then Atlas_Texture_R8
          else Atlas_Texture_None);
       Vulkan_Format   : constant Vk.Format_T :=
-        (if Upload_Format = Atlas_Texture_RGBA8 then Format_R8G8B8A8_Unorm else Vk.FORMAT_R8_UNORM);
+        (if Upload_Format = Atlas_Texture_RGBA8 then Format_R8G8B8A8_Srgb else Vk.FORMAT_R8_UNORM);
       Actual_Width : constant Natural :=
         (if Use_Batch_Atlas then Batch.Atlas_Width elsif Use_Icon_Atlas then Batch.Icon_Atlas_Width else 1);
       Actual_Height : constant Natural :=
@@ -2129,7 +2145,7 @@ package body Files.Rendering.Vulkan is
    is
       Upload_Format : constant Atlas_Texture_Format := Icon_Upload_Texture_Format (Batch);
       Vulkan_Format : constant Vk.Format_T :=
-        (if Upload_Format = Atlas_Texture_RGBA8 then Format_R8G8B8A8_Unorm else Vk.FORMAT_R8_UNORM);
+        (if Upload_Format = Atlas_Texture_RGBA8 then Format_R8G8B8A8_Srgb else Vk.FORMAT_R8_UNORM);
       Bytes : constant Natural := Batch.Icon_Atlas_Bytes;
       Needs_New_Texture : constant Boolean :=
         not Renderer.Icon_Atlas_Texture_Live
@@ -2872,7 +2888,7 @@ package body Files.Rendering.Vulkan is
       Formats      : Surface_Format_Array (1 .. Max_Surface_Formats);
       Surface_Result : Vk.Result_T;
       Chosen_Format : Vk.Surface_Format_KHR_T :=
-        (format => Vk.FORMAT_B8G8R8A8_UNORM, color_Space => Vk.COLOR_SPACE_SRGB_NONLINEAR_KHR);
+        (format => Vk.FORMAT_B8G8R8A8_SRGB, color_Space => Vk.COLOR_SPACE_SRGB_NONLINEAR_KHR);
       Image_Count : Interfaces.Unsigned_32;
       Extent      : Vk.Extent2_D_T;
       Images      : Image_Array (1 .. Max_Swapchain_Images);
@@ -2946,7 +2962,7 @@ package body Files.Rendering.Vulkan is
 
       Chosen_Format := Formats (1);
       for Index in 1 .. Natural (Format_Count) loop
-         if Formats (Index).format = Vk.FORMAT_B8G8R8A8_UNORM
+         if Formats (Index).format = Vk.FORMAT_B8G8R8A8_SRGB
            and then Formats (Index).color_Space = Vk.COLOR_SPACE_SRGB_NONLINEAR_KHR
          then
             Chosen_Format := Formats (Index);

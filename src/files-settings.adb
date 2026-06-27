@@ -1,7 +1,9 @@
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
+with GNAT.OS_Lib;
 
 with Files.UTF8;
 
@@ -17,6 +19,7 @@ package body Files.Settings is
       Filetypes_Section,
       Icons_Section,
       Open_Actions_Section,
+      Bookmarks_Section,
       Settings_Section_Name);
 
    procedure Safe_Close
@@ -763,6 +766,123 @@ package body Files.Settings is
       return To_String (Result);
    end Modifier_Token;
 
+   --  Build an Open_Action that defers to the host system's default opener.
+   --  Returns Found => False when no opener can be located, so callers can
+   --  still surface the original "missing open action" diagnostic.
+   --
+   --  On Linux/Unix the wrapper sidesteps xdg-open's DE-specific routing
+   --  (kde-open5 / kde-open6 fail on Qt6-only systems where qtpaths has been
+   --  superseded by qtpaths6) by doing the MIME → .desktop → launch dance
+   --  itself via xdg-mime + gio launch / gtk-launch, both of which are
+   --  Qt-independent. It falls back to xdg-open only when those aren't
+   --  available.
+   function System_Default_Opener_Action
+     (Filetype : String) return Action_Lookup_Result
+   is
+      Args : String_Vectors.Vector;
+
+      Smart_Open_Script : constant String :=
+        "mime=""$1""; file=""$2""; "
+        & "if [ -z ""$mime"" ] && command -v file >/dev/null 2>&1; then "
+        & "mime=$(file --brief --mime-type -- ""$file"" 2>/dev/null); "
+        & "fi; "
+        & "desktop=""""; "
+        & "if [ -n ""$mime"" ]; then "
+        & "desktop=$(xdg-mime query default ""$mime"" 2>/dev/null); "
+        & "fi; "
+        & "if [ -n ""$desktop"" ]; then "
+        & "for dir in ""$HOME/.local/share/applications"" /usr/local/share/applications /usr/share/applications; do "
+        & "if [ -r ""$dir/$desktop"" ]; then "
+        & "if command -v gio >/dev/null 2>&1; then "
+        & "exec gio launch ""$dir/$desktop"" ""$file""; "
+        & "fi; "
+        & "if command -v gtk-launch >/dev/null 2>&1; then "
+        & "exec gtk-launch ""${desktop%.desktop}"" ""$file""; "
+        & "fi; "
+        & "fi; "
+        & "done; "
+        & "fi; "
+        & "exec xdg-open ""$file""";
+
+      function Is_Windows return Boolean is
+      begin
+         --  COMSPEC alone is not reliable — some Linux users set it for Wine
+         --  compatibility. Cross-check with the platform's path separator,
+         --  which GNAT sets to '\' only on Windows hosts.
+         return GNAT.OS_Lib.Directory_Separator = '\'
+           and then Ada.Environment_Variables.Exists ("COMSPEC")
+           and then Ada.Environment_Variables.Value ("COMSPEC") /= "";
+      exception
+         when others =>
+            return False;
+      end Is_Windows;
+
+      function Is_Macos return Boolean is
+      begin
+         --  `open` on macOS is the canonical opener, but on most Linux
+         --  distributions /usr/bin/open exists too (from util-linux) and does
+         --  unrelated things. Use the presence of /System to identify a real
+         --  macOS host before preferring `open`.
+         return Ada.Directories.Exists ("/System")
+           and then Ada.Directories.Kind ("/System") = Ada.Directories.Directory;
+      exception
+         when others =>
+            return False;
+      end Is_Macos;
+
+      function Path_Find (Name : String) return Boolean is
+         use type GNAT.OS_Lib.String_Access;
+         Located : GNAT.OS_Lib.String_Access := GNAT.OS_Lib.Locate_Exec_On_Path (Name);
+         Found   : constant Boolean := Located /= null;
+      begin
+         if Located /= null then
+            GNAT.OS_Lib.Free (Located);
+         end if;
+         return Found;
+      end Path_Find;
+   begin
+      if Is_Windows then
+         Args.Append (To_Unbounded_String ("/c"));
+         Args.Append (To_Unbounded_String ("start"));
+         Args.Append (To_Unbounded_String (""));
+         Args.Append (To_Unbounded_String ("{path}"));
+         return
+           (Found            => True,
+            Action           => Make_Action
+              (Ada.Environment_Variables.Value ("COMSPEC"), Args),
+            Token            => To_Unbounded_String ("system.default"),
+            Error_Key        => Null_Unbounded_String,
+            System_Fallback  => True);
+      elsif Is_Macos and then Path_Find ("open") then
+         Args.Append (To_Unbounded_String ("{path}"));
+         return
+           (Found            => True,
+            Action           => Make_Action ("open", Args),
+            Token            => To_Unbounded_String ("system.default"),
+            Error_Key        => Null_Unbounded_String,
+            System_Fallback  => True);
+      elsif Path_Find ("xdg-open") or else Path_Find ("gio") then
+         Args.Append (To_Unbounded_String ("-c"));
+         Args.Append (To_Unbounded_String (Smart_Open_Script));
+         Args.Append (To_Unbounded_String ("--"));
+         Args.Append (To_Unbounded_String (Filetype));
+         Args.Append (To_Unbounded_String ("{path}"));
+         return
+           (Found            => True,
+            Action           => Make_Action ("/bin/sh", Args),
+            Token            => To_Unbounded_String ("system.default"),
+            Error_Key        => Null_Unbounded_String,
+            System_Fallback  => True);
+      end if;
+
+      return
+        (Found     => False,
+         Action    => Make_Action ("", String_Vectors.Empty_Vector),
+         Token     => Null_Unbounded_String,
+         Error_Key => To_Unbounded_String ("error.open_action.missing"),
+         System_Fallback => False);
+   end System_Default_Opener_Action;
+
    function Lookup_Open_Action
      (Settings  : Settings_Model;
       Filetype  : String;
@@ -773,11 +893,26 @@ package body Files.Settings is
       Full_Token : constant String := Base_Token & Modifier_Token (Modifiers);
    begin
       if Base_Token = "" then
+         --  Unknown filetype (extension not in the mapping table). Still try
+         --  the host opener — xdg-open will sniff content even without an
+         --  explicit MIME — when the user has not opted out.
+         if Settings.Use_System_Default_Opener then
+            declare
+               Fallback : constant Action_Lookup_Result :=
+                 System_Default_Opener_Action ("");
+            begin
+               if Fallback.Found then
+                  return Fallback;
+               end if;
+            end;
+         end if;
+
          return
            (Found     => False,
             Action    => Make_Action ("", String_Vectors.Empty_Vector),
             Token     => Null_Unbounded_String,
-            Error_Key => To_Unbounded_String ("error.open_action.missing"));
+            Error_Key => To_Unbounded_String ("error.open_action.missing"),
+            System_Fallback => False);
       end if;
 
       if Settings.Open_Actions.Contains (Full_Token) then
@@ -785,20 +920,36 @@ package body Files.Settings is
            (Found     => True,
             Action    => Settings.Open_Actions.Element (Full_Token),
             Token     => To_Unbounded_String (Full_Token),
-            Error_Key => Null_Unbounded_String);
+            Error_Key => Null_Unbounded_String,
+            System_Fallback => False);
       elsif Settings.Open_Actions.Contains (Base_Token) then
          return
            (Found     => True,
             Action    => Settings.Open_Actions.Element (Base_Token),
             Token     => To_Unbounded_String (Base_Token),
-            Error_Key => Null_Unbounded_String);
+            Error_Key => Null_Unbounded_String,
+            System_Fallback => False);
+      end if;
+
+      --  Per-filetype config didn't match; fall through to the host opener
+      --  when the user has not opted out via Use_System_Default_Opener.
+      if Settings.Use_System_Default_Opener then
+         declare
+            Fallback : constant Action_Lookup_Result :=
+              System_Default_Opener_Action (Base_Token);
+         begin
+            if Fallback.Found then
+               return Fallback;
+            end if;
+         end;
       end if;
 
       return
         (Found     => False,
          Action    => Make_Action ("", String_Vectors.Empty_Vector),
          Token     => To_Unbounded_String (Full_Token),
-         Error_Key => To_Unbounded_String ("error.open_action.missing"));
+         Error_Key => To_Unbounded_String ("error.open_action.missing"),
+         System_Fallback => False);
    end Lookup_Open_Action;
 
    function Parse
@@ -841,6 +992,8 @@ package body Files.Settings is
                      Section := Icons_Section;
                   elsif Name = "open-actions" then
                      Section := Open_Actions_Section;
+                  elsif Name = "bookmarks" then
+                     Section := Bookmarks_Section;
                   elsif Name = "settings" then
                      Section := Settings_Section_Name;
                   else
@@ -917,6 +1070,10 @@ package body Files.Settings is
                            end if;
                            Add_Open_Action (Settings, Key, Action);
                         end;
+                     when Bookmarks_Section =>
+                        if Key /= "" then
+                           Settings.Bookmark_Paths.Append (To_Unbounded_String (Key));
+                        end if;
                      when Settings_Section_Name =>
                         if Setting_Key = "default_view_mode" then
                            declare
@@ -1007,6 +1164,63 @@ package body Files.Settings is
                                 (Success   => False,
                                  Settings  => Settings,
                                  Error_Key => To_Unbounded_String ("error.settings.invalid_icon_theme"));
+                           end if;
+                        elsif Setting_Key = "font_pixel_size" then
+                           declare
+                              N : Integer;
+                           begin
+                              N := Integer'Value (Value);
+                              if N < 10 or else N > 32 then
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key =>
+                                      To_Unbounded_String ("error.settings.invalid_font_pixel_size"));
+                              end if;
+                              Settings.Font_Pixel_Size := Positive (N);
+                           exception
+                              when Constraint_Error =>
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key =>
+                                      To_Unbounded_String ("error.settings.invalid_font_pixel_size"));
+                           end;
+                        elsif Setting_Key = "window_width" then
+                           begin
+                              Settings.Window_Width := Natural'Value (Value);
+                           exception
+                              when Constraint_Error =>
+                                 Settings.Window_Width := 0;
+                           end;
+                        elsif Setting_Key = "window_height" then
+                           begin
+                              Settings.Window_Height := Natural'Value (Value);
+                           exception
+                              when Constraint_Error =>
+                                 Settings.Window_Height := 0;
+                           end;
+                        elsif Setting_Key = "info_pane_open" then
+                           if Value = "true" then
+                              Settings.Info_Pane_Open := True;
+                           elsif Value = "false" then
+                              Settings.Info_Pane_Open := False;
+                           else
+                              return
+                                (Success   => False,
+                                 Settings  => Settings,
+                                 Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                           end if;
+                        elsif Setting_Key = "use_system_default_opener" then
+                           if Value = "true" then
+                              Settings.Use_System_Default_Opener := True;
+                           elsif Value = "false" then
+                              Settings.Use_System_Default_Opener := False;
+                           else
+                              return
+                                (Success   => False,
+                                 Settings  => Settings,
+                                 Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                            end if;
                         else
                            return
@@ -1192,6 +1406,15 @@ package body Files.Settings is
       Append_Line ("sort_ascending = " & Boolean_Name (Settings.Sort_Ascending));
       Append_Line ("high_contrast_theme = " & Boolean_Name (Settings.High_Contrast_Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Settings.Icon_Theme_Name)));
+      Append_Line ("font_pixel_size = " & Trim (Positive'Image (Settings.Font_Pixel_Size)));
+      Append_Line ("info_pane_open = " & Boolean_Name (Settings.Info_Pane_Open));
+      Append_Line ("use_system_default_opener = " & Boolean_Name (Settings.Use_System_Default_Opener));
+      if Settings.Window_Width > 0 then
+         Append_Line ("window_width = " & Trim (Natural'Image (Settings.Window_Width)));
+      end if;
+      if Settings.Window_Height > 0 then
+         Append_Line ("window_height = " & Trim (Natural'Image (Settings.Window_Height)));
+      end if;
       Append_Line;
 
       Append_Line ("[filetypes]");
@@ -1229,6 +1452,14 @@ package body Files.Settings is
       for Key of Keys loop
          Append_Line (To_String (Key) & " = " & Action_Text (Settings.Open_Actions.Element (To_String (Key))));
       end loop;
+
+      if not Settings.Bookmark_Paths.Is_Empty then
+         Append_Line;
+         Append_Line ("[bookmarks]");
+         for Path of Settings.Bookmark_Paths loop
+            Append_Line (To_String (Path) & " =");
+         end loop;
+      end if;
 
       return To_String (Result);
    end To_Text;
@@ -1308,6 +1539,7 @@ package body Files.Settings is
          Sort_Ascending         => To_Unbounded_String (Boolean_Name (Settings.Sort_Ascending)),
          High_Contrast_Theme    => To_Unbounded_String (Boolean_Name (Settings.High_Contrast_Theme)),
          Icon_Theme_Name        => Settings.Icon_Theme_Name,
+         Font_Pixel_Size        => To_Unbounded_String (Trim (Positive'Image (Settings.Font_Pixel_Size))),
          Filetype_Extension     => Extension,
          Filetype_Value         => Filetype,
          Filetype_Keys          => Filetype_Keys,
@@ -1526,6 +1758,7 @@ package body Files.Settings is
       Append_Line ("sort_ascending = " & To_String (Draft.Sort_Ascending));
       Append_Line ("high_contrast_theme = " & To_String (Draft.High_Contrast_Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Draft.Icon_Theme_Name)));
+      Append_Line ("font_pixel_size = " & To_String (Draft.Font_Pixel_Size));
 
       if not Filetype_Keys.Is_Empty then
          Append_Line ("[filetypes]");
@@ -1745,6 +1978,12 @@ package body Files.Settings is
       Result.Sort_Ascending := Parsed.Settings.Sort_Ascending;
       Result.High_Contrast_Theme := Parsed.Settings.High_Contrast_Theme;
       Result.Icon_Theme_Name := Parsed.Settings.Icon_Theme_Name;
+      Result.Font_Pixel_Size := Parsed.Settings.Font_Pixel_Size;
+      Result.Window_Width := Settings.Window_Width;
+      Result.Window_Height := Settings.Window_Height;
+      Result.Info_Pane_Open := Settings.Info_Pane_Open;
+      Result.Bookmark_Paths := Settings.Bookmark_Paths;
+      Result.Use_System_Default_Opener := Settings.Use_System_Default_Opener;
       Upsert
         (Filetype_Keys,
          Filetype_Values,

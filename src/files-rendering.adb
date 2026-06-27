@@ -17,6 +17,9 @@ with Files.UTF8;
 with Files.UI;
 
 package body Files.Rendering is
+
+   The_Renderer : Textrender.Renderer;
+
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Files.Commands.Registered_Command_Id;
@@ -31,12 +34,14 @@ package body Files.Rendering is
    Main_Content_Padding : constant Natural := 8;
    Main_Grid_Gap : constant Natural := 8;
    Item_Content_Padding : constant Natural := 4;
+   Item_Icon_Text_Gap : constant Natural := 12;
    Details_Row_Padding : constant Natural := 4;
-   Details_Row_Gap : constant Natural := 4;
+   Details_Row_Gap : constant Natural := 0;
    Details_Column_Padding : constant Natural := 6;
    Command_Palette_Padding : constant Natural := 8;
    Command_Result_Row_Padding : constant Natural := 4;
    Command_Palette_Scrollbar_Gap : constant Natural := 8;
+   Scrollbar_Width : constant Natural := 12;
    Root_Selector_Padding : constant Natural := 8;
 
    function Date_Bundle return Util.Properties.Manager is
@@ -886,7 +891,7 @@ package body Files.Rendering is
       case Mode is
          when Files.Types.Small_Icons =>
             return
-              (Width     => 180,
+              (Width     => 216,
                Height    => Saturating_Add (Line_Height, Saturating_Multiply (Item_Content_Padding, 2)),
                Icon_Size => Line_Height,
                Large     => False);
@@ -1437,6 +1442,8 @@ package body Files.Rendering is
       Snapshot.Settings_High_Contrast := To_Unbounded_String (Boolean_Text (Settings.High_Contrast_Theme));
       Snapshot.Settings_High_Contrast_Token := To_Unbounded_String (Boolean_Token (Settings.High_Contrast_Theme));
       Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
+      Snapshot.Settings_Font_Pixel_Size :=
+        To_Unbounded_String (Natural_Text (Settings.Font_Pixel_Size));
       Snapshot.Settings_Filetypes :=
         To_Unbounded_String (Natural_Text (Natural (Settings.Extension_Filetypes.Length)));
       Snapshot.Settings_Icons :=
@@ -1464,6 +1471,7 @@ package body Files.Rendering is
                Snapshot.Settings_High_Contrast_Token :=
                  To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.High_Contrast_Theme)));
                Snapshot.Settings_Icon_Theme := Draft.Icon_Theme_Name;
+               Snapshot.Settings_Font_Pixel_Size := Draft.Font_Pixel_Size;
                Snapshot.Settings_Filetype_Extension := Draft.Filetype_Extension;
                Snapshot.Settings_Filetype_Value := Draft.Filetype_Value;
                Snapshot.Settings_Icon_Filetype := Draft.Icon_Filetype;
@@ -1507,30 +1515,34 @@ package body Files.Rendering is
               To_Unbounded_String (Files.Localization.Text ("settings.options.icon_theme"));
          when 7 =>
             Snapshot.Settings_Field_Help :=
-              To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_extension"));
-            Snapshot.Settings_Control_Options :=
-              To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
+              To_Unbounded_String (Files.Localization.Text ("settings.help.font_pixel_size"));
+            Snapshot.Settings_Control_Options := Null_Unbounded_String;
          when 8 =>
             Snapshot.Settings_Field_Help :=
-              To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_value"));
+              To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_extension"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
          when 9 =>
             Snapshot.Settings_Field_Help :=
-              To_Unbounded_String (Files.Localization.Text ("settings.help.icon_filetype"));
+              To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_value"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
          when 10 =>
             Snapshot.Settings_Field_Help :=
-              To_Unbounded_String (Files.Localization.Text ("settings.help.icon_value"));
+              To_Unbounded_String (Files.Localization.Text ("settings.help.icon_filetype"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
          when 11 =>
             Snapshot.Settings_Field_Help :=
-              To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_token"));
+              To_Unbounded_String (Files.Localization.Text ("settings.help.icon_value"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
          when 12 =>
+            Snapshot.Settings_Field_Help :=
+              To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_token"));
+            Snapshot.Settings_Control_Options :=
+              To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
+         when 13 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_command"));
             Snapshot.Settings_Control_Options :=
@@ -1540,7 +1552,13 @@ package body Files.Rendering is
             Snapshot.Settings_Control_Options := Null_Unbounded_String;
       end case;
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
+      Snapshot.Settings_Pane_Scroll_Lines := Files.Model.Settings_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
+      Snapshot.Context_Menu_Open := Files.Model.Context_Menu_Is_Open (Model);
+      Snapshot.Context_Menu_X := Files.Model.Context_Menu_X (Model);
+      Snapshot.Context_Menu_Y := Files.Model.Context_Menu_Y (Model);
+      Snapshot.Context_Menu_Target := Files.Model.Context_Menu_Target_Of (Model);
+      Snapshot.Context_Menu_Item_Index := Files.Model.Context_Menu_Item_Index (Model);
       Snapshot.Settings_Can_Save := Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model);
       Snapshot.Settings_Can_Reset := Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model);
       Snapshot.Theme_Name := Theme.Name;
@@ -1612,36 +1630,60 @@ package body Files.Rendering is
          end;
       end if;
 
-      for Index in 1 .. Files.Model.Visible_Count (Model) loop
-         declare
-            Item : constant Files.File_System.Directory_Item := Files.Model.Visible_Item (Model, Index);
+      declare
+         use type Files.Model.Clipboard_Mode;
+         Cut_Active : constant Boolean :=
+           Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut;
+         Cut_Paths  : constant Files.Types.String_Vectors.Vector :=
+           (if Cut_Active then Files.Model.Clipboard_Paths (Model)
+            else Files.Types.String_Vectors.Empty_Vector);
+
+         function Is_Cut_Pending (Full_Path : Ada.Strings.Unbounded.Unbounded_String)
+           return Boolean is
          begin
-            Snapshot.Items.Append
-              (Item_Snapshot'
-                 (Name               => Item.Name,
-                  Filetype           => Item.Filetype,
-                  Filetype_Detail    => Filetype_Detail (Item),
-                  Icon_Id            => Item.Icon_Id,
-                  Kind               => Item.Kind,
-                  Size_Available     => Item.Size_Available,
-                  Size               => Item.Size,
-                  Creation_Available => Item.Creation_Available,
-                  Creation_Time      => Item.Creation_Time,
-                  Modified_Available => Item.Modified_Available,
-                  Modified_Time      => Item.Modified_Time,
-                  Permissions        => Item.Permissions,
-                  Filetype_Extra     => Filetype_Extra (Item),
-                  Thumbnail_Available => Item.Thumbnail_Available,
-                  Thumbnail_Path      => Item.Thumbnail_Path,
-                  Thumbnail_Width     => Item.Thumbnail_Width,
-                  Thumbnail_Height    => Item.Thumbnail_Height,
-                  Thumbnail_Pixels    => Item.Thumbnail_Pixels,
-                  Metadata_Error     => Item.Metadata_Error,
-                  Error_Key          => Item.Error_Key,
-                  Selected           => Files.Model.Is_Selected (Model, Index),
-                  Visible_Index      => Index));
-         end;
-      end loop;
+            if not Cut_Active then
+               return False;
+            end if;
+            for Path of Cut_Paths loop
+               if Path = Full_Path then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         end Is_Cut_Pending;
+      begin
+         for Index in 1 .. Files.Model.Visible_Count (Model) loop
+            declare
+               Item : constant Files.File_System.Directory_Item := Files.Model.Visible_Item (Model, Index);
+            begin
+               Snapshot.Items.Append
+                 (Item_Snapshot'
+                    (Name               => Item.Name,
+                     Filetype           => Item.Filetype,
+                     Filetype_Detail    => Filetype_Detail (Item),
+                     Icon_Id            => Item.Icon_Id,
+                     Kind               => Item.Kind,
+                     Size_Available     => Item.Size_Available,
+                     Size               => Item.Size,
+                     Creation_Available => Item.Creation_Available,
+                     Creation_Time      => Item.Creation_Time,
+                     Modified_Available => Item.Modified_Available,
+                     Modified_Time      => Item.Modified_Time,
+                     Permissions        => Item.Permissions,
+                     Filetype_Extra     => Filetype_Extra (Item),
+                     Thumbnail_Available => Item.Thumbnail_Available,
+                     Thumbnail_Path      => Item.Thumbnail_Path,
+                     Thumbnail_Width     => Item.Thumbnail_Width,
+                     Thumbnail_Height    => Item.Thumbnail_Height,
+                     Thumbnail_Pixels    => Item.Thumbnail_Pixels,
+                     Metadata_Error     => Item.Metadata_Error,
+                     Error_Key          => Item.Error_Key,
+                     Selected           => Files.Model.Is_Selected (Model, Index),
+                     Visible_Index      => Index,
+                     Cut_Pending        => Is_Cut_Pending (Item.Full_Path)));
+            end;
+         end loop;
+      end;
 
       declare
          function Name_Less (Left : Item_Snapshot; Right : Item_Snapshot) return Boolean is
@@ -1897,14 +1939,14 @@ package body Files.Rendering is
             else Cell_Height);
          Padded_Icon : constant Natural := Natural'Min (Draw_Icon, Natural'Min (Inner_W, Inner_H));
          Used_X      : constant Natural :=
-           (if Large then 0 else Natural'Min (Inner_W, Saturating_Add (Padded_Icon, Item_Content_Padding)));
+           (if Large then 0 else Natural'Min (Inner_W, Saturating_Add (Padded_Icon, Item_Icon_Text_Gap)));
          Icon_X      : constant Natural :=
            (if Large then Saturating_Add (Inner_X, (if Inner_W > Padded_Icon then (Inner_W - Padded_Icon) / 2 else 0))
             else Inner_X);
          Icon_Y      : constant Natural := Inner_Y;
          Name_Units  : constant Natural :=
            Files.UTF8.Display_Units (To_String (Snapshot.Items.Element (Index).Name));
-         Name_Pixels : constant Natural := Saturating_Multiply (Name_Units, Line_Height / 2);
+         Name_Pixels : constant Natural := Saturating_Multiply (Name_Units, Line_Height * 12 / 20);
          Large_Text_W : constant Natural := Natural'Min (Inner_W, Name_Pixels);
          Text_X      : constant Natural :=
            (if Large
@@ -1992,7 +2034,7 @@ package body Files.Rendering is
                   Metadata_W : constant Natural := Saturating_Subtract (Available, Reserved_Name_W);
                   Type_W     : constant Natural := Natural'Min (180, Metadata_W / 4);
                   Size_W     : constant Natural := Natural'Min (120, Metadata_W / 7);
-                  Modified_W : constant Natural := Natural'Min (220, Metadata_W / 3);
+                  Modified_W : constant Natural := Natural'Min (264, Metadata_W / 3);
                   Used_W     : constant Natural :=
                     Saturating_Add (Type_W, Saturating_Add (Size_W, Modified_W));
                   Name_W     : constant Natural := Saturating_Subtract (Available, Used_W);
@@ -2009,10 +2051,12 @@ package body Files.Rendering is
                         Width          => Content_W,
                         Height         => Row_Draw_H,
                         Icon_X         => Row_Inner_X,
-                        Icon_Y         => Saturating_Add (Row_Y, Row_Pad),
+                        Icon_Y         =>
+                          Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
                         Icon_Size      => Natural'Min (Line_Height, Inner_H),
                         Text_X         => Saturating_Add (Row_Content_X, Text_Pad),
-                        Text_Y         => Saturating_Add (Row_Y, Row_Pad),
+                        Text_Y         =>
+                          Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
                         Text_Width     => Saturating_Subtract (Name_W, Text_Pad),
                         Name_X         => Saturating_Add (Row_Content_X, Text_Pad),
                         Name_Width     => Saturating_Subtract (Name_W, Text_Pad),
@@ -2079,9 +2123,21 @@ package body Files.Rendering is
       Max_Scroll   : constant Natural :=
         (if Content_Total_H > View_H then Content_Total_H - View_H else 0);
       Requested_Px : constant Natural := Saturating_Multiply (Snapshot.Main_View_Scroll_Lines, Line_Height);
-      Scroll_Px    : constant Natural := Natural'Min (Requested_Px, Max_Scroll);
+      Bounded_Px   : constant Natural := Natural'Min (Requested_Px, Max_Scroll);
+      --  Snap the scroll offset to whole row periods so partially-scrolled
+      --  rows at the top don't leave a visible empty band. Icons modes lay
+      --  out rows on Cell_H + Main_Grid_Gap centers; Details has no row gap
+      --  so the period is just Cell_H.
+      Row_Stride   : constant Natural :=
+        (if Snapshot.View_Mode = Files.Types.Details
+         then Cell_H
+         else Saturating_Add (Cell_H, Main_Grid_Gap));
+      Scroll_Px    : constant Natural :=
+        (if Row_Stride > 0
+         then (Bounded_Px / Row_Stride) * Row_Stride
+         else Bounded_Px);
       Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
-      Bar_W        : constant Natural := Natural'Min (6, Layout.Main_Width);
+      Bar_W        : constant Natural := Natural'Min (Scrollbar_Width, Layout.Main_Width);
       Visible      : constant Boolean :=
         View_H > 0
         and then Bar_W > 0
@@ -2117,6 +2173,115 @@ package body Files.Rendering is
          Scrollbar_Height  => Thumb_H,
          Scrollbar_Track_Height => (if Visible then View_H else 0));
    end Calculate_Main_View_Layout;
+
+   function Settings_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Settings_Hit_Region is
+   begin
+      --  Iterate in reverse so that the most-recently appended (i.e. the most
+      --  specific inline) region takes precedence over the catch-all field
+      --  row that wraps the entire row above it.
+      for Index in reverse 1 .. Natural (Frame.Settings_Hits.Length) loop
+         declare
+            Region : constant Settings_Hit_Region :=
+              Frame.Settings_Hits.Element (Positive (Index));
+         begin
+            if Region.Width > 0
+              and then Region.Height > 0
+              and then X >= Region.X
+              and then X < Region.X + Region.Width
+              and then Y >= Region.Y
+              and then Y < Region.Y + Region.Height
+            then
+               return Region;
+            end if;
+         end;
+      end loop;
+
+      return (others => <>);
+   end Settings_Hit_At;
+
+   function Calculate_Context_Menu_Layout
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Height      : Natural;
+      Line_Height : Positive := 20)
+      return Context_Menu_Layout
+   is
+      Result : Context_Menu_Layout;
+   begin
+      if not Snapshot.Context_Menu_Open then
+         return Result;
+      end if;
+
+      case Snapshot.Context_Menu_Target is
+         when Files.Model.Context_Menu_Item =>
+            Result.Commands (1) := Files.Commands.Open_Selected_Items_Command;
+            Result.Commands (2) := Files.Commands.Copy_Selected_Items_Command;
+            Result.Commands (3) := Files.Commands.Cut_Selected_Items_Command;
+            Result.Commands (4) := Files.Commands.Rename_Selected_Items_Command;
+            Result.Commands (5) := Files.Commands.Delete_Selected_Items_Command;
+            Result.Row_Count := 5;
+         when Files.Model.Context_Menu_Empty =>
+            Result.Commands (1) := Files.Commands.Create_File_Command;
+            Result.Commands (2) := Files.Commands.Paste_Items_Command;
+            Result.Commands (3) := Files.Commands.Refresh_Directory_Command;
+            Result.Row_Count := 3;
+         when Files.Model.Context_Menu_None =>
+            return Result;
+      end case;
+
+      Result.Padding := 4;
+      Result.Row_Height :=
+        Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
+      Result.Width := Natural'Max (Saturating_Multiply (Line_Height, 9), 180);
+      Result.Height :=
+        Saturating_Add
+          (Saturating_Multiply (Result.Row_Count, Result.Row_Height),
+           Saturating_Multiply (Result.Padding, 2));
+
+      --  Anchor to the cursor but keep the menu fully on-screen.
+      Result.X :=
+        (if Snapshot.Context_Menu_X + Result.Width > Width
+         then (if Width > Result.Width then Width - Result.Width else 0)
+         else Snapshot.Context_Menu_X);
+      Result.Y :=
+        (if Snapshot.Context_Menu_Y + Result.Height > Height
+         then (if Height > Result.Height then Height - Result.Height else 0)
+         else Snapshot.Context_Menu_Y);
+      Result.Visible := Result.Width > 0 and then Result.Height > 0;
+
+      return Result;
+   end Calculate_Context_Menu_Layout;
+
+   function Context_Menu_Row_At
+     (Menu : Context_Menu_Layout;
+      X    : Natural;
+      Y    : Natural)
+      return Natural is
+   begin
+      if not Menu.Visible
+        or else X < Menu.X
+        or else X >= Menu.X + Menu.Width
+        or else Y < Menu.Y + Menu.Padding
+        or else Menu.Row_Height = 0
+      then
+         return 0;
+      end if;
+
+      declare
+         Rel_Y : constant Natural := Y - (Menu.Y + Menu.Padding);
+         Row   : constant Natural := Rel_Y / Menu.Row_Height;
+      begin
+         if Row >= Menu.Row_Count then
+            return 0;
+         else
+            return Row + 1;
+         end if;
+      end;
+   end Context_Menu_Row_At;
 
    function Item_At
      (Items : Item_Layout_Vectors.Vector;
@@ -2524,7 +2689,7 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Natural
    is
-      Cell_W   : constant Positive := Positive'Max (1, Line_Height / 2);
+      Cell_W   : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
       Capacity : constant Natural := Text_W / Cell_W;
       Raw      : constant String := To_String (Text);
 
@@ -2615,7 +2780,7 @@ package body Files.Rendering is
                 (Rows,
                  Info_Section_Row_Count
                    (Info,
-                    Info_Text_Width (Layout, Scrollbar_W => Natural'Min (6, Layout.Info_Pane_Width)),
+                    Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width)),
                     Line_Height));
          end loop;
 
@@ -2623,7 +2788,7 @@ package body Files.Rendering is
       end Total_Info_Rows;
 
       Pane_X        : constant Natural := Layout.Main_Width;
-      Bar_W         : constant Natural := Natural'Min (6, Layout.Info_Pane_Width);
+      Bar_W         : constant Natural := Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width);
       Text_W        : constant Natural := Info_Text_Width (Layout, Bar_W);
       Content_Rows  : constant Natural := Total_Info_Rows;
       Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
@@ -2707,14 +2872,24 @@ package body Files.Rendering is
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
       Toolbar_Input_Y : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
+      --  Visible glyph content sits in the lower half of the Line_Height cell
+      --  (see Sel_Y_Offset elsewhere). Pull the text origin up by Line_Height/12
+      --  so the rendered glyph centers in the field instead of biasing low.
+      Toolbar_Glyph_Bias : constant Natural := Line_Height / 12;
       Toolbar_Input_Text_Y : constant Natural :=
-        (if Toolbar_Input_H > 2 * Files.UI.Input_Field_Padding
-         then Saturating_Add (Toolbar_Input_Y, Files.UI.Input_Field_Padding)
+        (if Toolbar_Input_H > Line_Height
+         then
+            (declare
+                Centered : constant Natural :=
+                  Saturating_Add
+                    (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2);
+             begin
+                (if Centered > Toolbar_Glyph_Bias
+                 then Centered - Toolbar_Glyph_Bias
+                 else 0))
          else Toolbar_Input_Y);
       Toolbar_Input_Text_H : constant Natural :=
-        (if Toolbar_Input_H > 2 * Files.UI.Input_Field_Padding
-         then Natural'Min (Line_Height, Toolbar_Input_H - 2 * Files.UI.Input_Field_Padding)
-         else Toolbar_Input_H);
+        Natural'Min (Line_Height, Toolbar_Input_H);
       Palette_Rows  : constant Command_Result_Layout_Vectors.Vector :=
         Calculate_Command_Result_Layout (Snapshot, Palette);
       Root_Selector : constant Root_Selector_Layout :=
@@ -2726,7 +2901,10 @@ package body Files.Rendering is
         Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Bottom_Y      : constant Natural :=
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
-      Bottom_Content_Y : constant Natural := Saturating_Add (Bottom_Y, Files.UI.Bottom_Bar_Padding);
+      Bottom_Content_Y : constant Natural :=
+        Saturating_Add
+          (Bottom_Y,
+           (if Files.UI.Bottom_Bar_Padding >= 2 then Files.UI.Bottom_Bar_Padding - 2 else 0));
       Bottom_Content_H : constant Natural :=
         (if Layout.Bottom_Bar_Height > Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
          then Layout.Bottom_Bar_Height - Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
@@ -2790,6 +2968,27 @@ package body Files.Rendering is
               Settings_Pane.Width,
               Settings_Pane.Height);
       end Hidden_By_Settings_Pane;
+
+      function Hidden_By_Command_Palette
+        (X      : Natural;
+         Y      : Natural;
+         Item_W : Natural;
+         Item_H : Natural)
+         return Boolean
+      is
+      begin
+         return Snapshot.Command_Palette_Open
+           and then not Drawing_Command_Palette
+           and then Intersects
+             (X,
+              Y,
+              Item_W,
+              Item_H,
+              Palette.X,
+              Palette.Y,
+              Palette.Width,
+              Palette.Height);
+      end Hidden_By_Command_Palette;
 
       procedure Add_Rect
         (X      : Natural;
@@ -2873,12 +3072,18 @@ package body Files.Rendering is
             return To_Unbounded_String (Files.UTF8.Prefix_By_Units (Raw, Capacity));
          else
             declare
-               Prefix : constant String := Files.UTF8.Prefix_By_Units (Raw, Capacity - 1);
+               Prefix  : constant String := Files.UTF8.Prefix_By_Units (Raw, Capacity - 1);
+               Trimmed : constant String :=
+                 (if Prefix'Length > 0
+                    and then (Prefix (Prefix'Last) = '.'
+                              or else Prefix (Prefix'Last) = ' ')
+                  then Prefix (Prefix'First .. Prefix'Last - 1)
+                  else Prefix);
             begin
-               if Prefix = "" then
+               if Trimmed = "" then
                   return To_Unbounded_String (Files.UTF8.Prefix_By_Units (Raw, Capacity));
                else
-                  return To_Unbounded_String (Prefix & Ellipsis_Text);
+                  return To_Unbounded_String (Trimmed & Ellipsis_Text);
                end if;
             end;
          end if;
@@ -2892,11 +3097,12 @@ package body Files.Rendering is
          Text   : UString;
          Color  : Render_Color := Text_Color;
          Fit    : Boolean := False;
-         Scale_To_Box : Boolean := False)
+         Scale_To_Box : Boolean := False;
+         Italic : Boolean := False)
       is
          Draw_W   : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
          Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
-         Cell_W   : constant Positive := Positive'Max (1, Line_Height / 2);
+         Cell_W   : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
@@ -2904,18 +3110,7 @@ package body Files.Rendering is
       begin
          if Hidden_By_Settings_Pane (X, Y, Draw_W, Draw_H) then
             return;
-         elsif Snapshot.Command_Palette_Open
-           and then not Drawing_Command_Palette
-           and then Intersects
-             (X,
-              Y,
-              Draw_W,
-              Draw_H,
-              Palette.X,
-              Palette.Y,
-              Palette.Width,
-              Palette.Height)
-         then
+         elsif Hidden_By_Command_Palette (X, Y, Draw_W, Draw_H) then
             return;
          end if;
 
@@ -2929,7 +3124,8 @@ package body Files.Rendering is
                   Text   => Fitted,
                   Color  => Color,
                   Truncated => Was_Truncated,
-                  Scale_To_Box => Scale_To_Box));
+                  Scale_To_Box => Scale_To_Box,
+                  Italic => Italic));
          end if;
       end Add_Text;
 
@@ -2944,7 +3140,7 @@ package body Files.Rendering is
       is
          Draw_W : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
          Draw_H : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
-         Cell_W   : constant Positive := Positive'Max (1, Line_Height / 2);
+         Cell_W   : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
          Capacity : constant Natural := Draw_W / Cell_W;
          Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
@@ -2960,7 +3156,8 @@ package body Files.Rendering is
                   Text      => Fitted,
                   Color     => Color,
                   Truncated => Was_Truncated,
-                  Scale_To_Box => False));
+                  Scale_To_Box => False,
+                  Italic    => False));
          end if;
       end Add_Overlay_Text;
 
@@ -3256,7 +3453,7 @@ package body Files.Rendering is
          Text        : constant UString := Tooltip_At (Hover_X, Hover_Y);
          Text_Raw    : constant String := To_String (Text);
          Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);
-         Cell_W      : constant Natural := Natural'Max (1, Line_Height / 2);
+         Cell_W      : constant Natural := Natural'Max (1, Line_Height * 12 / 20);
          Max_Tip_W   : constant Natural :=
            (if Width > 2 * Margin then Width - 2 * Margin else Width);
          Raw_Text_W  : constant Natural := Saturating_Multiply (Text_Len, Cell_W);
@@ -3484,7 +3681,7 @@ package body Files.Rendering is
          Field_H : Natural;
          Text    : UString)
       is
-         Char_W : constant Positive := Positive'Max (1, Line_Height / 2);
+         Char_W : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
          Raw    : constant String := To_String (Text);
          Raw_X  : constant Natural :=
            Saturating_Add
@@ -3515,7 +3712,7 @@ package body Files.Rendering is
       procedure Add_Palette_Scrollbar is
          Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
          Visible_Rows : constant Natural := Complete_Visible_Row_Count (Palette.Results_Height, Palette.Row_Height);
-         Bar_W       : constant Natural := Natural'Min (6, Palette.Results_Width);
+         Bar_W       : constant Natural := Natural'Min (Scrollbar_Width, Palette.Results_Width);
          Track_H     : constant Natural := Palette.Results_Height;
          Thumb_H     : Natural := 0;
          Thumb_Y     : Natural := Palette.Results_Y;
@@ -3729,6 +3926,8 @@ package body Files.Rendering is
          if Draw_Size = 0 then
             return;
          elsif Hidden_By_Settings_Pane (X, Y, Draw_Size, Draw_Size) then
+            return;
+         elsif Hidden_By_Command_Palette (X, Y, Draw_Size, Draw_Size) then
             return;
          end if;
 
@@ -3956,19 +4155,25 @@ package body Files.Rendering is
          Button_W : Natural;
          Selected : Boolean;
          Hovered  : Boolean := False;
-         Pressed  : Boolean := False) is
+         Pressed  : Boolean := False)
+      is
+         Button_Y : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
+         Button_H : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+            else Layout.Bottom_Bar_Height);
       begin
          Add_Rect
            (X,
-            Bottom_Y,
+            Button_Y,
             Button_W,
-            Layout.Bottom_Bar_Height,
+            Button_H,
             (if Selected then Selection_Color
              elsif Pressed then Pressed_Color
              elsif Hovered then Hover_Color
              else Bottom_Bar_Color));
          if Selected then
-            Add_Border (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height, Border_Color);
+            Add_Border (X, Button_Y, Button_W, Button_H, Border_Color);
          end if;
       end Add_Button;
 
@@ -4353,31 +4558,52 @@ package body Files.Rendering is
               (if Button_Y >= Layout.Toolbar_Height
                then 0
                else Natural'Min (Toolbar_Input_H, Layout.Toolbar_Height - Button_Y));
+            --  Per-button visual padding so the icons get breathing room and
+            --  groups read separately. Inner padding for normal spacing; the
+            --  end-of-group cell on either side of the navigation/file-action
+            --  boundary gets a wider pad so the gap is visible.
+            Pad_V        : constant Natural :=
+              Natural'Min (4, Button_H / 4);
+            Inner_Pad    : constant Natural := Natural'Min (3, Button_W / 6);
+            Group_Pad    : constant Natural := Natural'Min (8, Button_W / 4);
+            Button_Pad_L : constant Natural :=
+              (if Button_Index = 4 then Group_Pad else Inner_Pad);
+            Button_Pad_R : constant Natural :=
+              (if Button_Index = 3 then Group_Pad else Inner_Pad);
+            Visible_X : constant Natural := Saturating_Add (Button_X, Button_Pad_L);
+            Visible_W : constant Natural :=
+              (if Button_W > Saturating_Add (Button_Pad_L, Button_Pad_R)
+               then Button_W - Button_Pad_L - Button_Pad_R
+               else 0);
+            Visible_Y : constant Natural := Saturating_Add (Button_Y, Pad_V);
+            Visible_H : constant Natural :=
+              (if Button_H > Saturating_Multiply (Pad_V, 2)
+               then Button_H - Saturating_Multiply (Pad_V, 2)
+               else 0);
             Icon_Size : constant Natural :=
-              (if Button_W >= Files.UI.Toolbar_Button_Width
-               then Natural'Min (Button_H, Files.UI.Toolbar_Button_Width - 4)
-               else Natural'Min (Button_W, Button_H));
+              (if Visible_W >= Files.UI.Toolbar_Button_Width - 4
+               then Natural'Min (Visible_H, Files.UI.Toolbar_Button_Width - 8)
+               else Natural'Min (Visible_W, Visible_H));
             Icon_X   : constant Natural :=
-              (if Button_W > Icon_Size then Button_X + (Button_W - Icon_Size) / 2 else Button_X);
+              (if Visible_W > Icon_Size then Visible_X + (Visible_W - Icon_Size) / 2 else Visible_X);
             Icon_Y   : constant Natural :=
-              (if Button_H > Icon_Size then Button_Y + (Button_H - Icon_Size) / 2 else Button_Y);
+              (if Visible_H > Icon_Size then Visible_Y + (Visible_H - Icon_Size) / 2 else Visible_Y);
             Enabled  : constant Boolean := Snapshot.Command_Enabled (Command);
             Hovered  : constant Boolean :=
               Has_Hover and then Contains_Point (Button_X, Button_Y, Button_W, Button_H, Hover_X, Hover_Y);
             Pressed  : constant Boolean := Is_Pressed (Button_X, Button_Y, Button_W, Button_H);
          begin
-            Add_Rect
-              (Button_X,
-               Button_Y,
-               Button_W,
-               Button_H,
-               (if not Enabled then Pane_Color
-                elsif Pressed then Pressed_Color
-                elsif Hovered then Hover_Color
-                else Toolbar_Color));
-            if not Enabled then
-               Add_Border
-                 (Button_X, Button_Y, Button_W, Button_H, Border_Color);
+            if Visible_W > 0 and then Visible_H > 0 then
+               if not Enabled then
+                  Add_Rect (Visible_X, Visible_Y, Visible_W, Visible_H, Pane_Color);
+                  Add_Border (Visible_X, Visible_Y, Visible_W, Visible_H, Border_Color);
+               elsif Pressed then
+                  Add_Rect (Visible_X, Visible_Y, Visible_W, Visible_H, Pressed_Color);
+                  Add_Border (Visible_X, Visible_Y, Visible_W, Visible_H, Border_Color);
+               elsif Hovered then
+                  Add_Rect (Visible_X, Visible_Y, Visible_W, Visible_H, Hover_Color);
+                  Add_Border (Visible_X, Visible_Y, Visible_W, Visible_H, Border_Color);
+               end if;
             end if;
             if Command = Files.Commands.Select_Drive_Command then
                Add_Toolbar_Drive_Icon (Icon_X, Icon_Y, Icon_Size, Enabled);
@@ -4402,46 +4628,84 @@ package body Files.Rendering is
          end;
       end loop;
 
-      Add_Rect
-        (Toolbar.Middle_X,
-         Toolbar_Input_Y,
-         Toolbar.Middle_Width,
-         Toolbar_Input_H,
-         (if Snapshot.Path_Input_Valid then Input_Color else Input_Error_Color));
-      Add_Text
-        (Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
-         Toolbar_Input_Text_Y,
-         (if Toolbar.Middle_Width > 2 * Files.UI.Input_Field_Padding
-          then Toolbar.Middle_Width - 2 * Files.UI.Input_Field_Padding
-          else 0),
-         Toolbar_Input_Text_H,
-         Snapshot.Path_Input_Text,
-         Fit => True);
-      if Snapshot.Focus = Files.Types.Focus_Path_Input or else not Snapshot.Path_Input_Valid then
+      --  Vertical divider between navigation group (drives/home/back/forward)
+      --  and file-action group (create/delete) so the two groups read as
+      --  distinct sets of controls.
+      if Layout.Toolbar_Height > 0 then
+         declare
+            Group_Boundary_X : constant Natural :=
+              Files.UI.Toolbar_Left_Button_X (Toolbar, 4);
+            Divider_H : constant Natural :=
+              Natural'Max (1, Layout.Toolbar_Height / 3);
+            Divider_Y : constant Natural :=
+              (if Layout.Toolbar_Height > Divider_H
+               then (Layout.Toolbar_Height - Divider_H) / 2
+               else 0);
+         begin
+            if Group_Boundary_X > 0
+              and then Group_Boundary_X < Toolbar.Middle_X
+            then
+               Add_Rect (Group_Boundary_X, Divider_Y, 1, Divider_H, Border_Color);
+            end if;
+         end;
+      end if;
+
+      declare
+         Field_Margin : constant Natural := 6;
+         Path_X : constant Natural :=
+           Saturating_Add (Toolbar.Middle_X, Field_Margin);
+         Path_W : constant Natural :=
+           (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
+            then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
+            else 0);
+      begin
+         Add_Rect
+           (Path_X,
+            Toolbar_Input_Y,
+            Path_W,
+            Toolbar_Input_H,
+            (if Snapshot.Path_Input_Valid then Input_Color else Input_Error_Color));
          Add_Border
-           (Toolbar.Middle_X,
+           (Path_X,
             Toolbar_Input_Y,
-            Toolbar.Middle_Width,
+            Path_W,
             Toolbar_Input_H,
-            (if Snapshot.Path_Input_Valid then Border_Color else Input_Error_Color));
-      elsif Has_Hover
-        and then Contains_Point
-          (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H, Hover_X, Hover_Y)
-      then
-         Add_Border (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H, Hover_Color);
-      end if;
-      if Is_Pressed (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H) then
-         Add_Border (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H, Pressed_Color);
-      end if;
-      if Snapshot.Focus = Files.Types.Focus_Path_Input then
-         Add_Focus_Ring (Toolbar.Middle_X, Toolbar_Input_Y, Toolbar.Middle_Width, Toolbar_Input_H);
-         Add_Caret
-           (Toolbar.Middle_X,
-            Toolbar_Input_Y,
-            Toolbar.Middle_Width,
-            Toolbar_Input_H,
-            Snapshot.Path_Input_Text);
-      end if;
+            Border_Color);
+         Add_Text
+           (Saturating_Add (Path_X, Files.UI.Input_Field_Padding),
+            Toolbar_Input_Text_Y,
+            (if Path_W > 2 * Files.UI.Input_Field_Padding
+             then Path_W - 2 * Files.UI.Input_Field_Padding
+             else 0),
+            Toolbar_Input_Text_H,
+            Snapshot.Path_Input_Text,
+            Fit => True);
+         if Snapshot.Focus = Files.Types.Focus_Path_Input or else not Snapshot.Path_Input_Valid then
+            Add_Border
+              (Path_X,
+               Toolbar_Input_Y,
+               Path_W,
+               Toolbar_Input_H,
+               (if Snapshot.Path_Input_Valid then Border_Color else Input_Error_Color));
+         elsif Has_Hover
+           and then Contains_Point
+             (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Hover_X, Hover_Y)
+         then
+            Add_Border (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Hover_Color);
+         end if;
+         if Is_Pressed (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H) then
+            Add_Border (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H, Pressed_Color);
+         end if;
+         if Snapshot.Focus = Files.Types.Focus_Path_Input then
+            Add_Focus_Ring (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H);
+            Add_Caret
+              (Path_X,
+               Toolbar_Input_Y,
+               Path_W,
+               Toolbar_Input_H,
+               Snapshot.Path_Input_Text);
+         end if;
+      end;
       Add_Command_Tooltip
         (Toolbar.Middle_X,
          Toolbar_Input_Y,
@@ -4458,42 +4722,58 @@ package body Files.Rendering is
          Path_Input_Accessible_Description,
          Enabled => True,
          Focused => Snapshot.Focus = Files.Types.Focus_Path_Input);
-      Add_Rect
-        (Toolbar.Right_X,
-         Toolbar_Input_Y,
-         Toolbar.Right_Width,
-         Toolbar_Input_H,
-         Input_Color);
-      Add_Text
-        (Saturating_Add (Toolbar.Right_X, Files.UI.Input_Field_Padding),
-         Toolbar_Input_Text_Y,
-         (if Toolbar.Right_Width > 2 * Files.UI.Input_Field_Padding
-          then Toolbar.Right_Width - 2 * Files.UI.Input_Field_Padding
-          else 0),
-         Toolbar_Input_Text_H,
-         (if Length (Snapshot.Filter_Text) = 0
-          then To_Unbounded_String (Files.Localization.Text ("filter.placeholder"))
-          else Snapshot.Filter_Text),
-         (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
-         Fit => True);
-      if Snapshot.Focus = Files.Types.Focus_Filter_Input then
-         Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Border_Color);
-         Add_Focus_Ring (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H);
-         Add_Caret
-           (Toolbar.Right_X,
+      declare
+         Field_Margin : constant Natural := 6;
+         Filter_X : constant Natural :=
+           Saturating_Add (Toolbar.Right_X, Field_Margin);
+         Filter_W : constant Natural :=
+           (if Toolbar.Right_Width > Saturating_Multiply (Field_Margin, 2)
+            then Toolbar.Right_Width - Saturating_Multiply (Field_Margin, 2)
+            else 0);
+      begin
+         Add_Rect
+           (Filter_X,
             Toolbar_Input_Y,
-            Toolbar.Right_Width,
+            Filter_W,
             Toolbar_Input_H,
-            Snapshot.Filter_Text);
-      elsif Has_Hover
-        and then Contains_Point
-          (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Hover_X, Hover_Y)
-      then
-         Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Hover_Color);
-      end if;
-      if Is_Pressed (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H) then
-         Add_Border (Toolbar.Right_X, Toolbar_Input_Y, Toolbar.Right_Width, Toolbar_Input_H, Pressed_Color);
-      end if;
+            Input_Color);
+         Add_Border
+           (Filter_X,
+            Toolbar_Input_Y,
+            Filter_W,
+            Toolbar_Input_H,
+            Border_Color);
+         Add_Text
+           (Saturating_Add (Filter_X, Files.UI.Input_Field_Padding),
+            Toolbar_Input_Text_Y,
+            (if Filter_W > 2 * Files.UI.Input_Field_Padding
+             then Filter_W - 2 * Files.UI.Input_Field_Padding
+             else 0),
+            Toolbar_Input_Text_H,
+            (if Length (Snapshot.Filter_Text) = 0
+             then To_Unbounded_String (Files.Localization.Text ("filter.placeholder"))
+             else Snapshot.Filter_Text),
+            (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
+            Fit => True);
+         if Snapshot.Focus = Files.Types.Focus_Filter_Input then
+            Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Border_Color);
+            Add_Focus_Ring (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H);
+            Add_Caret
+              (Filter_X,
+               Toolbar_Input_Y,
+               Filter_W,
+               Toolbar_Input_H,
+               Snapshot.Filter_Text);
+         elsif Has_Hover
+           and then Contains_Point
+             (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Hover_X, Hover_Y)
+         then
+            Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Hover_Color);
+         end if;
+         if Is_Pressed (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H) then
+            Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Pressed_Color);
+         end if;
+      end;
       Add_Command_Tooltip
         (Toolbar.Right_X,
          Toolbar_Input_Y,
@@ -4510,12 +4790,6 @@ package body Files.Rendering is
          Snapshot.Filter_Text,
          Enabled => True,
          Focused => Snapshot.Focus = Files.Types.Focus_Filter_Input);
-      if Layout.Toolbar_Height > 0 and then Toolbar.Middle_X > 0 then
-         Add_Rect (Toolbar.Middle_X, 0, 1, Layout.Toolbar_Height, Border_Color);
-      end if;
-      if Layout.Toolbar_Height > 0 and then Toolbar.Right_X > 0 then
-         Add_Rect (Toolbar.Right_X, 0, 1, Layout.Toolbar_Height, Border_Color);
-      end if;
 
       Add_Bottom_Command_Button
         (Bottom.Small_Button_X,
@@ -4600,30 +4874,38 @@ package body Files.Rendering is
          Bottom.Info_Width,
          Bottom_Content_H,
          Bottom_Info_Text);
-      Add_Rect
-        (Bottom.Info_Pane_X,
-         Bottom_Y,
-         Bottom.Info_Pane_Width,
-         Layout.Bottom_Bar_Height,
-         (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command) then Pane_Color
-          elsif Snapshot.Info_Pane_Open
-          then Selection_Color
-          elsif Is_Pressed
-            (Bottom.Info_Pane_X,
-             Bottom_Y,
-             Bottom.Info_Pane_Width,
-             Layout.Bottom_Bar_Height)
-          then Pressed_Color
-          elsif Has_Hover
-            and then Contains_Point
-              (Bottom.Info_Pane_X,
-               Bottom_Y,
-               Bottom.Info_Pane_Width,
-               Layout.Bottom_Bar_Height,
-               Hover_X,
-               Hover_Y)
-          then Hover_Color
-          else Bottom_Bar_Color));
+      declare
+         Info_Btn_Y : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
+         Info_Btn_H : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+            else Layout.Bottom_Bar_Height);
+      begin
+         Add_Rect
+           (Bottom.Info_Pane_X,
+            Info_Btn_Y,
+            Bottom.Info_Pane_Width,
+            Info_Btn_H,
+            (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command) then Pane_Color
+             elsif Snapshot.Info_Pane_Open
+             then Selection_Color
+             elsif Is_Pressed
+               (Bottom.Info_Pane_X,
+                Bottom_Y,
+                Bottom.Info_Pane_Width,
+                Layout.Bottom_Bar_Height)
+             then Pressed_Color
+             elsif Has_Hover
+               and then Contains_Point
+                 (Bottom.Info_Pane_X,
+                  Bottom_Y,
+                  Bottom.Info_Pane_Width,
+                  Layout.Bottom_Bar_Height,
+                  Hover_X,
+                  Hover_Y)
+             then Hover_Color
+             else Bottom_Bar_Color));
+      end;
       Add_Text
         (Saturating_Add (Bottom.Info_Pane_X, 4),
          Bottom_Content_Y,
@@ -4696,7 +4978,7 @@ package body Files.Rendering is
             Metadata_W : constant Natural := (if Available > Reserved_Name_W then Available - Reserved_Name_W else 0);
             Type_W    : constant Natural := Natural'Min (180, Metadata_W / 4);
             Size_W    : constant Natural := Natural'Min (120, Metadata_W / 7);
-            Modified_W : constant Natural := Natural'Min (220, Metadata_W / 3);
+            Modified_W : constant Natural := Natural'Min (264, Metadata_W / 3);
             Name_X    : constant Natural := Header_Content_X;
             Name_W    : constant Natural :=
               (if Available > Saturating_Add (Saturating_Add (Type_W, Size_W), Modified_W)
@@ -4795,6 +5077,19 @@ package body Files.Rendering is
          declare
             Item      : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
             Item_Rect : constant Item_Layout := Items.Element (Positive (Index));
+         begin
+            --  Layout marks off-screen items with Height = 0 (Details rows that
+            --  fall outside the scrolled viewport and icon cells past the
+            --  bottom). Skip them so we don't pay per-item draw/accessibility
+            --  cost for hundreds of invisible rows.
+            if Item_Rect.Height = 0 or else Item_Rect.Width = 0 then
+               goto Continue_Item_Loop;
+            end if;
+         end;
+
+         declare
+            Item      : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
+            Item_Rect : constant Item_Layout := Items.Element (Positive (Index));
             Hovered   : constant Boolean :=
               Has_Hover
               and then Contains_Point
@@ -4857,7 +5152,9 @@ package body Files.Rendering is
                Item_Rect.Text_Width,
                Natural'Min (Line_Height, Item_Rect.Height),
                (if Snapshot.Rename_Active and then Item.Selected then Snapshot.Rename_Text else Item.Name),
-               Fit => True);
+               (if Item.Cut_Pending then Disabled_Text_Color else Text_Color),
+               Italic => Item.Cut_Pending,
+               Fit    => True);
 
             if Snapshot.Rename_Active
               and then Item.Selected
@@ -4894,7 +5191,8 @@ package body Files.Rendering is
                   Detail_Cell_W (Item_Rect.Modified_Width),
                   Natural'Min (Line_Height, Item_Rect.Height),
                   Detail_Time_Text (Item),
-                  Muted_Text_Color);
+                  (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                  Italic => Item.Cut_Pending);
                if Item.Modified_Available then
                   Add_Tooltip_Text
                     (Detail_Cell_X (Item_Rect.Modified_X),
@@ -4909,16 +5207,18 @@ package body Files.Rendering is
                   Detail_Cell_W (Item_Rect.Size_Width),
                   Natural'Min (Line_Height, Item_Rect.Height),
                   Detail_Size_Text (Item),
-                  Muted_Text_Color,
-                  Fit => True);
+                  (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                  Italic => Item.Cut_Pending,
+                  Fit    => True);
                Add_Text
                  (Detail_Cell_X (Item_Rect.Filetype_X),
                   Item_Rect.Text_Y,
                   Detail_Cell_W (Item_Rect.Filetype_Width),
                   Natural'Min (Line_Height, Item_Rect.Height),
                   Item.Filetype_Detail,
-                  Muted_Text_Color,
-                  Fit => True);
+                  (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                  Italic => Item.Cut_Pending,
+                  Fit    => True);
             end if;
 
             declare
@@ -4946,6 +5246,9 @@ package body Files.Rendering is
                   Focused  => Item.Selected);
             end;
          end;
+
+         <<Continue_Item_Loop>>
+         null;
       end loop;
 
       if Snapshot.View_Mode = Files.Types.Details and then not Items.Is_Empty then
@@ -5188,7 +5491,7 @@ package body Files.Rendering is
                      Color : Render_Color := Muted_Text_Color)
                   is
                      Raw        : constant String := To_String (Text);
-                     Cell_W     : constant Positive := Positive'Max (1, Line_Height / 2);
+                     Cell_W     : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
                      Capacity   : constant Natural := Text_W / Cell_W;
                      Line_Index : Natural := 0;
 
@@ -5343,60 +5646,632 @@ package body Files.Rendering is
             Text_Y : constant Natural := Pane.Text_Y;
             Text_W : constant Natural := Pane.Text_Width;
             Row_Step : constant Natural := Saturating_Add (Line_Height, Files.UI.Settings_Row_Gap);
+            Inter_Row_Px : constant Natural :=
+              Saturating_Multiply (Files.UI.Settings_Row_Gap, 2);
+            Scroll_Px : constant Natural :=
+              Saturating_Multiply (Snapshot.Settings_Pane_Scroll_Lines, Line_Height);
+            Pane_Bottom : constant Natural :=
+              (if Pane_Y + Pane_H > Files.UI.Settings_Pane_Padding
+               then Pane_Y + Pane_H - Files.UI.Settings_Pane_Padding
+               else Pane_Y);
 
+            --  Settings_Row_Y / Row_Hidden remain for legacy callers that still
+            --  pass an integer row index (action buttons, entry buttons). They
+            --  use the original Row_Step (with inter-row gap) so the legacy
+            --  callers still look the way they used to.
             function Settings_Row_Y (Row : Natural) return Natural is
+               Raw : constant Natural := Saturating_Multiply (Row, Row_Step);
             begin
-               return Saturating_Add (Text_Y, Saturating_Multiply (Row, Row_Step));
+               if Raw + Text_Y > Scroll_Px then
+                  return Raw + Text_Y - Scroll_Px;
+               else
+                  return 0;
+               end if;
             end Settings_Row_Y;
 
-            procedure Add_Settings_Row
-              (Row   : Natural;
-               Key   : String;
-               Color : Render_Color := Muted_Text_Color)
-            is
-               Y : constant Natural := Settings_Row_Y (Row);
+            function Row_Hidden (Row : Natural) return Boolean is
+               Raw_Top : constant Natural := Saturating_Multiply (Row, Row_Step);
             begin
-               Add_Text
-                 (Text_X,
-                  Y,
-                  Text_W,
-                  Line_Height,
-                  To_Unbounded_String (Files.Localization.Text (Key)),
-                  Color,
-                  Fit => True);
-            end Add_Settings_Row;
+               if Saturating_Add (Raw_Top, Line_Height) <= Scroll_Px then
+                  return True;
+               end if;
+               return Saturating_Add (Settings_Row_Y (Row), Line_Height) > Pane_Bottom;
+            end Row_Hidden;
+
+            --  Pixel-based cursor helpers. Y_Px is an offset from the content
+            --  top of the pane (i.e. relative to Text_Y, before scroll).
+            function Visible_Y (Y_Px : Natural) return Natural is
+            begin
+               if Saturating_Add (Y_Px, Text_Y) > Scroll_Px then
+                  return Saturating_Add (Y_Px, Text_Y) - Scroll_Px;
+               else
+                  return 0;
+               end if;
+            end Visible_Y;
+
+            function Y_Hidden (Y_Px : Natural; Height : Natural) return Boolean is
+            begin
+               if Saturating_Add (Y_Px, Height) <= Scroll_Px then
+                  return True;
+               end if;
+               return Saturating_Add (Visible_Y (Y_Px), Height) > Pane_Bottom;
+            end Y_Hidden;
+
+            procedure Begin_Row (Y_Cursor : in out Natural) is
+            begin
+               if Y_Cursor > 0 then
+                  Y_Cursor := Saturating_Add (Y_Cursor, Inter_Row_Px);
+               end if;
+            end Begin_Row;
+
+            --  The font's typographic line height (Ascent − Descent in pixels)
+            --  spans an extra few pixels of empty room above the cap line. When
+            --  text is drawn into a Line_Height-tall row, visible glyph content
+            --  sits in the lower portion of that box. We shift selection
+            --  rectangles/buttons down so they wrap around the visible glyph
+            --  content. The offset scales with Line_Height so it stays correct
+            --  as the user zooms the font size.
+            Sel_Y_Offset : constant Natural := Line_Height / 6;
+
+            function Sel_Y (Y : Natural) return Natural is
+              (Saturating_Add (Y, Sel_Y_Offset));
+
+            function Text_Y_In_Row (Y : Natural) return Natural is (Y);
+
+            Cell_W_Settings : constant Positive := Positive'Max (1, Line_Height * 12 / 20);
+            Capacity_Settings : constant Natural := Text_W / Cell_W_Settings;
+
+            function Wrap_To_Lines (Text : String; Capacity : Natural)
+               return Files.Types.String_Vectors.Vector
+            is
+               Lines  : Files.Types.String_Vectors.Vector;
+               Buffer : Unbounded_String := Null_Unbounded_String;
+
+               procedure Flush is
+               begin
+                  Lines.Append (Buffer);
+                  Buffer := Null_Unbounded_String;
+               end Flush;
+
+               procedure Take_Word (Word : String) is
+                  W_Units : constant Natural := Files.UTF8.Display_Units (Word);
+                  B_Units : constant Natural := Files.UTF8.Display_Units (To_String (Buffer));
+               begin
+                  if Length (Buffer) = 0 then
+                     Buffer := To_Unbounded_String (Word);
+                  elsif B_Units + 1 + W_Units <= Capacity then
+                     Append (Buffer, " " & Word);
+                  else
+                     Flush;
+                     Buffer := To_Unbounded_String (Word);
+                  end if;
+               end Take_Word;
+
+               Start : Integer := Text'First;
+            begin
+               if Text'Length = 0 or else Capacity = 0 then
+                  Lines.Append (To_Unbounded_String (Text));
+                  return Lines;
+               end if;
+               for I in Text'Range loop
+                  if Text (I) = ' ' then
+                     if I > Start then
+                        Take_Word (Text (Start .. I - 1));
+                     end if;
+                     Start := I + 1;
+                  end if;
+               end loop;
+               if Start <= Text'Last then
+                  Take_Word (Text (Start .. Text'Last));
+               end if;
+               if Length (Buffer) > 0 then
+                  Flush;
+               end if;
+               return Lines;
+            end Wrap_To_Lines;
+
+            procedure Add_Settings_Row_At
+              (Y_Cursor : in out Natural;
+               Key      : String;
+               Color    : Render_Color := Muted_Text_Color)
+            is
+            begin
+               Begin_Row (Y_Cursor);
+               if not Y_Hidden (Y_Cursor, Line_Height) then
+                  Add_Text
+                    (Text_X,
+                     Text_Y_In_Row (Visible_Y (Y_Cursor)),
+                     Text_W,
+                     Line_Height,
+                     To_Unbounded_String (Files.Localization.Text (Key)),
+                     Color,
+                     Fit => True);
+               end if;
+               Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
+            end Add_Settings_Row_At;
+
+            procedure Add_Wrapped_Row
+              (Y_Cursor : in out Natural;
+               Text     : String;
+               Color    : Render_Color := Muted_Text_Color;
+               Italic   : Boolean := False)
+            is
+               Lines : constant Files.Types.String_Vectors.Vector :=
+                 Wrap_To_Lines (Text, Capacity_Settings);
+               Line_Count : constant Natural :=
+                 Natural'Max (1, Natural (Lines.Length));
+            begin
+               Begin_Row (Y_Cursor);
+               for I in 1 .. Natural (Lines.Length) loop
+                  declare
+                     Line_Y : constant Natural :=
+                       Saturating_Add (Y_Cursor, Saturating_Multiply (I - 1, Line_Height));
+                  begin
+                     if not Y_Hidden (Line_Y, Line_Height) then
+                        Add_Text
+                          (Text_X,
+                           Text_Y_In_Row (Visible_Y (Line_Y)),
+                           Text_W,
+                           Line_Height,
+                           Lines.Element (I),
+                           Color,
+                           Fit    => False,
+                           Italic => Italic);
+                     end if;
+                  end;
+               end loop;
+               Y_Cursor :=
+                 Saturating_Add (Y_Cursor, Saturating_Multiply (Line_Count, Line_Height));
+            end Add_Wrapped_Row;
+
+            procedure Add_Settings_Toggle
+              (Y_Cursor : in out Natural;
+               Key      : String;
+               Token    : UString;
+               Index    : Natural)
+            is
+               Is_On      : constant Boolean := To_String (Token) = "true";
+               Toggle_W   : constant Natural := Saturating_Multiply (Line_Height, 2);
+               Pad        : constant Natural := Files.UI.Input_Field_Padding;
+               Label_W    : constant Natural :=
+                 (if Text_W > Toggle_W + Pad then Text_W - Toggle_W - Pad else Text_W);
+               Label_Cap  : constant Natural :=
+                 (if Label_W > 0 then Label_W / Cell_W_Settings else 0);
+               Lines      : constant Files.Types.String_Vectors.Vector :=
+                 Wrap_To_Lines (Files.Localization.Text (Key), Label_Cap);
+               Line_Count : constant Natural :=
+                 Natural'Max (1, Natural (Lines.Length));
+               Selection_H : constant Natural :=
+                 Saturating_Multiply (Line_Count, Line_Height);
+               Toggle_X   : constant Natural :=
+                 (if Text_W > Toggle_W
+                  then Saturating_Add (Text_X, Text_W - Toggle_W)
+                  else Text_X);
+            begin
+               Begin_Row (Y_Cursor);
+               declare
+                  Start_Visible_Y : constant Natural := Visible_Y (Y_Cursor);
+                  Knob_Pad : constant Natural :=
+                    Natural'Max (1, Line_Height / 8);
+                  Knob_Sz  : constant Natural :=
+                    (if Line_Height > 2 * Knob_Pad
+                     then Line_Height - 2 * Knob_Pad
+                     else Line_Height);
+                  Knob_X   : constant Natural :=
+                    (if Is_On
+                     then Saturating_Add (Toggle_X, Toggle_W - Knob_Pad - Knob_Sz)
+                     else Saturating_Add (Toggle_X, Knob_Pad));
+               begin
+                  if Index /= 0 and then not Y_Hidden (Y_Cursor, Selection_H) then
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Field,
+                           Field  => Index,
+                           Option => 0,
+                           X      => (if Text_X > 2 then Text_X - 2 else 0),
+                           Y      => Start_Visible_Y,
+                           Width  => Saturating_Add (Text_W, 4),
+                           Height => Selection_H));
+                  end if;
+
+                  if Snapshot.Settings_Field_Index = Index
+                    and then not Y_Hidden (Y_Cursor, Selection_H)
+                  then
+                     Add_Rect (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H, Selection_Color);
+                     Add_Focus_Ring (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H);
+                     Add_Rect
+                       (Text_X - 2,
+                        Sel_Y (Start_Visible_Y),
+                        Natural'Min (3, Text_W + 4),
+                        Selection_H,
+                        Border_Color);
+                  end if;
+
+                  for I in 1 .. Natural (Lines.Length) loop
+                     declare
+                        Line_Y : constant Natural :=
+                          Saturating_Add (Y_Cursor, Saturating_Multiply (I - 1, Line_Height));
+                     begin
+                        if not Y_Hidden (Line_Y, Line_Height) then
+                           Add_Text
+                             (Text_X,
+                              Text_Y_In_Row (Visible_Y (Line_Y)),
+                              Label_W,
+                              Line_Height,
+                              Lines.Element (I),
+                              Muted_Text_Color,
+                              Fit => False);
+                        end if;
+                     end;
+                  end loop;
+
+                  if not Y_Hidden (Y_Cursor, Line_Height) then
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Toggle,
+                           Field  => Index,
+                           Option => (if Is_On then 2 else 1),
+                           X      => Toggle_X,
+                           Y      => Start_Visible_Y,
+                           Width  => Toggle_W,
+                           Height => Line_Height));
+                     Add_Rect
+                       (Toggle_X, Sel_Y (Start_Visible_Y), Toggle_W, Line_Height,
+                        (if Is_On then Selection_Color else Input_Color));
+                     Add_Border (Toggle_X, Sel_Y (Start_Visible_Y), Toggle_W, Line_Height, Border_Color);
+                     Add_Rect
+                       (Knob_X,
+                        Saturating_Add (Sel_Y (Start_Visible_Y), Knob_Pad),
+                        Knob_Sz, Knob_Sz, Text_Color);
+                  end if;
+               end;
+               Y_Cursor := Saturating_Add (Y_Cursor, Selection_H);
+            end Add_Settings_Toggle;
+
+            procedure Add_Settings_Default_View_Toggle
+              (Y_Cursor : in out Natural;
+               Index    : Natural)
+            is
+               Current     : constant String :=
+                 To_String (Snapshot.Settings_Default_View_Token);
+               Label_Text  : constant String :=
+                 Files.Localization.Text ("settings.default_view");
+               Pad         : constant Natural := Files.UI.Input_Field_Padding;
+
+               function Segment_Width_For (Key : String) return Natural is
+                  Text : constant String := Files.Localization.Text (Key);
+                  Px   : constant Natural :=
+                    Saturating_Multiply
+                      (Files.UTF8.Display_Units (Text), Cell_W_Settings);
+               begin
+                  return Saturating_Add (Px, Saturating_Multiply (Pad, 2));
+               end Segment_Width_For;
+
+               Segment_W   : constant Natural :=
+                 Natural'Max
+                   (Segment_Width_For ("command.view.small.short"),
+                    Natural'Max
+                      (Segment_Width_For ("command.view.large.short"),
+                       Segment_Width_For ("command.view.details.short")));
+               Segments_W  : constant Natural :=
+                 Saturating_Multiply (Segment_W, 3);
+               Label_W     : constant Natural :=
+                 (if Text_W > Saturating_Add (Segments_W, Pad)
+                  then Text_W - Segments_W - Pad
+                  else Text_W);
+               Label_Cap   : constant Natural :=
+                 (if Label_W > 0 then Label_W / Cell_W_Settings else 0);
+               Lines       : constant Files.Types.String_Vectors.Vector :=
+                 Wrap_To_Lines (Label_Text, Label_Cap);
+               Line_Count  : constant Natural :=
+                 Natural'Max (1, Natural (Lines.Length));
+               Selection_H : constant Natural :=
+                 Saturating_Multiply (Line_Count, Line_Height);
+               Segments_X  : constant Natural :=
+                 (if Text_W > Segments_W
+                  then Saturating_Add (Text_X, Text_W - Segments_W)
+                  else Text_X);
+
+               procedure Draw_Segment
+                 (Offset       : Natural;
+                  Key          : String;
+                  Active       : Boolean;
+                  Start_Vis_Y  : Natural)
+               is
+                  Segment_X : constant Natural :=
+                    Saturating_Add (Segments_X, Saturating_Multiply (Offset, Segment_W));
+               begin
+                  Result.Settings_Hits.Append
+                    (Settings_Hit_Region'
+                       (Kind   => Settings_Hit_Segment,
+                        Field  => Index,
+                        Option => Offset + 1,
+                        X      => Segment_X,
+                        Y      => Start_Vis_Y,
+                        Width  => Segment_W,
+                        Height => Line_Height));
+                  Add_Rect
+                    (Segment_X, Sel_Y (Start_Vis_Y), Segment_W, Line_Height,
+                     (if Active then Selection_Color else Input_Color));
+                  Add_Border
+                    (Segment_X, Sel_Y (Start_Vis_Y), Segment_W, Line_Height, Border_Color);
+                  Add_Text
+                    (Saturating_Add (Segment_X, Pad),
+                     Text_Y_In_Row (Start_Vis_Y),
+                     (if Segment_W > 2 * Pad then Segment_W - 2 * Pad else 0),
+                     Line_Height,
+                     To_Unbounded_String (Files.Localization.Text (Key)),
+                     (if Active then Text_Color else Muted_Text_Color),
+                     Fit => True);
+               end Draw_Segment;
+            begin
+               Begin_Row (Y_Cursor);
+               declare
+                  Start_Visible_Y : constant Natural := Visible_Y (Y_Cursor);
+               begin
+                  if Index /= 0 and then not Y_Hidden (Y_Cursor, Selection_H) then
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Field,
+                           Field  => Index,
+                           Option => 0,
+                           X      => (if Text_X > 2 then Text_X - 2 else 0),
+                           Y      => Start_Visible_Y,
+                           Width  => Saturating_Add (Text_W, 4),
+                           Height => Selection_H));
+                  end if;
+
+                  if Snapshot.Settings_Field_Index = Index
+                    and then not Y_Hidden (Y_Cursor, Selection_H)
+                  then
+                     Add_Rect (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H, Selection_Color);
+                     Add_Focus_Ring (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H);
+                     Add_Rect
+                       (Text_X - 2,
+                        Sel_Y (Start_Visible_Y),
+                        Natural'Min (3, Text_W + 4),
+                        Selection_H,
+                        Border_Color);
+                  end if;
+
+                  for I in 1 .. Natural (Lines.Length) loop
+                     declare
+                        Line_Y : constant Natural :=
+                          Saturating_Add (Y_Cursor, Saturating_Multiply (I - 1, Line_Height));
+                     begin
+                        if not Y_Hidden (Line_Y, Line_Height) then
+                           Add_Text
+                             (Text_X,
+                              Text_Y_In_Row (Visible_Y (Line_Y)),
+                              Label_W,
+                              Line_Height,
+                              Lines.Element (I),
+                              Muted_Text_Color,
+                              Fit => False);
+                        end if;
+                     end;
+                  end loop;
+
+                  if not Y_Hidden (Y_Cursor, Line_Height) then
+                     Draw_Segment
+                       (0, "command.view.small.short",
+                        Current = "small_icons", Start_Visible_Y);
+                     Draw_Segment
+                       (1, "command.view.large.short",
+                        Current = "large_icons", Start_Visible_Y);
+                     Draw_Segment
+                       (2, "command.view.details.short",
+                        Current = "details", Start_Visible_Y);
+                  end if;
+               end;
+               Y_Cursor := Saturating_Add (Y_Cursor, Selection_H);
+            end Add_Settings_Default_View_Toggle;
+
+            procedure Add_Settings_Number_Stepper
+              (Y_Cursor : in out Natural;
+               Key      : String;
+               Value    : UString;
+               Index    : Natural)
+            is
+               Label_Text : constant String := Files.Localization.Text (Key);
+               Pad        : constant Natural := Files.UI.Input_Field_Padding;
+               Button_W   : constant Natural :=
+                 Natural'Max (Line_Height, Saturating_Multiply (Cell_W_Settings, 2));
+               Value_W    : constant Natural :=
+                 Saturating_Add
+                   (Saturating_Multiply (Cell_W_Settings, 4),
+                    Saturating_Multiply (Pad, 2));
+               Stepper_W  : constant Natural :=
+                 Saturating_Add (Value_W, Saturating_Multiply (Button_W, 2));
+               Label_W    : constant Natural :=
+                 (if Text_W > Saturating_Add (Stepper_W, Pad)
+                  then Text_W - Stepper_W - Pad
+                  else Text_W);
+               Label_Cap  : constant Natural :=
+                 (if Label_W > 0 then Label_W / Cell_W_Settings else 0);
+               Lines      : constant Files.Types.String_Vectors.Vector :=
+                 Wrap_To_Lines (Label_Text, Label_Cap);
+               Line_Count : constant Natural :=
+                 Natural'Max (1, Natural (Lines.Length));
+               Selection_H : constant Natural :=
+                 Saturating_Multiply (Line_Count, Line_Height);
+               Stepper_X  : constant Natural :=
+                 (if Text_W > Stepper_W
+                  then Saturating_Add (Text_X, Text_W - Stepper_W)
+                  else Text_X);
+            begin
+               Begin_Row (Y_Cursor);
+               declare
+                  Start_Visible_Y : constant Natural := Visible_Y (Y_Cursor);
+                  Value_X  : constant Natural := Stepper_X;
+                  Down_X   : constant Natural := Saturating_Add (Value_X, Value_W);
+                  Up_X     : constant Natural := Saturating_Add (Down_X, Button_W);
+
+                  procedure Draw_Button (X : Natural; Glyph : String) is
+                  begin
+                     Add_Rect (X, Sel_Y (Start_Visible_Y), Button_W, Line_Height, Input_Color);
+                     Add_Border (X, Sel_Y (Start_Visible_Y), Button_W, Line_Height, Border_Color);
+                     Add_Text
+                       (Saturating_Add (X, Pad),
+                        Text_Y_In_Row (Start_Visible_Y),
+                        (if Button_W > 2 * Pad then Button_W - 2 * Pad else 0),
+                        Line_Height,
+                        To_Unbounded_String (Glyph),
+                        Text_Color,
+                        Fit => True);
+                  end Draw_Button;
+               begin
+                  if Index /= 0 and then not Y_Hidden (Y_Cursor, Selection_H) then
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Field,
+                           Field  => Index,
+                           Option => 0,
+                           X      => (if Text_X > 2 then Text_X - 2 else 0),
+                           Y      => Start_Visible_Y,
+                           Width  => Saturating_Add (Text_W, 4),
+                           Height => Selection_H));
+                  end if;
+
+                  if Snapshot.Settings_Field_Index = Index
+                    and then not Y_Hidden (Y_Cursor, Selection_H)
+                  then
+                     Add_Rect (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H, Selection_Color);
+                     Add_Focus_Ring (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H);
+                     Add_Rect
+                       (Text_X - 2,
+                        Sel_Y (Start_Visible_Y),
+                        Natural'Min (3, Text_W + 4),
+                        Selection_H,
+                        Border_Color);
+                  end if;
+
+                  for I in 1 .. Natural (Lines.Length) loop
+                     declare
+                        Line_Y : constant Natural :=
+                          Saturating_Add (Y_Cursor, Saturating_Multiply (I - 1, Line_Height));
+                     begin
+                        if not Y_Hidden (Line_Y, Line_Height) then
+                           Add_Text
+                             (Text_X,
+                              Text_Y_In_Row (Visible_Y (Line_Y)),
+                              Label_W,
+                              Line_Height,
+                              Lines.Element (I),
+                              Muted_Text_Color,
+                              Fit => False);
+                        end if;
+                     end;
+                  end loop;
+
+                  if not Y_Hidden (Y_Cursor, Line_Height) then
+                     Add_Rect (Value_X, Sel_Y (Start_Visible_Y), Value_W, Line_Height, Input_Color);
+                     Add_Border (Value_X, Sel_Y (Start_Visible_Y), Value_W, Line_Height, Border_Color);
+                     Add_Text
+                       (Saturating_Add (Value_X, Pad),
+                        Text_Y_In_Row (Start_Visible_Y),
+                        (if Value_W > 2 * Pad then Value_W - 2 * Pad else 0),
+                        Line_Height,
+                        Value,
+                        Text_Color,
+                        Fit => True);
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Stepper_Down,
+                           Field  => Index,
+                           Option => 0,
+                           X      => Down_X,
+                           Y      => Start_Visible_Y,
+                           Width  => Button_W,
+                           Height => Line_Height));
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Stepper_Up,
+                           Field  => Index,
+                           Option => 0,
+                           X      => Up_X,
+                           Y      => Start_Visible_Y,
+                           Width  => Button_W,
+                           Height => Line_Height));
+                     Draw_Button (Down_X, "-");
+                     Draw_Button (Up_X, "+");
+                  end if;
+               end;
+               Y_Cursor := Saturating_Add (Y_Cursor, Selection_H);
+            end Add_Settings_Number_Stepper;
 
             procedure Add_Settings_Value
-              (Row   : Natural;
-               Key   : String;
-               Value : UString;
-               Index : Natural)
+              (Y_Cursor : in out Natural;
+               Key      : String;
+               Value    : UString;
+               Index    : Natural)
             is
-               Y : constant Natural := Settings_Row_Y (Row);
+               Combined : constant String :=
+                 Files.Localization.Text (Key) & ": " & To_String (Value);
+               Lines : constant Files.Types.String_Vectors.Vector :=
+                 Wrap_To_Lines (Combined, Capacity_Settings);
+               Line_Count : constant Natural :=
+                 Natural'Max (1, Natural (Lines.Length));
+               Selection_H : constant Natural :=
+                 Saturating_Multiply (Line_Count, Line_Height);
+               --  Rows with Index = 0 are informational section headers
+               --  (filetypes / icons / open_actions). Render them italic.
+               Italic : constant Boolean := Index = 0;
             begin
-               if Snapshot.Settings_Field_Index = Index then
-                  Add_Rect (Text_X - 2, Y, Text_W + 4, Line_Height, Selection_Color);
-                  Add_Focus_Ring (Text_X - 2, Y, Text_W + 4, Line_Height);
-                  Add_Rect
-                    (Text_X - 2,
-                     Y,
-                     Natural'Min (3, Text_W + 4),
-                     Line_Height,
-                     Border_Color);
-               end if;
-               Add_Text
-                 (Text_X,
-                  Y,
-                  Text_W,
-                  Line_Height,
-                  To_Unbounded_String (Files.Localization.Text (Key) & ": " & To_String (Value)),
-                  Muted_Text_Color,
-                  Fit => True);
+               Begin_Row (Y_Cursor);
+               declare
+                  Start_Visible_Y : constant Natural := Visible_Y (Y_Cursor);
+               begin
+                  if Index /= 0 and then not Y_Hidden (Y_Cursor, Selection_H) then
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Field,
+                           Field  => Index,
+                           Option => 0,
+                           X      => (if Text_X > 2 then Text_X - 2 else 0),
+                           Y      => Start_Visible_Y,
+                           Width  => Saturating_Add (Text_W, 4),
+                           Height => Selection_H));
+                  end if;
+
+                  if Snapshot.Settings_Field_Index = Index
+                    and then not Y_Hidden (Y_Cursor, Selection_H)
+                  then
+                     Add_Rect (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H, Selection_Color);
+                     Add_Focus_Ring (Text_X - 2, Sel_Y (Start_Visible_Y), Text_W + 4, Selection_H);
+                     Add_Rect
+                       (Text_X - 2,
+                        Sel_Y (Start_Visible_Y),
+                        Natural'Min (3, Text_W + 4),
+                        Selection_H,
+                        Border_Color);
+                  end if;
+               end;
+               for I in 1 .. Natural (Lines.Length) loop
+                  declare
+                     Line_Y : constant Natural :=
+                       Saturating_Add (Y_Cursor, Saturating_Multiply (I - 1, Line_Height));
+                  begin
+                     if not Y_Hidden (Line_Y, Line_Height) then
+                        Add_Text
+                          (Text_X,
+                           Text_Y_In_Row (Visible_Y (Line_Y)),
+                           Text_W,
+                           Line_Height,
+                           Lines.Element (I),
+                           Muted_Text_Color,
+                           Fit    => False,
+                           Italic => Italic);
+                     end if;
+                  end;
+               end loop;
+               Y_Cursor := Saturating_Add (Y_Cursor, Selection_H);
             end Add_Settings_Value;
 
-            procedure Add_Settings_Control_Options (Row : Natural) is
-               Y : constant Natural := Settings_Row_Y (Row);
+            procedure Add_Settings_Control_Options (Y_Cursor : in out Natural) is
+               Y      : Natural;
                Cell_W : constant Natural := (if Text_W > 0 then Text_W / 4 else 0);
+               Hidden : Boolean;
 
                procedure Add_Cell
                  (Offset : Natural;
@@ -5407,15 +6282,24 @@ package body Files.Rendering is
                   X        : constant Natural := Saturating_Add (Text_X, Offset_X);
                   W        : constant Natural := (if Offset = 3 then Text_W - Offset_X else Cell_W);
                begin
-                  if W = 0 then
+                  if W = 0 or else Hidden then
                      return;
                   end if;
 
-                  Add_Rect (X, Y, W, Line_Height, (if Active then Selection_Color else Input_Color));
-                  Add_Border (X, Y, W, Line_Height, Border_Color);
+                  Result.Settings_Hits.Append
+                    (Settings_Hit_Region'
+                       (Kind   => Settings_Hit_Segment,
+                        Field  => Snapshot.Settings_Field_Index,
+                        Option => Offset + 1,
+                        X      => X,
+                        Y      => Y,
+                        Width  => W,
+                        Height => Line_Height));
+                  Add_Rect (X, Sel_Y (Y), W, Line_Height, (if Active then Selection_Color else Input_Color));
+                  Add_Border (X, Sel_Y (Y), W, Line_Height, Border_Color);
                   Add_Text
                     (Saturating_Add (X, Files.UI.Input_Field_Padding),
-                     Y,
+                     Text_Y_In_Row (Y),
                      (if W > 2 * Files.UI.Input_Field_Padding
                       then W - 2 * Files.UI.Input_Field_Padding
                       else 0),
@@ -5425,27 +6309,57 @@ package body Files.Rendering is
                      Fit => True);
                end Add_Cell;
 
+               procedure Add_Toggle (Is_On : Boolean) is
+                  Toggle_W : constant Natural :=
+                    Saturating_Multiply (Line_Height, 2);
+                  Knob_Pad : constant Natural := Natural'Max (1, Line_Height / 8);
+                  Knob_Sz  : constant Natural :=
+                    (if Line_Height > 2 * Knob_Pad
+                     then Line_Height - 2 * Knob_Pad
+                     else Line_Height);
+                  Knob_X   : constant Natural :=
+                    (if Is_On
+                     then Saturating_Add (Text_X, Toggle_W - Knob_Pad - Knob_Sz)
+                     else Saturating_Add (Text_X, Knob_Pad));
+                  Knob_Y   : constant Natural := Saturating_Add (Sel_Y (Y), Knob_Pad);
+               begin
+                  if Hidden then
+                     return;
+                  end if;
+                  Add_Rect
+                    (Text_X, Sel_Y (Y), Toggle_W, Line_Height,
+                     (if Is_On then Selection_Color else Input_Color));
+                  Add_Border (Text_X, Sel_Y (Y), Toggle_W, Line_Height, Border_Color);
+                  Add_Rect (Knob_X, Knob_Y, Knob_Sz, Knob_Sz, Text_Color);
+                  Add_Text
+                    (Saturating_Add (Text_X, Saturating_Add (Toggle_W, Files.UI.Input_Field_Padding)),
+                     Text_Y_In_Row (Y),
+                     (if Text_W > Saturating_Add (Toggle_W, Files.UI.Input_Field_Padding)
+                      then Text_W - Toggle_W - Files.UI.Input_Field_Padding
+                      else 0),
+                     Line_Height,
+                     To_Unbounded_String
+                       (Files.Localization.Text
+                          (if Is_On then "settings.value.true" else "settings.value.false")),
+                     Muted_Text_Color,
+                     Fit => True);
+               end Add_Toggle;
+
                Current : constant String := To_String (Snapshot.Settings_Sort_Field_Token);
             begin
+               Begin_Row (Y_Cursor);
+               Y := Visible_Y (Y_Cursor);
+               Hidden := Y_Hidden (Y_Cursor, Line_Height);
                case Snapshot.Settings_Field_Index is
-                  when 1 =>
-                     Add_Cell (0, "command.view.small", Snapshot.Settings_Default_View_Token = "small_icons");
-                     Add_Cell (1, "command.view.large", Snapshot.Settings_Default_View_Token = "large_icons");
-                     Add_Cell (2, "command.view.details", Snapshot.Settings_Default_View_Token = "details");
-                  when 2 =>
-                     Add_Cell (0, "settings.value.true", Snapshot.Settings_Hidden_Files_Token = "true");
-                     Add_Cell (1, "settings.value.false", Snapshot.Settings_Hidden_Files_Token = "false");
+                  when 1 | 2 | 4 | 5 =>
+                     --  Inline toggle/segmented control already rendered in
+                     --  the field row above.
+                     null;
                   when 3 =>
                      Add_Cell (0, "settings.sort.name", Current = "name");
                      Add_Cell (1, "settings.sort.filetype", Current = "filetype");
                      Add_Cell (2, "settings.sort.size", Current = "size");
                      Add_Cell (3, "settings.sort.modified", Current = "modified");
-                  when 4 =>
-                     Add_Cell (0, "settings.value.true", Snapshot.Settings_Sort_Ascending_Token = "true");
-                     Add_Cell (1, "settings.value.false", Snapshot.Settings_Sort_Ascending_Token = "false");
-                  when 5 =>
-                     Add_Cell (0, "settings.value.true", Snapshot.Settings_High_Contrast_Token = "true");
-                     Add_Cell (1, "settings.value.false", Snapshot.Settings_High_Contrast_Token = "false");
                   when 6 =>
                      Add_Cell (0, "settings.icon_theme.basic", Snapshot.Settings_Icon_Theme = "files-basic");
                      Add_Cell
@@ -5455,27 +6369,43 @@ package body Files.Rendering is
                   when others =>
                      null;
                end case;
+               Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Control_Options;
 
-            procedure Add_Settings_Entry_Buttons (Row : Natural) is
+            procedure Add_Settings_Entry_Buttons
+              (Y_Cursor : in out Natural;
+               Field    : Natural)
+            is
                Buttons  : constant Files.UI.Settings_Entry_Button_Layout :=
                  Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
-               Y        : constant Natural := Settings_Row_Y (Row);
+               Y        : Natural;
+               Hidden   : Boolean;
 
                procedure Add_Button
                  (Button_X : Natural;
                   Button_W : Natural;
-                  Key      : String) is
+                  Key      : String;
+                  Kind     : Settings_Hit_Kind;
+                  Option   : Natural) is
                begin
-                  if Button_W = 0 then
+                  if Button_W = 0 or else Hidden then
                      return;
                   end if;
 
-                  Add_Rect (Button_X, Y, Button_W, Line_Height, Input_Color);
-                  Add_Border (Button_X, Y, Button_W, Line_Height, Border_Color);
+                  Result.Settings_Hits.Append
+                    (Settings_Hit_Region'
+                       (Kind   => Kind,
+                        Field  => Field,
+                        Option => Option,
+                        X      => Button_X,
+                        Y      => Y,
+                        Width  => Button_W,
+                        Height => Line_Height));
+                  Add_Rect (Button_X, Sel_Y (Y), Button_W, Line_Height, Input_Color);
+                  Add_Border (Button_X, Sel_Y (Y), Button_W, Line_Height, Border_Color);
                   Add_Text
                     (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
-                     Y,
+                     Text_Y_In_Row (Y),
                      (if Button_W > 2 * Files.UI.Input_Field_Padding
                       then Button_W - 2 * Files.UI.Input_Field_Padding
                       else 0),
@@ -5493,62 +6423,63 @@ package body Files.Rendering is
                      Localized (Key));
                end Add_Button;
             begin
-               Add_Button (Buttons.Add_Button_X, Buttons.Add_Button_Width, "settings.add");
-               Add_Button (Buttons.Remove_Button_X, Buttons.Remove_Button_Width, "settings.remove");
+               Begin_Row (Y_Cursor);
+               Y := Visible_Y (Y_Cursor);
+               Hidden := Y_Hidden (Y_Cursor, Line_Height);
+               Add_Button
+                 (Buttons.Add_Button_X, Buttons.Add_Button_Width,
+                  "settings.add", Settings_Hit_Add, 100);
+               Add_Button
+                 (Buttons.Remove_Button_X, Buttons.Remove_Button_Width,
+                  "settings.remove", Settings_Hit_Remove, 101);
+               Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Entry_Buttons;
 
-            procedure Add_Settings_Action_Buttons (Row : Natural) is
-               Buttons : constant Files.UI.Settings_Action_Button_Layout :=
-                 Files.UI.Calculate_Settings_Action_Button_Layout (Text_X, Text_W);
-
-               procedure Add_Button
-                 (Column  : Natural;
-                  Line    : Natural;
-                  Command : Files.Commands.Registered_Command_Id;
-                  Enabled : Boolean)
-               is
-                  Button_W : constant Natural :=
-                    (if Column = 0 then Buttons.First_Button_Width else Buttons.Second_Button_Width);
-                  X : constant Natural :=
-                    (if Column = 0 then Buttons.First_Button_X else Buttons.Second_Button_X);
-                  Y : constant Natural :=
-                    Settings_Row_Y (Saturating_Add (Row, Line));
-               begin
-                  if Button_W = 0 then
-                     return;
+            procedure Add_Settings_Action_Buttons (Y_Cursor : in out Natural) is
+               Command : constant Files.Commands.Registered_Command_Id :=
+                 Files.Commands.Reset_Settings_Command;
+               Enabled : constant Boolean := Snapshot.Settings_Can_Reset;
+               Y       : Natural;
+            begin
+               Begin_Row (Y_Cursor);
+               if Text_W > 0 and then not Y_Hidden (Y_Cursor, Line_Height) then
+                  Y := Visible_Y (Y_Cursor);
+                  if Enabled then
+                     Result.Settings_Hits.Append
+                       (Settings_Hit_Region'
+                          (Kind   => Settings_Hit_Reset,
+                           Field  => 0,
+                           Option => 0,
+                           X      => Text_X,
+                           Y      => Y,
+                           Width  => Text_W,
+                           Height => Line_Height));
                   end if;
-
-                  Add_Rect (X, Y, Button_W, Line_Height, (if Enabled then Input_Color else Pane_Color));
-                  Add_Border (X, Y, Button_W, Line_Height, Border_Color);
+                  Add_Rect (Text_X, Sel_Y (Y), Text_W, Line_Height,
+                            (if Enabled then Input_Color else Pane_Color));
+                  Add_Border (Text_X, Sel_Y (Y), Text_W, Line_Height, Border_Color);
                   Add_Text
-                    (Saturating_Add (X, Files.UI.Input_Field_Padding),
-                     Y,
-                     (if Button_W > 2 * Files.UI.Input_Field_Padding
-                      then Button_W - 2 * Files.UI.Input_Field_Padding
+                    (Saturating_Add (Text_X, Files.UI.Input_Field_Padding),
+                     Text_Y_In_Row (Y),
+                     (if Text_W > 2 * Files.UI.Input_Field_Padding
+                      then Text_W - 2 * Files.UI.Input_Field_Padding
                       else 0),
                      Line_Height,
                      Command_Label (Command),
                      (if Enabled then Muted_Text_Color else Disabled_Text_Color),
                      Fit => True);
-                  Add_Command_Tooltip
-                    (X,
-                     Y,
-                     Button_W,
-                     Line_Height,
-                     Command);
+                  Add_Command_Tooltip (Text_X, Y, Text_W, Line_Height, Command);
                   Add_Accessibility_Node
                     (Role_Button,
-                     X,
+                     Text_X,
                      Y,
-                     Button_W,
+                     Text_W,
                      Line_Height,
                      Command_Label (Command),
                      Localized (Files.Commands.Description_Key (Command)),
                      Enabled => Enabled);
-               end Add_Button;
-            begin
-               Add_Button (0, 0, Files.Commands.Reset_Settings_Command, Snapshot.Settings_Can_Reset);
-               Add_Button (1, 0, Files.Commands.Save_Settings_Command, Snapshot.Settings_Can_Save);
+               end if;
+               Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Action_Buttons;
          begin
             Add_Drop_Shadow (Pane_X, Pane_Y, Pane_W, Pane_H);
@@ -5562,52 +6493,51 @@ package body Files.Rendering is
                Pane_W,
                Pane_H,
                Localized ("settings.title"));
-            Add_Settings_Row (0, "settings.title", Text_Color);
-            Add_Settings_Action_Buttons (1);
-            Add_Settings_Value (3, "settings.default_view", Snapshot.Settings_Default_View, 1);
-            Add_Settings_Value (4, "settings.hidden_files", Snapshot.Settings_Hidden_Files, 2);
-            Add_Settings_Value (5, "settings.sort", Snapshot.Settings_Sort, 3);
-            Add_Settings_Value (6, "settings.sort_ascending", Snapshot.Settings_Sort_Ascending, 4);
-            Add_Settings_Value (7, "settings.high_contrast_theme", Snapshot.Settings_High_Contrast, 5);
-            Add_Settings_Value (8, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 6);
-            Add_Settings_Value (9, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
-            Add_Settings_Entry_Buttons (9);
-            Add_Settings_Value (10, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 7);
-            Add_Settings_Value (11, "settings.filetype_value", Snapshot.Settings_Filetype_Value, 8);
-            Add_Settings_Value (12, "settings.icons", Snapshot.Settings_Icons, 0);
-            Add_Settings_Entry_Buttons (12);
-            Add_Settings_Value (13, "settings.icon_filetype", Snapshot.Settings_Icon_Filetype, 9);
-            Add_Settings_Value (14, "settings.icon_value", Snapshot.Settings_Icon_Value, 10);
-            Add_Settings_Value (15, "settings.open_actions", Snapshot.Settings_Open_Actions, 0);
-            Add_Settings_Entry_Buttons (15);
-            Add_Settings_Value (16, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 11);
-            Add_Settings_Value (17, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 12);
-            if Length (Snapshot.Settings_Field_Help) > 0 then
-               Add_Text
-                 (Text_X,
-                  Settings_Row_Y (18),
-                  Text_W,
-                  Line_Height,
-                  Snapshot.Settings_Field_Help,
-                  Muted_Text_Color,
-                  Fit => True);
-            end if;
-            if Length (Snapshot.Settings_Control_Options) > 0 then
-               Add_Text
-                 (Text_X,
-                  Settings_Row_Y (19),
-                  Text_W,
-                  Line_Height,
-                  Snapshot.Settings_Control_Options,
-                  Muted_Text_Color,
-                  Fit => True);
-            end if;
-            if Snapshot.Settings_Field_Index in 1 .. 6 then
-               Add_Settings_Control_Options (20);
-            end if;
-            if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then
-               Add_Settings_Row (21, To_String (Snapshot.Settings_Draft_Error), Error_Text_Color);
-            end if;
+            declare
+               Y_Cursor : Natural := 0;
+            begin
+               Add_Settings_Row_At (Y_Cursor, "settings.title", Text_Color);
+               Add_Settings_Action_Buttons (Y_Cursor);
+               Add_Settings_Default_View_Toggle (Y_Cursor, 1);
+               Add_Settings_Toggle (Y_Cursor, "settings.hidden_files", Snapshot.Settings_Hidden_Files_Token, 2);
+               Add_Settings_Value (Y_Cursor, "settings.sort", Snapshot.Settings_Sort, 3);
+               Add_Settings_Toggle (Y_Cursor, "settings.sort_ascending", Snapshot.Settings_Sort_Ascending_Token, 4);
+               Add_Settings_Toggle (Y_Cursor, "settings.high_contrast_theme", Snapshot.Settings_High_Contrast_Token, 5);
+               Add_Settings_Value (Y_Cursor, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 6);
+               Add_Settings_Number_Stepper (Y_Cursor, "settings.font_pixel_size", Snapshot.Settings_Font_Pixel_Size, 7);
+               Add_Settings_Value (Y_Cursor, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
+               Add_Settings_Entry_Buttons (Y_Cursor, 8);
+               Add_Settings_Value (Y_Cursor, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 8);
+               Add_Settings_Value (Y_Cursor, "settings.filetype_value", Snapshot.Settings_Filetype_Value, 9);
+               Add_Settings_Value (Y_Cursor, "settings.icons", Snapshot.Settings_Icons, 0);
+               Add_Settings_Entry_Buttons (Y_Cursor, 10);
+               Add_Settings_Value (Y_Cursor, "settings.icon_filetype", Snapshot.Settings_Icon_Filetype, 10);
+               Add_Settings_Value (Y_Cursor, "settings.icon_value", Snapshot.Settings_Icon_Value, 11);
+               Add_Settings_Value (Y_Cursor, "settings.open_actions", Snapshot.Settings_Open_Actions, 0);
+               Add_Settings_Entry_Buttons (Y_Cursor, 12);
+               Add_Settings_Value (Y_Cursor, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 12);
+               Add_Settings_Value (Y_Cursor, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 13);
+               if Length (Snapshot.Settings_Field_Help) > 0 then
+                  Add_Wrapped_Row
+                    (Y_Cursor,
+                     To_String (Snapshot.Settings_Field_Help),
+                     Muted_Text_Color,
+                     Italic => True);
+               end if;
+               if Length (Snapshot.Settings_Control_Options) > 0 then
+                  Add_Wrapped_Row
+                    (Y_Cursor,
+                     To_String (Snapshot.Settings_Control_Options),
+                     Muted_Text_Color,
+                     Italic => True);
+               end if;
+               if Snapshot.Settings_Field_Index in 3 | 6 then
+                  Add_Settings_Control_Options (Y_Cursor);
+               end if;
+               if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then
+                  Add_Wrapped_Row (Y_Cursor, To_String (Snapshot.Settings_Draft_Error), Error_Text_Color);
+               end if;
+            end;
          end;
          Drawing_Settings_Pane := False;
       end if;
@@ -5692,8 +6622,8 @@ package body Files.Rendering is
               (Saturating_Add (Palette.Results_X, 8),
                Palette.Results_Y,
                (if Palette.Results_Width >
-                   Saturating_Add (16, Saturating_Add (6, Command_Palette_Scrollbar_Gap))
-                then Palette.Results_Width - 16 - 6 - Command_Palette_Scrollbar_Gap
+                   Saturating_Add (16, Saturating_Add (Scrollbar_Width, Command_Palette_Scrollbar_Gap))
+                then Palette.Results_Width - 16 - Scrollbar_Width - Command_Palette_Scrollbar_Gap
                 else 0),
                Natural'Min (Line_Height, Palette.Results_Height),
                Localized ("command.palette.empty"),
@@ -5719,7 +6649,9 @@ package body Files.Rendering is
                Row_Text_Y : constant Natural := Saturating_Add (Row.Y, Command_Result_Row_Padding);
                Reserved_Scrollbar_W : constant Natural :=
                  (if Palette.Results_Width > 0
-                  then Saturating_Add (Natural'Min (6, Palette.Results_Width), Command_Palette_Scrollbar_Gap)
+                  then Saturating_Add
+                    (Natural'Min (Scrollbar_Width, Palette.Results_Width),
+                     Command_Palette_Scrollbar_Gap)
                   else 0);
                Row_Text_End_X : constant Natural :=
                  (if Row.Width > Saturating_Add (Command_Palette_Padding, Reserved_Scrollbar_W)
@@ -5734,7 +6666,7 @@ package body Files.Rendering is
                   else Natural'Min
                     (Natural'Min
                       (Saturating_Multiply
-                          (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)), Line_Height / 2),
+                          (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)), Line_Height * 12 / 20),
                         160),
                      (if Row_Text_W > 0 then Natural'Min (Row_Text_W, Row_Text_W / 3) else 0)));
                Label_Width : constant Natural :=
@@ -5764,20 +6696,6 @@ package body Files.Rendering is
                      Natural'Min (3, Row.Width),
                      Row.Height,
                      Border_Color);
-               end if;
-               if not Row.Enabled and then Row.Height > 0 then
-                  Add_Rect
-                    (Row_Text_X,
-                     Saturating_Add
-                       (Row_Text_Y,
-                        Natural'Min
-                          ((if Row.Height > Command_Result_Row_Padding
-                            then Row.Height - Command_Result_Row_Padding - 1
-                            else 0),
-                           Line_Height - 1)),
-                     Row_Text_W,
-                     1,
-                     Disabled_Text_Color);
                end if;
                Add_Text
                  (Row_Text_X,
@@ -6063,6 +6981,82 @@ package body Files.Rendering is
          end loop;
       end if;
 
+      if Snapshot.Context_Menu_Open then
+         declare
+            Menu : constant Context_Menu_Layout :=
+              Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
+         begin
+            if Menu.Visible then
+               Add_Overlay_Rect (Menu.X, Menu.Y, Menu.Width, Menu.Height, Pane_Color);
+               Add_Overlay_Rect (Menu.X, Menu.Y, Menu.Width, 1, Border_Color);
+               if Menu.Height > 0 then
+                  Add_Overlay_Rect
+                    (Menu.X, Menu.Y + Menu.Height - 1, Menu.Width, 1, Border_Color);
+               end if;
+               Add_Overlay_Rect (Menu.X, Menu.Y, 1, Menu.Height, Border_Color);
+               if Menu.Width > 0 then
+                  Add_Overlay_Rect
+                    (Menu.X + Menu.Width - 1, Menu.Y, 1, Menu.Height, Border_Color);
+               end if;
+
+               Add_Accessibility_Node
+                 (Role_List,
+                  Menu.X, Menu.Y, Menu.Width, Menu.Height,
+                  Localized ("command.palette.open"));
+
+               for Row in 1 .. Menu.Row_Count loop
+                  declare
+                     Command : constant Files.Commands.Command_Id :=
+                       Menu.Commands (Row);
+                     Row_Y   : constant Natural :=
+                       Menu.Y + Menu.Padding
+                       + Saturating_Multiply (Row - 1, Menu.Row_Height);
+                     Enabled : constant Boolean :=
+                       Command /= Files.Commands.No_Command
+                       and then Snapshot.Command_Enabled (Command);
+                     Hovered : constant Boolean :=
+                       Has_Hover
+                       and then Contains_Point
+                         (Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
+                          Hover_X, Hover_Y);
+                     Pressed : constant Boolean :=
+                       Is_Pressed (Menu.X, Row_Y, Menu.Width, Menu.Row_Height);
+                     Text_X  : constant Natural :=
+                       Menu.X + Files.UI.Input_Field_Padding;
+                     Text_Y_Off : constant Natural :=
+                       (if Menu.Row_Height > Line_Height
+                        then (Menu.Row_Height - Line_Height) / 2
+                        else 0);
+                  begin
+                     if Pressed then
+                        Add_Overlay_Rect
+                          (Menu.X, Row_Y, Menu.Width, Menu.Row_Height, Pressed_Color);
+                     elsif Hovered and then Enabled then
+                        Add_Overlay_Rect
+                          (Menu.X, Row_Y, Menu.Width, Menu.Row_Height, Hover_Color);
+                     end if;
+                     Add_Overlay_Text
+                       (Text_X,
+                        Row_Y + Text_Y_Off,
+                        (if Menu.Width > 2 * Files.UI.Input_Field_Padding
+                         then Menu.Width - 2 * Files.UI.Input_Field_Padding
+                         else 0),
+                        Line_Height,
+                        Command_Label (Command),
+                        (if Enabled then Text_Color else Disabled_Text_Color),
+                        Fit => True);
+                     Add_Accessibility_Node
+                       (Role_Button,
+                        Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
+                        Command_Label (Command),
+                        Localized (Files.Commands.Description_Key (Command)),
+                        Enabled => Enabled);
+                  end;
+               end loop;
+            end if;
+         end;
+      end if;
+
       Add_Hover_Tooltip;
 
       return Result;
@@ -6109,13 +7103,14 @@ package body Files.Rendering is
       Renderer.Font_Path := To_Unbounded_String ("");
 
       if Font_Path = "" then
-         Textrender.Reset;
+         Textrender.Reset (The_Renderer);
          return Text_Render_Font_Load_Failed;
       end if;
 
       Status :=
         Textrender.Load_Font
-          (Path         => Font_Path,
+          (R            => The_Renderer,
+           Path         => Font_Path,
            Pixel_Size   => Pixel_Size,
            Cell_Width   => Cell_Width,
            Cell_Height  => Cell_Height,
@@ -6202,20 +7197,25 @@ package body Files.Rendering is
                         end if;
 
                         Codepoint := Textrender.Codepoint (Decoded_Codepoint);
-                        Status := Textrender.Get_Glyph (Codepoint, Metrics);
+                        Status := Textrender.Get_Glyph
+                          (The_Renderer, Codepoint, Metrics,
+                           Style => (if Text.Italic then Textrender.Italic else Textrender.Regular));
 
                         if Status /= Textrender.Success then
                            if Unit_Width > 0 then
                               Result.Missing_Glyph_Count :=
                                 Saturating_Add (Result.Missing_Glyph_Count, 1);
                               Codepoint := Textrender.Codepoint (Character'Pos ('?'));
-                              Status := Textrender.Get_Glyph (Codepoint, Metrics);
+                              Status :=
+                                Textrender.Get_Glyph
+                                  (The_Renderer, Codepoint, Metrics,
+                                   Style => (if Text.Italic then Textrender.Italic else Textrender.Regular));
                               if Status /= Textrender.Success then
                                  Metrics :=
-                                   (X         => 0.0,
-                                    Y         => 0.0,
-                                    W         => 0.0,
-                                    H         => 0.0,
+                                   (X         => 0,
+                                    Y         => 0,
+                                    W         => 0,
+                                    H         => 0,
                                     U0        => 0.0,
                                     V0        => 0.0,
                                     U1        => 0.0,
@@ -6230,10 +7230,10 @@ package body Files.Rendering is
                                    Saturating_Add (Result.Missing_Glyph_Count, 1);
                               end if;
                               Metrics :=
-                                (X         => 0.0,
-                                 Y         => 0.0,
-                                 W         => 0.0,
-                                 H         => 0.0,
+                                (X         => 0,
+                                 Y         => 0,
+                                 W         => 0,
+                                 H         => 0,
                                  U0        => 0.0,
                                  V0        => 0.0,
                                  U1        => 0.0,
@@ -6244,7 +7244,7 @@ package body Files.Rendering is
                            end if;
                         end if;
 
-                        if Metrics.W > 0.0 and then Metrics.H > 0.0 then
+                        if Metrics.W > 0 and then Metrics.H > 0 then
                            declare
                               Origin_X : constant Float := (if Unit_Width = 0 then Base_X else Cell_X);
                               Scale    : constant Float :=
@@ -6253,22 +7253,30 @@ package body Files.Rendering is
                                    (1.0,
                                     0.86
                                     * Float'Min
-                                      (Float (Text.Width) / Metrics.W,
-                                       Float (Text.Height) / Metrics.H))
+                                      (Float (Text.Width) / Float (Metrics.W),
+                                       Float (Text.Height) / Float (Metrics.H)))
                                  else 1.0);
-                              Scaled_W : constant Float := Metrics.W * Scale;
-                              Scaled_H : constant Float := Metrics.H * Scale;
+                              Scaled_W : constant Float := Float (Metrics.W) * Scale;
+                              Scaled_H : constant Float := Float (Metrics.H) * Scale;
                               Draw_X   : Float;
                               Draw_Y   : Float;
                            begin
                               Placement :=
                                 Textrender.Place_Glyph_In_Cell
-                                  (Metrics,
+                                  (The_Renderer,
+                                   Metrics,
                                    Origin_X,
                                    Cell_Y);
                               if Text.Scale_To_Box then
                                  Draw_X := Float (Text.X) + (Float (Text.Width) - Scaled_W) / 2.0;
                                  Draw_Y := Float (Text.Y) + (Float (Text.Height) - Scaled_H) / 2.0;
+                              elsif Decoded_Codepoint = 16#2026# then
+                                 --  Snap the ellipsis glyph to the left edge of
+                                 --  its cell so it hugs the preceding character
+                                 --  instead of sitting centered with visible
+                                 --  padding on its left.
+                                 Draw_X := Origin_X;
+                                 Draw_Y := Placement.Y;
                               else
                                  Draw_X := Placement.X;
                                  Draw_Y := Placement.Y;
@@ -6305,9 +7313,9 @@ package body Files.Rendering is
          end if;
       end;
 
-      Result.Atlas_Dirty := Textrender.Atlas_Dirty;
-      if Textrender.Atlas_Pixels /= null then
-         Result.Atlas_Pixels := Textrender.Atlas_Pixels.all'Address;
+      Result.Atlas_Dirty := Textrender.Atlas_Dirty (The_Renderer);
+      if Textrender.Atlas_Pixels (The_Renderer) /= null then
+         Result.Atlas_Pixels := Textrender.Atlas_Pixels (The_Renderer).all'Address;
       end if;
       return Result;
    end Build_Text_Glyphs;

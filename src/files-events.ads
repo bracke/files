@@ -10,6 +10,7 @@ package Files.Events is
       Command_Input_Action,
       Selection_Input_Action,
       Scroll_Input_Action,
+      Scrollbar_Drag_Begin_Input_Action,
       Text_Click_Input_Action,
       Settings_Click_Input_Action,
       Item_Click_Input_Action,
@@ -20,6 +21,7 @@ package Files.Events is
      (Scroll_Auto,
       Scroll_Main_View,
       Scroll_Info_Pane,
+      Scroll_Settings_Pane,
       Scroll_Command_Palette);
 
    type Input_Action is record
@@ -38,6 +40,7 @@ package Files.Events is
       Activate     : Boolean := False;
       Toggle_Selection : Boolean := False;
       Range_Selection  : Boolean := False;
+      Scroll_Drag_Anchor : Integer := 0;
    end record;
 
    --  Translate a key and modifier state into an internal input action.
@@ -63,6 +66,7 @@ package Files.Events is
    --  @return Internal input action.
    function Translate_Click
      (Snapshot    : Files.Rendering.View_Snapshot;
+      Frame       : Files.Rendering.Frame_Commands;
       X           : Natural;
       Y           : Natural;
       Width       : Natural;
