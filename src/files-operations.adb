@@ -1090,7 +1090,17 @@ package body Files.Operations is
            Files.File_System.Execute_Drop_Import (Plans.Plans);
       begin
          if not Mutation.Success then
+            --  Execute_Drop_Import is non-atomic: a mid-batch failure may have
+            --  already moved/copied earlier entries (and removed move sources).
+            --  Refresh the view to reflect on-disk state, then restore the
+            --  import error so the user still sees what failed.
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            declare
+               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+               pragma Unreferenced (Reload);
+            begin
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            end;
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Files.Model.Current_Path (Model));
          end if;
       end;
@@ -1133,7 +1143,15 @@ package body Files.Operations is
            Files.File_System.Execute_Drop_Import (Plans.Plans);
       begin
          if not Mutation.Success then
+            --  Non-atomic import: refresh so the view reflects on-disk state
+            --  after a mid-batch failure, then restore the import error.
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            declare
+               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+               pragma Unreferenced (Reload);
+            begin
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            end;
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Destination_Directory);
          end if;
       end;
