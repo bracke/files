@@ -393,6 +393,7 @@ en.error.permanent_delete.refused = Permanent delete refused an unsafe path.
 en.error.permanent_delete.failed = Item could not be permanently deleted.
 en.error.drop.invalid_destination = Drop destination is not a directory.
 en.error.drop.invalid_source = Dropped item does not exist.
+en.error.drop.into_self = A folder cannot be moved or copied into itself.
 en.error.drop.failed = Dropped item could not be imported.
 en.error.thumbnail.source_missing = Thumbnail source does not exist.
 en.error.thumbnail.unsupported = Thumbnail source is not a regular file.

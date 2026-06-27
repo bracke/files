@@ -3790,6 +3790,17 @@ package body Files.File_System is
          end loop;
          return Join_Path (Destination_Directory, To_String (Candidate));
       end Available_Destination;
+
+      --  True when Inner is Outer itself or a descendant of Outer (normalized).
+      function Is_Within_Tree (Inner : String; Outer : String) return Boolean is
+         I : constant String := Ada.Directories.Full_Name (Inner);
+         O : constant String := Ada.Directories.Full_Name (Outer);
+      begin
+         return I = O
+           or else (I'Length > O'Length
+                    and then I (I'First .. I'First + O'Length - 1) = O
+                    and then I (I'First + O'Length) = '/');
+      end Is_Within_Tree;
    begin
       if not Ada.Directories.Exists (Destination_Directory)
         or else Ada.Directories.Kind (Destination_Directory) /= Ada.Directories.Directory
@@ -3816,6 +3827,13 @@ package body Files.File_System is
                if not Valid_Leaf_Name (To_String (Leaf)) then
                   Plan.Valid := False;
                   Plan.Error_Key := To_Unbounded_String ("error.name.invalid");
+                  Result.Error_Key := Plan.Error_Key;
+               elsif Is_Within_Tree (Destination_Directory, Source_Text) then
+                  --  Refuse to copy or move a directory into itself or one of
+                  --  its own descendants; Execute_Drop_Import's recursive copy
+                  --  would otherwise recurse without bound.
+                  Plan.Valid := False;
+                  Plan.Error_Key := To_Unbounded_String ("error.drop.into_self");
                   Result.Error_Key := Plan.Error_Key;
                else
                   Plan.Valid := True;

@@ -1582,6 +1582,27 @@ package body Files_Suite.Operations is
         (Ada.Directories.Exists (Join (Root, "stay 2.txt")),
          "same-directory copy still creates a numbered duplicate");
 
+      --  A directory cannot be moved or copied into itself or a descendant;
+      --  the recursive copy would otherwise recurse without bound.
+      Ada.Directories.Create_Path (Join (Join (Root, "tree"), "sub"));
+      Sources.Clear;
+      Sources.Append (To_Unbounded_String (Join (Root, "tree")));
+      Plans :=
+        Files.File_System.Plan_Drop_Import
+          (Sources, Join (Join (Root, "tree"), "sub"), Files.File_System.Drop_Move);
+      Assert (not Plans.Success, "moving a directory into its own subtree is rejected");
+      Assert
+        (To_String (Plans.Error_Key) = "error.drop.into_self",
+         "into-self drop reports a deterministic diagnostic");
+      Plans :=
+        Files.File_System.Plan_Drop_Import
+          (Sources, Join (Join (Root, "tree"), "sub"), Files.File_System.Drop_Copy);
+      Assert (not Plans.Success, "copying a directory into its own subtree is rejected");
+      Plans :=
+        Files.File_System.Plan_Drop_Import
+          (Sources, Join (Root, "tree"), Files.File_System.Drop_Copy);
+      Assert (not Plans.Success, "copying a directory into itself is rejected");
+
       Ada.Directories.Create_Path (Delete_Dir);
       Write_File (Join (Delete_Dir, "doomed.txt"), "doomed");
       Ada.Directories.Create_Path (Join (Delete_Dir, "nested"));
