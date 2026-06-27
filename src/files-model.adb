@@ -955,6 +955,8 @@ package body Files.Model is
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
+      Model.Filter_Value := Null_Unbounded_String;
+      Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -1004,6 +1006,8 @@ package body Files.Model is
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
+      Model.Filter_Value := Null_Unbounded_String;
+      Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -1039,6 +1043,8 @@ package body Files.Model is
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
+      Model.Filter_Value := Null_Unbounded_String;
+      Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Selected := 0;
@@ -1479,6 +1485,7 @@ package body Files.Model is
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
       Model.Settings_Pane_Open := True;
+      Model.Settings_Pane_Scroll := 0;
       Clear_Edit_State (Model);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
