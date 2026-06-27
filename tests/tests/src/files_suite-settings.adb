@@ -1422,6 +1422,26 @@ package body Files_Suite.Settings is
               (Modified_Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified,
                "modified sort field still round-trips to modified");
          end;
+         declare
+            With_Bookmarks : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+            Round          : Files.Settings.Settings_Parse_Result;
+            Found_Eq       : Boolean := False;
+            Found_Hash     : Boolean := False;
+         begin
+            With_Bookmarks.Bookmark_Paths.Append (To_Unbounded_String ("/data/a=b"));
+            With_Bookmarks.Bookmark_Paths.Append (To_Unbounded_String ("#hashdir"));
+            Round := Files.Settings.Parse (Files.Settings.To_Text (With_Bookmarks));
+            Assert (Round.Success, "settings with tricky bookmark paths round-trips");
+            for P of Round.Settings.Bookmark_Paths loop
+               if To_String (P) = "/data/a=b" then
+                  Found_Eq := True;
+               elsif To_String (P) = "#hashdir" then
+                  Found_Hash := True;
+               end if;
+            end loop;
+            Assert (Found_Eq, "a bookmark path containing '=' survives the round-trip");
+            Assert (Found_Hash, "a bookmark path starting with '#' survives the round-trip");
+         end;
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "unexpected = value" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown setting keys");
          Assert

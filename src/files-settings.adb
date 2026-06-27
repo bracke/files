@@ -1084,7 +1084,14 @@ package body Files.Settings is
                            Add_Open_Action (Settings, Key, Action);
                         end;
                      when Bookmarks_Section =>
-                        if Key /= "" then
+                        if Setting_Key = "bookmark" then
+                           --  New form: bookmark = "<path>" (path may contain
+                           --  '=' or start with '#').
+                           if Value /= "" then
+                              Settings.Bookmark_Paths.Append (To_Unbounded_String (Value));
+                           end if;
+                        elsif Key /= "" then
+                           --  Legacy form: the bare path written as the key.
                            Settings.Bookmark_Paths.Append (To_Unbounded_String (Key));
                         end if;
                      when Settings_Section_Name =>
@@ -1474,7 +1481,9 @@ package body Files.Settings is
          Append_Line;
          Append_Line ("[bookmarks]");
          for Path of Settings.Bookmark_Paths loop
-            Append_Line (To_String (Path) & " =");
+            --  Write the path in a quoted value position so paths containing
+            --  '=' or starting with '#' (and trailing whitespace) round-trip.
+            Append_Line ("bookmark = " & Action_Token_Text (To_String (Path)));
          end loop;
       end if;
 
