@@ -17,6 +17,17 @@ package body Files.Operations is
       return Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector);
    end Empty_Action;
 
+   --  Ada.Directories.Exists raises Name_Error on a malformed path rather than
+   --  returning False; treat any failure as "does not exist" so it cannot
+   --  escape an operation as an unhandled exception.
+   function Exists_Safely (Path : String) return Boolean is
+   begin
+      return Ada.Directories.Exists (Path);
+   exception
+      when others =>
+         return False;
+   end Exists_Safely;
+
    function Open_Action_Policy return Open_Action_Execution_Policy is
    begin
       return
@@ -917,7 +928,7 @@ package body Files.Operations is
       end loop;
 
       for Item of Items loop
-         if not Ada.Directories.Exists (To_String (Item.Full_Path)) then
+         if not Exists_Safely (To_String (Item.Full_Path)) then
             Files.Model.Set_Error (Model, "error.trash.failed");
             declare
                Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -975,7 +986,7 @@ package body Files.Operations is
       end if;
 
       for Item of Items loop
-         if not Ada.Directories.Exists (To_String (Item.Full_Path)) then
+         if not Exists_Safely (To_String (Item.Full_Path)) then
             Files.Model.Set_Error (Model, "error.permanent_delete.failed");
             declare
                Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -1045,7 +1056,15 @@ package body Files.Operations is
               Files.File_System.Generate_Thumbnail (To_String (Item.Full_Path), Cache_Directory);
          begin
             if Thumbnail.Status /= Files.File_System.Thumbnail_Generated then
+               --  Refresh so thumbnails already generated for earlier items in
+               --  the batch are shown, then restore the failure diagnostic.
                Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
+               end;
                return Make_Result
                  (Operation_Failed, To_String (Thumbnail.Error_Key), To_String (Item.Full_Path));
             elsif Length (First_Path) = 0 then
@@ -1193,6 +1212,10 @@ package body Files.Operations is
          end if;
       end;
 
+      --  The file now exists on disk, so leave create-edit mode regardless of
+      --  whether the subsequent refresh succeeds; otherwise a refresh failure
+      --  would strand the model in temporary-item mode.
+      Files.Model.Clear_Edit_State (Model);
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, Name);
       begin
@@ -1201,7 +1224,6 @@ package body Files.Operations is
          end if;
       end;
 
-      Files.Model.Clear_Edit_State (Model);
       Files.Model.Set_Error (Model, "");
       return
         Make_Result
@@ -1230,7 +1252,7 @@ package body Files.Operations is
             Files.Model.Set_Error (Model, "error.name.invalid");
             return Make_Result (Operation_Invalid_Name, "error.name.invalid");
          elsif New_Name = To_String (Item.Name) then
-            if not Ada.Directories.Exists (To_String (Item.Full_Path)) then
+            if not Exists_Safely (To_String (Item.Full_Path)) then
                Files.Model.Set_Error (Model, "error.rename.source_missing");
                declare
                   Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -1268,6 +1290,9 @@ package body Files.Operations is
             end if;
          end;
 
+         --  The rename has already happened on disk; leave rename-edit mode
+         --  even if the refresh fails, rather than stranding the model in it.
+         Files.Model.Clear_Edit_State (Model);
          declare
             Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, New_Name);
          begin
@@ -1276,7 +1301,6 @@ package body Files.Operations is
             end if;
          end;
 
-         Files.Model.Clear_Edit_State (Model);
          Files.Model.Set_Error (Model, "");
          return
            Make_Result
