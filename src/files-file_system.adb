@@ -14,6 +14,8 @@ with System.Address_To_Access_Conversions;
 
 with GNAT.OS_Lib;
 
+with Zlib;
+
 with Files.File_Types;
 with Files.Platform.Macos;
 with Files.Platform.Windows;
@@ -42,14 +44,6 @@ package body Files.File_System is
    subtype C_S64 is Interfaces.C.long;
    subtype C_Size is Interfaces.C.size_t;
    subtype C_ULong is Interfaces.C.unsigned_long;
-
-   function Z_Uncompress
-     (Dest        : System.Address;
-      Dest_Length : access C_ULong;
-      Source      : System.Address;
-      Source_Len  : C_ULong)
-      return C_Int
-   with Import, Convention => C, External_Name => "uncompress";
 
    function Gdk_Pixbuf_New_From_File_At_Size
      (Filename : Interfaces.C.Strings.chars_ptr;
@@ -4320,23 +4314,34 @@ package body Files.File_System is
             Row_Stride : constant Natural := Width * Channels;
             Needed     : constant Natural := Height * (Row_Stride + 1);
             Compressed : constant Ada.Streams.Stream_Element_Array := Bytes_To_Stream_Array (Idat);
-            Inflated   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Needed - 1));
-            Inflated_Length : aliased C_ULong := C_ULong (Inflated'Length);
-            Status     : C_Int;
+            Source     : Zlib.Byte_Array (0 .. Natural (Compressed'Length) - 1);
+            Inflated   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Needed - 1)) :=
+              [others => 0];
+            Decode_Status : Zlib.Status_Code := Zlib.Ok;
             Previous   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
               [others => 0];
             Current    : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
               [others => 0];
          begin
-            Status :=
-              Z_Uncompress
-                (Dest        => Inflated (Inflated'First)'Address,
-                 Dest_Length => Inflated_Length'Access,
-                 Source      => Compressed (Compressed'First)'Address,
-                 Source_Len  => C_ULong (Compressed'Length));
-            if Status /= 0 or else Natural (Inflated_Length) < Needed then
-               return False;
-            end if;
+            for I in Source'Range loop
+               Source (I) :=
+                 Zlib.Byte (Compressed (Compressed'First + Ada.Streams.Stream_Element_Offset (I)));
+            end loop;
+            --  Inflate the zlib-wrapped PNG IDAT stream with the pure-Ada zlib
+            --  crate (no system libz dependency).
+            declare
+               use type Zlib.Status_Code;
+               Raw_Inflated : constant Zlib.Byte_Array :=
+                 Zlib.Inflate_With_Header (Source, Zlib.Zlib_Header, Decode_Status);
+            begin
+               if Decode_Status /= Zlib.Ok or else Raw_Inflated'Length < Needed then
+                  return False;
+               end if;
+               for I in 0 .. Needed - 1 loop
+                  Inflated (Ada.Streams.Stream_Element_Offset (I)) :=
+                    Ada.Streams.Stream_Element (Raw_Inflated (Raw_Inflated'First + I));
+               end loop;
+            end;
 
             for Row in 0 .. Height - 1 loop
                declare

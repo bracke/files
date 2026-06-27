@@ -30,6 +30,12 @@ textrender = "*"
 textrender = { path = "../textrender" }
 
 [[depends-on]]
+zlib = "*"
+
+[[pins]]
+zlib = { path = "../zlib" }
+
+[[depends-on]]
 df_vulkan = "~0.1.0"
 
 [[depends-on]]
