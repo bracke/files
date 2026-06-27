@@ -9,7 +9,7 @@ Core sections:
    visibility, sort field, sort order, and icon theme.
 2. `[filetypes]` maps filename extensions to filetype identifiers.
 3. `[icons]` maps filetype identifiers to icon identifiers.
-4. `[open_actions]` maps filetypes and modifier-specific filetype tokens to
+4. `[open-actions]` maps filetypes and modifier-specific filetype tokens to
    executable plus argument-vector actions.
 
 Open actions are argument vectors, not shell command strings. Shell execution

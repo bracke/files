@@ -113,7 +113,10 @@ package body Files.Settings is
 
    function Mapping_Value_Is_Valid (Text : String) return Boolean is
    begin
-      return Text /= "" and then not Contains_Line_Break (Text);
+      --  Reject whitespace-only values: Add_*_Mapping trims before inserting,
+      --  so a value like "   " would pass parse validation yet be dropped on
+      --  insert. Validating the trimmed form keeps parse and insert in sync.
+      return Trim (Text) /= "" and then not Contains_Line_Break (Text);
    end Mapping_Value_Is_Valid;
 
    function Is_Whole_Placeholder (Text : String) return Boolean is
@@ -966,6 +969,16 @@ package body Files.Settings is
            (Success   => True,
             Settings  => Settings,
             Error_Key => Null_Unbounded_String);
+      end if;
+
+      --  Skip a leading UTF-8 BOM so an externally-edited/exported file's first
+      --  section header is still recognized.
+      if Text'Length >= 3
+        and then Text (Text'First) = Character'Val (16#EF#)
+        and then Text (Text'First + 1) = Character'Val (16#BB#)
+        and then Text (Text'First + 2) = Character'Val (16#BF#)
+      then
+         Line_First := Text'First + 3;
       end if;
 
       while Line_First <= Text'Last loop
