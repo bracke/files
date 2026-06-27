@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_response.filePath // .tool_input.file_path // empty'); case \"$f\" in *.adb|*.ads) over=$(awk 'length>120{print NR}' \"$f\" | paste -sd, -); [ -n \"$over\" ] && printf '{\"systemMessage\":\"%s has line(s) over 120 cols (gnatyM120): %s\"}' \"$f\" \"$over\";; esac 2>/dev/null || true",
+            "statusMessage": "Checking Ada line length"
+          }
+        ]
+      }
+    ]
+  }
+}
