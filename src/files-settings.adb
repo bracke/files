@@ -964,6 +964,15 @@ package body Files.Settings is
       Line_First : Positive := Text'First;
       Line_Last  : Natural;
    begin
+      --  The file is authoritative for filetype/icon/open-action mappings:
+      --  start from scalar defaults with empty maps so a mapping deleted from
+      --  the file does not silently reappear from the built-in defaults.
+      --  (Ensure_Default_File seeds a fresh install's file with the full
+      --  defaults, so built-ins are present unless the user removed them.)
+      Settings.Extension_Filetypes.Clear;
+      Settings.Icon_Mappings.Clear;
+      Settings.Open_Actions.Clear;
+
       if Text = "" then
          return
            (Success   => True,

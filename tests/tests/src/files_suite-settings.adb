@@ -1442,6 +1442,27 @@ package body Files_Suite.Settings is
             Assert (Found_Eq, "a bookmark path containing '=' survives the round-trip");
             Assert (Found_Hash, "a bookmark path starting with '#' survives the round-trip");
          end;
+         declare
+            --  The file is authoritative for mappings: a built-in mapping
+            --  omitted from the file does not reappear from the defaults, while
+            --  a fresh install still gets the defaults (seeded into the file by
+            --  Ensure_Default_File).
+            Authoritative : constant Files.Settings.Settings_Parse_Result :=
+              Files.Settings.Parse
+                ("[filetypes]" & ASCII.LF & "custom = application/x-custom" & ASCII.LF);
+         begin
+            Assert (Authoritative.Success, "settings with an explicit filetypes section parses");
+            Assert
+              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "custom")
+                 = "application/x-custom",
+               "an explicit filetype mapping loads from the file");
+            Assert
+              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "txt") = "",
+               "a built-in mapping omitted from the file does not reappear");
+            Assert
+              (Files.Settings.Filetype_For_Extension (Files.Settings.Default_Settings, "txt") /= "",
+               "built-in defaults still provide mappings for a fresh install");
+         end;
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "unexpected = value" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown setting keys");
          Assert
@@ -1776,6 +1797,16 @@ package body Files_Suite.Settings is
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "ada",
                "begin settings edit syncs stale filetype selection");
+         end;
+         --  Parse no longer injects the built-in mappings (the file is now
+         --  authoritative), so seed this draft-editing test's mapping set from
+         --  the defaults directly, keeping the same populated set it relies on.
+         declare
+            Defaults : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         begin
+            Draft_Settings.Extension_Filetypes := Defaults.Extension_Filetypes;
+            Draft_Settings.Icon_Mappings := Defaults.Icon_Mappings;
+            Draft_Settings.Open_Actions := Defaults.Open_Actions;
          end;
          Files.Model.Toggle_Settings_Pane (Draft_Model);
          Controller_Result :=
