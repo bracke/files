@@ -4245,6 +4245,7 @@ package body Files.File_System is
          Height : Natural := 0;
          Bit_Depth  : Natural := 0;
          Color_Type : Natural := 0;
+         Interlace  : Natural := 0;
          Position   : Natural := 8;
          Channels   : Natural := 0;
          Pixels     : Pixel_Vectors.Vector;
@@ -4337,6 +4338,7 @@ package body Files.File_System is
                   Height := U32_BE_From (Bytes, Data_Start + 4);
                   Bit_Depth := Byte_At (Bytes, Data_Start + 8);
                   Color_Type := Byte_At (Bytes, Data_Start + 9);
+                  Interlace := Byte_At (Bytes, Data_Start + 12);
                elsif Kind = "IDAT" then
                   if Length_Value > 0 then
                      for Index in Data_Start .. Data_Last loop
@@ -4357,8 +4359,12 @@ package body Files.File_System is
            or else Height > 4096
            or else Width * Height > 4_194_304
            or else Bit_Depth /= 8
+           or else Interlace /= 0
            or else Idat.Is_Empty
          then
+            --  Adam7-interlaced PNGs have a different IDAT layout than the
+            --  single raster this decoder assumes; defer to the gdk-pixbuf
+            --  fallback rather than producing a garbled thumbnail.
             return False;
          elsif Color_Type = 2 then
             Channels := 3;
