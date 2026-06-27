@@ -365,6 +365,7 @@ en.settings.value.false = false
 en.settings.sort.name = name
 en.settings.sort.filetype = filetype
 en.settings.sort.size = size
+en.settings.sort.created = created
 en.settings.sort.modified = modified
 en.settings.sort.ascending =  ascending
 en.settings.sort.descending =  descending

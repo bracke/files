@@ -982,6 +982,8 @@ package body Files.Rendering is
                return Files.Localization.Text ("settings.sort.filetype");
             when Files.Settings.Sort_By_Size =>
                return Files.Localization.Text ("settings.sort.size");
+            when Files.Settings.Sort_By_Created =>
+               return Files.Localization.Text ("settings.sort.created");
             when Files.Settings.Sort_By_Modified =>
                return Files.Localization.Text ("settings.sort.modified");
          end case;
@@ -996,6 +998,8 @@ package body Files.Rendering is
                return "filetype";
             when Files.Settings.Sort_By_Size =>
                return "size";
+            when Files.Settings.Sort_By_Created =>
+               return "created";
             when Files.Settings.Sort_By_Modified =>
                return "modified";
          end case;

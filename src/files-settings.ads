@@ -30,6 +30,7 @@ package Files.Settings is
      (Sort_By_Name,
       Sort_By_Filetype,
       Sort_By_Size,
+      Sort_By_Created,
       Sort_By_Modified);
 
    type Settings_Model is record

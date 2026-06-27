@@ -1403,11 +1403,25 @@ package body Files_Suite.Settings is
          Assert
            (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
             "Unicode line-separator open action reports deterministic diagnostic");
-         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = created" & ASCII.LF);
+         Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = bogus" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects invalid sort fields");
          Assert
            (To_String (Broken.Error_Key) = "error.settings.invalid_sort_field",
             "invalid sort field reports deterministic diagnostic");
+         declare
+            Created_Parsed : constant Files.Settings.Settings_Parse_Result :=
+              Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = created" & ASCII.LF);
+            Modified_Parsed : constant Files.Settings.Settings_Parse_Result :=
+              Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = modified" & ASCII.LF);
+         begin
+            Assert (Created_Parsed.Success, "settings parser accepts the created sort field");
+            Assert
+              (Created_Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Created,
+               "created sort field round-trips distinctly from modified");
+            Assert
+              (Modified_Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified,
+               "modified sort field still round-trips to modified");
+         end;
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "unexpected = value" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown setting keys");
          Assert

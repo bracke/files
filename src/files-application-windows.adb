@@ -345,7 +345,7 @@ package body Files.Application.Windows is
          when Files.Model.Sort_Name     => return Files.Settings.Sort_By_Name;
          when Files.Model.Sort_Type     => return Files.Settings.Sort_By_Filetype;
          when Files.Model.Sort_Size     => return Files.Settings.Sort_By_Size;
-         when Files.Model.Sort_Created  => return Files.Settings.Sort_By_Modified;
+         when Files.Model.Sort_Created  => return Files.Settings.Sort_By_Created;
          when Files.Model.Sort_Changed  => return Files.Settings.Sort_By_Modified;
       end case;
    end Settings_Sort_Of;

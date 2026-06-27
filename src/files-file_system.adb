@@ -740,6 +740,13 @@ package body Files.File_System is
                Forward_Order := Left.Size < Right.Size;
                Reverse_Order := Right.Size < Left.Size;
             end if;
+         when Files.Settings.Sort_By_Created =>
+            if Left.Creation_Available /= Right.Creation_Available then
+               return Left.Creation_Available;
+            elsif Left.Creation_Time /= Right.Creation_Time then
+               Forward_Order := Left.Creation_Time < Right.Creation_Time;
+               Reverse_Order := Right.Creation_Time < Left.Creation_Time;
+            end if;
          when Files.Settings.Sort_By_Modified =>
             if Left.Modified_Available /= Right.Modified_Available then
                return Left.Modified_Available;

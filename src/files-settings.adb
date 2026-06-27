@@ -1117,6 +1117,8 @@ package body Files.Settings is
                                  Settings.Sort_Field_Value := Sort_By_Filetype;
                               elsif Field = "size" then
                                  Settings.Sort_Field_Value := Sort_By_Size;
+                              elsif Field = "created" then
+                                 Settings.Sort_Field_Value := Sort_By_Created;
                               elsif Field = "modified" then
                                  Settings.Sort_Field_Value := Sort_By_Modified;
                               else
@@ -1321,6 +1323,8 @@ package body Files.Settings is
             return "filetype";
          when Sort_By_Size =>
             return "size";
+         when Sort_By_Created =>
+            return "created";
          when Sort_By_Modified =>
             return "modified";
       end case;
@@ -1880,7 +1884,9 @@ package body Files.Settings is
             declare
                Value : constant String := Files.Types.To_Lower (Clean);
             begin
-               if Value = "name" or else Value = "filetype" or else Value = "size" or else Value = "modified" then
+               if Value = "name" or else Value = "filetype" or else Value = "size"
+                 or else Value = "created" or else Value = "modified"
+               then
                   return "";
                end if;
                return "error.settings.invalid_sort_field";

@@ -227,6 +227,7 @@ package body Files.Application is
          when Files.Settings.Sort_By_Name     => Mapped := Files.Model.Sort_Name;
          when Files.Settings.Sort_By_Filetype => Mapped := Files.Model.Sort_Type;
          when Files.Settings.Sort_By_Size     => Mapped := Files.Model.Sort_Size;
+         when Files.Settings.Sort_By_Created  => Mapped := Files.Model.Sort_Created;
          when Files.Settings.Sort_By_Modified => Mapped := Files.Model.Sort_Changed;
       end case;
 
