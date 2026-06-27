@@ -5,8 +5,12 @@ with AUnit.Assertions;
 with AUnit.Test_Cases;
 with AUnit.Test_Suites;
 
+with System;
+
 with Files.Events;
+with Files.Fonts;
 with Files.Rendering;
+with Files.Rendering.Vulkan;
 with Files.Types;
 
 --  Rendering tests expressed as layout INVARIANTS and behaviours rather than
@@ -20,7 +24,10 @@ package body Files_Suite.Rendering is
    use AUnit.Assertions;
    use Files.Rendering;
    use type Files.Rendering.Render_Color;
+   use type Files.Rendering.Settings_Hit_Kind;
+   use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
+   use type System.Address;
 
    type Rendering_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 
@@ -33,6 +40,9 @@ package body Files_Suite.Rendering is
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -54,6 +64,12 @@ package body Files_Suite.Rendering is
         (T, Test_Extreme_Size_Saturation'Access, "layout saturates at extreme sizes without overflow");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Click_Translation_Behavior'Access, "click translation behaviour");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Hit_Testing'Access, "settings-pane click hit-testing");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Glyph_Rasterization'Access, "frame text rasterizes through textrender");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Vulkan_Submission'Access, "frame builds a vulkan submission batch");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -302,6 +318,85 @@ package body Files_Suite.Rendering is
         (Off_Item.Kind = Files.Events.No_Input_Action,
          "clicking empty space below the content produces no action");
    end Test_Click_Translation_Behavior;
+
+   procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Frame : Frame_Commands;
+   begin
+      --  A full-width field row, a more-specific inline option segment appended
+      --  after it (reverse precedence must prefer the segment), and a reset
+      --  button. These mirror how Build_Frame_Commands layers settings hits.
+      Frame.Settings_Hits.Append
+        (Settings_Hit_Region'
+           (Kind => Settings_Hit_Field, Field => 1, Option => 0,
+            X => 100, Y => 100, Width => 300, Height => 40));
+      Frame.Settings_Hits.Append
+        (Settings_Hit_Region'
+           (Kind => Settings_Hit_Segment, Field => 1, Option => 2,
+            X => 320, Y => 100, Width => 60, Height => 40));
+      Frame.Settings_Hits.Append
+        (Settings_Hit_Region'
+           (Kind => Settings_Hit_Reset, Field => 0, Option => 0,
+            X => 100, Y => 160, Width => 120, Height => 30));
+
+      Assert
+        (Settings_Hit_At (Frame, 110, 110).Kind = Settings_Hit_Field
+         and then Settings_Hit_At (Frame, 110, 110).Field = 1,
+         "a click on a settings field row resolves to that field");
+      Assert
+        (Settings_Hit_At (Frame, 340, 110).Kind = Settings_Hit_Segment
+         and then Settings_Hit_At (Frame, 340, 110).Option = 2,
+         "a click on an inline option segment resolves to the segment, not the row beneath it");
+      Assert
+        (Settings_Hit_At (Frame, 150, 170).Kind = Settings_Hit_Reset,
+         "a click on the reset region resolves to reset");
+      Assert
+        (Settings_Hit_At (Frame, 5, 5).Kind = Settings_Hit_None,
+         "a click outside every settings region resolves to none");
+   end Test_Settings_Hit_Testing;
+
+   procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      Renderer : Text_Renderer;
+      Result   : Text_Render_Result;
+   begin
+      Assert (Files.Fonts.Default_Font_Path /= "", "a default text font is available");
+      Assert
+        (Initialize_Text
+           (Renderer    => Renderer,
+            Font_Path   => Files.Fonts.Default_Font_Path,
+            Pixel_Size  => 16,
+            Cell_Width  => 10,
+            Cell_Height => 20) = Text_Render_Success,
+         "the text renderer loads the default font");
+      Result := Build_Text_Glyphs (Renderer, Frame);
+      Assert (Result.Status = Text_Render_Success, "frame text rasterizes through textrender");
+      Assert (Natural (Result.Glyphs.Length) > 0, "the text renderer emits glyph draw commands");
+      Assert (Result.Atlas_Pixels /= System.Null_Address, "the text renderer exposes an atlas");
+   end Test_Text_Glyph_Rasterization;
+
+   procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      Renderer : Text_Renderer;
+      Text     : Text_Render_Result;
+      Batch    : Files.Rendering.Vulkan.Submission_Batch;
+   begin
+      Assert
+        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20) = Text_Render_Success,
+         "the text renderer initialises for submission");
+      Text  := Build_Text_Glyphs (Renderer, Frame);
+      Batch := Files.Rendering.Vulkan.Build_Submission (Frame, Text);
+      Assert (Batch.Width = Frame.Layout.Width, "the vulkan batch preserves the frame width");
+      Assert (Batch.Height = Frame.Layout.Height, "the vulkan batch preserves the frame height");
+      Assert
+        (Batch.Rectangle_Vertex_Count = Natural (Frame.Rectangles.Length) * 6,
+         "each rectangle expands to two triangles (six vertices)");
+      Assert (Batch.Glyph_Vertex_Count > 0, "rasterized glyphs reach the vulkan submission batch");
+   end Test_Vulkan_Submission;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
