@@ -567,6 +567,11 @@ package body Files.Application.Windows is
 
          Files.Drop_Events.Queue (Target.Drop_Source, Drops);
       end;
+   exception
+      --  This is a Convention => C callback invoked from GLFW's C stack; an
+      --  exception must never unwind through C frames. Swallow anything.
+      when others =>
+         null;
    end Raw_Drop_Callback;
 
    function To_Glfw_Key (Key : Tracked_Key) return Glfw.Input.Keys.Key;
@@ -889,9 +894,12 @@ package body Files.Application.Windows is
          Snapshot  : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
          Layout    : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H));
+           Files.Rendering.Calculate_Layout
+             (Snapshot, Natural (Frame_W), Natural (Frame_H),
+              Cell_Height_For (Runtime.Font_Pixel_Size));
          Main_View : constant Files.Rendering.Main_View_Layout :=
-           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout);
+           Files.Rendering.Calculate_Main_View_Layout
+             (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
       begin
          Files.Model.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
       end;
@@ -962,21 +970,32 @@ package body Files.Application.Windows is
             New_Size  : Integer;
          begin
             if Modifiers (Files.Types.Control_Key) then
-               for I in 1 .. Fire_Count loop
-                  New_Size := Integer (Runtime.Font_Pixel_Size) + Step;
-                  if New_Size < Integer (Min_Font_Pixel_Size) then
-                     New_Size := Integer (Min_Font_Pixel_Size);
-                  elsif New_Size > Integer (Max_Font_Pixel_Size) then
-                     New_Size := Integer (Max_Font_Pixel_Size);
+               declare
+                  Changed : Boolean := False;
+               begin
+                  for I in 1 .. Fire_Count loop
+                     New_Size := Integer (Runtime.Font_Pixel_Size) + Step;
+                     if New_Size < Integer (Min_Font_Pixel_Size) then
+                        New_Size := Integer (Min_Font_Pixel_Size);
+                     elsif New_Size > Integer (Max_Font_Pixel_Size) then
+                        New_Size := Integer (Max_Font_Pixel_Size);
+                     end if;
+                     if Positive (New_Size) /= Runtime.Font_Pixel_Size then
+                        Runtime.Font_Pixel_Size := Positive (New_Size);
+                        Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
+                        Runtime.Text_Ready := False;
+                        Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                        Changed := True;
+                     end if;
+                  end loop;
+                  --  Only refresh the grid columns and rewrite the settings file
+                  --  when the size actually changed; otherwise holding +/- at the
+                  --  min/max bound rewrites settings every auto-repeat tick.
+                  if Changed then
+                     Refresh_Selection_Grid_Columns (Runtime);
+                     Persist_Settings (Runtime);
                   end if;
-                  if Positive (New_Size) /= Runtime.Font_Pixel_Size then
-                     Runtime.Font_Pixel_Size := Positive (New_Size);
-                     Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
-                     Runtime.Text_Ready := False;
-                     Runtime.Text_Glyph_Key := Null_Unbounded_String;
-                  end if;
-               end loop;
-               Persist_Settings (Runtime);
+               end;
                return;
             end if;
          end;
@@ -2781,14 +2800,23 @@ package body Files.Application.Windows is
       Poll_Events;
 
       while Any_Window_Open (Runtime_Windows) loop
-         Wait_For_Events_Timeout (Event_Wait_Timeout);
-         Handle_All_Keyboard (Runtime_Windows);
-         Handle_All_Text_Input (Runtime_Windows);
-         Handle_All_Mouse (Runtime_Windows);
-         Handle_All_Drop_Input (Runtime_Windows);
-         Handle_All_Scroll_Input (Runtime_Windows);
-         Render_All (Runtime_Windows);
-         Handle_All_File_Watch_Poll (Runtime_Windows);
+         begin
+            Wait_For_Events_Timeout (Event_Wait_Timeout);
+            Handle_All_Keyboard (Runtime_Windows);
+            Handle_All_Text_Input (Runtime_Windows);
+            Handle_All_Mouse (Runtime_Windows);
+            Handle_All_Drop_Input (Runtime_Windows);
+            Handle_All_Scroll_Input (Runtime_Windows);
+            Render_All (Runtime_Windows);
+            Handle_All_File_Watch_Poll (Runtime_Windows);
+         exception
+            --  Resilience: a stray error while handling one frame's input or
+            --  rendering should not tear down every window. Skip the frame and
+            --  keep the event loop running. (The Wait above paces the loop, so
+            --  this cannot become a tight busy-spin.)
+            when others =>
+               null;
+         end;
       end loop;
 
       Release_All (Runtime_Windows);
