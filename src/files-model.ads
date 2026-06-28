@@ -684,11 +684,17 @@ package Files.Model is
       return Natural;
 
    --  Scroll the settings pane by logical text lines.
+   --
+   --  @param Model Model to update.
+   --  @param Lines Positive values scroll down; negative values scroll up.
    procedure Scroll_Settings_Pane
      (Model : in out Window_Model;
       Lines : Integer);
 
    --  Return the current settings-pane scroll offset in logical text lines.
+   --
+   --  @param Model Model to inspect.
+   --  @return Non-negative settings-pane scroll offset.
    function Settings_Pane_Scroll_Lines
      (Model : Window_Model)
       return Natural;
@@ -711,12 +717,18 @@ package Files.Model is
 
    --  Set the main-view scroll offset directly (clamped externally by the
    --  renderer at draw time). Used by scrollbar drag-to-scroll.
+   --
+   --  @param Model Model to update.
+   --  @param Lines New main-view scroll offset in logical text lines.
    procedure Set_Main_View_Scroll_Lines
      (Model : in out Window_Model;
       Lines : Natural);
 
    --  Set the info-pane scroll offset directly (clamped externally by the
    --  renderer at draw time). Used by scrollbar drag-to-scroll.
+   --
+   --  @param Model Model to update.
+   --  @param Lines New info-pane scroll offset in logical text lines.
    procedure Set_Info_Pane_Scroll_Lines
      (Model : in out Window_Model;
       Lines : Natural);
@@ -933,26 +945,41 @@ package Files.Model is
      (Model : in out Window_Model);
 
    --  Return whether the context menu is open.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the context menu is open.
    function Context_Menu_Is_Open
      (Model : Window_Model)
       return Boolean;
 
    --  Return the anchor X coordinate.
+   --
+   --  @param Model Model to inspect.
+   --  @return The context menu's anchor X coordinate in pixels.
    function Context_Menu_X
      (Model : Window_Model)
       return Natural;
 
    --  Return the anchor Y coordinate.
+   --
+   --  @param Model Model to inspect.
+   --  @return The context menu's anchor Y coordinate in pixels.
    function Context_Menu_Y
      (Model : Window_Model)
       return Natural;
 
    --  Return whether the menu was opened on an item or the empty area.
+   --
+   --  @param Model Model to inspect.
+   --  @return Whether the menu targets an item or the empty area.
    function Context_Menu_Target_Of
      (Model : Window_Model)
       return Context_Menu_Target;
 
    --  Return the item index the menu was anchored to (0 when empty area).
+   --
+   --  @param Model Model to inspect.
+   --  @return The anchored item index, or 0 when opened on the empty area.
    function Context_Menu_Item_Index
      (Model : Window_Model)
       return Natural;

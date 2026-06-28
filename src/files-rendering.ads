@@ -625,6 +625,12 @@ package Files.Rendering is
       Settings_Hits : Settings_Hit_Region_Vectors.Vector;
    end record;
 
+   --  Return the settings-pane hit region containing a point, if any.
+   --
+   --  @param Frame Frame whose settings hit regions are tested.
+   --  @param X Point X coordinate in pixels.
+   --  @param Y Point Y coordinate in pixels.
+   --  @return The hit region at the point, or an empty region when none match.
    function Settings_Hit_At
      (Frame : Frame_Commands;
       X     : Natural;
