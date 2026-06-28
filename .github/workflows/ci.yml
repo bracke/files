@@ -1,6 +1,7 @@
 name: CI
 
-# Builds the file manager and runs the AUnit test suite on every push/PR.
+# Builds the file manager and runs the AUnit test suite on Linux, macOS, and
+# Windows (full cross-platform support is a project goal).
 #
 # PREREQUISITE: this project pins four sibling crates by local path in
 # alire.toml (project_tools, i18n, textrender, zlib). CI clones them next to
@@ -8,6 +9,11 @@ name: CI
 # same owner. As of writing, `textrender` is published but `project_tools`,
 # `i18n`, and `zlib` are NOT — push them to github.com/<owner>/<name> (or
 # adjust the clone URLs below) before this workflow can succeed.
+#
+# NOTE: the Linux job is validated. The macOS and Windows jobs are best-effort
+# and have not yet been executed on real runners — the native Vulkan/GLFW
+# dependency setup and the FILES_FONT_PATH values below will likely need
+# iteration on the first cross-platform run.
 
 on:
   push:
@@ -17,7 +23,12 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    name: build-and-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout
@@ -25,7 +36,8 @@ jobs:
         with:
           path: files
 
-      - name: Install system libraries
+      - name: Install system libraries (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -35,7 +47,21 @@ jobs:
             libgtk-3-dev \
             fonts-dejavu-core
 
+      - name: Install system libraries (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          # MoltenVK provides the Vulkan loader/ICD on macOS.
+          brew install vulkan-headers vulkan-loader molten-vk glfw
+
+      - name: Install system libraries (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install --no-progress vulkan-sdk
+
       - name: Clone sibling crate dependencies
+        shell: bash
         working-directory: ${{ github.workspace }}
         run: |
           owner="${{ github.repository_owner }}"
@@ -50,11 +76,20 @@ jobs:
           toolchain: gnat_native^14 gprbuild
 
       - name: Build the application
+        shell: bash
         working-directory: files
         run: alr --non-interactive build
 
       - name: Build and run the test suite
+        shell: bash
         working-directory: files/tests
+        env:
+          # The headless suite exercises font discovery; point it at a known
+          # system font on macOS/Windows where the Linux font paths don't apply.
+          FILES_FONT_PATH: >-
+            ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
+            || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
+            || '' }}
         run: |
           alr --non-interactive build
           ./bin/tests

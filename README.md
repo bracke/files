@@ -4,8 +4,11 @@ A desktop file manager written in Ada 2022, rendered with Vulkan and GLFW.
 
 ## Platform status
 
-Linux is the validated platform. Windows and macOS platform bindings exist
-(`src/platform/windows`, `src/platform/macos`) but are not yet validated.
+Linux, Windows, and macOS are all supported targets. Linux is the validated
+platform today; the Windows and macOS platform bodies (`src/platform/windows`,
+`src/platform/macos`) build per-OS via `files.gpr` and are exercised by the
+cross-platform CI matrix (`.github/workflows/ci.yml`), but have not yet been
+fully runtime-validated on those operating systems.
 
 ## Building
 
@@ -42,6 +45,23 @@ sudo apt-get install -y \
   libgtk-3-dev \
   fonts-dejavu-core
 ```
+
+### System libraries (macOS)
+
+Vulkan on macOS is provided by MoltenVK. With [Homebrew](https://brew.sh/):
+
+```sh
+brew install vulkan-headers vulkan-loader molten-vk glfw
+```
+
+System fonts under `/System/Library/Fonts` are used for text rendering; set
+`FILES_FONT_PATH` to override the chosen font.
+
+### System libraries (Windows)
+
+Install the [Vulkan SDK](https://vulkan.lunarg.com/) (e.g. `choco install
+vulkan-sdk`). System fonts under `C:\Windows\Fonts` are used for text
+rendering; set `FILES_FONT_PATH` to override.
 
 ### Build and run
 
