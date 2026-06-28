@@ -127,7 +127,19 @@ package body Files.Fonts is
      (Path : String)
       return Boolean
    is
-      Lower : constant String := To_Lower (Path);
+      --  Match the file's simple name, not the whole path, so a font merely
+      --  living in a directory whose name contains one of these substrings
+      --  (e.g. ".../liberation/SomeOtherFont.ttf", or an explicit
+      --  FILES_FONT_PATH under such a directory) is not wrongly blocked.
+      function Simple_Name return String is
+      begin
+         return Ada.Directories.Simple_Name (Path);
+      exception
+         when others =>
+            return Path;
+      end Simple_Name;
+
+      Lower : constant String := To_Lower (Simple_Name);
    begin
       return Ada.Strings.Fixed.Index (Lower, "droidsansfallbackfull.ttf") > 0
         or else Ada.Strings.Fixed.Index (Lower, "liberation") > 0
