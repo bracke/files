@@ -1203,6 +1203,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.drop.invalid_source");
       Add_Error_Key ("error.drop.failed");
       Add_Error_Key ("error.drop.into_self");
+      Add_Error_Key ("error.compress.failed");
       Add_Error_Key ("error.thumbnail.source_missing");
       Add_Error_Key ("error.thumbnail.unsupported");
       Add_Error_Key ("error.thumbnail.failed");

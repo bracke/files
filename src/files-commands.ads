@@ -29,6 +29,8 @@ package Files.Commands is
       Cut_Selected_Items_Command,
       Paste_Items_Command,
       Open_Selected_Items_Command,
+      Compress_Zip_Command,
+      Compress_7z_Command,
       Generate_Thumbnails_Command,
       Focus_Filter_Input_Command,
       Open_Command_Palette_Command,

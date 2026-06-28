@@ -111,6 +111,25 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Archive container format produced by Compress_Selected.
+   type Archive_Format is (Zip_Archive, Seven_Zip_Archive);
+
+   --  Compress the selected items into a single archive in the current
+   --  directory, then reload so the new archive appears and is selected.
+   --  Directories are recursed; files are stored with directory-relative entry
+   --  names. The archive is named after the first selected item with the
+   --  format's extension (.zip / .7z), made unique if it already exists.
+   --
+   --  @param Model Window model providing the selection and current directory.
+   --  @param Settings Settings model used for the post-compress reload.
+   --  @param Format Archive container format to produce.
+   --  @return Structured operation result.
+   function Compress_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Format   : Archive_Format)
+      return Operation_Result;
+
    --  Replace the current view with recursive search results for the filter text.
    --
    --  @param Model Window model containing the current path and filter query.

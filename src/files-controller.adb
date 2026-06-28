@@ -626,6 +626,14 @@ package body Files.Controller is
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
             end;
+         when Files.Commands.Compress_Zip_Command =>
+            Operation :=
+              Files.Operations.Compress_Selected
+                (Model, Settings, Files.Operations.Zip_Archive);
+         when Files.Commands.Compress_7z_Command =>
+            Operation :=
+              Files.Operations.Compress_Selected
+                (Model, Settings, Files.Operations.Seven_Zip_Archive);
          when Files.Commands.Paste_Items_Command =>
             declare
                use type Files.Model.Clipboard_Mode;

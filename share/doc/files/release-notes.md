@@ -9,6 +9,10 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Compress selected items into an archive from the right-click menu —
+  "Compress Zip" and "Compress 7z" (built on zlib's `ZIP_Files` /
+  `Seven_Zip_Deflate_Files`). The archive is named after the first selected
+  item; directories are recursed.
 - Release management: a pin-free `alire.release.toml`, a `release_check`
   readiness tool (built on `project_tools`), and a documented release process.
 

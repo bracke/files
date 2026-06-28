@@ -109,6 +109,10 @@ package body Files.Commands is
             return "file.paste";
          when Open_Selected_Items_Command =>
             return "file.open_selected";
+         when Compress_Zip_Command =>
+            return "file.compress_zip";
+         when Compress_7z_Command =>
+            return "file.compress_7z";
          when Generate_Thumbnails_Command =>
             return "file.generate_thumbnails";
          when Focus_Filter_Input_Command =>
@@ -193,6 +197,10 @@ package body Files.Commands is
             return "command.file.paste";
          when Open_Selected_Items_Command =>
             return "command.file.open";
+         when Compress_Zip_Command =>
+            return "command.file.compress_zip";
+         when Compress_7z_Command =>
+            return "command.file.compress_7z";
          when Generate_Thumbnails_Command =>
             return "command.file.generate_thumbnails";
          when Focus_Filter_Input_Command =>
@@ -277,6 +285,10 @@ package body Files.Commands is
             return "command.file.paste.description";
          when Open_Selected_Items_Command =>
             return "command.file.open.description";
+         when Compress_Zip_Command =>
+            return "command.file.compress_zip.description";
+         when Compress_7z_Command =>
+            return "command.file.compress_7z.description";
          when Generate_Thumbnails_Command =>
             return "command.file.generate_thumbnails.description";
          when Focus_Filter_Input_Command =>
@@ -691,6 +703,9 @@ package body Files.Commands is
          when Delete_Selected_Items_Command | Open_Selected_Items_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Compress_Zip_Command | Compress_7z_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model);
          when Delete_Selected_Permanently_Command | Generate_Thumbnails_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
@@ -824,6 +839,8 @@ package body Files.Commands is
          when Paste_Items_Command =>
             null;
          when Open_Selected_Items_Command =>
+            null;
+         when Compress_Zip_Command | Compress_7z_Command =>
             null;
          when Generate_Thumbnails_Command =>
             null;

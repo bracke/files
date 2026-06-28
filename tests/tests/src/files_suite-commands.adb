@@ -582,7 +582,9 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 37, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 39, "all expected commands are registered");
+      Assert (Files.Commands.Contains ("file.compress_zip"), "compress-zip command identifier is registered");
+      Assert (Files.Commands.Contains ("file.compress_7z"), "compress-7z command identifier is registered");
       Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");
       Assert (Files.Commands.Contains ("settings.toggle"), "settings command identifier is registered");
       Assert (Files.Commands.Contains ("sort.menu.toggle"), "sort menu command identifier is registered");

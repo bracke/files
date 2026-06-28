@@ -2232,7 +2232,9 @@ package body Files.Rendering is
             Result.Commands (3) := Files.Commands.Cut_Selected_Items_Command;
             Result.Commands (4) := Files.Commands.Rename_Selected_Items_Command;
             Result.Commands (5) := Files.Commands.Delete_Selected_Items_Command;
-            Result.Row_Count := 5;
+            Result.Commands (6) := Files.Commands.Compress_Zip_Command;
+            Result.Commands (7) := Files.Commands.Compress_7z_Command;
+            Result.Row_Count := 7;
          when Files.Model.Context_Menu_Empty =>
             Result.Commands (1) := Files.Commands.Create_File_Command;
             Result.Commands (2) := Files.Commands.Paste_Items_Command;
