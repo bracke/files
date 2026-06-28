@@ -9,6 +9,7 @@ with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 
 with Project_Tools.Files;
+with Project_Tools.Text;
 
 procedure Cldr_To_Catalog is
    use Ada.Strings.Unbounded;
@@ -22,91 +23,30 @@ procedure Cldr_To_Catalog is
      (Index_Type   => Positive,
       Element_Type => Catalog_Entry);
 
+   --  General-purpose helpers now live in project_tools and are renamed here
+   --  so this tool reuses the shared implementations.
    function Starts_With
      (Text   : String;
       Prefix : String)
-      return Boolean is
-   begin
-      return Text'Length >= Prefix'Length
-        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
+      return Boolean renames Project_Tools.Text.Starts_With;
 
    function Has_Suffix
      (Text   : String;
       Suffix : String)
-      return Boolean is
-   begin
-      return Text'Length >= Suffix'Length
-        and then Text (Text'Last - Suffix'Length + 1 .. Text'Last) = Suffix;
-   end Has_Suffix;
+      return Boolean renames Project_Tools.Text.Ends_With;
 
    function Find_From
      (Text    : String;
       Pattern : String;
       From    : Positive)
-      return Natural is
-   begin
-      if From > Text'Last then
-         return 0;
-      end if;
+      return Natural renames Project_Tools.Text.Index_From;
 
-      return Ada.Strings.Fixed.Index (Text (From .. Text'Last), Pattern);
-   end Find_From;
-
-   function Read_Bytes (Path : String) return String is
-      File   : Ada.Streams.Stream_IO.File_Type;
-      Size   : Ada.Streams.Stream_IO.Count;
-      Last   : Ada.Streams.Stream_Element_Offset;
-   begin
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
-      Size := Ada.Streams.Stream_IO.Size (File);
-
-      declare
-         Data   : Ada.Streams.Stream_Element_Array (1 .. Ada.Streams.Stream_Element_Offset (Size));
-         Result : String (1 .. Natural (Size));
-      begin
-         Ada.Streams.Stream_IO.Read (File, Data, Last);
-         Ada.Streams.Stream_IO.Close (File);
-
-         for Index in Result'Range loop
-            Result (Index) :=
-              Character'Val (Data (Ada.Streams.Stream_Element_Offset (Index)));
-         end loop;
-
-         return Result;
-      end;
-   exception
-      when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            Ada.Streams.Stream_IO.Close (File);
-         end if;
-
-         raise;
-   end Read_Bytes;
+   function Read_Bytes (Path : String) return String
+     renames Project_Tools.Files.Read_Raw_File;
 
    procedure Write_Bytes
      (Path    : String;
-      Content : String)
-   is
-      File : Ada.Streams.Stream_IO.File_Type;
-      Data : Ada.Streams.Stream_Element_Array (1 .. Content'Length);
-   begin
-      for Index in Content'Range loop
-         Data (Ada.Streams.Stream_Element_Offset (Index - Content'First + 1)) :=
-           Ada.Streams.Stream_Element (Character'Pos (Content (Index)));
-      end loop;
-
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Ada.Streams.Stream_IO.Write (File, Data);
-      Ada.Streams.Stream_IO.Close (File);
-   exception
-      when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            Ada.Streams.Stream_IO.Close (File);
-         end if;
-
-         raise;
-   end Write_Bytes;
+      Content : String) renames Project_Tools.Files.Write_Raw_File;
 
    function Attribute_Value
      (Tag  : String;
