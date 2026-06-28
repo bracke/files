@@ -2137,8 +2137,12 @@ package body Files.Rendering is
         (if Snapshot.View_Mode = Files.Types.Details
          then Cell_H
          else Saturating_Add (Cell_H, Main_Grid_Gap));
+      --  At the very end of the list use the exact Max_Scroll instead of the
+      --  floored multiple: Max_Scroll is rarely a whole row period, and the
+      --  per-item visibility test drops a row that doesn't fully fit, so
+      --  flooring here would leave the final row permanently clipped/unreachable.
       Scroll_Px    : constant Natural :=
-        (if Row_Stride > 0
+        (if Row_Stride > 0 and then Bounded_Px < Max_Scroll
          then (Bounded_Px / Row_Stride) * Row_Stride
          else Bounded_Px);
       Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
@@ -2343,7 +2347,7 @@ package body Files.Rendering is
       Metadata_W : constant Natural := (if Available > Reserved_Name_W then Available - Reserved_Name_W else 0);
       Type_W    : constant Natural := Natural'Min (180, Metadata_W / 4);
       Size_W    : constant Natural := Natural'Min (120, Metadata_W / 7);
-      Modified_W : constant Natural := Natural'Min (220, Metadata_W / 3);
+      Modified_W : constant Natural := Natural'Min (264, Metadata_W / 3);
       Name_X    : constant Natural := Header_Content_X;
       Name_W    : constant Natural :=
         (if Available > Saturating_Add (Saturating_Add (Type_W, Size_W), Modified_W)

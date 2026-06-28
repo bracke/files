@@ -204,6 +204,25 @@ package body Files_Suite.Rendering is
             Assert (MV_Bot.Scroll_Pixels <= MV_Bot.Content_Height, "the scroll offset is bounded by content");
          end;
       end;
+
+      --  Regression: the last row must be reachable (laid out with non-zero
+      --  height) at maximum scroll. Row-period snapping must not floor the
+      --  offset below the point that brings the final, partially-fitting row
+      --  fully into view, in any view mode.
+      for Mode in Files.Types.View_Mode loop
+         declare
+            Full  : View_Snapshot := Sample_Snapshot (60, Mode);
+            L     : constant Layout_Metrics := Calculate_Layout (Full, 400, 300, 20);
+            Cells : Item_Layout_Vectors.Vector;
+         begin
+            Full.Main_View_Scroll_Lines := 100_000;
+            Cells := Calculate_Item_Layout (Full, L, Line_Height => 20);
+            Assert (not Cells.Is_Empty, "item layout produced at maximum scroll");
+            Assert
+              (Cells.Element (Cells.Last_Index).Height > 0,
+               "the last row is reachable at maximum scroll (" & Mode'Image & ")");
+         end;
+      end loop;
    end Test_Main_View_Scroll_Invariants;
 
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
