@@ -65,7 +65,8 @@ package body Files.Fonts is
      [To_Unbounded_String ("/usr/share/fonts"),
       To_Unbounded_String ("/usr/local/share/fonts"),
       To_Unbounded_String ("/Library/Fonts"),
-      To_Unbounded_String ("/System/Library/Fonts")];
+      To_Unbounded_String ("/System/Library/Fonts"),
+      To_Unbounded_String ("C:\Windows\Fonts")];
 
    function Safe_Environment_Value
      (Name : String)

@@ -26,8 +26,19 @@ project Files is
    package Linker is
       case Files_Config.Alire_Host_OS is
          when "macos" =>
+            --  MoltenVK provides Vulkan; gdk-pixbuf for thumbnail decoding;
+            --  CoreServices for the native trash API; CoreFoundation/Foundation
+            --  for locale.
             for Default_Switches ("Ada") use
-              ("-lvulkan", "-framework", "CoreFoundation");
+              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
+               "-framework", "CoreFoundation", "-framework", "CoreServices",
+               "-framework", "Foundation");
+         when "windows" =>
+            --  shell32 for SHFileOperationW (trash); ole32/kernel32 for shell
+            --  and locale APIs; plus Vulkan and gdk-pixbuf.
+            for Default_Switches ("Ada") use
+              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
+               "-lshell32", "-lole32", "-lkernel32");
          when others =>
             for Default_Switches ("Ada") use
               ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
