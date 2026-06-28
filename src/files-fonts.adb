@@ -7,6 +7,8 @@ with Ada.Strings.Unbounded;
 
 with Textrender.Fonts;
 
+with Project_Tools.Files;
+
 with Files.UTF8;
 
 package body Files.Fonts is
@@ -83,9 +85,7 @@ package body Files.Fonts is
      (Path : String)
       return Boolean is
    begin
-      return Path /= ""
-        and then Ada.Directories.Exists (Path)
-        and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File;
+      return Path /= "" and then Project_Tools.Files.File_Exists (Path);
    exception
       when others =>
          return False;
@@ -202,8 +202,7 @@ package body Files.Fonts is
       if Natural (Paths.Length) >= Max_Discovered_Fonts
         or else Depth > Max_Search_Depth
         or else Root = ""
-        or else not Ada.Directories.Exists (Root)
-        or else Ada.Directories.Kind (Root) /= Ada.Directories.Directory
+        or else not Project_Tools.Files.Directory_Exists (Root)
       then
          return;
       end if;

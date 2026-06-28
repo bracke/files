@@ -9,6 +9,9 @@ with Ada.Text_IO;
 
 with Interfaces.C;
 with Interfaces.C.Strings;
+
+with Project_Tools.Files;
+with Project_Tools.Text;
 with System;
 with System.Address_To_Access_Conversions;
 
@@ -315,7 +318,6 @@ package body Files.File_System is
      (Path : String)
       return Cached_Thumbnail
    is
-      File    : Ada.Text_IO.File_Type;
       Content : Unbounded_String;
       Token   : Unbounded_String;
       Cursor  : Positive := 1;
@@ -392,22 +394,12 @@ package body Files.File_System is
       end Channel;
    begin
       if Path = ""
-        or else not Ada.Directories.Exists (Path)
-        or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
+        or else not Project_Tools.Files.File_Exists (Path)
       then
          return Result;
       end if;
 
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
-      while not Ada.Text_IO.End_Of_File (File) loop
-         declare
-            Line : constant String := Ada.Text_IO.Get_Line (File);
-         begin
-            Append (Content, Line);
-            Append (Content, ASCII.LF);
-         end;
-      end loop;
-      Ada.Text_IO.Close (File);
+      Content := Project_Tools.Text.Read_Text_File (Path);
 
       declare
          Values    : constant Files.Types.String_Vectors.Vector := Tokens;
@@ -457,9 +449,6 @@ package body Files.File_System is
       end;
    exception
       when others =>
-         if Ada.Text_IO.Is_Open (File) then
-            Ada.Text_IO.Close (File);
-         end if;
          return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
    end Load_Cached_Thumbnail;
 
@@ -1167,8 +1156,7 @@ package body Files.File_System is
       Count     : Natural := 0;
       Started   : Boolean := False;
    begin
-      if not Ada.Directories.Exists (Path)
-        or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
+      if not Project_Tools.Files.Directory_Exists (Path)
       then
          return "";
       end if;
@@ -1503,8 +1491,7 @@ package body Files.File_System is
       Normalized_Path : Unbounded_String;
       Started : Boolean := False;
    begin
-      if not Ada.Directories.Exists (Path)
-        or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
+      if not Project_Tools.Files.Directory_Exists (Path)
       then
          return
            (Success   => False,
@@ -1687,8 +1674,7 @@ package body Files.File_System is
             null;
       end Visit;
    begin
-      if not Ada.Directories.Exists (Root_Path)
-        or else Ada.Directories.Kind (Root_Path) /= Ada.Directories.Directory
+      if not Project_Tools.Files.Directory_Exists (Root_Path)
       then
          Result.Error_Key := To_Unbounded_String ("error.directory.load");
          return Result;
@@ -1738,8 +1724,7 @@ package body Files.File_System is
          return Natural (Value);
       end Entry_Checksum;
    begin
-      if not Ada.Directories.Exists (Path)
-        or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
+      if not Project_Tools.Files.Directory_Exists (Path)
       then
          return Result;
       end if;
@@ -2068,8 +2053,7 @@ package body Files.File_System is
          Label : Unbounded_String;
          Effective_Kind : Root_Kind := Kind;
       begin
-         if Ada.Directories.Exists (Path)
-           and then Ada.Directories.Kind (Path) = Ada.Directories.Directory
+         if Project_Tools.Files.Directory_Exists (Path)
          then
             Full := To_Unbounded_String (Ada.Directories.Full_Name (Path));
             Name := To_Unbounded_String (Ada.Directories.Simple_Name (To_String (Full)));
@@ -3417,8 +3401,7 @@ package body Files.File_System is
       procedure Delete_Created_File_If_Present is
       begin
          if Created
-           and then Ada.Directories.Exists (Path)
-           and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File
+           and then Project_Tools.Files.File_Exists (Path)
          then
             Ada.Directories.Delete_File (Path);
          end if;
@@ -3479,7 +3462,7 @@ package body Files.File_System is
    is
       function Exists_Safely (Path : String) return Boolean is
       begin
-         return Path /= "" and then Ada.Directories.Exists (Path);
+         return Path /= "" and then Project_Tools.Files.Exists (Path);
       exception
          when others =>
             return False;
@@ -3733,42 +3716,6 @@ package body Files.File_System is
      (Path : String)
       return Mutation_Result
    is
-      procedure Delete_Tree (Target_Path : String) is
-         Search    : Ada.Directories.Search_Type;
-         Dir_Entry : Ada.Directories.Directory_Entry_Type;
-         Started   : Boolean := False;
-      begin
-         if Ada.Directories.Kind (Target_Path) = Ada.Directories.Directory then
-            Ada.Directories.Start_Search
-              (Search,
-               Directory => Target_Path,
-               Pattern   => "*",
-               Filter    =>
-                 [Ada.Directories.Ordinary_File => True,
-                  Ada.Directories.Directory     => True,
-                  Ada.Directories.Special_File  => True]);
-            Started := True;
-            while Ada.Directories.More_Entries (Search) loop
-               Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
-               declare
-                  Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
-               begin
-                  if Name /= "." and then Name /= ".." then
-                     Delete_Tree (Ada.Directories.Full_Name (Dir_Entry));
-                  end if;
-               end;
-            end loop;
-            Safe_End_Search (Search, Started);
-            Ada.Directories.Delete_Directory (Target_Path);
-         else
-            Ada.Directories.Delete_File (Target_Path);
-         end if;
-      exception
-         when others =>
-            Safe_End_Search (Search, Started);
-            raise;
-      end Delete_Tree;
-
       function Unsafe_Target return Boolean is
       begin
          if Path = ""
@@ -3801,7 +3748,13 @@ package body Files.File_System is
             Error_Key => To_Unbounded_String ("error.rename.source_missing"));
       end if;
 
-      Delete_Tree (Path);
+      --  Project_Tools.Files.Delete_Tree removes a directory tree; a single
+      --  file must go through Delete_File.
+      if Project_Tools.Files.Directory_Exists (Path) then
+         Project_Tools.Files.Delete_Tree (Path);
+      else
+         Ada.Directories.Delete_File (Path);
+      end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
@@ -3883,8 +3836,7 @@ package body Files.File_System is
                     and then I (I'First + O'Length) = '/');
       end Is_Within_Tree;
    begin
-      if not Ada.Directories.Exists (Destination_Directory)
-        or else Ada.Directories.Kind (Destination_Directory) /= Ada.Directories.Directory
+      if not Project_Tools.Files.Directory_Exists (Destination_Directory)
       then
          Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
          return Result;

@@ -6,6 +6,8 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Interfaces;
 
+with Project_Tools.Files;
+
 with Files.File_System;
 with Files.Application.Windows;
 with Files_Config;
@@ -117,9 +119,7 @@ package body Files.Application is
 
       function Existing_Directory (Path : String) return Boolean is
       begin
-         return Path /= ""
-           and then Ada.Directories.Exists (Path)
-           and then Ada.Directories.Kind (Path) = Ada.Directories.Directory;
+         return Path /= "" and then Project_Tools.Files.Directory_Exists (Path);
       exception
          when others =>
             return False;
