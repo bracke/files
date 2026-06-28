@@ -1202,6 +1202,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.drop.invalid_destination");
       Add_Error_Key ("error.drop.invalid_source");
       Add_Error_Key ("error.drop.failed");
+      Add_Error_Key ("error.drop.into_self");
       Add_Error_Key ("error.thumbnail.source_missing");
       Add_Error_Key ("error.thumbnail.unsupported");
       Add_Error_Key ("error.thumbnail.failed");
@@ -1228,6 +1229,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.settings.invalid_boolean");
       Add_Error_Key ("error.settings.invalid_icon_theme");
       Add_Error_Key ("error.settings.invalid_sort_field");
+      Add_Error_Key ("error.settings.invalid_font_pixel_size");
       Add_Error_Key ("error.settings.unknown_key");
       Add_Error_Key ("error.settings.missing_section");
       Add_Error_Key ("error.settings.invalid");

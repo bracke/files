@@ -37,6 +37,10 @@ procedure Check_All is
    end Project_Root;
 
    Root : constant String := Project_Root;
+   --  The AUnit suite was split from one files_suite.adb into per-section
+   --  bodies; contract checks search this combined snapshot so an assertion
+   --  may live in any section. Written once at startup (see main body).
+   Combined_Suite : constant String := Root & "/tools/obj/check_all_combined_suite.txt";
    Alr  : constant String := Project_Tools.Processes.Locate_Command ("alr");
 
    function Is_Text_Project_File (Name : String) return Boolean is
@@ -127,6 +131,29 @@ procedure Check_All is
          end if;
          raise;
    end Run_And_Require_Output;
+
+   --  Concatenate the aggregator and every split section body of the AUnit
+   --  suite, so contract checks can assert against the suite as a whole.
+   function Suite_Sources return String is
+      Dir    : constant String := Root & "/tests/tests/src/";
+      Result : Unbounded_String;
+
+      procedure Add (Name : String) is
+      begin
+         Append (Result, Project_Tools.Text.Read_Text_File (Dir & Name));
+         Append (Result, ASCII.LF);
+      end Add;
+   begin
+      Add ("files_suite.adb");
+      Add ("files_suite-startup.adb");
+      Add ("files_suite-model.adb");
+      Add ("files_suite-commands.adb");
+      Add ("files_suite-settings.adb");
+      Add ("files_suite-operations.adb");
+      Add ("files_suite-rendering.adb");
+      Add ("files_suite-support.adb");
+      return To_String (Result);
+   end Suite_Sources;
 
    procedure Check_CLDR_Importer is
    begin
@@ -879,7 +906,7 @@ procedure Check_All is
          Hash                => Ada.Strings.Hash,
          Equivalent_Elements => "=");
 
-      Path       : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Path       : constant String := Combined_Suite;
       All_Suites : constant String := Root & "/tests/tests/src/all_suites.adb";
       Runner     : constant String := Root & "/tests/tests/src/tests.adb";
       Content    : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
@@ -1256,6 +1283,14 @@ procedure Check_All is
       Has_Letter : Boolean := False;
       Has_Space  : Boolean := False;
    begin
+      --  Shell/command fragments and similar code carry metacharacters that
+      --  never appear in user-visible prose; they are not localizable text.
+      for Char of Literal loop
+         if Char in '$' | ';' | '|' | '<' | '>' then
+            return False;
+         end if;
+      end loop;
+
       if Literal = "/Type /Page"
         or else Literal = "untitled "
         or else Literal = "untitled.txt"
@@ -1268,6 +1303,12 @@ procedure Check_All is
         or else Literal = "sort_ascending = "
         or else Literal = "high_contrast_theme = "
         or else Literal = "icon_theme = "
+        or else Literal = "font_pixel_size = "
+        or else Literal = "info_pane_open = "
+        or else Literal = "use_system_default_opener = "
+        or else Literal = "window_width = "
+        or else Literal = "window_height = "
+        or else Literal = "bookmark = "
       then
          return False;
       end if;
@@ -1292,6 +1333,17 @@ procedure Check_All is
          if Content (Index) = ASCII.LF then
             Line := Line + 1;
             Index := Index + 1;
+         elsif Content (Index) = '-'
+           and then Index < Content'Last
+           and then Content (Index + 1) = '-'
+         then
+            --  Skip the rest of a comment line: its prose may contain quoted
+            --  phrases that are documentation, not hard-coded user-visible
+            --  string literals. (Outside a string literal, "--" always starts
+            --  an Ada comment.)
+            while Index <= Content'Last and then Content (Index) /= ASCII.LF loop
+               Index := Index + 1;
+            end loop;
          elsif Is_Source_String_Delimiter (Content, Index) then
             Index := Index + 1;
             declare
@@ -1859,7 +1911,7 @@ procedure Check_All is
 
    procedure Check_Error_Localization_Test_Coverage is
       Catalog      : constant String := Root & "/share/files.catalog";
-      Tests        : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests        : constant String := Combined_Suite;
       Content      : constant String := To_String (Project_Tools.Text.Read_Text_File (Catalog));
       Line_First   : Natural := Content'First;
       Line_Last    : Natural := Content'First;
@@ -2211,63 +2263,63 @@ procedure Check_All is
       Check_Catalog_Baseline_Keys;
       Check_Error_Localization_Test_Coverage;
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "startup window label is localized",
          "localization tests must cover startup window labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "startup report uses localized window label",
          "startup report tests must build expected window labels through localization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "startup error label is localized",
          "localization tests must cover startup error labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "startup report uses localized error label and diagnostic",
          "startup report tests must build expected error text through localization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke text-failure label is localized",
          "localization tests must cover runtime smoke text-failure diagnostics");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke no-window label is localized",
          "localization tests must cover runtime smoke no-window diagnostics");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke report uses localized empty-startup diagnostic",
          "runtime smoke tests must build empty-startup expected text through localization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke no-display label is localized",
          "localization tests must cover runtime smoke display diagnostics");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke ready label is localized",
          "localization tests must cover runtime smoke ready diagnostics");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke report uses localized window label",
          "runtime smoke tests must build expected window labels through localization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke report uses localized vertex-count label",
          "runtime smoke tests must build expected metric labels through localization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke report exposes missing-glyph fallback count",
          "runtime smoke tests must cover missing-glyph fallback diagnostics");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime smoke report exposes selected text font path",
          "runtime smoke tests must cover selected font diagnostics");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "CLI help flag description is localized",
          "localization tests must cover help-flag CLI text");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "detected Danish locale loads translated app catalog resources",
          "localization tests must cover translated locale resource loading");
       Project_Tools.Files.Require_Contains
@@ -2283,59 +2335,59 @@ procedure Check_All is
          """-framework"", ""CoreFoundation""",
          "macOS locale detection must link CoreFoundation");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "Windows native locale detection binds GetUserDefaultLocaleName",
          "locale tests must cover Windows native locale binding");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "macOS native locale detection binds CoreFoundation locale APIs",
          "locale tests must cover macOS native locale binding");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "unknown localization key falls back to key text",
          "localization tests must cover unknown-key fallback");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "item-count label is localized",
          "localization tests must cover item-count status labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "visible-count label is localized",
          "localization tests must cover visible-count status labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "selected-count label is localized",
          "localization tests must cover selected-count status labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "toolbar landmark is localized",
          "localization tests must cover toolbar accessibility labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "main-view landmark is localized",
          "localization tests must cover main-view accessibility labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "info-pane landmark is localized",
          "localization tests must cover info-pane accessibility labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "command-palette search label is localized",
          "localization tests must cover command-palette search accessibility labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "root-selector landmark is localized",
          "localization tests must cover root-selector accessibility labels");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "error localization exists for",
          "localization tests must cover every recoverable error key");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "registered command name is localized for",
          "localization tests must cover registered command names");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "registered command description is localized for",
          "localization tests must cover registered command descriptions");
       Check_Command_Localization_Keys;
@@ -2359,7 +2411,7 @@ procedure Check_All is
       Feature_Spec   : constant String := Root & "/src/files-features.ads";
       Feature_Policy : constant String := Root & "/src/files-features.adb";
       File_System_Spec : constant String := Root & "/src/files-file_system.ads";
-      Tests          : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests          : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Feature_Spec,
@@ -2695,7 +2747,7 @@ procedure Check_All is
    procedure Check_Open_Action_Shell_Safety is
       Settings_Body   : constant String := Root & "/src/files-settings.adb";
       Operations_Body : constant String := Root & "/src/files-operations.adb";
-      Tests           : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests           : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Settings_Body,
@@ -2785,7 +2837,7 @@ procedure Check_All is
 
    procedure Check_Open_Action_Settings_Validation is
       Settings_Body : constant String := Root & "/src/files-settings.adb";
-      Tests         : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests         : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Settings_Body,
@@ -3218,7 +3270,7 @@ procedure Check_All is
 
    procedure Check_Open_Action_Placeholder_Contract is
       Settings_Body : constant String := Root & "/src/files-settings.adb";
-      Tests         : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests         : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Settings_Body,
@@ -3403,7 +3455,7 @@ procedure Check_All is
 
    procedure Check_Open_Action_Lookup_Contract is
       Settings_Body : constant String := Root & "/src/files-settings.adb";
-      Tests         : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests         : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Settings_Body,
@@ -3461,7 +3513,7 @@ procedure Check_All is
 
    procedure Check_Operations_Open_Action_Contract is
       Operations_Body : constant String := Root & "/src/files-operations.adb";
-      Tests           : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests           : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Operations_Body,
@@ -3651,7 +3703,7 @@ procedure Check_All is
 
    procedure Check_Settings_Serialization_Contract is
       Settings_Body : constant String := Root & "/src/files-settings.adb";
-      Tests         : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests         : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Settings_Body,
@@ -3871,7 +3923,7 @@ procedure Check_All is
       Model_Body      : constant String := Root & "/src/files-model.adb";
       Controller_Body : constant String := Root & "/src/files-controller.adb";
       Commands_Body   : constant String := Root & "/src/files-commands.adb";
-      Tests           : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests           : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Commands_Body,
@@ -4114,7 +4166,7 @@ procedure Check_All is
    procedure Check_Filesystem_Mutation_Safety is
       File_System_Body : constant String := Root & "/src/files-file_system.adb";
       Operations_Body  : constant String := Root & "/src/files-operations.adb";
-      Tests            : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests            : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (File_System_Body,
@@ -4899,82 +4951,82 @@ procedure Check_All is
          "if Clean (Index) = '/' or else Clean (Index) = '\' then",
          "filetype leaf-name extraction must recognize Unix and Windows separators");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "filetype detection normalizes filename extension case before mapping",
          "filetype detection tests must cover filename extension case normalization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "extension extraction trims vertical-tab and form-feed whitespace",
          "filetype detection tests must cover control whitespace extension trimming");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "extension extraction trims UTF-8 NBSP whitespace",
          "filetype detection tests must cover UTF-8 NBSP extension trimming");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "extension extraction trims UTF-8 line-separator whitespace",
          "filetype detection tests must cover UTF-8 line-separator extension trimming");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "filetype detection trims vertical-tab and form-feed filename whitespace before mapping",
          "filetype detection tests must cover control whitespace detection trimming");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "filetype detection trims UTF-8 NBSP filename whitespace before mapping",
          "filetype detection tests must cover UTF-8 NBSP detection trimming");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "filetype detection trims UTF-8 line-separator filename whitespace before mapping",
          "filetype detection tests must cover UTF-8 line-separator detection trimming");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "settings-aware executable helper item ignores extension mappings",
          "filetype detection tests must cover helper executable precedence over extension mapping");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "settings-aware symlink helper item ignores extension mappings",
          "filetype detection tests must cover helper symlink precedence over extension mapping");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "unknown item filetype still uses configured extension mappings",
          "filetype detection tests must cover unknown-kind extension mapping");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "other item filetype falls back deterministically without mapping",
          "filetype detection tests must cover other-kind fallback classification");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "directory icon falls back by item kind without mapping",
          "filetype detection tests must cover directory icon fallback by kind");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "symlink icon falls back by item kind without mapping",
          "filetype detection tests must cover symlink icon fallback by kind");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "executable icon falls back by item kind without mapping",
          "filetype detection tests must cover executable icon fallback by kind");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "other item icon falls back deterministically without mapping",
          "filetype detection tests must cover other-kind icon fallback");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "extension extraction normalizes case",
          "filetype detection tests must cover extension extraction case normalization");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "extension extraction ignores dotted directory names",
          "filetype detection tests must cover path leaf extension extraction");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "filetype detection ignores dotted directory names",
          "filetype detection tests must cover path leaf filetype detection");
    end Check_Filetype_Detection_Order;
 
    procedure Check_Directory_Loading_Contract is
       File_System_Body : constant String := Root & "/src/files-file_system.adb";
-      Tests            : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests            : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (File_System_Body,
@@ -5382,7 +5434,7 @@ procedure Check_All is
    procedure Check_Command_Registry_Contract is
       Commands_Spec : constant String := Root & "/src/files-commands.ads";
       Commands_Body : constant String := Root & "/src/files-commands.adb";
-      Tests         : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests         : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Commands_Spec,
@@ -5986,7 +6038,7 @@ procedure Check_All is
    procedure Check_Command_Palette_Search_Contract is
       Palette_Spec : constant String := Root & "/src/files-command_palette.ads";
       Palette_Body : constant String := Root & "/src/files-command_palette.adb";
-      Tests        : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests        : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Palette_Spec,
@@ -6298,7 +6350,7 @@ procedure Check_All is
       File_System_Body : constant String := Root & "/src/files-file_system.adb";
       Model_Body       : constant String := Root & "/src/files-model.adb";
       Operations_Body  : constant String := Root & "/src/files-operations.adb";
-      Tests            : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests            : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Commands_Body,
@@ -6573,7 +6625,7 @@ procedure Check_All is
 
    procedure Check_Event_Translation_Contract is
       Events_Body : constant String := Root & "/src/files-events.adb";
-      Tests       : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests       : constant String := Combined_Suite;
    begin
       Require_Not_Contains
         (Events_Body,
@@ -6865,7 +6917,7 @@ procedure Check_All is
    procedure Check_Event_Hit_Test_Contract is
       Events_Body    : constant String := Root & "/src/files-events.adb";
       Rendering_Body : constant String := Root & "/src/files-rendering.adb";
-      Tests          : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests          : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Events_Body,
@@ -7221,7 +7273,7 @@ procedure Check_All is
 
    procedure Check_UI_Command_Hit_Test_Contract is
       UI_Body : constant String := Root & "/src/files-ui.adb";
-      Tests   : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests   : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (UI_Body,
@@ -7555,7 +7607,7 @@ procedure Check_All is
    procedure Check_Controller_Command_Routing_Contract is
       Controller_Body : constant String := Root & "/src/files-controller.adb";
       Operations_Body : constant String := Root & "/src/files-operations.adb";
-      Tests           : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests           : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Controller_Body,
@@ -8298,7 +8350,7 @@ procedure Check_All is
 
    procedure Check_Model_State_Contract is
       Model_Body : constant String := Root & "/src/files-model.adb";
-      Tests      : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests      : constant String := Combined_Suite;
       Content    : constant String := To_String (Project_Tools.Text.Read_Text_File (Model_Body));
       Marker     : constant String := "Model.Command_Palette_Query := Null_Unbounded_String;";
       Reset      : constant String := "Model.Command_Palette_Cursor := 0;";
@@ -8793,47 +8845,47 @@ procedure Check_All is
          "aunit = ",
          "tests crate must depend on AUnit");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "files crate pins textrender to the local relative path",
          "first-implementation policy tests must cover the textrender local pin");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "files project keeps platform-specific source directories wired",
          "first-implementation policy tests must cover platform-specific source directories");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "files project builds the expected binary entry point",
          "first-implementation policy tests must cover the files binary entry point");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "nested tests project builds the expected AUnit runner",
          "first-implementation policy tests must cover the nested AUnit runner");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "nested tests project keeps Ada 2022 test sources wired",
          "first-implementation policy tests must cover nested tests source wiring");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "checker tooling project builds the expected Ada helper",
          "first-implementation policy tests must cover checker executable wiring");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "checker tooling project keeps Ada 2022 sources wired",
          "first-implementation policy tests must cover checker source wiring");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "main crate ignores generated build artifacts",
          "first-implementation policy tests must cover main generated-artifact ignores");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "top-level tests crate ignores generated build artifacts",
          "first-implementation policy tests must cover top-level tests generated-artifact ignores");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "nested tests crate ignores generated build artifacts",
          "first-implementation policy tests must cover nested tests generated-artifact ignores");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "checker tooling crate ignores generated build artifacts",
          "first-implementation policy tests must cover checker generated-artifact ignores");
       Project_Tools.Files.Require_Contains
@@ -8954,7 +9006,7 @@ procedure Check_All is
       Application_Spec : constant String := Root & "/src/files-application.ads";
       Application_Body : constant String := Root & "/src/files-application.adb";
       File_System_Body : constant String := Root & "/src/files-file_system.adb";
-      Tests            : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests            : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Application_Spec,
@@ -9215,7 +9267,7 @@ procedure Check_All is
    procedure Check_Application_CLI_Surface is
       Application_Spec : constant String := Root & "/src/files-application.ads";
       Application_Body : constant String := Root & "/src/files-application.adb";
-      Tests            : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests            : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Application_Spec,
@@ -9517,7 +9569,7 @@ procedure Check_All is
 
    procedure Check_Desktop_Runtime_Contract is
       Windows_Body : constant String := Root & "/src/files-application-windows.adb";
-      Tests        : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests        : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Windows_Body,
@@ -9604,7 +9656,7 @@ procedure Check_All is
          "Native_Drop_Automation",
          "desktop runtime must advertise drop event-source automation");
       Project_Tools.Files.Require_Contains
-        (Root & "/tests/tests/src/files_suite.adb",
+        (Combined_Suite,
          "runtime capabilities expose drop event-source automation",
          "desktop runtime tests must cover drop event-source automation");
       Project_Tools.Files.Require_Contains
@@ -9951,7 +10003,7 @@ procedure Check_All is
       Windows_Body   : constant String := Root & "/src/files-application-windows.adb";
       Vulkan_Body    : constant String := Root & "/src/files-rendering-vulkan.adb";
       Vulkan_Spec    : constant String := Root & "/src/files-rendering-vulkan.ads";
-      Tests          : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests          : constant String := Combined_Suite;
 
       procedure Check_Rendering_Unit
         (Path  : String;
@@ -11907,7 +11959,7 @@ procedure Check_All is
    procedure Check_Icon_Accessibility_Contract is
       Rendering_Body : constant String := Root & "/src/files-rendering.adb";
       Rendering_Spec : constant String := Root & "/src/files-rendering.ads";
-      Tests          : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests          : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Contains
         (Rendering_Spec,
@@ -12410,7 +12462,7 @@ procedure Check_All is
    end Check_Icon_Assets;
 
    procedure Check_Platform_Bodies is
-      Tests : constant String := Root & "/tests/tests/src/files_suite.adb";
+      Tests : constant String := Combined_Suite;
    begin
       Project_Tools.Files.Require_Files
         ([To_Unbounded_String (Root & "/src/platform/windows/files-platform-windows.adb"),
@@ -13135,6 +13187,8 @@ begin
    end if;
 
    Require_Command ("alr");
+
+   Project_Tools.Files.Write_Text_File (Combined_Suite, Suite_Sources);
 
    Check_Line_Lengths;
    Check_Consecutive_Empty_Lines;
