@@ -2668,7 +2668,7 @@ procedure Check_All is
          "checker tooling must pin project_tools to the local relative crate");
       Project_Tools.Files.Require_Contains
         (Tools_Project,
-         "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"");",
+         "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"", ""release_check.adb"");",
          "checker tooling project must build Ada tool mains");
       Project_Tools.Files.Require_Contains
         (Tools_Project,

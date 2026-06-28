@@ -5,7 +5,7 @@ project Files_Check_All is
    for Object_Dir use "obj/" & Files_Check_All_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("check_all.adb", "cldr_to_catalog.adb");
+   for Main use ("check_all.adb", "cldr_to_catalog.adb", "release_check.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use
@@ -19,6 +19,7 @@ project Files_Check_All is
    package Builder is
       for Executable ("check_all.adb") use "check_all";
       for Executable ("cldr_to_catalog.adb") use "cldr_to_catalog";
+      for Executable ("release_check.adb") use "release_check";
    end Builder;
 
 end Files_Check_All;

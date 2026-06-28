@@ -79,6 +79,32 @@ UTF-8 source encoding, and Ada 2022.
 - [`share/doc/files/platform-support.md`](share/doc/files/platform-support.md)
 - [`share/doc/files/release-notes.md`](share/doc/files/release-notes.md)
 
+## Releasing
+
+The crate uses two Alire manifests:
+
+- `alire.toml` — the **development** manifest, with local-path pins to the
+  sibling crates (`project_tools`, `i18n`, `textrender`, `zlib`).
+- `alire.release.toml` — the **publishable** manifest: identical metadata but
+  **no local pins** (it depends on the published crates by wildcard version).
+
+Their versions and dependency sets are kept in sync by the release-readiness
+checker, which is built on `project_tools` (`Release_Checks` / `Alire_Manifests`):
+
+```sh
+cd tools && alr build && cd ..
+tools/bin/release_check
+```
+
+To cut a release, run the `/release <version>` workflow (e.g. `/release 0.1.0`).
+It bumps both manifests, rolls `share/doc/files/release-notes.md` (a
+[Keep a Changelog](https://keepachangelog.com/) changelog), runs the full
+verification chain plus `release_check`, and tags `v<version>`.
+
+Publishing to the Alire community index additionally requires that the four
+sibling crates are themselves published (the released `files` depends on them
+by version, not by path), and is done from `alire.release.toml`.
+
 ## License
 
 MIT OR Apache-2.0 WITH LLVM-exception.

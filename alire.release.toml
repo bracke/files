@@ -1,0 +1,40 @@
+name = "files"
+description = "Desktop file manager"
+version = "0.1.0-dev"
+
+authors = ["Bent Bracke"]
+maintainers = ["Bent Bracke <bent@bracke.dk>"]
+maintainers-logins = ["bracke"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = "https://github.com/bracke/files"
+tags = ["filemanager"]
+
+executables = ["files"]
+
+# Release manifest: published form of alire.toml with NO local path pins.
+# The development alire.toml pins project_tools/i18n/textrender/zlib to sibling
+# checkouts; this file depends on their published crates instead. Keep the two
+# manifests' metadata and dependency sets in sync (enforced by
+# tools/bin/release_check).
+
+[[depends-on]]
+project_tools = "*"
+
+[[depends-on]]
+i18n = "*"
+
+[[depends-on]]
+textrender = "*"
+
+[[depends-on]]
+zlib = "*"
+
+[[depends-on]]
+df_vulkan = "~0.1.0"
+
+[[depends-on]]
+openglada_glfw = "~0.9.0"
+
+[[depends-on]]
+utilada = "^2.9.0"
+

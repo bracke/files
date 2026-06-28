@@ -1756,9 +1756,11 @@ package body Files_Suite.Startup is
          "nested tests project keeps Ada 2022 test sources wired");
       Assert
         (Repository_File_Contains
-           ("tools/files_check_all.gpr", "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"")")
+           ("tools/files_check_all.gpr",
+            "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"", ""release_check.adb"")")
          and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""check_all""")
-         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""cldr_to_catalog"""),
+         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""cldr_to_catalog""")
+         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""release_check"""),
          "checker tooling project builds the expected Ada helpers");
       Assert
         (Repository_File_Contains ("tools/files_check_all.gpr", "for Source_Dirs use (""src"", ""config"")")

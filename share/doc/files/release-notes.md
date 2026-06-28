@@ -1,23 +1,47 @@
 # Files Release Notes
 
+All notable changes are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/); this project uses
+[semantic versioning](https://semver.org/). The `[Unreleased]` section
+accumulates changes; `tools/bin/release_check` and the `/release` process move
+it under a dated version heading when a release is cut.
+
+## [Unreleased]
+
+### Added
+- Release management: a pin-free `alire.release.toml`, a `release_check`
+  readiness tool (built on `project_tools`), and a documented release process.
+
+### Changed
+- Adopted `project_tools` in the application and tooling (existence checks,
+  recursive delete, text reads); moved general-purpose tool helpers into
+  `project_tools`.
+- Replaced `check_all`'s brittle exact-string contract layer with robust,
+  refactor-tolerant checks.
+
+### Fixed
+- Numerous correctness fixes across the file-system, operations, controller,
+  model, settings, events, rendering, Vulkan, fonts, accessibility, and
+  platform subsystems (see git history).
+
+## [0.1.0-dev] - 2026-06-24
+
 This development snapshot focuses on a complete, testable Ada file-manager
 vertical slice plus advanced feature depth.
 
-Implemented areas:
+### Added
+- Startup path normalization and one window model per valid directory.
+- Deterministic directory loading, metadata, sorting, filtering, and selection.
+- View modes for small icons, large icons, and details.
+- Central command registry with toolbar, bottom-bar, keyboard, and palette routes.
+- Settings parsing, editing, saving, reset, and open-action lookup.
+- Trash, permanent delete, rename, create-file, refresh, recursive search, and
+  native drop-event queued drop-import operations.
+- Vulkan rendering with textrender text, icon assets, live smoke diagnostics,
+  and framebuffer readback hashing.
+- Accessibility bridge export, high-contrast icon profile, and localized UI text.
+- Desktop packaging metadata, AppStream metadata, application icon, and manifest.
+- AUnit model, command, filesystem, rendering, runtime, and packaging coverage.
 
-1. Startup path normalization and one window model per valid directory.
-2. Deterministic directory loading, metadata, sorting, filtering, and selection.
-3. View modes for small icons, large icons, and details.
-4. Central command registry with toolbar, bottom-bar, keyboard, and palette routes.
-5. Settings parsing, editing, saving, reset, and open-action lookup.
-6. Trash, permanent delete, rename, create-file, refresh, recursive search, and
-   native drop-event queued drop-import operations.
-7. Vulkan rendering with textrender text, icon assets, live smoke diagnostics,
-   and framebuffer readback hashing.
-8. Accessibility bridge export, high-contrast icon profile, and localized UI text.
-9. Desktop packaging metadata, AppStream metadata, application icon, and manifest.
-10. AUnit model, command, filesystem, rendering, runtime, and packaging coverage.
-
-Known completion limits:
-
-1. Windows and macOS platform bodies need validation on those operating systems.
+### Known limits
+- Windows and macOS platform bodies need validation on those operating systems.
