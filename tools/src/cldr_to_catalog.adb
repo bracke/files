@@ -10,6 +10,7 @@ with Ada.Text_IO;
 
 with Project_Tools.Files;
 with Project_Tools.Text;
+use Project_Tools.Text;
 
 procedure Cldr_To_Catalog is
    use Ada.Strings.Unbounded;
@@ -22,31 +23,6 @@ procedure Cldr_To_Catalog is
    package Entry_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Catalog_Entry);
-
-   --  General-purpose helpers now live in project_tools and are renamed here
-   --  so this tool reuses the shared implementations.
-   function Starts_With
-     (Text   : String;
-      Prefix : String)
-      return Boolean renames Project_Tools.Text.Starts_With;
-
-   function Has_Suffix
-     (Text   : String;
-      Suffix : String)
-      return Boolean renames Project_Tools.Text.Ends_With;
-
-   function Find_From
-     (Text    : String;
-      Pattern : String;
-      From    : Positive)
-      return Natural renames Project_Tools.Text.Index_From;
-
-   function Read_Bytes (Path : String) return String
-     renames Project_Tools.Files.Read_Raw_File;
-
-   procedure Write_Bytes
-     (Path    : String;
-      Content : String) renames Project_Tools.Files.Write_Raw_File;
 
    function Attribute_Value
      (Tag  : String;
@@ -62,7 +38,7 @@ procedure Cldr_To_Catalog is
 
       declare
          Start : constant Positive := First + Marker'Length;
-         Stop  : constant Natural := Find_From (Tag, """", Start);
+         Stop  : constant Natural := Index_From (Tag, """", Start);
       begin
          if Stop = 0 then
             return "";
@@ -84,7 +60,7 @@ procedure Cldr_To_Catalog is
       end if;
 
       declare
-         Close : constant Natural := Find_From (Text, ">", Pos);
+         Close : constant Natural := Index_From (Text, ">", Pos);
       begin
          if Close = 0 then
             return "";
@@ -105,7 +81,7 @@ procedure Cldr_To_Catalog is
    begin
       while Pos /= 0 loop
          declare
-            Close : constant Natural := Find_From (Text, ">", Pos);
+            Close : constant Natural := Index_From (Text, ">", Pos);
          begin
             if Close = 0 then
                return "";
@@ -119,7 +95,7 @@ procedure Cldr_To_Catalog is
                end if;
             end;
 
-            Pos := Find_From (Text, Open, Close + 1);
+            Pos := Index_From (Text, Open, Close + 1);
          end;
       end loop;
 
@@ -137,7 +113,7 @@ procedure Cldr_To_Catalog is
    begin
       while Pos /= 0 loop
          declare
-            Close : constant Natural := Find_From (Text, ">", Pos);
+            Close : constant Natural := Index_From (Text, ">", Pos);
          begin
             if Close = 0 then
                return "";
@@ -149,7 +125,7 @@ procedure Cldr_To_Catalog is
                if Type_Name = "" or else Attribute_Value (Tag, "type") = Type_Name then
                   declare
                      End_Tag : constant String := "</" & Tag_Name & ">";
-                     Stop    : constant Natural := Find_From (Text, End_Tag, Close + 1);
+                     Stop    : constant Natural := Index_From (Text, End_Tag, Close + 1);
                   begin
                      if Stop /= 0 then
                         return Ada.Strings.Fixed.Trim
@@ -159,7 +135,7 @@ procedure Cldr_To_Catalog is
                end if;
             end;
 
-            Pos := Find_From (Text, Open, Close + 1);
+            Pos := Index_From (Text, Open, Close + 1);
          end;
       end loop;
 
@@ -178,7 +154,7 @@ procedure Cldr_To_Catalog is
    begin
       while Pos /= 0 loop
          declare
-            Close : constant Natural := Find_From (Text, ">", Pos);
+            Close : constant Natural := Index_From (Text, ">", Pos);
          begin
             if Close = 0 then
                return "";
@@ -192,7 +168,7 @@ procedure Cldr_To_Catalog is
                then
                   declare
                      End_Tag : constant String := "</" & Tag_Name & ">";
-                     Stop    : constant Natural := Find_From (Text, End_Tag, Close + 1);
+                     Stop    : constant Natural := Index_From (Text, End_Tag, Close + 1);
                   begin
                      if Stop /= 0 then
                         return Ada.Strings.Fixed.Trim
@@ -202,7 +178,7 @@ procedure Cldr_To_Catalog is
                end if;
             end;
 
-            Pos := Find_From (Text, Open, Close + 1);
+            Pos := Index_From (Text, Open, Close + 1);
          end;
       end loop;
 
@@ -222,14 +198,14 @@ procedure Cldr_To_Catalog is
       end if;
 
       declare
-         Start : constant Natural := Find_From (Text, ">", First);
+         Start : constant Natural := Index_From (Text, ">", First);
       begin
          if Start = 0 then
             return "";
          end if;
 
          declare
-            Stop : constant Natural := Find_From (Text, Close_Text, Start + 1);
+            Stop : constant Natural := Index_From (Text, Close_Text, Start + 1);
          begin
             if Stop = 0 then
                return "";
@@ -525,7 +501,7 @@ procedure Cldr_To_Catalog is
      (Path    : String;
       Entries : in out Entry_Vectors.Vector)
    is
-      Content  : constant String := Read_Bytes (Path);
+      Content  : constant String := Project_Tools.Files.Read_Raw_File (Path);
       Locale   : constant String := Locale_Name (Content);
       Calendar : constant String := Gregorian_Calendar (Content);
       Date_Med : constant String := Convert_Pattern (Pattern (Calendar, "dateFormats", "medium"));
@@ -616,7 +592,7 @@ procedure Cldr_To_Catalog is
       Started : Boolean := False;
    begin
       if Project_Tools.Files.File_Exists (Path) then
-         if Has_Suffix (Path, ".xml") then
+         if Ends_With (Path, ".xml") then
             Import_File (Path, Entries);
          end if;
          return;
@@ -689,7 +665,7 @@ begin
    end if;
 
    if Ada.Command_Line.Argument_Count = 2 then
-      Write_Bytes (Ada.Command_Line.Argument (2), Render (Entries));
+      Project_Tools.Files.Write_Raw_File (Ada.Command_Line.Argument (2), Render (Entries));
    else
       Ada.Text_IO.Put (Render (Entries));
    end if;

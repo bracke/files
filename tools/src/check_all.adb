@@ -14,6 +14,8 @@ with Project_Tools.Ada_Source;
 with Project_Tools.Files;
 with Project_Tools.Processes;
 with Project_Tools.Text;
+use Project_Tools.Ada_Source;
+use Project_Tools.Text;
 
 procedure Check_All is
    use Ada.Strings.Unbounded;
@@ -37,25 +39,20 @@ procedure Check_All is
    Root : constant String := Project_Root;
    Alr  : constant String := Project_Tools.Processes.Locate_Command ("alr");
 
-   function Has_Suffix
-     (Name   : String;
-      Suffix : String)
-      return Boolean renames Project_Tools.Text.Ends_With;
-
    function Is_Text_Project_File (Name : String) return Boolean is
    begin
       return Name = ".gitignore"
-        or else Has_Suffix (Name, ".adb")
-        or else Has_Suffix (Name, ".ads")
-        or else Has_Suffix (Name, ".gpr")
-        or else Has_Suffix (Name, ".h")
-        or else Has_Suffix (Name, ".toml")
-        or else Has_Suffix (Name, ".catalog")
-        or else Has_Suffix (Name, ".desktop")
-        or else Has_Suffix (Name, ".icon")
-        or else Has_Suffix (Name, ".manifest")
-        or else Has_Suffix (Name, ".xml")
-        or else Has_Suffix (Name, ".svg");
+        or else Ends_With (Name, ".adb")
+        or else Ends_With (Name, ".ads")
+        or else Ends_With (Name, ".gpr")
+        or else Ends_With (Name, ".h")
+        or else Ends_With (Name, ".toml")
+        or else Ends_With (Name, ".catalog")
+        or else Ends_With (Name, ".desktop")
+        or else Ends_With (Name, ".icon")
+        or else Ends_With (Name, ".manifest")
+        or else Ends_With (Name, ".xml")
+        or else Ends_With (Name, ".svg");
    end Is_Text_Project_File;
 
    function Is_Generated_Directory_Name (Name : String) return Boolean is
@@ -77,9 +74,6 @@ procedure Check_All is
       Args    : GNAT.OS_Lib.Argument_List;
       Quiet   : Boolean := False) renames Project_Tools.Processes.Run;
 
-   procedure Delete_Ordinary_File_If_Present (Path : String)
-     renames Project_Tools.Files.Delete_File_If_Present;
-
    procedure Run_And_Require_Output
      (Label           : String;
       Dir             : String;
@@ -94,7 +88,7 @@ procedure Check_All is
       Status      : Integer := -1;
       Output_Text : Unbounded_String;
    begin
-      Delete_Ordinary_File_If_Present (Output_Path);
+      Project_Tools.Files.Delete_File_If_Present (Output_Path);
 
       Ada.Directories.Set_Directory (Dir);
       GNAT.OS_Lib.Spawn
@@ -125,7 +119,7 @@ procedure Check_All is
          raise Program_Error;
       end if;
 
-      Delete_Ordinary_File_If_Present (Output_Path);
+      Project_Tools.Files.Delete_File_If_Present (Output_Path);
    exception
       when others =>
          if Ada.Directories.Current_Directory /= Previous then
@@ -364,16 +358,16 @@ procedure Check_All is
    function Is_Whitespace_Checked_File (Name : String) return Boolean is
    begin
       return Name = ".gitignore"
-        or else Has_Suffix (Name, ".adb")
-        or else Has_Suffix (Name, ".ads")
-        or else Has_Suffix (Name, ".gpr")
-        or else Has_Suffix (Name, ".h")
-        or else Has_Suffix (Name, ".toml")
-        or else Has_Suffix (Name, ".desktop")
-        or else Has_Suffix (Name, ".icon")
-        or else Has_Suffix (Name, ".manifest")
-        or else Has_Suffix (Name, ".xml")
-        or else Has_Suffix (Name, ".svg");
+        or else Ends_With (Name, ".adb")
+        or else Ends_With (Name, ".ads")
+        or else Ends_With (Name, ".gpr")
+        or else Ends_With (Name, ".h")
+        or else Ends_With (Name, ".toml")
+        or else Ends_With (Name, ".desktop")
+        or else Ends_With (Name, ".icon")
+        or else Ends_With (Name, ".manifest")
+        or else Ends_With (Name, ".xml")
+        or else Ends_With (Name, ".svg");
    end Is_Whitespace_Checked_File;
 
    procedure Check_Whitespace_In_File (Path : String) is
@@ -500,12 +494,6 @@ procedure Check_All is
       Check_Whitespace_In_File (Root & "/tools/alire.toml");
       Check_Whitespace_In_File (Root & "/tools/files_check_all.gpr");
    end Check_Whitespace;
-
-   function Starts_With (Text : String; Prefix : String) return Boolean
-     renames Project_Tools.Text.Starts_With;
-
-   function Contains (Text : String; Pattern : String) return Boolean
-     renames Project_Tools.Text.Contains;
 
    function Is_Subprogram_Spec_Line (Line : String) return Boolean is
    begin
@@ -753,22 +741,6 @@ procedure Check_All is
       Check_GNATdoc_In_Tree (Root & "/tests/tests/src");
       Check_GNATdoc_In_Tree (Root & "/tools/src");
    end Check_GNATdoc_Comments;
-
-   --  Ada-source helpers now live in Project_Tools.Ada_Source.
-   function Is_Identifier_Character (Char : Character) return Boolean
-     renames Project_Tools.Ada_Source.Is_Identifier_Character;
-
-   function First_Token (Text : String) return String
-     renames Project_Tools.Ada_Source.First_Token;
-
-   function Is_Single_Identifier (Text : String) return Boolean
-     renames Project_Tools.Ada_Source.Is_Single_Identifier;
-
-   function Token_After (Text : String; Prefix : String) return String
-     renames Project_Tools.Ada_Source.Token_After;
-
-   function Is_Ada_Reserved_Word (Name : String) return Boolean
-     renames Project_Tools.Ada_Source.Is_Ada_Reserved_Word;
 
    procedure Check_Ada_Keyword_Identifier_In_File (Path : String) is
       Content     : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
@@ -1103,34 +1075,34 @@ procedure Check_All is
       Lower_Name : constant String := Ada.Characters.Handling.To_Lower (Name);
    begin
       return
-        Has_Suffix (Lower_Name, ".py")
-        or else Has_Suffix (Lower_Name, ".sh")
-        or else Has_Suffix (Lower_Name, ".bash")
-        or else Has_Suffix (Lower_Name, ".zsh")
-        or else Has_Suffix (Lower_Name, ".fish")
-        or else Has_Suffix (Lower_Name, ".ps1")
-        or else Has_Suffix (Lower_Name, ".bat")
-        or else Has_Suffix (Lower_Name, ".cmd")
-        or else Has_Suffix (Lower_Name, ".pl")
-        or else Has_Suffix (Lower_Name, ".rb")
-        or else Has_Suffix (Lower_Name, ".awk")
-        or else Has_Suffix (Lower_Name, ".sed")
-        or else Has_Suffix (Lower_Name, ".lua")
-        or else Has_Suffix (Lower_Name, ".php")
-        or else Has_Suffix (Lower_Name, ".js")
-        or else Has_Suffix (Lower_Name, ".ts");
+        Ends_With (Lower_Name, ".py")
+        or else Ends_With (Lower_Name, ".sh")
+        or else Ends_With (Lower_Name, ".bash")
+        or else Ends_With (Lower_Name, ".zsh")
+        or else Ends_With (Lower_Name, ".fish")
+        or else Ends_With (Lower_Name, ".ps1")
+        or else Ends_With (Lower_Name, ".bat")
+        or else Ends_With (Lower_Name, ".cmd")
+        or else Ends_With (Lower_Name, ".pl")
+        or else Ends_With (Lower_Name, ".rb")
+        or else Ends_With (Lower_Name, ".awk")
+        or else Ends_With (Lower_Name, ".sed")
+        or else Ends_With (Lower_Name, ".lua")
+        or else Ends_With (Lower_Name, ".php")
+        or else Ends_With (Lower_Name, ".js")
+        or else Ends_With (Lower_Name, ".ts");
    end Has_Non_Ada_Tooling_Extension;
 
    function Has_Parser_Generator_Extension (Name : String) return Boolean is
       Lower_Name : constant String := Ada.Characters.Handling.To_Lower (Name);
    begin
       return
-        Has_Suffix (Lower_Name, ".y")
-        or else Has_Suffix (Lower_Name, ".yy")
-        or else Has_Suffix (Lower_Name, ".l")
-        or else Has_Suffix (Lower_Name, ".ll")
-        or else Has_Suffix (Lower_Name, ".g4")
-        or else Has_Suffix (Lower_Name, ".peg");
+        Ends_With (Lower_Name, ".y")
+        or else Ends_With (Lower_Name, ".yy")
+        or else Ends_With (Lower_Name, ".l")
+        or else Ends_With (Lower_Name, ".ll")
+        or else Ends_With (Lower_Name, ".g4")
+        or else Ends_With (Lower_Name, ".peg");
    end Has_Parser_Generator_Extension;
 
    function Has_Shebang (Path : String) return Boolean is
@@ -1392,7 +1364,7 @@ procedure Check_All is
                   Check_No_User_Text_Literals_In_Source_Tree (Full);
                end if;
             elsif Name /= "files-localization.adb"
-              and then (Has_Suffix (Name, ".adb") or else Has_Suffix (Name, ".ads"))
+              and then (Ends_With (Name, ".adb") or else Ends_With (Name, ".ads"))
             then
                Check_No_User_Text_Literals (Full);
             end if;
