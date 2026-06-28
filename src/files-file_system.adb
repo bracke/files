@@ -3543,6 +3543,53 @@ package body Files.File_System is
             Error_Key => To_Unbounded_String ("error.rename.failed"));
    end Rename_Item;
 
+   --  Recursively copy a file/directory tree. Used as the cross-device
+   --  fallback when Ada.Directories.Rename fails with EXDEV (it cannot move
+   --  across filesystems), by both trashing and drag-and-drop moves.
+   procedure Copy_Tree
+     (Source_Path      : String;
+      Destination_Path : String)
+   is
+      Search    : Ada.Directories.Search_Type;
+      Dir_Entry : Ada.Directories.Directory_Entry_Type;
+      Started   : Boolean := False;
+   begin
+      case Ada.Directories.Kind (Source_Path) is
+         when Ada.Directories.Directory =>
+            Ada.Directories.Create_Directory (Destination_Path);
+            Ada.Directories.Start_Search
+              (Search,
+               Directory => Source_Path,
+               Pattern   => "*",
+               Filter    =>
+                 [Ada.Directories.Ordinary_File => True,
+                  Ada.Directories.Directory     => True,
+                  Ada.Directories.Special_File  => True]);
+            Started := True;
+            while Ada.Directories.More_Entries (Search) loop
+               Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+               declare
+                  Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
+               begin
+                  if Name /= "." and then Name /= ".." then
+                     Copy_Tree
+                       (Ada.Directories.Full_Name (Dir_Entry),
+                        Join_Path (Destination_Path, Name));
+                  end if;
+               end;
+            end loop;
+            Safe_End_Search (Search, Started);
+         when Ada.Directories.Ordinary_File =>
+            Ada.Directories.Copy_File (Source_Path, Destination_Path);
+         when Ada.Directories.Special_File =>
+            Ada.Directories.Copy_File (Source_Path, Destination_Path);
+      end case;
+   exception
+      when others =>
+         Safe_End_Search (Search, Started);
+         raise;
+   end Copy_Tree;
+
    function Move_To_Trash
      (Path : String)
       return Mutation_Result
@@ -3650,10 +3697,26 @@ package body Files.File_System is
          Ada.Directories.Rename (Path, To_String (Target));
       exception
          when others =>
-            Delete_Info_File_If_Present;
-            return
-              (Success   => False,
-               Error_Key => To_Unbounded_String ("error.trash.failed"));
+            --  Cross-device (EXDEV): rename cannot move across filesystems, so
+            --  the home trash is on a different mount than the file. Fall back
+            --  to copy-then-delete into the trash.
+            begin
+               Copy_Tree (Path, To_String (Target));
+               declare
+                  Removed : constant Mutation_Result := Delete_Permanently (Path);
+               begin
+                  if not Removed.Success then
+                     Delete_Info_File_If_Present;
+                     return Removed;
+                  end if;
+               end;
+            exception
+               when others =>
+                  Delete_Info_File_If_Present;
+                  return
+                    (Success   => False,
+                     Error_Key => To_Unbounded_String ("error.trash.failed"));
+            end;
       end;
 
       return (Success => True, Error_Key => Null_Unbounded_String);
@@ -3894,49 +3957,6 @@ package body Files.File_System is
      (Plans : Drop_Import_Plan_Vectors.Vector)
       return Mutation_Result
    is
-      procedure Copy_Tree
-        (Source_Path      : String;
-         Destination_Path : String)
-      is
-         Search    : Ada.Directories.Search_Type;
-         Dir_Entry : Ada.Directories.Directory_Entry_Type;
-         Started   : Boolean := False;
-      begin
-         case Ada.Directories.Kind (Source_Path) is
-            when Ada.Directories.Directory =>
-               Ada.Directories.Create_Directory (Destination_Path);
-               Ada.Directories.Start_Search
-                 (Search,
-                  Directory => Source_Path,
-                  Pattern   => "*",
-                  Filter    =>
-                    [Ada.Directories.Ordinary_File => True,
-                     Ada.Directories.Directory     => True,
-                     Ada.Directories.Special_File  => True]);
-               Started := True;
-               while Ada.Directories.More_Entries (Search) loop
-                  Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
-                  declare
-                     Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
-                  begin
-                     if Name /= "." and then Name /= ".." then
-                        Copy_Tree
-                          (Ada.Directories.Full_Name (Dir_Entry),
-                           Join_Path (Destination_Path, Name));
-                     end if;
-                  end;
-               end loop;
-               Safe_End_Search (Search, Started);
-            when Ada.Directories.Ordinary_File =>
-               Ada.Directories.Copy_File (Source_Path, Destination_Path);
-            when Ada.Directories.Special_File =>
-               Ada.Directories.Copy_File (Source_Path, Destination_Path);
-         end case;
-      exception
-         when others =>
-            Safe_End_Search (Search, Started);
-            raise;
-      end Copy_Tree;
    begin
       for Plan of Plans loop
          if not Plan.Valid then
