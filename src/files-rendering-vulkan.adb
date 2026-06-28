@@ -4233,9 +4233,18 @@ package body Files.Rendering.Vulkan is
         (Value : Float)
          return Interfaces.Unsigned_32
       is
-         Scaled : constant Integer := Integer (Value * 10_000.0);
+         Scaled  : constant Integer := Integer (Value * 10_000.0);
+         Shifted : constant Long_Long_Integer := Long_Long_Integer (Scaled) + 2_000_000;
       begin
-         return Interfaces.Unsigned_32 (Scaled + 2_000_000);
+         --  Clamp into the unsigned range: this hash helper has no exception
+         --  handler, so an out-of-bounds coordinate must not raise here.
+         if Shifted < 0 then
+            return 0;
+         elsif Shifted > Long_Long_Integer (Interfaces.Unsigned_32'Last) then
+            return Interfaces.Unsigned_32'Last;
+         else
+            return Interfaces.Unsigned_32 (Shifted);
+         end if;
       end Float_Code;
 
       function Boolean_Code
