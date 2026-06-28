@@ -1481,7 +1481,6 @@ package body Files_Suite.Settings is
       end;
    end Test_Settings_Parsing_And_Open_Actions;
 
-
    procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings_Path : constant String := Join (Root, "files.conf");
@@ -1997,7 +1996,6 @@ package body Files_Suite.Settings is
          "ensure default settings empty path reports save diagnostic");
    end Test_Settings_Load_File;
 
-
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Bad_Path : constant String := Join (Root, "bad.conf");
@@ -2207,7 +2205,6 @@ package body Files_Suite.Settings is
          "error.settings.invalid_icon_theme",
          "invalid icon theme is rejected");
    end Test_Settings_Invalid_Boolean;
-
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

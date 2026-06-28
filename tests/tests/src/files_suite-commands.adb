@@ -553,7 +553,6 @@ package body Files_Suite.Commands is
       Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back enabled after navigation");
    end Test_Command_Enablement;
 
-
    procedure Test_Command_Registry_And_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Ctrl          : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
@@ -1008,7 +1007,6 @@ package body Files_Suite.Commands is
          "settings save command is palette-only metadata");
    end Test_Command_Registry_And_Shortcuts;
 
-
    procedure Test_Command_Palette_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model          : Files.Model.Window_Model := Sample_Model;
@@ -1435,7 +1433,6 @@ package body Files_Suite.Commands is
       Assert (Long_Results.Element (1).Score < Natural'Last, "long repeated palette query keeps score bounded");
    end Test_Command_Palette_Search;
 
-
    procedure Test_Command_Palette_Toggle_Shortcut (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -1478,7 +1475,6 @@ package body Files_Suite.Commands is
       Assert (Files.Model.Command_Palette_Is_Open (Model), "blocked text click leaves palette open");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "blocked text click keeps palette focus");
    end Test_Command_Palette_Toggle_Shortcut;
-
 
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1583,7 +1579,6 @@ package body Files_Suite.Commands is
          "file path input changes model to parent directory");
       Assert (Files.Model.Item_Count (Model) = 1, "file path input loads parent directory items");
    end Test_Controller_Path_Input_Return;
-
 
    procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1879,7 +1874,6 @@ package body Files_Suite.Commands is
          "clear-filter disables after clearing");
    end Test_Controller_Filter_Input_Return;
 
-
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -1928,7 +1922,6 @@ package body Files_Suite.Commands is
       Assert (Ada.Directories.Exists (Join (Root, "new.txt")), "rename file exists after Return");
       Assert (not Files.Model.Rename_Is_Active (Model), "rename Return clears rename mode");
    end Test_Controller_Rename_Return;
-
 
    procedure Test_Controller_Command_Palette_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2025,7 +2018,6 @@ package body Files_Suite.Commands is
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "palette root activation closes root selector");
    end Test_Controller_Command_Palette_Return;
 
-
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -2064,7 +2056,6 @@ package body Files_Suite.Commands is
         (Result.Command = Files.Commands.Close_Command_Palette_Command,
          "idle Escape still reports context command");
    end Test_Controller_Command_Palette_Escape_Priority;
-
 
    procedure Test_Controller_Palette_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2259,7 +2250,6 @@ package body Files_Suite.Commands is
       end;
    end Test_Controller_Palette_Selection_Movement;
 
-
    procedure Test_Controller_Disabled_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -2399,7 +2389,6 @@ package body Files_Suite.Commands is
       Assert (Files.Model.Temporary_Item_Name (Model) = "pending.txt", "disabled create palette keeps pending item");
    end Test_Controller_Disabled_Palette_Result;
 
-
    procedure Test_Controller_Empty_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -2445,7 +2434,6 @@ package body Files_Suite.Commands is
       Assert (Found_Empty_Text, "empty palette renders localized empty state");
       Assert (Found_Empty_Status, "empty palette exposes accessible status node");
    end Test_Controller_Empty_Palette_Result;
-
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

@@ -191,7 +191,6 @@ package body Files_Suite.Model is
       Assert (To_String (Load.Error_Key) = "error.directory.load", "file path directory load reports error key");
    end Test_Directory_Sorting;
 
-
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir      : constant String := Join (Root, "projection");
@@ -308,7 +307,6 @@ package body Files_Suite.Model is
       Assert (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name) = "old.txt",
               "descending modified sort orders older item last");
    end Test_Directory_Projection_Settings;
-
 
    procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -639,7 +637,6 @@ package body Files_Suite.Model is
       Assert (Found_Xml, "XML item was loaded");
    end Test_Directory_Metadata_Permissions;
 
-
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -847,7 +844,6 @@ package body Files_Suite.Model is
          "other item icon falls back deterministically without mapping");
    end Test_Filetype_Detection;
 
-
    procedure Test_View_Mode_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model := Sample_Model;
@@ -859,7 +855,6 @@ package body Files_Suite.Model is
       Files.Commands.Execute (Files.Commands.Select_Small_Icons_Command, Model);
       Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small command clears prior mode");
    end Test_View_Mode_State;
-
 
    procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -996,7 +991,6 @@ package body Files_Suite.Model is
       end;
    end Test_Selection_Movement;
 
-
    procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -1057,7 +1051,6 @@ package body Files_Suite.Model is
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "empty visible selection movement is ignored");
    end Test_Filtering_Reconciles_Selection;
-
 
    procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1123,7 +1116,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Current_Path (Model) = "/home/test", "home navigates to model home path");
    end Test_Path_History;
 
-
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model   : Files.Model.Window_Model := Sample_Model;
@@ -1175,7 +1167,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/valid", "valid input changes path");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "valid path input clears focus");
    end Test_Path_Input_Validation;
-
 
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1272,7 +1263,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Changed, "sort-by-changed selects modified field");
       Assert (Snapshot_Name (1) = "alpha.md", "changed ascending sorts oldest modified time first");
    end Test_Runtime_Sort_State;
-
 
    procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2097,7 +2087,6 @@ package body Files_Suite.Model is
          "root row click replaces edited path text");
    end Test_Root_Selector_And_Root_Selection;
 
-
    procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -2261,7 +2250,6 @@ package body Files_Suite.Model is
       Assert (Result.Command = Files.Commands.No_Command, "empty command click reports no command");
    end Test_Info_And_Bottom_Bar_Commands;
 
-
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -2353,7 +2341,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "first Escape clears focused filter input");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels pending rename state after focus moved");
    end Test_Rename_Mode;
-
 
    procedure Test_Create_File_Temporary_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2564,7 +2551,6 @@ package body Files_Suite.Model is
          "create uses explicit spaced suffix text after single digits");
    end Test_Create_File_Temporary_State;
 
-
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -2603,7 +2589,6 @@ package body Files_Suite.Model is
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "trash failure reports selected path");
       Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "trash failure is recorded as data");
    end Test_Error_State;
-
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

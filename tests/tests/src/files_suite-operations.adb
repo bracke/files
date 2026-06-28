@@ -564,7 +564,6 @@ package body Files_Suite.Operations is
          raise;
    end Test_Delete_Selected_Operation;
 
-
    procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir      : constant String := Join (Root, "open-dir");
@@ -637,7 +636,6 @@ package body Files_Suite.Operations is
       Assert (Routed.Operation.Status = Files.Operations.Operation_Navigated, "double-click opens directory");
       Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Dir), "double-click changes path");
    end Test_Open_Selected_Directory_Loads_Items;
-
 
    procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1216,7 +1214,6 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Selected_Index (Model) = 1, "double-click selects activated file");
    end Test_Open_Selected_File_Prepares_Action;
 
-
    procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model := Sample_Model;
@@ -1237,7 +1234,6 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Last_Error_Key (Model) = "error.open_action.missing", "missing action sets error state");
       Assert (Files.Model.Current_Path (Model) = Root, "missing file action does not navigate");
    end Test_Missing_Open_Action_Reports_Error;
-
 
    procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1260,7 +1256,6 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Item_Count (Model) = 1, "create commit reloads the directory model");
       Assert (Files.Model.Selected_Name (Model) = "created.txt", "created item is selected after reload");
    end Test_Commit_Create_File;
-
 
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1370,7 +1365,6 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Join (Root, Utf8_Four_Name)), "four-byte UTF-8 create writes file");
       Assert (Files.Model.Selected_Name (Model) = Utf8_Four_Name, "four-byte UTF-8 create selects file");
    end Test_Create_File_Does_Not_Overwrite;
-
 
    procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1872,7 +1866,6 @@ package body Files_Suite.Operations is
          raise;
    end Test_Advanced_Filesystem_Operations;
 
-
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Load     : Files.File_System.Directory_Load_Result;
@@ -2184,7 +2177,6 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "overlong UTF-8 rename leaves source in place");
    end Test_Invalid_File_Operation_Names;
 
-
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Load     : Files.File_System.Directory_Load_Result;
@@ -2375,7 +2367,6 @@ package body Files_Suite.Operations is
       Assert (not Ada.Directories.Exists (Join (Root, "new.txt")), "UTF-8 rename removes old path");
       Assert (Files.Model.Selected_Name (Model) = Utf8_Target, "UTF-8 renamed item is selected after reload");
    end Test_Commit_Rename;
-
 
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2964,7 +2955,6 @@ package body Files_Suite.Operations is
       end;
    end Test_Info_Pane_Metadata_Snapshot;
 
-
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       First    : constant String := Join (Root, "first");
@@ -3165,7 +3155,6 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Can_Go_Forward (Model), "new controller navigation clears forward history");
       Assert (Files.Model.Item_Count (Model) = 1, "branch navigation carries loaded directory items");
    end Test_Controller_Refresh_And_History_Loading;
-
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

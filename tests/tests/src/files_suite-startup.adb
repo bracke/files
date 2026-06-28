@@ -255,7 +255,6 @@ package body Files_Suite.Startup is
          "startup path diagnostic records the missing-path error key");
    end Test_Startup_Path_Normalization;
 
-
    procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Args              : Files.Types.String_Vectors.Vector;
@@ -432,7 +431,6 @@ package body Files_Suite.Startup is
          raise;
    end Test_Default_Home_Selection;
 
-
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir           : constant String := Join (Root, "startup-settings");
@@ -500,7 +498,6 @@ package body Files_Suite.Startup is
          "startup result exposes created default settings");
    end Test_Startup_Loads_Settings_File;
 
-
    procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir           : constant String := Join (Root, "startup-invalid-settings");
@@ -545,7 +542,6 @@ package body Files_Suite.Startup is
         (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 1,
          "default settings are used after failure");
    end Test_Startup_Invalid_Settings_Diagnostic;
-
 
    procedure Test_Startup_Settings_Path_Not_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -595,7 +591,6 @@ package body Files_Suite.Startup is
             Files.Localization.Text ("error.settings.not_file")) > 0,
          "startup report localizes settings directory diagnostics");
    end Test_Startup_Settings_Path_Not_File;
-
 
    procedure Test_Startup_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -843,7 +838,6 @@ package body Files_Suite.Startup is
          "skipped live smoke runner does not fake framebuffer readback");
    end Test_Startup_Report;
 
-
    procedure Test_Desktop_Error_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Expected : constant String :=
@@ -860,7 +854,6 @@ package body Files_Suite.Startup is
         (Files.Application.Desktop_Error_Report ("error.window.unknown") = Expected,
          "desktop error report falls back when the key is not localized");
    end Test_Desktop_Error_Report;
-
 
    procedure Test_Startup_Report_Settings_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -893,7 +886,6 @@ package body Files_Suite.Startup is
             Files.Localization.Text ("error.settings.invalid_boolean")) > 0,
          "startup report localizes settings parse diagnostics");
    end Test_Startup_Report_Settings_Error;
-
 
    procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1044,7 +1036,6 @@ package body Files_Suite.Startup is
             "version text uses generated crate metadata");
       end;
    end Test_Run_Configuration_Parsing;
-
 
    procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1270,7 +1261,6 @@ package body Files_Suite.Startup is
       end loop;
    end Test_Localization_Catalog;
 
-
    procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Had_LC_All      : constant Boolean := Ada.Environment_Variables.Exists ("LC_ALL");
@@ -1485,7 +1475,6 @@ package body Files_Suite.Startup is
             raise;
       end;
    end Test_System_Locale_Detection;
-
 
    procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1841,7 +1830,6 @@ package body Files_Suite.Startup is
             "desktop capability report exposes drop event-source automation");
       end;
    end Test_First_Implementation_Feature_Policy;
-
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
