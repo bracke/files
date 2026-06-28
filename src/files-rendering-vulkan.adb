@@ -4280,6 +4280,21 @@ package body Files.Rendering.Vulkan is
             Mix (Natural_Code (Texture_Source'Pos (Item.Texture)));
          end loop;
 
+         --  Mix atlas content so the proxy distinguishes frames whose geometry
+         --  is identical but whose icon/thumbnail bitmaps differ (icon UVs
+         --  encode only the tile index, so without this they would hash equal).
+         Mix (Natural_Code (Batch.Atlas_Width));
+         Mix (Natural_Code (Batch.Atlas_Height));
+         Mix (Natural_Code (Batch.Atlas_Bytes));
+         Mix (Natural_Code (Batch.Icon_Atlas_Width));
+         Mix (Natural_Code (Batch.Icon_Atlas_Height));
+         Mix (Natural_Code (Batch.Icon_Atlas_Channels));
+         Mix (Natural_Code (Batch.Icon_Atlas_Bytes));
+         Mix (Natural_Code (Natural (Batch.Icon_Atlas_Pixels.Length)));
+         for Pixel of Batch.Icon_Atlas_Pixels loop
+            Mix (Interfaces.Unsigned_32 (Pixel));
+         end loop;
+
          return Hash;
       end Batch_Hash;
 
@@ -4377,9 +4392,13 @@ package body Files.Rendering.Vulkan is
                Renderer.Last_Status := Vulkan_Vertex_Buffer_Create_Failed;
             elsif not Upload_Atlas (Renderer, Batch) then
                Renderer.Last_Status := Vulkan_Atlas_Texture_Create_Failed;
-            elsif Batch.Uses_Separate_Text_And_Icon_Textures
+            elsif Batch.Icon_Atlas_Dirty
               and then not Upload_Icon_Atlas (Renderer, Batch)
             then
+               --  Populate the icon descriptor (binding 1) whenever icons are
+               --  present, not only when text shares the frame: icon quads
+               --  always sample binding 1, so an icon-only frame would
+               --  otherwise read an unwritten descriptor (garbage icons).
                Renderer.Last_Status := Vulkan_Atlas_Texture_Create_Failed;
             elsif Renderer.Readback_Enabled
               and then not Ensure_Readback_Buffer
