@@ -5,7 +5,7 @@ package body Files.Accessibility is
    begin
       return
         (Render_Node_Tree          => True,
-         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Available,
+         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Missing,
          Role_Metadata             => True,
          Table_Metadata            => True,
          Pane_Section_Metadata     => True,
@@ -19,7 +19,7 @@ package body Files.Accessibility is
    is
       Result : Export_Result :=
         (Success                   => True,
-         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Available,
+         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Missing,
          Node_Count                => Natural (Frame.Accessibility.Length),
          Focused_Node_Count        => 0,
          Nodes                     => Frame.Accessibility,
