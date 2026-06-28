@@ -52,7 +52,7 @@ package body Files.Platform.Macos is
    end API_Profile;
 
    function Native_Locale return String is
-      Locale : constant System.Address := CFLocaleCopyCurrent;
+      Locale : System.Address := CFLocaleCopyCurrent;
       Buffer : aliased Interfaces.C.char_array (1 .. 128) := [others => Interfaces.C.nul];
       Success : Interfaces.C.int := 0;
    begin
@@ -74,6 +74,9 @@ package body Files.Platform.Macos is
       end;
 
       CFRelease (Locale);
+      --  Null the handle so the exception handler below cannot release it a
+      --  second time if anything after this point (e.g. To_Ada) raises.
+      Locale := System.Null_Address;
 
       if Success = 0 then
          return "";

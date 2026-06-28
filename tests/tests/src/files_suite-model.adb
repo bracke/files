@@ -1483,6 +1483,11 @@ package body Files_Suite.Model is
          "Windows trash binding body imports the native recycle-bin API");
       Assert
         (Repository_File_Contains
+           ("src/platform/windows/files-platform-windows-trash.adb",
+            "UTF_Encoding.Wide_Strings"),
+         "Windows trash binding builds a UTF-16 (Wide_String) path, not 32-bit");
+      Assert
+        (Repository_File_Contains
            ("src/platform/windows/files-platform-windows-volumes.adb",
             "External_Name => ""GetVolumeInformationW"""),
          "Windows volume binding body imports volume-label API");
@@ -1494,7 +1499,7 @@ package body Files_Suite.Model is
       Assert
         (Repository_File_Contains
            ("src/platform/macos/files-platform-macos-trash.adb",
-            "External_Name => ""FSPathMoveObjectToTrashSync"""),
+            "External_Name => ""FSMoveObjectToTrashSync"""),
          "macOS trash binding body imports native trash API");
       Assert
         (Repository_File_Contains

@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded;
+with Ada.Strings.UTF_Encoding.Wide_Strings;
 with Interfaces.C;
 with System;
 
@@ -52,7 +53,7 @@ package body Files.Platform.Windows.Trash is
          Would_Delete     => False,
          Uses_Recycle_Bin => True,
          Adapter_Name     => To_Unbounded_String ("windows.recycle_bin"),
-         Native_Api_Name  => To_Unbounded_String ("IFileOperation"),
+         Native_Api_Name  => To_Unbounded_String ("SHFileOperationW"),
          Operation_Name   => To_Unbounded_String ("move_to_trash"),
          Requires_User_Consent => False,
          Preserves_Metadata    => True,
@@ -64,8 +65,12 @@ package body Files.Platform.Windows.Trash is
       return Files.File_System.Native_Trash_Result
    is
       Path_Text : constant String := To_String (Request.Path);
-      Wide_Path : aliased Wide_Wide_String := Wide_Wide_String'(Path_Text & Wide_Wide_Character'Val (0) &
-        Wide_Wide_Character'Val (0));
+      --  SHFileOperationW expects UTF-16 (16-bit WCHAR). GNAT Wide_String is
+      --  16-bit per element, so decode the UTF-8 path to Wide_String and
+      --  double-NUL terminate it (pFrom is a double-null-terminated list).
+      Wide_Path : aliased Wide_String :=
+        Ada.Strings.UTF_Encoding.Wide_Strings.Decode (Path_Text)
+          & Wide_Character'Val (0) & Wide_Character'Val (0);
       Operation : aliased SH_File_Operation_W :=
         (Window        => System.Null_Address,
          Function_Code => FO_Delete,

@@ -21,12 +21,12 @@ package body Files.Platform.Macos.Trash is
       return Interfaces.C.int
      with Import, Convention => C, External_Name => "FSPathMakeRef";
 
-   function FSPathMoveObjectToTrashSync
+   function FSMoveObjectToTrashSync
      (Source_Reference : access FS_Ref;
       Target_Reference : System.Address;
       Options          : Interfaces.C.unsigned)
       return Interfaces.C.int
-     with Import, Convention => C, External_Name => "FSPathMoveObjectToTrashSync";
+     with Import, Convention => C, External_Name => "FSMoveObjectToTrashSync";
 
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr) is
@@ -42,7 +42,7 @@ package body Files.Platform.Macos.Trash is
    end Safe_Free;
 
    function Binding_Status return Files.File_System.Native_API_Binding_Status is
-      pragma Unreferenced (FSPathMakeRef, FSPathMoveObjectToTrashSync);
+      pragma Unreferenced (FSPathMakeRef, FSMoveObjectToTrashSync);
    begin
       return Files.File_System.Native_API_Binding_Available;
    end Binding_Status;
@@ -64,7 +64,7 @@ package body Files.Platform.Macos.Trash is
          Would_Delete     => False,
          Uses_Recycle_Bin => False,
          Adapter_Name     => To_Unbounded_String ("macos.trash"),
-         Native_Api_Name  => To_Unbounded_String ("NSFileManager.trashItemAtURL"),
+         Native_Api_Name  => To_Unbounded_String ("FSMoveObjectToTrashSync"),
          Operation_Name   => To_Unbounded_String ("move_to_trash"),
          Requires_User_Consent => False,
          Preserves_Metadata    => True,
@@ -83,7 +83,7 @@ package body Files.Platform.Macos.Trash is
    begin
       Status := FSPathMakeRef (Path, Reference'Access, System.Null_Address);
       if Status = 0 then
-         Status := FSPathMoveObjectToTrashSync (Reference'Access, System.Null_Address, 0);
+         Status := FSMoveObjectToTrashSync (Reference'Access, System.Null_Address, 0);
       end if;
       Interfaces.C.Strings.Free (Path);
       Result.Attempted := True;
