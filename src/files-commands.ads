@@ -33,6 +33,7 @@ package Files.Commands is
       Open_With_Command,
       Compress_Zip_Command,
       Compress_7z_Command,
+      Extract_Archive_Command,
       Generate_Thumbnails_Command,
       Focus_Filter_Input_Command,
       Open_Command_Palette_Command,

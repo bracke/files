@@ -23,6 +23,8 @@ with Glfw.Input.Mouse;
 with GNAT.OS_Lib;
 with Textrender.Fonts;
 
+with Zlib;
+
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
@@ -112,6 +114,7 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
@@ -150,6 +153,8 @@ package body Files_Suite.Operations is
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Compress_Selected_Operation'Access, "compress selected items into zip and 7z archives");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Extract_Selected_Operation'Access, "extract selected archive into a new folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Available_Applications'Access, "open-with discovers and parses desktop applications");
    end Register_Tests;
@@ -3345,6 +3350,64 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Sz_Path), "7z archive is created next to the first item");
       Assert (First_Bytes (Sz_Path, 6) = Sz_Magic, "7z archive begins with the 7z signature");
    end Test_Compress_Selected_Operation;
+
+   procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Zlib.Status_Code;
+      Settings        : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir             : constant String := Join (Root, "extract");
+      Source_Report   : constant String := Join (Dir, "report.txt");
+      Source_Notes    : constant String := Join (Dir, "notes.txt");
+      Archive_Path    : constant String := Join (Dir, "bundle.zip");
+      Dest_Dir        : constant String := Join (Dir, "bundle");
+      Out_Report      : constant String := Join (Dest_Dir, "report.txt");
+      Out_Notes       : constant String := Join (Dest_Dir, "notes.txt");
+      Report_Payload  : constant String := "first extraction payload";
+      Notes_Payload   : constant String := "second extraction payload";
+      Inputs          : Zlib.Text_Array (1 .. 2);
+      Names           : Zlib.Text_Array (1 .. 2);
+      Build_Status    : Zlib.Status_Code;
+      Load            : Files.File_System.Directory_Load_Result;
+      Model           : Files.Model.Window_Model;
+      Routed          : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File (Source_Report, Report_Payload);
+      Write_File (Source_Notes, Notes_Payload);
+
+      --  Build a real ZIP archive holding both files next to the originals.
+      Inputs (1) := To_Unbounded_String (Source_Report);
+      Inputs (2) := To_Unbounded_String (Source_Notes);
+      Names (1) := To_Unbounded_String ("report.txt");
+      Names (2) := To_Unbounded_String ("notes.txt");
+      Zlib.ZIP_Files (Inputs, Archive_Path, Names, Status => Build_Status);
+      Assert (Build_Status = Zlib.Ok, "test archive is created");
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "bundle.zip");
+
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+         "extract command is enabled when an archive is selected");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "extract succeeds");
+      Assert (Ada.Directories.Exists (Dest_Dir), "destination folder is created from the archive base name");
+      Assert (Ada.Directories.Exists (Out_Report), "first archived file is extracted");
+      Assert (Ada.Directories.Exists (Out_Notes), "second archived file is extracted");
+      Assert
+        (Project_Tools.Files.Read_Raw_File (Out_Report)
+           = Project_Tools.Files.Read_Raw_File (Source_Report),
+         "first extracted file matches the original contents");
+      Assert
+        (Project_Tools.Files.Read_Raw_File (Out_Notes)
+           = Project_Tools.Files.Read_Raw_File (Source_Notes),
+         "second extracted file matches the original contents");
+   end Test_Extract_Selected_Operation;
 
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

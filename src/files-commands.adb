@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
@@ -120,6 +121,8 @@ package body Files.Commands is
             return "file.compress_zip";
          when Compress_7z_Command =>
             return "file.compress_7z";
+         when Extract_Archive_Command =>
+            return "file.extract";
          when Generate_Thumbnails_Command =>
             return "file.generate_thumbnails";
          when Focus_Filter_Input_Command =>
@@ -216,6 +219,8 @@ package body Files.Commands is
             return "command.file.compress_zip";
          when Compress_7z_Command =>
             return "command.file.compress_7z";
+         when Extract_Archive_Command =>
+            return "command.file.extract";
          when Generate_Thumbnails_Command =>
             return "command.file.generate_thumbnails";
          when Focus_Filter_Input_Command =>
@@ -312,6 +317,8 @@ package body Files.Commands is
             return "command.file.compress_zip.description";
          when Compress_7z_Command =>
             return "command.file.compress_7z.description";
+         when Extract_Archive_Command =>
+            return "command.file.extract.description";
          when Generate_Thumbnails_Command =>
             return "command.file.generate_thumbnails.description";
          when Focus_Filter_Input_Command =>
@@ -722,6 +729,29 @@ package body Files.Commands is
          return Path;
    end Normalized_Path;
 
+   --  Return whether a simple file name ends, case-insensitively, in a
+   --  recognized archive extension (.zip or .7z).
+   function Name_Is_Archive (Name : String) return Boolean is
+      Lower : constant String := Ada.Characters.Handling.To_Lower (Name);
+   begin
+      return Ada.Strings.Fixed.Tail (Lower, 4) = ".zip"
+        or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
+   end Name_Is_Archive;
+
+   --  Return whether at least one selected item is a recognized archive.
+   function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
+      Items : constant Files.File_System.Item_Vectors.Vector :=
+        Files.Model.Selected_Items (Model);
+   begin
+      for Item of Items loop
+         if Name_Is_Archive (To_String (Item.Name)) then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Selection_Has_Archive;
+
    function Is_Enabled
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
@@ -751,6 +781,10 @@ package body Files.Commands is
          when Compress_Zip_Command | Compress_7z_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Extract_Archive_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then Selection_Has_Archive (Model);
          when Delete_Selected_Permanently_Command | Generate_Thumbnails_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
@@ -901,6 +935,8 @@ package body Files.Commands is
          when Open_With_Command =>
             null;
          when Compress_Zip_Command | Compress_7z_Command =>
+            null;
+         when Extract_Archive_Command =>
             null;
          when Generate_Thumbnails_Command =>
             null;

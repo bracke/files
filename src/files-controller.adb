@@ -657,6 +657,8 @@ package body Files.Controller is
             Operation :=
               Files.Operations.Compress_Selected
                 (Model, Settings, Files.Operations.Seven_Zip_Archive);
+         when Files.Commands.Extract_Archive_Command =>
+            Operation := Files.Operations.Extract_Selected (Model, Settings);
          when Files.Commands.Paste_Items_Command =>
             declare
                use type Files.Model.Clipboard_Mode;

@@ -147,6 +147,18 @@ package Files.Operations is
       Format   : Archive_Format)
       return Operation_Result;
 
+   --  Extract each selected archive (.zip or .7z) into a new directory in the
+   --  current directory named after the archive's base name, made unique if it
+   --  already exists, then reload so the first created directory is selected.
+   --
+   --  @param Model Window model providing the selection and current directory.
+   --  @param Settings Settings model used for the post-extract reload.
+   --  @return Structured operation result.
+   function Extract_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Replace the current view with recursive search results for the filter text.
    --
    --  @param Model Window model containing the current path and filter query.
