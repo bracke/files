@@ -180,6 +180,16 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Navigate to the current backend's trash payload directory.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Navigate_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Select a root location and load it in the current window.
    --
    --  @param Model Window model to update.
@@ -249,6 +259,16 @@ package Files.Operations is
    --  @param Settings Settings model used for directory reload classification.
    --  @return Structured operation result.
    function Delete_Selected_Permanently
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Restore selected trashed items to their recorded original locations.
+   --
+   --  @param Model Window model to inspect and refresh after mutation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Restore_Selected_From_Trash
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;

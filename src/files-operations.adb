@@ -641,6 +641,51 @@ package body Files.Operations is
       end;
    end Navigate_Home;
 
+   function Navigate_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Trash_Dir : constant String := Files.File_System.Trash_Files_Directory;
+   begin
+      if Trash_Dir = "" then
+         Files.Model.Set_Error (Model, "error.trash.unavailable");
+         return Make_Result (Operation_Failed, "error.trash.unavailable", Trash_Dir);
+      end if;
+
+      declare
+         Path_Result : constant Files.File_System.Path_Result :=
+           Files.File_System.Normalize_Path (Trash_Dir);
+      begin
+         if Path_Result.Status /= Files.File_System.Path_Valid then
+            Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
+            return Make_Result
+              (Operation_Failed, To_String (Path_Result.Error_Key), Trash_Dir);
+         end if;
+
+         declare
+            Load : constant Files.File_System.Directory_Load_Result :=
+              Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+         begin
+            if not Load.Success then
+               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+               return
+                 Make_Result
+                   (Operation_Failed,
+                    To_String (Load.Error_Key),
+                    To_String (Path_Result.Directory_Path));
+            end if;
+
+            Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+            Files.Model.Set_Directory_Signature
+              (Model,
+               Files.File_System.Directory_State (To_String (Load.Path)));
+            Files.Model.Set_Error (Model, "");
+            return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+         end;
+      end;
+   end Navigate_Trash;
+
    function Navigate_Back
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -1201,6 +1246,51 @@ package body Files.Operations is
 
       return Make_Result (Operation_Success, Path => To_String (First_Path));
    end Delete_Selected_Permanently;
+
+   function Restore_Selected_From_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      First_Path : Unbounded_String;
+   begin
+      if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      for Item of Items loop
+         if Length (First_Path) = 0 then
+            First_Path := Item.Full_Path;
+         end if;
+
+         declare
+            Mutation : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Restore_From_Trash (To_String (Item.Full_Path));
+         begin
+            if not Mutation.Success then
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               end;
+               return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
+            end if;
+         end;
+      end loop;
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+      end;
+
+      return Make_Result (Operation_Success, Path => To_String (First_Path));
+   end Restore_Selected_From_Trash;
 
    function Generate_Selected_Thumbnails
      (Model    : in out Files.Model.Window_Model;

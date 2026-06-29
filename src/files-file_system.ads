@@ -515,6 +515,27 @@ package Files.File_System is
      (Value : Ada.Calendar.Time)
       return String;
 
+   --  Return the directory that holds trashed payloads for the current backend.
+   --
+   --  This is <Trash_Base_Path>/files for the freedesktop XDG and home-data
+   --  backends, and <Trash_Base_Path> itself for the macOS flat home backend.
+   --
+   --  @return Trashed-payload directory, or an empty string when unavailable.
+   function Trash_Files_Directory return String;
+
+   --  Restore a trashed payload to its recorded original location.
+   --
+   --  For freedesktop backends the original path is read from the matching
+   --  <base>/info/<name>.trashinfo sidecar, URL-decoded, and the payload is
+   --  moved back; the sidecar is removed on success. Backends without a sidecar
+   --  fail with error.trash.restore_unavailable.
+   --
+   --  @param Trashed_Path Payload path inside the trash files directory.
+   --  @return Mutation result with a localized error key on failure.
+   function Restore_From_Trash
+     (Trashed_Path : String)
+      return Mutation_Result;
+
    --  Create an empty regular file without replacing an existing entry.
    --
    --  @param Path File path to create.

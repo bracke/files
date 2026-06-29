@@ -1,8 +1,11 @@
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Files.File_System;
+
 package body Files.Commands is
    use Ada.Strings.Unbounded;
+   use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Key_Code;
    use type Files.Types.Modifier_Set;
@@ -143,6 +146,10 @@ package body Files.Commands is
             return "settings.reset";
          when Toggle_Bookmark_Command =>
             return "bookmark.toggle";
+         when Navigate_Trash_Command =>
+            return "trash.open";
+         when Restore_From_Trash_Command =>
+            return "trash.restore";
       end case;
    end Identifier;
 
@@ -233,6 +240,10 @@ package body Files.Commands is
             return "command.settings.reset";
          when Toggle_Bookmark_Command =>
             return "command.bookmark.toggle";
+         when Navigate_Trash_Command =>
+            return "command.trash.open";
+         when Restore_From_Trash_Command =>
+            return "command.trash.restore";
       end case;
    end Name_Key;
 
@@ -323,6 +334,10 @@ package body Files.Commands is
             return "command.settings.reset.description";
          when Toggle_Bookmark_Command =>
             return "command.bookmark.toggle.description";
+         when Navigate_Trash_Command =>
+            return "command.trash.open.description";
+         when Restore_From_Trash_Command =>
+            return "command.trash.restore.description";
       end case;
    end Description_Key;
 
@@ -685,6 +700,22 @@ package body Files.Commands is
       return False;
    end Contains;
 
+   --  Normalize a path for trash-location comparison, falling back to the raw
+   --  text when the path cannot be validated.
+   function Normalized_Path (Path : String) return String is
+      Result : constant Files.File_System.Path_Result :=
+        Files.File_System.Normalize_Path (Path);
+   begin
+      if Result.Status = Files.File_System.Path_Valid then
+         return To_String (Result.Directory_Path);
+      else
+         return Path;
+      end if;
+   exception
+      when others =>
+         return Path;
+   end Normalized_Path;
+
    function Is_Enabled
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
@@ -756,6 +787,17 @@ package body Files.Commands is
          when Save_Settings_Command
             | Reset_Settings_Command =>
             return Files.Model.Settings_Pane_Is_Open (Model);
+         when Navigate_Trash_Command =>
+            return Files.File_System.Trash_Files_Directory /= "";
+         when Restore_From_Trash_Command =>
+            declare
+               Trash_Dir : constant String := Files.File_System.Trash_Files_Directory;
+            begin
+               return Trash_Dir /= ""
+                 and then Normalized_Path (Files.Model.Current_Path (Model)) = Normalized_Path (Trash_Dir)
+                 and then Files.Model.Selected_Count (Model) > 0
+                 and then not Files.Model.Selection_Includes_Temporary (Model);
+            end;
          when others =>
             return True;
       end case;
@@ -890,6 +932,10 @@ package body Files.Commands is
          when Reset_Settings_Command =>
             null;
          when Toggle_Bookmark_Command =>
+            null;
+         when Navigate_Trash_Command =>
+            null;
+         when Restore_From_Trash_Command =>
             null;
       end case;
    end Execute;

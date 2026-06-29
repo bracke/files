@@ -2234,7 +2234,8 @@ package body Files.Rendering is
             Result.Commands (5) := Files.Commands.Delete_Selected_Items_Command;
             Result.Commands (6) := Files.Commands.Compress_Zip_Command;
             Result.Commands (7) := Files.Commands.Compress_7z_Command;
-            Result.Row_Count := 7;
+            Result.Commands (8) := Files.Commands.Restore_From_Trash_Command;
+            Result.Row_Count := 8;
          when Files.Model.Context_Menu_Empty =>
             Result.Commands (1) := Files.Commands.Create_File_Command;
             Result.Commands (2) := Files.Commands.New_Folder_Command;

@@ -588,6 +588,10 @@ package body Files.Controller is
       case Id is
          when Files.Commands.Navigate_Home_Command =>
             Operation := Files.Operations.Navigate_Home (Model, Settings);
+         when Files.Commands.Navigate_Trash_Command =>
+            Operation := Files.Operations.Navigate_Trash (Model, Settings);
+         when Files.Commands.Restore_From_Trash_Command =>
+            Operation := Files.Operations.Restore_Selected_From_Trash (Model, Settings);
          when Files.Commands.Navigate_Back_Command =>
             Operation := Files.Operations.Navigate_Back (Model, Settings);
          when Files.Commands.Navigate_Forward_Command =>

@@ -176,7 +176,7 @@ package Files.Rendering is
       Context_Menu_Item_Index        : Natural := 0;
    end record;
 
-   Max_Context_Menu_Rows : constant := 7;
+   Max_Context_Menu_Rows : constant := 8;
    type Context_Menu_Command_Array is
      array (1 .. Max_Context_Menu_Rows) of Files.Commands.Command_Id;
 

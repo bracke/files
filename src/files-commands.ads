@@ -45,10 +45,12 @@ package Files.Commands is
       Refresh_Directory_Command,
       Save_Settings_Command,
       Reset_Settings_Command,
-      Toggle_Bookmark_Command);
+      Toggle_Bookmark_Command,
+      Navigate_Trash_Command,
+      Restore_From_Trash_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Toggle_Bookmark_Command;
+     Select_Small_Icons_Command .. Restore_From_Trash_Command;
 
    type Command_Placement is
      (No_Placement,
