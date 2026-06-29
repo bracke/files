@@ -18,6 +18,8 @@ it under a dated version heading when a release is cut.
   "Compress Zip" and "Compress 7z" (built on zlib's `ZIP_Files` /
   `Seven_Zip_Deflate_Files`). The archive is named after the first selected
   item; directories are recursed.
+- Extract selected `.zip`/`.7z` archives, each into its own new folder (built on
+  zlib's `Extract_Archive_File_To_Directory`).
 - Release management: a pin-free `alire.release.toml`, a `release_check`
   readiness tool (built on `project_tools`), and a documented release process.
 
