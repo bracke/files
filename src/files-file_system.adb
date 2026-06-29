@@ -20,6 +20,8 @@ with GNAT.OS_Lib;
 with Zlib;
 
 with Files.File_Types;
+with Files_Config;
+
 with Files.Platform.Macos;
 with Files.Platform.Metadata;
 with Files.Platform.Windows;
@@ -556,6 +558,9 @@ package body Files.File_System is
          return Trash_Windows_Recycle_Bin;
       elsif Environment_Equals ("FILES_TRASH_BACKEND", "macos") then
          return Trash_Macos_Native;
+      elsif Files_Config.Alire_Host_OS = "windows" then
+         --  Windows has no HOME/XDG trash; use the shell Recycle Bin by default.
+         return Trash_Windows_Recycle_Bin;
       elsif Xdg_Data_Home /= "" then
          return Trash_Xdg_Data_Home;
       elsif Home /= "" then

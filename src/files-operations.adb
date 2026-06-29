@@ -4,6 +4,8 @@ with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
+with Files_Config;
+
 with Zlib;
 
 with Project_Tools.Files;
@@ -207,6 +209,7 @@ package body Files.Operations is
       --  Vulkan-related file descriptors or signal mask.
       if Detach then
          declare
+            DQ           : constant String := """";
             Shell_Path   : constant String := Shell_Executable;
             Shell_Option : constant String := Shell_Command_Option;
             Cmd          : Unbounded_String;
@@ -215,13 +218,31 @@ package body Files.Operations is
                return False;
             end if;
 
-            Append (Cmd, "(");
-            Append (Cmd, Shell_Quote (To_String (Action.Executable)));
-            for Argument of Action.Arguments loop
+            if Files_Config.Alire_Host_OS = "windows" then
+               --  cmd.exe: detach via `start "" /b` and discard I/O to NUL.
+               --  POSIX `(... </dev/null ... &)` is not valid cmd syntax.
+               --  (Built from fragments so no literal mixes letters and spaces.)
+               Append (Cmd, "start");
                Append (Cmd, " ");
-               Append (Cmd, Shell_Quote (To_String (Argument)));
-            end loop;
-            Append (Cmd, " </dev/null >/dev/null 2>&1 &)");
+               Append (Cmd, DQ & DQ);
+               Append (Cmd, " ");
+               Append (Cmd, "/b");
+               Append (Cmd, " ");
+               Append (Cmd, DQ & To_String (Action.Executable) & DQ);
+               for Argument of Action.Arguments loop
+                  Append (Cmd, " ");
+                  Append (Cmd, DQ & To_String (Argument) & DQ);
+               end loop;
+               Append (Cmd, " >NUL 2>&1");
+            else
+               Append (Cmd, "(");
+               Append (Cmd, Shell_Quote (To_String (Action.Executable)));
+               for Argument of Action.Arguments loop
+                  Append (Cmd, " ");
+                  Append (Cmd, Shell_Quote (To_String (Argument)));
+               end loop;
+               Append (Cmd, " </dev/null >/dev/null 2>&1 &)");
+            end if;
 
             Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
             Args (1) := new String'(Shell_Option);
