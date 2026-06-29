@@ -9,6 +9,11 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- New Folder: create a directory inline, mirroring create-file.
+- Open With: pick an installed application (discovered from `.desktop` entries)
+  via the command palette and launch the selection with it.
+- View and restore trashed items: open the trash directory and restore the
+  selection to its original location (freedesktop `.trashinfo` backends).
 - Compress selected items into an archive from the right-click menu —
   "Compress Zip" and "Compress 7z" (built on zlib's `ZIP_Files` /
   `Seven_Zip_Deflate_Files`). The archive is named after the first selected
