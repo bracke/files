@@ -3404,7 +3404,9 @@ package body Files.File_System is
          Candidate : Unbounded_String := To_Unbounded_String (Name);
       begin
          while Ada.Directories.Exists (Join_Path (Files_Directory, To_String (Candidate)))
-           or else Ada.Directories.Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))
+           or else (Info_Directory /= ""
+                    and then Ada.Directories.Exists
+                               (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo")))
          loop
             Candidate := To_Unbounded_String (Name & "." & Image_No_Space (Counter));
             exit when Counter = Positive'Last;
@@ -3447,9 +3449,17 @@ package body Files.File_System is
          return To_String (Result);
       end Trash_Info_Path_Value;
 
-      Base      : constant String := Trash_Base_Path;
-      Files_Dir : constant String := (if Base = "" then "" else Join_Path (Base, "files"));
-      Info_Dir  : constant String := (if Base = "" then "" else Join_Path (Base, "info"));
+      Backend    : constant Trash_Backend := Trash_Backend_For_Base;
+      Macos_Home : constant Boolean := Backend = Trash_Macos_Home;
+      Base       : constant String := Trash_Base_Path;
+      --  macOS ~/.Trash stores items at the top level, without the freedesktop
+      --  files/info split or .trashinfo sidecars, so Finder recognizes them.
+      Files_Dir  : constant String :=
+        (if Base = "" then ""
+         elsif Macos_Home then Base
+         else Join_Path (Base, "files"));
+      Info_Dir   : constant String :=
+        (if Base = "" or else Macos_Home then "" else Join_Path (Base, "info"));
       Name      : Unbounded_String;
       Target    : Unbounded_String;
       Info_Path : Unbounded_String;
@@ -3474,18 +3484,22 @@ package body Files.File_System is
       end;
 
       Ada.Directories.Create_Path (Files_Dir);
-      Ada.Directories.Create_Path (Info_Dir);
+      if Info_Dir /= "" then
+         Ada.Directories.Create_Path (Info_Dir);
+      end if;
 
       Name := To_Unbounded_String
         (Unique_Trash_Name (Files_Dir, Info_Dir, Ada.Directories.Simple_Name (Path)));
       Target := To_Unbounded_String (Join_Path (Files_Dir, To_String (Name)));
-      Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
 
-      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, To_String (Info_Path));
-      Ada.Text_IO.Put_Line (File, "[Trash Info]");
-      Ada.Text_IO.Put_Line (File, "Path=" & Trash_Info_Path_Value (Ada.Directories.Full_Name (Path)));
-      Ada.Text_IO.Put_Line (File, "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock));
-      Ada.Text_IO.Close (File);
+      if not Macos_Home then
+         Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
+         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, To_String (Info_Path));
+         Ada.Text_IO.Put_Line (File, "[Trash Info]");
+         Ada.Text_IO.Put_Line (File, "Path=" & Trash_Info_Path_Value (Ada.Directories.Full_Name (Path)));
+         Ada.Text_IO.Put_Line (File, "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock));
+         Ada.Text_IO.Close (File);
+      end if;
 
       begin
          Ada.Directories.Rename (Path, To_String (Target));

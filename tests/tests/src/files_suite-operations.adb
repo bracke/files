@@ -555,8 +555,14 @@ package body Files_Suite.Operations is
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,
          "trash backend reports macOS-style home trash when present");
       Assert
-        (Ada.Directories.Exists (Join (Join (Join (Mac_Home, ".Trash"), "files"), "mac-trash.txt")),
-         "macOS-style home trash fallback stores file below the home trash directory");
+        (Ada.Directories.Exists (Join (Join (Mac_Home, ".Trash"), "mac-trash.txt")),
+         "macOS-style home trash stores the file directly under ~/.Trash");
+      Assert
+        (not Ada.Directories.Exists (Join (Join (Mac_Home, ".Trash"), "files")),
+         "macOS-style home trash does not create a freedesktop files/ subdirectory");
+      Assert
+        (not Ada.Directories.Exists (Join (Join (Mac_Home, ".Trash"), "info")),
+         "macOS-style home trash does not create a freedesktop info/ subdirectory");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Project_Tools.Files.Delete_Tree (Mac_Home);
