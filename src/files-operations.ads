@@ -91,6 +91,23 @@ package Files.Operations is
    --  @return /C for COMSPEC shells and -c otherwise.
    function Shell_Command_Option return String;
 
+   --  Spawn an open action's executable, optionally fully detached.
+   --
+   --  When Detach is True the action is launched through the host shell with
+   --  full stdin/stdout/stderr redirection and backgrounding so the spawned
+   --  process does not inherit Files's file descriptors or signal mask. This is
+   --  the launch path used by the "Open With" application picker.
+   --
+   --  @param Action Open action describing the executable and arguments.
+   --  @param Exit_Status Spawn exit status, or -1 when no process was started.
+   --  @param Detach Whether to launch the process fully detached.
+   --  @return True when the spawn reported success.
+   function Execute_Open_Action
+     (Action      : Files.Settings.Open_Action;
+      Exit_Status : out Integer;
+      Detach      : Boolean := False)
+      return Boolean;
+
    --  Refresh the current directory and replace loaded items.
    --
    --  @param Model Window model to refresh.

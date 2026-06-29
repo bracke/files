@@ -2228,14 +2228,15 @@ package body Files.Rendering is
       case Snapshot.Context_Menu_Target is
          when Files.Model.Context_Menu_Item =>
             Result.Commands (1) := Files.Commands.Open_Selected_Items_Command;
-            Result.Commands (2) := Files.Commands.Copy_Selected_Items_Command;
-            Result.Commands (3) := Files.Commands.Cut_Selected_Items_Command;
-            Result.Commands (4) := Files.Commands.Rename_Selected_Items_Command;
-            Result.Commands (5) := Files.Commands.Delete_Selected_Items_Command;
-            Result.Commands (6) := Files.Commands.Compress_Zip_Command;
-            Result.Commands (7) := Files.Commands.Compress_7z_Command;
-            Result.Commands (8) := Files.Commands.Restore_From_Trash_Command;
-            Result.Row_Count := 8;
+            Result.Commands (2) := Files.Commands.Open_With_Command;
+            Result.Commands (3) := Files.Commands.Copy_Selected_Items_Command;
+            Result.Commands (4) := Files.Commands.Cut_Selected_Items_Command;
+            Result.Commands (5) := Files.Commands.Rename_Selected_Items_Command;
+            Result.Commands (6) := Files.Commands.Delete_Selected_Items_Command;
+            Result.Commands (7) := Files.Commands.Compress_Zip_Command;
+            Result.Commands (8) := Files.Commands.Compress_7z_Command;
+            Result.Commands (9) := Files.Commands.Restore_From_Trash_Command;
+            Result.Row_Count := 9;
          when Files.Model.Context_Menu_Empty =>
             Result.Commands (1) := Files.Commands.Create_File_Command;
             Result.Commands (2) := Files.Commands.New_Folder_Command;

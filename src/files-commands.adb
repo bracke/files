@@ -114,6 +114,8 @@ package body Files.Commands is
             return "file.paste";
          when Open_Selected_Items_Command =>
             return "file.open_selected";
+         when Open_With_Command =>
+            return "file.open_with";
          when Compress_Zip_Command =>
             return "file.compress_zip";
          when Compress_7z_Command =>
@@ -208,6 +210,8 @@ package body Files.Commands is
             return "command.file.paste";
          when Open_Selected_Items_Command =>
             return "command.file.open";
+         when Open_With_Command =>
+            return "command.file.open_with";
          when Compress_Zip_Command =>
             return "command.file.compress_zip";
          when Compress_7z_Command =>
@@ -302,6 +306,8 @@ package body Files.Commands is
             return "command.file.paste.description";
          when Open_Selected_Items_Command =>
             return "command.file.open.description";
+         when Open_With_Command =>
+            return "command.file.open_with.description";
          when Compress_Zip_Command =>
             return "command.file.compress_zip.description";
          when Compress_7z_Command =>
@@ -738,7 +744,8 @@ package body Files.Commands is
             return Files.Model.Can_Go_Back (Model);
          when Navigate_Forward_Command =>
             return Files.Model.Can_Go_Forward (Model);
-         when Delete_Selected_Items_Command | Open_Selected_Items_Command =>
+         when Delete_Selected_Items_Command | Open_Selected_Items_Command
+            | Open_With_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
          when Compress_Zip_Command | Compress_7z_Command =>
@@ -890,6 +897,8 @@ package body Files.Commands is
          when Paste_Items_Command =>
             null;
          when Open_Selected_Items_Command =>
+            null;
+         when Open_With_Command =>
             null;
          when Compress_Zip_Command | Compress_7z_Command =>
             null;

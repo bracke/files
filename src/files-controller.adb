@@ -1,6 +1,7 @@
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Files.Applications;
 with Files.Command_Palette;
 with Files.UTF8;
 
@@ -598,6 +599,24 @@ package body Files.Controller is
             Operation := Files.Operations.Navigate_Forward (Model, Settings);
          when Files.Commands.Open_Selected_Items_Command =>
             Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
+         when Files.Commands.Open_With_Command =>
+            declare
+               Items : constant Files.File_System.Item_Vectors.Vector :=
+                 Files.Model.Selected_Items (Model);
+               Targets : Files.Types.String_Vectors.Vector;
+            begin
+               for Item of Items loop
+                  Targets.Append (Item.Full_Path);
+               end loop;
+               --  Open_Command_Palette resets palette mode and targets, so
+               --  capture the selection into the model only afterwards.
+               Files.Model.Open_Command_Palette (Model);
+               Files.Model.Set_Open_With_Targets (Model, Targets);
+               Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
+               Files.Model.Set_Command_Palette_Query (Model, "");
+               Files.Model.Set_Error (Model, "");
+               Operation.Status := Files.Operations.Operation_Success;
+            end;
          when Files.Commands.Delete_Selected_Items_Command =>
             Operation := Files.Operations.Delete_Selected (Model, Settings);
          when Files.Commands.Delete_Selected_Permanently_Command =>
@@ -846,6 +865,31 @@ package body Files.Controller is
       end;
    end Handle_Root_Click;
 
+   --  Launch the application carried by an "Open With" palette result on the
+   --  stored target paths, then close the palette. The detached spawn status is
+   --  advisory only (the wrapper shell, not the real handler), mirroring
+   --  Open_Selected's detached-launch policy.
+   function Launch_Application_Result
+     (Model : in out Files.Model.Window_Model;
+      Item  : Files.Command_Palette.Result_Entry)
+      return Controller_Result
+   is
+      App : constant Files.Applications.Application :=
+        (Name => Item.Application_Name, Exec => Item.Application_Exec);
+      Action : constant Files.Settings.Open_Action :=
+        Files.Applications.Build_Open_Action (App, Files.Model.Open_With_Targets (Model));
+      Operation   : Files.Operations.Operation_Result := Empty_Operation;
+      Exit_Status : Integer := 0;
+      Spawned     : constant Boolean :=
+        Files.Operations.Execute_Open_Action (Action, Exit_Status, Detach => True);
+      pragma Unreferenced (Spawned);
+   begin
+      Files.Model.Close_Command_Palette (Model);
+      Operation.Status := Files.Operations.Operation_Action_Executed;
+      Operation.Action := Action;
+      return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
+   end Launch_Application_Result;
+
    function Handle_Command_Result_Click
      (Model        : in out Files.Model.Window_Model;
       Settings     : Files.Settings.Settings_Model;
@@ -865,15 +909,25 @@ package body Files.Controller is
 
       Files.Model.Set_Command_Palette_Selected_Index (Model, Result_Index);
 
+      if Results.Element (Positive (Result_Index)).Is_Application then
+         return Launch_Application_Result (Model, Results.Element (Positive (Result_Index)));
+      end if;
+
       if not Results.Element (Positive (Result_Index)).Enabled then
          return Execute_Command (Results.Element (Positive (Result_Index)).Command, Model, Settings, Modifiers);
       end if;
 
       declare
+         Command : constant Files.Commands.Command_Id :=
+           Results.Element (Positive (Result_Index)).Command;
          Result : constant Controller_Result :=
-           Execute_Command (Results.Element (Positive (Result_Index)).Command, Model, Settings, Modifiers);
+           Execute_Command (Command, Model, Settings, Modifiers);
       begin
-         if Result.Status /= Controller_Ignored then
+         --  Open_With re-opens the palette in application-picker mode, so leave
+         --  it open instead of closing it immediately after execution.
+         if Result.Status /= Controller_Ignored
+           and then Command /= Files.Commands.Open_With_Command
+         then
             Files.Model.Close_Command_Palette (Model);
          end if;
          return Result;
@@ -1298,12 +1352,22 @@ package body Files.Controller is
                   Files.Model.Set_Command_Palette_Selected_Index (Model, Index);
                end if;
 
-               if Index <= Natural (Results.Length) and then Results.Element (Positive (Index)).Enabled then
+               if Index <= Natural (Results.Length)
+                 and then Results.Element (Positive (Index)).Is_Application
+               then
+                  return Launch_Application_Result (Model, Results.Element (Positive (Index)));
+               elsif Index <= Natural (Results.Length) and then Results.Element (Positive (Index)).Enabled then
                   declare
+                     Command : constant Files.Commands.Command_Id :=
+                       Results.Element (Positive (Index)).Command;
                      Command_Result : constant Controller_Result :=
-                       Execute_Command (Results.Element (Positive (Index)).Command, Model, Settings, Modifiers);
+                       Execute_Command (Command, Model, Settings, Modifiers);
                   begin
-                     if Command_Result.Status /= Controller_Ignored then
+                     --  Open_With re-opens the palette in application-picker
+                     --  mode, so leave it open instead of closing it.
+                     if Command_Result.Status /= Controller_Ignored
+                       and then Command /= Files.Commands.Open_With_Command
+                     then
                         Files.Model.Close_Command_Palette (Model);
                      end if;
                      return Command_Result;

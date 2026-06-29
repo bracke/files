@@ -807,6 +807,41 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   type Palette_Mode is (Palette_Commands, Palette_Open_With);
+
+   --  Return the active command-palette mode.
+   --
+   --  @param Model Model to inspect.
+   --  @return Palette_Commands for the registered-command picker, or
+   --  Palette_Open_With for the "Open With" application picker.
+   function Command_Palette_Mode_Of
+     (Model : Window_Model)
+      return Palette_Mode;
+
+   --  Set the active command-palette mode.
+   --
+   --  @param Model Model to update.
+   --  @param Mode New palette mode.
+   procedure Set_Command_Palette_Mode
+     (Model : in out Window_Model;
+      Mode  : Palette_Mode);
+
+   --  Replace the stored "Open With" target paths.
+   --
+   --  @param Model Model to update.
+   --  @param Targets Full paths the chosen application should open.
+   procedure Set_Open_With_Targets
+     (Model   : in out Window_Model;
+      Targets : Files.Types.String_Vectors.Vector);
+
+   --  Return the stored "Open With" target paths.
+   --
+   --  @param Model Model to inspect.
+   --  @return Full paths captured for the "Open With" picker.
+   function Open_With_Targets
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
    --  Return whether rename can start for a real loaded item.
    --
    --  @param Model Model to inspect.
@@ -1099,6 +1134,8 @@ private
       Command_Palette_Cursor   : Natural := 0;
       Command_Palette_Selected : Natural := 0;
       Command_Palette_Offset   : Natural := 0;
+      Command_Palette_Mode     : Palette_Mode := Palette_Commands;
+      Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Rename_Active            : Boolean := False;
       Rename_Item_Index    : Natural := 0;
       Rename_Value         : UString;

@@ -2038,6 +2038,8 @@ package body Files.Model is
       Model.Command_Palette_Selected := 0;
       Model.Command_Palette_Offset := 0;
       Model.Command_Palette_Cursor := 0;
+      Model.Command_Palette_Mode := Palette_Commands;
+      Model.Open_With_Targets_Value.Clear;
       Model.Focus_Value := Files.Types.Focus_Command_Palette;
    end Open_Command_Palette;
 
@@ -2049,6 +2051,8 @@ package body Files.Model is
       Model.Command_Palette_Selected := 0;
       Model.Command_Palette_Offset := 0;
       Model.Command_Palette_Cursor := 0;
+      Model.Command_Palette_Mode := Palette_Commands;
+      Model.Open_With_Targets_Value.Clear;
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
@@ -2115,6 +2119,34 @@ package body Files.Model is
    begin
       return Model.Command_Palette_Offset;
    end Command_Palette_Result_Offset;
+
+   function Command_Palette_Mode_Of
+     (Model : Window_Model)
+      return Palette_Mode is
+   begin
+      return Model.Command_Palette_Mode;
+   end Command_Palette_Mode_Of;
+
+   procedure Set_Command_Palette_Mode
+     (Model : in out Window_Model;
+      Mode  : Palette_Mode) is
+   begin
+      Model.Command_Palette_Mode := Mode;
+   end Set_Command_Palette_Mode;
+
+   procedure Set_Open_With_Targets
+     (Model   : in out Window_Model;
+      Targets : Files.Types.String_Vectors.Vector) is
+   begin
+      Model.Open_With_Targets_Value := Targets;
+   end Set_Open_With_Targets;
+
+   function Open_With_Targets
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector is
+   begin
+      return Model.Open_With_Targets_Value;
+   end Open_With_Targets;
 
    function Rename_Is_Enabled
      (Model : Window_Model)

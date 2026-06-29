@@ -26,6 +26,7 @@ with Textrender.Fonts;
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
+with Files.Applications;
 with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
@@ -111,6 +112,7 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -148,6 +150,8 @@ package body Files_Suite.Operations is
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Compress_Selected_Operation'Access, "compress selected items into zip and 7z archives");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Available_Applications'Access, "open-with discovers and parses desktop applications");
    end Register_Tests;
 
    procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3341,6 +3345,137 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Sz_Path), "7z archive is created next to the first item");
       Assert (First_Bytes (Sz_Path, 6) = Sz_Magic, "7z archive begins with the 7z signature");
    end Test_Compress_Selected_Operation;
+
+   procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      LF         : constant Character := ASCII.LF;
+      App_Base   : constant String := Join (Root, "xdg_apps");
+      Apps_Dir   : constant String := Join (App_Base, "applications");
+      Empty_Dirs : constant String := Join (Root, "absent_data_dir");
+      Had_Home   : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Dirs   : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_DIRS");
+      Old_Home   : Unbounded_String;
+      Old_Dirs   : Unbounded_String;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Home then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Dirs then
+            Ada.Environment_Variables.Set ("XDG_DATA_DIRS", To_String (Old_Dirs));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_DIRS");
+         end if;
+      end Restore_Environment;
+
+      function Find
+        (Apps : Files.Applications.Application_Vectors.Vector;
+         Name : String)
+         return Files.Applications.Application is
+      begin
+         for App of Apps loop
+            if To_String (App.Name) = Name then
+               return App;
+            end if;
+         end loop;
+         return (Name => Null_Unbounded_String, Exec => Null_Unbounded_String);
+      end Find;
+   begin
+      if Had_Home then
+         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Dirs then
+         Old_Dirs := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_DIRS"));
+      end if;
+
+      Reset_Root;
+      Ada.Directories.Create_Path (Apps_Dir);
+
+      Write_File
+        (Join (Apps_Dir, "editor.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Text Editor" & LF & "Exec=editor %F" & LF);
+      Write_File
+        (Join (Apps_Dir, "viewer.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Image Viewer" & LF & "Exec=viewer --open %U" & LF
+         & "Terminal=false" & LF);
+      Write_File
+        (Join (Apps_Dir, "nodisplay.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Hidden Display" & LF & "NoDisplay=true" & LF & "Exec=nope" & LF);
+      Write_File
+        (Join (Apps_Dir, "hidden.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Gone" & LF & "Hidden=true" & LF & "Exec=nope" & LF);
+      Write_File
+        (Join (Apps_Dir, "link.desktop"),
+         "[Desktop Entry]" & LF & "Type=Link" & LF
+         & "Name=A Link" & LF & "Exec=nope" & LF);
+      Write_File
+        (Join (Apps_Dir, "noexec.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=No Command" & LF & "Exec=%F" & LF);
+
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", App_Base);
+      Ada.Environment_Variables.Set ("XDG_DATA_DIRS", Empty_Dirs);
+
+      declare
+         Apps : constant Files.Applications.Application_Vectors.Vector :=
+           Files.Applications.Available_Applications;
+         Editor : constant Files.Applications.Application := Find (Apps, "Text Editor");
+         Viewer : constant Files.Applications.Application := Find (Apps, "Image Viewer");
+      begin
+         Assert
+           (Natural (Apps.Length) = 2,
+            "only displayable application entries are returned");
+         Assert
+           (To_String (Apps.First_Element.Name) = "Image Viewer",
+            "applications are sorted case-insensitively by name");
+         Assert
+           (To_String (Editor.Exec) = "editor",
+            "Exec field codes are stripped (editor)");
+         Assert
+           (To_String (Viewer.Exec) = "viewer --open",
+            "Exec field codes are stripped while base args are kept");
+
+         declare
+            Targets : Files.Types.String_Vectors.Vector;
+            Action  : Files.Settings.Open_Action;
+         begin
+            Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
+            Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
+            Action := Files.Applications.Build_Open_Action (Viewer, Targets);
+            Assert
+              (To_String (Action.Executable) = "viewer",
+               "action executable is the first Exec token");
+            Assert
+              (not Action.Use_Shell,
+               "open-with action is not shell-wrapped");
+            Assert
+              (Natural (Action.Arguments.Length) = 3,
+               "arguments are remaining Exec tokens followed by each target");
+            Assert
+              (To_String (Action.Arguments.Element (1)) = "--open",
+               "base Exec argument is preserved");
+            Assert
+              (To_String (Action.Arguments.Element (2)) = "/tmp/a.txt",
+               "first target path is appended");
+            Assert
+              (To_String (Action.Arguments.Element (3)) = "/tmp/b.txt",
+               "second target path is appended");
+         end;
+      end;
+
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Available_Applications;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
