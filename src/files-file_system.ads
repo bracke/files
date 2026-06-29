@@ -562,6 +562,19 @@ package Files.File_System is
       To_Path   : String)
       return Mutation_Result;
 
+   --  Recursively copy a file or directory tree to a new destination path.
+   --
+   --  The destination must not already exist. Directories are copied with their
+   --  full contents. Used by the duplicate command.
+   --
+   --  @param Source_Path Existing file or directory to copy.
+   --  @param Destination_Path New path to create.
+   --  @return Mutation result with a localized error key on failure.
+   function Copy_Tree
+     (Source_Path      : String;
+      Destination_Path : String)
+      return Mutation_Result;
+
    --  Move an entry to trash when a supported trash backend is available.
    --
    --  @param Path Entry to move to trash.

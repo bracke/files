@@ -649,6 +649,8 @@ package body Files.Controller is
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
             end;
+         when Files.Commands.Duplicate_Selected_Command =>
+            Operation := Files.Operations.Duplicate_Selected (Model, Settings);
          when Files.Commands.Compress_Zip_Command =>
             Operation :=
               Files.Operations.Compress_Selected

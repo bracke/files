@@ -159,6 +159,21 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Duplicate each selected item into a uniquely named copy in the current
+   --  directory, then reload so the first created copy appears and is selected.
+   --  Files and directories are both copied recursively. The copy name keeps the
+   --  original extension and inserts a " (copy)" marker before it (for example
+   --  report.txt becomes report (copy).txt), made unique with an incrementing
+   --  counter when a candidate name already exists.
+   --
+   --  @param Model Window model providing the selection and current directory.
+   --  @param Settings Settings model used for the post-duplicate reload.
+   --  @return Structured operation result.
+   function Duplicate_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Replace the current view with recursive search results for the filter text.
    --
    --  @param Model Window model containing the current path and filter query.

@@ -28,6 +28,7 @@ package Files.Commands is
       Rename_Selected_Items_Command,
       Copy_Selected_Items_Command,
       Cut_Selected_Items_Command,
+      Duplicate_Selected_Command,
       Paste_Items_Command,
       Open_Selected_Items_Command,
       Open_With_Command,

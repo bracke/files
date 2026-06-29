@@ -114,6 +114,7 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -153,6 +154,8 @@ package body Files_Suite.Operations is
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Compress_Selected_Operation'Access, "compress selected items into zip and 7z archives");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Duplicate_Selected_Operation'Access, "duplicate selected item into a uniquely named copy");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Extract_Selected_Operation'Access, "extract selected archive into a new folder");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3350,6 +3353,40 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Sz_Path), "7z archive is created next to the first item");
       Assert (First_Bytes (Sz_Path, 6) = Sz_Magic, "7z archive begins with the 7z signature");
    end Test_Compress_Selected_Operation;
+
+   procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir        : constant String := Join (Root, "duplicate");
+      Source     : constant String := Join (Dir, "report.txt");
+      Copy_Path  : constant String := Join (Dir, "report (copy).txt");
+      Payload    : constant String := "duplicate payload contents";
+      Load       : Files.File_System.Directory_Load_Result;
+      Model      : Files.Model.Window_Model;
+      Routed     : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File (Source, Payload);
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "report.txt");
+
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
+         "duplicate command is enabled with a selection");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Duplicate_Selected_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "duplicate succeeds");
+      Assert (Ada.Directories.Exists (Source), "original item still exists after duplicating");
+      Assert (Ada.Directories.Exists (Copy_Path), "duplicate is created with a distinct name");
+      Assert
+        (Project_Tools.Files.Read_Raw_File (Copy_Path) = Project_Tools.Files.Read_Raw_File (Source),
+         "duplicate has identical contents to the original");
+   end Test_Duplicate_Selected_Operation;
 
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

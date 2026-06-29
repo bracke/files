@@ -111,6 +111,8 @@ package body Files.Commands is
             return "file.copy";
          when Cut_Selected_Items_Command =>
             return "file.cut";
+         when Duplicate_Selected_Command =>
+            return "file.duplicate";
          when Paste_Items_Command =>
             return "file.paste";
          when Open_Selected_Items_Command =>
@@ -209,6 +211,8 @@ package body Files.Commands is
             return "command.file.copy";
          when Cut_Selected_Items_Command =>
             return "command.file.cut";
+         when Duplicate_Selected_Command =>
+            return "command.file.duplicate";
          when Paste_Items_Command =>
             return "command.file.paste";
          when Open_Selected_Items_Command =>
@@ -307,6 +311,8 @@ package body Files.Commands is
             return "command.file.copy.description";
          when Cut_Selected_Items_Command =>
             return "command.file.cut.description";
+         when Duplicate_Selected_Command =>
+            return "command.file.duplicate.description";
          when Paste_Items_Command =>
             return "command.file.paste.description";
          when Open_Selected_Items_Command =>
@@ -667,6 +673,7 @@ package body Files.Commands is
          when Select_All_Command
             | Copy_Selected_Items_Command
             | Cut_Selected_Items_Command
+            | Duplicate_Selected_Command
             | Paste_Items_Command =>
             return Command_Palette_Only;
          when others =>
@@ -788,7 +795,8 @@ package body Files.Commands is
          when Delete_Selected_Permanently_Command | Generate_Thumbnails_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
-         when Copy_Selected_Items_Command | Cut_Selected_Items_Command =>
+         when Copy_Selected_Items_Command | Cut_Selected_Items_Command
+            | Duplicate_Selected_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
          when Paste_Items_Command =>
@@ -927,6 +935,8 @@ package body Files.Commands is
          when Copy_Selected_Items_Command =>
             null;
          when Cut_Selected_Items_Command =>
+            null;
+         when Duplicate_Selected_Command =>
             null;
          when Paste_Items_Command =>
             null;
