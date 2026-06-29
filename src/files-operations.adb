@@ -1374,7 +1374,10 @@ package body Files.Operations is
 
       declare
          Path     : constant String := Files.File_System.Join_Path (Files.Model.Current_Path (Model), Name);
-         Mutation : constant Files.File_System.Mutation_Result := Files.File_System.Create_Empty_File (Path);
+         Mutation : constant Files.File_System.Mutation_Result :=
+           (if Files.Model.Temporary_Item_Is_Directory (Model)
+            then Files.File_System.Create_Directory (Path)
+            else Files.File_System.Create_Empty_File (Path));
       begin
          if not Mutation.Success then
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));

@@ -2237,9 +2237,10 @@ package body Files.Rendering is
             Result.Row_Count := 7;
          when Files.Model.Context_Menu_Empty =>
             Result.Commands (1) := Files.Commands.Create_File_Command;
-            Result.Commands (2) := Files.Commands.Paste_Items_Command;
-            Result.Commands (3) := Files.Commands.Refresh_Directory_Command;
-            Result.Row_Count := 3;
+            Result.Commands (2) := Files.Commands.New_Folder_Command;
+            Result.Commands (3) := Files.Commands.Paste_Items_Command;
+            Result.Commands (4) := Files.Commands.Refresh_Directory_Command;
+            Result.Row_Count := 4;
          when Files.Model.Context_Menu_None =>
             return Result;
       end case;

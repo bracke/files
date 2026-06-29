@@ -22,6 +22,7 @@ package Files.Commands is
       Navigate_Back_Command,
       Navigate_Forward_Command,
       Create_File_Command,
+      New_Folder_Command,
       Delete_Selected_Items_Command,
       Delete_Selected_Permanently_Command,
       Rename_Selected_Items_Command,

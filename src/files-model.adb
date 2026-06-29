@@ -412,6 +412,7 @@ package body Files.Model is
       Model.Rename_Value := Null_Unbounded_String;
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       Model.Last_Error := Null_Unbounded_String;
    end Initialize;
@@ -545,11 +546,18 @@ package body Files.Model is
       if Item_Index /= 0 then
          return Model.Items.Element (Positive (Item_Index));
       elsif Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model) then
-         return Files.File_System.Make_Item
-           (Parent_Path => Current_Path (Model),
-            Name        => To_String (Model.Temporary_Name_Value),
-            Kind        => Files.Types.Regular_File_Item,
-            Filetype    => "text/plain");
+         if Model.Temporary_Is_Directory then
+            return Files.File_System.Make_Item
+              (Parent_Path => Current_Path (Model),
+               Name        => To_String (Model.Temporary_Name_Value),
+               Kind        => Files.Types.Directory_Item);
+         else
+            return Files.File_System.Make_Item
+              (Parent_Path => Current_Path (Model),
+               Name        => To_String (Model.Temporary_Name_Value),
+               Kind        => Files.Types.Regular_File_Item,
+               Filetype    => "text/plain");
+         end if;
       else
          return Files.File_System.Make_Item ("", "", Files.Types.Unknown_Item);
       end if;
@@ -872,11 +880,18 @@ package body Files.Model is
       if Selected_Count (Model) = 0 then
          return Files.File_System.Make_Item ("", "", Files.Types.Unknown_Item);
       elsif Item_Index = Temporary_Item_Index then
-         return Files.File_System.Make_Item
-           (Parent_Path => Current_Path (Model),
-            Name        => To_String (Model.Temporary_Name_Value),
-            Kind        => Files.Types.Regular_File_Item,
-            Filetype    => "text/plain");
+         if Model.Temporary_Is_Directory then
+            return Files.File_System.Make_Item
+              (Parent_Path => Current_Path (Model),
+               Name        => To_String (Model.Temporary_Name_Value),
+               Kind        => Files.Types.Directory_Item);
+         else
+            return Files.File_System.Make_Item
+              (Parent_Path => Current_Path (Model),
+               Name        => To_String (Model.Temporary_Name_Value),
+               Kind        => Files.Types.Regular_File_Item,
+               Filetype    => "text/plain");
+         end if;
       end if;
 
       return Model.Items.Element (Positive (Item_Index));
@@ -951,6 +966,7 @@ package body Files.Model is
       Model.Rename_Value := Null_Unbounded_String;
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
@@ -1002,6 +1018,7 @@ package body Files.Model is
       Model.Rename_Value := Null_Unbounded_String;
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
@@ -1039,6 +1056,7 @@ package body Files.Model is
       Model.Rename_Value := Null_Unbounded_String;
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
@@ -2186,12 +2204,14 @@ package body Files.Model is
       Model.Focus_Value := Files.Types.Focus_Rename_Input;
    end Resume_Rename;
 
-   procedure Begin_Create_File
-      (Model : in out Window_Model;
-       Name  : String) is
+   procedure Begin_Create_Temporary
+      (Model        : in out Window_Model;
+       Name         : String;
+       Is_Directory : Boolean) is
    begin
       Clear_Overlay_State_For_Edit (Model);
       Model.Temporary_Active := True;
+      Model.Temporary_Is_Directory := Is_Directory;
       Model.Temporary_Name_Value := To_Unbounded_String (Name);
       Model.Rename_Active := True;
       Model.Rename_Item_Index := 0;
@@ -2202,7 +2222,21 @@ package body Files.Model is
       Model.Selected_Item_Indexes.Clear;
       Add_Selected_Index (Model, Temporary_Item_Index);
       Model.Focus_Value := Files.Types.Focus_Rename_Input;
+   end Begin_Create_Temporary;
+
+   procedure Begin_Create_File
+      (Model : in out Window_Model;
+       Name  : String) is
+   begin
+      Begin_Create_Temporary (Model, Name, Is_Directory => False);
    end Begin_Create_File;
+
+   procedure Begin_Create_Folder
+      (Model : in out Window_Model;
+       Name  : String) is
+   begin
+      Begin_Create_Temporary (Model, Name, Is_Directory => True);
+   end Begin_Create_Folder;
 
    function Temporary_Item_Is_Active
      (Model : Window_Model)
@@ -2210,6 +2244,13 @@ package body Files.Model is
    begin
       return Model.Temporary_Active;
    end Temporary_Item_Is_Active;
+
+   function Temporary_Item_Is_Directory
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Temporary_Is_Directory;
+   end Temporary_Item_Is_Directory;
 
    function Temporary_Item_Name
      (Model : Window_Model)
@@ -2222,6 +2263,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       if Model.Selected_Item_Index = Temporary_Item_Index then
          Model.Selected_Item_Index := 0;
@@ -2245,6 +2287,7 @@ package body Files.Model is
       Model.Rename_Value := Null_Unbounded_String;
       Model.Rename_Cursor := 0;
       Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       if Model.Selected_Item_Index = Temporary_Item_Index then
          Model.Selected_Item_Index := 0;

@@ -95,6 +95,8 @@ package body Files.Commands is
             return "navigate.forward";
          when Create_File_Command =>
             return "file.create";
+         when New_Folder_Command =>
+            return "file.new_folder";
          when Delete_Selected_Items_Command =>
             return "file.delete_selected";
          when Delete_Selected_Permanently_Command =>
@@ -183,6 +185,8 @@ package body Files.Commands is
             return "command.navigate.forward";
          when Create_File_Command =>
             return "command.file.create";
+         when New_Folder_Command =>
+            return "command.file.new_folder";
          when Delete_Selected_Items_Command =>
             return "command.file.delete";
          when Delete_Selected_Permanently_Command =>
@@ -271,6 +275,8 @@ package body Files.Commands is
             return "command.navigate.forward.description";
          when Create_File_Command =>
             return "command.file.create.description";
+         when New_Folder_Command =>
+            return "command.file.new_folder.description";
          when Delete_Selected_Items_Command =>
             return "command.file.delete.description";
          when Delete_Selected_Permanently_Command =>
@@ -611,6 +617,7 @@ package body Files.Commands is
             | Navigate_Back_Command
             | Navigate_Forward_Command
             | Create_File_Command
+            | New_Folder_Command
             | Delete_Selected_Items_Command =>
             return Toolbar_Left;
          when Focus_Path_Input_Command =>
@@ -715,7 +722,7 @@ package body Files.Commands is
          when Paste_Items_Command =>
             return Files.Model.Clipboard_Has_Items (Model)
               and then not Files.Model.Temporary_Item_Is_Active (Model);
-         when Create_File_Command =>
+         when Create_File_Command | New_Folder_Command =>
             return not Files.Model.Temporary_Item_Is_Active (Model);
          when Toggle_Info_Pane_Command =>
             return Files.Model.Selected_Count (Model) > 0
@@ -825,6 +832,8 @@ package body Files.Commands is
          when Navigate_Forward_Command =>
             null;
          when Create_File_Command =>
+            null;
+         when New_Folder_Command =>
             null;
          when Delete_Selected_Items_Command =>
             null;

@@ -523,6 +523,14 @@ package Files.File_System is
      (Path : String)
       return Mutation_Result;
 
+   --  Create a directory without replacing an existing entry.
+   --
+   --  @param Path Directory path to create.
+   --  @return Mutation result.
+   function Create_Directory
+     (Path : String)
+      return Mutation_Result;
+
    --  Rename a filesystem entry after caller-side validation.
    --
    --  @param From_Path Existing path.

@@ -873,11 +873,27 @@ package Files.Model is
      (Model : in out Window_Model;
       Name  : String);
 
+   --  Begin temporary create-folder state and enter rename mode.
+   --
+   --  @param Model Model to update.
+   --  @param Name Temporary folder name.
+   procedure Begin_Create_Folder
+     (Model : in out Window_Model;
+      Name  : String);
+
    --  Return whether a temporary create-file item is active.
    --
    --  @param Model Model to inspect.
    --  @return True when temporary item exists.
    function Temporary_Item_Is_Active
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return whether the active temporary item creates a directory.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the temporary item is a directory.
+   function Temporary_Item_Is_Directory
      (Model : Window_Model)
       return Boolean;
 
@@ -1088,6 +1104,7 @@ private
       Rename_Value         : UString;
       Rename_Cursor        : Natural := 0;
       Temporary_Active     : Boolean := False;
+      Temporary_Is_Directory : Boolean := False;
       Temporary_Name_Value : UString;
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;

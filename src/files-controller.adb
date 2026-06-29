@@ -103,7 +103,7 @@ package body Files.Controller is
             return
               Make_Result
                 (Controller_Ignored, Id, Disabled_Operation ("error.rename.disabled"));
-         when Files.Commands.Create_File_Command =>
+         when Files.Commands.Create_File_Command | Files.Commands.New_Folder_Command =>
             return
               Make_Result
                 (Controller_Ignored, Id, Disabled_Operation ("error.create.pending"));
@@ -667,6 +667,11 @@ package body Files.Controller is
             Operation := Files.Operations.Eject_Selected_Root (Model);
          when Files.Commands.Create_File_Command =>
             Files.Model.Begin_Create_File
+              (Model,
+               Files.File_System.Next_Untitled_Name (Files.Model.Current_Path (Model)));
+            Files.Model.Set_Error (Model, "");
+         when Files.Commands.New_Folder_Command =>
+            Files.Model.Begin_Create_Folder
               (Model,
                Files.File_System.Next_Untitled_Name (Files.Model.Current_Path (Model)));
             Files.Model.Set_Error (Model, "");
