@@ -411,6 +411,10 @@ package body Files.Application.Windows is
                Runtime.Text_Ready := False;
                Runtime.Text_Glyph_Key := Null_Unbounded_String;
             end if;
+         when Files.Commands.Toggle_Hidden_Files_Command =>
+            Result :=
+              Files.Controller.Toggle_Hidden_Files
+                (Runtime.Model, Runtime.Settings, Settings_Path);
          when Files.Commands.Toggle_Bookmark_Command =>
             declare
                Current : constant String :=
@@ -1030,7 +1034,9 @@ package body Files.Application.Windows is
               Settings  => Runtime.Settings,
               Key       => To_Key_Code (Key),
               Modifiers => To_Modifiers (As_Window (Runtime.Handle)));
-         if Result.Command = Files.Commands.Save_Settings_Command then
+         if Result.Command = Files.Commands.Save_Settings_Command
+           or else Result.Command = Files.Commands.Toggle_Hidden_Files_Command
+         then
             Result := Execute_Runtime_Command (Runtime, Result.Command);
             --  Discard any character event the OS sent in parallel with the
             --  key press (e.g. Space producing both a key event AND a ' '
@@ -1414,7 +1420,9 @@ package body Files.Application.Windows is
                 (Model  => Runtime.Model,
                  Field  => Action.Settings_Field,
                  Option => Action.Settings_Option);
-            if Result.Command = Files.Commands.Save_Settings_Command then
+            if Result.Command = Files.Commands.Save_Settings_Command
+              or else Result.Command = Files.Commands.Toggle_Hidden_Files_Command
+            then
                Result := Execute_Runtime_Command (Runtime, Result.Command);
                if Runtime.Handle /= null then
                   Runtime.Handle.Pending_Text := Null_Unbounded_String;

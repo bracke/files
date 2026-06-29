@@ -582,7 +582,7 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 45, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 46, "all expected commands are registered");
       Assert (Files.Commands.Contains ("file.compress_zip"), "compress-zip command identifier is registered");
       Assert (Files.Commands.Contains ("file.compress_7z"), "compress-7z command identifier is registered");
       Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");
@@ -2074,7 +2074,7 @@ package body Files_Suite.Commands is
       Ctrl (Files.Types.Control_Key) := True;
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_P, Ctrl);
       Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette for movement");
-      Files.Controller.Replace_Focused_Text (Model, "view.");
+      Files.Controller.Replace_Focused_Text (Model, "settings.");
       Assert (Files.Model.Command_Palette_Selected_Index (Model) = 1, "palette movement starts at first result");
       Assert (Files.Model.Command_Palette_Result_Offset (Model) = 0, "palette movement starts unscrolled");
 
@@ -2156,7 +2156,7 @@ package body Files_Suite.Commands is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores End");
       Result := Files.Controller.Handle_Scroll (Model, Lines => 1);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "single palette result ignores wheel movement");
-      Files.Controller.Replace_Focused_Text (Model, "view.");
+      Files.Controller.Replace_Focused_Text (Model, "settings.");
       Result :=
         Files.Controller.Handle_Targeted_Scroll
           (Model,

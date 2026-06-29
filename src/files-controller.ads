@@ -98,6 +98,23 @@ package Files.Controller is
       Settings_Path : String)
       return Controller_Result;
 
+   --  Toggle hidden-file visibility, persist it, and reload the directory.
+   --
+   --  Flips Settings.Show_Hidden_Files, writes the updated settings model to the
+   --  central settings file, and refreshes the current directory so it reloads
+   --  with the new visibility. On a save failure the model error is set and a
+   --  failed result is returned without leaving the toggle half-applied.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model whose visibility flag is flipped.
+   --  @param Settings_Path Central settings file path.
+   --  @return Controller result with persistence operation details.
+   function Toggle_Hidden_Files
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result;
+
    --  Execute a command produced by a toolbar or bottom-bar hit test.
    --
    --  @param Id Command identifier from the clicked UI control.
