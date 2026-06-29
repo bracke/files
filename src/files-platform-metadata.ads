@@ -1,0 +1,51 @@
+with Ada.Calendar;
+
+--  Per-OS native filesystem metadata syscalls.
+--
+--  This package isolates the Linux-only system calls (statx, readlink,
+--  statvfs) behind a neutral contract so that the shared file-system code no
+--  longer references platform-specific symbols. Bodies are provided per OS;
+--  non-Linux bodies are safe stubs that report no metadata.
+package Files.Platform.Metadata is
+
+   --  Neutral volume-capacity result, independent of Files.File_System types.
+   --
+   --  All byte and inode counts are saturating: values that exceed the host
+   --  range are clamped to the corresponding 'Last. Boolean *_Known fields
+   --  indicate whether the matching value was actually obtained.
+   type Volume_Capacity is record
+      Available        : Boolean := False;
+      Capacity_Bytes   : Long_Long_Integer := 0;
+      Free_Bytes       : Long_Long_Integer := 0;
+      Inode_Count      : Long_Long_Integer := 0;
+      Free_Inode_Count : Long_Long_Integer := 0;
+      Name_Max         : Natural := 0;
+      Read_Only        : Boolean := False;
+      Inodes_Known     : Boolean := False;
+      Name_Max_Known   : Boolean := False;
+      Read_Only_Known  : Boolean := False;
+   end record;
+
+   --  Return the file creation (birth) time for Path.
+   --
+   --  @param Path Filesystem path to inspect.
+   --  @param Available Set True when a creation time was obtained.
+   --  @return Birth time when Available, otherwise a sentinel past date.
+   function File_Creation_Time
+     (Path      : String;
+      Available : out Boolean)
+      return Ada.Calendar.Time;
+
+   --  Return the symbolic-link target token for Path.
+   --
+   --  @param Path Symbolic link path to resolve.
+   --  @return "symlink.target|<target>" token, or an empty string on failure.
+   function Symlink_Target_Token (Path : String) return String;
+
+   --  Return the volume-capacity metadata for the filesystem holding Path.
+   --
+   --  @param Path Filesystem path located on the volume to query.
+   --  @return Neutral capacity record; Available is False when unavailable.
+   function Volume_Capacity_Of (Path : String) return Volume_Capacity;
+
+end Files.Platform.Metadata;

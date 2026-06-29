@@ -21,6 +21,7 @@ with Zlib;
 
 with Files.File_Types;
 with Files.Platform.Macos;
+with Files.Platform.Metadata;
 with Files.Platform.Windows;
 with Files.UTF8;
 
@@ -40,8 +41,6 @@ package body Files.File_System is
    use type Files.Types.Item_Kind;
 
    subtype C_Int is Interfaces.C.int;
-   subtype C_Unsigned is Interfaces.C.unsigned;
-   subtype C_U16 is Interfaces.C.unsigned_short;
    subtype C_U32 is Interfaces.C.unsigned;
    subtype C_U64 is Interfaces.C.unsigned_long;
    subtype C_S64 is Interfaces.C.long;
@@ -87,10 +86,6 @@ package body Files.File_System is
 
    subtype C_Char is Interfaces.C.char;
 
-   At_FDCWD : constant C_Int := -100;
-   At_Symlink_Nofollow : constant C_Unsigned := 16#100#;
-   Statx_Btime : constant C_Unsigned := 16#800#;
-   Statvfs_Read_Only : constant C_ULong := 1;
    Extra_Line_Limit : constant Natural := 20_000;
 
    procedure Safe_End_Search
@@ -522,84 +517,8 @@ package body Files.File_System is
          return Loaded;
    end Thumbnail_For_Item;
 
-   type U16_Array is array (Positive range <>) of C_U16
-     with Convention => C;
-
    type U64_Array is array (Positive range <>) of C_U64
      with Convention => C;
-
-   type Statx_Timestamp is record
-      Seconds     : C_S64;
-      Nanoseconds : C_U32;
-      Reserved    : C_U32;
-   end record
-     with Convention => C;
-
-   type Statx_Record is record
-      Mask            : C_U32;
-      Block_Size      : C_U32;
-      Attributes      : C_U64;
-      Link_Count      : C_U32;
-      User_Id         : C_U32;
-      Group_Id        : C_U32;
-      Mode            : C_U16;
-      Spare_0         : U16_Array (1 .. 1);
-      Inode           : C_U64;
-      Size            : C_U64;
-      Blocks          : C_U64;
-      Attributes_Mask : C_U64;
-      Access_Time     : Statx_Timestamp;
-      Birth_Time      : Statx_Timestamp;
-      Change_Time     : Statx_Timestamp;
-      Modified_Time   : Statx_Timestamp;
-      Device_Major    : C_U32;
-      Device_Minor    : C_U32;
-      File_Major      : C_U32;
-      File_Minor      : C_U32;
-      Mount_Id        : C_U64;
-      Direct_Io_Memory_Align : C_U32;
-      Direct_Io_Offset_Align : C_U32;
-      Spare_3         : U64_Array (1 .. 12);
-   end record
-     with Convention => C;
-
-   type Statvfs_Record is record
-      Block_Size             : C_ULong;
-      Fragment_Size          : C_ULong;
-      Blocks                 : C_ULong;
-      Blocks_Free            : C_ULong;
-      Blocks_Available       : C_ULong;
-      Files                  : C_ULong;
-      Files_Free             : C_ULong;
-      Files_Available        : C_ULong;
-      Filesystem_Id          : C_ULong;
-      Flags                  : C_ULong;
-      Name_Max               : C_ULong;
-      Spare                  : U64_Array (1 .. 6);
-   end record
-     with Convention => C;
-
-   function Statx
-     (Directory_Fd : C_Int;
-      Pathname     : Interfaces.C.Strings.chars_ptr;
-      Flags        : C_Unsigned;
-      Mask         : C_Unsigned;
-      Buffer       : access Statx_Record)
-      return C_Int
-     with Import, Convention => C, External_Name => "statx";
-
-   function Readlink
-     (Pathname : Interfaces.C.Strings.chars_ptr;
-      Buffer   : out Interfaces.C.char_array;
-      Bufsiz   : C_Size)
-      return C_S64
-     with Import, Convention => C, External_Name => "readlink";
-
-   function Statvfs
-     (Pathname : Interfaces.C.Strings.chars_ptr;
-      Buffer   : access Statvfs_Record)
-      return C_Int
-     with Import, Convention => C, External_Name => "statvfs";
 
    function Is_Directory (Item : Directory_Item) return Boolean is
    begin
@@ -775,33 +694,6 @@ package body Files.File_System is
       when others =>
          return "";
    end Permission_String;
-
-   function Creation_Time_For
-     (Path      : String;
-      Available : out Boolean)
-      return Ada.Calendar.Time
-   is
-      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
-      Info   : aliased Statx_Record;
-      Status : C_Int;
-      Epoch  : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (1970, 1, 1);
-   begin
-      Available := False;
-      Status := Statx (At_FDCWD, C_Path, At_Symlink_Nofollow, Statx_Btime, Info'Access);
-      Interfaces.C.Strings.Free (C_Path);
-
-      if Status = 0 and then (Info.Mask and Statx_Btime) /= 0 and then Info.Birth_Time.Seconds >= 0 then
-         Available := True;
-         return Epoch + Duration (Info.Birth_Time.Seconds) + Duration (Info.Birth_Time.Nanoseconds) / 1_000_000_000.0;
-      end if;
-
-      return Ada.Calendar.Time_Of (1901, 1, 1);
-   exception
-      when others =>
-         Safe_Free (C_Path);
-         Available := False;
-         return Ada.Calendar.Time_Of (1901, 1, 1);
-   end Creation_Time_For;
 
    function Natural_Text (Value : Natural) return String is
       Image : constant String := Natural'Image (Value);
@@ -1341,29 +1233,6 @@ package body Files.File_System is
          return "";
    end Image_Dimensions_Token;
 
-   function Symlink_Target_Token (Path : String) return String is
-      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
-      Buffer : Interfaces.C.char_array (0 .. 4095);
-      Count  : C_S64;
-      Target : Unbounded_String := Null_Unbounded_String;
-   begin
-      Count := Readlink (C_Path, Buffer, Buffer'Length);
-      Interfaces.C.Strings.Free (C_Path);
-      if Count <= 0 then
-         return "";
-      end if;
-
-      for Index in 0 .. Integer (Count) - 1 loop
-         Append (Target, Character'Val (C_Char'Pos (Buffer (Interfaces.C.size_t (Index)))));
-      end loop;
-
-      return "symlink.target|" & To_String (Target);
-   exception
-      when others =>
-         Safe_Free (C_Path);
-         return "";
-   end Symlink_Target_Token;
-
    function Extra_Info_Token
      (Path     : String;
       Kind     : Files.Types.Item_Kind;
@@ -1376,7 +1245,7 @@ package body Files.File_System is
          when Files.Types.Executable_Item =>
             return Executable_Format_Token (Path);
          when Files.Types.Symlink_Item =>
-            return Symlink_Target_Token (Path);
+            return Files.Platform.Metadata.Symlink_Target_Token (Path);
          when Files.Types.Regular_File_Item =>
             if Filetype = "text/plain" then
                return Text_Metadata_Token ("text", Path);
@@ -1579,7 +1448,8 @@ package body Files.File_System is
                            Item.Thumbnail_Pixels := Thumbnail.Pixels;
                         end if;
                      end if;
-                     Item.Creation_Time := Creation_Time_For (Full, Item.Creation_Available);
+                     Item.Creation_Time :=
+                       Files.Platform.Metadata.File_Creation_Time (Full, Item.Creation_Available);
                      Item.Modified_Time := Ada.Directories.Modification_Time (Full);
                      Item.Modified_Available := True;
                      Item.Permissions := To_Unbounded_String (Permission_String (Full));
@@ -2357,23 +2227,9 @@ package body Files.File_System is
       return Root_Volume_Capabilities is
       Has_Proc_Mounts : constant Boolean := Ada.Directories.Exists ("/proc/mounts");
       Has_Sys_Block   : constant Boolean := Ada.Directories.Exists ("/sys/block");
-      Has_Statvfs     : Boolean := False;
-
-      function Statvfs_Available return Boolean is
-         C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String ("/");
-         Info   : aliased Statvfs_Record;
-         Status : C_Int;
-      begin
-         Status := Statvfs (C_Path, Info'Access);
-         Interfaces.C.Strings.Free (C_Path);
-         return Status = 0 and then Info.Fragment_Size > 0 and then Info.Blocks > 0;
-      exception
-         when others =>
-            Safe_Free (C_Path);
-            return False;
-      end Statvfs_Available;
+      Has_Statvfs     : constant Boolean :=
+        Files.Platform.Metadata.Volume_Capacity_Of ("/").Available;
    begin
-      Has_Statvfs := Statvfs_Available;
       return
         (Labels_From_Platform_Api    => False,
          Readiness_From_Platform_Api => True,
@@ -2471,70 +2327,20 @@ package body Files.File_System is
      (Path : String;
       Info : out Volume_Size_Info)
    is
-      function Saturating_Natural (Value : C_ULong) return Natural is
-      begin
-         if Value > C_ULong (Natural'Last) then
-            return Natural'Last;
-         else
-            return Natural (Value);
-         end if;
-      end Saturating_Natural;
-
-      function Saturating_Long_Long (Value : C_ULong) return Long_Long_Integer is
-      begin
-         if Value > C_ULong (Long_Long_Integer'Last) then
-            return Long_Long_Integer'Last;
-         else
-            return Long_Long_Integer (Value);
-         end if;
-      end Saturating_Long_Long;
-
-      function Saturating_Byte_Count
-        (Blocks        : C_ULong;
-         Fragment_Size : C_ULong)
-         return Long_Long_Integer
-      is
-         Block_Count : constant Long_Long_Integer := Saturating_Long_Long (Blocks);
-         Unit_Size   : constant Long_Long_Integer := Saturating_Long_Long (Fragment_Size);
-      begin
-         if Block_Count = 0 or else Unit_Size = 0 then
-            return 0;
-         elsif Block_Count > Long_Long_Integer'Last / Unit_Size then
-            return Long_Long_Integer'Last;
-         else
-            return Block_Count * Unit_Size;
-         end if;
-      end Saturating_Byte_Count;
-
-      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
-      Data   : aliased Statvfs_Record;
-      Status : C_Int;
+      Capacity : constant Files.Platform.Metadata.Volume_Capacity :=
+        Files.Platform.Metadata.Volume_Capacity_Of (Path);
    begin
-      Info := (others => <>);
-      Status := Statvfs (C_Path, Data'Access);
-      Interfaces.C.Strings.Free (C_Path);
-      if Status = 0 then
-         Info.Read_Only := (Data.Flags and Statvfs_Read_Only) /= 0;
-         Info.Read_Only_Known := True;
-         if Data.Name_Max > 0 then
-            Info.Name_Max := Saturating_Natural (Data.Name_Max);
-            Info.Name_Max_Known := True;
-         end if;
-         if Data.Files > 0 then
-            Info.Inode_Count := Saturating_Long_Long (Data.Files);
-            Info.Free_Inode_Count := Saturating_Long_Long (Data.Files_Free);
-            Info.Inodes_Known := True;
-         end if;
-         if Data.Fragment_Size > 0 and then Data.Blocks > 0 then
-            Info.Capacity_Bytes := Saturating_Byte_Count (Data.Blocks, Data.Fragment_Size);
-            Info.Free_Bytes := Saturating_Byte_Count (Data.Blocks_Available, Data.Fragment_Size);
-            Info.Known := True;
-         end if;
-      end if;
-   exception
-      when others =>
-         Safe_Free (C_Path);
-         Info := (others => <>);
+      Info :=
+        (Capacity_Bytes   => Capacity.Capacity_Bytes,
+         Free_Bytes       => Capacity.Free_Bytes,
+         Inode_Count      => Capacity.Inode_Count,
+         Free_Inode_Count => Capacity.Free_Inode_Count,
+         Name_Max         => Capacity.Name_Max,
+         Read_Only        => Capacity.Read_Only,
+         Known            => Capacity.Available,
+         Inodes_Known     => Capacity.Inodes_Known,
+         Name_Max_Known   => Capacity.Name_Max_Known,
+         Read_Only_Known  => Capacity.Read_Only_Known);
    end Volume_Size_For;
 
    function Mount_Field
