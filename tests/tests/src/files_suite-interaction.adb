@@ -69,6 +69,9 @@ package body Files_Suite.Interaction is
    Ctrl : constant Files.Types.Modifier_Set :=
      [Files.Types.Control_Key => True, others => False];
 
+   Shift : constant Files.Types.Modifier_Set :=
+     [Files.Types.Shift_Key => True, others => False];
+
    type Interaction_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String;
@@ -76,6 +79,7 @@ package body Files_Suite.Interaction is
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -117,6 +121,8 @@ package body Files_Suite.Interaction is
         (T, Test_Left_Click_Selects'Access, "left-click selects an item");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shift_Click_Range_Selection'Access, "shift-click selects the inclusive range from the anchor");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Right_Click_Opens_Menu'Access, "right-click selects and opens the context menu");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -307,6 +313,34 @@ package body Files_Suite.Interaction is
       Assert (Files.Model.Is_Selected (Model, 3), "the other item stays selected");
       Assert (Selected_Item_Nodes (Model) = 1, "the toggled-off item is no longer reported Selected");
    end Test_Ctrl_Click_Multi_Selection;
+
+   procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      X1, Y1   : Natural;
+      X3, Y3   : Natural;
+      Found1   : Boolean;
+      Found3   : Boolean;
+   begin
+      Item_Center (Model, 1, X1, Y1, Found1);
+      Item_Center (Model, 3, X3, Y3, Found3);
+      Assert (Found1 and then Found3, "layout cells exist for the range endpoints");
+
+      Click (Model, Settings, X1, Y1, Files.Types.No_Modifiers, Result);
+      Assert (Selected_Item_Nodes (Model) = 1, "a plain click anchors a single-item selection");
+
+      Click (Model, Settings, X3, Y3, Shift, Result);
+      Assert
+        (Files.Model.Is_Selected (Model, 1)
+           and then Files.Model.Is_Selected (Model, 2)
+           and then Files.Model.Is_Selected (Model, 3),
+         "shift-click selects the inclusive range from the anchor to the clicked item");
+      Assert
+        (Selected_Item_Nodes (Model) = 3,
+         "three item nodes report Selected after the shift-range click");
+   end Test_Shift_Click_Range_Selection;
 
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
