@@ -51,10 +51,11 @@ package Files.Commands is
       Reset_Settings_Command,
       Toggle_Bookmark_Command,
       Navigate_Trash_Command,
-      Restore_From_Trash_Command);
+      Restore_From_Trash_Command,
+      Undo_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Restore_From_Trash_Command;
+     Select_Small_Icons_Command .. Undo_Command;
 
    type Command_Placement is
      (No_Placement,

@@ -20,6 +20,8 @@ package body Files.Operations is
    use type GNAT.OS_Lib.Argument_List_Access;
    use type GNAT.OS_Lib.String_Access;
    use type Ada.Directories.File_Kind;
+   use type Files.File_System.Drop_Import_Mode;
+   use type Files.Model.Undo_Action_Kind;
    use type Zlib.Status_Code;
 
    function Empty_Action return Files.Settings.Open_Action is
@@ -1298,6 +1300,8 @@ package body Files.Operations is
    is
       Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       First_Path : Unbounded_String;
+      Undo_From  : Files.Types.String_Vectors.Vector;
+      Undo_To    : Files.Types.String_Vectors.Vector;
    begin
       if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
          return Disabled (Model, "error.selection.empty");
@@ -1346,8 +1350,9 @@ package body Files.Operations is
          end if;
 
          declare
+            Trashed  : Files.Types.UString;
             Mutation : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Move_To_Trash (To_String (Item.Full_Path));
+              Files.File_System.Move_To_Trash (To_String (Item.Full_Path), Trashed);
          begin
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
@@ -1359,8 +1364,12 @@ package body Files.Operations is
                end;
                return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             end if;
+            Undo_From.Append (Trashed);
+            Undo_To.Append (Item.Full_Path);
          end;
       end loop;
+
+      Files.Model.Record_Undo (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To);
 
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -1569,6 +1578,19 @@ package body Files.Operations is
          end if;
       end;
 
+      if Mode = Files.File_System.Drop_Move and then not Plans.Plans.Is_Empty then
+         declare
+            Undo_From : Files.Types.String_Vectors.Vector;
+            Undo_To   : Files.Types.String_Vectors.Vector;
+         begin
+            for Plan of Plans.Plans loop
+               Undo_From.Append (Plan.Destination_Path);
+               Undo_To.Append (Plan.Source_Path);
+            end loop;
+            Files.Model.Record_Undo (Model, Files.Model.Undo_Move, Undo_From, Undo_To);
+         end;
+      end if;
+
       declare
          First_Path : constant String :=
            (if Plans.Plans.Is_Empty then "" else To_String (Plans.Plans.First_Element.Destination_Path));
@@ -1742,6 +1764,16 @@ package body Files.Operations is
          --  even if the refresh fails, rather than stranding the model in it.
          Files.Model.Clear_Edit_State (Model);
          declare
+            New_Full : constant String :=
+              Files.File_System.Join_Path (Files.Model.Current_Path (Model), New_Name);
+            From_V   : Files.Types.String_Vectors.Vector;
+            To_V     : Files.Types.String_Vectors.Vector;
+         begin
+            From_V.Append (To_Unbounded_String (New_Full));
+            To_V.Append (Item.Full_Path);
+            Files.Model.Record_Undo (Model, Files.Model.Undo_Rename, From_V, To_V);
+         end;
+         declare
             Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings, New_Name);
          begin
             if Reload.Status /= Operation_Success then
@@ -1756,5 +1788,73 @@ package body Files.Operations is
               Path => Files.File_System.Join_Path (Files.Model.Current_Path (Model), New_Name));
       end;
    end Commit_Rename;
+
+   function Undo_Last
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Kind      : constant Files.Model.Undo_Action_Kind := Files.Model.Undo_Kind_Of (Model);
+      From      : constant Files.Types.String_Vectors.Vector := Files.Model.Undo_From_Paths (Model);
+      To        : constant Files.Types.String_Vectors.Vector := Files.Model.Undo_To_Paths (Model);
+      Directory : constant String := Files.Model.Current_Path (Model);
+      Succeeded : Boolean := True;
+   begin
+      if Kind = Files.Model.Undo_None or else From.Is_Empty then
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+      end if;
+
+      case Kind is
+         when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
+            --  Move each item back from its current location to its original.
+            for Index in From.First_Index .. From.Last_Index loop
+               declare
+                  Source : constant String := To_String (From.Element (Index));
+                  Target : constant String := To_String (To.Element (Index));
+               begin
+                  if Exists_Safely (Source) and then not Exists_Safely (Target) then
+                     if not Files.File_System.Rename_Item (Source, Target).Success then
+                        Succeeded := False;
+                     end if;
+                  else
+                     Succeeded := False;
+                  end if;
+               end;
+            end loop;
+
+         when Files.Model.Undo_Restore_Trash =>
+            for Index in From.First_Index .. From.Last_Index loop
+               if not Files.File_System.Restore_From_Trash
+                        (To_String (From.Element (Index))).Success
+               then
+                  Succeeded := False;
+               end if;
+            end loop;
+
+         when Files.Model.Undo_None =>
+            Succeeded := False;
+      end case;
+
+      Files.Model.Clear_Undo (Model);
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+         pragma Unreferenced (Reload);
+      begin
+         null;
+      end;
+
+      if not Succeeded then
+         Files.Model.Set_Error (Model, "error.undo.failed");
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+      end if;
+
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Success, Path => Directory);
+   exception
+      when others =>
+         Files.Model.Clear_Undo (Model);
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+   end Undo_Last;
 
 end Files.Operations;

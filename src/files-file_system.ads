@@ -583,6 +583,17 @@ package Files.File_System is
      (Path : String)
       return Mutation_Result;
 
+   --  As Move_To_Trash, but also report the payload's path inside the trash so
+   --  callers can later restore it (used by Undo).
+   --
+   --  @param Path Entry to move to trash.
+   --  @param Trashed_Path Set to the payload's location in the trash on success.
+   --  @return Mutation result with a localized error key on failure.
+   function Move_To_Trash
+     (Path         : String;
+      Trashed_Path : out Files.Types.UString)
+      return Mutation_Result;
+
    --  Permanently remove a file or empty directory.
    --
    --  The operation is explicit and never used by normal trash/delete commands.

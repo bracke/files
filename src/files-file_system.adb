@@ -3465,7 +3465,8 @@ package body Files.File_System is
    end Copy_Tree;
 
    function Move_To_Trash
-     (Path : String)
+     (Path         : String;
+      Trashed_Path : out Files.Types.UString)
       return Mutation_Result
    is
       function Image_No_Space (Value : Natural) return String is
@@ -3555,6 +3556,7 @@ package body Files.File_System is
             null;
       end Delete_Info_File_If_Present;
    begin
+      Trashed_Path := Null_Unbounded_String;
       declare
          Preflight : constant Mutation_Result := Move_To_Trash_Preflight (Path);
       begin
@@ -3571,6 +3573,7 @@ package body Files.File_System is
       Name := To_Unbounded_String
         (Unique_Trash_Name (Files_Dir, Info_Dir, Ada.Directories.Simple_Name (Path)));
       Target := To_Unbounded_String (Join_Path (Files_Dir, To_String (Name)));
+      Trashed_Path := Target;
 
       if not Macos_Home then
          Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
@@ -3615,6 +3618,15 @@ package body Files.File_System is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));
+   end Move_To_Trash;
+
+   function Move_To_Trash
+     (Path : String)
+      return Mutation_Result
+   is
+      Ignored : Files.Types.UString;
+   begin
+      return Move_To_Trash (Path, Ignored);
    end Move_To_Trash;
 
    function Delete_Permanently

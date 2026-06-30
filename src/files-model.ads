@@ -1077,6 +1077,64 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  Single-level undo of the most recent reversible action (rename, move, or
+   --  move-to-trash). Paths are stored as parallel From/To vectors.
+   type Undo_Action_Kind is
+     (Undo_None,
+      Undo_Rename,
+      Undo_Move,
+      Undo_Restore_Trash);
+
+   --  Record the latest undoable action, replacing any previous record.
+   --
+   --  @param Model Model to update.
+   --  @param Kind  Kind of action that can be undone.
+   --  @param From  Current locations to undo from (parallel to To).
+   --  @param To    Restore targets (ignored for Undo_Restore_Trash).
+   procedure Record_Undo
+     (Model : in out Window_Model;
+      Kind  : Undo_Action_Kind;
+      From  : Files.Types.String_Vectors.Vector;
+      To    : Files.Types.String_Vectors.Vector);
+
+   --  Forget any recorded undo action.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Undo
+     (Model : in out Window_Model);
+
+   --  Return whether an undoable action is recorded.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when Undo can act.
+   function Undo_Available
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return the recorded undo action kind.
+   --
+   --  @param Model Model to inspect.
+   --  @return Undo_None when nothing is recorded.
+   function Undo_Kind_Of
+     (Model : Window_Model)
+      return Undo_Action_Kind;
+
+   --  Return the recorded undo "from" (current) paths.
+   --
+   --  @param Model Model to inspect.
+   --  @return Vector of current locations, parallel to Undo_To_Paths.
+   function Undo_From_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
+   --  Return the recorded undo "to" (restore-target) paths.
+   --
+   --  @param Model Model to inspect.
+   --  @return Vector of restore targets, parallel to Undo_From_Paths.
+   function Undo_To_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
    --  Record a recoverable error key.
    --
    --  @param Model Model to update.
@@ -1147,6 +1205,9 @@ private
       Last_Error           : UString;
       Clipboard_Paths_Value : Files.Types.String_Vectors.Vector;
       Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
+      Undo_Kind_Value       : Undo_Action_Kind := Undo_None;
+      Undo_From_Value       : Files.Types.String_Vectors.Vector;
+      Undo_To_Value         : Files.Types.String_Vectors.Vector;
       Context_Menu_Open_Value       : Boolean := False;
       Context_Menu_X_Value          : Natural := 0;
       Context_Menu_Y_Value          : Natural := 0;

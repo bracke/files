@@ -1211,6 +1211,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.duplicate.failed");
       Add_Error_Key ("error.compress.failed");
       Add_Error_Key ("error.extract.failed");
+      Add_Error_Key ("error.undo.failed");
       Add_Error_Key ("error.thumbnail.source_missing");
       Add_Error_Key ("error.thumbnail.unsupported");
       Add_Error_Key ("error.thumbnail.failed");

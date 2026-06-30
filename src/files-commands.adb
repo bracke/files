@@ -160,6 +160,8 @@ package body Files.Commands is
             return "trash.open";
          when Restore_From_Trash_Command =>
             return "trash.restore";
+         when Undo_Command =>
+            return "edit.undo";
       end case;
    end Identifier;
 
@@ -262,6 +264,8 @@ package body Files.Commands is
             return "command.trash.open";
          when Restore_From_Trash_Command =>
             return "command.trash.restore";
+         when Undo_Command =>
+            return "command.edit.undo";
       end case;
    end Name_Key;
 
@@ -364,6 +368,8 @@ package body Files.Commands is
             return "command.trash.open.description";
          when Restore_From_Trash_Command =>
             return "command.trash.restore.description";
+         when Undo_Command =>
+            return "command.edit.undo.description";
       end case;
    end Description_Key;
 
@@ -855,6 +861,8 @@ package body Files.Commands is
                  and then Files.Model.Selected_Count (Model) > 0
                  and then not Files.Model.Selection_Includes_Temporary (Model);
             end;
+         when Undo_Command =>
+            return Files.Model.Undo_Available (Model);
          when others =>
             return True;
       end case;
@@ -1001,6 +1009,8 @@ package body Files.Commands is
          when Navigate_Trash_Command =>
             null;
          when Restore_From_Trash_Command =>
+            null;
+         when Undo_Command =>
             null;
       end case;
    end Execute;

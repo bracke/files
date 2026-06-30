@@ -377,4 +377,16 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Undo the most recently recorded reversible action (rename, move, or
+   --  move-to-trash), then clear the undo record and reload the directory.
+   --
+   --  @param Model Window model carrying the undo record to apply.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result; failed when nothing is recorded or
+   --          an inverse step could not be applied.
+   function Undo_Last
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
 end Files.Operations;
