@@ -80,6 +80,7 @@ package body Files_Suite.Interaction is
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -123,6 +124,9 @@ package body Files_Suite.Interaction is
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shift_Click_Range_Selection'Access, "shift-click selects the inclusive range from the anchor");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Entry_Updates_Focused_Input'Access,
+         "typed text routes to the focused filter and command-palette inputs");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Right_Click_Opens_Menu'Access, "right-click selects and opens the context menu");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -341,6 +345,37 @@ package body Files_Suite.Interaction is
         (Selected_Item_Nodes (Model) = 3,
          "three item nodes report Selected after the shift-range click");
    end Test_Shift_Click_Range_Selection;
+
+   --  Text entry: the shell's real typed-character path is
+   --  Files.Controller.Append_Focused_Text on whatever input is focused (only
+   --  fetching the bytes from the OS is GLFW-bound), so it is exercised here.
+   procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+   begin
+      Files.Model.Focus_Filter_Input (Model);
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Append_Focused_Text (Model, "rep");
+         pragma Unreferenced (Outcome);
+      begin
+         null;
+      end;
+      Assert (Files.Model.Filter_Text (Model) = "rep", "typed text lands in the focused filter input");
+
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Focus_Command_Palette_Input (Model);
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Append_Focused_Text (Model, "view");
+         pragma Unreferenced (Outcome);
+      begin
+         null;
+      end;
+      Assert
+        (Files.Model.Command_Palette_Query (Model) = "view",
+         "typed text lands in the focused command-palette query");
+   end Test_Text_Entry_Updates_Focused_Input;
 
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
