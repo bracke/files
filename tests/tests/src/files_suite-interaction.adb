@@ -90,6 +90,19 @@ package body Files_Suite.Interaction is
    procedure Test_Context_Menu_Archive_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Empty_Area_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Trash_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Pass 2 -- context-menu contents/enablement per state.
+   procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Extract_Enablement_By_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Restore_From_Trash_Enablement_By_Context (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Disabled_Command_Does_Not_Act (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Pass 2 -- deep multi-step sequences.
+   procedure Test_Sequence_Rename_Then_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sequence_Compress_Then_Extract (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sequence_Palette_Filter_Narrows_And_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sequence_Trash_Then_Restore (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -131,6 +144,39 @@ package body Files_Suite.Interaction is
         (T, Test_Context_Menu_Empty_Area_Commands'Access, "empty-area menu new-folder and paste commands");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Trash_Lifecycle'Access, "item-menu delete, undo, and restore-from-trash lifecycle");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Item_Menu_Contents_And_Enablement'Access,
+         "item menu lists the expected commands and enables the selection-driven ones");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Empty_Area_Menu_Contents'Access,
+         "empty-area menu lists create/new-folder/paste/refresh and no item-only commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Extract_Enablement_By_Selection'Access,
+         "extract enables only when the selection includes an archive");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Restore_From_Trash_Enablement_By_Context'Access,
+         "restore-from-trash enables only inside the trash files directory");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Enablement_Reflects_Clipboard'Access,
+         "paste enables only when the clipboard holds items");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Disabled_Command_Does_Not_Act'Access,
+         "dispatching a disabled menu command is gated and changes no state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sequence_Rename_Then_Undo'Access,
+         "sequence: rename a file via the menu, commit, then undo back to the original name");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sequence_Compress_Then_Extract'Access,
+         "sequence: compress a file to zip, then extract the reloaded archive");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sequence_Palette_Filter_Narrows_And_Runs'Access,
+         "sequence: a palette query narrows results, then the chosen result runs and closes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sequence_Trash_Then_Restore'Access,
+         "sequence: delete to trash, view the trash, then restore from the menu");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sequence_Cut_Paste_Into_Subdir'Access,
+         "sequence: cut a file, paste it into a subdirectory, then undo the move");
    end Register_Tests;
 
    --  Center of the cell laid out for visible item Index, derived from the real
@@ -773,6 +819,60 @@ package body Files_Suite.Interaction is
          Modifiers         => Files.Types.No_Modifiers,
          Result            => Result);
    end Dispatch_Menu_Command;
+
+   --  Whether the currently open context menu lists Command in its real
+   --  Calculate_Context_Menu_Layout rows (rule a: contents come from the live
+   --  layout, never a hardcoded row index).
+   function Menu_Offers
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Command  : Files.Commands.Command_Id)
+      return Boolean
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Menu     : constant Files.Rendering.Context_Menu_Layout :=
+        Files.Rendering.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+   begin
+      for Row in 1 .. Menu.Row_Count loop
+         if Menu.Commands (Row) = Command then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Menu_Offers;
+
+   --  Commit the active focused text (rename / create) through the real key seam
+   --  the shell uses -- Enter routed via Files.Controller.Handle_Key (rule d),
+   --  not a direct Commit_Rename call.
+   procedure Commit_Focused_Text
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+   is
+      Outcome : constant Files.Controller.Controller_Result :=
+        Files.Controller.Handle_Key
+          (Model, Settings, Files.Types.Key_Return, Files.Types.No_Modifiers);
+      pragma Unreferenced (Outcome);
+   begin
+      null;
+   end Commit_Focused_Text;
+
+   --  Dispatch Command through the reducer's command branch -- the same entry the
+   --  shell uses for menu-bar and shortcut-less commands (e.g. Undo).
+   procedure Dispatch_Command
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Command  : Files.Commands.Command_Id;
+      Result   : out Files.Interaction.Interaction_Result)
+   is
+      Action : constant Files.Events.Input_Action :=
+        (Kind    => Files.Events.Command_Input_Action,
+         Command => Command,
+         others  => <>);
+   begin
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+   end Dispatch_Command;
 
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1427,6 +1527,594 @@ package body Files_Suite.Interaction is
          Restore_Environment;
          raise;
    end Test_Context_Menu_Trash_Lifecycle;
+
+   procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "menu-contents");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "report.txt"), "payload");
+
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Files.Model.Context_Menu_Is_Open (Model), "the item menu opens on the selected file");
+
+      --  Every item-context command the layout promises is present (rule a).
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Open_Selected_Items_Command),
+              "the item menu lists Open");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Open_With_Command),
+              "the item menu lists Open With");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Copy_Selected_Items_Command),
+              "the item menu lists Copy");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Cut_Selected_Items_Command),
+              "the item menu lists Cut");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Duplicate_Selected_Command),
+              "the item menu lists Duplicate");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Rename_Selected_Items_Command),
+              "the item menu lists Rename");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Delete_Selected_Items_Command),
+              "the item menu lists Delete");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Compress_Zip_Command),
+              "the item menu lists Compress Zip");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Compress_7z_Command),
+              "the item menu lists Compress 7z");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Extract_Archive_Command),
+              "the item menu lists Extract");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Restore_From_Trash_Command),
+              "the item menu lists Restore From Trash");
+
+      --  Selection-driven enablement (rule b: semantic Is_Enabled, not geometry).
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Copy_Selected_Items_Command, Model),
+              "Copy is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Model),
+              "Cut is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
+              "Duplicate is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Model),
+              "Compress Zip is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Compress_7z_Command, Model),
+              "Compress 7z is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Open_With_Command, Model),
+              "Open With is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
+              "Open is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+              "Delete is enabled with a selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+              "Rename is enabled for a single real selection");
+
+      --  Context-sensitive commands are present but disabled in a normal
+      --  directory on a plain file: Extract needs an archive, Restore needs trash.
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "Extract is disabled on a non-archive selection");
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
+              "Restore From Trash is disabled outside the trash directory");
+   end Test_Item_Menu_Contents_And_Enablement;
+
+   procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "empty-contents");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Model := Loaded_Model (Dir);
+
+      Open_Empty_Context_Menu (Model, Settings, Result);
+      Assert (Files.Model.Context_Menu_Is_Open (Model), "the empty-area menu opens on empty space");
+
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Create_File_Command),
+              "the empty-area menu lists Create File");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.New_Folder_Command),
+              "the empty-area menu lists New Folder");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Paste_Items_Command),
+              "the empty-area menu lists Paste");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Refresh_Directory_Command),
+              "the empty-area menu lists Refresh");
+
+      --  The item-only commands must not leak into the empty-area menu.
+      Assert (not Menu_Offers (Model, Settings, Files.Commands.Open_Selected_Items_Command),
+              "the empty-area menu omits Open");
+      Assert (not Menu_Offers (Model, Settings, Files.Commands.Copy_Selected_Items_Command),
+              "the empty-area menu omits Copy");
+      Assert (not Menu_Offers (Model, Settings, Files.Commands.Cut_Selected_Items_Command),
+              "the empty-area menu omits Cut");
+      Assert (not Menu_Offers (Model, Settings, Files.Commands.Delete_Selected_Items_Command),
+              "the empty-area menu omits Delete");
+      Assert (not Menu_Offers (Model, Settings, Files.Commands.Rename_Selected_Items_Command),
+              "the empty-area menu omits Rename");
+      Assert (not Menu_Offers (Model, Settings, Files.Commands.Extract_Archive_Command),
+              "the empty-area menu omits Extract");
+   end Test_Empty_Area_Menu_Contents;
+
+   procedure Test_Extract_Enablement_By_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Zlib.Status_Code;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "extract-enable");
+      Plain    : constant String := Files_Suite.Support.Join (Dir, "report.txt");
+      Bundle   : constant String := Files_Suite.Support.Join (Dir, "bundle.zip");
+      Inputs   : Zlib.Text_Array (1 .. 1);
+      Names    : Zlib.Text_Array (1 .. 1);
+      Status   : Zlib.Status_Code;
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Plain, "payload");
+      Inputs (1) := Ada.Strings.Unbounded.To_Unbounded_String (Plain);
+      Names (1) := Ada.Strings.Unbounded.To_Unbounded_String ("report.txt");
+      Zlib.ZIP_Files (Inputs, Bundle, Names, Status => Status);
+      Assert (Status = Zlib.Ok, "the test archive is created for the enablement check");
+
+      --  A plain-file selection: Extract is listed but disabled.
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Extract_Archive_Command),
+              "Extract is listed for a plain-file selection");
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "Extract is disabled when the selection holds no archive");
+
+      --  An archive selection: Extract is enabled.
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "bundle.zip");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "Extract is enabled when the selection includes an archive");
+   end Test_Extract_Enablement_By_Selection;
+
+   procedure Test_Restore_From_Trash_Enablement_By_Context (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings    : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result      : Files.Interaction.Interaction_Result;
+      Trash_Home  : constant String := Files_Suite.Support.Root & "_restore_enable_xdg";
+      Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
+      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Home    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Backend : Ada.Strings.Unbounded.Unbounded_String;
+      Model       : Files.Model.Window_Model;
+      Mutation    : Files.File_System.Mutation_Result;
+      Load        : Files.File_System.Directory_Load_Result;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Data then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", Ada.Strings.Unbounded.To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+         if Had_Backend then
+            Ada.Environment_Variables.Set
+              ("FILES_TRASH_BACKEND", Ada.Strings.Unbounded.To_String (Old_Backend));
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+      end Restore_Environment;
+   begin
+      if Had_Data then
+         Old_Data :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Home then
+         Old_Home :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_Backend then
+         Old_Backend :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
+      end if;
+
+      Files_Suite.Support.Reset_Root;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("HOME", Trash_Home);
+
+      --  A selected file in a normal directory: Restore From Trash is disabled.
+      Files_Suite.Support.Write_File (Doomed, "payload");
+      Model := Loaded_Model (Files_Suite.Support.Root);
+      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Restore_From_Trash_Command),
+              "Restore From Trash is listed even in a normal directory");
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
+              "Restore From Trash is disabled in a normal directory");
+
+      --  After trashing and navigating into the trash files directory, a selected
+      --  trashed item enables Restore From Trash.
+      Mutation := Files.File_System.Move_To_Trash (Doomed);
+      Assert (Mutation.Success, "the setup moves the file into the trash");
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+      Files.Model.Initialize
+        (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
+      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Assert (Files.Model.Selected_Count (Model) > 0, "the trashed item is selected in the trash view");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
+              "Restore From Trash is enabled with a selection inside the trash directory");
+
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Restore_From_Trash_Enablement_By_Context;
+
+   procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "paste-enable");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "a.txt"), "payload");
+      Model := Loaded_Model (Dir);
+
+      --  No clipboard yet: Paste is listed in the empty-area menu but disabled.
+      Open_Empty_Context_Menu (Model, Settings, Result);
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Paste_Items_Command),
+              "the empty-area menu lists Paste");
+      Assert (not Files.Model.Clipboard_Has_Items (Model), "the clipboard starts empty");
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
+              "Paste is disabled before anything is copied");
+      Files.Model.Close_Context_Menu (Model);
+
+      --  Copy a file: Paste becomes enabled.
+      Files_Suite.Support.Select_Name (Model, "a.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command
+        (Model, Settings, "", Files.Commands.Copy_Selected_Items_Command, Result, Found);
+      Assert (Found, "the item menu offers the copy command");
+      Assert (Files.Model.Clipboard_Has_Items (Model), "copy populates the clipboard");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
+              "Paste is enabled once the clipboard holds items");
+   end Test_Paste_Enablement_Reflects_Clipboard;
+
+   procedure Test_Disabled_Command_Does_Not_Act (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "disabled-noop");
+      Extract  : constant String := Files_Suite.Support.Join (Dir, "report");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "report.txt"), "payload");
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+
+      --  Extract is disabled on a plain-file selection. Dispatching it through the
+      --  real menu seam must be gated by Execute_Command (Is_Enabled) and act on
+      --  nothing.
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (not Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "Extract is disabled for the plain-file selection");
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Extract_Archive_Command, Result, Found);
+      Assert (Found, "the disabled command is still offered by the menu");
+      Assert (Result.Command = Files.Commands.Extract_Archive_Command,
+              "the result echoes the dispatched command id");
+      Assert (not Result.Command_Executed,
+              "the disabled command does not report execution");
+      Assert (Result.Status = Files.Controller.Controller_Ignored,
+              "the gated dispatch returns an ignored controller status");
+      Assert (not Ada.Directories.Exists (Extract),
+              "the disabled extract command creates no folder");
+   end Test_Disabled_Command_Does_Not_Act;
+
+   procedure Test_Sequence_Rename_Then_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "rename-seq");
+      Source   : constant String := Files_Suite.Support.Join (Dir, "report.txt");
+      Renamed  : constant String := Files_Suite.Support.Join (Dir, "summary.txt");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Source, "payload");
+      Model := Loaded_Model (Dir);
+
+      --  Step 1: select and start rename from the item menu.
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command
+        (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
+      Assert (Found, "the item menu offers the rename command");
+      Assert (Files.Model.Rename_Is_Active (Model), "rename starts inline editing");
+
+      --  Step 2: set the new name and commit through the real Enter key seam.
+      Files.Model.Set_Rename_Text (Model, "summary.txt");
+      Commit_Focused_Text (Model, Settings);
+      Assert (Ada.Directories.Exists (Renamed), "committing the rename writes the new name");
+      Assert (not Ada.Directories.Exists (Source), "committing the rename removes the old name");
+      Assert (not Files.Model.Rename_Is_Active (Model), "committing the rename ends inline editing");
+      Assert (Files.Model.Undo_Available (Model), "the rename records an undoable action");
+
+      --  Step 3: undo through the reducer command branch restores the original.
+      Dispatch_Command (Model, Settings, Files.Commands.Undo_Command, Result);
+      Assert (Ada.Directories.Exists (Source), "undo restores the original name");
+      Assert (not Ada.Directories.Exists (Renamed), "undo removes the renamed file");
+      Assert (not Files.Model.Undo_Available (Model), "undo consumes the undoable action");
+   end Test_Sequence_Rename_Then_Undo;
+
+   procedure Test_Sequence_Compress_Then_Extract (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "compress-seq");
+      Source   : constant String := Files_Suite.Support.Join (Dir, "report.txt");
+      Zip_Path : constant String := Files_Suite.Support.Join (Dir, "report.zip");
+      Dest     : constant String := Files_Suite.Support.Join (Dir, "report");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Source, "payload");
+
+      --  Step 1: compress the file to a zip via the item menu.
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Compress_Zip_Command, Result, Found);
+      Assert (Found, "the item menu offers the compress-zip command");
+      Assert (Ada.Directories.Exists (Zip_Path), "compress-zip writes the archive");
+
+      --  Step 2: reload so the new archive appears, select it, and extract.
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.zip");
+      Assert (Files.Model.Selected_Count (Model) > 0, "the reloaded listing contains the new archive");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+              "Extract is enabled on the reloaded archive selection");
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Extract_Archive_Command, Result, Found);
+      Assert (Found, "the item menu offers the extract command");
+      Assert (Ada.Directories.Exists (Dest), "extract creates a folder from the archive base name");
+      Assert
+        (Ada.Directories.Exists (Files_Suite.Support.Join (Dest, "report.txt")),
+         "extract writes the archived entry into the new folder");
+   end Test_Sequence_Compress_Then_Extract;
+
+   procedure Test_Sequence_Palette_Filter_Narrows_And_Runs (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      All_Count    : Natural;
+      Narrow_Count : Natural;
+   begin
+      --  Step 1: open the palette and measure the unfiltered result count.
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "");
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+      begin
+         All_Count := Natural (Snapshot.Command_Palette_Results.Length);
+      end;
+      Assert (All_Count > 1, "the unfiltered palette lists several commands");
+
+      --  Step 2: a query narrows the results to a strict subset.
+      Files.Model.Set_Command_Palette_Query (Model, "view.details");
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+      begin
+         Narrow_Count := Natural (Snapshot.Command_Palette_Results.Length);
+      end;
+      Assert (Narrow_Count > 0, "the query still matches at least one command");
+      Assert (Narrow_Count < All_Count, "the query narrows the palette results");
+
+      --  Step 3: run the matching result through the real result-click pipeline.
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Palette  : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
+         Rows     : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette);
+         Action   : Files.Events.Input_Action;
+         Target   : Natural := 0;
+         X, Y     : Natural := 0;
+      begin
+         for Index in 1 .. Natural (Snapshot.Command_Palette_Results.Length) loop
+            if Ada.Strings.Unbounded.To_String
+                 (Snapshot.Command_Palette_Results.Element (Index).Identifier) = "view.details"
+            then
+               Target := Index;
+            end if;
+         end loop;
+         Assert (Target > 0, "the narrowed palette lists the details command");
+         for Row of Rows loop
+            if Row.Result_Index = Target then
+               X := Row.X + Row.Width / 2;
+               Y := Row.Y + Row.Height / 2;
+            end if;
+         end loop;
+         Assert
+           (Files.Rendering.Command_Result_At (Rows, X, Y) = Target,
+            "the derived coordinate hit-tests back to the details result row");
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      Assert
+        (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
+         "running the narrowed result switches the model to the details view");
+      Assert
+        (not Files.Model.Command_Palette_Is_Open (Model),
+         "running a palette result closes the command palette");
+   end Test_Sequence_Palette_Filter_Narrows_And_Runs;
+
+   procedure Test_Sequence_Trash_Then_Restore (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result      : Files.Interaction.Interaction_Result;
+      Found       : Boolean;
+      Trash_Home  : constant String := Files_Suite.Support.Root & "_trash_seq_xdg";
+      Trash_File  : constant String :=
+        Files_Suite.Support.Join (Files_Suite.Support.Join (Trash_Home, "Trash"), "files");
+      Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
+      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Home    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Backend : Ada.Strings.Unbounded.Unbounded_String;
+      Model       : Files.Model.Window_Model;
+      Load        : Files.File_System.Directory_Load_Result;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Data then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", Ada.Strings.Unbounded.To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+         if Had_Backend then
+            Ada.Environment_Variables.Set
+              ("FILES_TRASH_BACKEND", Ada.Strings.Unbounded.To_String (Old_Backend));
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+      end Restore_Environment;
+   begin
+      if Had_Data then
+         Old_Data :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Home then
+         Old_Home :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_Backend then
+         Old_Backend :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
+      end if;
+
+      Files_Suite.Support.Reset_Root;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("HOME", Trash_Home);
+
+      --  Step 1: delete a file to trash via the item menu.
+      Files_Suite.Support.Write_File (Doomed, "payload");
+      Model := Loaded_Model (Files_Suite.Support.Root);
+      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command
+        (Model, Settings, "", Files.Commands.Delete_Selected_Items_Command, Result, Found);
+      Assert (Found, "the item menu offers the delete command");
+      Assert (not Ada.Directories.Exists (Doomed), "delete moves the item out of the directory");
+      Assert
+        (Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "doomed.txt")),
+         "delete stores the payload in the trash files directory");
+
+      --  Step 2: navigate into the trash directory and select the trashed item.
+      Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+      Files.Model.Initialize
+        (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
+      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Assert (Files.Model.Selected_Count (Model) > 0, "the trashed item is selectable in the trash view");
+
+      --  Step 3: restore from the item menu returns the file to its origin.
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command
+        (Model, Settings, "", Files.Commands.Restore_From_Trash_Command, Result, Found);
+      Assert (Found, "the item menu offers the restore-from-trash command");
+      Assert (Ada.Directories.Exists (Doomed), "restore returns the file to its original path");
+      Assert
+        (not Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "doomed.txt")),
+         "restore removes the file from the trash directory");
+
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Sequence_Trash_Then_Restore;
+
+   procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+      Src_Dir  : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "cut-seq");
+      Sub      : constant String := Files_Suite.Support.Join (Src_Dir, "sub");
+      Source   : constant String := Files_Suite.Support.Join (Src_Dir, "movable.txt");
+      Pasted   : constant String := Files_Suite.Support.Join (Sub, "movable.txt");
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Sub);
+      Files_Suite.Support.Write_File (Source, "payload");
+
+      --  Step 1: cut a file from the source directory.
+      Model := Loaded_Model (Src_Dir);
+      Files_Suite.Support.Select_Name (Model, "movable.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command
+        (Model, Settings, "", Files.Commands.Cut_Selected_Items_Command, Result, Found);
+      Assert (Found, "the item menu offers the cut command");
+      Assert
+        (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut,
+         "cut records a cut clipboard intent");
+
+      --  Step 2: navigate into the subdirectory and paste via the empty-area menu.
+      Load := Files.File_System.Load_Directory (Sub, Settings);
+      Files.Model.Navigate_To (Model, Sub, Load.Items);
+      Open_Empty_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Paste_Items_Command, Result, Found);
+      Assert (Found, "the empty-area menu offers the paste command");
+      Assert (Ada.Directories.Exists (Pasted), "paste moves the cut file into the subdirectory");
+      Assert (not Ada.Directories.Exists (Source), "a cut paste removes the file from its origin");
+
+      --  Step 3: if the move is undoable, undo returns the file to its origin.
+      if Files.Model.Undo_Available (Model) then
+         Dispatch_Command (Model, Settings, Files.Commands.Undo_Command, Result);
+         Assert (Ada.Directories.Exists (Source), "undo moves the cut file back to its origin");
+         Assert (not Ada.Directories.Exists (Pasted), "undo removes the file from the subdirectory");
+      end if;
+   end Test_Sequence_Cut_Paste_Into_Subdir;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
