@@ -19,11 +19,11 @@ with Glfw.Windows.Hints;
 with Glfw.Windows.Icon;
 with Glfw.Windows.Vulkan;
 
-with Files.Command_Palette;
 with Files.Commands;
 with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
+with Files.Interaction;
 with Files.Operations;
 with Files.Rendering;
 with Files.Settings;
@@ -36,7 +36,6 @@ package body Files.Application.Windows is
    use type Glfw.Input.Mouse.Button;
    use type Glfw.Input.Mouse.Coordinate;
    use type Glfw.Size;
-   use type Files.Controller.Controller_Status;
    use type Files.Events.Input_Action_Kind;
    use type Files.Commands.Command_Id;
    use type Files.Operations.Operation_Status;
@@ -325,170 +324,33 @@ package body Files.Application.Windows is
          return "";
    end Safe_Environment_Value;
 
+   --  Persist the runtime settings to the central settings file. The reducer
+   --  owns the actual serialization; this wrapper exists for the shell-only
+   --  GLFW/timing paths (live font zoom, window-size save on shutdown).
    procedure Persist_Settings (Runtime : in out Runtime_Window) is
-      Path  : constant String := To_String (Runtime.Settings_Path);
-      Saved : Files.Settings.Settings_Write_Result;
    begin
-      if Path = "" then
-         return;
-      end if;
-      Saved :=
-        Files.Settings.Save_Text (Path, Files.Settings.To_Text (Runtime.Settings));
-      pragma Unreferenced (Saved);
+      Files.Interaction.Persist_Settings
+        (Runtime.Settings, To_String (Runtime.Settings_Path));
    end Persist_Settings;
 
-   --  Map the model's runtime sort enum onto the settings enum.
-   function Settings_Sort_Of
-     (Field : Files.Model.Sort_Field) return Files.Settings.Sort_Field is
+   --  Consume the GPU/GLFW/timing follow-up an interaction asks the shell to
+   --  perform. Everything touching Runtime_Window's GPU/cache/input state stays
+   --  here; Files.Interaction performs the model/settings mutation itself.
+   procedure Apply_Interaction_Result
+     (Runtime : in out Runtime_Window;
+      Result  : Files.Interaction.Interaction_Result) is
    begin
-      case Field is
-         when Files.Model.Sort_Name     => return Files.Settings.Sort_By_Name;
-         when Files.Model.Sort_Type     => return Files.Settings.Sort_By_Filetype;
-         when Files.Model.Sort_Size     => return Files.Settings.Sort_By_Size;
-         when Files.Model.Sort_Created  => return Files.Settings.Sort_By_Created;
-         when Files.Model.Sort_Changed  => return Files.Settings.Sort_By_Modified;
-      end case;
-   end Settings_Sort_Of;
-
-   --  Copy the user-visible global UI state from the runtime model into the
-   --  settings record and persist it to disk. Called whenever a runtime
-   --  command flips one of the persisted toggles.
-   procedure Sync_Global_UI_State (Runtime : in out Runtime_Window) is
-      use type Files.Types.View_Mode;
-      use type Files.Settings.Sort_Field;
-
-      New_View  : constant Files.Types.View_Mode :=
-        Files.Model.View_Mode_Of (Runtime.Model);
-      New_Sort  : constant Files.Settings.Sort_Field :=
-        Settings_Sort_Of (Files.Model.Sort_Field_Of (Runtime.Model));
-      New_Asc   : constant Boolean :=
-        Files.Model.Sort_Is_Ascending (Runtime.Model);
-      New_Info  : constant Boolean :=
-        Files.Model.Info_Pane_Is_Open (Runtime.Model);
-      Changed   : constant Boolean :=
-        Runtime.Settings.Default_View /= New_View
-        or else Runtime.Settings.Sort_Field_Value /= New_Sort
-        or else Runtime.Settings.Sort_Ascending /= New_Asc
-        or else Runtime.Settings.Info_Pane_Open /= New_Info;
-   begin
-      if not Changed then
-         return;
+      if Result.Font_Size_Changed then
+         Runtime.Font_Pixel_Size := Runtime.Settings.Font_Pixel_Size;
       end if;
-
-      Runtime.Settings.Default_View := New_View;
-      Runtime.Settings.Sort_Field_Value := New_Sort;
-      Runtime.Settings.Sort_Ascending := New_Asc;
-      Runtime.Settings.Info_Pane_Open := New_Info;
-      Persist_Settings (Runtime);
-   end Sync_Global_UI_State;
-
-   function Execute_Runtime_Command
-     (Runtime  : in out Runtime_Window;
-      Command  : Files.Commands.Command_Id;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
-      return Files.Controller.Controller_Result
-   is
-      Settings_Path : constant String := To_String (Runtime.Settings_Path);
-      Result        : Files.Controller.Controller_Result;
-   begin
-      if not Files.Commands.Is_Enabled (Command, Runtime.Model) then
-         return
-           Files.Controller.Execute_Command
-             (Command, Runtime.Model, Runtime.Settings, Modifiers);
+      if Result.Needs_Glyph_Rebuild then
+         Runtime.Text_Ready := False;
+         Runtime.Text_Glyph_Key := Null_Unbounded_String;
       end if;
-
-      case Command is
-         when Files.Commands.Save_Settings_Command =>
-            Result :=
-              Files.Controller.Save_Settings
-                (Runtime.Model, Runtime.Settings, Settings_Path);
-            --  Apply a font-size change made in the settings pane live, the
-            --  same way Ctrl+scroll / Ctrl+= zoom does: sync the runtime size
-            --  and invalidate the glyph cache so text re-rasterizes now rather
-            --  than only on the next launch.
-            if Runtime.Settings.Font_Pixel_Size /= Runtime.Font_Pixel_Size then
-               Runtime.Font_Pixel_Size := Runtime.Settings.Font_Pixel_Size;
-               Runtime.Text_Ready := False;
-               Runtime.Text_Glyph_Key := Null_Unbounded_String;
-            end if;
-         when Files.Commands.Toggle_Hidden_Files_Command =>
-            Result :=
-              Files.Controller.Toggle_Hidden_Files
-                (Runtime.Model, Runtime.Settings, Settings_Path);
-         when Files.Commands.Toggle_Bookmark_Command =>
-            declare
-               Current : constant String :=
-                 Files.Model.Current_Path (Runtime.Model);
-               Existing : Boolean := False;
-               To_Remove : Natural := 0;
-            begin
-               if Current /= "" then
-                  for Index in
-                    Runtime.Settings.Bookmark_Paths.First_Index ..
-                    Runtime.Settings.Bookmark_Paths.Last_Index
-                  loop
-                     if To_String (Runtime.Settings.Bookmark_Paths.Element (Index))
-                       = Current
-                     then
-                        Existing := True;
-                        To_Remove := Index;
-                        exit;
-                     end if;
-                  end loop;
-                  if Existing then
-                     Runtime.Settings.Bookmark_Paths.Delete (To_Remove);
-                  else
-                     Runtime.Settings.Bookmark_Paths.Append
-                       (To_Unbounded_String (Current));
-                  end if;
-                  Persist_Settings (Runtime);
-               end if;
-               Result :=
-                 (Status  => Files.Controller.Controller_Command_Executed,
-                  others  => <>);
-            end;
-         when others =>
-            Result := Files.Controller.Execute_Command (Command, Runtime.Model, Runtime.Settings, Modifiers);
-      end case;
-
-      case Command is
-         when Files.Commands.Select_Small_Icons_Command
-            | Files.Commands.Select_Large_Icons_Command
-            | Files.Commands.Select_Details_Command
-            | Files.Commands.Sort_By_Name_Command
-            | Files.Commands.Sort_By_Size_Command
-            | Files.Commands.Sort_By_Type_Command
-            | Files.Commands.Sort_By_Created_Command
-            | Files.Commands.Sort_By_Changed_Command
-            | Files.Commands.Toggle_Info_Pane_Command =>
-            Sync_Global_UI_State (Runtime);
-         when others =>
-            null;
-      end case;
-
-      --  A sort change reorders the listing. The renderer re-sorts the snapshot
-      --  for display, but the model's item order (used by keyboard navigation)
-      --  is the load order, so re-list the directory to keep them in sync.
-      --  Sync above has already updated the settings sort field that Reload uses.
-      case Command is
-         when Files.Commands.Sort_By_Name_Command
-            | Files.Commands.Sort_By_Size_Command
-            | Files.Commands.Sort_By_Type_Command
-            | Files.Commands.Sort_By_Created_Command
-            | Files.Commands.Sort_By_Changed_Command =>
-            declare
-               Reloaded : constant Files.Operations.Operation_Result :=
-                 Files.Operations.Refresh (Runtime.Model, Runtime.Settings);
-               pragma Unreferenced (Reloaded);
-            begin
-               null;
-            end;
-         when others =>
-            null;
-      end case;
-
-      return Result;
-   end Execute_Runtime_Command;
+      if Result.Clear_Pending_Text and then Runtime.Handle /= null then
+         Runtime.Handle.Pending_Text := Null_Unbounded_String;
+      end if;
+   end Apply_Interaction_Result;
 
    function As_Window
      (Handle : Window_Access)
@@ -1037,7 +899,18 @@ package body Files.Application.Windows is
          if Result.Command = Files.Commands.Save_Settings_Command
            or else Result.Command = Files.Commands.Toggle_Hidden_Files_Command
          then
-            Result := Execute_Runtime_Command (Runtime, Result.Command);
+            declare
+               Outcome : Files.Interaction.Interaction_Result;
+            begin
+               Files.Interaction.Execute_Command
+                 (Model             => Runtime.Model,
+                  Settings          => Runtime.Settings,
+                  Settings_Path     => To_String (Runtime.Settings_Path),
+                  Command           => Result.Command,
+                  Current_Font_Size => Runtime.Font_Pixel_Size,
+                  Result            => Outcome);
+               Apply_Interaction_Result (Runtime, Outcome);
+            end;
             --  Discard any character event the OS sent in parallel with the
             --  key press (e.g. Space producing both a key event AND a ' '
             --  character entry). Otherwise the focused settings field would
@@ -1350,98 +1223,25 @@ package body Files.Application.Windows is
       Action   : Files.Events.Input_Action;
       Modifiers : Files.Types.Modifier_Set)
    is
-      Result : Files.Controller.Controller_Result;
+      Result : Files.Interaction.Interaction_Result;
    begin
-      case Action.Kind is
-         when Files.Events.Command_Input_Action =>
-            if Files.Commands.Requires_Settings_Path (Action.Command) then
-               Result := Execute_Runtime_Command (Runtime, Action.Command, Modifiers);
-            else
-               Result :=
-                 Files.Controller.Handle_Command_Click
-                   (Action.Command, Runtime.Model, Runtime.Settings, Modifiers);
-            end if;
-         when Files.Events.Item_Click_Input_Action =>
-            Result :=
-              Files.Controller.Handle_Item_Click
-                (Model         => Runtime.Model,
-                 Settings      => Runtime.Settings,
-                 Visible_Index => Action.Item_Index,
-                 Activate      => Action.Activate,
-                 Modifiers     => Modifiers);
-         when Files.Events.Root_Click_Input_Action =>
-            Result :=
-              Files.Controller.Handle_Root_Click
-                (Runtime.Model, Runtime.Settings, Action.Root_Index);
-         when Files.Events.Command_Result_Click_Input_Action =>
-            declare
-               Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-                 Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Runtime.Model), Runtime.Model);
-            begin
-               if Action.Result_Index > 0
-                 and then Action.Result_Index <= Natural (Results.Length)
-                 and then Files.Commands.Requires_Settings_Path
-                   (Results.Element (Positive (Action.Result_Index)).Command)
-               then
-                  Files.Model.Set_Command_Palette_Selected_Index (Runtime.Model, Action.Result_Index);
-                  if Results.Element (Positive (Action.Result_Index)).Enabled then
-                     Result :=
-                       Execute_Runtime_Command
-                         (Runtime, Results.Element (Positive (Action.Result_Index)).Command, Modifiers);
-                     if Result.Status /= Files.Controller.Controller_Ignored then
-                        Files.Model.Close_Command_Palette (Runtime.Model);
-                     end if;
-                  else
-                     Result :=
-                       Files.Controller.Handle_Command_Result_Click
-                         (Model        => Runtime.Model,
-                          Settings     => Runtime.Settings,
-                          Result_Index => Action.Result_Index,
-                          Modifiers    => Modifiers);
-                  end if;
-               else
-                  Result :=
-                    Files.Controller.Handle_Command_Result_Click
-                      (Model        => Runtime.Model,
-                       Settings     => Runtime.Settings,
-                       Result_Index => Action.Result_Index,
-                       Modifiers    => Modifiers);
-               end if;
-            end;
-         when Files.Events.Text_Click_Input_Action =>
-            Result :=
-              Files.Controller.Handle_Text_Click
-                (Model           => Runtime.Model,
-                 Target          => Action.Focus_Target,
-                 Cursor_Position => Action.Cursor_Position);
-         when Files.Events.Settings_Click_Input_Action =>
-            Result :=
-              Files.Controller.Handle_Settings_Click
-                (Model  => Runtime.Model,
-                 Field  => Action.Settings_Field,
-                 Option => Action.Settings_Option);
-            if Result.Command = Files.Commands.Save_Settings_Command
-              or else Result.Command = Files.Commands.Toggle_Hidden_Files_Command
-            then
-               Result := Execute_Runtime_Command (Runtime, Result.Command);
-               if Runtime.Handle /= null then
-                  Runtime.Handle.Pending_Text := Null_Unbounded_String;
-               end if;
-            end if;
-         when Files.Events.Scroll_Input_Action =>
-            Result :=
-              Files.Controller.Handle_Targeted_Scroll
-                (Runtime.Model, Action.Scroll_Area, Action.Scroll_Lines);
-         when Files.Events.Scrollbar_Drag_Begin_Input_Action =>
-            Runtime.Scrollbar_Drag_Target := Action.Scroll_Area;
-            Runtime.Scrollbar_Drag_Anchor := Action.Scroll_Drag_Anchor;
-            Result := (Status => Files.Controller.Controller_Ignored, others => <>);
-         when Files.Events.No_Input_Action
-            | Files.Events.Selection_Input_Action =>
-            Result := (Status => Files.Controller.Controller_Ignored, others => <>);
-      end case;
+      --  Scrollbar-drag begin updates the shell-owned drag tracking state and
+      --  never mutates the model, so it stays here rather than in the reducer.
+      if Action.Kind = Files.Events.Scrollbar_Drag_Begin_Input_Action then
+         Runtime.Scrollbar_Drag_Target := Action.Scroll_Area;
+         Runtime.Scrollbar_Drag_Anchor := Action.Scroll_Drag_Anchor;
+         return;
+      end if;
 
-      pragma Unreferenced (Result);
+      Files.Interaction.Apply_Input_Action
+        (Model             => Runtime.Model,
+         Settings          => Runtime.Settings,
+         Settings_Path     => To_String (Runtime.Settings_Path),
+         Action            => Action,
+         Current_Font_Size => Runtime.Font_Pixel_Size,
+         Modifiers         => Modifiers,
+         Result            => Result);
+      Apply_Interaction_Result (Runtime, Result);
    end Dispatch_Click_Action;
 
    function Current_Click_Action
@@ -1560,54 +1360,19 @@ package body Files.Application.Windows is
             In_Main : constant Boolean :=
               X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
               and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-            Item_Index : Natural := 0;
-            --  A modal overlay (settings, palette, root selector, sort menu)
-            --  must swallow the click, exactly as left-clicks are suppressed
-            --  behind these overlays. Otherwise a right-click in the grid
-            --  region behind the modal would open a context menu on top and
-            --  the next left-click would execute file commands from a state
-            --  where they should be unreachable.
-            Overlay_Open : constant Boolean :=
-              Files.Model.Settings_Pane_Is_Open (Runtime.Model)
-              or else Files.Model.Command_Palette_Is_Open (Runtime.Model)
-              or else Files.Model.Root_Selector_Is_Open (Runtime.Model)
-              or else Files.Model.Sort_Menu_Is_Open (Runtime.Model);
+            Item_Index : constant Natural :=
+              (if In_Main then Files.Rendering.Item_At (Item_Layout, X, Y) else 0);
+            Result : Files.Interaction.Interaction_Result;
          begin
-            if In_Main and then not Overlay_Open then
-               Item_Index := Files.Rendering.Item_At (Item_Layout, X, Y);
-               if Item_Index /= 0 then
-                  --  Match desktop file-manager convention: right-click on an
-                  --  unselected item immediately selects it so the user can
-                  --  see what the menu commands will operate on. A right-click
-                  --  on something already part of the selection preserves the
-                  --  full multi-selection.
-                  if Item_Index <= Files.Model.Visible_Count (Runtime.Model)
-                    and then not Files.Model.Is_Selected
-                                   (Runtime.Model, Positive (Item_Index))
-                  then
-                     declare
-                        Click_Result : Files.Controller.Controller_Result;
-                        pragma Unreferenced (Click_Result);
-                     begin
-                        Files.Model.Clear_Selection (Runtime.Model);
-                        Click_Result :=
-                          Files.Controller.Handle_Item_Click
-                            (Model         => Runtime.Model,
-                             Settings      => Runtime.Settings,
-                             Visible_Index => Item_Index,
-                             Activate      => False,
-                             Modifiers     => Files.Types.No_Modifiers);
-                     end;
-                  end if;
-                  Files.Model.Open_Context_Menu
-                    (Runtime.Model, X, Y, Files.Model.Context_Menu_Item, Item_Index);
-               else
-                  Files.Model.Open_Context_Menu
-                    (Runtime.Model, X, Y, Files.Model.Context_Menu_Empty);
-               end if;
-            else
-               Files.Model.Close_Context_Menu (Runtime.Model);
-            end if;
+            Files.Interaction.Apply_Right_Click
+              (Model      => Runtime.Model,
+               Settings   => Runtime.Settings,
+               In_Main    => In_Main,
+               Item_Index => Item_Index,
+               X          => X,
+               Y          => Y,
+               Result     => Result);
+            Apply_Interaction_Result (Runtime, Result);
          end;
       end loop;
 
@@ -1627,19 +1392,20 @@ package body Files.Application.Windows is
                Row      : constant Natural := Files.Rendering.Context_Menu_Row_At (Menu, X, Y);
                Modifiers : constant Files.Types.Modifier_Set :=
                  To_Modifiers (As_Window (Runtime.Handle));
-               Result    : Files.Controller.Controller_Result;
-               pragma Unreferenced (Result);
+               Command  : constant Files.Commands.Command_Id :=
+                 (if Row > 0 and then Row <= Menu.Row_Count then Menu.Commands (Row)
+                  else Files.Commands.No_Command);
+               Result   : Files.Interaction.Interaction_Result;
             begin
-               Files.Model.Close_Context_Menu (Runtime.Model);
-               if Row > 0 and then Row <= Menu.Row_Count then
-                  declare
-                     Command : constant Files.Commands.Command_Id := Menu.Commands (Row);
-                  begin
-                     if Command /= Files.Commands.No_Command then
-                        Result := Execute_Runtime_Command (Runtime, Command, Modifiers);
-                     end if;
-                  end;
-               end if;
+               Files.Interaction.Apply_Context_Menu_Command
+                 (Model             => Runtime.Model,
+                  Settings          => Runtime.Settings,
+                  Settings_Path     => To_String (Runtime.Settings_Path),
+                  Command           => Command,
+                  Current_Font_Size => Runtime.Font_Pixel_Size,
+                  Modifiers         => Modifiers,
+                  Result            => Result);
+               Apply_Interaction_Result (Runtime, Result);
             end;
             goto Continue_Left_Click_Loop;
          end if;
