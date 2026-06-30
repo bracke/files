@@ -62,6 +62,30 @@ package Files.Interaction is
       Modifiers         : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
       Result            : out Interaction_Result);
 
+   --  Dispatch one keyboard press through the focus-aware controller, applying
+   --  the settings-path-aware routing the desktop shell previously performed
+   --  inline: a key that resolves to a settings-path command (save or
+   --  toggle-hidden) is re-run through Execute_Command so the in-out settings
+   --  handling and follow-up flags apply (including Clear_Pending_Text); any
+   --  other key keeps the controller's own result. This is the genuine live key
+   --  dispatch seam, distinct from translating a raw input action.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, updated in place when the key persists state.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Key Key code that was pressed.
+   --  @param Modifiers Active modifier keys.
+   --  @param Current_Font_Size Live font pixel size, used to detect a saved font-size change.
+   --  @param Result Follow-up flags describing what the key dispatch did.
+   procedure Handle_Key
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : in out Files.Settings.Settings_Model;
+      Settings_Path     : String;
+      Key               : Files.Types.Key_Code;
+      Modifiers         : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Current_Font_Size : Positive;
+      Result            : out Interaction_Result);
+
    --  Apply a translated input action to the model and settings. Mirrors the
    --  former Dispatch_Click_Action ladder: command, item-click, root-click,
    --  command-palette result, text-click, settings-click (with save/toggle

@@ -800,7 +800,6 @@ package body Files.Application.Windows is
       Now       : Ada.Calendar.Time;
       Pending   : Natural;
       Fire_Count : Natural := 0;
-      Result    : Files.Controller.Controller_Result;
    begin
       if Runtime.Handle = null then
          return;
@@ -890,37 +889,25 @@ package body Files.Application.Windows is
 
       Refresh_Selection_Grid_Columns (Runtime);
       for I in 1 .. Fire_Count loop
-         Result :=
-           Files.Controller.Handle_Key
-             (Model     => Runtime.Model,
-              Settings  => Runtime.Settings,
-              Key       => To_Key_Code (Key),
-              Modifiers => To_Modifiers (As_Window (Runtime.Handle)));
-         if Result.Command = Files.Commands.Save_Settings_Command
-           or else Result.Command = Files.Commands.Toggle_Hidden_Files_Command
-         then
-            declare
-               Outcome : Files.Interaction.Interaction_Result;
-            begin
-               Files.Interaction.Execute_Command
-                 (Model             => Runtime.Model,
-                  Settings          => Runtime.Settings,
-                  Settings_Path     => To_String (Runtime.Settings_Path),
-                  Command           => Result.Command,
-                  Current_Font_Size => Runtime.Font_Pixel_Size,
-                  Result            => Outcome);
-               Apply_Interaction_Result (Runtime, Outcome);
-            end;
-            --  Discard any character event the OS sent in parallel with the
-            --  key press (e.g. Space producing both a key event AND a ' '
-            --  character entry). Otherwise the focused settings field would
-            --  also get the space appended.
-            if Runtime.Handle /= null then
-               Runtime.Handle.Pending_Text := Null_Unbounded_String;
-            end if;
-         end if;
+         declare
+            Result : Files.Interaction.Interaction_Result;
+         begin
+            --  Genuine live key dispatch flows through the testable seam: it
+            --  runs the focus-aware controller and re-routes settings-path
+            --  commands through Execute_Command. The follow-up (font-size sync,
+            --  glyph rebuild, parallel character-event discard via
+            --  Clear_Pending_Text) is applied here.
+            Files.Interaction.Handle_Key
+              (Model             => Runtime.Model,
+               Settings          => Runtime.Settings,
+               Settings_Path     => To_String (Runtime.Settings_Path),
+               Key               => To_Key_Code (Key),
+               Modifiers         => To_Modifiers (As_Window (Runtime.Handle)),
+               Current_Font_Size => Runtime.Font_Pixel_Size,
+               Result            => Result);
+            Apply_Interaction_Result (Runtime, Result);
+         end;
       end loop;
-      pragma Unreferenced (Result);
    end Handle_Pressed_Key;
 
    procedure Handle_Keyboard

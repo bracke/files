@@ -79,6 +79,7 @@ package body Files_Suite.Interaction is
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -122,6 +123,9 @@ package body Files_Suite.Interaction is
         (T, Test_Menu_Row_Dispatch'Access, "context-menu row dispatches its command and closes");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Keyboard_Shortcut_Command'Access, "keyboard shortcut routes to its command and model effect");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Keyboard_Dispatch_Path'Access,
+         "live key dispatch flows through Files.Interaction.Handle_Key for view, settings-path, and toggle keys");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Targeted_Scroll'Access, "scroll targets the pane under the cursor");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -462,6 +466,117 @@ package body Files_Suite.Interaction is
         (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
          "dispatching the shortcut switches the model to the details view");
    end Test_Keyboard_Shortcut_Command;
+
+   --  Drive the GENUINE live key-dispatch seam the shell uses --
+   --  Files.Interaction.Handle_Key -- rather than the Translate_Key ->
+   --  Apply_Input_Action proxy. Handle_Key runs the focus-aware controller and
+   --  re-routes settings-path keys through Execute_Command, exactly as
+   --  Handle_Pressed_Key did inline. Press the real Shortcut_For key codes (rule
+   --  d: never invent a binding) and assert semantic outcomes (rule b).
+   procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Path : constant String :=
+        Files_Suite.Support.Join (Files_Suite.Support.Root, "interaction-key.conf");
+   begin
+      Files_Suite.Support.Reset_Root;
+
+      --  (1) View shortcut: Ctrl+3 (Shortcut_For (Select_Details)) flows through
+      --  the key seam to the details-view command and switches the model view.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Result   : Files.Interaction.Interaction_Result;
+      begin
+         Files.Interaction.Handle_Key
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => "",
+            Key               => Files.Types.Key_3,
+            Modifiers         => Ctrl,
+            Current_Font_Size => Base_Font,
+            Result            => Result);
+         Assert
+           (Result.Command = Files.Commands.Select_Details_Command,
+            "Ctrl+3 dispatched through Handle_Key reports the details-view command");
+         Assert
+           (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
+            "the key seam switches the model to the details view");
+      end;
+
+      --  (2) Settings-path shortcut: Save_Settings_Command is key-bound to Ctrl+S
+      --  (Shortcut_For). With the settings pane open the command is enabled, so
+      --  the key seam must re-route it through Execute_Command -- proven by the
+      --  settings-path-only follow-ups (Settings_Changed, Clear_Pending_Text) and
+      --  the persisted file -- which the plain controller branch never produces.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Result   : Files.Interaction.Interaction_Result;
+      begin
+         --  Open the pane through the same key seam (Ctrl+, =
+         --  Toggle_Settings_Pane, a non-settings-path command that takes the
+         --  plain controller branch) so the whole scenario stays on the seam.
+         Files.Interaction.Handle_Key
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => Path,
+            Key               => Files.Types.Key_Comma,
+            Modifiers         => Ctrl,
+            Current_Font_Size => Base_Font,
+            Result            => Result);
+         Assert
+           (Files.Model.Settings_Pane_Is_Open (Model),
+            "the settings pane is open so the Ctrl+S save command is enabled");
+         Files.Interaction.Handle_Key
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => Path,
+            Key               => Files.Types.Key_S,
+            Modifiers         => Ctrl,
+            Current_Font_Size => Base_Font,
+            Result            => Result);
+         Assert
+           (Result.Command = Files.Commands.Save_Settings_Command,
+            "Ctrl+S dispatched through Handle_Key reports the save-settings command");
+         Assert
+           (Result.Settings_Changed,
+            "the key seam re-routes the save through Execute_Command and reports a settings change");
+         Assert
+           (Result.Clear_Pending_Text,
+            "the settings-path re-route asks the shell to drop pending character input");
+         Assert
+           (Ada.Directories.Exists (Path),
+            "the key-driven save persists the settings file to disk");
+      end;
+
+      --  (3) Toggle shortcut: Ctrl+4 (Shortcut_For (Toggle_Info_Pane)) needs a
+      --  selection to be enabled. The key seam toggles the info pane in the model
+      --  via the plain controller branch (no settings-path re-route).
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Result   : Files.Interaction.Interaction_Result;
+      begin
+         Files_Suite.Support.Select_Name (Model, "Gamma.md");
+         Assert
+           (not Files.Model.Info_Pane_Is_Open (Model),
+            "the info pane starts closed before the toggle key");
+         Files.Interaction.Handle_Key
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => "",
+            Key               => Files.Types.Key_4,
+            Modifiers         => Ctrl,
+            Current_Font_Size => Base_Font,
+            Result            => Result);
+         Assert
+           (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
+            "Ctrl+4 dispatched through Handle_Key reports the toggle-info-pane command");
+         Assert
+           (Files.Model.Info_Pane_Is_Open (Model),
+            "the key seam toggles the info pane open in the model");
+      end;
+   end Test_Keyboard_Dispatch_Path;
 
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

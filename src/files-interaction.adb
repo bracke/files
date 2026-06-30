@@ -186,6 +186,45 @@ package body Files.Interaction is
       Result.Command_Executed := Outcome.Status = Files.Controller.Controller_Command_Executed;
    end Execute_Command;
 
+   procedure Handle_Key
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : in out Files.Settings.Settings_Model;
+      Settings_Path     : String;
+      Key               : Files.Types.Key_Code;
+      Modifiers         : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Current_Font_Size : Positive;
+      Result            : out Interaction_Result)
+   is
+      Outcome : constant Files.Controller.Controller_Result :=
+        Files.Controller.Handle_Key
+          (Model     => Model,
+           Settings  => Settings,
+           Key       => Key,
+           Modifiers => Modifiers);
+   begin
+      if Outcome.Command = Files.Commands.Save_Settings_Command
+        or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
+      then
+         --  Re-route settings-path commands through Execute_Command for the
+         --  in-out settings handling, exactly as the shell did inline. The
+         --  shell then dropped any parallel character event; surface that as a
+         --  follow-up flag so Apply_Interaction_Result performs the clear.
+         Execute_Command
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => Settings_Path,
+            Command           => Outcome.Command,
+            Current_Font_Size => Current_Font_Size,
+            Result            => Result);
+         Result.Clear_Pending_Text := True;
+      else
+         Result.Command := Outcome.Command;
+         Result.Status := Outcome.Status;
+         Result.Command_Executed :=
+           Outcome.Status = Files.Controller.Controller_Command_Executed;
+      end if;
+   end Handle_Key;
+
    procedure Apply_Input_Action
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
