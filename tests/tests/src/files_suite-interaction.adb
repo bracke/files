@@ -1,17 +1,25 @@
 with Ada.Directories;
+with Ada.Environment_Variables;
+with Ada.Strings.Unbounded;
 
 with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
+with Project_Tools.Files;
+
+with Zlib;
+
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
+with Files.File_System;
 with Files.Interaction;
 with Files.Model;
 with Files.Rendering;
 with Files.Settings;
 with Files.Types;
+with Files.UI;
 
 with Files_Suite.Support;
 
@@ -43,10 +51,14 @@ package body Files_Suite.Interaction is
 
    use AUnit.Assertions;
    use type Files.Commands.Command_Id;
+   use type Files.Controller.Controller_Status;
    use type Files.Events.Input_Action_Kind;
+   use type Files.Events.Scroll_Target;
    use type Files.Model.Clipboard_Mode;
+   use type Files.Model.Palette_Mode;
    use type Files.Rendering.Accessibility_Role;
    use type Files.Rendering.Settings_Hit_Kind;
+   use type Files.Types.Focus_Target;
    use type Files.Types.View_Mode;
 
    Window_W   : constant Natural  := 1000;
@@ -69,6 +81,15 @@ package body Files_Suite.Interaction is
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Context_Menu_Archive_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Context_Menu_Empty_Area_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Context_Menu_Trash_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -92,6 +113,24 @@ package body Files_Suite.Interaction is
         (T, Test_Targeted_Scroll'Access, "scroll targets the pane under the cursor");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Path_Commands'Access, "settings-path commands flip, persist, and signal the shell");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Click_Navigates'Access, "root-selector row click navigates to the chosen root");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Palette_Result_Runs'Access, "command-palette result click runs the command and closes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_With_Palette_Result_Launches'Access, "open-with palette result routes the application launch");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Input_Click_Focuses'Access, "toolbar input click focuses the field and sets the cursor");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scrollbar_Drag_Begin'Access, "scrollbar thumb click begins a drag the shell owns");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Context_Menu_Open_And_Edit'Access, "item-menu open, rename, cut, and duplicate commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Context_Menu_Archive_Commands'Access, "item-menu compress-zip, compress-7z, and extract commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Context_Menu_Empty_Area_Commands'Access, "empty-area menu new-folder and paste commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Context_Menu_Trash_Lifecycle'Access, "item-menu delete, undo, and restore-from-trash lifecycle");
    end Register_Tests;
 
    --  Center of the cell laid out for visible item Index, derived from the real
@@ -607,6 +646,787 @@ package body Files_Suite.Interaction is
          Assert (Result.Needs_Glyph_Rebuild, "the save asks the shell to invalidate its glyph cache");
       end;
    end Test_Settings_Path_Commands;
+
+   --  Format a positive index without the leading space Integer'Image inserts.
+   function Index_Image (Value : Positive) return String is
+      Raw : constant String := Integer'Image (Value);
+   begin
+      return Raw (Raw'First + 1 .. Raw'Last);
+   end Index_Image;
+
+   --  Load a real on-disk directory into a fresh window model, exactly as the
+   --  controller does when navigating, so disk-backed menu commands operate on
+   --  genuine items.
+   function Loaded_Model (Directory : String) return Files.Model.Window_Model is
+      Load  : constant Files.File_System.Directory_Load_Result :=
+        Files.File_System.Load_Directory (Directory, Files.Settings.Default_Settings);
+      Model : Files.Model.Window_Model;
+   begin
+      Files.Model.Initialize (Model, Directory, Load.Items, Files_Suite.Support.Root);
+      return Model;
+   end Loaded_Model;
+
+   --  Return the first visible item index currently reported Selected, or zero.
+   function First_Selected_Visible (Model : Files.Model.Window_Model) return Natural is
+   begin
+      for Index in 1 .. Files.Model.Visible_Count (Model) loop
+         if Files.Model.Is_Selected (Model, Index) then
+            return Index;
+         end if;
+      end loop;
+      return 0;
+   end First_Selected_Visible;
+
+   --  Open the item context menu by right-clicking the cell of the first
+   --  selected item, deriving the coordinate from the real item layout (rule a)
+   --  and driving the real Apply_Right_Click (rule d).
+   procedure Open_Item_Context_Menu
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Result   : out Files.Interaction.Interaction_Result)
+   is
+      Visible  : constant Natural := First_Selected_Visible (Model);
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Layout   : constant Files.Rendering.Layout_Metrics :=
+        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+      Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+      X, Y     : Natural := 0;
+      In_Main  : Boolean;
+      Index    : Natural;
+   begin
+      Assert (Visible > 0, "a selected item exists to anchor the context menu");
+      for Cell of Items loop
+         if Cell.Visible_Index = Visible then
+            X := Cell.X + Cell.Width / 2;
+            Y := Cell.Y + Cell.Height / 2;
+         end if;
+      end loop;
+      In_Main :=
+        X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
+        and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
+      Index := Files.Rendering.Item_At (Items, X, Y);
+      Files.Interaction.Apply_Right_Click (Model, Settings, In_Main, Index, X, Y, Result);
+   end Open_Item_Context_Menu;
+
+   --  Open the empty-area context menu by right-clicking the center of the main
+   --  view, which is item-free in the directories these tests build.
+   procedure Open_Empty_Context_Menu
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Result   : out Files.Interaction.Interaction_Result)
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Layout   : constant Files.Rendering.Layout_Metrics :=
+        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+      Items    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
+      X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
+      Y : constant Natural := Layout.Main_Y + Layout.Main_Height / 2;
+      Index : constant Natural := Files.Rendering.Item_At (Items, X, Y);
+   begin
+      Files.Interaction.Apply_Right_Click (Model, Settings, True, Index, X, Y, Result);
+   end Open_Empty_Context_Menu;
+
+   --  Resolve a command from the live context-menu layout (rule a), assert the
+   --  derived coordinate hit-tests back to that row, then dispatch it through the
+   --  real Apply_Context_Menu_Command (rule d). Found is false when the open menu
+   --  does not offer the command.
+   procedure Dispatch_Menu_Command
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Command       : Files.Commands.Command_Id;
+      Result        : out Files.Interaction.Interaction_Result;
+      Found         : out Boolean)
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Menu     : constant Files.Rendering.Context_Menu_Layout :=
+        Files.Rendering.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
+      Target_Row   : Natural := 0;
+      Row_X, Row_Y : Natural;
+   begin
+      Found := False;
+      for Row in 1 .. Menu.Row_Count loop
+         if Menu.Commands (Row) = Command then
+            Target_Row := Row;
+         end if;
+      end loop;
+      if Target_Row = 0 then
+         return;
+      end if;
+      Row_X := Menu.X + Menu.Width / 2;
+      Row_Y := Menu.Y + Menu.Padding + (Target_Row - 1) * Menu.Row_Height + Menu.Row_Height / 2;
+      Assert
+        (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y) = Target_Row,
+         "the derived coordinate hit-tests back to the resolved menu row");
+      Found := True;
+      Files.Interaction.Apply_Context_Menu_Command
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => Settings_Path,
+         Command           => Menu.Commands (Target_Row),
+         Current_Font_Size => Base_Font,
+         Modifiers         => Files.Types.No_Modifiers,
+         Result            => Result);
+   end Dispatch_Menu_Command;
+
+   procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Roots    : Files.Types.String_Vectors.Vector;
+      Root_A   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "root-a");
+      Root_B   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "root-b");
+      X, Y     : Natural := 0;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Root_A);
+      Ada.Directories.Create_Path (Root_B);
+      Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Root_A));
+      Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Root_B));
+      Files.Model.Open_Root_Selector (Model, Roots);
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Selector : constant Files.Rendering.Root_Selector_Layout :=
+           Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
+         Rows     : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
+         Action   : Files.Events.Input_Action;
+      begin
+         for Row of Rows loop
+            if Row.Root_Index = 2 then
+               X := Row.X + Row.Width / 2;
+               Y := Row.Y + Row.Height / 2;
+            end if;
+         end loop;
+         Assert
+           (Files.Rendering.Root_Path_At (Rows, X, Y) = 2,
+            "the derived coordinate hit-tests back to the second root row");
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Assert
+           (Action.Kind = Files.Events.Root_Click_Input_Action,
+            "a root-row coordinate translates to a root click");
+         Assert (Action.Root_Index = 2, "the root click carries the second root index");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      Assert (Files.Model.Current_Path (Model) = Root_B, "the root click navigates to the chosen root");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "selecting a root closes the root selector");
+   end Test_Root_Selector_Click_Navigates;
+
+   procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Set_Command_Palette_Query (Model, "view.details");
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Palette  : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
+         Rows     : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette);
+         Action   : Files.Events.Input_Action;
+         Target   : Natural := 0;
+         X, Y     : Natural := 0;
+      begin
+         for Index in 1 .. Natural (Snapshot.Command_Palette_Results.Length) loop
+            if Ada.Strings.Unbounded.To_String
+                 (Snapshot.Command_Palette_Results.Element (Index).Identifier) = "view.details"
+            then
+               Target := Index;
+            end if;
+         end loop;
+         Assert (Target > 0, "the palette lists the details command for the query");
+
+         for Row of Rows loop
+            if Row.Result_Index = Target then
+               X := Row.X + Row.Width / 2;
+               Y := Row.Y + Row.Height / 2;
+            end if;
+         end loop;
+         Assert
+           (Files.Rendering.Command_Result_At (Rows, X, Y) = Target,
+            "the derived coordinate hit-tests back to the details result row");
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Assert
+           (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
+            "a result-row coordinate translates to a command-result click");
+         Assert (Action.Result_Index = Target, "the command-result click carries the result index");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      Assert
+        (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
+         "running the result switches the model to the details view");
+      Assert
+        (not Files.Model.Command_Palette_Is_Open (Model),
+         "running a palette result closes the command palette");
+   end Test_Command_Palette_Result_Runs;
+
+   procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Apps_Base   : constant String := Files_Suite.Support.Root & "_xdg_apps";
+      Desktop_Dir : constant String := Apps_Base & "/applications";
+      Dir         : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-with");
+      Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model       : Files.Model.Window_Model;
+      Result      : Files.Interaction.Interaction_Result;
+      Found       : Boolean;
+      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Dirs    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_DIRS");
+      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Dirs    : Ada.Strings.Unbounded.Unbounded_String;
+
+      procedure Restore_Apps_Env is
+      begin
+         if Had_Data then
+            Ada.Environment_Variables.Set
+              ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Dirs then
+            Ada.Environment_Variables.Set
+              ("XDG_DATA_DIRS", Ada.Strings.Unbounded.To_String (Old_Dirs));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_DIRS");
+         end if;
+      end Restore_Apps_Env;
+   begin
+      if Had_Data then
+         Old_Data :=
+           Ada.Strings.Unbounded.To_Unbounded_String
+             (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Dirs then
+         Old_Dirs :=
+           Ada.Strings.Unbounded.To_Unbounded_String
+             (Ada.Environment_Variables.Value ("XDG_DATA_DIRS"));
+      end if;
+
+      Files_Suite.Support.Reset_Root;
+      Project_Tools.Files.Delete_Tree (Apps_Base);
+      Ada.Directories.Create_Path (Desktop_Dir);
+      Files_Suite.Support.Write_File
+        (Desktop_Dir & "/testapp.desktop",
+         "[Desktop Entry]" & ASCII.LF
+         & "Type=Application" & ASCII.LF
+         & "Name=Interaction Test App" & ASCII.LF
+         & "Exec=/bin/true" & ASCII.LF);
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Apps_Base);
+      Ada.Environment_Variables.Set ("XDG_DATA_DIRS", Apps_Base);
+
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "target.txt"), "payload");
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "target.txt");
+
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Files.Model.Context_Menu_Is_Open (Model), "the item menu opens for the open-with case");
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Open_With_Command, Result, Found);
+      Assert (Found, "the item menu offers the open-with command");
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "open-with opens the command palette");
+      Assert
+        (Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With,
+         "open-with switches the palette into application-picker mode");
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Palette  : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
+         Rows     : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette);
+         Action   : Files.Events.Input_Action;
+         X, Y     : Natural := 0;
+      begin
+         Assert (Natural (Rows.Length) > 0, "the open-with palette lists the installed application");
+         for Row of Rows loop
+            if Row.Result_Index = 1 then
+               X := Row.X + Row.Width / 2;
+               Y := Row.Y + Row.Height / 2;
+            end if;
+         end loop;
+         Assert
+           (Files.Rendering.Command_Result_At (Rows, X, Y) = 1,
+            "the derived coordinate hit-tests back to the first application row");
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Assert
+           (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
+            "an application-row coordinate translates to a command-result click");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "the reducer routes the application launch through the controller");
+      Assert
+        (not Files.Model.Command_Palette_Is_Open (Model),
+         "launching the chosen application closes the open-with palette");
+
+      Project_Tools.Files.Delete_Tree (Apps_Base);
+      Restore_Apps_Env;
+   exception
+      when others =>
+         Restore_Apps_Env;
+         raise;
+   end Test_Open_With_Palette_Result_Launches;
+
+   procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Toolbar  : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Window_W);
+      Center_Y : constant Natural :=
+        Files.UI.Toolbar_Input_Y (Line) + Files.UI.Toolbar_Input_Height (Line) / 2;
+      Left_X   : constant Natural := Toolbar.Middle_X + Files.UI.Input_Field_Padding;
+      Right_X  : constant Natural := Toolbar.Middle_X + Toolbar.Middle_Width - 1;
+   begin
+      Files.Model.Set_Path_Input_Text (Model, "abcdef");
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Action   : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, Left_X, Center_Y, Window_W, Window_H, Line_Height => Line);
+      begin
+         Assert
+           (Action.Kind = Files.Events.Text_Click_Input_Action,
+            "the path-input region translates to a text click");
+         Assert
+           (Action.Focus_Target = Files.Types.Focus_Path_Input,
+            "the text click targets the path input");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input,
+         "applying the text click moves focus to the path input");
+      Assert
+        (Files.Model.Text_Cursor_Position (Model) = 0,
+         "clicking the field's left edge places the cursor at the start of the text");
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Action   : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, Right_X, Center_Y, Window_W, Window_H, Line_Height => Line);
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      --  Focusing the path input loads the current directory path for editing,
+      --  so the exact end offset is path-dependent; asserting the cursor moved
+      --  off the start proves the click set a concrete cursor position.
+      Assert
+        (Files.Model.Text_Cursor_Position (Model) > 0,
+         "clicking deeper into the field advances the cursor into the path text");
+   end Test_Text_Input_Click_Focuses;
+
+   procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Before   : Natural;
+   begin
+      --  A details list of many items overflows the main view so a draggable
+      --  scrollbar thumb is laid out.
+      for Index in 1 .. 60 loop
+         Items.Append
+           (Files.File_System.Make_Item
+              (Files_Suite.Support.Root, "item-" & Index_Image (Index),
+               Files.Types.Regular_File_Item, "text/plain"));
+      end loop;
+      Files.Model.Initialize
+        (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root,
+         Default_View_Mode => Files.Types.Details);
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Main     : constant Files.Rendering.Main_View_Layout :=
+           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line);
+         Action   : Files.Events.Input_Action;
+         X, Y     : Natural;
+      begin
+         Assert (Main.Scrollbar_Visible, "the overflowing list lays out a scrollbar");
+         X := Main.Scrollbar_X + Main.Scrollbar_Width / 2;
+         Y := Main.Scrollbar_Thumb_Y + Main.Scrollbar_Height / 2;
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Assert
+           (Action.Kind = Files.Events.Scrollbar_Drag_Begin_Input_Action,
+            "a click on the scrollbar thumb translates to a drag-begin action");
+         Assert
+           (Action.Scroll_Area = Files.Events.Scroll_Main_View,
+            "the drag-begin action targets the main view");
+
+         --  The reducer treats scrollbar-drag begin as a no-op: continuous drag
+         --  state is owned by the GLFW shell, not the model (see the reducer
+         --  comment). Applying it must therefore leave the model untouched.
+         Before := Files.Model.Main_View_Scroll_Lines (Model);
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+         Assert
+           (Files.Model.Main_View_Scroll_Lines (Model) = Before,
+            "applying drag-begin leaves the main-view scroll offset to the shell");
+         Assert
+           (Result.Command = Files.Commands.No_Command and then not Result.Context_Menu_Changed,
+            "the drag-begin reducer branch produces no command or menu effect");
+      end;
+   end Test_Scrollbar_Drag_Begin;
+
+   procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+   begin
+      --  Open on a directory navigates into it.
+      declare
+         Dir   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-nav");
+         Items : Files.File_System.Item_Vectors.Vector;
+         Model : Files.Model.Window_Model;
+      begin
+         Files_Suite.Support.Reset_Root;
+         Ada.Directories.Create_Path (Dir);
+         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "inside.txt"));
+         Items.Append
+           (Files.File_System.Make_Item
+              (Files_Suite.Support.Root, "open-nav", Files.Types.Directory_Item, "inode/directory"));
+         Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+         Files.Model.Select_Visible (Model, 1);
+
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command
+           (Model, Settings, "", Files.Commands.Open_Selected_Items_Command, Result, Found);
+         Assert (Found, "the item menu offers the open command");
+         Assert (Files.Model.Current_Path (Model) = Dir, "opening a directory navigates into it");
+         Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
+      end;
+
+      --  Rename, Cut, and Duplicate on a real file, each from a fresh model.
+      declare
+         Dir       : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "edit-ops");
+         Source    : constant String := Files_Suite.Support.Join (Dir, "report.txt");
+         Copy_Path : constant String := Files_Suite.Support.Join (Dir, "report (copy).txt");
+         Model     : Files.Model.Window_Model;
+      begin
+         Files_Suite.Support.Reset_Root;
+         Ada.Directories.Create_Path (Dir);
+         Files_Suite.Support.Write_File (Source, "payload");
+
+         Model := Loaded_Model (Dir);
+         Files_Suite.Support.Select_Name (Model, "report.txt");
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command
+           (Model, Settings, "", Files.Commands.Rename_Selected_Items_Command, Result, Found);
+         Assert (Found, "the item menu offers the rename command");
+         Assert (Files.Model.Rename_Is_Active (Model), "rename starts inline editing of the selection");
+
+         Model := Loaded_Model (Dir);
+         Files_Suite.Support.Select_Name (Model, "report.txt");
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command
+           (Model, Settings, "", Files.Commands.Cut_Selected_Items_Command, Result, Found);
+         Assert (Found, "the item menu offers the cut command");
+         Assert (Result.Command = Files.Commands.Cut_Selected_Items_Command, "the result echoes the cut command");
+         Assert
+           (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut,
+            "cut records a cut clipboard intent");
+         Assert (Files.Model.Clipboard_Has_Items (Model), "cut captures the selected item");
+
+         Model := Loaded_Model (Dir);
+         Files_Suite.Support.Select_Name (Model, "report.txt");
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command
+           (Model, Settings, "", Files.Commands.Duplicate_Selected_Command, Result, Found);
+         Assert (Found, "the item menu offers the duplicate command");
+         Assert (Ada.Directories.Exists (Source), "duplicate keeps the original file");
+         Assert (Ada.Directories.Exists (Copy_Path), "duplicate writes a uniquely named copy");
+      end;
+   end Test_Context_Menu_Open_And_Edit;
+
+   procedure Test_Context_Menu_Archive_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "archive-ops");
+      Report   : constant String := Files_Suite.Support.Join (Dir, "report.txt");
+      Notes    : constant String := Files_Suite.Support.Join (Dir, "notes.txt");
+      Zip_Path : constant String := Files_Suite.Support.Join (Dir, "report.zip");
+      Sz_Path  : constant String := Files_Suite.Support.Join (Dir, "report.7z");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Report, "first payload");
+      Files_Suite.Support.Write_File (Notes, "second payload");
+
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Compress_Zip_Command, Result, Found);
+      Assert (Found, "the item menu offers the compress-zip command");
+      Assert (Result.Command = Files.Commands.Compress_Zip_Command, "the result echoes the compress-zip command");
+      Assert (Ada.Directories.Exists (Zip_Path), "compress-zip writes a zip archive next to the item");
+
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "report.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Compress_7z_Command, Result, Found);
+      Assert (Found, "the item menu offers the compress-7z command");
+      Assert (Ada.Directories.Exists (Sz_Path), "compress-7z writes a 7z archive next to the item");
+
+      --  Extract a real archive built next to the originals.
+      declare
+         use type Zlib.Status_Code;
+         Bundle : constant String := Files_Suite.Support.Join (Dir, "bundle.zip");
+         Dest   : constant String := Files_Suite.Support.Join (Dir, "bundle");
+         Inputs : Zlib.Text_Array (1 .. 2);
+         Names  : Zlib.Text_Array (1 .. 2);
+         Status : Zlib.Status_Code;
+      begin
+         Inputs (1) := Ada.Strings.Unbounded.To_Unbounded_String (Report);
+         Inputs (2) := Ada.Strings.Unbounded.To_Unbounded_String (Notes);
+         Names (1) := Ada.Strings.Unbounded.To_Unbounded_String ("report.txt");
+         Names (2) := Ada.Strings.Unbounded.To_Unbounded_String ("notes.txt");
+         Zlib.ZIP_Files (Inputs, Bundle, Names, Status => Status);
+         Assert (Status = Zlib.Ok, "the test archive is created for extraction");
+
+         Model := Loaded_Model (Dir);
+         Files_Suite.Support.Select_Name (Model, "bundle.zip");
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Extract_Archive_Command, Result, Found);
+         Assert (Found, "the item menu offers the extract command");
+         Assert (Ada.Directories.Exists (Dest), "extract creates a folder from the archive base name");
+         Assert
+           (Ada.Directories.Exists (Files_Suite.Support.Join (Dest, "report.txt")),
+            "extract writes the archived entries into the new folder");
+      end;
+   end Test_Context_Menu_Archive_Commands;
+
+   procedure Test_Context_Menu_Empty_Area_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Found    : Boolean;
+   begin
+      --  New Folder from the empty-area menu activates a temporary directory item.
+      declare
+         Dir   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "empty-area");
+         Model : Files.Model.Window_Model;
+      begin
+         Files_Suite.Support.Reset_Root;
+         Ada.Directories.Create_Path (Dir);
+         Model := Loaded_Model (Dir);
+
+         Open_Empty_Context_Menu (Model, Settings, Result);
+         Assert (Files.Model.Context_Menu_Is_Open (Model), "the empty-area menu opens on empty space");
+         Dispatch_Menu_Command (Model, Settings, "", Files.Commands.New_Folder_Command, Result, Found);
+         Assert (Found, "the empty-area menu offers the new-folder command");
+         Assert (Files.Model.Temporary_Item_Is_Active (Model), "new folder activates a temporary item");
+         Assert
+           (Files.Model.Temporary_Item_Is_Directory (Model),
+            "the new-folder temporary item is marked as a directory");
+      end;
+
+      --  Paste from the empty-area menu copies a clipboard item into the
+      --  navigated-into subdirectory.
+      declare
+         Src_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "paste-src");
+         Sub     : constant String := Files_Suite.Support.Join (Src_Dir, "sub");
+         Model   : Files.Model.Window_Model;
+         Load    : Files.File_System.Directory_Load_Result;
+      begin
+         Files_Suite.Support.Reset_Root;
+         Ada.Directories.Create_Path (Sub);
+         Files_Suite.Support.Write_File (Files_Suite.Support.Join (Src_Dir, "a.txt"), "payload");
+
+         Model := Loaded_Model (Src_Dir);
+         Files_Suite.Support.Select_Name (Model, "a.txt");
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command
+           (Model, Settings, "", Files.Commands.Copy_Selected_Items_Command, Result, Found);
+         Assert (Found, "the item menu offers the copy command");
+
+         Load := Files.File_System.Load_Directory (Sub, Settings);
+         Files.Model.Navigate_To (Model, Sub, Load.Items);
+         Open_Empty_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Paste_Items_Command, Result, Found);
+         Assert (Found, "the empty-area menu offers the paste command");
+         Assert
+           (Ada.Directories.Exists (Files_Suite.Support.Join (Sub, "a.txt")),
+            "paste copies the clipboard item into the current directory");
+      end;
+   end Test_Context_Menu_Empty_Area_Commands;
+
+   procedure Test_Context_Menu_Trash_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result      : Files.Interaction.Interaction_Result;
+      Found       : Boolean;
+      Trash_Home  : constant String := Files_Suite.Support.Root & "_trash_xdg";
+      Trash_File  : constant String :=
+        Files_Suite.Support.Join (Files_Suite.Support.Join (Trash_Home, "Trash"), "files");
+      Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
+      Restore_Src : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "restore-me.txt");
+      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Home    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Backend : Ada.Strings.Unbounded.Unbounded_String;
+      Model       : Files.Model.Window_Model;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Data then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", Ada.Strings.Unbounded.To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
+         end if;
+         if Had_Backend then
+            Ada.Environment_Variables.Set
+              ("FILES_TRASH_BACKEND", Ada.Strings.Unbounded.To_String (Old_Backend));
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+      end Restore_Environment;
+   begin
+      if Had_Data then
+         Old_Data :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Home then
+         Old_Home :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_Backend then
+         Old_Backend :=
+           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
+      end if;
+
+      Files_Suite.Support.Reset_Root;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("HOME", Trash_Home);
+
+      --  Delete moves the item to trash and records an undoable action.
+      Files_Suite.Support.Write_File (Doomed, "payload");
+      Model := Loaded_Model (Files_Suite.Support.Root);
+      Files_Suite.Support.Select_Name (Model, "doomed.txt");
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Dispatch_Menu_Command
+        (Model, Settings, "", Files.Commands.Delete_Selected_Items_Command, Result, Found);
+      Assert (Found, "the item menu offers the delete command");
+      Assert (not Ada.Directories.Exists (Doomed), "delete moves the item out of the directory");
+      Assert (Files.Model.Undo_Available (Model), "delete records an undoable action");
+
+      --  Undo has neither a context-menu row nor a keyboard shortcut, so it is
+      --  driven through the reducer's command branch, the same entry the shell
+      --  uses for menu-bar commands.
+      declare
+         Undo_Action : constant Files.Events.Input_Action :=
+           (Kind    => Files.Events.Command_Input_Action,
+            Command => Files.Commands.Undo_Command,
+            others  => <>);
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Undo_Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+      Assert (Ada.Directories.Exists (Doomed), "undo restores the trashed item to its original path");
+      Assert (not Files.Model.Undo_Available (Model), "undo consumes the undoable action");
+
+      --  Restore From Trash, dispatched from the item menu while viewing trash.
+      declare
+         Mutation : Files.File_System.Mutation_Result;
+         Load     : Files.File_System.Directory_Load_Result;
+      begin
+         Files_Suite.Support.Write_File (Restore_Src, "payload");
+         Mutation := Files.File_System.Move_To_Trash (Restore_Src);
+         Assert (Mutation.Success, "the restore setup moves a file into the trash");
+         Assert
+           (Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "restore-me.txt")),
+            "the restore setup stores the trashed payload");
+
+         Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
+         Files.Model.Initialize
+           (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
+         Files_Suite.Support.Select_Name (Model, "restore-me.txt");
+         Open_Item_Context_Menu (Model, Settings, Result);
+         Dispatch_Menu_Command
+           (Model, Settings, "", Files.Commands.Restore_From_Trash_Command, Result, Found);
+         Assert (Found, "the item menu offers the restore-from-trash command");
+         Assert (Ada.Directories.Exists (Restore_Src), "restore returns the file to its original path");
+         Assert
+           (not Ada.Directories.Exists (Files_Suite.Support.Join (Trash_File, "restore-me.txt")),
+            "restore removes the trashed payload");
+      end;
+
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Context_Menu_Trash_Lifecycle;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
