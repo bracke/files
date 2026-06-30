@@ -9,6 +9,9 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Undo the most recent rename, move, or move-to-trash.
+- Duplicate selected items into uniquely-named copies in the same directory.
+- Show Hidden Files toggle command (persists the setting and reloads).
 - New Folder: create a directory inline, mirroring create-file.
 - Open With: pick an installed application (discovered from `.desktop` entries)
   via the command palette and launch the selection with it.
