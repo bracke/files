@@ -2346,6 +2346,23 @@ package body Files.Rendering is
       return Context_Menu_Layout
    is
       Result : Context_Menu_Layout;
+      Next   : Natural := 0;
+
+      --  Append a selectable command row.
+      procedure Add_Command (Command : Files.Commands.Command_Id) is
+      begin
+         Next := Next + 1;
+         Result.Commands (Next) := Command;
+         Result.Row_Kinds (Next) := Command_Row;
+      end Add_Command;
+
+      --  Append a non-selectable divider row between two command groups.
+      procedure Add_Separator is
+      begin
+         Next := Next + 1;
+         Result.Commands (Next) := Files.Commands.No_Command;
+         Result.Row_Kinds (Next) := Separator_Row;
+      end Add_Separator;
    begin
       if not Snapshot.Context_Menu_Open then
          return Result;
@@ -2353,24 +2370,31 @@ package body Files.Rendering is
 
       case Snapshot.Context_Menu_Target is
          when Files.Model.Context_Menu_Item =>
-            Result.Commands (1) := Files.Commands.Open_Selected_Items_Command;
-            Result.Commands (2) := Files.Commands.Open_With_Command;
-            Result.Commands (3) := Files.Commands.Copy_Selected_Items_Command;
-            Result.Commands (4) := Files.Commands.Cut_Selected_Items_Command;
-            Result.Commands (5) := Files.Commands.Duplicate_Selected_Command;
-            Result.Commands (6) := Files.Commands.Rename_Selected_Items_Command;
-            Result.Commands (7) := Files.Commands.Delete_Selected_Items_Command;
-            Result.Commands (8) := Files.Commands.Compress_Zip_Command;
-            Result.Commands (9) := Files.Commands.Compress_7z_Command;
-            Result.Commands (10) := Files.Commands.Extract_Archive_Command;
-            Result.Commands (11) := Files.Commands.Restore_From_Trash_Command;
-            Result.Row_Count := 11;
+            --  Group 1: open actions.
+            Add_Command (Files.Commands.Open_Selected_Items_Command);
+            Add_Command (Files.Commands.Open_With_Command);
+            Add_Separator;
+            --  Group 2: clipboard / duplication.
+            Add_Command (Files.Commands.Copy_Selected_Items_Command);
+            Add_Command (Files.Commands.Cut_Selected_Items_Command);
+            Add_Command (Files.Commands.Duplicate_Selected_Command);
+            Add_Separator;
+            --  Group 3: archive actions.
+            Add_Command (Files.Commands.Compress_Zip_Command);
+            Add_Command (Files.Commands.Compress_7z_Command);
+            Add_Command (Files.Commands.Extract_Archive_Command);
+            Add_Separator;
+            --  Group 4: destructive / recovery actions.
+            Add_Command (Files.Commands.Rename_Selected_Items_Command);
+            Add_Command (Files.Commands.Delete_Selected_Items_Command);
+            Add_Command (Files.Commands.Restore_From_Trash_Command);
+            Result.Row_Count := Next;
          when Files.Model.Context_Menu_Empty =>
-            Result.Commands (1) := Files.Commands.Create_File_Command;
-            Result.Commands (2) := Files.Commands.New_Folder_Command;
-            Result.Commands (3) := Files.Commands.Paste_Items_Command;
-            Result.Commands (4) := Files.Commands.Refresh_Directory_Command;
-            Result.Row_Count := 4;
+            Add_Command (Files.Commands.Create_File_Command);
+            Add_Command (Files.Commands.New_Folder_Command);
+            Add_Command (Files.Commands.Paste_Items_Command);
+            Add_Command (Files.Commands.Refresh_Directory_Command);
+            Result.Row_Count := Next;
          when Files.Model.Context_Menu_None =>
             return Result;
       end case;
@@ -2378,6 +2402,10 @@ package body Files.Rendering is
       Result.Padding := 4;
       Result.Row_Height :=
         Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
+      --  A separator is just a 1px divider line surrounded by the row padding,
+      --  so it takes noticeably less vertical space than a command row.
+      Result.Separator_Height :=
+        Saturating_Add (1, Saturating_Multiply (Result.Padding, 2));
 
       --  Size the menu to the widest command label (using the same monospace
       --  cell metric and edge padding the renderer draws rows with) so labels
@@ -2390,15 +2418,17 @@ package body Files.Rendering is
          Max_Label : Natural := 0;
       begin
          for Row in 1 .. Result.Row_Count loop
-            declare
-               Label : constant String :=
-                 Files.Localization.Text
-                   (Files.Commands.Name_Key (Result.Commands (Row)));
-               Label_W : constant Natural :=
-                 Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
-            begin
-               Max_Label := Natural'Max (Max_Label, Label_W);
-            end;
+            if Result.Row_Kinds (Row) = Command_Row then
+               declare
+                  Label : constant String :=
+                    Files.Localization.Text
+                      (Files.Commands.Name_Key (Result.Commands (Row)));
+                  Label_W : constant Natural :=
+                    Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
+               begin
+                  Max_Label := Natural'Max (Max_Label, Label_W);
+               end;
+            end if;
          end loop;
 
          Result.Width :=
@@ -2410,10 +2440,22 @@ package body Files.Rendering is
             Result.Width := Width;
          end if;
       end;
-      Result.Height :=
-        Saturating_Add
-          (Saturating_Multiply (Result.Row_Count, Result.Row_Height),
-           Saturating_Multiply (Result.Padding, 2));
+
+      declare
+         Rows_Height : Natural := 0;
+      begin
+         for Row in 1 .. Result.Row_Count loop
+            Rows_Height :=
+              Saturating_Add
+                (Rows_Height,
+                 (if Result.Row_Kinds (Row) = Separator_Row
+                  then Result.Separator_Height
+                  else Result.Row_Height));
+         end loop;
+         Result.Height :=
+           Saturating_Add
+             (Rows_Height, Saturating_Multiply (Result.Padding, 2));
+      end;
 
       --  Anchor to the cursor but keep the menu fully on-screen.
       Result.X :=
@@ -2428,6 +2470,24 @@ package body Files.Rendering is
 
       return Result;
    end Calculate_Context_Menu_Layout;
+
+   function Context_Menu_Row_Top
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural
+   is
+      Top : Natural := Saturating_Add (Menu.Y, Menu.Padding);
+   begin
+      for Preceding in 1 .. Row - 1 loop
+         Top :=
+           Saturating_Add
+             (Top,
+              (if Menu.Row_Kinds (Preceding) = Separator_Row
+               then Menu.Separator_Height
+               else Menu.Row_Height));
+      end loop;
+      return Top;
+   end Context_Menu_Row_Top;
 
    function Context_Menu_Row_At
      (Menu : Context_Menu_Layout;
@@ -2444,15 +2504,30 @@ package body Files.Rendering is
          return 0;
       end if;
 
+      --  Rows have variable heights (separators are shorter), so walk them in
+      --  order and return the command row containing Y. Separator rows are not
+      --  selectable and resolve to no row.
       declare
-         Rel_Y : constant Natural := Y - (Menu.Y + Menu.Padding);
-         Row   : constant Natural := Rel_Y / Menu.Row_Height;
+         Row_Top : Natural := Menu.Y + Menu.Padding;
       begin
-         if Row >= Menu.Row_Count then
-            return 0;
-         else
-            return Row + 1;
-         end if;
+         for Row in 1 .. Menu.Row_Count loop
+            declare
+               Row_H : constant Natural :=
+                 (if Menu.Row_Kinds (Row) = Separator_Row
+                  then Menu.Separator_Height
+                  else Menu.Row_Height);
+            begin
+               if Y >= Row_Top and then Y < Row_Top + Row_H then
+                  if Menu.Row_Kinds (Row) = Separator_Row then
+                     return 0;
+                  else
+                     return Row;
+                  end if;
+               end if;
+               Row_Top := Row_Top + Row_H;
+            end;
+         end loop;
+         return 0;
       end;
    end Context_Menu_Row_At;
 
@@ -7434,55 +7509,79 @@ package body Files.Rendering is
                   Menu.X, Menu.Y, Menu.Width, Menu.Height,
                   Localized ("command.palette.open"));
 
-               for Row in 1 .. Menu.Row_Count loop
-                  declare
-                     Command : constant Files.Commands.Command_Id :=
-                       Menu.Commands (Row);
-                     Row_Y   : constant Natural :=
-                       Menu.Y + Menu.Padding
-                       + Saturating_Multiply (Row - 1, Menu.Row_Height);
-                     Enabled : constant Boolean :=
-                       Command /= Files.Commands.No_Command
-                       and then Snapshot.Command_Enabled (Command);
-                     Hovered : constant Boolean :=
-                       Has_Hover
-                       and then Contains_Point
-                         (Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
-                          Hover_X, Hover_Y);
-                     Pressed : constant Boolean :=
-                       Is_Pressed (Menu.X, Row_Y, Menu.Width, Menu.Row_Height);
-                     Text_X  : constant Natural :=
-                       Menu.X + Files.UI.Input_Field_Padding;
-                     Text_Y_Off : constant Natural :=
-                       (if Menu.Row_Height > Line_Height
-                        then (Menu.Row_Height - Line_Height) / 2
-                        else 0);
-                  begin
-                     if Pressed then
-                        Add_Overlay_Rect
-                          (Menu.X, Row_Y, Menu.Width, Menu.Row_Height, Pressed_Color);
-                     elsif Hovered and then Enabled then
-                        Add_Overlay_Rect
-                          (Menu.X, Row_Y, Menu.Width, Menu.Row_Height, Hover_Color);
+               declare
+                  Row_Y : Natural := Menu.Y + Menu.Padding;
+               begin
+                  for Row in 1 .. Menu.Row_Count loop
+                     if Menu.Row_Kinds (Row) = Separator_Row then
+                        --  Draw a thin divider centered in the separator row so
+                        --  the command groups above and below read as distinct.
+                        declare
+                           Line_Inset : constant Natural := Menu.Padding;
+                           Line_Width : constant Natural :=
+                             (if Menu.Width > 2 * Line_Inset
+                              then Menu.Width - 2 * Line_Inset
+                              else Menu.Width);
+                           Line_Y     : constant Natural :=
+                             Row_Y + Menu.Separator_Height / 2;
+                        begin
+                           Add_Overlay_Rect
+                             (Menu.X + Line_Inset, Line_Y, Line_Width, 1,
+                              Border_Color);
+                        end;
+                        Row_Y := Row_Y + Menu.Separator_Height;
+                     else
+                        declare
+                           Command : constant Files.Commands.Command_Id :=
+                             Menu.Commands (Row);
+                           Enabled : constant Boolean :=
+                             Command /= Files.Commands.No_Command
+                             and then Snapshot.Command_Enabled (Command);
+                           Hovered : constant Boolean :=
+                             Has_Hover
+                             and then Contains_Point
+                               (Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
+                                Hover_X, Hover_Y);
+                           Pressed : constant Boolean :=
+                             Is_Pressed
+                               (Menu.X, Row_Y, Menu.Width, Menu.Row_Height);
+                           Text_X  : constant Natural :=
+                             Menu.X + Files.UI.Input_Field_Padding;
+                           Text_Y_Off : constant Natural :=
+                             (if Menu.Row_Height > Line_Height
+                              then (Menu.Row_Height - Line_Height) / 2
+                              else 0);
+                        begin
+                           if Pressed then
+                              Add_Overlay_Rect
+                                (Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
+                                 Pressed_Color);
+                           elsif Hovered and then Enabled then
+                              Add_Overlay_Rect
+                                (Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
+                                 Hover_Color);
+                           end if;
+                           Add_Overlay_Text
+                             (Text_X,
+                              Row_Y + Text_Y_Off,
+                              (if Menu.Width > 2 * Files.UI.Input_Field_Padding
+                               then Menu.Width - 2 * Files.UI.Input_Field_Padding
+                               else 0),
+                              Line_Height,
+                              Command_Label (Command),
+                              (if Enabled then Text_Color else Disabled_Text_Color),
+                              Fit => True);
+                           Add_Accessibility_Node
+                             (Role_Button,
+                              Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
+                              Command_Label (Command),
+                              Localized (Files.Commands.Description_Key (Command)),
+                              Enabled => Enabled);
+                        end;
+                        Row_Y := Row_Y + Menu.Row_Height;
                      end if;
-                     Add_Overlay_Text
-                       (Text_X,
-                        Row_Y + Text_Y_Off,
-                        (if Menu.Width > 2 * Files.UI.Input_Field_Padding
-                         then Menu.Width - 2 * Files.UI.Input_Field_Padding
-                         else 0),
-                        Line_Height,
-                        Command_Label (Command),
-                        (if Enabled then Text_Color else Disabled_Text_Color),
-                        Fit => True);
-                     Add_Accessibility_Node
-                       (Role_Button,
-                        Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
-                        Command_Label (Command),
-                        Localized (Files.Commands.Description_Key (Command)),
-                        Enabled => Enabled);
-                  end;
-               end loop;
+                  end loop;
+               end;
             end if;
          end;
       end if;

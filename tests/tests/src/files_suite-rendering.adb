@@ -11,6 +11,7 @@ with Files.Commands;
 with Files.Events;
 with Files.Fonts;
 with Files.Localization;
+with Files.Model;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
 with Files.Types;
@@ -26,6 +27,8 @@ package body Files_Suite.Rendering is
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
    use Files.Rendering;
+   use type Files.Commands.Command_Id;
+   use type Files.Rendering.Context_Menu_Row_Kind;
    use type Files.Rendering.Render_Color;
    use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Rendering.Text_Render_Status;
@@ -51,6 +54,7 @@ package body Files_Suite.Rendering is
    procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -92,6 +96,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Suppresses_Item_Hover'Access,
          "an open context menu suppresses the main-grid item hover highlight");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Context_Menu_Separators'Access,
+         "the item context menu groups its commands with non-selectable separators");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Panels_Expose_Close_Button'Access,
          "each open overlay panel emits a close-button accessibility node");
@@ -775,6 +782,94 @@ package body Files_Suite.Rendering is
          end;
       end;
    end Test_Context_Menu_Suppresses_Item_Hover;
+
+   procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+
+      --  The full set of real commands the item menu must still offer, in any
+      --  order, regardless of the separators woven between the groups.
+      Expected : constant array (1 .. 11) of Files.Commands.Command_Id :=
+        [Files.Commands.Open_Selected_Items_Command,
+         Files.Commands.Open_With_Command,
+         Files.Commands.Copy_Selected_Items_Command,
+         Files.Commands.Cut_Selected_Items_Command,
+         Files.Commands.Duplicate_Selected_Command,
+         Files.Commands.Compress_Zip_Command,
+         Files.Commands.Compress_7z_Command,
+         Files.Commands.Extract_Archive_Command,
+         Files.Commands.Rename_Selected_Items_Command,
+         Files.Commands.Delete_Selected_Items_Command,
+         Files.Commands.Restore_From_Trash_Command];
+   begin
+      Snapshot.Context_Menu_Open := True;
+      Snapshot.Context_Menu_Target := Files.Model.Context_Menu_Item;
+      Snapshot.Context_Menu_X := 100;
+      Snapshot.Context_Menu_Y := 100;
+
+      declare
+         Menu : constant Context_Menu_Layout :=
+           Calculate_Context_Menu_Layout (Snapshot, 1000, 800, 20);
+         Separator_Count : Natural := 0;
+         Command_Count   : Natural := 0;
+      begin
+         Assert (Menu.Visible, "the item context menu is visible");
+         Assert (Menu.Row_Count <= Max_Context_Menu_Rows, "the menu fits its fixed row array");
+         Assert
+           (Menu.Separator_Height > 0 and then Menu.Separator_Height < Menu.Row_Height,
+            "separator rows are shorter than command rows");
+
+         --  Every real command still appears exactly once on a command row.
+         for Command of Expected loop
+            declare
+               Seen : Natural := 0;
+            begin
+               for Row in 1 .. Menu.Row_Count loop
+                  if Menu.Row_Kinds (Row) = Command_Row
+                    and then Menu.Commands (Row) = Command
+                  then
+                     Seen := Seen + 1;
+                  end if;
+               end loop;
+               Assert (Seen = 1, "each grouped command appears exactly once");
+            end;
+         end loop;
+
+         for Row in 1 .. Menu.Row_Count loop
+            if Menu.Row_Kinds (Row) = Separator_Row then
+               Separator_Count := Separator_Count + 1;
+               --  A separator carries no command and is not selectable.
+               Assert
+                 (Menu.Commands (Row) = Files.Commands.No_Command,
+                  "a separator row carries no command");
+               declare
+                  Probe_X : constant Natural := Menu.X + Menu.Width / 2;
+                  Probe_Y : constant Natural :=
+                    Context_Menu_Row_Top (Menu, Row) + Menu.Separator_Height / 2;
+               begin
+                  Assert
+                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y) = 0,
+                     "a hit test on a separator selects no row");
+               end;
+            else
+               Command_Count := Command_Count + 1;
+               --  A real command row hit-tests back to its own index.
+               declare
+                  Probe_X : constant Natural := Menu.X + Menu.Width / 2;
+                  Probe_Y : constant Natural :=
+                    Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
+               begin
+                  Assert
+                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y) = Row,
+                     "a hit test on a command row returns that row");
+               end;
+            end if;
+         end loop;
+
+         Assert (Command_Count = Expected'Length, "all real commands are laid out");
+         Assert (Separator_Count = 3, "three separators divide the four command groups");
+      end;
+   end Test_Context_Menu_Separators;
 
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

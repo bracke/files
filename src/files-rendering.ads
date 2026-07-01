@@ -202,21 +202,33 @@ package Files.Rendering is
       Context_Menu_Item_Index        : Natural := 0;
    end record;
 
-   Max_Context_Menu_Rows : constant := 11;
+   --  A context-menu row is either a selectable command or a non-selectable
+   --  divider that visually groups the commands above and below it.
+   type Context_Menu_Row_Kind is (Command_Row, Separator_Row);
+
+   --  Real commands plus the separators that group them. The item menu carries
+   --  11 commands split into 4 groups by 3 separators (14 rows); the constant
+   --  keeps headroom so the fixed arrays never overflow.
+   Max_Context_Menu_Rows : constant := 15;
    type Context_Menu_Command_Array is
      array (1 .. Max_Context_Menu_Rows) of Files.Commands.Command_Id;
+   type Context_Menu_Row_Kind_Array is
+     array (1 .. Max_Context_Menu_Rows) of Context_Menu_Row_Kind;
 
    type Context_Menu_Layout is record
-      Visible    : Boolean := False;
-      X          : Natural := 0;
-      Y          : Natural := 0;
-      Width      : Natural := 0;
-      Height     : Natural := 0;
-      Row_Height : Natural := 0;
-      Padding    : Natural := 0;
-      Row_Count  : Natural := 0;
-      Commands   : Context_Menu_Command_Array :=
+      Visible          : Boolean := False;
+      X                : Natural := 0;
+      Y                : Natural := 0;
+      Width            : Natural := 0;
+      Height           : Natural := 0;
+      Row_Height       : Natural := 0;
+      Separator_Height : Natural := 0;
+      Padding          : Natural := 0;
+      Row_Count        : Natural := 0;
+      Commands         : Context_Menu_Command_Array :=
         [others => Files.Commands.No_Command];
+      Row_Kinds        : Context_Menu_Row_Kind_Array :=
+        [others => Command_Row];
    end record;
 
    --  Calculate the context-menu popup rectangle and per-row geometry.
@@ -243,6 +255,19 @@ package Files.Rendering is
      (Menu : Context_Menu_Layout;
       X    : Natural;
       Y    : Natural)
+      return Natural;
+
+   --  Return the top Y coordinate of a menu row, accounting for the smaller
+   --  height of any separator rows above it. Rows have variable heights, so a
+   --  simple row * Row_Height offset is not correct; callers (renderer and
+   --  hit-tests) use this to place and probe rows consistently.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Top window Y coordinate of the row.
+   function Context_Menu_Row_Top
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
       return Natural;
 
    type Layout_Metrics is record

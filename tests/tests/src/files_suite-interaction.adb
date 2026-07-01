@@ -499,7 +499,8 @@ package body Files_Suite.Interaction is
          Assert (Target_Row > 0, "the item context menu offers the copy command");
 
          Row_X := Menu.X + Menu.Width / 2;
-         Row_Y := Menu.Y + Menu.Padding + (Target_Row - 1) * Menu.Row_Height + Menu.Row_Height / 2;
+         Row_Y :=
+           Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
          Assert
            (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y) = Target_Row,
             "the derived coordinate hit-tests back to the copy row");
@@ -1099,7 +1100,8 @@ package body Files_Suite.Interaction is
          return;
       end if;
       Row_X := Menu.X + Menu.Width / 2;
-      Row_Y := Menu.Y + Menu.Padding + (Target_Row - 1) * Menu.Row_Height + Menu.Row_Height / 2;
+      Row_Y :=
+        Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
       Assert
         (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y) = Target_Row,
          "the derived coordinate hit-tests back to the resolved menu row");
