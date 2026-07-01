@@ -14,6 +14,7 @@ with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
 with Files.Localization;
+with Files.Platform.Metadata;
 with Files.UTF8;
 with Files.UI;
 
@@ -1528,6 +1529,19 @@ package body Files.Rendering is
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
       Snapshot.Hidden_Count := Files.Model.Hidden_Item_Count (Model);
       Snapshot.Selected_Count := Files.Model.Selected_Count (Model);
+      declare
+         --  Free-space is derived per snapshot from the current directory's
+         --  filesystem, mirroring how the hidden count is queried above. The
+         --  platform accessor reports Available = False when the volume cannot
+         --  be measured (non-Linux stubs, unreadable paths), so a bogus zero is
+         --  never shown as a known value.
+         Capacity : constant Files.Platform.Metadata.Volume_Capacity :=
+           Files.Platform.Metadata.Volume_Capacity_Of (Files.Model.Current_Path (Model));
+      begin
+         Snapshot.Free_Space_Known := Capacity.Available;
+         Snapshot.Free_Space_Bytes := Capacity.Free_Bytes;
+         Snapshot.Total_Space_Bytes := Capacity.Capacity_Bytes;
+      end;
       Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filter_Text (Model));
       Snapshot.Last_Error_Key := To_Unbounded_String (Files.Model.Last_Error_Key (Model));
       Snapshot.Focus := Files.Model.Focus (Model);
@@ -4699,6 +4713,56 @@ package body Files.Rendering is
            & Files.Localization.Text ("status.hidden");
       end Hidden_Status_Text;
 
+      function Selected_Size_Bytes return Long_Long_Integer is
+         Total : Long_Long_Integer := 0;
+      begin
+         --  Sum the byte sizes of the selected items whose size is known.
+         --  Directories and metadata-less entries carry no byte total and are
+         --  counted (via Selected_Count) without contributing to the sum.
+         for Item of Snapshot.Items loop
+            if Item.Selected and then Item.Size_Available and then Item.Size > 0 then
+               if Total <= Long_Long_Integer'Last - Item.Size then
+                  Total := Total + Item.Size;
+               else
+                  Total := Long_Long_Integer'Last;
+               end if;
+            end if;
+         end loop;
+         return Total;
+      end Selected_Size_Bytes;
+
+      function Selected_Status_Text return String is
+         Count : constant String :=
+           Files.Localization.Text ("status.selected")
+           & ": "
+           & Natural_Text (Snapshot.Selected_Count);
+      begin
+         --  When something is selected, append the summed size in parentheses,
+         --  e.g. "Selected: 3 (4.5 MB)". Only spaces and punctuation are inline
+         --  literals; every word comes from the catalog or the size formatter.
+         if Snapshot.Selected_Count >= 1 then
+            return Count & " (" & Size_Text (Selected_Size_Bytes) & ")";
+         else
+            return Count;
+         end if;
+      end Selected_Status_Text;
+
+      function Free_Space_Status_Text return String is
+      begin
+         --  Omitted entirely when the filesystem cannot report free space so no
+         --  bogus "0 B free" appears. "X free" is assembled from the shared size
+         --  formatter plus a localized suffix word.
+         if not Snapshot.Free_Space_Known then
+            return "";
+         end if;
+
+         return
+           "  "
+           & Size_Text (Snapshot.Free_Space_Bytes)
+           & " "
+           & Files.Localization.Text ("status.free_space.suffix");
+      end Free_Space_Status_Text;
+
       function Count_Status_Text return UString is
       begin
          return
@@ -4709,9 +4773,8 @@ package body Files.Rendering is
               & ": "
               & Natural_Text (Snapshot.Visible_Count)
               & "  "
-              & Files.Localization.Text ("status.selected")
-              & ": "
-              & Natural_Text (Snapshot.Selected_Count));
+              & Selected_Status_Text
+              & Free_Space_Status_Text);
       end Count_Status_Text;
 
       function Bottom_Info_Text return UString is

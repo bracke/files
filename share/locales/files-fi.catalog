@@ -118,6 +118,7 @@ fi.root.user_mount.suffix =
 fi.status.items = Kohteet
 fi.status.visible = Näkyvät
 fi.status.selected = Valitut
+fi.status.free_space.suffix = vapaana
 fi.status.missing_metadata = Ei saatavilla
 fi.status.empty_directory = Tämä kansio on tyhjä.
 fi.status.empty_filter = Mikään kohde ei vastaa nykyistä suodatinta.

@@ -118,6 +118,7 @@ es.root.user_mount.suffix =
 es.status.items = Elementos
 es.status.visible = Visibles
 es.status.selected = Seleccionados
+es.status.free_space.suffix = libre
 es.status.missing_metadata = No disponible
 es.status.empty_directory = Esta carpeta está vacía.
 es.status.empty_filter = Ningún elemento coincide con el filtro actual.

@@ -118,6 +118,7 @@ de.root.user_mount.suffix =
 de.status.items = Elemente
 de.status.visible = Sichtbar
 de.status.selected = Markiert
+de.status.free_space.suffix = frei
 de.status.missing_metadata = Nicht verfügbar
 de.status.empty_directory = Dieser Ordner ist leer.
 de.status.empty_filter = Keine Elemente entsprechen dem aktuellen Filter.

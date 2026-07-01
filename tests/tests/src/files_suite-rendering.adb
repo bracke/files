@@ -56,6 +56,8 @@ package body Files_Suite.Rendering is
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -102,6 +104,12 @@ package body Files_Suite.Rendering is
         (T, Test_Settings_Scroll_Clamp'Access, "settings pane clamps over-scroll to its content");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Count'Access, "bottom bar reflects the hidden count and exposes a toggle button");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Bottom_Bar_Free_Space'Access,
+         "bottom bar shows filesystem free space when known and omits it when unknown");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Bottom_Bar_Selection_Summary'Access,
+         "bottom bar shows the selection count and summed size when items are selected");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Suppresses_Item_Hover'Access,
          "an open context menu suppresses the main-grid item hover highlight");
@@ -830,6 +838,103 @@ package body Files_Suite.Rendering is
       end loop;
       Assert (Found_Button, "the bottom-bar hidden count is exposed as an accessible toggle button");
    end Test_Bottom_Bar_Hidden_Count;
+
+   function Contains (Haystack : String; Needle : String) return Boolean is
+   begin
+      if Needle'Length = 0 or else Needle'Length > Haystack'Length then
+         return Needle'Length = 0;
+      end if;
+
+      for Start in Haystack'First .. Haystack'Last - Needle'Length + 1 loop
+         if Haystack (Start .. Start + Needle'Length - 1) = Needle then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Contains;
+
+   --  True when any text command in the frame contains Needle.
+   function Frame_Has_Text (Frame : Frame_Commands; Needle : String) return Boolean is
+   begin
+      for Command of Frame.Text loop
+         if Contains (To_String (Command.Text), Needle) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Frame_Has_Text;
+
+   procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      Free_Word : constant String := Files.Localization.Text ("status.free_space.suffix");
+      Gib_Unit  : constant String := Files.Localization.Text ("details.size.unit.gib");
+      Known     : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+      Unknown   : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+      Frame     : Frame_Commands;
+   begin
+      --  A known free-space value renders the "<X GB> free" indicator.
+      Known.Free_Space_Known := True;
+      Known.Free_Space_Bytes := 3 * 1024 * 1024 * 1024;
+      Known.Total_Space_Bytes := 8 * 1024 * 1024 * 1024;
+      Frame := Build_Frame_Commands (Known, Width => 1200, Height => 800, Line_Height => 20);
+      Assert (Frame_Has_Text (Frame, Free_Word),
+              "the bottom bar renders the localized free-space suffix when free space is known");
+      Assert (Frame_Has_Text (Frame, Gib_Unit),
+              "the free-space indicator formats the value with the shared size unit");
+
+      --  An unknown (unreported) value emits no free-space text at all.
+      Unknown.Free_Space_Known := False;
+      Unknown.Free_Space_Bytes := 0;
+      Frame := Build_Frame_Commands (Unknown, Width => 1200, Height => 800, Line_Height => 20);
+      Assert (not Frame_Has_Text (Frame, Free_Word),
+              "the bottom bar omits the free-space indicator when the value is unknown");
+   end Test_Bottom_Bar_Free_Space;
+
+   procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      Selected_Word : constant String := Files.Localization.Text ("status.selected");
+      Mib_Unit      : constant String := Files.Localization.Text ("details.size.unit.mib");
+      One_Mib       : constant Long_Long_Integer := 1024 * 1024;
+      Snapshot      : View_Snapshot := Sample_Snapshot (5, Files.Types.Small_Icons);
+      Frame         : Frame_Commands;
+
+      procedure Mark_Selected (Index : Positive; Size : Long_Long_Integer) is
+         Item : Item_Snapshot := Snapshot.Items.Element (Index);
+      begin
+         Item.Selected := True;
+         Item.Size_Available := True;
+         Item.Size := Size;
+         Snapshot.Items.Replace_Element (Index, Item);
+      end Mark_Selected;
+   begin
+      --  Free space is intentionally left unknown so the only size unit that can
+      --  appear in the bar originates from the selection summary.
+      Snapshot.Free_Space_Known := False;
+
+      --  Neutral state: nothing selected shows the count without a size total.
+      Snapshot.Selected_Count := 0;
+      Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
+      Assert (Frame_Has_Text (Frame, Selected_Word),
+              "the bottom bar shows the selection label in the neutral state");
+      Assert (not Frame_Has_Text (Frame, Mib_Unit),
+              "the neutral bottom bar shows no selection size total");
+
+      --  Three selected items with known sizes summing to 3 MB.
+      Mark_Selected (1, One_Mib);
+      Mark_Selected (2, One_Mib);
+      Mark_Selected (3, One_Mib);
+      Snapshot.Selected_Count := 3;
+      Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
+      Assert (Frame_Has_Text (Frame, Selected_Word),
+              "the bottom bar shows the selection label when items are selected");
+      Assert (Frame_Has_Text (Frame, "3"),
+              "the bottom bar reflects the selection count");
+      Assert (Frame_Has_Text (Frame, Mib_Unit),
+              "the bottom bar shows the summed size of the selected items");
+   end Test_Bottom_Bar_Selection_Summary;
 
    --  True when the frame's base layer carries a hover-colored fill anchored at
    --  Cell's top-left corner -- the main-grid item hover highlight. Context-menu

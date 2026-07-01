@@ -137,6 +137,9 @@ package Files.Rendering is
       Visible_Count        : Natural := 0;
       Hidden_Count         : Natural := 0;
       Selected_Count        : Natural := 0;
+      Free_Space_Known      : Boolean := False;
+      Free_Space_Bytes      : Long_Long_Integer := 0;
+      Total_Space_Bytes     : Long_Long_Integer := 0;
       Filter_Text           : UString;
       Last_Error_Key        : UString;
       Focus                 : Files.Types.Focus_Target := Files.Types.Focus_None;

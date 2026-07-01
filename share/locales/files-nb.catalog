@@ -118,6 +118,7 @@ nb.root.user_mount.suffix =
 nb.status.items = Elementer
 nb.status.visible = Synlige
 nb.status.selected = Valgte
+nb.status.free_space.suffix = ledig
 nb.status.missing_metadata = Ikke tilgjengelig
 nb.status.empty_directory = Denne mappen er tom.
 nb.status.empty_filter = Ingen elementer samsvarer med gjeldende filter.

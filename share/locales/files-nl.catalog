@@ -118,6 +118,7 @@ nl.root.user_mount.suffix =
 nl.status.items = Items
 nl.status.visible = Zichtbaar
 nl.status.selected = Geselecteerd
+nl.status.free_space.suffix = vrij
 nl.status.missing_metadata = Niet beschikbaar
 nl.status.empty_directory = Deze map is leeg.
 nl.status.empty_filter = Geen items komen overeen met het huidige filter.
