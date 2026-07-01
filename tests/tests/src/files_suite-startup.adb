@@ -110,6 +110,7 @@ package body Files_Suite.Startup is
    procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Startup_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -145,6 +146,8 @@ package body Files_Suite.Startup is
         (T, Test_First_Implementation_Feature_Policy'Access, "first implementation feature policy");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Smoke_Gate_Outcome'Access, "live smoke gate outcome taxonomy");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Live_Smoke_Scenarios_Verdict'Access, "live smoke multi-scenario verdict aggregation");
    end Register_Tests;
 
    procedure Test_Startup_Path_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1911,6 +1914,51 @@ package body Files_Suite.Startup is
            Files.Application.Windows.Live_Smoke_Fail,
          "attempted live smoke that did not close cleanly maps to Fail");
    end Test_Live_Smoke_Gate_Outcome;
+
+   procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Interfaces.Unsigned_32;
+
+      --  All scenarios pass and every scenario carries a distinct framebuffer
+      --  hash, so every non-default scenario differs from the default frame.
+      All_Distinct : Files.Application.Windows.Scenario_Outcome_Array;
+      Analysis_Fail : Files.Application.Windows.Scenario_Outcome_Array;
+      Duplicate     : Files.Application.Windows.Scenario_Outcome_Array;
+      Next_Hash     : Interfaces.Unsigned_32 := 100;
+   begin
+      for Scenario in Files.Application.Windows.Live_Smoke_Scenario loop
+         All_Distinct (Scenario) :=
+           (Rendered       => True,
+            Readback_Ready => True,
+            Passed         => True,
+            Hash           => Next_Hash);
+         Next_Hash := Next_Hash + 1;
+      end loop;
+
+      Assert
+        (Files.Application.Windows.Scenarios_Verdict (All_Distinct),
+         "all scenarios passing with distinct hashes yields an overall pass");
+
+      --  A single scenario that failed structural analysis fails the aggregate.
+      Analysis_Fail := All_Distinct;
+      Analysis_Fail (Files.Application.Windows.Scenario_Palette).Passed := False;
+      Assert
+        (not Files.Application.Windows.Scenarios_Verdict (Analysis_Fail),
+         "one scenario failing structural analysis fails the aggregate verdict");
+
+      --  A non-default scenario whose frame is identical to the default frame
+      --  (its state did not change the render) fails the aggregate verdict.
+      Duplicate := All_Distinct;
+      Duplicate (Files.Application.Windows.Scenario_Selection).Hash :=
+        Duplicate (Files.Application.Windows.Scenario_Default).Hash;
+      Assert
+        (not Files.Application.Windows.Scenarios_Verdict (Duplicate),
+         "a non-default scenario identical to default fails the aggregate verdict");
+      Assert
+        (not Files.Application.Windows.Scenario_Passed
+              (Duplicate, Files.Application.Windows.Scenario_Selection),
+         "a non-default scenario identical to default is not a passing scenario");
+   end Test_Live_Smoke_Scenarios_Verdict;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

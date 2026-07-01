@@ -40,11 +40,13 @@ package body Files.Application.Windows is
    use type Files.Commands.Command_Id;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Item_Kind;
+   use type Files.Types.View_Mode;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Rendering.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
+   use type Interfaces.Unsigned_32;
    use type Interfaces.C.Strings.chars_ptr;
    use type System.Address;
 
@@ -242,6 +244,19 @@ package body Files.Application.Windows is
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Runtime_Window);
+
+   --  Pristine per-window state captured before the multi-scenario live smoke
+   --  so every scenario starts from an identical baseline and any framebuffer
+   --  difference is attributable to the applied scenario alone.
+   type Scenario_Base_State is record
+      Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Font     : Positive := 16;
+   end record;
+
+   package Scenario_Base_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Scenario_Base_State);
 
    Process_Text_Font_Ready : Boolean := False;
    Process_Text_Font_Path  : Unbounded_String;
@@ -2353,6 +2368,182 @@ package body Files.Application.Windows is
       end if;
    end Add_Pending_Scroll;
 
+   --  Number of synthetic items injected for the scrolled scenario. Chosen to
+   --  overflow the smoke window's main view at any plausible column count so
+   --  the scrolled render is guaranteed to differ from the default frame.
+   Scenario_Overflow_Item_Count : constant Positive := 800;
+
+   --  Main-view scroll offset applied once the overflowing list is in place.
+   Scenario_Scroll_Lines : constant Positive := 40;
+
+   function Scenario_Name
+     (Scenario : Live_Smoke_Scenario)
+      return String is
+   begin
+      case Scenario is
+         when Scenario_Default =>
+            return "default";
+         when Scenario_Selection =>
+            return "selection";
+         when Scenario_Scrolled =>
+            return "scrolled";
+         when Scenario_Context_Menu =>
+            return "context_menu";
+         when Scenario_Palette =>
+            return "palette";
+         when Scenario_Large_Font =>
+            return "large_font";
+         when Scenario_Light_Theme =>
+            return "light_theme";
+         when Scenario_Details_View =>
+            return "details_view";
+      end case;
+   end Scenario_Name;
+
+   function Scenario_Passed
+     (Outcomes : Scenario_Outcome_Array;
+      Scenario : Live_Smoke_Scenario)
+      return Boolean is
+   begin
+      if not Outcomes (Scenario).Passed then
+         return False;
+      end if;
+
+      if Scenario /= Scenario_Default
+        and then Outcomes (Scenario).Hash = Outcomes (Scenario_Default).Hash
+      then
+         return False;
+      end if;
+
+      return True;
+   end Scenario_Passed;
+
+   function Scenarios_Verdict
+     (Outcomes : Scenario_Outcome_Array)
+      return Boolean is
+   begin
+      for Scenario in Live_Smoke_Scenario loop
+         if not Scenario_Passed (Outcomes, Scenario) then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Scenarios_Verdict;
+
+   --  Build a synthetic overflowing item list rooted at the model's current
+   --  path so the scrolled scenario has enough rows to scroll through.
+   function Scenario_Overflow_Items
+     (Model : Files.Model.Window_Model)
+      return Files.File_System.Item_Vectors.Vector
+   is
+      Parent : constant String := Files.Model.Current_Path (Model);
+      Items  : Files.File_System.Item_Vectors.Vector;
+   begin
+      for Index in 1 .. Scenario_Overflow_Item_Count loop
+         declare
+            Suffix : constant String :=
+              Ada.Strings.Fixed.Trim (Integer'Image (Index), Ada.Strings.Left);
+            Name   : constant String := "smoke-item-" & Suffix;
+         begin
+            Items.Append
+              (Files.File_System.Directory_Item'
+                 (Name        => To_Unbounded_String (Name),
+                  Full_Path   => To_Unbounded_String (Parent & "/" & Name),
+                  Parent_Path => To_Unbounded_String (Parent),
+                  Kind        => Files.Types.Regular_File_Item,
+                  Filetype    => To_Unbounded_String ("text/plain"),
+                  Icon_Id     => To_Unbounded_String ("text"),
+                  others      => <>));
+         end;
+      end loop;
+
+      return Items;
+   end Scenario_Overflow_Items;
+
+   --  Apply one live smoke scenario's state to a runtime window in place. The
+   --  caller resets the window to its captured baseline before each call, so
+   --  each scenario mutates only from the pristine startup state.
+   procedure Apply_Scenario
+     (Runtime  : in out Runtime_Window;
+      Scenario : Live_Smoke_Scenario)
+   is
+      Large_Font : constant Positive := Max_Font_Pixel_Size - 1;
+      Has_Item   : constant Boolean := Files.Model.Visible_Count (Runtime.Model) >= 1;
+   begin
+      case Scenario is
+         when Scenario_Default =>
+            null;
+
+         when Scenario_Selection =>
+            if Has_Item then
+               Files.Model.Select_Visible (Runtime.Model, 1);
+            end if;
+
+         when Scenario_Scrolled =>
+            Files.Model.Replace_Items
+              (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
+            Files.Model.Set_Main_View_Scroll_Lines
+              (Runtime.Model, Scenario_Scroll_Lines);
+
+         when Scenario_Context_Menu =>
+            Files.Model.Open_Context_Menu
+              (Model      => Runtime.Model,
+               X          => 64,
+               Y          => 96,
+               Target     =>
+                 (if Has_Item then Files.Model.Context_Menu_Item
+                  else Files.Model.Context_Menu_Empty),
+               Item_Index => (if Has_Item then 1 else 0));
+
+         when Scenario_Palette =>
+            Files.Model.Open_Command_Palette (Runtime.Model);
+
+         when Scenario_Large_Font =>
+            --  Jump to a size the baseline is not already using so the scaling
+            --  path is exercised and the frame provably differs from default.
+            declare
+               Target : constant Positive :=
+                 (if Runtime.Font_Pixel_Size >= Large_Font
+                  then Min_Font_Pixel_Size
+                  else Large_Font);
+            begin
+               Runtime.Font_Pixel_Size := Target;
+               Runtime.Settings.Font_Pixel_Size := Target;
+            end;
+
+         when Scenario_Light_Theme =>
+            Runtime.Settings.Light_Theme := True;
+
+         when Scenario_Details_View =>
+            --  Render the details layout, unless the startup already uses it
+            --  (a user default), in which case switch to a large-icons layout
+            --  so the view-mode relayout still provably changes the frame.
+            if Files.Model.View_Mode_Of (Runtime.Model) = Files.Types.Details then
+               Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Large_Icons);
+            else
+               Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
+            end if;
+      end case;
+   end Apply_Scenario;
+
+   --  Reset a runtime window to a captured baseline and apply one scenario.
+   --  Rendering caches and the font renderer are invalidated so the next frame
+   --  is rebuilt from the scenario state.
+   procedure Prepare_Scenario
+     (Runtime  : in out Runtime_Window;
+      Base     : Scenario_Base_State;
+      Scenario : Live_Smoke_Scenario) is
+   begin
+      Runtime.Model := Base.Model;
+      Runtime.Settings := Base.Settings;
+      Runtime.Font_Pixel_Size := Base.Font;
+      Runtime.Text_Ready := False;
+      Runtime.Text_Glyph_Key := Null_Unbounded_String;
+      Runtime.Frame_Cache_Valid := False;
+      Apply_Scenario (Runtime, Scenario);
+   end Prepare_Scenario;
+
    function Live_Window_Smoke_Plan
      (Width  : Natural := 1024;
       Height : Natural := 768)
@@ -2397,6 +2588,7 @@ package body Files.Application.Windows is
             Framebuffer_Analysis => (others => <>),
             Framebuffer_Passed => False,
             Vulkan_Device_Ready => False,
+            Scenario_Results   => [others => <>],
             Error_Key          => Plan.Reason_Key);
       end if;
 
@@ -2417,6 +2609,7 @@ package body Files.Application.Windows is
          Framebuffer_Analysis => (others => <>),
          Framebuffer_Passed => False,
          Vulkan_Device_Ready => False,
+         Scenario_Results   => [others => <>],
          Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
    end Evaluate_Live_Window_Smoke;
 
@@ -2467,36 +2660,78 @@ package body Files.Application.Windows is
          Result.Input_Polled := True;
       end loop;
 
-      for Frame_Index in 1 .. Plan.Frame_Count loop
-         Result.Frames_Attempted := Result.Frames_Attempted + 1;
-         Render_All (Runtime_Windows);
-         Result.Frame_Rendered :=
-           Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
+      --  Capture the pristine per-window baseline so each scenario starts from
+      --  the same startup state and any framebuffer difference is caused by the
+      --  scenario alone.
+      declare
+         Bases : Scenario_Base_Vectors.Vector;
+      begin
          for Runtime of Runtime_Windows loop
-            if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Not_Initialized then
-               declare
-                  Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
-                    Files.Rendering.Vulkan.Diagnostics (Runtime.Vulkan);
-               begin
-                  Result.Last_Status := Runtime.Last_Present_Status;
-                  Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
-                  Result.Vulkan_Device_Ready :=
-                    Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
-                  if Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented then
-                     Result.Frames_Presented := Result.Frames_Presented + 1;
-                  end if;
-                  Result.Framebuffer_Readback_Ready :=
-                    Result.Framebuffer_Readback_Ready or else Diagnostics.Framebuffer_Readback_Ready;
-                  if Diagnostics.Framebuffer_Readback_Ready then
-                     Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
-                     Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
-                     Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
-                     Result.Framebuffer_Passed := Diagnostics.Framebuffer_Passed;
-                  end if;
-               end;
-            end if;
+            Bases.Append
+              (Scenario_Base_State'
+                 (Model    => Runtime.Model,
+                  Settings => Runtime.Settings,
+                  Font     => Runtime.Font_Pixel_Size));
          end loop;
-      end loop;
+
+         --  Render every scenario in order within the one window/device, taking
+         --  each scenario's structural verdict and framebuffer hash from the
+         --  final frame's readback.
+         for Scenario in Live_Smoke_Scenario loop
+            declare
+               Base_Index : Positive := 1;
+               Outcome    : Scenario_Outcome := (others => <>);
+            begin
+               for Runtime of Runtime_Windows loop
+                  Prepare_Scenario (Runtime, Bases (Base_Index), Scenario);
+                  Base_Index := Base_Index + 1;
+               end loop;
+
+               for Frame_Index in 1 .. Plan.Frame_Count loop
+                  Result.Frames_Attempted := Result.Frames_Attempted + 1;
+                  Render_All (Runtime_Windows);
+                  Result.Frame_Rendered :=
+                    Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
+                  for Runtime of Runtime_Windows loop
+                     if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Not_Initialized then
+                        declare
+                           Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
+                             Files.Rendering.Vulkan.Diagnostics (Runtime.Vulkan);
+                        begin
+                           Result.Last_Status := Runtime.Last_Present_Status;
+                           Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
+                           Result.Vulkan_Device_Ready :=
+                             Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
+                           if Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented then
+                              Result.Frames_Presented := Result.Frames_Presented + 1;
+                           end if;
+                           if Diagnostics.Framebuffer_Readback_Ready then
+                              Result.Framebuffer_Readback_Ready := True;
+                              Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
+                              Outcome.Rendered := True;
+                              Outcome.Readback_Ready := True;
+                              Outcome.Hash := Diagnostics.Last_Framebuffer_Hash;
+                              Outcome.Passed := Diagnostics.Framebuffer_Passed;
+                              --  The default scenario feeds the legacy
+                              --  single-frame diagnostics printout.
+                              if Scenario = Scenario_Default then
+                                 Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
+                                 Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
+                              end if;
+                           end if;
+                        end;
+                     end if;
+                  end loop;
+               end loop;
+
+               Result.Scenario_Results (Scenario) := Outcome;
+            end;
+         end loop;
+      end;
+
+      --  Overall structural verdict: every scenario must pass and every
+      --  non-default scenario's frame must differ from the default frame.
+      Result.Framebuffer_Passed := Scenarios_Verdict (Result.Scenario_Results);
 
       Release_All (Runtime_Windows);
       Glfw.Shutdown;
@@ -2528,6 +2763,7 @@ package body Files.Application.Windows is
             Framebuffer_Analysis => Result.Framebuffer_Analysis,
             Framebuffer_Passed => Result.Framebuffer_Passed,
             Vulkan_Device_Ready => Result.Vulkan_Device_Ready,
+            Scenario_Results => Result.Scenario_Results,
             Error_Key       => To_Unbounded_String ("error.window.create"));
       when others =>
          Release_All (Runtime_Windows);
@@ -2551,6 +2787,7 @@ package body Files.Application.Windows is
             Framebuffer_Analysis => Result.Framebuffer_Analysis,
             Framebuffer_Passed => Result.Framebuffer_Passed,
             Vulkan_Device_Ready => Result.Vulkan_Device_Ready,
+            Scenario_Results => Result.Scenario_Results,
             Error_Key       => To_Unbounded_String ("error.window.create"));
    end Run_Live_Window_Smoke;
 

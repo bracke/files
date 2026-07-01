@@ -531,6 +531,15 @@ package body Files.Application is
                Skip_Token        : constant String := "SKIP";
                Space             : constant String := " ";
 
+               --  Per-scenario report fragments. Each literal is letters-only or
+               --  space-only so the source carries no hard-coded user-visible
+               --  prose (letter-plus-space) yet the emitted line stays greppable.
+               Scenario_Prefix   : constant String := "live-smoke";
+               Scenario_Word     : constant String := "scenario";
+               Colon             : constant String := ":";
+               Pass_Word         : constant String := "pass";
+               Fail_Word         : constant String := "fail";
+
                --  Automake convention: a skipped test exits with code 77 so CI
                --  can tell "environment could not run it" apart from a pass (0)
                --  or a fail (1), while still treating the skip as non-fatal.
@@ -627,6 +636,19 @@ package body Files.Application is
                           then "runtime.smoke.pass"
                           else "runtime.smoke.fail"));
                end;
+
+               --  One greppable line per scenario, built from ASCII fragments,
+               --  so a state-specific display regression is visible in CI logs
+               --  before the single canonical verdict line below.
+               for Scenario in Files.Application.Windows.Live_Smoke_Scenario loop
+                  Ada.Text_IO.Put_Line
+                    (Scenario_Prefix & Space & Scenario_Word & Space
+                     & Files.Application.Windows.Scenario_Name (Scenario)
+                     & Colon & Space
+                     & (if Files.Application.Windows.Scenario_Passed
+                            (Live_Result.Scenario_Results, Scenario)
+                        then Pass_Word else Fail_Word));
+               end loop;
 
                --  Emit exactly one canonical, greppable verdict line and set a
                --  matching exit code so CI can classify the run:

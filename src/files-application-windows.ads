@@ -46,6 +46,38 @@ package Files.Application.Windows is
       Reason_Key       : UString;
    end record;
 
+   --  Named application states the multi-scenario live smoke renders in order.
+   --
+   --  Scenario_Default renders the unchanged startup state and is the baseline
+   --  every other scenario's framebuffer is compared against; the remaining
+   --  scenarios each apply one distinct state (a selection, an overflowing
+   --  scrolled list, the item context menu, the command palette, a near-maximum
+   --  font size, the light theme, and the details view) so a state-specific
+   --  display regression is caught rather than only the startup frame.
+   type Live_Smoke_Scenario is
+     (Scenario_Default,
+      Scenario_Selection,
+      Scenario_Scrolled,
+      Scenario_Context_Menu,
+      Scenario_Palette,
+      Scenario_Large_Font,
+      Scenario_Light_Theme,
+      Scenario_Details_View);
+
+   --  Per-scenario live smoke outcome captured from the framebuffer readback.
+   type Scenario_Outcome is record
+      Rendered       : Boolean := False;
+      --  True when the scenario produced at least one rendered frame.
+      Readback_Ready : Boolean := False;
+      --  True when a framebuffer readback was captured for the scenario.
+      Passed         : Boolean := False;
+      --  True when the scenario frame passed structural analysis.
+      Hash           : Interfaces.Unsigned_32 := 0;
+      --  Hash of the scenario's last read-back framebuffer.
+   end record;
+
+   type Scenario_Outcome_Array is array (Live_Smoke_Scenario) of Scenario_Outcome;
+
    type Live_Smoke_Result is record
       Attempted          : Boolean := False;
       Window_Created     : Boolean := False;
@@ -64,6 +96,10 @@ package Files.Application.Windows is
       Framebuffer_Analysis : Files.Rendering.Frame_Analysis.Frame_Metrics;
       Framebuffer_Passed : Boolean := False;
       Vulkan_Device_Ready : Boolean := False;
+      Scenario_Results   : Scenario_Outcome_Array;
+      --  Per-scenario structural verdict and framebuffer hash captured by the
+      --  multi-scenario live smoke; Framebuffer_* above mirror the default
+      --  scenario's frame for the legacy single-frame diagnostics.
       Error_Key          : UString;
    end record;
 
@@ -218,6 +254,47 @@ package Files.Application.Windows is
      (Startup : Startup_Result;
       Plan    : Live_Smoke_Plan)
       return Live_Smoke_Result;
+
+   --  Return the stable ASCII identifier of a live smoke scenario.
+   --
+   --  The identifier is a lowercase, letters-and-underscore fragment used to
+   --  build the greppable per-scenario report line; it is deliberately not
+   --  localized so CI can match it across locales.
+   --
+   --  @param Scenario Scenario to name.
+   --  @return ASCII scenario identifier.
+   function Scenario_Name
+     (Scenario : Live_Smoke_Scenario)
+      return String;
+
+   --  Return whether a single scenario contributed to an overall pass.
+   --
+   --  A scenario contributes to a pass when its frame passed structural
+   --  analysis and, for every non-default scenario, its framebuffer hash
+   --  differs from the default scenario's hash (proving the state actually
+   --  changed the render). This never asserts equality against a golden image.
+   --
+   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
+   --  @param Scenario Scenario to evaluate.
+   --  @return True when the scenario passed and, if non-default, differs from
+   --    the default scenario.
+   function Scenario_Passed
+     (Outcomes : Scenario_Outcome_Array;
+      Scenario : Live_Smoke_Scenario)
+      return Boolean;
+
+   --  Aggregate the per-scenario outcomes into the overall live smoke verdict.
+   --
+   --  The verdict is a pure, headless decision: it passes only when every
+   --  scenario passed structural analysis and every non-default scenario's
+   --  framebuffer hash differs from the default scenario's hash. It is a robust
+   --  inequality check, never a golden-image equality assertion.
+   --
+   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
+   --  @return True when every scenario contributed to a pass.
+   function Scenarios_Verdict
+     (Outcomes : Scenario_Outcome_Array)
+      return Boolean;
 
    --  Classify a live-window smoke result into the CI gate taxonomy.
    --
