@@ -3924,22 +3924,25 @@ package body Files.Rendering is
               Saturating_Multiply
                 (Files.UTF8.Display_Units_Before (Raw, Snapshot.Text_Cursor_Position), Char_W));
          Max_X  : constant Natural := (if Field_W > 2 then Saturating_Add (X, Field_W - 2) else X);
-         Text_Y : constant Natural :=
-           (if Field_H > 2 * Files.UI.Input_Field_Padding
-            then Saturating_Add (Y, Files.UI.Input_Field_Padding)
-            else Y);
-         Text_H : constant Natural :=
-           (if Field_H > 2 * Files.UI.Input_Field_Padding
-            then Natural'Min (Line_Height, Field_H - 2 * Files.UI.Input_Field_Padding)
-            else Field_H);
+         --  The caret height tracks the font: a fixed fraction of the line
+         --  height (so it scales linearly with the font size), clamped to the
+         --  field, and centered vertically. Using Line_Height minus fixed
+         --  insets under-scaled it (stubby at small fonts, near-full at large).
+         Caret_H : constant Natural :=
+           Natural'Min
+             ((if Field_H > 2 then Field_H - 2 else Field_H),
+              Positive'Max (1, Saturating_Multiply (Line_Height, 4) / 5));
+         Caret_Y : constant Natural :=
+           Saturating_Add
+             (Y, (if Field_H > Caret_H then (Field_H - Caret_H) / 2 else 0));
          Caret_W : constant Natural := Natural'Min (2, Field_W);
       begin
-         if Field_W > 0 and then Text_H > 4 then
+         if Field_W > 0 and then Caret_H > 4 then
             Add_Rect
               (Natural'Min (Raw_X, Max_X),
-               Saturating_Add (Text_Y, 2),
+               Caret_Y,
                Caret_W,
-               Text_H - 4,
+               Caret_H,
                Text_Color);
          end if;
       end Add_Caret;

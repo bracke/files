@@ -491,6 +491,14 @@ package body Files_Suite.Rendering is
       Assert
         (Large - Small >= (40 - 20) / 2,
          "the caret height tracks the line height instead of a fixed size");
+      --  The caret height must be PROPORTIONAL to the line height (a constant
+      --  fraction), not line-height-minus-a-fixed-inset which under-scales the
+      --  caret at small fonts. Cross-multiplying, Small/20 must equal Large/40
+      --  within integer rounding (this fails for a Line_Height-minus-constant
+      --  caret, which is stubbier at small fonts).
+      Assert
+        (abs (Integer (Small) * 40 - Integer (Large) * 20) <= 40,
+         "the caret height stays a constant fraction of the line height across font sizes");
    end Test_Caret_Scales_With_Line_Height;
 
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class) is
