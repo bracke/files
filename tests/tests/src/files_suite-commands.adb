@@ -198,15 +198,19 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "delete disabled with no selection");
+      --  The info pane can always be toggled, even with nothing selected: an
+      --  empty selection simply shows an empty pane.
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
-         "info toggle disabled with no selection");
+        (Files.Commands.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
+         "info toggle enabled with no selection");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled info toggle command is ignored");
       Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
-         "disabled info toggle returns operation data");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "disabled info toggle records error");
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "info toggle executes with no selection");
+      Assert (Files.Model.Info_Pane_Is_Open (Model), "info toggle opens the info pane with no selection");
+      --  Restore the closed state so later assertions see no transient panes.
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info toggle closes the pane again");
       Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled delete command is ignored");
       Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled delete returns operation data");

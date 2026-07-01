@@ -108,6 +108,7 @@ package Files.Rendering is
       Sort_Menu_Open       : Boolean := False;
       Item_Count           : Natural := 0;
       Visible_Count        : Natural := 0;
+      Hidden_Count         : Natural := 0;
       Selected_Count        : Natural := 0;
       Filter_Text           : UString;
       Last_Error_Key        : UString;

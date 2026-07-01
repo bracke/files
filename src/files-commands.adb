@@ -819,8 +819,9 @@ package body Files.Commands is
          when Create_File_Command | New_Folder_Command =>
             return not Files.Model.Temporary_Item_Is_Active (Model);
          when Toggle_Info_Pane_Command =>
-            return Files.Model.Selected_Count (Model) > 0
-              and then not Files.Model.Selection_Includes_Temporary (Model);
+            --  The info pane can always be toggled, even with no selection: an
+            --  empty selection simply shows an empty pane.
+            return True;
          when Rename_Selected_Items_Command =>
             return Files.Model.Rename_Is_Enabled (Model) or else Files.Model.Rename_Is_Active (Model);
          when Close_Command_Palette_Command =>

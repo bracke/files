@@ -1418,6 +1418,7 @@ package body Files.Rendering is
       Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
       Snapshot.Item_Count := Files.Model.Item_Count (Model);
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
+      Snapshot.Hidden_Count := Files.Model.Hidden_Item_Count (Model);
       Snapshot.Selected_Count := Files.Model.Selected_Count (Model);
       Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filter_Text (Model));
       Snapshot.Last_Error_Key := To_Unbounded_String (Files.Model.Last_Error_Key (Model));
@@ -4362,13 +4363,21 @@ package body Files.Rendering is
          end case;
       end View_Mode_Label;
 
+      function Hidden_Status_Text return String is
+      begin
+         --  Built from fragments so no letters-plus-space display literal is
+         --  hard-coded: "N" + " " + localized "hidden".
+         return
+           Natural_Text (Snapshot.Hidden_Count)
+           & " "
+           & Files.Localization.Text ("status.hidden");
+      end Hidden_Status_Text;
+
       function Count_Status_Text return UString is
       begin
          return
            To_Unbounded_String
-             (Files.Localization.Text ("status.items")
-              & ": "
-              & Natural_Text (Snapshot.Item_Count)
+             (Hidden_Status_Text
               & "  "
               & Files.Localization.Text ("status.visible")
               & ": "
@@ -4928,12 +4937,23 @@ package body Files.Rendering is
             Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Sort_Menu_Command),
             Selected => Snapshot.Sort_Menu_Open);
       end;
+      --  The status area doubles as the hidden-count control: clicking it
+      --  toggles Show_Hidden_Files. Give it button hover/press affordances and
+      --  expose it as a button so it matches the neighboring bottom-bar
+      --  controls.
       Add_Rect
         (Bottom.Info_X,
          Bottom_Content_Y,
          Bottom.Info_Width,
          Bottom_Content_H,
-         Bottom_Bar_Color);
+         (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) then Bottom_Bar_Color
+          elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height)
+          then Pressed_Color
+          elsif Has_Hover
+            and then Contains_Point
+              (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
+          then Hover_Color
+          else Bottom_Bar_Color));
       Add_Text
         (Saturating_Add (Bottom.Info_X, 4),
          Bottom_Content_Y,
@@ -4942,19 +4962,21 @@ package body Files.Rendering is
          Bottom_Info_Text,
          Bottom_Info_Color,
          Fit => True);
-      Add_Tooltip_Text
+      Add_Command_Tooltip
         (Bottom.Info_X,
          Bottom_Content_Y,
          Bottom.Info_Width,
          Bottom_Content_H,
-         Bottom_Info_Text);
+         Files.Commands.Toggle_Hidden_Files_Command);
       Add_Accessibility_Node
-        (Role_Status,
+        (Role_Button,
          Bottom.Info_X,
          Bottom_Content_Y,
          Bottom.Info_Width,
          Bottom_Content_H,
-         Bottom_Info_Text);
+         Command_Label (Files.Commands.Toggle_Hidden_Files_Command),
+         Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Hidden_Files_Command)),
+         Enabled => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
       declare
          Info_Btn_Y : constant Natural :=
            (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);

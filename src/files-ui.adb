@@ -453,6 +453,10 @@ package body Files.UI is
          return Files.Commands.Select_Details_Command;
       elsif Within (X, Bottom.Sort_Button_X, Bottom.Sort_Button_Width) then
          return Files.Commands.Toggle_Sort_Menu_Command;
+      elsif Within (X, Bottom.Info_X, Bottom.Info_Width) then
+         --  The status area doubles as the hidden-count control: clicking it
+         --  toggles Show_Hidden_Files through the settings-path command routing.
+         return Files.Commands.Toggle_Hidden_Files_Command;
       elsif Within (X, Bottom.Info_Pane_X, Bottom.Info_Pane_Width) then
          return Files.Commands.Toggle_Info_Pane_Command;
       else

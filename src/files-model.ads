@@ -142,6 +142,17 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Return the number of loaded hidden items.
+   --
+   --  Hidden items are loaded directory items whose simple name begins with a
+   --  dot. This lets the bottom bar report how many dot-files are present.
+   --
+   --  @param Model Model to inspect.
+   --  @return Count of loaded items whose simple name begins with '.'.
+   function Hidden_Item_Count
+     (Model : Window_Model)
+      return Natural;
+
    --  Return a visible item by one-based visible index.
    --
    --  @param Model Model to inspect.

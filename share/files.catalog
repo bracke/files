@@ -252,6 +252,7 @@ en.root.user_mount.suffix =
 en.status.items = Items
 en.status.visible = Visible
 en.status.selected = Selected
+en.status.hidden = hidden
 en.status.missing_metadata = Unavailable
 en.status.empty_directory = This directory is empty.
 en.status.empty_filter = No items match the current filter.

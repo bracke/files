@@ -2096,9 +2096,19 @@ package body Files_Suite.Model is
    begin
       Ctrl (Files.Types.Control_Key) := True;
 
+      --  The info pane can always be toggled, even with nothing selected.
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_4, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+4 is ignored with no selection");
-      Assert (not Files.Model.Info_Pane_Is_Open (Model), "info pane stays closed without selection");
+      Assert
+        (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
+         "Control+4 routes info-pane command with no selection");
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed,
+         "Control+4 toggles the info pane with no selection");
+      Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane opens without a selection");
+      --  Close it again, then reopen with a selection so the rest of the
+      --  scenario starts from an open, selection-backed info pane.
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_4, Ctrl);
+      Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
       Files.Model.Move_Selection (Model, Files.Types.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_4, Ctrl);
       Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "Control+4 routes info-pane command");
@@ -2182,13 +2192,21 @@ package body Files_Suite.Model is
       Assert (Result.Command = Files.Commands.Select_Small_Icons_Command, "Control+1 routes small-icons command");
       Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small mode shortcut works");
 
+      --  The info pane can always be toggled, even with no selection: the click
+      --  now closes the currently open pane rather than being ignored.
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "info-pane click is ignored with no selection");
-      Assert (Files.Model.Info_Pane_Is_Open (Model), "disabled info-pane click leaves pane open");
+      Assert
+        (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
+         "info-pane click routes command with no selection");
+      Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click closes the pane with no selection");
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "enabled info-pane click routes command");
-      Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles closed");
+      Assert (Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles open");
+      --  Restore the closed state expected by the following main-view scroll
+      --  checks.
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of main view is ignored");
