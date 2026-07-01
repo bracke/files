@@ -260,7 +260,35 @@ package body Files_Suite.Rendering is
          begin
             Assert (MV_Bot.Scroll_Pixels >= MV_Top.Scroll_Pixels, "scrolling further never scrolls less");
             Assert (MV_Bot.Scroll_Pixels <= MV_Bot.Content_Height, "the scroll offset is bounded by content");
+            --  Bug 16: the thumb reaches the exact ends of its track -- top at
+            --  no scroll, bottom at max scroll -- so the track and content stay
+            --  aligned.
+            Assert
+              (MV_Top.Scrollbar_Thumb_Y = MV_Top.Scrollbar_Y,
+               "at the top the thumb sits exactly at the track top");
+            Assert
+              (MV_Bot.Scrollbar_Thumb_Y + MV_Bot.Scrollbar_Height
+                 = MV_Bot.Scrollbar_Y + MV_Bot.Scrollbar_Track_Height,
+               "at max scroll the thumb reaches exactly the track bottom");
          end;
+      end;
+
+      --  Bug 16: the details scrollbar track excludes the sticky column header
+      --  (rows scroll below it), so its track starts lower than an equivalent
+      --  header-less icons view over the same layout.
+      declare
+         D_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
+         I_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Large_Icons);
+         L      : constant Layout_Metrics := Calculate_Layout (D_Snap, 400, 300, 20);
+         D_MV   : constant Main_View_Layout := Calculate_Main_View_Layout (D_Snap, L, 20);
+         I_MV   : constant Main_View_Layout := Calculate_Main_View_Layout (I_Snap, L, 20);
+      begin
+         Assert
+           (D_MV.Scrollbar_Visible and then I_MV.Scrollbar_Visible,
+            "both the details and icons views overflow their viewport");
+         Assert
+           (D_MV.Scrollbar_Y > I_MV.Scrollbar_Y,
+            "the details scrollbar track starts below the sticky column header");
       end;
 
       --  Regression: the last row must be reachable (laid out with non-zero

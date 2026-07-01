@@ -2211,15 +2211,19 @@ package body Files.Rendering is
          else Saturating_Add
            (Saturating_Multiply (Rows, Cell_H),
             Saturating_Multiply (Rows - 1, Main_Grid_Gap)));
-      Content_Total_H : constant Natural :=
+      --  Details shows a sticky column header; its rows scroll in the area
+      --  BELOW it. The scrollbar's viewport and track are therefore the rows
+      --  area (View_H minus the header), starting below the header -- otherwise
+      --  the track spans the non-scrolling header band and the ends misalign.
+      Header_H      : constant Natural :=
         (if Snapshot.View_Mode = Files.Types.Details
-         then Saturating_Add
-           (Natural'Min
-              (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), View_H),
-            Row_Content_H)
-         else Row_Content_H);
+         then Natural'Min
+           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), View_H)
+         else 0);
+      Viewport_H    : constant Natural := (if View_H > Header_H then View_H - Header_H else 0);
+      Content_Total_H : constant Natural := Row_Content_H;
       Max_Scroll   : constant Natural :=
-        (if Content_Total_H > View_H then Content_Total_H - View_H else 0);
+        (if Content_Total_H > Viewport_H then Content_Total_H - Viewport_H else 0);
       Requested_Px : constant Natural := Saturating_Multiply (Snapshot.Main_View_Scroll_Lines, Line_Height);
       Bounded_Px   : constant Natural := Natural'Min (Requested_Px, Max_Scroll);
       --  Snap the scroll offset to whole row periods so partially-scrolled
@@ -2241,26 +2245,28 @@ package body Files.Rendering is
       Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
       Bar_W        : constant Natural := Natural'Min (Scrollbar_Width, Layout.Main_Width);
       Visible      : constant Boolean :=
-        View_H > 0
+        Viewport_H > 0
         and then Bar_W > 0
-        and then Content_Total_H > View_H;
+        and then Content_Total_H > Viewport_H;
       Thumb_H      : constant Natural :=
         (if Visible
          then Natural'Min
-           (View_H,
+           (Viewport_H,
             Natural'Max
               (Line_Height,
                Bounded_Product_Divide
-                 (Value => View_H, Factor => View_H, Denominator => Content_Total_H)))
+                 (Value => Viewport_H, Factor => Viewport_H, Denominator => Content_Total_H)))
          else 0);
       Track_H      : constant Natural :=
-        (if View_H > Thumb_H then View_H - Thumb_H else 0);
+        (if Viewport_H > Thumb_H then Viewport_H - Thumb_H else 0);
+      Track_Top    : constant Natural :=
+        Saturating_Add (Saturating_Add (Layout.Main_Y, Padding), Header_H);
       Thumb_Y      : constant Natural :=
         (if Visible and then Max_Scroll > 0
          then Saturating_Add
-           (Saturating_Add (Layout.Main_Y, Padding),
+           (Track_Top,
             Bounded_Product_Divide (Value => Track_H, Factor => Scroll_Px, Denominator => Max_Scroll))
-         else Saturating_Add (Layout.Main_Y, Padding));
+         else Track_Top);
    begin
       return
         (Columns           => Positive'Max (1, Positive (Columns)),
@@ -2269,11 +2275,11 @@ package body Files.Rendering is
          Scroll_Pixels     => Scroll_Px,
          Scrollbar_Visible => Visible,
          Scrollbar_X       => (if Visible then Saturating_Add (Layout.Main_X, Layout.Main_Width - Bar_W) else 0),
-         Scrollbar_Y       => (if Visible then Saturating_Add (Layout.Main_Y, Padding) else 0),
+         Scrollbar_Y       => (if Visible then Track_Top else 0),
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),
          Scrollbar_Height  => Thumb_H,
-         Scrollbar_Track_Height => (if Visible then View_H else 0));
+         Scrollbar_Track_Height => (if Visible then Viewport_H else 0));
    end Calculate_Main_View_Layout;
 
    function Settings_Hit_At
