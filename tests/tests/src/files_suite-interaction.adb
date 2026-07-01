@@ -10,6 +10,7 @@ with Project_Tools.Files;
 
 with Zlib;
 
+with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
@@ -92,6 +93,7 @@ package body Files_Suite.Interaction is
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_With_Palette_Filters_By_Query (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -160,6 +162,9 @@ package body Files_Suite.Interaction is
          "info-pane close (X) button click closes the info pane");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_With_Palette_Result_Launches'Access, "open-with palette result routes the application launch");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_With_Palette_Filters_By_Query'Access,
+         "open-with palette narrows the application list by the query");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Input_Click_Focuses'Access, "toolbar input click focuses the field and sets the cursor");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1460,6 +1465,130 @@ package body Files_Suite.Interaction is
          Restore_Apps_Env;
          raise;
    end Test_Open_With_Palette_Result_Launches;
+
+   procedure Test_Open_With_Palette_Filters_By_Query (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Apps_Base   : constant String := Files_Suite.Support.Root & "_xdg_apps_filter";
+      Desktop_Dir : constant String := Apps_Base & "/applications";
+      Dir         : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-with-filter");
+      Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model       : Files.Model.Window_Model;
+      Result      : Files.Interaction.Interaction_Result;
+      Found       : Boolean;
+      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Had_Dirs    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_DIRS");
+      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
+      Old_Dirs    : Ada.Strings.Unbounded.Unbounded_String;
+
+      procedure Restore_Apps_Env is
+      begin
+         if Had_Data then
+            Ada.Environment_Variables.Set
+              ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Dirs then
+            Ada.Environment_Variables.Set
+              ("XDG_DATA_DIRS", Ada.Strings.Unbounded.To_String (Old_Dirs));
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_DIRS");
+         end if;
+      end Restore_Apps_Env;
+
+      --  Count the application results whose Name matches the given fragment,
+      --  driving the same Search path the shell rebuilds the palette with.
+      function Matching_Apps (Query, Fragment : String) return Natural is
+         Results : constant Files.Command_Palette.Result_Vectors.Vector :=
+           Files.Command_Palette.Search (Query, Model);
+         Count   : Natural := 0;
+      begin
+         for Entry_Item of Results loop
+            Assert
+              (Entry_Item.Is_Application,
+               "open-with search yields only application results");
+            if Files.Types.Contains_Case_Insensitive
+                 (Ada.Strings.Unbounded.To_String (Entry_Item.Application_Name), Fragment)
+            then
+               Count := Count + 1;
+            end if;
+         end loop;
+         return Count;
+      end Matching_Apps;
+   begin
+      if Had_Data then
+         Old_Data :=
+           Ada.Strings.Unbounded.To_Unbounded_String
+             (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
+      end if;
+      if Had_Dirs then
+         Old_Dirs :=
+           Ada.Strings.Unbounded.To_Unbounded_String
+             (Ada.Environment_Variables.Value ("XDG_DATA_DIRS"));
+      end if;
+
+      Files_Suite.Support.Reset_Root;
+      Project_Tools.Files.Delete_Tree (Apps_Base);
+      Ada.Directories.Create_Path (Desktop_Dir);
+      Files_Suite.Support.Write_File
+        (Desktop_Dir & "/synthetic-editor.desktop",
+         "[Desktop Entry]" & ASCII.LF
+         & "Type=Application" & ASCII.LF
+         & "Name=Synthetic Editor" & ASCII.LF
+         & "Exec=/bin/true editor" & ASCII.LF);
+      Files_Suite.Support.Write_File
+        (Desktop_Dir & "/synthetic-browser.desktop",
+         "[Desktop Entry]" & ASCII.LF
+         & "Type=Application" & ASCII.LF
+         & "Name=Synthetic Browser" & ASCII.LF
+         & "Exec=/bin/true browser" & ASCII.LF);
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Apps_Base);
+      Ada.Environment_Variables.Set ("XDG_DATA_DIRS", Apps_Base);
+
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "target.txt"), "payload");
+      Model := Loaded_Model (Dir);
+      Files_Suite.Support.Select_Name (Model, "target.txt");
+
+      Open_Item_Context_Menu (Model, Settings, Result);
+      Assert (Files.Model.Context_Menu_Is_Open (Model), "the item menu opens for the filter case");
+      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Open_With_Command, Result, Found);
+      Assert (Found, "the item menu offers the open-with command");
+      Assert
+        (Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With,
+         "open-with switches the palette into application-picker mode");
+
+      --  Empty query lists every synthetic application, mirroring command mode.
+      Files.Model.Set_Command_Palette_Query (Model, "");
+      Assert
+        (Matching_Apps ("", "Synthetic") = 2,
+         "an empty query lists all installed applications");
+
+      --  A query narrows the list to the matching application only.
+      Files.Model.Set_Command_Palette_Query (Model, "Editor");
+      Assert
+        (Matching_Apps ("Editor", "Editor") = 1,
+         "the editor query keeps the matching application");
+      Assert
+        (Matching_Apps ("Editor", "Browser") = 0,
+         "the editor query drops the non-matching application");
+
+      --  Filtering is case-insensitive and works for the other application too.
+      Files.Model.Set_Command_Palette_Query (Model, "browser");
+      Assert
+        (Matching_Apps ("browser", "Browser") = 1,
+         "the lower-case browser query matches the browser application");
+      Assert
+        (Matching_Apps ("browser", "Editor") = 0,
+         "the browser query drops the editor application");
+
+      Project_Tools.Files.Delete_Tree (Apps_Base);
+      Restore_Apps_Env;
+   exception
+      when others =>
+         Restore_Apps_Env;
+         raise;
+   end Test_Open_With_Palette_Filters_By_Query;
 
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
