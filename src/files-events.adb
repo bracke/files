@@ -338,7 +338,7 @@ package body Files.Events is
          Click_X     : Natural)
          return Natural
       is
-         Char_W : constant Positive := Positive'Max (1, Line_Height / 2);
+         Char_W : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
          Click_Column : Natural;
       begin
@@ -351,15 +351,16 @@ package body Files.Events is
       end Cursor_At;
 
       function Text_Click
-        (Target : Files.Types.Focus_Target;
-         Cursor : Natural)
+        (Target     : Files.Types.Focus_Target;
+         Cursor     : Natural;
+         Item_Index : Natural := 0)
          return Input_Action is
       begin
          return
            (Kind            => Text_Click_Input_Action,
             Command         => Files.Commands.No_Command,
             Direction       => Files.Types.Move_Right,
-            Item_Index      => 0,
+            Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
             Scroll_Lines    => 0,
@@ -735,20 +736,31 @@ package body Files.Events is
       if Item_Index /= 0 then
          if Snapshot.Rename_Active
            and then Item_Index <= Natural (Snapshot.Items.Length)
-           and then Snapshot.Items.Element (Positive (Item_Index)).Selected
+           and then Snapshot.Items.Element (Positive (Item_Index)).Renaming
          then
             declare
                Item_Rect : constant Files.Rendering.Item_Layout :=
                  Item_Layout.Element (Positive (Item_Index));
+               Snapshot_Item : constant Files.Rendering.Item_Snapshot :=
+                 Snapshot.Items.Element (Positive (Item_Index));
+               Field_X : Natural;
+               Field_W : Natural;
             begin
-               if Within (X, Item_Rect.Text_X, Item_Rect.Text_Width) then
+               Files.Rendering.Rename_Field_Extent
+                 (Item      => Item_Rect,
+                  View_Mode => Snapshot.View_Mode,
+                  Renaming  => True,
+                  Field_X   => Field_X,
+                  Field_W   => Field_W);
+               if Within (X, Field_X, Field_W) then
                   return
                     Text_Click
                       (Files.Types.Focus_Rename_Input,
                        Cursor_At
-                         (Text        => Snapshot.Rename_Text,
-                          Text_X      => Item_Rect.Text_X,
-                          Click_X     => X));
+                         (Text        => Snapshot_Item.Rename_Value,
+                          Text_X      => Field_X,
+                          Click_X     => X),
+                       Item_Index);
                end if;
             end;
          end if;

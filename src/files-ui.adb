@@ -43,6 +43,13 @@ package body Files.UI is
       end if;
    end Saturating_Multiply;
 
+   function Caret_Advance_Width
+     (Line_Height : Positive := 20)
+      return Positive is
+   begin
+      return Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+   end Caret_Advance_Width;
+
    function Saturating_Add
      (Left  : Natural;
       Right : Natural)

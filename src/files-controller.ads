@@ -224,11 +224,13 @@ package Files.Controller is
    --  @param Model Window model to update.
    --  @param Target Text input target to focus.
    --  @param Cursor_Position Zero-based cursor position to set after focus.
+   --  @param Item_Index Visible row index of a clicked rename field (0 otherwise).
    --  @return Controller result describing whether text focus changed.
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;
       Target          : Files.Types.Focus_Target;
-      Cursor_Position : Natural)
+      Cursor_Position : Natural;
+      Item_Index      : Natural := 0)
       return Controller_Result;
 
    --  Handle a click inside the settings pane.

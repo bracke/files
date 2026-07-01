@@ -309,7 +309,8 @@ package body Files.Interaction is
               Files.Controller.Handle_Text_Click
                 (Model           => Model,
                  Target          => Action.Focus_Target,
-                 Cursor_Position => Action.Cursor_Position);
+                 Cursor_Position => Action.Cursor_Position,
+                 Item_Index      => Action.Item_Index);
             Result.Status := Outcome.Status;
          when Files.Events.Settings_Click_Input_Action =>
             Outcome :=

@@ -83,6 +83,9 @@ package Files.Rendering is
       Selected           : Boolean := False;
       Visible_Index      : Natural := 0;
       Cut_Pending        : Boolean := False;
+      Renaming           : Boolean := False;
+      Rename_Value       : UString;
+      Rename_Cursor      : Natural := 0;
    end record;
 
    package Item_Snapshot_Vectors is new Ada.Containers.Vectors
@@ -142,7 +145,6 @@ package Files.Rendering is
       Path_Input_Valid      : Boolean := True;
       Path_Input_Error_Key  : UString;
       Rename_Active         : Boolean := False;
-      Rename_Text           : UString;
       Temporary_Item_Active : Boolean := False;
       Temporary_Item_Name   : UString;
       Info_Pane_Open        : Boolean := False;
@@ -793,6 +795,23 @@ package Files.Rendering is
       X     : Natural;
       Y     : Natural)
       return Natural;
+
+   --  Return the horizontal extent of an item's inline rename field.
+   --
+   --  Both the renderer and the click hit-test use this so the editable region
+   --  they present exactly matches the region a click resolves against.
+   --
+   --  @param Item Item cell layout.
+   --  @param View_Mode Active view mode.
+   --  @param Renaming Whether the item is currently being renamed.
+   --  @param Field_X Left edge of the rename field.
+   --  @param Field_W Width of the rename field.
+   procedure Rename_Field_Extent
+     (Item      : Item_Layout;
+      View_Mode : Files.Types.View_Mode;
+      Renaming  : Boolean;
+      Field_X   : out Natural;
+      Field_W   : out Natural);
 
    --  Return the sort command for a details header click.
    --

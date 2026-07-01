@@ -1536,7 +1536,6 @@ package body Files.Rendering is
       Snapshot.Path_Input_Valid := Files.Model.Path_Input_Is_Valid (Model);
       Snapshot.Path_Input_Error_Key := To_Unbounded_String (Files.Model.Path_Input_Error_Key (Model));
       Snapshot.Rename_Active := Files.Model.Rename_Is_Active (Model);
-      Snapshot.Rename_Text := To_Unbounded_String (Files.Model.Rename_Text (Model));
       Snapshot.Temporary_Item_Active := Files.Model.Temporary_Item_Is_Active (Model);
       Snapshot.Temporary_Item_Name := To_Unbounded_String (Files.Model.Temporary_Item_Name (Model));
       Snapshot.Info_Pane_Open := Files.Model.Info_Pane_Is_Open (Model);
@@ -1780,7 +1779,12 @@ package body Files.Rendering is
          for Index in 1 .. Files.Model.Visible_Count (Model) loop
             declare
                Item : constant Files.File_System.Directory_Item := Files.Model.Visible_Item (Model, Index);
+               Rename_On     : Boolean;
+               Rename_Value  : Ada.Strings.Unbounded.Unbounded_String;
+               Rename_Cursor : Natural;
             begin
+               Files.Model.Rename_State_For_Visible
+                 (Model, Index, Rename_On, Rename_Value, Rename_Cursor);
                Snapshot.Items.Append
                  (Item_Snapshot'
                     (Name               => Item.Name,
@@ -1805,7 +1809,10 @@ package body Files.Rendering is
                      Error_Key          => Item.Error_Key,
                      Selected           => Files.Model.Is_Selected (Model, Index),
                      Visible_Index      => Index,
-                     Cut_Pending        => Is_Cut_Pending (Item.Full_Path)));
+                     Cut_Pending        => Is_Cut_Pending (Item.Full_Path),
+                     Renaming           => Rename_On,
+                     Rename_Value       => Rename_Value,
+                     Rename_Cursor      => Rename_Cursor));
             end;
          end loop;
       end;
@@ -2547,6 +2554,29 @@ package body Files.Rendering is
 
       return 0;
    end Item_At;
+
+   procedure Rename_Field_Extent
+     (Item      : Item_Layout;
+      View_Mode : Files.Types.View_Mode;
+      Renaming  : Boolean;
+      Field_X   : out Natural;
+      Field_W   : out Natural)
+   is
+      --  Large-icons cells stack a narrow, name-width label centered under the
+      --  icon. That region cannot hold an edited (often longer) name, so while
+      --  renaming a large-icons cell we edit across the full inner cell width,
+      --  mirroring how the wide small-icons/details rows already behave.
+      Wide : constant Boolean := Renaming and then View_Mode = Files.Types.Large_Icons;
+      Pad  : constant Natural := Natural'Min (Item_Content_Padding, Item.Width / 2);
+   begin
+      Field_X := (if Wide then Saturating_Add (Item.X, Pad) else Item.Text_X);
+      Field_W :=
+        (if Wide
+         then (if Item.Width > Saturating_Multiply (Pad, 2)
+               then Item.Width - Saturating_Multiply (Pad, 2)
+               else Item.Width)
+         else Item.Text_Width);
+   end Rename_Field_Extent;
 
    function Details_Header_Command_At
      (Snapshot    : View_Snapshot;
@@ -4022,15 +4052,16 @@ package body Files.Rendering is
          Y       : Natural;
          Field_W : Natural;
          Field_H : Natural;
-         Text    : UString)
+         Text    : UString;
+         Cursor  : Natural)
       is
-         Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+         Char_W : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
          Raw_X  : constant Natural :=
            Saturating_Add
              (Saturating_Add (X, Files.UI.Input_Field_Padding),
               Saturating_Multiply
-                (Files.UTF8.Display_Units_Before (Raw, Snapshot.Text_Cursor_Position), Char_W));
+                (Files.UTF8.Display_Units_Before (Raw, Cursor), Char_W));
          Max_X  : constant Natural := (if Field_W > 2 then Saturating_Add (X, Field_W - 2) else X);
          --  The caret height tracks the font: a fixed fraction of the line
          --  height (so it scales linearly with the font size), clamped to the
@@ -5059,7 +5090,8 @@ package body Files.Rendering is
                Toolbar_Input_Y,
                Path_W,
                Toolbar_Input_H,
-               Snapshot.Path_Input_Text);
+               Snapshot.Path_Input_Text,
+               Snapshot.Text_Cursor_Position);
          end if;
       end;
       Add_Command_Tooltip
@@ -5119,7 +5151,8 @@ package body Files.Rendering is
                Toolbar_Input_Y,
                Filter_W,
                Toolbar_Input_H,
-               Snapshot.Filter_Text);
+               Snapshot.Filter_Text,
+               Snapshot.Text_Cursor_Position);
          elsif Has_Hover
            and then Contains_Point
              (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Hover_X, Hover_Y)
@@ -5551,26 +5584,14 @@ package body Files.Rendering is
                   Use_Thumbnail => Snapshot.View_Mode = Files.Types.Large_Icons);
             end if;
             declare
-               Renaming : constant Boolean :=
-                 Snapshot.Rename_Active and then Item.Selected;
-               --  Large-icons cells stack a narrow, name-width label centered
-               --  under the icon. That region cannot hold an edited (often
-               --  longer) name and mis-centers the caret, so while renaming a
-               --  large-icons cell we edit across the full inner cell width,
-               --  left-aligned on the label line -- mirroring how the wide
-               --  small-icons/details rows already behave.
+               Renaming : constant Boolean := Item.Renaming;
+               --  While renaming a large-icons cell we edit across the full
+               --  inner cell width (see Rename_Field_Extent), so the caret sits
+               --  on the single label line rather than the tall cell.
                Wide     : constant Boolean :=
                  Renaming and then Snapshot.View_Mode = Files.Types.Large_Icons;
-               Pad      : constant Natural :=
-                 Natural'Min (Item_Content_Padding, Item_Rect.Width / 2);
-               Field_X  : constant Natural :=
-                 (if Wide then Saturating_Add (Item_Rect.X, Pad) else Item_Rect.Text_X);
-               Field_W  : constant Natural :=
-                 (if Wide
-                  then (if Item_Rect.Width > Saturating_Multiply (Pad, 2)
-                        then Item_Rect.Width - Saturating_Multiply (Pad, 2)
-                        else Item_Rect.Width)
-                  else Item_Rect.Text_Width);
+               Field_X  : Natural;
+               Field_W  : Natural;
                Field_Y  : constant Natural := Item_Rect.Text_Y;
                Label_H  : constant Natural :=
                  (if Saturating_Add (Item_Rect.Y, Item_Rect.Height) > Field_Y
@@ -5586,12 +5607,14 @@ package body Files.Rendering is
                      Label_H)
                   else Item_Rect.Height);
             begin
+               Rename_Field_Extent
+                 (Item_Rect, Snapshot.View_Mode, Renaming, Field_X, Field_W);
                Add_Text
                  (Field_X,
                   Field_Y,
                   Field_W,
                   Natural'Min (Line_Height, Item_Rect.Height),
-                  (if Renaming then Snapshot.Rename_Text else Item.Name),
+                  (if Renaming then Item.Rename_Value else Item.Name),
                   (if Item.Cut_Pending then Disabled_Text_Color else Text_Color),
                   Italic => Item.Cut_Pending,
                   Fit    => True);
@@ -5611,7 +5634,8 @@ package body Files.Rendering is
                         Field_Y,
                         Saturating_Add (Field_W, Caret_Inset),
                         Field_H,
-                        Snapshot.Rename_Text);
+                        Item.Rename_Value,
+                        Item.Rename_Cursor);
                   end;
                end if;
             end;
@@ -7092,7 +7116,8 @@ package body Files.Rendering is
                   Palette.Search_Y,
                   Palette.Search_Width,
                   Palette.Search_Height,
-                  Snapshot.Command_Palette_Query);
+                  Snapshot.Command_Palette_Query,
+                  Snapshot.Text_Cursor_Position);
             end if;
             Add_Accessibility_Node
               (Role_Text_Input,

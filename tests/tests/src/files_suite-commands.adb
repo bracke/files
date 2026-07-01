@@ -1897,8 +1897,12 @@ package body Files_Suite.Commands is
       Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 reports rename command");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "F2 focuses rename input");
       Assert
+        (Files.Model.Text_Cursor_Position (Model) = 3,
+         "F2 places rename cursor before the file extension");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert
         (Files.Model.Text_Cursor_Position (Model) = Files.Model.Rename_Text (Model)'Length,
-         "F2 places rename cursor at the end of the selected name");
+         "End moves the rename cursor to the end of the name");
       Result := Files.Controller.Append_Focused_Text (Model, ".bak");
       Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename append works immediately after F2");
       Assert

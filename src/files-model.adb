@@ -59,6 +59,130 @@ package body Files.Model is
       return Files.UTF8.Boundary_At_Or_Before (Text, Cursor);
    end Text_Boundary_At_Or_Before;
 
+   --  Remove the byte range [First, Last) from Text (offsets are clamped).
+   function Remove_Text_Segment
+     (Text        : String;
+      First, Last : Natural)
+      return String
+   is
+      Start_Index : constant Natural := Natural'Min (First, Text'Length);
+      End_Index   : constant Natural := Natural'Min (Last, Text'Length);
+      Result      : Unbounded_String;
+   begin
+      if Text = "" or else Start_Index >= End_Index then
+         return Text;
+      end if;
+
+      if Start_Index > 0 then
+         Append (Result, Text (Text'First .. Text'First + Start_Index - 1));
+      end if;
+
+      if End_Index < Text'Length then
+         Append (Result, Text (Text'First + End_Index .. Text'Last));
+      end if;
+
+      return To_String (Result);
+   end Remove_Text_Segment;
+
+   --  Insert Text into Old at the byte offset Cursor.
+   function Insert_Text_At
+     (Old    : String;
+      Cursor : Natural;
+      Text   : String)
+      return String is
+   begin
+      if Cursor = 0 then
+         return Text & Old;
+      elsif Cursor >= Old'Length then
+         return Old & Text;
+      else
+         return Old (Old'First .. Old'First + Cursor - 1)
+           & Text
+           & Old (Old'First + Cursor .. Old'Last);
+      end if;
+   end Insert_Text_At;
+
+   --  Return the byte offset before a name's extension: the position of the
+   --  last non-leading dot, or the name length when there is no extension.
+   function Caret_Before_Extension
+     (Name : String)
+      return Natural
+   is
+      Dot : Natural := 0;
+   begin
+      for Index in Name'Range loop
+         if Name (Index) = '.' and then Index > Name'First then
+            Dot := Index - Name'First;
+         end if;
+      end loop;
+
+      if Dot = 0 then
+         return Name'Length;
+      else
+         return Files.UTF8.Boundary_At_Or_Before (Name, Dot);
+      end if;
+   end Caret_Before_Extension;
+
+   --  Deactivate rename mode and discard every inline rename field.
+   procedure Reset_Rename_State
+     (Model : in out Window_Model) is
+   begin
+      Model.Rename_Active := False;
+      Model.Rename_Fields.Clear;
+   end Reset_Rename_State;
+
+   --  Return the first rename field's text, or an empty string when inactive.
+   function First_Rename_Value
+     (Model : Window_Model)
+      return String is
+   begin
+      if Model.Rename_Fields.Is_Empty then
+         return "";
+      else
+         return To_String (Model.Rename_Fields.First_Element.Value);
+      end if;
+   end First_Rename_Value;
+
+   --  Return the first rename field's caret, or zero when inactive.
+   function First_Rename_Cursor
+     (Model : Window_Model)
+      return Natural is
+   begin
+      if Model.Rename_Fields.Is_Empty then
+         return 0;
+      else
+         return Model.Rename_Fields.First_Element.Cursor;
+      end if;
+   end First_Rename_Cursor;
+
+   --  Return whether the active rename is the temporary create-item field.
+   function Is_Temporary_Rename
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      if not Model.Temporary_Active then
+         return False;
+      end if;
+
+      for Field of Model.Rename_Fields loop
+         if Field.Item_Index = 0 then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Is_Temporary_Rename;
+
+   --  Update the temporary-item name buffer to track its rename field's value.
+   procedure Sync_Temporary_From_Field
+     (Model : in out Window_Model;
+      Field : Rename_Field) is
+   begin
+      if Field.Item_Index = 0 and then Model.Temporary_Active then
+         Model.Temporary_Name_Value := Field.Value;
+      end if;
+   end Sync_Temporary_From_Field;
+
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model) is
    begin
@@ -249,16 +373,26 @@ package body Files.Model is
 
    procedure Reconcile_Rename_With_Selection (Model : in out Window_Model) is
    begin
-      if Model.Rename_Active
-        and then not (Model.Temporary_Active and then Model.Rename_Item_Index = 0)
-        and then
-          (Selected_Count (Model) /= 1
-           or else Effective_Selected_Item_Index (Model) /= Model.Rename_Item_Index)
-      then
+      if not Model.Rename_Active then
+         return;
+      end if;
+
+      --  The temporary create item keeps its rename field until it is
+      --  explicitly committed or cancelled, so leave it untouched here.
+      if Model.Temporary_Active then
+         return;
+      end if;
+
+      --  Drop the inline field for any item that is no longer selected. This
+      --  keeps a synchronized multi-rename in step with the live selection.
+      for Index in reverse Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         if not Selection_Contains (Model, Model.Rename_Fields.Element (Index).Item_Index) then
+            Model.Rename_Fields.Delete (Index);
+         end if;
+      end loop;
+
+      if Model.Rename_Fields.Is_Empty then
          Model.Rename_Active := False;
-         Model.Rename_Item_Index := 0;
-         Model.Rename_Value := Null_Unbounded_String;
-         Model.Rename_Cursor := 0;
          if Model.Focus_Value = Files.Types.Focus_Rename_Input then
             Model.Focus_Value := Files.Types.Focus_None;
          end if;
@@ -407,10 +541,7 @@ package body Files.Model is
       Model.Command_Palette_Cursor := 0;
       Model.Command_Palette_Selected := 0;
       Model.Command_Palette_Offset := 0;
-      Model.Rename_Active := False;
-      Model.Rename_Item_Index := 0;
-      Model.Rename_Value := Null_Unbounded_String;
-      Model.Rename_Cursor := 0;
+      Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
@@ -494,9 +625,8 @@ package body Files.Model is
    procedure Resort_Items (Model : in out Window_Model) is
       Previous_Selection : Files.File_System.Item_Vectors.Vector;
       Primary_Sentinel   : constant Boolean := Model.Selected_Item_Index = Temporary_Item_Index;
-      Rename_Sentinel    : constant Boolean := Model.Rename_Item_Index = Temporary_Item_Index;
       Primary_Path       : Unbounded_String := Null_Unbounded_String;
-      Rename_Path        : Unbounded_String := Null_Unbounded_String;
+      Rename_Old_Paths   : Files.Types.String_Vectors.Vector;
 
       function Path_At (Item_Index : Natural) return Unbounded_String is
       begin
@@ -528,9 +658,13 @@ package body Files.Model is
       if not Primary_Sentinel then
          Primary_Path := Path_At (Model.Selected_Item_Index);
       end if;
-      if not Rename_Sentinel then
-         Rename_Path := Path_At (Model.Rename_Item_Index);
-      end if;
+
+      --  Capture each rename field's item identity before the reorder. The
+      --  temporary field (Item_Index = 0) records a null path sentinel so it
+      --  can be preserved rather than remapped by identity.
+      for Field of Model.Rename_Fields loop
+         Rename_Old_Paths.Append (Path_At (Field.Item_Index));
+      end loop;
 
       Files.File_System.Sort_Items
         (Model.Items,
@@ -551,9 +685,35 @@ package body Files.Model is
       if not Primary_Sentinel then
          Model.Selected_Item_Index := Index_Of (Primary_Path);
       end if;
-      if not Rename_Sentinel then
-         Model.Rename_Item_Index := Index_Of (Rename_Path);
-      end if;
+
+      --  Remap each rename field to its item's new index, preserving the
+      --  temporary field and dropping fields whose item vanished.
+      declare
+         Rebuilt : Rename_Field_Vectors.Vector;
+         Cursor  : Positive := Rename_Old_Paths.First_Index;
+      begin
+         for Field of Model.Rename_Fields loop
+            declare
+               Old_Path  : constant Unbounded_String := Rename_Old_Paths.Element (Cursor);
+               New_Field : Rename_Field := Field;
+            begin
+               if Field.Item_Index = 0 then
+                  Rebuilt.Append (Field);
+               else
+                  declare
+                     New_Index : constant Natural := Index_Of (Old_Path);
+                  begin
+                     if New_Index /= 0 then
+                        New_Field.Item_Index := New_Index;
+                        Rebuilt.Append (New_Field);
+                     end if;
+                  end;
+               end if;
+            end;
+            Cursor := Cursor + 1;
+         end loop;
+         Model.Rename_Fields := Rebuilt;
+      end;
    end Resort_Items;
 
    procedure Select_Sort_Field
@@ -1063,10 +1223,7 @@ package body Files.Model is
       Model.Path_Input_Cursor := Directory_Path'Length;
       Model.Path_Input_Valid := True;
       Model.Path_Input_Error := Null_Unbounded_String;
-      Model.Rename_Active := False;
-      Model.Rename_Item_Index := 0;
-      Model.Rename_Value := Null_Unbounded_String;
-      Model.Rename_Cursor := 0;
+      Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
@@ -1115,10 +1272,7 @@ package body Files.Model is
       Model.Path_Input_Error := Null_Unbounded_String;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
-      Model.Rename_Active := False;
-      Model.Rename_Item_Index := 0;
-      Model.Rename_Value := Null_Unbounded_String;
-      Model.Rename_Cursor := 0;
+      Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
@@ -1153,10 +1307,7 @@ package body Files.Model is
       Model.Path_Input_Error := Null_Unbounded_String;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
-      Model.Rename_Active := False;
-      Model.Rename_Item_Index := 0;
-      Model.Rename_Value := Null_Unbounded_String;
-      Model.Rename_Cursor := 0;
+      Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
@@ -1398,7 +1549,7 @@ package body Files.Model is
          when Files.Types.Focus_Filter_Input =>
             return Length (Model.Filter_Value);
          when Files.Types.Focus_Rename_Input =>
-            return Length (Model.Rename_Value);
+            return First_Rename_Value (Model)'Length;
          when Files.Types.Focus_Command_Palette =>
             return Length (Model.Command_Palette_Query);
          when Files.Types.Focus_Settings_Input =>
@@ -1418,7 +1569,7 @@ package body Files.Model is
          when Files.Types.Focus_Filter_Input =>
             return To_String (Model.Filter_Value);
          when Files.Types.Focus_Rename_Input =>
-            return To_String (Model.Rename_Value);
+            return First_Rename_Value (Model);
          when Files.Types.Focus_Command_Palette =>
             return To_String (Model.Command_Palette_Query);
          when Files.Types.Focus_Settings_Input =>
@@ -1438,7 +1589,7 @@ package body Files.Model is
          when Files.Types.Focus_Filter_Input =>
             return Text_Boundary_At_Or_Before (To_String (Model.Filter_Value), Model.Filter_Cursor);
          when Files.Types.Focus_Rename_Input =>
-            return Text_Boundary_At_Or_Before (To_String (Model.Rename_Value), Model.Rename_Cursor);
+            return Text_Boundary_At_Or_Before (First_Rename_Value (Model), First_Rename_Cursor (Model));
          when Files.Types.Focus_Command_Palette =>
             return Text_Boundary_At_Or_Before (To_String (Model.Command_Palette_Query), Model.Command_Palette_Cursor);
          when Files.Types.Focus_Settings_Input =>
@@ -1461,7 +1612,14 @@ package body Files.Model is
          when Files.Types.Focus_Filter_Input =>
             Model.Filter_Cursor := Clamped;
          when Files.Types.Focus_Rename_Input =>
-            Model.Rename_Cursor := Clamped;
+            if not Model.Rename_Fields.Is_Empty then
+               declare
+                  Field : Rename_Field := Model.Rename_Fields.First_Element;
+               begin
+                  Field.Cursor := Clamped;
+                  Model.Rename_Fields.Replace_Element (Model.Rename_Fields.First_Index, Field);
+               end;
+            end if;
          when Files.Types.Focus_Command_Palette =>
             Model.Command_Palette_Cursor := Clamped;
          when Files.Types.Focus_Settings_Input =>
@@ -1543,13 +1701,10 @@ package body Files.Model is
          Model.Path_Input_Error := Null_Unbounded_String;
       end if;
 
-      if Model.Temporary_Active and then Model.Rename_Active and then Model.Rename_Item_Index = 0 then
+      if Is_Temporary_Rename (Model) then
          Cancel_Create_File (Model);
       elsif Model.Rename_Active then
-         Model.Rename_Active := False;
-         Model.Rename_Item_Index := 0;
-         Model.Rename_Value := Null_Unbounded_String;
-         Model.Rename_Cursor := 0;
+         Reset_Rename_State (Model);
       end if;
 
       Model.Focus_Value := Files.Types.Focus_None;
@@ -2254,23 +2409,75 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is
    begin
-      return Selected_Count (Model) = 1 and then not Selected_Item_Is_Temporary (Model);
+      return Selected_Count (Model) >= 1 and then not Selection_Includes_Temporary (Model);
    end Rename_Is_Enabled;
 
    function Rename_Behavior return Rename_Policy is
    begin
       return
-        (Single_Item_Only       => True,
-         Synchronized_Multi     => False,
+        (Single_Item_Only       => False,
+         Synchronized_Multi     => True,
          Atomic_Multi_Rename    => False,
-         Requires_One_Selection => True);
+         Requires_One_Selection => False);
    end Rename_Behavior;
+
+   --  Return the loaded-item indexes of the current real (non-temporary)
+   --  selection, in loaded order, for populating rename fields.
+   function Selected_Loaded_Indexes
+     (Model : Window_Model)
+      return Natural_Vectors.Vector
+   is
+      Result : Natural_Vectors.Vector;
+   begin
+      if Model.Items.Is_Empty then
+         return Result;
+      end if;
+
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         if Selection_Contains (Model, Natural (Index))
+           and then Item_Is_Visible (Model, Model.Items.Element (Index))
+         then
+            Result.Append (Natural (Index));
+         end if;
+      end loop;
+
+      return Result;
+   end Selected_Loaded_Indexes;
+
+   --  Return the 1-based index into Rename_Fields for the field shown at
+   --  Visible_Index, or zero when that row has no active rename field.
+   function Find_Rename_Field
+     (Model         : Window_Model;
+      Visible_Index : Positive)
+      return Natural
+   is
+      Loaded : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
+      Target : Natural;
+   begin
+      if Loaded = 0 then
+         if Temporary_Is_Visible (Model) and then Visible_Index = Visible_Count (Model) then
+            Target := 0;
+         else
+            return 0;
+         end if;
+      else
+         Target := Loaded;
+      end if;
+
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         if Model.Rename_Fields.Element (Index).Item_Index = Target then
+            return Index;
+         end if;
+      end loop;
+
+      return 0;
+   end Find_Rename_Field;
 
    procedure Toggle_Rename
      (Model : in out Window_Model) is
    begin
       if Model.Rename_Active then
-         if Model.Temporary_Active and then Model.Rename_Item_Index = 0 then
+         if Is_Temporary_Rename (Model) then
             Cancel_Create_File (Model);
             if Model.Focus_Value = Files.Types.Focus_Rename_Input then
                Model.Focus_Value := Files.Types.Focus_None;
@@ -2278,20 +2485,34 @@ package body Files.Model is
             return;
          end if;
 
-         Model.Rename_Active := False;
-         Model.Rename_Item_Index := 0;
-         Model.Rename_Value := Null_Unbounded_String;
-         Model.Rename_Cursor := 0;
+         Reset_Rename_State (Model);
          if Model.Focus_Value = Files.Types.Focus_Rename_Input then
             Model.Focus_Value := Files.Types.Focus_None;
          end if;
       elsif Rename_Is_Enabled (Model) then
          Clear_Overlay_State_For_Edit (Model);
-         Model.Rename_Active := True;
-         Model.Rename_Item_Index := Model.Selected_Item_Index;
-         Model.Rename_Value := To_Unbounded_String (Selected_Name (Model));
-         Model.Rename_Cursor := Length (Model.Rename_Value);
-         Model.Focus_Value := Files.Types.Focus_Rename_Input;
+         Model.Rename_Fields.Clear;
+         declare
+            Indexes : constant Natural_Vectors.Vector := Selected_Loaded_Indexes (Model);
+         begin
+            for Item_Index of Indexes loop
+               declare
+                  Name : constant String :=
+                    To_String (Model.Items.Element (Positive (Item_Index)).Name);
+               begin
+                  Model.Rename_Fields.Append
+                    (Rename_Field'
+                       (Item_Index => Item_Index,
+                        Value      => To_Unbounded_String (Name),
+                        Cursor     => Caret_Before_Extension (Name)));
+               end;
+            end loop;
+         end;
+
+         if not Model.Rename_Fields.Is_Empty then
+            Model.Rename_Active := True;
+            Model.Focus_Value := Files.Types.Focus_Rename_Input;
+         end if;
       end if;
    end Toggle_Rename;
 
@@ -2302,25 +2523,345 @@ package body Files.Model is
       return Model.Rename_Active;
    end Rename_Is_Active;
 
+   function Rename_Field_Count
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Natural (Model.Rename_Fields.Length);
+   end Rename_Field_Count;
+
    function Rename_Text
      (Model : Window_Model)
       return String is
    begin
-      return To_String (Model.Rename_Value);
+      return First_Rename_Value (Model);
    end Rename_Text;
 
    procedure Set_Rename_Text
      (Model : in out Window_Model;
       Text  : String) is
    begin
-      if Model.Rename_Active then
-         Model.Rename_Value := To_Unbounded_String (Text);
-         Model.Rename_Cursor := Text'Length;
-         if Model.Temporary_Active and then Model.Rename_Item_Index = 0 then
-            Model.Temporary_Name_Value := To_Unbounded_String (Text);
-         end if;
+      if Model.Rename_Active and then not Model.Rename_Fields.Is_Empty then
+         declare
+            Field : Rename_Field := Model.Rename_Fields.First_Element;
+         begin
+            Field.Value := To_Unbounded_String (Text);
+            Field.Cursor := Text'Length;
+            Model.Rename_Fields.Replace_Element (Model.Rename_Fields.First_Index, Field);
+            Sync_Temporary_From_Field (Model, Field);
+         end;
       end if;
    end Set_Rename_Text;
+
+   function Rename_Insert_At_Carets
+     (Model : in out Window_Model;
+      Text  : String)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      if Text = "" then
+         return False;
+      end if;
+
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field : Rename_Field := Model.Rename_Fields.Element (Index);
+            Old   : constant String := To_String (Field.Value);
+            Base  : constant Natural := Natural'Min (Field.Cursor, Old'Length);
+         begin
+            Field.Value := To_Unbounded_String (Insert_Text_At (Old, Base, Text));
+            Field.Cursor := Base + Text'Length;
+            Model.Rename_Fields.Replace_Element (Index, Field);
+            Sync_Temporary_From_Field (Model, Field);
+            Changed := True;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Insert_At_Carets;
+
+   function Rename_Delete_Backward
+     (Model : in out Window_Model)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field : Rename_Field := Model.Rename_Fields.Element (Index);
+            Text  : constant String := To_String (Field.Value);
+         begin
+            if Field.Cursor > 0 and then Text'Length > 0 then
+               declare
+                  Previous : constant Natural := Files.UTF8.Previous_Boundary (Text, Field.Cursor);
+               begin
+                  Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Previous, Field.Cursor));
+                  Field.Cursor := Previous;
+                  Model.Rename_Fields.Replace_Element (Index, Field);
+                  Sync_Temporary_From_Field (Model, Field);
+                  Changed := True;
+               end;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Delete_Backward;
+
+   function Rename_Delete_Forward
+     (Model : in out Window_Model)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field : Rename_Field := Model.Rename_Fields.Element (Index);
+            Text  : constant String := To_String (Field.Value);
+         begin
+            if Field.Cursor < Text'Length then
+               declare
+                  Next : constant Natural := Files.UTF8.Next_Boundary (Text, Field.Cursor);
+               begin
+                  Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Field.Cursor, Next));
+                  Model.Rename_Fields.Replace_Element (Index, Field);
+                  Sync_Temporary_From_Field (Model, Field);
+                  Changed := True;
+               end;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Delete_Forward;
+
+   function Rename_Delete_Word_Backward
+     (Model : in out Window_Model)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field    : Rename_Field := Model.Rename_Fields.Element (Index);
+            Text     : constant String := To_String (Field.Value);
+            Boundary : constant Natural := Files.UTF8.Previous_Word_Boundary (Text, Field.Cursor);
+         begin
+            if Field.Cursor > 0 and then Boundary < Field.Cursor then
+               Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Boundary, Field.Cursor));
+               Field.Cursor := Boundary;
+               Model.Rename_Fields.Replace_Element (Index, Field);
+               Sync_Temporary_From_Field (Model, Field);
+               Changed := True;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Delete_Word_Backward;
+
+   function Rename_Delete_Word_Forward
+     (Model : in out Window_Model)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field    : Rename_Field := Model.Rename_Fields.Element (Index);
+            Text     : constant String := To_String (Field.Value);
+            Boundary : constant Natural := Files.UTF8.Next_Word_Boundary (Text, Field.Cursor);
+         begin
+            if Field.Cursor < Text'Length and then Boundary > Field.Cursor then
+               Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Field.Cursor, Boundary));
+               Model.Rename_Fields.Replace_Element (Index, Field);
+               Sync_Temporary_From_Field (Model, Field);
+               Changed := True;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Delete_Word_Forward;
+
+   function Rename_Move_All_Carets
+     (Model     : in out Window_Model;
+      Direction : Files.Types.Navigation_Direction)
+      return Boolean
+   is
+      Backward : constant Boolean :=
+        Direction = Files.Types.Move_Left or else Direction = Files.Types.Move_Up;
+      Changed  : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field      : Rename_Field := Model.Rename_Fields.Element (Index);
+            Text       : constant String := To_String (Field.Value);
+            New_Cursor : Natural := Field.Cursor;
+         begin
+            if Backward then
+               if Field.Cursor > 0 then
+                  New_Cursor := Files.UTF8.Previous_Boundary (Text, Field.Cursor);
+               end if;
+            elsif Field.Cursor < Text'Length then
+               New_Cursor := Files.UTF8.Next_Boundary (Text, Field.Cursor);
+            end if;
+
+            if New_Cursor /= Field.Cursor then
+               Field.Cursor := New_Cursor;
+               Model.Rename_Fields.Replace_Element (Index, Field);
+               Changed := True;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Move_All_Carets;
+
+   function Rename_Move_All_Carets_Word
+     (Model     : in out Window_Model;
+      Direction : Files.Types.Navigation_Direction)
+      return Boolean
+   is
+      Backward : constant Boolean :=
+        Direction = Files.Types.Move_Left or else Direction = Files.Types.Move_Up;
+      Changed  : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field      : Rename_Field := Model.Rename_Fields.Element (Index);
+            Text       : constant String := To_String (Field.Value);
+            New_Cursor : constant Natural :=
+              (if Backward then Files.UTF8.Previous_Word_Boundary (Text, Field.Cursor)
+               else Files.UTF8.Next_Word_Boundary (Text, Field.Cursor));
+         begin
+            if New_Cursor /= Field.Cursor then
+               Field.Cursor := New_Cursor;
+               Model.Rename_Fields.Replace_Element (Index, Field);
+               Changed := True;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Move_All_Carets_Word;
+
+   function Rename_Set_All_Carets_Home
+     (Model : in out Window_Model)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field : Rename_Field := Model.Rename_Fields.Element (Index);
+         begin
+            if Field.Cursor /= 0 then
+               Field.Cursor := 0;
+               Model.Rename_Fields.Replace_Element (Index, Field);
+               Changed := True;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Set_All_Carets_Home;
+
+   function Rename_Set_All_Carets_End
+     (Model : in out Window_Model)
+      return Boolean
+   is
+      Changed : Boolean := False;
+   begin
+      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         declare
+            Field : Rename_Field := Model.Rename_Fields.Element (Index);
+            Last  : constant Natural := Length (Field.Value);
+         begin
+            if Field.Cursor /= Last then
+               Field.Cursor := Last;
+               Model.Rename_Fields.Replace_Element (Index, Field);
+               Changed := True;
+            end if;
+         end;
+      end loop;
+
+      return Changed;
+   end Rename_Set_All_Carets_End;
+
+   procedure Set_Rename_Caret
+     (Model         : in out Window_Model;
+      Visible_Index : Natural;
+      Position      : Natural) is
+   begin
+      if Visible_Index = 0 or else not Model.Rename_Active then
+         return;
+      end if;
+
+      declare
+         Field_Index : constant Natural := Find_Rename_Field (Model, Positive (Visible_Index));
+      begin
+         if Field_Index /= 0 then
+            declare
+               Field : Rename_Field := Model.Rename_Fields.Element (Field_Index);
+            begin
+               Field.Cursor := Files.UTF8.Boundary_At_Or_Before (To_String (Field.Value), Position);
+               Model.Rename_Fields.Replace_Element (Field_Index, Field);
+            end;
+         end if;
+      end;
+   end Set_Rename_Caret;
+
+   procedure Rename_State_For_Visible
+     (Model         : Window_Model;
+      Visible_Index : Positive;
+      Active        : out Boolean;
+      Value         : out UString;
+      Cursor        : out Natural)
+   is
+      Field_Index : constant Natural :=
+        (if Model.Rename_Active then Find_Rename_Field (Model, Visible_Index) else 0);
+   begin
+      if Field_Index = 0 then
+         Active := False;
+         Value  := Null_Unbounded_String;
+         Cursor := 0;
+      else
+         declare
+            Field : constant Rename_Field := Model.Rename_Fields.Element (Field_Index);
+         begin
+            Active := True;
+            Value  := Field.Value;
+            Cursor := Field.Cursor;
+         end;
+      end if;
+   end Rename_State_For_Visible;
+
+   function Rename_Targets
+     (Model : Window_Model)
+      return Rename_Target_Vectors.Vector
+   is
+      Result : Rename_Target_Vectors.Vector;
+   begin
+      for Field of Model.Rename_Fields loop
+         if Field.Item_Index in 1 .. Natural (Model.Items.Last_Index) then
+            declare
+               Item : constant Files.File_System.Directory_Item :=
+                 Model.Items.Element (Positive (Field.Item_Index));
+            begin
+               Result.Append
+                 (Rename_Target'
+                    (Item_Index    => Field.Item_Index,
+                     Old_Full_Path => Item.Full_Path,
+                     Old_Name      => Item.Name,
+                     New_Name      => Field.Value));
+            end;
+         end if;
+      end loop;
+
+      return Result;
+   end Rename_Targets;
 
    procedure Resume_Rename
      (Model : in out Window_Model;
@@ -2331,10 +2872,13 @@ package body Files.Model is
       end if;
 
       Clear_Overlay_State_For_Edit (Model);
+      Model.Rename_Fields.Clear;
+      Model.Rename_Fields.Append
+        (Rename_Field'
+           (Item_Index => Effective_Selected_Item_Index (Model),
+            Value      => To_Unbounded_String (Text),
+            Cursor     => Text'Length));
       Model.Rename_Active := True;
-      Model.Rename_Item_Index := Model.Selected_Item_Index;
-      Model.Rename_Value := To_Unbounded_String (Text);
-      Model.Rename_Cursor := Text'Length;
       Model.Focus_Value := Files.Types.Focus_Rename_Input;
    end Resume_Rename;
 
@@ -2347,10 +2891,13 @@ package body Files.Model is
       Model.Temporary_Active := True;
       Model.Temporary_Is_Directory := Is_Directory;
       Model.Temporary_Name_Value := To_Unbounded_String (Name);
+      Model.Rename_Fields.Clear;
+      Model.Rename_Fields.Append
+        (Rename_Field'
+           (Item_Index => 0,
+            Value      => To_Unbounded_String (Name),
+            Cursor     => Name'Length));
       Model.Rename_Active := True;
-      Model.Rename_Item_Index := 0;
-      Model.Rename_Value := To_Unbounded_String (Name);
-      Model.Rename_Cursor := Name'Length;
       Model.Main_View_Scroll := 0;
       Model.Selected_Item_Index := Temporary_Item_Index;
       Model.Selected_Item_Indexes.Clear;
@@ -2403,11 +2950,9 @@ package body Files.Model is
          Model.Selected_Item_Index := 0;
       end if;
       Remove_Selected_Index (Model, Temporary_Item_Index);
-      if Model.Rename_Active and then Model.Rename_Item_Index = 0 then
-         Model.Rename_Active := False;
-         Model.Rename_Value := Null_Unbounded_String;
-         Model.Rename_Cursor := 0;
-      end if;
+      --  The temporary item owns the only rename field while it is active, so
+      --  clearing rename state here discards exactly that field.
+      Reset_Rename_State (Model);
       if Model.Focus_Value = Files.Types.Focus_Rename_Input then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
@@ -2416,10 +2961,7 @@ package body Files.Model is
    procedure Clear_Edit_State
      (Model : in out Window_Model) is
    begin
-      Model.Rename_Active := False;
-      Model.Rename_Item_Index := 0;
-      Model.Rename_Value := Null_Unbounded_String;
-      Model.Rename_Cursor := 0;
+      Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
@@ -2439,10 +2981,7 @@ package body Files.Model is
       if Model.Temporary_Active then
          Cancel_Create_File (Model);
       elsif Model.Rename_Active then
-         Model.Rename_Active := False;
-         Model.Rename_Item_Index := 0;
-         Model.Rename_Value := Null_Unbounded_String;
-         Model.Rename_Cursor := 0;
+         Reset_Rename_State (Model);
       end if;
       if Model.Focus_Value = Files.Types.Focus_Rename_Input then
          Model.Focus_Value := Files.Types.Focus_None;

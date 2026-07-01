@@ -9,6 +9,17 @@ package Files.UI is
    Toolbar_Button_Width : constant Natural := 40;
    Toolbar_Button_Count : constant Natural := 6;
 
+   --  Return the horizontal pixel advance of one text display cell.
+   --
+   --  Both the caret renderer and the click-to-caret hit-test measure text with
+   --  this single width so a click lands exactly on the cell the caret draws at.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Pixel advance of one display cell (never zero).
+   function Caret_Advance_Width
+     (Line_Height : Positive := 20)
+      return Positive;
+
    --  Return the toolbar input-field height including vertical padding.
    --
    --  @param Line_Height Text line height in pixels.

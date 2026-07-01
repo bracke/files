@@ -853,10 +853,10 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
-   --  Return whether rename can start for a real loaded item.
+   --  Return whether rename can start for the current selection.
    --
    --  @param Model Model to inspect.
-   --  @return True when exactly one non-temporary item is selected.
+   --  @return True when at least one non-temporary item is selected.
    function Rename_Is_Enabled
      (Model : Window_Model)
       return Boolean;
@@ -873,7 +873,10 @@ package Files.Model is
    --  @return Rename behavior policy.
    function Rename_Behavior return Rename_Policy;
 
-   --  Toggle single-item rename mode.
+   --  Toggle synchronized multi-item rename mode.
+   --
+   --  When starting, one inline rename field is created per selected loaded
+   --  item, each with its caret placed before the file extension.
    --
    --  @param Model Model to update.
    procedure Toggle_Rename
@@ -887,23 +890,152 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Return active rename text.
+   --  Return the number of active inline rename fields.
    --
    --  @param Model Model to inspect.
-   --  @return Rename text, or an empty string.
+   --  @return Count of rename fields (zero when rename is inactive).
+   function Rename_Field_Count
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return the first rename field's text (a shim for single-field callers).
+   --
+   --  @param Model Model to inspect.
+   --  @return First field's rename text, or an empty string.
    function Rename_Text
      (Model : Window_Model)
       return String;
 
-   --  Set active rename text.
+   --  Set the first rename field's text (a shim for single-field callers).
    --
    --  @param Model Model to update.
-   --  @param Text New rename text.
+   --  @param Text New rename text for the first field.
    procedure Set_Rename_Text
      (Model : in out Window_Model;
       Text  : String);
 
-   --  Resume rename mode for the currently selected item.
+   --  Insert Text at every rename field's caret, advancing each caret.
+   --
+   --  @param Model Model to update.
+   --  @param Text UTF-8 text to insert.
+   --  @return True when any field changed.
+   function Rename_Insert_At_Carets
+     (Model : in out Window_Model;
+      Text  : String)
+      return Boolean;
+
+   --  Delete the character before every rename field's caret.
+   --
+   --  @param Model Model to update.
+   --  @return True when any field changed.
+   function Rename_Delete_Backward
+     (Model : in out Window_Model)
+      return Boolean;
+
+   --  Delete the character at every rename field's caret.
+   --
+   --  @param Model Model to update.
+   --  @return True when any field changed.
+   function Rename_Delete_Forward
+     (Model : in out Window_Model)
+      return Boolean;
+
+   --  Delete the word before every rename field's caret.
+   --
+   --  @param Model Model to update.
+   --  @return True when any field changed.
+   function Rename_Delete_Word_Backward
+     (Model : in out Window_Model)
+      return Boolean;
+
+   --  Delete the word at every rename field's caret.
+   --
+   --  @param Model Model to update.
+   --  @return True when any field changed.
+   function Rename_Delete_Word_Forward
+     (Model : in out Window_Model)
+      return Boolean;
+
+   --  Move every rename field's caret one text boundary in Direction.
+   --
+   --  @param Model Model to update.
+   --  @param Direction Left/Up moves back, Right/Down moves forward.
+   --  @return True when any caret moved.
+   function Rename_Move_All_Carets
+     (Model     : in out Window_Model;
+      Direction : Files.Types.Navigation_Direction)
+      return Boolean;
+
+   --  Move every rename field's caret one word boundary in Direction.
+   --
+   --  @param Model Model to update.
+   --  @param Direction Left/Up moves back, Right/Down moves forward.
+   --  @return True when any caret moved.
+   function Rename_Move_All_Carets_Word
+     (Model     : in out Window_Model;
+      Direction : Files.Types.Navigation_Direction)
+      return Boolean;
+
+   --  Move every rename field's caret to the start of its text.
+   --
+   --  @param Model Model to update.
+   --  @return True when any caret moved.
+   function Rename_Set_All_Carets_Home
+     (Model : in out Window_Model)
+      return Boolean;
+
+   --  Move every rename field's caret to the end of its text.
+   --
+   --  @param Model Model to update.
+   --  @return True when any caret moved.
+   function Rename_Set_All_Carets_End
+     (Model : in out Window_Model)
+      return Boolean;
+
+   --  Set the caret of the rename field shown at Visible_Index only.
+   --
+   --  @param Model Model to update.
+   --  @param Visible_Index One-based visible row index of the clicked field.
+   --  @param Position Byte offset of the new caret (clamped to a boundary).
+   procedure Set_Rename_Caret
+     (Model         : in out Window_Model;
+      Visible_Index : Natural;
+      Position      : Natural);
+
+   --  Return the rename state for the item shown at Visible_Index.
+   --
+   --  @param Model Model to inspect.
+   --  @param Visible_Index One-based visible row index.
+   --  @param Active Set True when that row has an active rename field.
+   --  @param Value Field text (empty when inactive).
+   --  @param Cursor Field caret byte offset (zero when inactive).
+   procedure Rename_State_For_Visible
+     (Model         : Window_Model;
+      Visible_Index : Positive;
+      Active        : out Boolean;
+      Value         : out UString;
+      Cursor        : out Natural);
+
+   type Rename_Target is record
+      Item_Index    : Natural := 0;
+      Old_Full_Path : UString;
+      Old_Name      : UString;
+      New_Name      : UString;
+   end record;
+
+   package Rename_Target_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Rename_Target);
+
+   --  Return the commit targets for the active real-item rename fields.
+   --
+   --  @param Model Model to inspect.
+   --  @return One target per real rename field (temporary fields excluded).
+   function Rename_Targets
+     (Model : Window_Model)
+      return Rename_Target_Vectors.Vector;
+
+   --  Resume single-item rename mode for the currently selected item.
    --
    --  @param Model Model to update.
    --  @param Text Rename text to restore.
@@ -1167,6 +1299,19 @@ private
      (Index_Type   => Positive,
       Element_Type => Natural);
 
+   --  One inline rename editor. Item_Index is a loaded-item index (1 .. last)
+   --  for a real item, or 0 for the temporary create item. Value is the edited
+   --  name and Cursor is the byte offset of that field's caret.
+   type Rename_Field is record
+      Item_Index : Natural := 0;
+      Value      : UString;
+      Cursor     : Natural := 0;
+   end record;
+
+   package Rename_Field_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Rename_Field);
+
    type Window_Model is record
       Current_Path_Value   : UString;
       Home_Path_Value      : UString;
@@ -1206,9 +1351,7 @@ private
       Command_Palette_Mode     : Palette_Mode := Palette_Commands;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Rename_Active            : Boolean := False;
-      Rename_Item_Index    : Natural := 0;
-      Rename_Value         : UString;
-      Rename_Cursor        : Natural := 0;
+      Rename_Fields            : Rename_Field_Vectors.Vector;
       Temporary_Active     : Boolean := False;
       Temporary_Is_Directory : Boolean := False;
       Temporary_Name_Value : UString;

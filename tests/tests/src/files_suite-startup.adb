@@ -1199,6 +1199,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.rename.source_missing");
       Add_Error_Key ("error.rename.invalid_destination");
       Add_Error_Key ("error.rename.failed");
+      Add_Error_Key ("error.rename.partial");
       Add_Error_Key ("error.trash.unavailable");
       Add_Error_Key ("error.trash.failed");
       Add_Error_Key ("error.trash.native_unavailable");

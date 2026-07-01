@@ -2210,7 +2210,10 @@ package body Files.Application.Windows is
                      Error_Key          => Null_Unbounded_String,
                      Selected           => True,
                      Visible_Index      => 1,
-                     Cut_Pending        => False));
+                     Cut_Pending        => False,
+                     Renaming           => False,
+                     Rename_Value       => Null_Unbounded_String,
+                     Rename_Cursor      => 0));
             end if;
 
             declare

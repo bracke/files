@@ -33,6 +33,7 @@ package body Files_Suite.Rendering is
    use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
+   use type Files.Types.Focus_Target;
    use type System.Address;
 
    type Rendering_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -46,6 +47,8 @@ package body Files_Suite.Rendering is
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Large_Icons_Rename_Caret (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -79,6 +82,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Large_Icons_Rename_Caret'Access,
          "large-icons rename edits left-aligned across the cell with the caret in the label region");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Multi_Rename_Fields_And_Carets'Access,
+         "two renaming rows draw two rename fields and two carets at their own cursors");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Caret_Click_Round_Trip'Access,
+         "a click at a drawn caret pixel resolves back to that caret's cursor index");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Caret_Scales_With_Line_Height'Access, "the text-input caret height grows with the line height");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -439,12 +448,14 @@ package body Files_Suite.Rendering is
          Item : Item_Snapshot := Snapshot.Items.Element (1);
       begin
          Item.Selected := True;
+         Item.Renaming := True;
+         Item.Rename_Value := To_Unbounded_String ("a-much-longer-renamed-file-name.txt");
+         Item.Rename_Cursor := 0;
          Snapshot.Items.Replace_Element (1, Item);
       end;
       Snapshot.Selected_Count := 1;
       Snapshot.Rename_Active := True;
       Snapshot.Focus := Files.Types.Focus_Rename_Input;
-      Snapshot.Rename_Text := To_Unbounded_String ("a-much-longer-renamed-file-name.txt");
 
       declare
          Layout : constant Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
@@ -461,7 +472,12 @@ package body Files_Suite.Rendering is
 
       --  With the cursor at the start, the caret must sit at the cell's left
       --  edge (left-aligned edit), not indented to a centered name-width label.
-      Snapshot.Text_Cursor_Position := 0;
+      declare
+         Item : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         Item.Rename_Cursor := 0;
+         Snapshot.Items.Replace_Element (1, Item);
+      end;
       declare
          Frame          : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
          CX, CY, CW, CH : Natural;
@@ -482,7 +498,12 @@ package body Files_Suite.Rendering is
 
       --  With the cursor further along, the caret tracks the text rightward,
       --  proving the editable box spans the cell rather than a tiny label.
-      Snapshot.Text_Cursor_Position := 8;
+      declare
+         Item : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         Item.Rename_Cursor := 8;
+         Snapshot.Items.Replace_Element (1, Item);
+      end;
       declare
          Frame          : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
          CX, CY, CW, CH : Natural;
@@ -498,6 +519,105 @@ package body Files_Suite.Rendering is
             "the advanced caret stays contained in the cell's label region");
       end;
    end Test_Large_Icons_Rename_Caret;
+
+   --  A synchronized multi-rename must draw one field and one caret per renaming
+   --  row, each caret at that row's own cursor.
+   procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      Carets   : Natural := 0;
+      First_X  : Natural := 0;
+      Second_X : Natural := 0;
+
+      procedure Set_Rename (Index : Positive; Cursor : Natural) is
+         Item : Item_Snapshot := Snapshot.Items.Element (Index);
+      begin
+         Item.Selected := True;
+         Item.Renaming := True;
+         Item.Rename_Value := To_Unbounded_String ("abcdef");
+         Item.Rename_Cursor := Cursor;
+         Snapshot.Items.Replace_Element (Index, Item);
+      end Set_Rename;
+   begin
+      Set_Rename (1, 1);
+      Set_Rename (2, 4);
+      Snapshot.Selected_Count := 2;
+      Snapshot.Rename_Active := True;
+      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+
+      declare
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      begin
+         for Rect of Frame.Rectangles loop
+            if Rect.Width in 1 .. 2 and then Rect.Color = Text_Color then
+               Carets := Carets + 1;
+               if First_X = 0 then
+                  First_X := Rect.X;
+               else
+                  Second_X := Rect.X;
+               end if;
+            end if;
+         end loop;
+      end;
+
+      Assert (Carets = 2, "two renaming rows draw exactly two carets");
+      --  The two rows share the same text but differ by three cursor cells, so
+      --  their carets sit three advance-widths apart.
+      Assert
+        (Natural'Max (First_X, Second_X) - Natural'Min (First_X, Second_X)
+           = 3 * Files.UI.Caret_Advance_Width (20),
+         "each row's caret tracks that row's own cursor position");
+   end Test_Multi_Rename_Fields_And_Carets;
+
+   --  The caret renderer and the click hit-test measure text with one shared
+   --  advance width, so a click at the pixel a caret draws for cursor k must
+   --  resolve back to cursor k.
+   procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+      CX, CY, CW, CH : Natural;
+      Found          : Boolean;
+   begin
+      declare
+         Item : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         Item.Selected := True;
+         Item.Renaming := True;
+         Item.Rename_Value := To_Unbounded_String ("abcdef");
+         Item.Rename_Cursor := 3;
+         Snapshot.Items.Replace_Element (1, Item);
+      end;
+      Snapshot.Selected_Count := 1;
+      Snapshot.Rename_Active := True;
+      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+
+      declare
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      begin
+         Find_Caret (Frame, CX, CY, CW, CH, Found);
+         Assert (Found, "the focused rename row draws a caret");
+         declare
+            Action : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Snapshot, Frame,
+                 X      => CX,
+                 Y      => CY + CH / 2,
+                 Width  => 1000,
+                 Height => 800);
+         begin
+            Assert
+              (Action.Kind = Files.Events.Text_Click_Input_Action,
+               "clicking the rename field produces a text-click action");
+            Assert
+              (Action.Focus_Target = Files.Types.Focus_Rename_Input,
+               "the click targets the rename input");
+            Assert
+              (Action.Cursor_Position = 3,
+               "the click at the caret pixel resolves back to the drawn cursor index");
+            Assert (Action.Item_Index = 1, "the click carries the clicked row index");
+         end;
+      end;
+   end Test_Caret_Click_Round_Trip;
 
    --  Bug 14: the text-input caret height must scale with the font/line height,
    --  the way the glyph height does, rather than being a fixed size.

@@ -413,6 +413,16 @@ package body Files.Controller is
          return Make_Result (Controller_Ignored);
       end if;
 
+      --  Rename edits broadcast to every synchronized caret rather than the
+      --  single focused buffer.
+      if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+         return
+           Make_Result
+             (if Files.Model.Rename_Insert_At_Carets (Model, Text)
+              then Controller_Text_Updated
+              else Controller_Ignored);
+      end if;
+
       if Cursor = 0 then
          New_Text := To_Unbounded_String (Text & Old_Text);
       elsif Cursor >= Old_Text'Length then
@@ -481,6 +491,12 @@ package body Files.Controller is
    begin
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
          return Make_Result (Controller_Ignored);
+      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+         return
+           Make_Result
+             (if Files.Model.Rename_Delete_Backward (Model)
+              then Controller_Text_Updated
+              else Controller_Ignored);
       elsif Text'Length = 0 or else Cursor = 0 then
          return Make_Result (Controller_Ignored);
       end if;
@@ -501,6 +517,12 @@ package body Files.Controller is
    begin
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
          return Make_Result (Controller_Ignored);
+      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+         return
+           Make_Result
+             (if Files.Model.Rename_Delete_Forward (Model)
+              then Controller_Text_Updated
+              else Controller_Ignored);
       elsif Text'Length = 0 or else Cursor >= Text'Length then
          return Make_Result (Controller_Ignored);
       end if;
@@ -537,6 +559,12 @@ package body Files.Controller is
    begin
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
          return Make_Result (Controller_Ignored);
+      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+         return
+           Make_Result
+             (if Files.Model.Rename_Delete_Word_Backward (Model)
+              then Controller_Text_Updated
+              else Controller_Ignored);
       elsif Cursor = 0 then
          return Make_Result (Controller_Ignored);
       end if;
@@ -556,6 +584,12 @@ package body Files.Controller is
    begin
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
          return Make_Result (Controller_Ignored);
+      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+         return
+           Make_Result
+             (if Files.Model.Rename_Delete_Word_Forward (Model)
+              then Controller_Text_Updated
+              else Controller_Ignored);
       elsif Cursor >= Text'Length then
          return Make_Result (Controller_Ignored);
       end if;
@@ -1174,7 +1208,8 @@ package body Files.Controller is
    function Handle_Text_Click
      (Model           : in out Files.Model.Window_Model;
       Target          : Files.Types.Focus_Target;
-      Cursor_Position : Natural)
+      Cursor_Position : Natural;
+      Item_Index      : Natural := 0)
       return Controller_Result
    is
       Old_Focus  : constant Files.Types.Focus_Target := Files.Model.Focus (Model);
@@ -1227,6 +1262,13 @@ package body Files.Controller is
          when Files.Types.Focus_None =>
             return Make_Result (Controller_Ignored);
       end case;
+
+      --  A rename click moves only the clicked field's caret, keeping the
+      --  other synchronized carets in place.
+      if Target = Files.Types.Focus_Rename_Input then
+         Files.Model.Set_Rename_Caret (Model, Item_Index, Cursor_Position);
+         return Make_Result (Controller_Text_Updated);
+      end if;
 
       Files.Model.Set_Text_Cursor_Position (Model, Cursor_Position);
       return
@@ -1788,6 +1830,13 @@ package body Files.Controller is
          declare
             Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
          begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Files.Types.Move_Left)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
             Files.Model.Set_Text_Cursor_Position
               (Model, Previous_Word_Boundary (Focused_Text (Model), Old_Position));
             return
@@ -1803,6 +1852,13 @@ package body Files.Controller is
          declare
             Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
          begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Files.Types.Move_Right)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
             Files.Model.Set_Text_Cursor_Position
               (Model, Next_Word_Boundary (Focused_Text (Model), Old_Position));
             return
@@ -1829,6 +1885,13 @@ package body Files.Controller is
          declare
             Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
          begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets (Model, Files.Types.Move_Left)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
             Files.Model.Move_Text_Cursor (Model, Files.Types.Move_Left);
             return
               Make_Result
@@ -1844,6 +1907,13 @@ package body Files.Controller is
          declare
             Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
          begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets (Model, Files.Types.Move_Right)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
             Files.Model.Move_Text_Cursor (Model, Files.Types.Move_Right);
             return
               Make_Result
@@ -1859,6 +1929,13 @@ package body Files.Controller is
          declare
             Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
          begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Set_All_Carets_Home (Model)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
             Files.Model.Set_Text_Cursor_Position (Model, 0);
             return
               Make_Result
@@ -1874,6 +1951,13 @@ package body Files.Controller is
          declare
             Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
          begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Set_All_Carets_End (Model)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
             Files.Model.Set_Text_Cursor_Position (Model, Focused_Text (Model)'Length);
             return
               Make_Result
