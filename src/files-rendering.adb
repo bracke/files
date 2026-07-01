@@ -5439,37 +5439,71 @@ package body Files.Rendering is
                   Item_Rect.Icon_Size,
                   Use_Thumbnail => Snapshot.View_Mode = Files.Types.Large_Icons);
             end if;
-            Add_Text
-              (Item_Rect.Text_X,
-               Item_Rect.Text_Y,
-               Item_Rect.Text_Width,
-               Natural'Min (Line_Height, Item_Rect.Height),
-               (if Snapshot.Rename_Active and then Item.Selected then Snapshot.Rename_Text else Item.Name),
-               (if Item.Cut_Pending then Disabled_Text_Color else Text_Color),
-               Italic => Item.Cut_Pending,
-               Fit    => True);
+            declare
+               Renaming : constant Boolean :=
+                 Snapshot.Rename_Active and then Item.Selected;
+               --  Large-icons cells stack a narrow, name-width label centered
+               --  under the icon. That region cannot hold an edited (often
+               --  longer) name and mis-centers the caret, so while renaming a
+               --  large-icons cell we edit across the full inner cell width,
+               --  left-aligned on the label line -- mirroring how the wide
+               --  small-icons/details rows already behave.
+               Wide     : constant Boolean :=
+                 Renaming and then Snapshot.View_Mode = Files.Types.Large_Icons;
+               Pad      : constant Natural :=
+                 Natural'Min (Item_Content_Padding, Item_Rect.Width / 2);
+               Field_X  : constant Natural :=
+                 (if Wide then Saturating_Add (Item_Rect.X, Pad) else Item_Rect.Text_X);
+               Field_W  : constant Natural :=
+                 (if Wide
+                  then (if Item_Rect.Width > Saturating_Multiply (Pad, 2)
+                        then Item_Rect.Width - Saturating_Multiply (Pad, 2)
+                        else Item_Rect.Width)
+                  else Item_Rect.Text_Width);
+               Field_Y  : constant Natural := Item_Rect.Text_Y;
+               Label_H  : constant Natural :=
+                 (if Saturating_Add (Item_Rect.Y, Item_Rect.Height) > Field_Y
+                  then Saturating_Add (Item_Rect.Y, Item_Rect.Height) - Field_Y
+                  else 0);
+               --  The caret sits on the single label line, not the whole cell,
+               --  so its height tracks the line height rather than the tall
+               --  large-icons cell.
+               Field_H  : constant Natural :=
+                 (if Wide
+                  then Natural'Min
+                    (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
+                     Label_H)
+                  else Item_Rect.Height);
+            begin
+               Add_Text
+                 (Field_X,
+                  Field_Y,
+                  Field_W,
+                  Natural'Min (Line_Height, Item_Rect.Height),
+                  (if Renaming then Snapshot.Rename_Text else Item.Name),
+                  (if Item.Cut_Pending then Disabled_Text_Color else Text_Color),
+                  Italic => Item.Cut_Pending,
+                  Fit    => True);
 
-            if Snapshot.Rename_Active
-              and then Item.Selected
-              and then Snapshot.Focus = Files.Types.Focus_Rename_Input
-            then
-               Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Border_Color);
-               Add_Focus_Ring (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
-               declare
-                  Caret_X     : constant Natural :=
-                    (if Item_Rect.Text_X > Files.UI.Input_Field_Padding
-                     then Item_Rect.Text_X - Files.UI.Input_Field_Padding
-                     else 0);
-                  Caret_Inset : constant Natural := Item_Rect.Text_X - Caret_X;
-               begin
-                  Add_Caret
-                    (Caret_X,
-                     Item_Rect.Text_Y,
-                     Saturating_Add (Item_Rect.Text_Width, Caret_Inset),
-                     Item_Rect.Height,
-                     Snapshot.Rename_Text);
-               end;
-            end if;
+               if Renaming and then Snapshot.Focus = Files.Types.Focus_Rename_Input then
+                  Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Border_Color);
+                  Add_Focus_Ring (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
+                  declare
+                     Caret_X     : constant Natural :=
+                       (if Field_X > Files.UI.Input_Field_Padding
+                        then Field_X - Files.UI.Input_Field_Padding
+                        else 0);
+                     Caret_Inset : constant Natural := Field_X - Caret_X;
+                  begin
+                     Add_Caret
+                       (Caret_X,
+                        Field_Y,
+                        Saturating_Add (Field_W, Caret_Inset),
+                        Field_H,
+                        Snapshot.Rename_Text);
+                  end;
+               end if;
+            end;
 
             if Snapshot.View_Mode = Files.Types.Details and then Item_Rect.Height > 0 then
                Add_Rect

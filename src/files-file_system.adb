@@ -652,15 +652,16 @@ package body Files.File_System is
    end Text_Less;
 
    function Field_Less
-     (Left     : Directory_Item;
-      Right    : Directory_Item;
-      Settings : Files.Settings.Settings_Model)
+     (Left      : Directory_Item;
+      Right     : Directory_Item;
+      Field     : Files.Settings.Sort_Field;
+      Ascending : Boolean)
       return Boolean
    is
       Forward_Order : Boolean := False;
       Reverse_Order : Boolean := False;
    begin
-      case Settings.Sort_Field_Value is
+      case Field is
          when Files.Settings.Sort_By_Name =>
             Forward_Order := Name_Less (Left => Left, Right => Right);
             Reverse_Order := Name_Less (Left => Right, Right => Left);
@@ -690,17 +691,32 @@ package body Files.File_System is
             end if;
       end case;
 
-      if Settings.Sort_Field_Value /= Files.Settings.Sort_By_Name
+      if Field /= Files.Settings.Sort_By_Name
         and then not Forward_Order
         and then not Reverse_Order
       then
          return Name_Less (Left, Right);
-      elsif Settings.Sort_Ascending then
+      elsif Ascending then
          return Forward_Order;
       else
          return Reverse_Order;
       end if;
    end Field_Less;
+
+   procedure Sort_Items
+     (Items     : in out Item_Vectors.Vector;
+      Field     : Files.Settings.Sort_Field;
+      Ascending : Boolean)
+   is
+      function Less (Left : Directory_Item; Right : Directory_Item) return Boolean is
+      begin
+         return Field_Less (Left, Right, Field, Ascending);
+      end Less;
+
+      package Sorting is new Item_Vectors.Generic_Sorting ("<" => Less);
+   begin
+      Sorting.Sort (Items);
+   end Sort_Items;
 
    function Permission_String (Path : String) return String is
       Result : String (1 .. 3) := "---";
@@ -1497,16 +1513,7 @@ package body Files.File_System is
 
       Safe_End_Search (Search, Started);
 
-      declare
-         function Less (Left : Directory_Item; Right : Directory_Item) return Boolean is
-         begin
-            return Field_Less (Left, Right, Settings);
-         end Less;
-
-         package Sorting is new Item_Vectors.Generic_Sorting ("<" => Less);
-      begin
-         Sorting.Sort (Items);
-      end;
+      Sort_Items (Items, Settings.Sort_Field_Value, Settings.Sort_Ascending);
 
       return
         (Success   => True,

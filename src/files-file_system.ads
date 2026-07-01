@@ -322,6 +322,19 @@ package Files.File_System is
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result;
 
+   --  Sort Items in place into the display order for the given sort field and
+   --  direction. Shared by directory loading and by the window model so that
+   --  keyboard navigation follows exactly the order shown on screen, in either
+   --  sort direction.
+   --
+   --  @param Items Item vector reordered in place.
+   --  @param Field Sort field to order by.
+   --  @param Ascending Ascending order when True, descending when False.
+   procedure Sort_Items
+     (Items     : in out Item_Vectors.Vector;
+      Field     : Files.Settings.Sort_Field;
+      Ascending : Boolean);
+
    --  Search a directory tree recursively for item names matching Query.
    --
    --  @param Root_Path Directory where recursive search starts.

@@ -474,6 +474,88 @@ package body Files.Model is
       return Model.Sort_Ascending;
    end Sort_Is_Ascending;
 
+   function Settings_Sort_Field (Field : Sort_Field) return Files.Settings.Sort_Field is
+   begin
+      case Field is
+         when Sort_Name    => return Files.Settings.Sort_By_Name;
+         when Sort_Size    => return Files.Settings.Sort_By_Size;
+         when Sort_Type    => return Files.Settings.Sort_By_Filetype;
+         when Sort_Created => return Files.Settings.Sort_By_Created;
+         when Sort_Changed => return Files.Settings.Sort_By_Modified;
+      end case;
+   end Settings_Sort_Field;
+
+   --  Reorder the stored items to match the model's current sort field and
+   --  direction. Keyboard navigation walks the stored item order, so it must be
+   --  identical to the displayed order the renderer sorts with -- otherwise a
+   --  descending sort makes Up/Down move against the visible order. Selection
+   --  and rename targets are index-based, so they are re-established by item
+   --  identity (full path) after the reorder.
+   procedure Resort_Items (Model : in out Window_Model) is
+      Previous_Selection : Files.File_System.Item_Vectors.Vector;
+      Primary_Sentinel   : constant Boolean := Model.Selected_Item_Index = Temporary_Item_Index;
+      Rename_Sentinel    : constant Boolean := Model.Rename_Item_Index = Temporary_Item_Index;
+      Primary_Path       : Unbounded_String := Null_Unbounded_String;
+      Rename_Path        : Unbounded_String := Null_Unbounded_String;
+
+      function Path_At (Item_Index : Natural) return Unbounded_String is
+      begin
+         if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
+            return Model.Items.Element (Positive (Item_Index)).Full_Path;
+         else
+            return Null_Unbounded_String;
+         end if;
+      end Path_At;
+
+      function Index_Of (Path : Unbounded_String) return Natural is
+      begin
+         if Path = Null_Unbounded_String then
+            return 0;
+         end if;
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            if Model.Items.Element (Index).Full_Path = Path then
+               return Natural (Index);
+            end if;
+         end loop;
+         return 0;
+      end Index_Of;
+   begin
+      for Item_Index of Model.Selected_Item_Indexes loop
+         if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
+            Previous_Selection.Append (Model.Items.Element (Positive (Item_Index)));
+         end if;
+      end loop;
+      if not Primary_Sentinel then
+         Primary_Path := Path_At (Model.Selected_Item_Index);
+      end if;
+      if not Rename_Sentinel then
+         Rename_Path := Path_At (Model.Rename_Item_Index);
+      end if;
+
+      Files.File_System.Sort_Items
+        (Model.Items,
+         Settings_Sort_Field (Model.Sort_Field_Value),
+         Model.Sort_Ascending);
+
+      Model.Selected_Item_Indexes.Clear;
+      for Item of Previous_Selection loop
+         declare
+            New_Index : constant Natural := Index_Of (Item.Full_Path);
+         begin
+            if New_Index /= 0 then
+               Model.Selected_Item_Indexes.Append (New_Index);
+            end if;
+         end;
+      end loop;
+
+      if not Primary_Sentinel then
+         Model.Selected_Item_Index := Index_Of (Primary_Path);
+      end if;
+      if not Rename_Sentinel then
+         Model.Rename_Item_Index := Index_Of (Rename_Path);
+      end if;
+   end Resort_Items;
+
    procedure Select_Sort_Field
      (Model : in out Window_Model;
       Field : Sort_Field) is
@@ -487,6 +569,7 @@ package body Files.Model is
 
       Model.Sort_Menu_Open := False;
       Model.Main_View_Scroll := 0;
+      Resort_Items (Model);
    end Select_Sort_Field;
 
    procedure Toggle_Sort_Menu

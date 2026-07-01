@@ -42,6 +42,8 @@ package body Files_Suite.Rendering is
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Large_Icons_Rename_Caret (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -70,6 +72,11 @@ package body Files_Suite.Rendering is
         (T, Test_Frame_Rendering_Invariants'Access, "frame rendering invariants");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Extreme_Size_Saturation'Access, "layout saturates at extreme sizes without overflow");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Large_Icons_Rename_Caret'Access,
+         "large-icons rename edits left-aligned across the cell with the caret in the label region");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Caret_Scales_With_Line_Height'Access, "the text-input caret height grows with the line height");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Click_Translation_Behavior'Access, "click translation behaviour");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -205,6 +212,39 @@ package body Files_Suite.Rendering is
          Assert
            (MV.Scrollbar_Height > 0 and then MV.Scrollbar_Height <= MV.Scrollbar_Track_Height,
             "the thumb is no taller than its track");
+         --  Bug 16: the thumb length is proportional to the visible fraction,
+         --  i.e. track_length * viewport_height / content_height with the
+         --  viewport equal to the scroll track, clamped to a line-height
+         --  minimum and to the track length. Derived purely from the layout's
+         --  own exposed track/content, so a wrong denominator would break it.
+         Assert
+           (MV.Scrollbar_Height =
+              Natural'Min
+                (MV.Scrollbar_Track_Height,
+                 Natural'Max
+                   (20,
+                    MV.Scrollbar_Track_Height * MV.Scrollbar_Track_Height / MV.Content_Height)),
+            "the thumb length is the clamped proportional fraction of the track");
+      end;
+
+      --  Bug 16: with moderate overflow the thumb is comfortably above the
+      --  minimum clamp, so proportionality must hold within integer rounding
+      --  (thumb / track ~= track / content), and it must saturate: near-full
+      --  content gives a near-full thumb, huge content gives the minimum.
+      declare
+         Mid    : constant View_Snapshot := Sample_Snapshot (26, Files.Types.Details);
+         Layout : constant Layout_Metrics := Calculate_Layout (Mid, 900, 400, 20);
+         MV     : constant Main_View_Layout := Calculate_Main_View_Layout (Mid, Layout, 20);
+         Track  : constant Natural := MV.Scrollbar_Track_Height;
+         Content : constant Natural := MV.Content_Height;
+      begin
+         Assert (MV.Scrollbar_Visible, "the moderately overflowing list shows a scrollbar");
+         Assert (MV.Scrollbar_Height > 20, "moderate overflow keeps the thumb above the minimum clamp");
+         --  |thumb * content - track * track| < content  <=>  thumb within 1px of track^2/content.
+         Assert
+           (MV.Scrollbar_Height * Content <= Track * Track + Content
+            and then (MV.Scrollbar_Height + 1) * Content > Track * Track,
+            "the thumb length equals track * viewport / content within rounding");
       end;
 
       declare
@@ -331,6 +371,127 @@ package body Files_Suite.Rendering is
          Assert (Frame.Layout.Toolbar_Height = Natural'Last, "the rendered frame layout also saturates");
       end;
    end Test_Extreme_Size_Saturation;
+
+   --  Return the caret rectangle (a 1-2px wide Text_Color bar) emitted in Frame,
+   --  or a zero rectangle if none. Found is set when a caret is present.
+   procedure Find_Caret
+     (Frame : Frame_Commands;
+      X     : out Natural;
+      Y     : out Natural;
+      W     : out Natural;
+      H     : out Natural;
+      Found : out Boolean)
+   is
+   begin
+      X := 0; Y := 0; W := 0; H := 0; Found := False;
+      for Rect of Frame.Rectangles loop
+         if Rect.Width in 1 .. 2 and then Rect.Color = Text_Color then
+            X := Rect.X; Y := Rect.Y; W := Rect.Width; H := Rect.Height; Found := True;
+         end if;
+      end loop;
+   end Find_Caret;
+
+   --  Bug 13: in large-icons view the rename edit must span the cell width,
+   --  left-aligned on the label line, with the caret contained in the cell's
+   --  label region -- not pinned inside a narrow, name-width centered label.
+   procedure Test_Large_Icons_Rename_Caret (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Large_Icons);
+      Cell     : Item_Layout;
+      Found    : Boolean := False;
+   begin
+      declare
+         Item : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         Item.Selected := True;
+         Snapshot.Items.Replace_Element (1, Item);
+      end;
+      Snapshot.Selected_Count := 1;
+      Snapshot.Rename_Active := True;
+      Snapshot.Focus := Files.Types.Focus_Rename_Input;
+      Snapshot.Rename_Text := To_Unbounded_String ("a-much-longer-renamed-file-name.txt");
+
+      declare
+         Layout : constant Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
+         Cells  : constant Item_Layout_Vectors.Vector := Calculate_Item_Layout (Snapshot, Layout, 20);
+      begin
+         for C of Cells loop
+            if C.Visible_Index = 1 then
+               Cell := C;
+               Found := True;
+            end if;
+         end loop;
+      end;
+      Assert (Found, "the renamed large-icons cell is laid out");
+
+      --  With the cursor at the start, the caret must sit at the cell's left
+      --  edge (left-aligned edit), not indented to a centered name-width label.
+      Snapshot.Text_Cursor_Position := 0;
+      declare
+         Frame          : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+         CX, CY, CW, CH : Natural;
+         Caret_Found    : Boolean;
+      begin
+         Find_Caret (Frame, CX, CY, CW, CH, Caret_Found);
+         Assert (Caret_Found, "the focused large-icons rename draws a caret");
+         Assert
+           (CX >= Cell.X and then CX + CW <= Cell.X + Cell.Width,
+            "the rename caret stays within the cell horizontally");
+         Assert
+           (CY >= Cell.Text_Y and then CY + CH <= Cell.Y + Cell.Height,
+            "the rename caret sits on the label line inside the cell");
+         Assert
+           (CX <= Cell.X + 20,
+            "the large-icons rename edits from the cell's left edge, not a centered label box");
+      end;
+
+      --  With the cursor further along, the caret tracks the text rightward,
+      --  proving the editable box spans the cell rather than a tiny label.
+      Snapshot.Text_Cursor_Position := 8;
+      declare
+         Frame          : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+         CX, CY, CW, CH : Natural;
+         Caret_Found    : Boolean;
+      begin
+         Find_Caret (Frame, CX, CY, CW, CH, Caret_Found);
+         Assert (Caret_Found, "the rename caret is drawn as the text grows");
+         Assert
+           (CX > Cell.X + 20,
+            "the caret advances rightward with the text across the wide rename field");
+         Assert
+           (CX + CW <= Cell.X + Cell.Width and then CY + CH <= Cell.Y + Cell.Height,
+            "the advanced caret stays contained in the cell's label region");
+      end;
+   end Test_Large_Icons_Rename_Caret;
+
+   --  Bug 14: the text-input caret height must scale with the font/line height,
+   --  the way the glyph height does, rather than being a fixed size.
+   procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Caret_H (L : Positive) return Natural is
+         Snapshot : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         X, Y, W, H : Natural;
+         Found      : Boolean;
+      begin
+         Snapshot.Focus := Files.Types.Focus_Path_Input;
+         Snapshot.Path_Input_Text := To_Unbounded_String ("/home/user/example");
+         Snapshot.Text_Cursor_Position := 4;
+         Find_Caret (Build_Frame_Commands (Snapshot, 1000, 800, L), X, Y, W, H, Found);
+         return (if Found then H else 0);
+      end Caret_H;
+
+      Small : constant Natural := Caret_H (20);
+      Large : constant Natural := Caret_H (40);
+   begin
+      Assert (Small > 0 and then Large > 0, "a focused path input draws a caret at each font size");
+      Assert (Large > Small, "the caret grows taller with a larger font/line height");
+      --  A fixed-size caret would keep Large = Small; require the growth to
+      --  track the line-height increase rather than a token amount.
+      Assert
+        (Large - Small >= (40 - 20) / 2,
+         "the caret height tracks the line height instead of a fixed size");
+   end Test_Caret_Scales_With_Line_Height;
 
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
