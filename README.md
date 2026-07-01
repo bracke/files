@@ -2,6 +2,28 @@
 
 A desktop file manager written in Ada 2022, rendered with Vulkan and GLFW.
 
+## Quick start
+
+On Debian/Ubuntu (Linux; see below for macOS/Windows deps):
+
+```sh
+# 1. Sibling crates must sit next to this repo (see "Sibling crate dependencies")
+#    <parent>/{files, project_tools, i18n, textrender, zlib}
+# 2. System libraries
+sudo apt-get install -y libvulkan-dev libgdk-pixbuf-2.0-dev libglib2.0-dev \
+  libgtk-3-dev fonts-dejavu-core
+# 3. Build and run (Alire provides the GNAT toolchain)
+alr build
+bin/files [PATH ...]        # defaults to your home directory
+```
+
+Once open: type in the path bar to navigate, double-click or Enter to open,
+right-click for the context menu, and press the command palette shortcut to
+search commands. Common actions — new file/folder, copy/cut/paste, rename,
+duplicate, delete-to-trash (with Undo), compress/extract, open-with — are on the
+right-click menu; sorting, view mode, hidden-file visibility, and the theme are
+on the bottom bar and in the settings pane.
+
 ## Platform status
 
 Linux, Windows, and macOS are all supported targets. Linux is the validated
