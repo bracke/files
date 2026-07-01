@@ -148,6 +148,31 @@ package Files.Interaction is
       Y          : Natural;
       Result     : out Interaction_Result);
 
+   --  Apply one step of a details-header column-resize drag. Sets Column's
+   --  persisted width to its width at drag start adjusted by how far the pointer
+   --  has moved from the separator's origin, then clamps and persists it through
+   --  With_Column_Width. Because the flexible name column absorbs the slack on
+   --  the left, dragging a separator left widens its column and dragging right
+   --  narrows it, so the applied delta is Origin_X minus Current_X. The details
+   --  layout reflows the name column to honour its minimum on the next frame.
+   --  Result.Settings_Changed is set when the width actually changed.
+   --
+   --  @param Settings Live settings model, updated in place when the width changes.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Column Optional detail column being resized.
+   --  @param Origin_X Separator x edge captured when the drag began.
+   --  @param Origin_Width Column's effective width when the drag began.
+   --  @param Current_X Current pointer x coordinate in window pixels.
+   --  @param Result Follow-up flags; Settings_Changed reports a width change.
+   procedure Apply_Column_Resize
+     (Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Column        : Files.Types.Detail_Column;
+      Origin_X      : Integer;
+      Origin_Width  : Natural;
+      Current_X     : Integer;
+      Result        : out Interaction_Result);
+
    --  Persist the settings model to the central settings file. A no-op when the
    --  path is empty; write failures are intentionally ignored.
    --

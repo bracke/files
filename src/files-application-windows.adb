@@ -199,6 +199,14 @@ package body Files.Application.Windows is
       Drag_Source_Index : Natural := 0;
       Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
       Scrollbar_Drag_Anchor : Integer := 0;
+      --  Details-header column-resize drag state, owned by the shell exactly like
+      --  the scrollbar drag above. Active gates a live resize; Target names the
+      --  column, Origin_X the separator edge, and Origin_Width the column's width
+      --  when the drag began, so each move sets width = origin +/- pointer delta.
+      Column_Resize_Active  : Boolean := False;
+      Column_Resize_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Column_Resize_Origin_X : Integer := 0;
+      Column_Resize_Origin_W : Natural := 0;
       Last_Click_Item : Natural := 0;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Text            : Files.Rendering.Text_Renderer;
@@ -1240,6 +1248,17 @@ package body Files.Application.Windows is
          return;
       end if;
 
+      --  Column-resize begin likewise arms shell-owned drag state; the continuous
+      --  resize is applied per frame by Update_Column_Resize_Drag. The action's
+      --  payload is packed into the shared fields (see the Input_Action comment).
+      if Action.Kind = Files.Events.Column_Resize_Begin_Input_Action then
+         Runtime.Column_Resize_Active := True;
+         Runtime.Column_Resize_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
+         Runtime.Column_Resize_Origin_X := Action.Cursor_Position;
+         Runtime.Column_Resize_Origin_W := Action.Scroll_Drag_Anchor;
+         return;
+      end if;
+
       Files.Interaction.Apply_Input_Action
         (Model             => Runtime.Model,
          Settings          => Runtime.Settings,
@@ -1620,6 +1639,10 @@ package body Files.Application.Windows is
             Drag_Source_Index => 0,
             Scrollbar_Drag_Target => Files.Events.Scroll_Auto,
             Scrollbar_Drag_Anchor => 0,
+            Column_Resize_Active => False,
+            Column_Resize_Target => Files.Types.Modified_Column,
+            Column_Resize_Origin_X => 0,
+            Column_Resize_Origin_W => 0,
             Last_Click_Item => 0,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
@@ -1782,6 +1805,33 @@ package body Files.Application.Windows is
       end;
    end Update_Scrollbar_Drag;
 
+   procedure Update_Column_Resize_Drag
+     (Runtime    : in out Runtime_Window;
+      Cursor_X   : Glfw.Input.Mouse.Coordinate;
+      Window_W   : Glfw.Size;
+      Frame_W    : Glfw.Size;
+      Mouse_Down : Boolean)
+   is
+      Result : Files.Interaction.Interaction_Result;
+   begin
+      if not Runtime.Column_Resize_Active then
+         return;
+      elsif not Mouse_Down or else Window_W = 0 or else Frame_W = 0 then
+         Runtime.Column_Resize_Active := False;
+         return;
+      end if;
+
+      Files.Interaction.Apply_Column_Resize
+        (Settings      => Runtime.Settings,
+         Settings_Path => To_String (Runtime.Settings_Path),
+         Column        => Runtime.Column_Resize_Target,
+         Origin_X      => Runtime.Column_Resize_Origin_X,
+         Origin_Width  => Runtime.Column_Resize_Origin_W,
+         Current_X     => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
+         Result        => Result);
+      pragma Unreferenced (Result);
+   end Update_Column_Resize_Drag;
+
    procedure Render_Window
      (Runtime : in out Runtime_Window)
    is
@@ -1815,6 +1865,13 @@ package body Files.Application.Windows is
          Window_H   => Window_H,
          Frame_W    => Width,
          Frame_H    => Height,
+         Mouse_Down => Mouse_Down);
+
+      Update_Column_Resize_Drag
+        (Runtime    => Runtime,
+         Cursor_X   => Cursor_X,
+         Window_W   => Window_W,
+         Frame_W    => Width,
          Mouse_Down => Mouse_Down);
 
       declare

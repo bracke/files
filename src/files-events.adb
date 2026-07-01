@@ -130,6 +130,41 @@ package body Files.Events is
          Scroll_Drag_Anchor => Anchor);
    end Scroll_Drag_Begin_Action;
 
+   --  Build a details-header column-resize drag-begin action. The target column,
+   --  the separator's origin x edge, and the column's effective width at drag
+   --  start are packed into the shared Item_Index, Cursor_Position, and
+   --  Scroll_Drag_Anchor fields (see the Input_Action record comment). The
+   --  desktop shell owns the continuous drag, mirroring the scrollbar drag.
+   --
+   --  @param Column Optional detail column the drag resizes.
+   --  @param Origin_X Separator's x edge at drag start.
+   --  @param Origin_Width Column's effective width at drag start.
+   --  @return Column-resize drag-begin input action.
+   function Column_Resize_Begin_Action
+     (Column       : Files.Types.Optional_Detail_Column;
+      Origin_X     : Natural;
+      Origin_Width : Natural)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Column_Resize_Begin_Input_Action,
+         Command         => Files.Commands.No_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => Files.Types.Detail_Column'Pos (Column),
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => Origin_X,
+         Settings_Field  => 0,
+         Settings_Option => 0,
+         Activate        => False,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => Origin_Width);
+   end Column_Resize_Begin_Action;
+
    function Saturating_Negated_Triple (Value : Integer) return Integer is
    begin
       if Value = 0 then
@@ -726,6 +761,19 @@ package body Files.Events is
       if Command /= Files.Commands.No_Command then
          return Command_Action (Command, Activate);
       end if;
+
+      --  A press on a header separator begins a column resize and takes
+      --  precedence over the sort click on the header cell behind it.
+      declare
+         Separator : constant Files.Rendering.Detail_Column_Separator :=
+           Files.Rendering.Details_Header_Separator_At (Snapshot, Layout, X, Y, Line_Height);
+      begin
+         if Separator.Present then
+            return
+              Column_Resize_Begin_Action
+                (Separator.Column, Separator.Origin_X, Separator.Width);
+         end if;
+      end;
 
       Command := Files.Rendering.Details_Header_Command_At (Snapshot, Layout, X, Y, Line_Height);
       if Command /= Files.Commands.No_Command then

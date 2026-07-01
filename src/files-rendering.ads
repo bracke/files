@@ -849,6 +849,42 @@ package Files.Rendering is
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
 
+   --  A draggable details-header column separator. Present is False when a
+   --  coordinate misses every separator hot zone. Column is the optional column
+   --  a drag on this separator resizes (the column whose left edge the separator
+   --  is). Origin_X is that left edge in window pixels and Width the column's
+   --  current effective width, both captured so a drag can grow or shrink the
+   --  column relative to the size it had when the drag began.
+   type Detail_Column_Separator is record
+      Present  : Boolean := False;
+      Column   : Files.Types.Optional_Detail_Column := Files.Types.Modified_Column;
+      Origin_X : Natural := 0;
+      Width    : Natural := 0;
+   end record;
+
+   --  Hit-test a details-header coordinate against the draggable column
+   --  separators. Every visible optional column carries a separator on its left
+   --  edge (the boundary shared with the column to its left); dragging that
+   --  separator resizes the optional column. The separator hot zone takes
+   --  precedence over the header cell's sort click, so a press on a separator
+   --  begins a resize instead of changing the sort field. Returns a separator
+   --  with Present False when the coordinate lies outside every hot zone, the
+   --  header band, or the details view.
+   --
+   --  @param Snapshot Immutable view snapshot.
+   --  @param Layout Calculated frame layout.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The separator under the coordinate, or one with Present False.
+   function Details_Header_Separator_At
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Detail_Column_Separator;
+
    --  Calculate command-palette search and result-section rectangles.
    --
    --  @param Layout High-level window layout metrics.

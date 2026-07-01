@@ -2068,7 +2068,8 @@ package body Files.Controller is
             | Files.Events.Item_Click_Input_Action
             | Files.Events.Root_Click_Input_Action
             | Files.Events.Command_Result_Click_Input_Action
-            | Files.Events.Scrollbar_Drag_Begin_Input_Action =>
+            | Files.Events.Scrollbar_Drag_Begin_Input_Action
+            | Files.Events.Column_Resize_Begin_Input_Action =>
             null;
       end case;
 

@@ -64,6 +64,7 @@ package body Files_Suite.Rendering is
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -130,6 +131,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Group_Header_Rows'Access,
          "grouping emits non-selectable header rows that click-testing skips");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Detail_Header_Separator_Hit_Test'Access,
+         "a header column boundary hit-tests to its resize separator and misses elsewhere");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -1358,5 +1362,57 @@ package body Files_Suite.Rendering is
       Assert (Item_At (Items, Item_Center_X, Item_Center_Y) = 1,
               "clicking a real row under a header still resolves to that item");
    end Test_Detail_Group_Header_Rows;
+
+   procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Detail_Column;
+
+      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Layout : constant Layout_Metrics :=
+        Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
+      Items  : constant Item_Layout_Vectors.Vector :=
+        Calculate_Item_Layout (Base, Layout, Line_Height => 20);
+
+      Row      : Item_Layout;
+      Found    : Boolean := False;
+      Header_Y : Natural;
+   begin
+      --  Column boundaries align between the header and the item rows, so a data
+      --  row's per-column left edges give the exact separator x positions.
+      for Cell of Items loop
+         if Cell.Visible_Index = 1 then
+            Row := Cell;
+            Found := True;
+            exit;
+         end if;
+      end loop;
+      Assert (Found, "the details list lays out a first data row");
+
+      --  A y between the pane top and the first row lands inside the header band.
+      Header_Y := (Layout.Main_Y + Row.Y) / 2;
+
+      declare
+         At_Size : constant Detail_Column_Separator :=
+           Details_Header_Separator_At (Base, Layout, Row.Size_X, Header_Y, Line_Height => 20);
+         At_Modified : constant Detail_Column_Separator :=
+           Details_Header_Separator_At (Base, Layout, Row.Modified_X, Header_Y, Line_Height => 20);
+         Mid_Name : constant Detail_Column_Separator :=
+           Details_Header_Separator_At
+             (Base, Layout, Row.Name_X + Row.Name_Width / 2, Header_Y, Line_Height => 20);
+         Above_Header : constant Detail_Column_Separator :=
+           Details_Header_Separator_At (Base, Layout, Row.Size_X, Row.Y + Row.Height, Line_Height => 20);
+      begin
+         Assert (At_Size.Present and then At_Size.Column = Files.Types.Size_Column,
+                 "a press on the size column's left edge resolves to the size separator");
+         Assert (At_Size.Origin_X = Row.Size_X and then At_Size.Width = Row.Size_Width,
+                 "the separator reports the column's edge and current width");
+         Assert (At_Modified.Present and then At_Modified.Column = Files.Types.Modified_Column,
+                 "the boundary between name and the first fixed column resizes that fixed column");
+         Assert (not Mid_Name.Present,
+                 "a press in the middle of a header cell is not a separator");
+         Assert (not Above_Header.Present,
+                 "a press below the header band is not a separator");
+      end;
+   end Test_Detail_Header_Separator_Hit_Test;
 
 end Files_Suite.Rendering;

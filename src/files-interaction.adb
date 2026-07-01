@@ -364,10 +364,12 @@ package body Files.Interaction is
                 (Model, Action.Scroll_Area, Action.Scroll_Lines);
             Result.Status := Outcome.Status;
          when Files.Events.Scrollbar_Drag_Begin_Input_Action
+            | Files.Events.Column_Resize_Begin_Input_Action
             | Files.Events.No_Input_Action
             | Files.Events.Selection_Input_Action =>
-            --  Scrollbar-drag begin updates runtime drag state owned by the
-            --  shell; the no-op kinds are ignored. Nothing to apply here.
+            --  Scrollbar-drag and column-resize begin both update runtime drag
+            --  state owned by the shell (applied through Apply_Column_Resize for
+            --  the resize); the no-op kinds are ignored. Nothing to apply here.
             null;
       end case;
    end Apply_Input_Action;
@@ -443,5 +445,31 @@ package body Files.Interaction is
       end if;
       Result.Context_Menu_Changed := True;
    end Apply_Right_Click;
+
+   procedure Apply_Column_Resize
+     (Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Column        : Files.Types.Detail_Column;
+      Origin_X      : Integer;
+      Origin_Width  : Natural;
+      Current_X     : Integer;
+      Result        : out Interaction_Result)
+   is
+      --  The name column is the flexible remainder on the left, so a wider fixed
+      --  column pushes its own left edge left: dragging the separator left grows
+      --  the column and dragging it right shrinks it. Hence the applied delta is
+      --  Origin_X minus Current_X.
+      Target_Raw : constant Integer := Integer (Origin_Width) + (Origin_X - Current_X);
+      New_Width  : constant Natural := (if Target_Raw < 0 then 0 else Target_Raw);
+      Updated    : constant Files.Settings.Settings_Model :=
+        Files.Settings.With_Column_Width (Settings, Column, New_Width);
+   begin
+      Result := (others => <>);
+      if Updated.Column_Widths (Column) /= Settings.Column_Widths (Column) then
+         Settings := Updated;
+         Persist_Settings (Settings, Settings_Path);
+         Result.Settings_Changed := True;
+      end if;
+   end Apply_Column_Resize;
 
 end Files.Interaction;

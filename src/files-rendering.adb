@@ -2986,6 +2986,75 @@ package body Files.Rendering is
       end if;
    end Details_Header_Command_At;
 
+   --  Half-width, in pixels, of the invisible hot zone straddling a header
+   --  column separator. A press within this band of a separator's edge begins a
+   --  resize; it is wide enough to be grabbable yet narrow enough that clicks
+   --  well inside a header cell still resolve to a sort.
+   Detail_Separator_Hot_Zone : constant := 5;
+
+   function Details_Header_Separator_At
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Detail_Column_Separator
+   is
+      Padding   : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+      Content_W : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Width);
+      Content_H : constant Natural :=
+        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Height);
+      Header_H  : constant Natural :=
+        Natural'Min
+          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+      Columns   : constant Detail_Column_Geometry_Array :=
+        Compute_Detail_Columns
+          (Snapshot.Detail_Columns_Visible,
+           Snapshot.Detail_Column_Widths,
+           Content_X,
+           Content_W,
+           Line_Height,
+           Header_Pad);
+      Low       : constant Natural :=
+        (if X > Detail_Separator_Hot_Zone then X - Detail_Separator_Hot_Zone else 0);
+      High      : constant Natural := Saturating_Add (X, Detail_Separator_Hot_Zone);
+   begin
+      if Snapshot.View_Mode /= Files.Types.Details
+        or else Header_H = 0
+        or else Y < Content_Y
+        or else Y >= Saturating_Add (Content_Y, Header_H)
+      then
+         return (Present => False, others => <>);
+      end if;
+
+      for Column in Files.Types.Optional_Detail_Column loop
+         if Columns (Column).Visible
+           and then Columns (Column).X >= Low
+           and then Columns (Column).X <= High
+         then
+            return
+              (Present  => True,
+               Column   => Column,
+               Origin_X => Columns (Column).X,
+               Width    => Columns (Column).Width);
+         end if;
+      end loop;
+
+      return (Present => False, others => <>);
+   end Details_Header_Separator_At;
+
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive := 20)

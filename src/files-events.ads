@@ -11,6 +11,7 @@ package Files.Events is
       Selection_Input_Action,
       Scroll_Input_Action,
       Scrollbar_Drag_Begin_Input_Action,
+      Column_Resize_Begin_Input_Action,
       Text_Click_Input_Action,
       Settings_Click_Input_Action,
       Item_Click_Input_Action,
@@ -24,6 +25,11 @@ package Files.Events is
       Scroll_Settings_Pane,
       Scroll_Command_Palette);
 
+   --  Translated input action. Several fields are reused per Kind. For a
+   --  Column_Resize_Begin_Input_Action the payload is packed into the shared
+   --  fields: Item_Index holds Files.Types.Detail_Column'Pos of the column the
+   --  drag resizes, Cursor_Position holds the separator's origin x edge, and
+   --  Scroll_Drag_Anchor holds the column's effective width at drag start.
    type Input_Action is record
       Kind         : Input_Action_Kind := No_Input_Action;
       Command      : Files.Commands.Command_Id := Files.Commands.No_Command;
