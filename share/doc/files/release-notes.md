@@ -9,6 +9,9 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Synchronized multi-cursor rename: select multiple items and rename them all at
+  once. Each gets its own inline field and caret; typing/backspace/arrows apply
+  to every caret while a mouse click moves just one; Enter commits best-effort.
 - Headless GPU display-layer test gate: `bin/files --live-smoke` renders the
   full GLFW + Vulkan path, reads the framebuffer back, and structurally analyses
   it (not-blank, populated bands, meaningful ink), with a PASS/FAIL/SKIP verdict
