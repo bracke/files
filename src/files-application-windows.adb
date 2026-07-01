@@ -2213,7 +2213,9 @@ package body Files.Application.Windows is
                      Cut_Pending        => False,
                      Renaming           => False,
                      Rename_Value       => Null_Unbounded_String,
-                     Rename_Cursor      => 0));
+                     Rename_Cursor      => 0,
+                     Is_Group_Header    => False,
+                     Group_Label        => Null_Unbounded_String));
             end if;
 
             declare

@@ -62,6 +62,8 @@ package body Files_Suite.Rendering is
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -122,6 +124,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Theme_Palette_Selection'Access,
          "the light palette differs from dark while high contrast keeps the dark base");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Detail_Column_Customization'Access,
+         "detail columns honour visibility and custom widths and always keep the name column");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Detail_Group_Header_Rows'Access,
+         "grouping emits non-selectable header rows that click-testing skips");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -1229,5 +1237,126 @@ package body Files_Suite.Rendering is
       pragma Warnings (On, "use of an anonymous access type allocator");
       return Result;
    end Suite;
+
+   procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Name_Width_Of (Items : Item_Layout_Vectors.Vector) return Natural is
+      begin
+         for Cell of Items loop
+            if Cell.Visible_Index = 1 then
+               return Cell.Name_Width;
+            end if;
+         end loop;
+         return 0;
+      end Name_Width_Of;
+
+      function Size_Width_Of (Items : Item_Layout_Vectors.Vector) return Natural is
+      begin
+         for Cell of Items loop
+            if Cell.Visible_Index = 1 then
+               return Cell.Size_Width;
+            end if;
+         end loop;
+         return 0;
+      end Size_Width_Of;
+
+      Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Layout : constant Layout_Metrics :=
+        Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
+      Base_Items : constant Item_Layout_Vectors.Vector :=
+        Calculate_Item_Layout (Base, Layout, Line_Height => 20);
+      Base_Name_W : constant Natural := Name_Width_Of (Base_Items);
+   begin
+      Assert (Base_Name_W > 0, "the name column has a positive width");
+      Assert (Size_Width_Of (Base_Items) > 0, "the size column is laid out when visible");
+
+      --  Hiding the size column drops its width to zero and widens the name
+      --  column, which must always remain present.
+      declare
+         Hidden : View_Snapshot := Base;
+         Items  : Item_Layout_Vectors.Vector;
+      begin
+         Hidden.Detail_Columns_Visible (Files.Types.Size_Column) := False;
+         Items := Calculate_Item_Layout (Hidden, Layout, Line_Height => 20);
+         Assert (Size_Width_Of (Items) = 0, "a hidden column contributes no width");
+         Assert (Name_Width_Of (Items) > Base_Name_W,
+                 "hiding a column re-flows its width into the remaining columns");
+      end;
+
+      --  A custom width is honoured; a sub-minimum request is clamped up.
+      declare
+         Wide : View_Snapshot := Base;
+         Thin : View_Snapshot := Base;
+         Wide_Items : Item_Layout_Vectors.Vector;
+         Thin_Items : Item_Layout_Vectors.Vector;
+      begin
+         Wide.Detail_Column_Widths (Files.Types.Size_Column) := 220;
+         Thin.Detail_Column_Widths (Files.Types.Size_Column) := 4;
+         Wide_Items := Calculate_Item_Layout (Wide, Layout, Line_Height => 20);
+         Thin_Items := Calculate_Item_Layout (Thin, Layout, Line_Height => 20);
+         Assert (Size_Width_Of (Wide_Items) = 220, "a custom column width drives the layout width");
+         Assert (Size_Width_Of (Thin_Items) = Files.Types.Minimum_Detail_Column_Width,
+                 "a sub-minimum custom width is clamped up to the minimum");
+      end;
+   end Test_Detail_Column_Customization;
+
+   procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot;
+      Layout   : Layout_Metrics;
+      Items    : Item_Layout_Vectors.Vector;
+      Header_Center_X : Natural := 0;
+      Header_Center_Y : Natural := 0;
+      Item_Center_X   : Natural := 0;
+      Item_Center_Y   : Natural := 0;
+      Header_Rows     : Natural := 0;
+   begin
+      Snapshot.View_Mode := Files.Types.Details;
+      Snapshot.Group_By := Files.Types.Group_By_Type;
+      Snapshot.Items.Append
+        (Item_Snapshot'
+           (Is_Group_Header => True,
+            Group_Label     => To_Unbounded_String ("group"),
+            Visible_Index   => 0,
+            others          => <>));
+      Snapshot.Items.Append
+        (Item_Snapshot'
+           (Name          => To_Unbounded_String ("first"),
+            Filetype      => To_Unbounded_String ("text/plain"),
+            Kind          => Files.Types.Regular_File_Item,
+            Visible_Index => 1,
+            others        => <>));
+      Snapshot.Items.Append
+        (Item_Snapshot'
+           (Name          => To_Unbounded_String ("second"),
+            Filetype      => To_Unbounded_String ("text/plain"),
+            Kind          => Files.Types.Regular_File_Item,
+            Visible_Index => 2,
+            others        => <>));
+      Snapshot.Item_Count    := 2;
+      Snapshot.Visible_Count := 2;
+
+      Layout := Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Items  := Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+
+      Assert (Natural (Items.Length) = 3, "each snapshot row, header included, is laid out");
+      for Cell of Items loop
+         if Cell.Visible_Index = 0 then
+            Header_Rows := Header_Rows + 1;
+            Header_Center_X := Cell.X + Cell.Width / 2;
+            Header_Center_Y := Cell.Y + Cell.Height / 2;
+         elsif Cell.Visible_Index = 1 then
+            Item_Center_X := Cell.X + Cell.Width / 2;
+            Item_Center_Y := Cell.Y + Cell.Height / 2;
+         end if;
+      end loop;
+
+      Assert (Header_Rows = 1, "the grouping band emits exactly one header row");
+      Assert (Item_At (Items, Header_Center_X, Header_Center_Y) = 0,
+              "clicking a group header row selects nothing");
+      Assert (Item_At (Items, Item_Center_X, Item_Center_Y) = 1,
+              "clicking a real row under a header still resolves to that item");
+   end Test_Detail_Group_Header_Rows;
 
 end Files_Suite.Rendering;

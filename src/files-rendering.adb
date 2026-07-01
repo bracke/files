@@ -27,6 +27,7 @@ package body Files.Rendering is
    use type Files.Commands.Registered_Command_Id;
    use type Files.Model.Sort_Field;
    use type Files.Types.Focus_Target;
+   use type Files.Types.Group_Mode;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
 
@@ -210,6 +211,113 @@ package body Files.Rendering is
          return Value * Factor;
       end if;
    end Saturating_Multiply;
+
+   --  Geometry of one detail-view column: whether it is shown and, when shown,
+   --  its left edge and width in window pixels.
+   type Detail_Column_Geometry is record
+      Visible : Boolean := False;
+      X       : Natural := 0;
+      Width   : Natural := 0;
+   end record;
+
+   type Detail_Column_Geometry_Array is
+     array (Files.Types.Detail_Column) of Detail_Column_Geometry;
+
+   --  Proportional default width for a toggleable column, scaled to the line
+   --  height so the layout tracks the font size. Applied whenever the settings
+   --  do not pin an explicit width for the column.
+   --
+   --  @param Column Toggleable detail column.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Default column width in pixels.
+   function Default_Detail_Column_Width
+     (Column      : Files.Types.Optional_Detail_Column;
+      Line_Height : Positive)
+      return Natural is
+   begin
+      case Column is
+         when Files.Types.Modified_Column =>
+            return Saturating_Multiply (Line_Height, 11);
+         when Files.Types.Size_Column =>
+            return Saturating_Multiply (Line_Height, 6);
+         when Files.Types.Filetype_Column =>
+            return Saturating_Multiply (Line_Height, 9);
+         when Files.Types.Created_Column =>
+            return Saturating_Multiply (Line_Height, 11);
+         when Files.Types.Permissions_Column =>
+            return Saturating_Multiply (Line_Height, 8);
+      end case;
+   end Default_Detail_Column_Width;
+
+   --  Lay out the visible detail columns left to right across the row content
+   --  area. The mandatory name column starts after the icon gutter and absorbs
+   --  whatever width the visible fixed-width columns leave behind; each
+   --  toggleable column takes its customized width (clamped to the minimum) or a
+   --  proportional default. The sticky header, the header hit-test, and every
+   --  item row share this function so their columns always align.
+   --
+   --  @param Visible Per-column visibility flags.
+   --  @param Widths Per-column customized widths (zero means default).
+   --  @param Content_X Left edge of the detail content area.
+   --  @param Content_W Width of the detail content area.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Pad Row content padding applied before the icon gutter.
+   --  @return Per-column geometry for the visible columns.
+   function Compute_Detail_Columns
+     (Visible     : Files.Types.Detail_Column_Visibility;
+      Widths      : Files.Types.Detail_Column_Widths;
+      Content_X   : Natural;
+      Content_W   : Natural;
+      Line_Height : Positive;
+      Pad         : Natural)
+      return Detail_Column_Geometry_Array
+   is
+      Icon_Gap  : constant Natural := Saturating_Add (Line_Height, 6);
+      Base_X    : constant Natural :=
+        Saturating_Add (Saturating_Add (Content_X, Pad), Icon_Gap);
+      Available : constant Natural :=
+        (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Pad, 2))
+         then Content_W - Icon_Gap - Saturating_Multiply (Pad, 2)
+         else 0);
+      Min_Name  : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 5));
+      Result    : Detail_Column_Geometry_Array;
+      Fixed_Sum : Natural := 0;
+      Cursor    : Natural;
+   begin
+      for Column in Files.Types.Optional_Detail_Column loop
+         if Visible (Column) then
+            declare
+               Raw   : constant Natural :=
+                 (if Widths (Column) > 0
+                  then Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width)
+                  else Default_Detail_Column_Width (Column, Line_Height));
+               Room  : constant Natural :=
+                 (if Available > Saturating_Add (Fixed_Sum, Min_Name)
+                  then Available - Fixed_Sum - Min_Name
+                  else 0);
+               Width : constant Natural := Natural'Min (Raw, Room);
+            begin
+               Result (Column) := (Visible => True, X => 0, Width => Width);
+               Fixed_Sum := Saturating_Add (Fixed_Sum, Width);
+            end;
+         end if;
+      end loop;
+
+      Result (Files.Types.Name_Column) :=
+        (Visible => True,
+         X       => Base_X,
+         Width   => (if Available > Fixed_Sum then Available - Fixed_Sum else 0));
+
+      Cursor := Saturating_Add (Base_X, Result (Files.Types.Name_Column).Width);
+      for Column in Files.Types.Optional_Detail_Column loop
+         if Result (Column).Visible then
+            Result (Column).X := Cursor;
+            Cursor := Saturating_Add (Cursor, Result (Column).Width);
+         end if;
+      end loop;
+
+      return Result;
+   end Compute_Detail_Columns;
 
    function Scaled_Down
      (Value       : Natural;
@@ -1525,6 +1633,9 @@ package body Files.Rendering is
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
       Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
+      Snapshot.Detail_Columns_Visible := Settings.Column_Visible;
+      Snapshot.Detail_Column_Widths := Settings.Column_Widths;
+      Snapshot.Group_By := Settings.Group_By;
       Snapshot.Item_Count := Files.Model.Item_Count (Model);
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
       Snapshot.Hidden_Count := Files.Model.Hidden_Item_Count (Model);
@@ -1826,7 +1937,9 @@ package body Files.Rendering is
                      Cut_Pending        => Is_Cut_Pending (Item.Full_Path),
                      Renaming           => Rename_On,
                      Rename_Value       => Rename_Value,
-                     Rename_Cursor      => Rename_Cursor));
+                     Rename_Cursor      => Rename_Cursor,
+                     Is_Group_Header    => False,
+                     Group_Label        => Null_Unbounded_String));
             end;
          end loop;
       end;
@@ -1912,6 +2025,183 @@ package body Files.Rendering is
       begin
          Sorting.Sort (Snapshot.Items);
       end;
+
+      --  Grouping composes with the sort: the sorted items are partitioned into
+      --  fixed-order bands, each introduced by a non-selectable header row. The
+      --  header carries Visible_Index zero so hit-testing never selects it, and
+      --  items keep their sorted order within a band.
+      if Snapshot.View_Mode = Files.Types.Details
+        and then Snapshot.Group_By /= Files.Types.No_Grouping
+        and then not Snapshot.Items.Is_Empty
+      then
+         declare
+            function Starts_With (Text : String; Prefix : String) return Boolean is
+              (Text'Length >= Prefix'Length
+               and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
+
+            function Type_Band (Item : Item_Snapshot) return Positive is
+               Mime : constant String := Files.Types.To_Lower (To_String (Item.Filetype));
+            begin
+               if Item.Kind = Files.Types.Directory_Item then
+                  return 1;
+               elsif Starts_With (Mime, "image/") then
+                  return 2;
+               elsif Starts_With (Mime, "audio/") then
+                  return 3;
+               elsif Starts_With (Mime, "video/") then
+                  return 4;
+               elsif Starts_With (Mime, "text/")
+                 or else Mime = "application/pdf"
+                 or else Starts_With (Mime, "application/json")
+                 or else Starts_With (Mime, "application/xml")
+                 or else Starts_With (Mime, "application/vnd.")
+               then
+                  return 5;
+               elsif Mime = "application/zip"
+                 or else Starts_With (Mime, "application/x-tar")
+                 or else Starts_With (Mime, "application/gzip")
+                 or else Starts_With (Mime, "application/x-7z")
+                 or else Starts_With (Mime, "application/x-rar")
+               then
+                  return 6;
+               else
+                  return 7;
+               end if;
+            end Type_Band;
+
+            function Modified_Band (Item : Item_Snapshot) return Positive is
+               Now   : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+               Today : constant Ada.Calendar.Time := Day_Start (Now);
+            begin
+               if not Item.Modified_Available then
+                  return 4;
+               elsif Day_Start (Item.Modified_Time) = Today then
+                  return 1;
+               elsif Item.Modified_Time > Today - 6.0 * 86_400.0 then
+                  return 2;
+               else
+                  return 3;
+               end if;
+            end Modified_Band;
+
+            function Size_Band (Item : Item_Snapshot) return Positive is
+            begin
+               if not Item.Size_Available then
+                  return 5;
+               elsif Item.Size <= 0 then
+                  return 1;
+               elsif Item.Size < 1024 * 1024 then
+                  return 2;
+               elsif Item.Size < 1024 * 1024 * 1024 then
+                  return 3;
+               else
+                  return 4;
+               end if;
+            end Size_Band;
+
+            function Band_Count return Positive is
+            begin
+               case Snapshot.Group_By is
+                  when Files.Types.Group_By_Type =>
+                     return 7;
+                  when Files.Types.Group_By_Modified =>
+                     return 4;
+                  when Files.Types.Group_By_Size =>
+                     return 5;
+                  when Files.Types.No_Grouping =>
+                     return 1;
+               end case;
+            end Band_Count;
+
+            function Band_Of (Item : Item_Snapshot) return Positive is
+            begin
+               case Snapshot.Group_By is
+                  when Files.Types.Group_By_Type =>
+                     return Type_Band (Item);
+                  when Files.Types.Group_By_Modified =>
+                     return Modified_Band (Item);
+                  when Files.Types.Group_By_Size =>
+                     return Size_Band (Item);
+                  when Files.Types.No_Grouping =>
+                     return 1;
+               end case;
+            end Band_Of;
+
+            function Band_Label (Band : Positive) return String is
+            begin
+               case Snapshot.Group_By is
+                  when Files.Types.Group_By_Type =>
+                     case Band is
+                        when 1 =>
+                           return "details.group.folders";
+                        when 2 =>
+                           return "details.group.images";
+                        when 3 =>
+                           return "details.group.audio";
+                        when 4 =>
+                           return "details.group.video";
+                        when 5 =>
+                           return "details.group.documents";
+                        when 6 =>
+                           return "details.group.archives";
+                        when others =>
+                           return "details.group.other";
+                     end case;
+                  when Files.Types.Group_By_Modified =>
+                     case Band is
+                        when 1 =>
+                           return "details.group.today";
+                        when 2 =>
+                           return "details.group.this_week";
+                        when 3 =>
+                           return "details.group.earlier";
+                        when others =>
+                           return "details.group.unknown_date";
+                     end case;
+                  when Files.Types.Group_By_Size =>
+                     case Band is
+                        when 1 =>
+                           return "details.group.size_empty";
+                        when 2 =>
+                           return "details.group.size_small";
+                        when 3 =>
+                           return "details.group.size_medium";
+                        when 4 =>
+                           return "details.group.size_large";
+                        when others =>
+                           return "details.group.size_unknown";
+                     end case;
+                  when Files.Types.No_Grouping =>
+                     return "";
+               end case;
+            end Band_Label;
+
+            Grouped : Item_Snapshot_Vectors.Vector;
+         begin
+            for Band in 1 .. Band_Count loop
+               declare
+                  Emitted_Header : Boolean := False;
+               begin
+                  for Item of Snapshot.Items loop
+                     if Band_Of (Item) = Band then
+                        if not Emitted_Header then
+                           Grouped.Append
+                             (Item_Snapshot'
+                                (Is_Group_Header => True,
+                                 Group_Label     =>
+                                   To_Unbounded_String (Files.Localization.Text (Band_Label (Band))),
+                                 Visible_Index   => 0,
+                                 others          => <>));
+                           Emitted_Header := True;
+                        end if;
+                        Grouped.Append (Item);
+                     end if;
+                  end loop;
+               end;
+            end loop;
+            Snapshot.Items := Grouped;
+         end;
+      end if;
 
       if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
          declare
@@ -2124,7 +2414,11 @@ package body Files.Rendering is
                Size_X         => 0,
                Size_Width     => 0,
                Filetype_X     => 0,
-               Filetype_Width => 0));
+               Filetype_Width => 0,
+               Created_X         => 0,
+               Created_Width     => 0,
+               Permissions_X     => 0,
+               Permissions_Width => 0));
       end Append_Grid_Item;
    begin
       for Index in 1 .. Natural (Snapshot.Items.Length) loop
@@ -2143,6 +2437,7 @@ package body Files.Rendering is
                end;
             when Files.Types.Details =>
                declare
+                  Item       : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
                   Metrics    : constant Item_Cell_Metrics :=
                     Metrics_For (Snapshot.View_Mode, Content_W, Line_Height);
                   Row_Step   : constant Natural := Metrics.Height;
@@ -2169,49 +2464,85 @@ package body Files.Rendering is
                     (if Row_Draw_H > Saturating_Multiply (Row_Pad, 2)
                      then Row_Draw_H - Saturating_Multiply (Row_Pad, 2)
                      else Row_Draw_H);
-                  Icon_Gap   : constant Natural := Saturating_Add (Line_Height, 6);
                   Row_Inner_X : constant Natural := Saturating_Add (Content_X, Row_Pad);
-                  Row_Content_X : constant Natural := Saturating_Add (Row_Inner_X, Icon_Gap);
-                  Available  : constant Natural :=
-                    (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Row_Pad, 2))
-                     then Content_W - Icon_Gap - Saturating_Multiply (Row_Pad, 2)
-                     else 0);
-                  Reserved_Name_W : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 6));
-                  Metadata_W : constant Natural := Saturating_Subtract (Available, Reserved_Name_W);
-                  Type_W     : constant Natural := Natural'Min (180, Metadata_W / 4);
-                  Size_W     : constant Natural := Natural'Min (120, Metadata_W / 7);
-                  Modified_W : constant Natural := Natural'Min (264, Metadata_W / 3);
-                  Used_W     : constant Natural :=
-                    Saturating_Add (Type_W, Saturating_Add (Size_W, Modified_W));
-                  Name_W     : constant Natural := Saturating_Subtract (Available, Used_W);
-                  Modified_X : constant Natural := Saturating_Add (Row_Content_X, Name_W);
-                  Size_X     : constant Natural := Saturating_Add (Modified_X, Modified_W);
-                  Type_X     : constant Natural := Saturating_Add (Size_X, Size_W);
                   Text_Pad   : constant Natural := Natural'Min (Details_Column_Padding, Row_Draw_H);
+                  Columns    : constant Detail_Column_Geometry_Array :=
+                    Compute_Detail_Columns
+                      (Snapshot.Detail_Columns_Visible,
+                       Snapshot.Detail_Column_Widths,
+                       Content_X,
+                       Content_W,
+                       Line_Height,
+                       Row_Pad);
+                  Name_X     : constant Natural := Columns (Files.Types.Name_Column).X;
+                  Name_W     : constant Natural := Columns (Files.Types.Name_Column).Width;
+                  Header_Name_W : constant Natural :=
+                    (if Saturating_Add (Content_X, Content_W) > Name_X
+                     then Saturating_Add (Content_X, Content_W) - Name_X
+                     else 0);
+
+                  function Col_X (Column : Files.Types.Optional_Detail_Column) return Natural is
+                    (Columns (Column).X);
+
+                  function Col_W (Column : Files.Types.Optional_Detail_Column) return Natural is
+                    (Columns (Column).Width);
                begin
-                  Result.Append
-                    (Item_Layout'
-                       (Visible_Index  => Snapshot.Items.Element (Positive (Index)).Visible_Index,
-                        X              => Content_X,
-                        Y              => Row_Y,
-                        Width          => Content_W,
-                        Height         => Row_Draw_H,
-                        Icon_X         => Row_Inner_X,
-                        Icon_Y         =>
-                          Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
-                        Icon_Size      => Natural'Min (Line_Height, Inner_H),
-                        Text_X         => Saturating_Add (Row_Content_X, Text_Pad),
-                        Text_Y         =>
-                          Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
-                        Text_Width     => Saturating_Subtract (Name_W, Text_Pad),
-                        Name_X         => Saturating_Add (Row_Content_X, Text_Pad),
-                        Name_Width     => Saturating_Subtract (Name_W, Text_Pad),
-                        Modified_X     => Modified_X,
-                        Modified_Width => Modified_W,
-                        Size_X         => Size_X,
-                        Size_Width     => Size_W,
-                        Filetype_X     => Type_X,
-                        Filetype_Width => Type_W));
+                  if Item.Is_Group_Header then
+                     Result.Append
+                       (Item_Layout'
+                          (Visible_Index  => 0,
+                           X              => Content_X,
+                           Y              => Row_Y,
+                           Width          => Content_W,
+                           Height         => Row_Draw_H,
+                           Icon_X         => 0,
+                           Icon_Y         => 0,
+                           Icon_Size      => 0,
+                           Text_X         => Saturating_Add (Name_X, Text_Pad),
+                           Text_Y         =>
+                             Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
+                           Text_Width     => Saturating_Subtract (Header_Name_W, Text_Pad),
+                           Name_X         => Name_X,
+                           Name_Width     => Header_Name_W,
+                           Modified_X     => 0,
+                           Modified_Width => 0,
+                           Size_X         => 0,
+                           Size_Width     => 0,
+                           Filetype_X     => 0,
+                           Filetype_Width => 0,
+                           Created_X         => 0,
+                           Created_Width     => 0,
+                           Permissions_X     => 0,
+                           Permissions_Width => 0));
+                  else
+                     Result.Append
+                       (Item_Layout'
+                          (Visible_Index  => Item.Visible_Index,
+                           X              => Content_X,
+                           Y              => Row_Y,
+                           Width          => Content_W,
+                           Height         => Row_Draw_H,
+                           Icon_X         => Row_Inner_X,
+                           Icon_Y         =>
+                             Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
+                           Icon_Size      => Natural'Min (Line_Height, Inner_H),
+                           Text_X         => Saturating_Add (Name_X, Text_Pad),
+                           Text_Y         =>
+                             Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
+                           Text_Width     => Saturating_Subtract (Name_W, Text_Pad),
+                           Name_X         => Saturating_Add (Name_X, Text_Pad),
+                           Name_Width     => Saturating_Subtract (Name_W, Text_Pad),
+                           Modified_X     => Col_X (Files.Types.Modified_Column),
+                           Modified_Width => Col_W (Files.Types.Modified_Column),
+                           Size_X         => Col_X (Files.Types.Size_Column),
+                           Size_Width     => Col_W (Files.Types.Size_Column),
+                           Filetype_X     => Col_X (Files.Types.Filetype_Column),
+                           Filetype_Width => Col_W (Files.Types.Filetype_Column),
+                           Created_X         => Col_X (Files.Types.Created_Column),
+                           Created_Width     => Col_W (Files.Types.Created_Column),
+                           Permissions_X     => Col_X (Files.Types.Permissions_Column),
+                           Permissions_Width => Col_W (Files.Types.Permissions_Column)));
+                  end if;
                end;
          end case;
       end loop;
@@ -2619,33 +2950,20 @@ package body Files.Rendering is
         Natural'Min
           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
       Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-      Icon_Gap   : constant Natural := Saturating_Add (Line_Height, 6);
-      Header_Content_X : constant Natural :=
-        Saturating_Add (Saturating_Add (Content_X, Header_Pad), Icon_Gap);
-      Available : constant Natural :=
-        (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Header_Pad, 2))
-         then Content_W - Icon_Gap - Saturating_Multiply (Header_Pad, 2)
-         else 0);
-      Reserved_Name_W : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 6));
-      Metadata_W : constant Natural := (if Available > Reserved_Name_W then Available - Reserved_Name_W else 0);
-      Type_W    : constant Natural := Natural'Min (180, Metadata_W / 4);
-      Size_W    : constant Natural := Natural'Min (120, Metadata_W / 7);
-      Modified_W : constant Natural := Natural'Min (264, Metadata_W / 3);
-      Name_X    : constant Natural := Header_Content_X;
-      Name_W    : constant Natural :=
-        (if Available > Saturating_Add (Saturating_Add (Type_W, Size_W), Modified_W)
-         then Available - Type_W - Size_W - Modified_W
-         else 0);
-      Modified_X : constant Natural := Saturating_Add (Name_X, Name_W);
-      Size_X    : constant Natural := Saturating_Add (Modified_X, Modified_W);
-      Type_X    : constant Natural := Saturating_Add (Size_X, Size_W);
+      Columns   : constant Detail_Column_Geometry_Array :=
+        Compute_Detail_Columns
+          (Snapshot.Detail_Columns_Visible,
+           Snapshot.Detail_Column_Widths,
+           Content_X,
+           Content_W,
+           Line_Height,
+           Header_Pad);
 
-      function Within
-        (Start  : Natural;
-         Extent : Natural)
-         return Boolean is
+      function Within (Column : Files.Types.Detail_Column) return Boolean is
       begin
-         return Contains_Rectangle_Point (Start, Content_Y, Extent, Header_H, X, Y);
+         return Columns (Column).Visible
+           and then Contains_Rectangle_Point
+             (Columns (Column).X, Content_Y, Columns (Column).Width, Header_H, X, Y);
       end Within;
    begin
       if Snapshot.View_Mode /= Files.Types.Details
@@ -2653,14 +2971,16 @@ package body Files.Rendering is
         or else not Contains_Rectangle_Point (Content_X, Content_Y, Content_W, Header_H, X, Y)
       then
          return Files.Commands.No_Command;
-      elsif Within (Name_X, Name_W) then
+      elsif Within (Files.Types.Name_Column) then
          return Files.Commands.Sort_By_Name_Command;
-      elsif Within (Modified_X, Modified_W) then
+      elsif Within (Files.Types.Modified_Column) then
          return Files.Commands.Sort_By_Changed_Command;
-      elsif Within (Size_X, Size_W) then
+      elsif Within (Files.Types.Size_Column) then
          return Files.Commands.Sort_By_Size_Command;
-      elsif Within (Type_X, Type_W) then
+      elsif Within (Files.Types.Filetype_Column) then
          return Files.Commands.Sort_By_Type_Command;
+      elsif Within (Files.Types.Created_Column) then
+         return Files.Commands.Sort_By_Created_Command;
       else
          return Files.Commands.No_Command;
       end if;
@@ -4910,6 +5230,16 @@ package body Files.Rendering is
            To_Unbounded_String (Humanized_Time_Text (Item.Modified_Time));
       end Detail_Time_Text;
 
+      function Detail_Created_Text (Item : Item_Snapshot) return UString is
+      begin
+         if not Item.Creation_Available then
+            return To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"));
+         end if;
+
+         return
+           To_Unbounded_String (Humanized_Time_Text (Item.Creation_Time));
+      end Detail_Created_Text;
+
       function Permission_Text (Permissions : String) return String is
          Result : Unbounded_String;
 
@@ -5462,26 +5792,14 @@ package body Files.Rendering is
             Header_W  : constant Natural := Content_W;
             Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
             Text_Y    : constant Natural := Saturating_Add (Header_Y, Header_Pad);
-            Icon_Gap  : constant Natural := Saturating_Add (Line_Height, 6);
-            Header_Content_X : constant Natural :=
-              Saturating_Add (Saturating_Add (Content_X, Header_Pad), Icon_Gap);
-            Available : constant Natural :=
-              (if Content_W > Saturating_Add (Icon_Gap, Saturating_Multiply (Header_Pad, 2))
-               then Content_W - Icon_Gap - Saturating_Multiply (Header_Pad, 2)
-               else 0);
-            Reserved_Name_W : constant Natural := Natural'Min (Available, Saturating_Multiply (Line_Height, 6));
-            Metadata_W : constant Natural := (if Available > Reserved_Name_W then Available - Reserved_Name_W else 0);
-            Type_W    : constant Natural := Natural'Min (180, Metadata_W / 4);
-            Size_W    : constant Natural := Natural'Min (120, Metadata_W / 7);
-            Modified_W : constant Natural := Natural'Min (264, Metadata_W / 3);
-            Name_X    : constant Natural := Header_Content_X;
-            Name_W    : constant Natural :=
-              (if Available > Saturating_Add (Saturating_Add (Type_W, Size_W), Modified_W)
-               then Available - Type_W - Size_W - Modified_W
-               else 0);
-            Modified_X : constant Natural := Saturating_Add (Name_X, Name_W);
-            Size_X    : constant Natural := Saturating_Add (Modified_X, Modified_W);
-            Type_X    : constant Natural := Saturating_Add (Size_X, Size_W);
+            Columns   : constant Detail_Column_Geometry_Array :=
+              Compute_Detail_Columns
+                (Snapshot.Detail_Columns_Visible,
+                 Snapshot.Detail_Column_Widths,
+                 Content_X,
+                 Content_W,
+                 Line_Height,
+                 Header_Pad);
 
             function Cell_X (Column_X : Natural) return Natural is
             begin
@@ -5493,54 +5811,90 @@ package body Files.Rendering is
                return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
             end Cell_W;
 
-            function Header_Text
-              (Key   : String;
-               Field : Files.Model.Sort_Field)
-               return UString
-            is
-               Label : constant String := Files.Localization.Text (Key);
+            function Header_Label (Column : Files.Types.Detail_Column) return String is
             begin
-               if Snapshot.Sort_Field = Field then
+               case Column is
+                  when Files.Types.Name_Column =>
+                     return "details.name";
+                  when Files.Types.Modified_Column =>
+                     return "details.modified";
+                  when Files.Types.Size_Column =>
+                     return "details.size";
+                  when Files.Types.Filetype_Column =>
+                     return "details.filetype";
+                  when Files.Types.Created_Column =>
+                     return "details.created";
+                  when Files.Types.Permissions_Column =>
+                     return "details.permissions";
+               end case;
+            end Header_Label;
+
+            function Column_Sort_Field
+              (Column : Files.Types.Detail_Column;
+               Field  : out Files.Model.Sort_Field)
+               return Boolean is
+            begin
+               case Column is
+                  when Files.Types.Name_Column =>
+                     Field := Files.Model.Sort_Name;
+                     return True;
+                  when Files.Types.Modified_Column =>
+                     Field := Files.Model.Sort_Changed;
+                     return True;
+                  when Files.Types.Size_Column =>
+                     Field := Files.Model.Sort_Size;
+                     return True;
+                  when Files.Types.Filetype_Column =>
+                     Field := Files.Model.Sort_Type;
+                     return True;
+                  when Files.Types.Created_Column =>
+                     Field := Files.Model.Sort_Created;
+                     return True;
+                  when Files.Types.Permissions_Column =>
+                     Field := Files.Model.Sort_Name;
+                     return False;
+               end case;
+            end Column_Sort_Field;
+
+            function Header_Text (Column : Files.Types.Detail_Column) return UString is
+               Label : constant String := Files.Localization.Text (Header_Label (Column));
+               Field : Files.Model.Sort_Field;
+            begin
+               if Column_Sort_Field (Column, Field) and then Snapshot.Sort_Field = Field then
                   return To_Unbounded_String (Label & " " & Direction_Text);
                else
                   return To_Unbounded_String (Label);
                end if;
             end Header_Text;
+
+            function Header_Description return UString is
+               Result : Unbounded_String := Null_Unbounded_String;
+            begin
+               for Column in Files.Types.Detail_Column loop
+                  if Columns (Column).Visible then
+                     if Length (Result) > 0 then
+                        Append (Result, ", ");
+                     end if;
+                     Append (Result, Files.Localization.Text (Header_Label (Column)));
+                  end if;
+               end loop;
+               return Result;
+            end Header_Description;
          begin
             Add_Rect (Content_X, Header_Y, Header_W, Header_H, Pane_Color);
             Add_Border (Content_X, Header_Y, Header_W, Header_H, Border_Color);
-            Add_Text
-              (Cell_X (Name_X),
-               Text_Y,
-               Cell_W (Name_W),
-               Line_Height,
-               Header_Text ("details.name", Files.Model.Sort_Name),
-               Muted_Text_Color,
-               Fit => True);
-            Add_Text
-              (Cell_X (Modified_X),
-               Text_Y,
-               Cell_W (Modified_W),
-               Line_Height,
-               Header_Text ("details.modified", Files.Model.Sort_Changed),
-               Muted_Text_Color,
-               Fit => True);
-            Add_Text
-              (Cell_X (Size_X),
-               Text_Y,
-               Cell_W (Size_W),
-               Line_Height,
-               Header_Text ("details.size", Files.Model.Sort_Size),
-               Muted_Text_Color,
-               Fit => True);
-            Add_Text
-              (Cell_X (Type_X),
-               Text_Y,
-               Cell_W (Type_W),
-               Line_Height,
-               Header_Text ("details.filetype", Files.Model.Sort_Type),
-               Muted_Text_Color,
-               Fit => True);
+            for Column in Files.Types.Detail_Column loop
+               if Columns (Column).Visible then
+                  Add_Text
+                    (Cell_X (Columns (Column).X),
+                     Text_Y,
+                     Cell_W (Columns (Column).Width),
+                     Line_Height,
+                     Header_Text (Column),
+                     Muted_Text_Color,
+                     Fit => True);
+               end if;
+            end loop;
             Add_Accessibility_Node
               (Role_Table_Row,
                Content_X,
@@ -5548,16 +5902,16 @@ package body Files.Rendering is
                Header_W,
                Header_H,
                To_Unbounded_String (Files.Localization.Text ("details.header")),
-               To_Unbounded_String
-                 (Files.Localization.Text ("details.name") & ", " &
-                  Files.Localization.Text ("details.modified") & ", " &
-                  Files.Localization.Text ("details.size") & ", " &
-                  Files.Localization.Text ("details.filetype")));
+               Header_Description);
 
             if Header_H > 0 then
-               Add_Rect ((if Modified_X > 2 then Modified_X - 2 else 0), Header_Y, 1, Header_H, Border_Color);
-               Add_Rect ((if Size_X > 2 then Size_X - 2 else 0), Header_Y, 1, Header_H, Border_Color);
-               Add_Rect ((if Type_X > 2 then Type_X - 2 else 0), Header_Y, 1, Header_H, Border_Color);
+               for Column in Files.Types.Optional_Detail_Column loop
+                  if Columns (Column).Visible then
+                     Add_Rect
+                       ((if Columns (Column).X > 2 then Columns (Column).X - 2 else 0),
+                        Header_Y, 1, Header_H, Border_Color);
+                  end if;
+               end loop;
                Add_Rect
                  (Content_X,
                   Saturating_Add (Header_Y, Header_H - Natural'Min (2, Header_H)),
@@ -5611,6 +5965,41 @@ package body Files.Rendering is
                return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
             end Detail_Cell_W;
          begin
+            --  Grouping band header: a non-selectable caption row. It draws its
+            --  own subdued background and label and then skips all per-item
+            --  drawing (icon, columns, selection, hover).
+            if Item.Is_Group_Header then
+               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Pane_Color);
+               Add_Text
+                 (Item_Rect.Text_X,
+                  Item_Rect.Text_Y,
+                  Item_Rect.Text_Width,
+                  Natural'Min (Line_Height, Item_Rect.Height),
+                  Item.Group_Label,
+                  Muted_Text_Color,
+                  Fit => True);
+               if Item_Rect.Height > 0 then
+                  Add_Rect
+                    (Item_Rect.X,
+                     Item_Rect.Y + Item_Rect.Height - 1,
+                     Item_Rect.Width,
+                     1,
+                     Border_Color);
+               end if;
+               Add_Accessibility_Node
+                 (Role_Table_Row,
+                  Item_Rect.X,
+                  Item_Rect.Y,
+                  Item_Rect.Width,
+                  Item_Rect.Height,
+                  Item.Group_Label,
+                  Item.Group_Label,
+                  Enabled  => False,
+                  Selected => False,
+                  Focused  => False);
+               goto Continue_Item_Loop;
+            end if;
+
             if Drop_Target then
                Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
                Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
@@ -5710,40 +6099,76 @@ package body Files.Rendering is
                   Item_Rect.Width,
                   1,
                   Border_Color);
-               Add_Text
-                 (Detail_Cell_X (Item_Rect.Modified_X),
-                  Item_Rect.Text_Y,
-                  Detail_Cell_W (Item_Rect.Modified_Width),
-                  Natural'Min (Line_Height, Item_Rect.Height),
-                  Detail_Time_Text (Item),
-                  (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                  Italic => Item.Cut_Pending);
-               if Item.Modified_Available then
-                  Add_Tooltip_Text
+               if Item_Rect.Modified_Width > 0 then
+                  Add_Text
                     (Detail_Cell_X (Item_Rect.Modified_X),
                      Item_Rect.Text_Y,
                      Detail_Cell_W (Item_Rect.Modified_Width),
                      Natural'Min (Line_Height, Item_Rect.Height),
-                     To_Unbounded_String (Full_Time_Text (Item.Modified_Time)));
+                     Detail_Time_Text (Item),
+                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                     Italic => Item.Cut_Pending);
+                  if Item.Modified_Available then
+                     Add_Tooltip_Text
+                       (Detail_Cell_X (Item_Rect.Modified_X),
+                        Item_Rect.Text_Y,
+                        Detail_Cell_W (Item_Rect.Modified_Width),
+                        Natural'Min (Line_Height, Item_Rect.Height),
+                        To_Unbounded_String (Full_Time_Text (Item.Modified_Time)));
+                  end if;
                end if;
-               Add_Text
-                 (Detail_Cell_X (Item_Rect.Size_X),
-                  Item_Rect.Text_Y,
-                  Detail_Cell_W (Item_Rect.Size_Width),
-                  Natural'Min (Line_Height, Item_Rect.Height),
-                  Detail_Size_Text (Item),
-                  (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                  Italic => Item.Cut_Pending,
-                  Fit    => True);
-               Add_Text
-                 (Detail_Cell_X (Item_Rect.Filetype_X),
-                  Item_Rect.Text_Y,
-                  Detail_Cell_W (Item_Rect.Filetype_Width),
-                  Natural'Min (Line_Height, Item_Rect.Height),
-                  Item.Filetype_Detail,
-                  (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                  Italic => Item.Cut_Pending,
-                  Fit    => True);
+               if Item_Rect.Size_Width > 0 then
+                  Add_Text
+                    (Detail_Cell_X (Item_Rect.Size_X),
+                     Item_Rect.Text_Y,
+                     Detail_Cell_W (Item_Rect.Size_Width),
+                     Natural'Min (Line_Height, Item_Rect.Height),
+                     Detail_Size_Text (Item),
+                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                     Italic => Item.Cut_Pending,
+                     Fit    => True);
+               end if;
+               if Item_Rect.Filetype_Width > 0 then
+                  Add_Text
+                    (Detail_Cell_X (Item_Rect.Filetype_X),
+                     Item_Rect.Text_Y,
+                     Detail_Cell_W (Item_Rect.Filetype_Width),
+                     Natural'Min (Line_Height, Item_Rect.Height),
+                     Item.Filetype_Detail,
+                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                     Italic => Item.Cut_Pending,
+                     Fit    => True);
+               end if;
+               if Item_Rect.Created_Width > 0 then
+                  Add_Text
+                    (Detail_Cell_X (Item_Rect.Created_X),
+                     Item_Rect.Text_Y,
+                     Detail_Cell_W (Item_Rect.Created_Width),
+                     Natural'Min (Line_Height, Item_Rect.Height),
+                     Detail_Created_Text (Item),
+                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                     Italic => Item.Cut_Pending,
+                     Fit    => True);
+                  if Item.Creation_Available then
+                     Add_Tooltip_Text
+                       (Detail_Cell_X (Item_Rect.Created_X),
+                        Item_Rect.Text_Y,
+                        Detail_Cell_W (Item_Rect.Created_Width),
+                        Natural'Min (Line_Height, Item_Rect.Height),
+                        To_Unbounded_String (Full_Time_Text (Item.Creation_Time)));
+                  end if;
+               end if;
+               if Item_Rect.Permissions_Width > 0 then
+                  Add_Text
+                    (Detail_Cell_X (Item_Rect.Permissions_X),
+                     Item_Rect.Text_Y,
+                     Detail_Cell_W (Item_Rect.Permissions_Width),
+                     Natural'Min (Line_Height, Item_Rect.Height),
+                     Item.Permissions,
+                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
+                     Italic => Item.Cut_Pending,
+                     Fit    => True);
+               end if;
             end if;
 
             declare
@@ -5783,23 +6208,37 @@ package body Files.Rendering is
                  and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
                then Main_Content_Padding
                else 0);
+            Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+            Content_W : constant Natural :=
+              (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+               then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+               else Layout.Main_Width);
             Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-            First_Row : constant Item_Layout := Items.Element (1);
             Last_Row  : constant Item_Layout := Items.Element (Positive (Items.Length));
             Separator_Y : constant Natural := Content_Y;
             Separator_H : constant Natural :=
               (if Last_Row.Y >= Content_Y
                then Saturating_Add (Last_Row.Y - Content_Y, (if Last_Row.Height > 0 then Last_Row.Height - 1 else 0))
                else Saturating_Add ((if Last_Row.Height > 0 then Last_Row.Height - 1 else 0), Content_Y - Last_Row.Y));
+            Columns   : constant Detail_Column_Geometry_Array :=
+              Compute_Detail_Columns
+                (Snapshot.Detail_Columns_Visible,
+                 Snapshot.Detail_Column_Widths,
+                 Content_X,
+                 Content_W,
+                 Line_Height,
+                 Natural'Min (Details_Row_Padding, Line_Height));
 
             procedure Add_Column_Separator (Column_X : Natural) is
             begin
                Add_Rect ((if Column_X > 2 then Column_X - 2 else 0), Separator_Y, 1, Separator_H, Border_Color);
             end Add_Column_Separator;
          begin
-            Add_Column_Separator (First_Row.Modified_X);
-            Add_Column_Separator (First_Row.Size_X);
-            Add_Column_Separator (First_Row.Filetype_X);
+            for Column in Files.Types.Optional_Detail_Column loop
+               if Columns (Column).Visible then
+                  Add_Column_Separator (Columns (Column).X);
+               end if;
+            end loop;
          end;
       end if;
 

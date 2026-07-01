@@ -117,6 +117,7 @@ package body Files_Suite.Interaction is
    procedure Test_Command_Palette_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Descending_Sort_Arrows_Follow_Display (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Column_And_Group_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -217,6 +218,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Descending_Sort_Arrows_Follow_Display'Access,
          "Up/Down follow the displayed order under descending sort (not reversed)");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Column_And_Group_Commands'Access,
+         "column-toggle and group-by commands mutate settings and grouping inserts header rows");
    end Register_Tests;
 
    --  Center of the cell laid out for visible item Index, derived from the real
@@ -2748,5 +2752,61 @@ package body Files_Suite.Interaction is
       pragma Warnings (On, "use of an anonymous access type allocator");
       return Result;
    end Suite;
+
+   procedure Test_Column_And_Group_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Group_Mode;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Before   : constant Boolean :=
+        Settings.Column_Visible (Files.Types.Permissions_Column);
+   begin
+      --  The toggle command flips the persisted visibility and reports the
+      --  settings change through the interaction result.
+      Files.Interaction.Execute_Command
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Command           => Files.Commands.Toggle_Column_Permissions_Command,
+         Current_Font_Size => Base_Font,
+         Result            => Result);
+      Assert (Settings.Column_Visible (Files.Types.Permissions_Column) /= Before,
+              "the permissions-column command flips its visibility");
+      Assert (Result.Settings_Changed, "the column toggle reports a settings change");
+
+      --  The group command advances the persisted grouping mode.
+      Files.Interaction.Execute_Command
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Command           => Files.Commands.Cycle_Group_By_Command,
+         Current_Font_Size => Base_Font,
+         Result            => Result);
+      Assert (Settings.Group_By = Files.Types.Group_By_Type,
+              "the group-by command advances the grouping mode");
+
+      --  With grouping active in the details view, Build_Snapshot inserts a
+      --  non-selectable header row (Visible_Index zero) ahead of the items.
+      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Header_Rows : Natural := 0;
+         Item_Rows   : Natural := 0;
+      begin
+         for Item of Snapshot.Items loop
+            if Item.Is_Group_Header then
+               Header_Rows := Header_Rows + 1;
+               Assert (Item.Visible_Index = 0, "a group header carries no visible index");
+            else
+               Item_Rows := Item_Rows + 1;
+               Assert (Item.Visible_Index > 0, "a real row keeps its visible index");
+            end if;
+         end loop;
+         Assert (Header_Rows >= 1, "grouping inserts at least one header row");
+         Assert (Item_Rows = 3, "every sample item survives grouping");
+      end;
+   end Test_Column_And_Group_Commands;
 
 end Files_Suite.Interaction;

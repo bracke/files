@@ -54,7 +54,13 @@ package body Files.Commands is
             | Reset_Settings_Command
             | Toggle_Hidden_Files_Command
             | Open_Command_Palette_Command
-            | Close_Command_Palette_Command =>
+            | Close_Command_Palette_Command
+            | Toggle_Column_Modified_Command
+            | Toggle_Column_Size_Command
+            | Toggle_Column_Type_Command
+            | Toggle_Column_Created_Command
+            | Toggle_Column_Permissions_Command
+            | Cycle_Group_By_Command =>
             return True;
          when others =>
             return False;
@@ -168,6 +174,18 @@ package body Files.Commands is
             return "link.hard";
          when Undo_Command =>
             return "edit.undo";
+         when Toggle_Column_Modified_Command =>
+            return "columns.toggle_modified";
+         when Toggle_Column_Size_Command =>
+            return "columns.toggle_size";
+         when Toggle_Column_Type_Command =>
+            return "columns.toggle_type";
+         when Toggle_Column_Created_Command =>
+            return "columns.toggle_created";
+         when Toggle_Column_Permissions_Command =>
+            return "columns.toggle_permissions";
+         when Cycle_Group_By_Command =>
+            return "columns.cycle_group_by";
       end case;
    end Identifier;
 
@@ -278,6 +296,18 @@ package body Files.Commands is
             return "command.link.hard";
          when Undo_Command =>
             return "command.edit.undo";
+         when Toggle_Column_Modified_Command =>
+            return "command.columns.toggle_modified";
+         when Toggle_Column_Size_Command =>
+            return "command.columns.toggle_size";
+         when Toggle_Column_Type_Command =>
+            return "command.columns.toggle_type";
+         when Toggle_Column_Created_Command =>
+            return "command.columns.toggle_created";
+         when Toggle_Column_Permissions_Command =>
+            return "command.columns.toggle_permissions";
+         when Cycle_Group_By_Command =>
+            return "command.columns.cycle_group_by";
       end case;
    end Name_Key;
 
@@ -388,6 +418,18 @@ package body Files.Commands is
             return "command.link.hard.description";
          when Undo_Command =>
             return "command.edit.undo.description";
+         when Toggle_Column_Modified_Command =>
+            return "command.columns.toggle_modified.description";
+         when Toggle_Column_Size_Command =>
+            return "command.columns.toggle_size.description";
+         when Toggle_Column_Type_Command =>
+            return "command.columns.toggle_type.description";
+         when Toggle_Column_Created_Command =>
+            return "command.columns.toggle_created.description";
+         when Toggle_Column_Permissions_Command =>
+            return "command.columns.toggle_permissions.description";
+         when Cycle_Group_By_Command =>
+            return "command.columns.cycle_group_by.description";
       end case;
    end Description_Key;
 
@@ -729,7 +771,13 @@ package body Files.Commands is
    begin
       case Id is
          when Save_Settings_Command
-            | Toggle_Hidden_Files_Command =>
+            | Toggle_Hidden_Files_Command
+            | Toggle_Column_Modified_Command
+            | Toggle_Column_Size_Command
+            | Toggle_Column_Type_Command
+            | Toggle_Column_Created_Command
+            | Toggle_Column_Permissions_Command
+            | Cycle_Group_By_Command =>
             return True;
          when others =>
             return False;
@@ -1057,6 +1105,16 @@ package body Files.Commands is
          when Create_Hardlink_Command =>
             null;
          when Undo_Command =>
+            null;
+         when Toggle_Column_Modified_Command
+            | Toggle_Column_Size_Command
+            | Toggle_Column_Type_Command
+            | Toggle_Column_Created_Command
+            | Toggle_Column_Permissions_Command
+            | Cycle_Group_By_Command =>
+            --  Detail-column and grouping toggles mutate persisted settings, so
+            --  they are routed through Files.Interaction (which owns the settings
+            --  path) rather than this pure model-only executor.
             null;
       end case;
    end Execute;

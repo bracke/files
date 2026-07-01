@@ -61,6 +61,15 @@ package Files.Settings is
       --  macOS, cmd /c start on Windows). Set to False to force explicit
       --  per-type configuration.
       Use_System_Default_Opener : Boolean := True;
+      --  Detail-view column customization. Column_Visible toggles individual
+      --  columns (the name column is always shown), Column_Widths overrides the
+      --  proportional default width per column (zero keeps the default), and
+      --  Group_By selects the optional non-selectable grouping bands.
+      Column_Visible         : Files.Types.Detail_Column_Visibility :=
+        Files.Types.Default_Detail_Column_Visibility;
+      Column_Widths          : Files.Types.Detail_Column_Widths :=
+        Files.Types.Default_Detail_Column_Widths;
+      Group_By               : Files.Types.Group_Mode := Files.Types.No_Grouping;
    end record;
 
    type Settings_Parse_Result is record
@@ -114,6 +123,41 @@ package Files.Settings is
    --
    --  @return Default settings model.
    function Default_Settings return Settings_Model;
+
+   --  Return Settings with the visibility of a detail column toggled. The name
+   --  column is always visible, so a request to toggle it returns Settings
+   --  unchanged.
+   --
+   --  @param Settings Settings model to update.
+   --  @param Column Detail column to toggle.
+   --  @return Updated settings model.
+   function Toggle_Column
+     (Settings : Settings_Model;
+      Column   : Files.Types.Detail_Column)
+      return Settings_Model;
+
+   --  Return Settings with a detail column's persisted width set to Width,
+   --  clamped up to the minimum column width. A width of zero clears the
+   --  customization so the layout falls back to its proportional default.
+   --
+   --  @param Settings Settings model to update.
+   --  @param Column Detail column to resize.
+   --  @param Width Requested pixel width, or zero to reset to the default.
+   --  @return Updated settings model.
+   function With_Column_Width
+     (Settings : Settings_Model;
+      Column   : Files.Types.Detail_Column;
+      Width    : Natural)
+      return Settings_Model;
+
+   --  Return Settings with Group_By advanced to the next grouping mode, cycling
+   --  back to No_Grouping after the final band.
+   --
+   --  @param Settings Settings model to update.
+   --  @return Updated settings model.
+   function Cycle_Group_By
+     (Settings : Settings_Model)
+      return Settings_Model;
 
    --  Add or replace an extension-to-filetype mapping.
    --

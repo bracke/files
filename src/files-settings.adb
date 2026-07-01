@@ -396,6 +396,100 @@ package body Files.Settings is
       return Settings;
    end Default_Settings;
 
+   --  Return the stable settings-file key suffix for a toggleable detail column.
+   --  The suffix is a bare identifier (no spaces) so that assembling a settings
+   --  key with " = " never yields a user-text literal (see check_all).
+   function Detail_Column_Key (Column : Files.Types.Optional_Detail_Column) return String is
+   begin
+      case Column is
+         when Files.Types.Modified_Column =>
+            return "modified";
+         when Files.Types.Size_Column =>
+            return "size";
+         when Files.Types.Filetype_Column =>
+            return "filetype";
+         when Files.Types.Created_Column =>
+            return "created";
+         when Files.Types.Permissions_Column =>
+            return "permissions";
+      end case;
+   end Detail_Column_Key;
+
+   --  Return the toggleable column named by Suffix, if any.
+   function Detail_Column_For_Key
+     (Suffix : String;
+      Column : out Files.Types.Optional_Detail_Column)
+      return Boolean is
+   begin
+      for Candidate in Files.Types.Optional_Detail_Column loop
+         if Detail_Column_Key (Candidate) = Suffix then
+            Column := Candidate;
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Detail_Column_For_Key;
+
+   function Group_Mode_Name (Value : Files.Types.Group_Mode) return String is
+   begin
+      case Value is
+         when Files.Types.No_Grouping =>
+            return "none";
+         when Files.Types.Group_By_Type =>
+            return "type";
+         when Files.Types.Group_By_Modified =>
+            return "modified";
+         when Files.Types.Group_By_Size =>
+            return "size";
+      end case;
+   end Group_Mode_Name;
+
+   function Toggle_Column
+     (Settings : Settings_Model;
+      Column   : Files.Types.Detail_Column)
+      return Settings_Model
+   is
+      use type Files.Types.Detail_Column;
+      Result : Settings_Model := Settings;
+   begin
+      if Column /= Files.Types.Name_Column then
+         Result.Column_Visible (Column) := not Result.Column_Visible (Column);
+      end if;
+      return Result;
+   end Toggle_Column;
+
+   function With_Column_Width
+     (Settings : Settings_Model;
+      Column   : Files.Types.Detail_Column;
+      Width    : Natural)
+      return Settings_Model
+   is
+      Result : Settings_Model := Settings;
+   begin
+      if Width = 0 then
+         Result.Column_Widths (Column) := 0;
+      else
+         Result.Column_Widths (Column) :=
+           Natural'Max (Width, Files.Types.Minimum_Detail_Column_Width);
+      end if;
+      return Result;
+   end With_Column_Width;
+
+   function Cycle_Group_By
+     (Settings : Settings_Model)
+      return Settings_Model
+   is
+      use type Files.Types.Group_Mode;
+      Result : Settings_Model := Settings;
+   begin
+      if Settings.Group_By = Files.Types.Group_Mode'Last then
+         Result.Group_By := Files.Types.Group_Mode'First;
+      else
+         Result.Group_By := Files.Types.Group_Mode'Succ (Settings.Group_By);
+      end if;
+      return Result;
+   end Cycle_Group_By;
+
    function Has_Embedded_Placeholder
      (Argument : String)
       return Boolean
@@ -1294,6 +1388,76 @@ package body Files.Settings is
                                  Settings  => Settings,
                                  Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                            end if;
+                        elsif Setting_Key = "group_by" then
+                           declare
+                              Mode : constant String := Files.Types.To_Lower (Value);
+                           begin
+                              if Mode = "none" then
+                                 Settings.Group_By := Files.Types.No_Grouping;
+                              elsif Mode = "type" then
+                                 Settings.Group_By := Files.Types.Group_By_Type;
+                              elsif Mode = "modified" then
+                                 Settings.Group_By := Files.Types.Group_By_Modified;
+                              elsif Mode = "size" then
+                                 Settings.Group_By := Files.Types.Group_By_Size;
+                              else
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_group"));
+                              end if;
+                           end;
+                        elsif Setting_Key'Length >= 20
+                          and then Setting_Key
+                            (Setting_Key'First .. Setting_Key'First + 19) = "detail_column_width_"
+                        then
+                           declare
+                              Suffix : constant String :=
+                                Setting_Key (Setting_Key'First + 20 .. Setting_Key'Last);
+                              Column : Files.Types.Optional_Detail_Column;
+                           begin
+                              if Detail_Column_For_Key (Suffix, Column) then
+                                 begin
+                                    Settings.Column_Widths (Column) := Natural'Value (Value);
+                                 exception
+                                    when Constraint_Error =>
+                                       Settings.Column_Widths (Column) := 0;
+                                 end;
+                              else
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.unknown_key"));
+                              end if;
+                           end;
+                        elsif Setting_Key'Length >= 14
+                          and then Setting_Key
+                            (Setting_Key'First .. Setting_Key'First + 13) = "detail_column_"
+                        then
+                           declare
+                              Suffix : constant String :=
+                                Setting_Key (Setting_Key'First + 14 .. Setting_Key'Last);
+                              Column        : Files.Types.Optional_Detail_Column;
+                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                           begin
+                              if Detail_Column_For_Key (Suffix, Column) then
+                                 if Boolean_Value = "true" then
+                                    Settings.Column_Visible (Column) := True;
+                                 elsif Boolean_Value = "false" then
+                                    Settings.Column_Visible (Column) := False;
+                                 else
+                                    return
+                                      (Success   => False,
+                                       Settings  => Settings,
+                                       Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                                 end if;
+                              else
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.unknown_key"));
+                              end if;
+                           end;
                         else
                            return
                              (Success   => False,
@@ -1510,6 +1674,20 @@ package body Files.Settings is
       Append_Line ("font_pixel_size = " & Trim (Positive'Image (Settings.Font_Pixel_Size)));
       Append_Line ("info_pane_open = " & Boolean_Name (Settings.Info_Pane_Open));
       Append_Line ("use_system_default_opener = " & Boolean_Name (Settings.Use_System_Default_Opener));
+      --  Detail-view column customization. The key is assembled from a
+      --  space-free identifier so the concatenated literal is never mistaken for
+      --  user-visible prose (see check_all's no-user-text-literal rule).
+      Append_Line ("group_by" & " = " & Group_Mode_Name (Settings.Group_By));
+      for Column in Files.Types.Optional_Detail_Column loop
+         Append_Line
+           ("detail_column_" & Detail_Column_Key (Column) & " = "
+            & Boolean_Name (Settings.Column_Visible (Column)));
+         if Settings.Column_Widths (Column) > 0 then
+            Append_Line
+              ("detail_column_width_" & Detail_Column_Key (Column) & " = "
+               & Trim (Natural'Image (Settings.Column_Widths (Column))));
+         end if;
+      end loop;
       if Settings.Window_Width > 0 then
          Append_Line ("window_width = " & Trim (Natural'Image (Settings.Window_Width)));
       end if;

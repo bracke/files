@@ -139,6 +139,37 @@ package body Files.Interaction is
                Outcome :=
                  (Status => Files.Controller.Controller_Command_Executed, others => <>);
             end;
+         when Files.Commands.Toggle_Column_Modified_Command
+            | Files.Commands.Toggle_Column_Size_Command
+            | Files.Commands.Toggle_Column_Type_Command
+            | Files.Commands.Toggle_Column_Created_Command
+            | Files.Commands.Toggle_Column_Permissions_Command =>
+            declare
+               Column : constant Files.Types.Detail_Column :=
+                 (case Command is
+                     when Files.Commands.Toggle_Column_Modified_Command =>
+                        Files.Types.Modified_Column,
+                     when Files.Commands.Toggle_Column_Size_Command =>
+                        Files.Types.Size_Column,
+                     when Files.Commands.Toggle_Column_Type_Command =>
+                        Files.Types.Filetype_Column,
+                     when Files.Commands.Toggle_Column_Created_Command =>
+                        Files.Types.Created_Column,
+                     when others =>
+                        Files.Types.Permissions_Column);
+            begin
+               Settings := Files.Settings.Toggle_Column (Settings, Column);
+               Persist_Settings (Settings, Settings_Path);
+               Result.Settings_Changed := True;
+               Outcome :=
+                 (Status => Files.Controller.Controller_Command_Executed, others => <>);
+            end;
+         when Files.Commands.Cycle_Group_By_Command =>
+            Settings := Files.Settings.Cycle_Group_By (Settings);
+            Persist_Settings (Settings, Settings_Path);
+            Result.Settings_Changed := True;
+            Outcome :=
+              (Status => Files.Controller.Controller_Command_Executed, others => <>);
          when others =>
             Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Modifiers);
       end case;

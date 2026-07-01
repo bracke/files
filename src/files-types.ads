@@ -21,6 +21,53 @@ package Files.Types is
       Large_Icons,
       Details);
 
+   --  Selectable detail-view columns. The name column is always shown and
+   --  cannot be hidden; the remaining columns are individually toggleable and,
+   --  when visible, laid out left to right in this declaration order.
+   type Detail_Column is
+     (Name_Column,
+      Modified_Column,
+      Size_Column,
+      Filetype_Column,
+      Created_Column,
+      Permissions_Column);
+
+   --  Toggleable detail columns, i.e. every column except the mandatory name.
+   subtype Optional_Detail_Column is
+     Detail_Column range Modified_Column .. Permissions_Column;
+
+   --  Per-column visibility flags for the detail view.
+   type Detail_Column_Visibility is array (Detail_Column) of Boolean;
+
+   --  Per-column pixel widths for the detail view. A width of zero means the
+   --  layout derives a proportional default for that column.
+   type Detail_Column_Widths is array (Detail_Column) of Natural;
+
+   --  Default detail-column visibility: name, modified, size, and type are
+   --  shown; created and permissions stay hidden until enabled.
+   Default_Detail_Column_Visibility : constant Detail_Column_Visibility :=
+     [Name_Column        => True,
+      Modified_Column    => True,
+      Size_Column        => True,
+      Filetype_Column    => True,
+      Created_Column     => False,
+      Permissions_Column => False];
+
+   --  Default per-column widths: zero for every column so the layout derives
+   --  proportional defaults until a width is customized.
+   Default_Detail_Column_Widths : constant Detail_Column_Widths := [others => 0];
+
+   --  Smallest pixel width a customized detail column may occupy.
+   Minimum_Detail_Column_Width : constant := 48;
+
+   --  Detail-view row grouping mode. When it is not No_Grouping the detail list
+   --  gains non-selectable group header rows composed with the active sort.
+   type Group_Mode is
+     (No_Grouping,
+      Group_By_Type,
+      Group_By_Modified,
+      Group_By_Size);
+
    type Item_Kind is
      (Directory_Item,
       Regular_File_Item,

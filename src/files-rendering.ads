@@ -86,6 +86,11 @@ package Files.Rendering is
       Renaming           : Boolean := False;
       Rename_Value       : UString;
       Rename_Cursor      : Natural := 0;
+      --  Non-selectable grouping band header inserted into the detail list when
+      --  grouping is active. Group_Label carries the localized band caption and
+      --  Visible_Index stays zero so hit-testing never resolves it to an item.
+      Is_Group_Header    : Boolean := False;
+      Group_Label        : UString;
    end record;
 
    package Item_Snapshot_Vectors is new Ada.Containers.Vectors
@@ -205,6 +210,14 @@ package Files.Rendering is
       Context_Menu_Target            : Files.Model.Context_Menu_Target :=
         Files.Model.Context_Menu_None;
       Context_Menu_Item_Index        : Natural := 0;
+      --  Detail-view column customization mirrored from settings so the pure
+      --  layout functions can lay out only the visible columns, honour custom
+      --  widths, and insert grouping bands without reaching back into settings.
+      Detail_Columns_Visible         : Files.Types.Detail_Column_Visibility :=
+        Files.Types.Default_Detail_Column_Visibility;
+      Detail_Column_Widths           : Files.Types.Detail_Column_Widths :=
+        Files.Types.Default_Detail_Column_Widths;
+      Group_By                       : Files.Types.Group_Mode := Files.Types.No_Grouping;
    end record;
 
    --  A context-menu row is either a selectable command or a non-selectable
@@ -311,6 +324,10 @@ package Files.Rendering is
       Size_Width     : Natural := 0;
       Filetype_X     : Natural := 0;
       Filetype_Width : Natural := 0;
+      Created_X         : Natural := 0;
+      Created_Width     : Natural := 0;
+      Permissions_X     : Natural := 0;
+      Permissions_Width : Natural := 0;
    end record;
 
    package Item_Layout_Vectors is new Ada.Containers.Vectors

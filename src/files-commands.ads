@@ -55,10 +55,16 @@ package Files.Commands is
       Open_Terminal_Command,
       Create_Symlink_Command,
       Create_Hardlink_Command,
-      Undo_Command);
+      Undo_Command,
+      Toggle_Column_Modified_Command,
+      Toggle_Column_Size_Command,
+      Toggle_Column_Type_Command,
+      Toggle_Column_Created_Command,
+      Toggle_Column_Permissions_Command,
+      Cycle_Group_By_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Undo_Command;
+     Select_Small_Icons_Command .. Cycle_Group_By_Command;
 
    type Command_Placement is
      (No_Placement,
