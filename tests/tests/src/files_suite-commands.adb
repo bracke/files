@@ -198,6 +198,12 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "delete disabled with no selection");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
+         "create-symlink disabled with no selection");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+         "create-hard-link disabled with no selection");
       --  The info pane can always be toggled, even with nothing selected: an
       --  empty selection simply shows an empty pane.
       Assert
@@ -273,6 +279,15 @@ package body Files_Suite.Commands is
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
          "info toggle enabled with selection");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
+         "create-symlink enabled with a selection in a real directory");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+         "create-hard-link enabled with a selection in a real directory");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Open_Terminal_Command, Model),
+         "open-terminal enabled in a real directory");
       Files.Commands.Execute (Files.Commands.Open_Selected_Items_Command, Model);
       Assert
         (Files.Model.Current_Path (Model) = Root,
@@ -586,7 +601,10 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 47, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 50, "all expected commands are registered");
+      Assert (Files.Commands.Contains ("terminal.open"), "open-terminal command identifier is registered");
+      Assert (Files.Commands.Contains ("link.symbolic"), "create-symlink command identifier is registered");
+      Assert (Files.Commands.Contains ("link.hard"), "create-hard-link command identifier is registered");
       Assert (Files.Commands.Contains ("file.compress_zip"), "compress-zip command identifier is registered");
       Assert (Files.Commands.Contains ("file.compress_7z"), "compress-7z command identifier is registered");
       Assert (Files.Commands.Contains ("view.small"), "stable command identifier is registered");

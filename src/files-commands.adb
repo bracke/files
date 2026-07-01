@@ -160,6 +160,12 @@ package body Files.Commands is
             return "trash.open";
          when Restore_From_Trash_Command =>
             return "trash.restore";
+         when Open_Terminal_Command =>
+            return "terminal.open";
+         when Create_Symlink_Command =>
+            return "link.symbolic";
+         when Create_Hardlink_Command =>
+            return "link.hard";
          when Undo_Command =>
             return "edit.undo";
       end case;
@@ -264,6 +270,12 @@ package body Files.Commands is
             return "command.trash.open";
          when Restore_From_Trash_Command =>
             return "command.trash.restore";
+         when Open_Terminal_Command =>
+            return "command.terminal.open";
+         when Create_Symlink_Command =>
+            return "command.link.symbolic";
+         when Create_Hardlink_Command =>
+            return "command.link.hard";
          when Undo_Command =>
             return "command.edit.undo";
       end case;
@@ -368,6 +380,12 @@ package body Files.Commands is
             return "command.trash.open.description";
          when Restore_From_Trash_Command =>
             return "command.trash.restore.description";
+         when Open_Terminal_Command =>
+            return "command.terminal.open.description";
+         when Create_Symlink_Command =>
+            return "command.link.symbolic.description";
+         when Create_Hardlink_Command =>
+            return "command.link.hard.description";
          when Undo_Command =>
             return "command.edit.undo.description";
       end case;
@@ -777,6 +795,15 @@ package body Files.Commands is
       return False;
    end Selection_Has_Archive;
 
+   --  Return whether the model currently shows the platform trash payload
+   --  directory rather than an ordinary directory.
+   function In_Trash_View (Model : Files.Model.Window_Model) return Boolean is
+      Trash_Dir : constant String := Files.File_System.Trash_Files_Directory;
+   begin
+      return Trash_Dir /= ""
+        and then Normalized_Path (Files.Model.Current_Path (Model)) = Normalized_Path (Trash_Dir);
+   end In_Trash_View;
+
    function Is_Enabled
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
@@ -868,6 +895,14 @@ package body Files.Commands is
             end;
          when Undo_Command =>
             return Files.Model.Undo_Available (Model);
+         when Open_Terminal_Command =>
+            --  A terminal can be opened for any real directory view, but not the
+            --  trash payload directory.
+            return not In_Trash_View (Model);
+         when Create_Symlink_Command | Create_Hardlink_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
          when others =>
             return True;
       end case;
@@ -1014,6 +1049,12 @@ package body Files.Commands is
          when Navigate_Trash_Command =>
             null;
          when Restore_From_Trash_Command =>
+            null;
+         when Open_Terminal_Command =>
+            null;
+         when Create_Symlink_Command =>
+            null;
+         when Create_Hardlink_Command =>
             null;
          when Undo_Command =>
             null;

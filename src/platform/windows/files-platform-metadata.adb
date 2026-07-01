@@ -23,4 +23,24 @@ package body Files.Platform.Metadata is
       return (others => <>);
    end Volume_Capacity_Of;
 
+   function Create_Symbolic_Link
+     (Target    : String;
+      Link_Path : String)
+      return Boolean
+   is
+      pragma Unreferenced (Target, Link_Path);
+   begin
+      return False;
+   end Create_Symbolic_Link;
+
+   function Create_Hard_Link
+     (Existing_Path : String;
+      New_Path      : String)
+      return Boolean
+   is
+      pragma Unreferenced (Existing_Path, New_Path);
+   begin
+      return False;
+   end Create_Hard_Link;
+
 end Files.Platform.Metadata;

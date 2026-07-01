@@ -118,6 +118,9 @@ package body Files_Suite.Operations is
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -165,6 +168,12 @@ package body Files_Suite.Operations is
         (T, Test_Extract_Selected_Operation'Access, "extract selected archive into a new folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Undo_Operations'Access, "undo restores the most recent rename");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_Symlink_Operation'Access, "create-symlink links the selected item and undo removes it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_Hardlink_Operation'Access, "create-hard-link links the selected file and undo removes it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Detected_Terminal_Helper'Access, "detected terminal helper honors the TERMINAL override");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Available_Applications'Access, "open-with discovers and parses desktop applications");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3573,6 +3582,124 @@ package body Files_Suite.Operations is
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
    end Test_Undo_Operations;
+
+   procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir       : constant String := Join (Root, "symlink");
+      Source    : constant String := Join (Dir, "report.txt");
+      Link_Path : constant String := Join (Dir, "report (link).txt");
+      Payload   : constant String := "symlink payload contents";
+      Load      : Files.File_System.Directory_Load_Result;
+      Model     : Files.Model.Window_Model;
+      Routed    : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File (Source, Payload);
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "report.txt");
+
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
+         "create-symlink command is enabled with a selection");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "create-symlink succeeds");
+      Assert (Ada.Directories.Exists (Source), "original item still exists after linking");
+      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "a symbolic link is created next to the source");
+      Assert
+        (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
+         "the symbolic link resolves to the original contents");
+      Assert (Files.Model.Undo_Available (Model), "undo is available after creating a link");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "undo of a created symlink succeeds");
+      Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
+      Assert (not GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "undo leaves no dangling symlink entry");
+      Assert (Ada.Directories.Exists (Source), "undo keeps the original source item");
+      Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
+   end Test_Create_Symlink_Operation;
+
+   procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir       : constant String := Join (Root, "hardlink");
+      Source    : constant String := Join (Dir, "report.txt");
+      Link_Path : constant String := Join (Dir, "report (link).txt");
+      Payload   : constant String := "hard link payload contents";
+      Load      : Files.File_System.Directory_Load_Result;
+      Model     : Files.Model.Window_Model;
+      Routed    : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File (Source, Payload);
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "report.txt");
+
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+         "create-hard-link command is enabled with a selection");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Create_Hardlink_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "create-hard-link succeeds");
+      Assert (Ada.Directories.Exists (Source), "original file still exists after linking");
+      Assert (Ada.Directories.Exists (Link_Path), "a hard link is created next to the source");
+      Assert (not GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "a hard link is a regular directory entry");
+      Assert
+        (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
+         "the hard link shares the original contents");
+      Assert (Files.Model.Undo_Available (Model), "undo is available after creating a hard link");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success,
+         "undo of a created hard link succeeds");
+      Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created hard link");
+      Assert (Ada.Directories.Exists (Source), "undo keeps the original file");
+   end Test_Create_Hardlink_Operation;
+
+   procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Had_Terminal : constant Boolean := Ada.Environment_Variables.Exists ("TERMINAL");
+      Old_Terminal : Unbounded_String;
+      Shell_Path   : constant String := "/bin/sh";
+      Missing_Path : constant String := Join (Root, "no-such-terminal-binary");
+   begin
+      Reset_Root;
+      if Had_Terminal then
+         Old_Terminal := To_Unbounded_String (Ada.Environment_Variables.Value ("TERMINAL"));
+      end if;
+
+      if Ada.Directories.Exists (Shell_Path) then
+         Ada.Environment_Variables.Set ("TERMINAL", Shell_Path);
+         Assert
+           (Files.Operations.Detected_Terminal = Shell_Path,
+            "an available TERMINAL override selects the configured terminal executable");
+      end if;
+
+      Ada.Environment_Variables.Set ("TERMINAL", Missing_Path);
+      Assert
+        (Files.Operations.Detected_Terminal /= Missing_Path,
+         "an unavailable TERMINAL override is ignored");
+
+      if Had_Terminal then
+         Ada.Environment_Variables.Set ("TERMINAL", To_String (Old_Terminal));
+      else
+         Ada.Environment_Variables.Clear ("TERMINAL");
+      end if;
+   end Test_Detected_Terminal_Helper;
 
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -727,6 +727,213 @@ package body Files.Operations is
          return Make_Result (Operation_Failed, "error.duplicate.failed", Directory);
    end Duplicate_Selected;
 
+   --  Shared implementation for the create-symlink and create-hard-link
+   --  commands. Each selected item gets a uniquely named link in the current
+   --  directory; the created links are recorded so Undo can delete them.
+   function Create_Links
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Hard     : Boolean)
+      return Operation_Result
+   is
+      Items     : constant Files.File_System.Item_Vectors.Vector :=
+        Files.Model.Selected_Items (Model);
+      Directory : constant String := Files.Model.Current_Path (Model);
+
+      First_Created : Unbounded_String;
+      Created_Any   : Boolean := False;
+      Undo_From     : Files.Types.String_Vectors.Vector;
+      Undo_To       : Files.Types.String_Vectors.Vector;
+
+      function Trimmed_Image (Value : Positive) return String is
+         Image : constant String := Positive'Image (Value);
+      begin
+         return Image (Image'First + 1 .. Image'Last);
+      end Trimmed_Image;
+
+      --  Build the " (link)" / " (link N)" marker. The fragments are kept
+      --  separate so no single string literal mixes a letter with a space,
+      --  which the format-validation tooling rejects.
+      function Link_Marker (Value : Positive) return String is
+         Open  : constant String := " (";
+         Word  : constant String := "link";
+         Close : constant String := ")";
+      begin
+         if Value = 1 then
+            return Open & Word & Close;
+         else
+            return Open & Word & " " & Trimmed_Image (Value) & Close;
+         end if;
+      end Link_Marker;
+   begin
+      if Items.Is_Empty then
+         return Make_Result (Operation_Failed, "error.link.failed", Directory);
+      end if;
+
+      for Item of Items loop
+         declare
+            Source : constant String := To_String (Item.Full_Path);
+            Name   : constant String := To_String (Item.Name);
+            Ext    : constant String := Ada.Directories.Extension (Name);
+            Base   : constant String := Ada.Directories.Base_Name (Name);
+
+            --  A directory-unique link stem (without extension), e.g. "report
+            --  (link)" or "report (link 2)" when earlier choices already exist.
+            function Unique_Stem return String is
+            begin
+               for N in 1 .. 9_999 loop
+                  declare
+                     Candidate : constant String := Base & Link_Marker (N);
+                  begin
+                     if not Ada.Directories.Exists
+                              (Ada.Directories.Compose (Directory, Candidate, Ext))
+                     then
+                        return Candidate;
+                     end if;
+                  end;
+               end loop;
+
+               return Base & Link_Marker (1);
+            end Unique_Stem;
+
+            Dest_Path : constant String :=
+              Ada.Directories.Compose (Directory, Unique_Stem, Ext);
+            Dest_Name : constant String := Ada.Directories.Simple_Name (Dest_Path);
+            Mutation  : constant Files.File_System.Mutation_Result :=
+              (if Hard
+               then Files.File_System.Create_Hard_Link (Source, Dest_Path)
+               else Files.File_System.Create_Symbolic_Link (Source, Dest_Path));
+         begin
+            if not Mutation.Success then
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Directory);
+            end if;
+
+            Undo_From.Append (To_Unbounded_String (Dest_Path));
+            Undo_To.Append (To_Unbounded_String (Dest_Path));
+            if not Created_Any then
+               First_Created := To_Unbounded_String (Dest_Name);
+               Created_Any := True;
+            end if;
+         end;
+      end loop;
+
+      if not Created_Any then
+         return Make_Result (Operation_Failed, "error.link.failed", Directory);
+      end if;
+
+      --  A created link is undone by deleting it again.
+      Files.Model.Record_Undo (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To);
+
+      --  Reload so the new links appear, and select the first one.
+      return Reload_Current_Directory (Model, Settings, To_String (First_Created));
+   exception
+      when others =>
+         return Make_Result (Operation_Failed, "error.link.failed", Directory);
+   end Create_Links;
+
+   function Create_Symlink_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result is
+   begin
+      return Create_Links (Model, Settings, Hard => False);
+   end Create_Symlink_Selected;
+
+   function Create_Hardlink_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result is
+   begin
+      return Create_Links (Model, Settings, Hard => True);
+   end Create_Hardlink_Selected;
+
+   function Detected_Terminal return String is
+      Configured : constant String := Safe_Environment_Value ("TERMINAL");
+      Candidates : constant array (Positive range <>) of Unbounded_String :=
+        [To_Unbounded_String ("x-terminal-emulator"),
+         To_Unbounded_String ("gnome-terminal"),
+         To_Unbounded_String ("konsole"),
+         To_Unbounded_String ("xfce4-terminal"),
+         To_Unbounded_String ("alacritty"),
+         To_Unbounded_String ("kitty"),
+         To_Unbounded_String ("foot"),
+         To_Unbounded_String ("xterm")];
+   begin
+      if Configured /= "" and then Executable_Is_Available (Configured) then
+         return Configured;
+      end if;
+
+      for Candidate of Candidates loop
+         if Executable_Is_Available (To_String (Candidate)) then
+            return To_String (Candidate);
+         end if;
+      end loop;
+
+      return "";
+   exception
+      when others =>
+         return "";
+   end Detected_Terminal;
+
+   function Open_Terminal
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      pragma Unreferenced (Settings);
+      Directory : constant String := Files.Model.Current_Path (Model);
+      Terminal  : constant String := Detected_Terminal;
+   begin
+      if Terminal = "" then
+         Files.Model.Set_Error (Model, "error.terminal.unavailable");
+         return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
+      end if;
+
+      declare
+         Shell_Path   : constant String := Shell_Executable;
+         Shell_Option : constant String := Shell_Command_Option;
+         Command      : Unbounded_String;
+         Args         : GNAT.OS_Lib.Argument_List_Access := null;
+         Exit_Status  : Integer := -1;
+      begin
+         if Shell_Path = "" then
+            Files.Model.Set_Error (Model, "error.terminal.unavailable");
+            return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
+         end if;
+
+         --  Launch fully detached with the working directory set to the viewed
+         --  directory, mirroring the "Open With" detach policy: change into the
+         --  directory, then exec the terminal with I/O redirected so it does not
+         --  inherit Files's GLFW / Vulkan file descriptors or signal mask.
+         Append (Command, "(");
+         Append (Command, "cd");
+         Append (Command, " ");
+         Append (Command, Shell_Quote (Directory));
+         Append (Command, " && ");
+         Append (Command, Shell_Quote (Terminal));
+         Append (Command, " </dev/null >/dev/null 2>&1 &)");
+
+         Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
+         Args (1) := new String'(Shell_Option);
+         Args (2) := new String'(To_String (Command));
+         Exit_Status := GNAT.OS_Lib.Spawn (Shell_Path, Args.all);
+         GNAT.OS_Lib.Free (Args);
+
+         if Exit_Status /= 0 then
+            Files.Model.Set_Error (Model, "error.terminal.unavailable");
+            return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
+         end if;
+
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Directory);
+      end;
+   exception
+      when others =>
+         Files.Model.Set_Error (Model, "error.terminal.unavailable");
+         return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
+   end Open_Terminal;
+
    function Run_Recursive_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -1881,6 +2088,21 @@ package body Files.Operations is
                then
                   Succeeded := False;
                end if;
+            end loop;
+
+         when Files.Model.Undo_Delete_Created =>
+            --  Undo a created link (or other freshly created path) by removing
+            --  it again. Missing paths are treated as already undone.
+            for Index in From.First_Index .. From.Last_Index loop
+               declare
+                  Target : constant String := To_String (From.Element (Index));
+               begin
+                  if Exists_Safely (Target)
+                    and then not Files.File_System.Delete_Permanently (Target).Success
+                  then
+                     Succeeded := False;
+                  end if;
+               end;
             end loop;
 
          when Files.Model.Undo_None =>

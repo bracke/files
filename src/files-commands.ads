@@ -52,6 +52,9 @@ package Files.Commands is
       Toggle_Bookmark_Command,
       Navigate_Trash_Command,
       Restore_From_Trash_Command,
+      Open_Terminal_Command,
+      Create_Symlink_Command,
+      Create_Hardlink_Command,
       Undo_Command);
 
    subtype Registered_Command_Id is Command_Id range

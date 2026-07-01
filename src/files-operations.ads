@@ -174,6 +174,55 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Create a symbolic link to each selected item in the current directory,
+   --  then reload so the first created link appears and is selected. Each link
+   --  is named after its source with a " (link)" marker inserted before the
+   --  extension (for example report.txt becomes report (link).txt), made unique
+   --  with an incrementing counter when a candidate name already exists. The
+   --  created links are recorded for undo (undo deletes them).
+   --
+   --  @param Model Window model providing the selection and current directory.
+   --  @param Settings Settings model used for the post-create reload.
+   --  @return Structured operation result.
+   function Create_Symlink_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Create a hard link to each selected regular file in the current
+   --  directory, then reload so the first created link appears and is selected.
+   --  Naming, uniquification, and undo recording match Create_Symlink_Selected.
+   --  Directories cannot be hard-linked and are reported as a failure.
+   --
+   --  @param Model Window model providing the selection and current directory.
+   --  @param Settings Settings model used for the post-create reload.
+   --  @return Structured operation result.
+   function Create_Hardlink_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Return the terminal-emulator executable that Open_Terminal would launch.
+   --
+   --  The TERMINAL environment variable is preferred; otherwise the first of a
+   --  fixed list of common Linux emulators found on PATH is returned. The result
+   --  is empty when no terminal emulator is available.
+   --
+   --  @return Terminal executable name or path, or an empty string when none.
+   function Detected_Terminal return String;
+
+   --  Launch a terminal emulator with its working directory set to the model's
+   --  current directory. The terminal is spawned fully detached, mirroring the
+   --  "Open With" launch policy.
+   --
+   --  @param Model Window model providing the current directory.
+   --  @param Settings Settings model (unused; kept for routing symmetry).
+   --  @return Structured operation result; failed when no terminal was launched.
+   function Open_Terminal
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Replace the current view with recursive search results for the filter text.
    --
    --  @param Model Window model containing the current path and filter query.

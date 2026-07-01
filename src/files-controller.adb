@@ -687,6 +687,12 @@ package body Files.Controller is
             end;
          when Files.Commands.Duplicate_Selected_Command =>
             Operation := Files.Operations.Duplicate_Selected (Model, Settings);
+         when Files.Commands.Create_Symlink_Command =>
+            Operation := Files.Operations.Create_Symlink_Selected (Model, Settings);
+         when Files.Commands.Create_Hardlink_Command =>
+            Operation := Files.Operations.Create_Hardlink_Selected (Model, Settings);
+         when Files.Commands.Open_Terminal_Command =>
+            Operation := Files.Operations.Open_Terminal (Model, Settings);
          when Files.Commands.Compress_Zip_Command =>
             Operation :=
               Files.Operations.Compress_Selected

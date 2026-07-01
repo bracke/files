@@ -48,4 +48,30 @@ package Files.Platform.Metadata is
    --  @return Neutral capacity record; Available is False when unavailable.
    function Volume_Capacity_Of (Path : String) return Volume_Capacity;
 
+   --  Create a symbolic link at Link_Path pointing at Target.
+   --
+   --  Target is stored verbatim as the link contents and is not required to
+   --  exist. Non-Linux bodies are stubs that report failure.
+   --
+   --  @param Target Link contents (path the symlink refers to).
+   --  @param Link_Path New symbolic link path to create.
+   --  @return True when the link was created.
+   function Create_Symbolic_Link
+     (Target    : String;
+      Link_Path : String)
+      return Boolean;
+
+   --  Create a hard link at New_Path referring to the same inode as Existing.
+   --
+   --  Existing must name an existing file. Non-Linux bodies are stubs that
+   --  report failure.
+   --
+   --  @param Existing_Path Existing file to link to.
+   --  @param New_Path New hard link path to create.
+   --  @return True when the link was created.
+   function Create_Hard_Link
+     (Existing_Path : String;
+      New_Path      : String)
+      return Boolean;
+
 end Files.Platform.Metadata;

@@ -1216,6 +1216,8 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.drop.into_self");
       Add_Error_Key ("error.copy.failed");
       Add_Error_Key ("error.duplicate.failed");
+      Add_Error_Key ("error.link.failed");
+      Add_Error_Key ("error.terminal.unavailable");
       Add_Error_Key ("error.compress.failed");
       Add_Error_Key ("error.extract.failed");
       Add_Error_Key ("error.undo.failed");

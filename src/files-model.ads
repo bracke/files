@@ -1220,13 +1220,16 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Single-level undo of the most recent reversible action (rename, move, or
-   --  move-to-trash). Paths are stored as parallel From/To vectors.
+   --  Single-level undo of the most recent reversible action (rename, move,
+   --  move-to-trash, or created-link deletion). Paths are stored as parallel
+   --  From/To vectors. For Undo_Delete_Created the From vector holds the paths
+   --  to remove and the To vector is unused.
    type Undo_Action_Kind is
      (Undo_None,
       Undo_Rename,
       Undo_Move,
-      Undo_Restore_Trash);
+      Undo_Restore_Trash,
+      Undo_Delete_Created);
 
    --  Record the latest undoable action, replacing any previous record.
    --

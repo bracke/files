@@ -105,6 +105,18 @@ package body Files.Platform.Metadata is
       return C_Int
      with Import, Convention => C, External_Name => "statvfs";
 
+   function Symlink
+     (Target   : Interfaces.C.Strings.chars_ptr;
+      Link_Path : Interfaces.C.Strings.chars_ptr)
+      return C_Int
+     with Import, Convention => C, External_Name => "symlink";
+
+   function Link
+     (Existing_Path : Interfaces.C.Strings.chars_ptr;
+      New_Path      : Interfaces.C.Strings.chars_ptr)
+      return C_Int
+     with Import, Convention => C, External_Name => "link";
+
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr) is
    begin
@@ -235,5 +247,45 @@ package body Files.Platform.Metadata is
          Safe_Free (C_Path);
          return (others => <>);
    end Volume_Capacity_Of;
+
+   function Create_Symbolic_Link
+     (Target    : String;
+      Link_Path : String)
+      return Boolean
+   is
+      C_Target : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Target);
+      C_Link   : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Link_Path);
+      Status   : C_Int;
+   begin
+      Status := Symlink (C_Target, C_Link);
+      Interfaces.C.Strings.Free (C_Target);
+      Interfaces.C.Strings.Free (C_Link);
+      return Status = 0;
+   exception
+      when others =>
+         Safe_Free (C_Target);
+         Safe_Free (C_Link);
+         return False;
+   end Create_Symbolic_Link;
+
+   function Create_Hard_Link
+     (Existing_Path : String;
+      New_Path      : String)
+      return Boolean
+   is
+      C_Existing : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Existing_Path);
+      C_New      : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (New_Path);
+      Status     : C_Int;
+   begin
+      Status := Link (C_Existing, C_New);
+      Interfaces.C.Strings.Free (C_Existing);
+      Interfaces.C.Strings.Free (C_New);
+      return Status = 0;
+   exception
+      when others =>
+         Safe_Free (C_Existing);
+         Safe_Free (C_New);
+         return False;
+   end Create_Hard_Link;
 
 end Files.Platform.Metadata;
