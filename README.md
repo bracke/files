@@ -151,4 +151,10 @@ by version, not by path), and is done from `alire.release.toml`.
 
 ## License
 
-MIT OR Apache-2.0 WITH LLVM-exception.
+Licensed under either of
+
+- MIT ([LICENSE-MIT](LICENSE-MIT)), or
+- Apache License, Version 2.0 with the LLVM exception
+  ([LICENSE-APACHE](LICENSE-APACHE))
+
+at your option.
