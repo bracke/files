@@ -2252,7 +2252,38 @@ package body Files.Rendering is
       Result.Padding := 4;
       Result.Row_Height :=
         Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
-      Result.Width := Natural'Max (Saturating_Multiply (Line_Height, 9), 180);
+
+      --  Size the menu to the widest command label (using the same monospace
+      --  cell metric and edge padding the renderer draws rows with) so labels
+      --  are not truncated, then clamp to the available screen width.
+      declare
+         Cell_W    : constant Positive :=
+           Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+         Edge_Pad  : constant Natural :=
+           Saturating_Multiply (Files.UI.Input_Field_Padding, 2);
+         Max_Label : Natural := 0;
+      begin
+         for Row in 1 .. Result.Row_Count loop
+            declare
+               Label : constant String :=
+                 Files.Localization.Text
+                   (Files.Commands.Name_Key (Result.Commands (Row)));
+               Label_W : constant Natural :=
+                 Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
+            begin
+               Max_Label := Natural'Max (Max_Label, Label_W);
+            end;
+         end loop;
+
+         Result.Width :=
+           Natural'Max
+             (Natural'Max (Saturating_Multiply (Line_Height, 9), 180),
+              Saturating_Add (Max_Label, Edge_Pad));
+
+         if Width > 0 and then Result.Width > Width then
+            Result.Width := Width;
+         end if;
+      end;
       Result.Height :=
         Saturating_Add
           (Saturating_Multiply (Result.Row_Count, Result.Row_Height),
@@ -3463,6 +3494,9 @@ package body Files.Rendering is
 
       procedure Add_Hover_Tooltip is
          Padding     : constant Natural := 6;
+         --  Even inset on every side; the vertical inset is derived so the box
+         --  is comfortably taller than the text with matching top/bottom bands.
+         Padding_V   : constant Natural := Natural'Max (Padding, Line_Height / 3 + 2);
          Margin      : constant Natural := 4;
          Horizontal_Gap : constant Natural := 12;
          Vertical_Gap   : constant Natural := 18;
@@ -3478,7 +3512,7 @@ package body Files.Rendering is
             then Natural'Min (Raw_Text_W, Max_Tip_W - 2 * Padding)
             else 0);
          Tip_W       : constant Natural := Saturating_Add (Text_W, 2 * Padding);
-         Tip_H       : constant Natural := Saturating_Add (Line_Height, 2 * Padding);
+         Tip_H       : constant Natural := Saturating_Add (Line_Height, 2 * Padding_V);
 
          function Fits_Right return Boolean is
          begin
@@ -3532,7 +3566,7 @@ package body Files.Rendering is
          Add_Overlay_Rect (Saturating_Add (Tip_X, Tip_W - 1), Tip_Y, 1, Tip_H, Border_Color);
          Add_Overlay_Text
            (Tip_X + Padding,
-            Tip_Y + Padding,
+            Tip_Y + Padding_V,
             Text_W,
             Line_Height,
             Text,
@@ -4578,8 +4612,10 @@ package body Files.Rendering is
             --  groups read separately. Inner padding for normal spacing; the
             --  end-of-group cell on either side of the navigation/file-action
             --  boundary gets a wider pad so the gap is visible.
+            --  Slim vertical inset so the icon can occupy more of the button
+            --  height (a modestly larger glyph) while staying inside the rect.
             Pad_V        : constant Natural :=
-              Natural'Min (4, Button_H / 4);
+              Natural'Min (2, Button_H / 8);
             Inner_Pad    : constant Natural := Natural'Min (3, Button_W / 6);
             Group_Pad    : constant Natural := Natural'Min (8, Button_W / 4);
             Button_Pad_L : constant Natural :=
@@ -4610,10 +4646,9 @@ package body Files.Rendering is
             Pressed  : constant Boolean := Is_Pressed (Button_X, Button_Y, Button_W, Button_H);
          begin
             if Visible_W > 0 and then Visible_H > 0 then
-               if not Enabled then
-                  Add_Rect (Visible_X, Visible_Y, Visible_W, Visible_H, Pane_Color);
-                  Add_Border (Visible_X, Visible_Y, Visible_W, Visible_H, Border_Color);
-               elsif Pressed then
+               --  Disabled buttons render with no fill and no border, exactly
+               --  like an enabled idle button; only the icon dimming differs.
+               if Pressed then
                   Add_Rect (Visible_X, Visible_Y, Visible_W, Visible_H, Pressed_Color);
                   Add_Border (Visible_X, Visible_Y, Visible_W, Visible_H, Border_Color);
                elsif Hovered then
@@ -4836,16 +4871,46 @@ package body Files.Rendering is
            Is_Pressed (Bottom.Sort_Button_X, Bottom_Y, Bottom.Sort_Button_Width, Layout.Bottom_Bar_Height);
       begin
          Add_Button (Bottom.Sort_Button_X, Bottom.Sort_Button_Width, Snapshot.Sort_Menu_Open, Hovered, Pressed);
-         Add_Text
-           (Saturating_Add (Bottom.Sort_Button_X, Files.UI.Input_Field_Padding),
-            Bottom_Content_Y,
-            (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-             then Bottom.Sort_Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-             else 0),
-            Bottom_Content_H,
-            Sort_Button_Label,
-            Command_Color (Files.Commands.Toggle_Sort_Menu_Command),
-            Fit => False);
+         declare
+            Field_Label : constant String := Sort_Field_Label (Snapshot.Sort_Field);
+            Arrow_Text  : constant String := Direction_Text;
+            Cell_W      : constant Positive :=
+              Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+            Text_X0     : constant Natural :=
+              Saturating_Add (Bottom.Sort_Button_X, Files.UI.Input_Field_Padding);
+            Content_W   : constant Natural :=
+              (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+               then Bottom.Sort_Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+               else 0);
+            Label_W     : constant Natural :=
+              Saturating_Multiply (Files.UTF8.Display_Units (Field_Label), Cell_W);
+            --  Tighter than a full monospace space so the direction arrow sits
+            --  close to the sort field it belongs to.
+            Arrow_Gap   : constant Natural := Cell_W / 2;
+            Arrow_X     : constant Natural :=
+              Saturating_Add (Text_X0, Saturating_Add (Label_W, Arrow_Gap));
+            Sort_Color  : constant Render_Color :=
+              Command_Color (Files.Commands.Toggle_Sort_Menu_Command);
+         begin
+            Add_Text
+              (Text_X0,
+               Bottom_Content_Y,
+               Content_W,
+               Bottom_Content_H,
+               To_Unbounded_String (Field_Label),
+               Sort_Color,
+               Fit => False);
+            if Content_W > Saturating_Add (Label_W, Arrow_Gap) then
+               Add_Text
+                 (Arrow_X,
+                  Bottom_Content_Y,
+                  Content_W - Label_W - Arrow_Gap,
+                  Bottom_Content_H,
+                  To_Unbounded_String (Arrow_Text),
+                  Sort_Color,
+                  Fit => False);
+            end if;
+         end;
          Add_Command_Tooltip
            (Bottom.Sort_Button_X,
             Bottom_Content_Y,
