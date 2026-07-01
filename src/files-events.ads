@@ -16,6 +16,8 @@ package Files.Events is
       Settings_Click_Input_Action,
       Item_Click_Input_Action,
       Root_Click_Input_Action,
+      Breadcrumb_Click_Input_Action,
+      Tree_Click_Input_Action,
       Command_Result_Click_Input_Action);
 
    type Scroll_Target is
@@ -29,7 +31,11 @@ package Files.Events is
    --  Column_Resize_Begin_Input_Action the payload is packed into the shared
    --  fields: Item_Index holds Files.Types.Detail_Column'Pos of the column the
    --  drag resizes, Cursor_Position holds the separator's origin x edge, and
-   --  Scroll_Drag_Anchor holds the column's effective width at drag start.
+   --  Scroll_Drag_Anchor holds the column's effective width at drag start. For a
+   --  Breadcrumb_Click_Input_Action Item_Index holds the one-based breadcrumb
+   --  segment index. For a Tree_Click_Input_Action Item_Index holds the tree
+   --  node index and Toggle_Selection is True when the expander triangle was
+   --  clicked (expand/collapse) rather than the row label (navigate).
    type Input_Action is record
       Kind         : Input_Action_Kind := No_Input_Action;
       Command      : Files.Commands.Command_Id := Files.Commands.No_Command;

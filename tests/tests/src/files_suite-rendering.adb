@@ -1198,6 +1198,25 @@ package body Files_Suite.Rendering is
            (Has_Close_Button_Node (Frame, Close),
             "the open root selector emits a close-button accessibility node");
       end;
+
+      --  Folder-tree sidebar.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         Panel  : Tree_Panel_Layout;
+         Close  : Close_Button_Layout;
+         Frame  : Frame_Commands;
+      begin
+         Snap.Tree_Panel_Open := True;
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         Panel  := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+         Close  := Panel_Close_Button (Panel.X, Panel.Y, Panel.Width, Panel.Height, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the folder tree hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open folder tree emits a close-button accessibility node");
+      end;
    end Test_Panels_Expose_Close_Button;
 
    --  The palette is theme-aware through Files.Rendering.Color_For. This is a

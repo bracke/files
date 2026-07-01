@@ -186,6 +186,8 @@ package body Files.Commands is
             return "columns.toggle_permissions";
          when Cycle_Group_By_Command =>
             return "columns.cycle_group_by";
+         when Toggle_Folder_Tree_Command =>
+            return "tree.toggle";
       end case;
    end Identifier;
 
@@ -308,6 +310,8 @@ package body Files.Commands is
             return "command.columns.toggle_permissions";
          when Cycle_Group_By_Command =>
             return "command.columns.cycle_group_by";
+         when Toggle_Folder_Tree_Command =>
+            return "command.tree.toggle";
       end case;
    end Name_Key;
 
@@ -430,6 +434,8 @@ package body Files.Commands is
             return "command.columns.toggle_permissions.description";
          when Cycle_Group_By_Command =>
             return "command.columns.cycle_group_by.description";
+         when Toggle_Folder_Tree_Command =>
+            return "command.tree.toggle.description";
       end case;
    end Description_Key;
 
@@ -1116,6 +1122,11 @@ package body Files.Commands is
             --  they are routed through Files.Interaction (which owns the settings
             --  path) rather than this pure model-only executor.
             null;
+         when Toggle_Folder_Tree_Command =>
+            --  Opening the tree seeds its roots from the filesystem, so the live
+            --  toggle is routed through Files.Controller. This pure fallback only
+            --  flips the panel flag for callers that never open an empty tree.
+            Files.Model.Toggle_Tree_Panel (Model);
       end case;
    end Execute;
 

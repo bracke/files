@@ -601,7 +601,8 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 56, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 57, "all expected commands are registered");
+      Assert (Files.Commands.Contains ("tree.toggle"), "toggle-folder-tree command identifier is registered");
       Assert (Files.Commands.Contains ("terminal.open"), "open-terminal command identifier is registered");
       Assert (Files.Commands.Contains ("link.symbolic"), "create-symlink command identifier is registered");
       Assert (Files.Commands.Contains ("link.hard"), "create-hard-link command identifier is registered");

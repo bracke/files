@@ -153,6 +153,42 @@ package Files.Controller is
       Root_Index : Natural)
       return Controller_Result;
 
+   --  Navigate to a breadcrumb segment's ancestor directory.
+   --
+   --  The segment index refers to the segmentation of the current path produced
+   --  by Files.Breadcrumbs; the matching ancestor directory is loaded and made
+   --  current. A zero or out-of-range index, or the non-navigable elision
+   --  marker, is ignored.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @param Segment_Index One-based breadcrumb segment index, or zero.
+   --  @return Controller result with navigation details.
+   function Handle_Breadcrumb_Click
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Segment_Index : Natural)
+      return Controller_Result;
+
+   --  Toggle a folder-tree node's expansion or navigate to it.
+   --
+   --  When Toggle is true the node's children are loaded on first expand and its
+   --  expanded flag is flipped. When Toggle is false the node's directory is
+   --  loaded and made current and the node is expanded. A zero or out-of-range
+   --  index is ignored.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @param Node_Index One-based tree node index, or zero.
+   --  @param Toggle True to expand/collapse, false to navigate.
+   --  @return Controller result describing the tree change or navigation.
+   function Handle_Tree_Click
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Natural;
+      Toggle     : Boolean)
+      return Controller_Result;
+
    --  Execute a command-palette result by index.
    --
    --  @param Model Window model to update.

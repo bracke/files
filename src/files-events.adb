@@ -266,8 +266,17 @@ package body Files.Events is
         Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Item_Layout    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+      Breadcrumb_Rows : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
+        Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height);
+      Tree_Panel_L   : constant Files.Rendering.Tree_Panel_Layout :=
+        Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
+      Tree_Rows_L    : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
+        Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
       Result_Index   : constant Natural := Files.Rendering.Command_Result_At (Palette_Rows, X, Y);
       Root_Index     : constant Natural := Files.Rendering.Root_Path_At (Root_Rows, X, Y);
+      Breadcrumb_Index    : constant Natural := Files.Rendering.Breadcrumb_At (Breadcrumb_Rows, X, Y);
+      Tree_Triangle_Index : constant Natural := Files.Rendering.Tree_Triangle_At (Tree_Rows_L, X, Y);
+      Tree_Node_Index     : constant Natural := Files.Rendering.Tree_Row_At (Tree_Rows_L, X, Y);
       Command        : Files.Commands.Command_Id := Files.Commands.No_Command;
       Item_Index     : Natural := 0;
 
@@ -582,6 +591,56 @@ package body Files.Events is
            and then Within (X, Btn.X, Btn.Width)
            and then Within (Y, Btn.Y, Btn.Height);
       end Close_Button_Hit;
+
+      --  Build a folder-tree click action carrying the node index; Toggle marks
+      --  an expander-triangle click (expand/collapse) versus a label click.
+      function Tree_Action
+        (Node_Index : Natural;
+         Toggle     : Boolean)
+         return Input_Action is
+      begin
+         return
+           (Kind             => Tree_Click_Input_Action,
+            Command          => Files.Commands.No_Command,
+            Direction        => Files.Types.Move_Right,
+            Item_Index       => Node_Index,
+            Root_Index       => 0,
+            Result_Index     => 0,
+            Scroll_Lines     => 0,
+            Scroll_Area      => Scroll_Auto,
+            Focus_Target     => Files.Types.Focus_None,
+            Cursor_Position  => 0,
+            Settings_Field   => 0,
+            Settings_Option  => 0,
+            Activate         => Activate,
+            Toggle_Selection => Toggle,
+            Range_Selection  => False,
+            Scroll_Drag_Anchor => 0);
+      end Tree_Action;
+
+      --  Build a breadcrumb click action carrying the segment index.
+      function Breadcrumb_Action
+        (Segment_Index : Natural)
+         return Input_Action is
+      begin
+         return
+           (Kind             => Breadcrumb_Click_Input_Action,
+            Command          => Files.Commands.No_Command,
+            Direction        => Files.Types.Move_Right,
+            Item_Index       => Segment_Index,
+            Root_Index       => 0,
+            Result_Index     => 0,
+            Scroll_Lines     => 0,
+            Scroll_Area      => Scroll_Auto,
+            Focus_Target     => Files.Types.Focus_None,
+            Cursor_Position  => 0,
+            Settings_Field   => 0,
+            Settings_Option  => 0,
+            Activate         => Activate,
+            Toggle_Selection => False,
+            Range_Selection  => False,
+            Scroll_Drag_Anchor => 0);
+      end Breadcrumb_Action;
    begin
       --  Route a close-button click through the same command Escape uses for
       --  each panel, before the panel body/scrollbar hit-tests below consume it.
@@ -600,6 +659,11 @@ package body Files.Events is
           (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
       then
          return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      elsif Snapshot.Tree_Panel_Open
+        and then Close_Button_Hit
+          (Tree_Panel_L.X, Tree_Panel_L.Y, Tree_Panel_L.Width, Tree_Panel_L.Height)
+      then
+         return Command_Action (Files.Commands.Toggle_Folder_Tree_Command, Activate);
       elsif Snapshot.Info_Pane_Open
         and then Close_Button_Hit
           (Info_Pane.X,
@@ -685,6 +749,20 @@ package body Files.Events is
          return No_Action (Activate);
       end if;
 
+      if Snapshot.Tree_Panel_Open then
+         if Tree_Triangle_Index /= 0 then
+            return Tree_Action (Tree_Triangle_Index, Toggle => True);
+         elsif Tree_Node_Index /= 0 then
+            return Tree_Action (Tree_Node_Index, Toggle => False);
+         elsif Within (X, Tree_Panel_L.X, Tree_Panel_L.Width)
+           and then Within (Y, Tree_Panel_L.Y, Tree_Panel_L.Height)
+         then
+            --  Consume clicks on the tree panel chrome so they do not fall
+            --  through to items drawn behind the sidebar.
+            return No_Action (Activate);
+         end if;
+      end if;
+
       declare
          Hit : constant Input_Action := Settings_Click_Hit;
       begin
@@ -719,7 +797,9 @@ package body Files.Events is
               10);
       end if;
 
-      if Within (X, Toolbar.Middle_X, Toolbar.Middle_Width)
+      if Breadcrumb_Index /= 0 then
+         return Breadcrumb_Action (Breadcrumb_Index);
+      elsif Within (X, Toolbar.Middle_X, Toolbar.Middle_Width)
         and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
       then
          return

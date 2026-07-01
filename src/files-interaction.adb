@@ -296,6 +296,21 @@ package body Files.Interaction is
               Files.Controller.Handle_Root_Click
                 (Model, Settings, Action.Root_Index);
             Result.Status := Outcome.Status;
+         when Files.Events.Breadcrumb_Click_Input_Action =>
+            Outcome :=
+              Files.Controller.Handle_Breadcrumb_Click
+                (Model, Settings, Action.Item_Index);
+            Result.Status := Outcome.Status;
+            Result.Directory_Reloaded :=
+              Outcome.Status = Files.Controller.Controller_Command_Executed;
+         when Files.Events.Tree_Click_Input_Action =>
+            Outcome :=
+              Files.Controller.Handle_Tree_Click
+                (Model, Settings, Action.Item_Index, Action.Toggle_Selection);
+            Result.Status := Outcome.Status;
+            Result.Directory_Reloaded :=
+              (not Action.Toggle_Selection)
+              and then Outcome.Status = Files.Controller.Controller_Command_Executed;
          when Files.Events.Command_Result_Click_Input_Action =>
             declare
                Results : constant Files.Command_Palette.Result_Vectors.Vector :=

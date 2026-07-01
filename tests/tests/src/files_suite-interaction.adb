@@ -10,11 +10,13 @@ with Project_Tools.Files;
 
 with Zlib;
 
+with Files.Breadcrumbs;
 with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
 with Files.File_System;
+with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
@@ -56,6 +58,7 @@ package body Files_Suite.Interaction is
    use type Files.Controller.Controller_Status;
    use type Files.Events.Input_Action_Kind;
    use type Files.Events.Scroll_Target;
+   use type Files.File_System.Path_Status;
    use type Files.Model.Clipboard_Mode;
    use type Files.Model.Palette_Mode;
    use type Files.Rendering.Accessibility_Role;
@@ -119,6 +122,11 @@ package body Files_Suite.Interaction is
    procedure Test_Info_Pane_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Descending_Sort_Arrows_Follow_Display (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_And_Group_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Gap #3 -- clickable breadcrumbs and the folder-tree sidebar.
+   procedure Test_Breadcrumb_Segments_And_Elide (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -225,6 +233,18 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Column_And_Group_Commands'Access,
          "column-toggle and group-by commands mutate settings and grouping inserts header rows");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Breadcrumb_Segments_And_Elide'Access,
+         "a path segments into (label, ancestor) pairs and a long path elides to root plus tail");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Breadcrumb_Click_Navigates'Access,
+         "clicking a breadcrumb segment navigates to that ancestor directory");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Expand_Collapse_And_Hidden'Access,
+         "expanding a tree node loads subdirectories, flattens with depths, collapses, and respects hidden files");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Toggle_Command_And_Click'Access,
+         "the tree toggle command flips the panel and a label click navigates through the reducer");
    end Register_Tests;
 
    --  Center of the cell laid out for visible item Index, derived from the real
@@ -2925,5 +2945,257 @@ package body Files_Suite.Interaction is
          Assert (Item_Rows = 3, "every sample item survives grouping");
       end;
    end Test_Column_And_Group_Commands;
+
+   procedure Test_Breadcrumb_Segments_And_Elide (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use Ada.Strings.Unbounded;
+   begin
+      declare
+         Segs : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Segments ("/home/user/files");
+      begin
+         Assert (Natural (Segs.Length) = 4, "an absolute path yields root plus one segment per component");
+         Assert (To_String (Segs.Element (1).Label) = "/", "the first segment is the filesystem root");
+         Assert (To_String (Segs.Element (1).Ancestor_Path) = "/", "the root segment navigates to /");
+         Assert (To_String (Segs.Element (2).Label) = "home", "the second segment is the first component");
+         Assert (To_String (Segs.Element (2).Ancestor_Path) = "/home", "the second segment navigates to /home");
+         Assert (To_String (Segs.Element (4).Label) = "files", "the last segment is the leaf component");
+         Assert
+           (To_String (Segs.Element (4).Ancestor_Path) = "/home/user/files",
+            "the leaf segment navigates to the full path");
+      end;
+
+      declare
+         Long   : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Segments ("/a/b/c/d/e/f/g");
+         Elided : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Elide (Long, 4);
+         Has_Ellipsis : Boolean := False;
+      begin
+         Assert (Natural (Long.Length) = 8, "the long path has eight segments");
+         Assert (Natural (Elided.Length) = 4, "eliding to four keeps four segments");
+         Assert (To_String (Elided.First_Element.Label) = "/", "elision keeps the root segment");
+         Assert (To_String (Elided.Last_Element.Label) = "g", "elision keeps the trailing component");
+         for S of Elided loop
+            if Files.Breadcrumbs.Is_Ellipsis (S) then
+               Has_Ellipsis := True;
+            end if;
+         end loop;
+         Assert (Has_Ellipsis, "elision inserts a non-navigable marker between root and tail");
+      end;
+   end Test_Breadcrumb_Segments_And_Elide;
+
+   procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use Ada.Strings.Unbounded;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Deep     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "deep");
+      Leaf     : constant String := Files_Suite.Support.Join (Deep, "leaf");
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Leaf);
+      declare
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files.File_System.Load_Directory (Leaf, Settings);
+      begin
+         Files.Model.Initialize
+           (Model,
+            Directory_Path    => Leaf,
+            Items             => Load.Items,
+            Home_Path         => "/home/test");
+      end;
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Rows     : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Window_W, Line);
+         Action   : Files.Events.Input_Action;
+         X, Y     : Natural := 0;
+         Found    : Boolean := False;
+      begin
+         Assert (not Rows.Is_Empty, "an unfocused path bar lays out clickable breadcrumb segments");
+         for Row of Rows loop
+            if Row.Clickable
+              and then Row.Segment_Index /= 0
+              and then To_String
+                         (Snapshot.Breadcrumb_Segments.Element (Row.Segment_Index).Ancestor_Path)
+                       = Deep
+            then
+               X := Row.X + Row.Width / 2;
+               Y := Row.Y + Row.Height / 2;
+               Found := True;
+            end if;
+         end loop;
+         Assert (Found, "the breadcrumb for the parent directory is laid out");
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Assert
+           (Action.Kind = Files.Events.Breadcrumb_Click_Input_Action,
+            "a breadcrumb coordinate translates to a breadcrumb click");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+
+      declare
+         Expected : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Deep);
+      begin
+         Assert
+           (Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
+            "clicking the parent breadcrumb navigates to the parent directory");
+      end;
+   end Test_Breadcrumb_Click_Navigates;
+
+   procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use Ada.Strings.Unbounded;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "tree");
+      Alpha    : constant String := Files_Suite.Support.Join (Tree_Dir, "alpha");
+      Beta     : constant String := Files_Suite.Support.Join (Tree_Dir, "beta");
+      Secret   : constant String := Files_Suite.Support.Join (Tree_Dir, ".secret");
+      A1       : constant String := Files_Suite.Support.Join (Alpha, "a1");
+      Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+      Ignored  : Files.Controller.Controller_Result;
+      Rows     : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+
+      function Row_Named (Src : Files.Folder_Tree.Visible_Row_Vectors.Vector; Name : String) return Natural is
+      begin
+         for R of Src loop
+            if To_String (R.Name) = Name then
+               return R.Node_Index;
+            end if;
+         end loop;
+         return 0;
+      end Row_Named;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Beta);
+      Ada.Directories.Create_Path (Secret);
+      Ada.Directories.Create_Path (A1);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Tree_Dir, "file.txt"));
+
+      Seeds.Append
+        (Files.Folder_Tree.Entry_Seed'
+           (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
+      Files.Model.Seed_Tree (Model, Seeds);
+      Files.Model.Open_Tree_Panel (Model);
+
+      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Assert (Natural (Rows.Length) = 1, "an unexpanded tree shows only its root node");
+
+      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Assert (Natural (Rows.Length) = 3, "expanding the root reveals its two subdirectories");
+      Assert (Rows.Element (1).Depth = 0, "the root sits at depth zero");
+      Assert
+        (Rows.Element (2).Depth = 1 and then Rows.Element (3).Depth = 1,
+         "the loaded children sit at depth one");
+      Assert (Row_Named (Rows, ".secret") = 0, "hidden directories are excluded when Show_Hidden_Files is off");
+      Assert (Row_Named (Rows, "file.txt") = 0, "regular files are excluded from the tree");
+
+      declare
+         Alpha_Index : constant Natural := Row_Named (Rows, "alpha");
+      begin
+         Assert (Alpha_Index /= 0, "the alpha subdirectory is present");
+         Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, Alpha_Index, Toggle => True);
+      end;
+      Rows := Files.Model.Tree_Visible_Rows (Model);
+      declare
+         Depth_Two : Boolean := False;
+      begin
+         for R of Rows loop
+            if To_String (R.Name) = "a1" then
+               Depth_Two := R.Depth = 2;
+            end if;
+         end loop;
+         Assert (Depth_Two, "expanding alpha reveals its child at depth two");
+      end;
+
+      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Assert (Natural (Rows.Length) = 1, "collapsing the root hides all its descendants");
+
+      declare
+         Hidden_On : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Model2    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Seeds2    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+         Rows2     : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+      begin
+         Hidden_On.Show_Hidden_Files := True;
+         Seeds2.Append
+           (Files.Folder_Tree.Entry_Seed'
+              (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
+         Files.Model.Seed_Tree (Model2, Seeds2);
+         Files.Model.Open_Tree_Panel (Model2);
+         Ignored := Files.Controller.Handle_Tree_Click (Model2, Hidden_On, 1, Toggle => True);
+         Rows2 := Files.Model.Tree_Visible_Rows (Model2);
+         Assert (Row_Named (Rows2, ".secret") /= 0, "hidden directories appear when Show_Hidden_Files is on");
+      end;
+   end Test_Tree_Expand_Collapse_And_Hidden;
+
+   procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use Ada.Strings.Unbounded;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files.Interaction.Execute_Command
+        (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
+         Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (Files.Model.Tree_Panel_Is_Open (Model), "the toggle command opens the folder tree");
+      Assert (Files.Model.Tree_Node_Count (Model) > 0, "opening the tree seeds it with root nodes");
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Panel    : constant Files.Rendering.Tree_Panel_Layout :=
+           Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line);
+         Rows     : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
+         Target   : constant String := Files.Model.Tree_Node_Path (Model, 1);
+         Expected : constant Files.File_System.Path_Result :=
+           Files.File_System.Normalize_Path (Target);
+         Action   : Files.Events.Input_Action;
+         X, Y     : Natural := 0;
+      begin
+         Assert (not Rows.Is_Empty, "the open tree lays out at least one row");
+         declare
+            Row : constant Files.Rendering.Tree_Row_Layout := Rows.Element (1);
+         begin
+            X := Row.Triangle_X + Line + 2;
+            Y := Row.Y + Row.Height / 2;
+         end;
+         Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Assert
+           (Action.Kind = Files.Events.Tree_Click_Input_Action,
+            "a tree label coordinate translates to a tree click");
+         Assert (not Action.Toggle_Selection, "clicking the label navigates rather than toggles");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+         Assert
+           (Expected.Status = Files.File_System.Path_Valid
+              and then Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
+            "clicking a tree label navigates to that directory");
+      end;
+
+      Files.Interaction.Execute_Command
+        (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
+         Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "toggling again closes the folder tree");
+   end Test_Tree_Toggle_Command_And_Click;
 
 end Files_Suite.Interaction;

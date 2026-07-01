@@ -2,8 +2,10 @@ with Ada.Calendar;
 with Ada.Containers.Vectors;
 with System;
 
+with Files.Breadcrumbs;
 with Files.Commands;
 with Files.File_System;
+with Files.Folder_Tree;
 with Files.Model;
 with Files.Settings;
 with Files.Types;
@@ -196,6 +198,9 @@ package Files.Rendering is
       Root_Selected_Index   : Natural := 0;
       Root_Paths                     : Files.Types.String_Vectors.Vector;
       Root_Labels                    : Files.Types.String_Vectors.Vector;
+      Tree_Panel_Open       : Boolean := False;
+      Tree_Rows             : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+      Breadcrumb_Segments   : Files.Breadcrumbs.Segment_Vectors.Vector;
       Command_Palette_Open           : Boolean := False;
       Command_Palette_Query          : UString;
       Command_Palette_Selected_Index : Natural := 0;
@@ -398,6 +403,47 @@ package Files.Rendering is
    package Root_Path_Layout_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Root_Path_Layout);
+
+   type Breadcrumb_Segment_Layout is record
+      Segment_Index : Natural := 0;
+      X             : Natural := 0;
+      Y             : Natural := 0;
+      Width         : Natural := 0;
+      Height        : Natural := 0;
+      Clickable     : Boolean := True;
+   end record;
+
+   package Breadcrumb_Segment_Layout_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Breadcrumb_Segment_Layout);
+
+   type Tree_Panel_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Row_Height : Natural := 0;
+   end record;
+
+   type Tree_Row_Layout is record
+      Node_Index   : Natural := 0;
+      X            : Natural := 0;
+      Y            : Natural := 0;
+      Width        : Natural := 0;
+      Height       : Natural := 0;
+      Depth        : Natural := 0;
+      Expanded     : Boolean := False;
+      Has_Children : Boolean := False;
+      Selected     : Boolean := False;
+      Triangle_X   : Natural := 0;
+      Triangle_Y   : Natural := 0;
+      Triangle_W   : Natural := 0;
+      Triangle_H   : Natural := 0;
+   end record;
+
+   package Tree_Row_Layout_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Tree_Row_Layout);
 
    type Info_Pane_Layout is record
       X                 : Natural := 0;
@@ -947,6 +993,83 @@ package Files.Rendering is
    --  @return Root path index, or zero when no root row is hit.
    function Root_Path_At
      (Rows : Root_Path_Layout_Vectors.Vector;
+      X    : Natural;
+      Y    : Natural)
+      return Natural;
+
+   --  Calculate clickable breadcrumb segment rectangles inside the path bar.
+   --
+   --  Returns an empty vector while the path input is focused (edit mode). When
+   --  the segments would overflow the path bar the leading segments are elided
+   --  through Files.Breadcrumbs so the root and trailing components stay
+   --  visible; the elision marker carries Clickable => False.
+   --
+   --  @param Snapshot View snapshot containing breadcrumb segments and focus.
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Segment rectangles in left-to-right order.
+   function Calculate_Breadcrumb_Layout
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Line_Height : Positive := 20)
+      return Breadcrumb_Segment_Layout_Vectors.Vector;
+
+   --  Return the breadcrumb segment index at a position, or zero.
+   --
+   --  @param Rows Breadcrumb segment rectangles.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @return One-based segment index of a clickable segment, or zero.
+   function Breadcrumb_At
+     (Rows : Breadcrumb_Segment_Layout_Vectors.Vector;
+      X    : Natural;
+      Y    : Natural)
+      return Natural;
+
+   --  Calculate the folder-tree sidebar panel rectangle.
+   --
+   --  @param Snapshot View snapshot containing tree state.
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Tree sidebar panel layout.
+   function Calculate_Tree_Panel_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Tree_Panel_Layout;
+
+   --  Calculate folder-tree row rectangles with per-depth indentation.
+   --
+   --  @param Snapshot View snapshot containing the visible tree rows.
+   --  @param Layout Tree sidebar panel layout.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Tree row rectangles in top-to-bottom order.
+   function Calculate_Tree_Row_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Tree_Panel_Layout;
+      Line_Height : Positive := 20)
+      return Tree_Row_Layout_Vectors.Vector;
+
+   --  Return the tree node index whose row contains a position, or zero.
+   --
+   --  @param Rows Tree row rectangles.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @return One-based tree node index, or zero when no row is hit.
+   function Tree_Row_At
+     (Rows : Tree_Row_Layout_Vectors.Vector;
+      X    : Natural;
+      Y    : Natural)
+      return Natural;
+
+   --  Return the tree node index whose expander triangle contains a position.
+   --
+   --  @param Rows Tree row rectangles.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @return One-based node index when an expander triangle is hit, else zero.
+   function Tree_Triangle_At
+     (Rows : Tree_Row_Layout_Vectors.Vector;
       X    : Natural;
       Y    : Natural)
       return Natural;

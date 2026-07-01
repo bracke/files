@@ -2,7 +2,9 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Files.Applications;
+with Files.Breadcrumbs;
 with Files.Command_Palette;
+with Files.Folder_Tree;
 with Files.UTF8;
 
 package body Files.Controller is
@@ -12,6 +14,7 @@ package body Files.Controller is
    use type Files.Events.Scroll_Target;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
+   use type Files.Types.Item_Kind;
    use type Files.Types.Key_Code;
    use type Files.Types.Modifier_Set;
    use type Files.Types.Navigation_Direction;
@@ -766,6 +769,41 @@ package body Files.Controller is
                end;
             end if;
             Files.Model.Set_Error (Model, "");
+         when Files.Commands.Toggle_Folder_Tree_Command =>
+            if Files.Model.Tree_Panel_Is_Open (Model) then
+               Files.Model.Close_Tree_Panel (Model);
+            else
+               if not Files.Model.Tree_Is_Seeded (Model) then
+                  declare
+                     Roots : Files.File_System.Root_Entry_Vectors.Vector :=
+                       Files.File_System.Available_Root_Entries;
+                     Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+                  begin
+                     for Path of Settings.Bookmark_Paths loop
+                        Roots.Append
+                          (Files.File_System.Root_Entry'
+                             (Path        => Path,
+                              Label       => Path,
+                              Kind        => Files.File_System.Root_Bookmark,
+                              Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
+                              Ready       => Files.File_System.Root_Ready,
+                              Removable   => False));
+                     end loop;
+                     for Root of Roots loop
+                        Seeds.Append
+                          (Files.Folder_Tree.Entry_Seed'
+                             (Path => Root.Path,
+                              Name =>
+                                (if Length (Root.Label) > 0
+                                 then Root.Label
+                                 else Root.Path)));
+                     end loop;
+                     Files.Model.Seed_Tree (Model, Seeds);
+                  end;
+               end if;
+               Files.Model.Open_Tree_Panel (Model);
+            end if;
+            Files.Model.Set_Error (Model, "");
          when Files.Commands.Reset_Settings_Command =>
             Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
             Files.Model.Set_Settings_Field_Index (Model, 1);
@@ -945,6 +983,107 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
       end;
    end Handle_Root_Click;
+
+   function Handle_Breadcrumb_Click
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Segment_Index : Natural)
+      return Controller_Result
+   is
+      Segments : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+        Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
+   begin
+      if Segment_Index = 0 or else Segment_Index > Natural (Segments.Length) then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      declare
+         Target : constant String :=
+           To_String (Segments.Element (Positive (Segment_Index)).Ancestor_Path);
+      begin
+         if Target = "" then
+            return Make_Result (Controller_Ignored);
+         end if;
+
+         declare
+            Operation : constant Files.Operations.Operation_Result :=
+              Files.Operations.Select_Root (Model, Settings, Target);
+         begin
+            return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
+         end;
+      end;
+   end Handle_Breadcrumb_Click;
+
+   --  Load a tree node's direct subdirectories and attach them, honouring the
+   --  hidden-files setting through Load_Directory. Failures and empty
+   --  directories still mark the node loaded so it is not probed again.
+   procedure Load_Tree_Children
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Positive;
+      Node_Path  : String)
+   is
+      Load     : constant Files.File_System.Directory_Load_Result :=
+        Files.File_System.Load_Directory (Node_Path, Settings);
+      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+   begin
+      if Load.Success then
+         for Item of Load.Items loop
+            if Item.Kind = Files.Types.Directory_Item then
+               Children.Append
+                 (Files.Folder_Tree.Entry_Seed'
+                    (Path => Item.Full_Path,
+                     Name => Item.Name));
+            end if;
+         end loop;
+      end if;
+      Files.Model.Tree_Set_Children (Model, Node_Index, Children);
+   end Load_Tree_Children;
+
+   function Handle_Tree_Click
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Natural;
+      Toggle     : Boolean)
+      return Controller_Result is
+   begin
+      if not Files.Model.Tree_Panel_Is_Open (Model)
+        or else Node_Index = 0
+        or else Node_Index > Files.Model.Tree_Node_Count (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      declare
+         Index     : constant Positive := Positive (Node_Index);
+         Node_Path : constant String := Files.Model.Tree_Node_Path (Model, Index);
+      begin
+         if Toggle then
+            if not Files.Model.Tree_Node_Is_Expanded (Model, Index)
+              and then not Files.Model.Tree_Node_Is_Loaded (Model, Index)
+            then
+               Load_Tree_Children (Model, Settings, Index, Node_Path);
+            end if;
+            Files.Model.Tree_Toggle_Expanded (Model, Index);
+            return Make_Result
+              (Controller_Command_Executed,
+               Files.Commands.Toggle_Folder_Tree_Command,
+               Empty_Operation);
+         end if;
+
+         if not Files.Model.Tree_Node_Is_Loaded (Model, Index) then
+            Load_Tree_Children (Model, Settings, Index, Node_Path);
+         end if;
+         Files.Model.Tree_Set_Expanded (Model, Index, True);
+
+         declare
+            Operation : constant Files.Operations.Operation_Result :=
+              Files.Operations.Select_Root (Model, Settings, Node_Path);
+         begin
+            return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
+         end;
+      end;
+   end Handle_Tree_Click;
 
    --  Launch the application carried by an "Open With" palette result on the
    --  stored target paths, then close the palette. The detached spawn status is
@@ -2067,6 +2206,8 @@ package body Files.Controller is
             | Files.Events.Settings_Click_Input_Action
             | Files.Events.Item_Click_Input_Action
             | Files.Events.Root_Click_Input_Action
+            | Files.Events.Breadcrumb_Click_Input_Action
+            | Files.Events.Tree_Click_Input_Action
             | Files.Events.Command_Result_Click_Input_Action
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action =>

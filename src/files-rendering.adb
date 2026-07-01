@@ -36,6 +36,11 @@ package body Files.Rendering is
    --  U+00D7 MULTIPLICATION SIGN, the conventional close-affordance glyph.
    Close_Glyph_Text : constant String :=
      [Character'Val (16#C3#), Character'Val (16#97#)];
+   --  Separator drawn between breadcrumb segments; a path-like glyph, not text.
+   Breadcrumb_Separator_Text : constant String := ">";
+   --  Folder-tree expander glyphs: a plus/minus affordance, not translatable text.
+   Tree_Expander_Collapsed_Text : constant String := "+";
+   Tree_Expander_Expanded_Text  : constant String := "-";
    Info_Pane_Padding : constant Natural := 10;
    Main_Content_Padding : constant Natural := 8;
    Main_Grid_Gap : constant Natural := 8;
@@ -1832,6 +1837,11 @@ package body Files.Rendering is
          end;
       end loop;
 
+      Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel_Is_Open (Model);
+      Snapshot.Tree_Rows := Files.Model.Tree_Visible_Rows (Model);
+      Snapshot.Breadcrumb_Segments :=
+        Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
+
       if Snapshot.Command_Palette_Open then
          declare
             Palette_Results : constant Files.Command_Palette.Result_Vectors.Vector :=
@@ -3277,6 +3287,252 @@ package body Files.Rendering is
       return 0;
    end Root_Path_At;
 
+   function Calculate_Breadcrumb_Layout
+     (Snapshot    : View_Snapshot;
+      Width       : Natural;
+      Line_Height : Positive := 20)
+      return Breadcrumb_Segment_Layout_Vectors.Vector
+   is
+      Result       : Breadcrumb_Segment_Layout_Vectors.Vector;
+      Toolbar      : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
+      Field_Margin : constant Natural := 6;
+      Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
+      Path_W       : constant Natural :=
+        (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
+         then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
+         else 0);
+      Input_Y      : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
+      Input_H      : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
+      Pad          : constant Natural := Files.UI.Input_Field_Padding;
+      Advance      : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+      Inner_X      : constant Natural := Saturating_Add (Path_X, Pad);
+      Inner_W      : constant Natural :=
+        (if Path_W > Saturating_Multiply (Pad, 2)
+         then Path_W - Saturating_Multiply (Pad, 2)
+         else 0);
+      Sep_Cells    : constant Natural := 1;
+
+      function Total_Cells
+        (Src : Files.Breadcrumbs.Segment_Vectors.Vector)
+         return Natural
+      is
+         Sum   : Natural := 0;
+         Count : constant Natural := Natural (Src.Length);
+      begin
+         for I in 1 .. Count loop
+            Sum := Saturating_Add (Sum, Files.UTF8.Display_Units (To_String (Src.Element (I).Label)));
+            if I < Count then
+               Sum := Saturating_Add (Sum, Sep_Cells);
+            end if;
+         end loop;
+         return Sum;
+      end Total_Cells;
+   begin
+      if Snapshot.Focus = Files.Types.Focus_Path_Input then
+         return Result;
+      elsif Snapshot.Breadcrumb_Segments.Is_Empty or else Inner_W = 0 then
+         return Result;
+      end if;
+
+      declare
+         Full           : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Snapshot.Breadcrumb_Segments;
+         Count          : constant Natural := Natural (Full.Length);
+         Capacity_Cells : constant Natural := Inner_W / Advance;
+         Shown          : Files.Breadcrumbs.Segment_Vectors.Vector := Full;
+         Cursor_X       : Natural := Inner_X;
+      begin
+         if Total_Cells (Full) > Capacity_Cells then
+            declare
+               Fitted : Boolean := False;
+            begin
+               for Max in reverse 3 .. Count loop
+                  declare
+                     Candidate : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+                       Files.Breadcrumbs.Elide (Full, Max);
+                  begin
+                     if Total_Cells (Candidate) <= Capacity_Cells then
+                        Shown  := Candidate;
+                        Fitted := True;
+                        exit;
+                     end if;
+                  end;
+               end loop;
+               if not Fitted then
+                  Shown := Files.Breadcrumbs.Elide (Full, Positive'Max (1, Natural'Min (3, Count)));
+               end if;
+            end;
+         end if;
+
+         for I in 1 .. Natural (Shown.Length) loop
+            declare
+               Seg        : constant Files.Breadcrumbs.Segment := Shown.Element (Positive (I));
+               Cells      : constant Natural := Files.UTF8.Display_Units (To_String (Seg.Label));
+               Seg_W      : constant Natural := Saturating_Multiply (Cells, Advance);
+               Clickable  : constant Boolean := not Files.Breadcrumbs.Is_Ellipsis (Seg);
+               Full_Index : Natural := 0;
+            begin
+               if Clickable then
+                  for F in 1 .. Count loop
+                     if Full.Element (Positive (F)).Ancestor_Path = Seg.Ancestor_Path then
+                        Full_Index := F;
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+               Result.Append
+                 (Breadcrumb_Segment_Layout'
+                    (Segment_Index => Full_Index,
+                     X             => Cursor_X,
+                     Y             => Input_Y,
+                     Width         => Seg_W,
+                     Height        => Input_H,
+                     Clickable     => Clickable and then Full_Index /= 0));
+               Cursor_X :=
+                 Saturating_Add
+                   (Cursor_X,
+                    Saturating_Add (Seg_W, Saturating_Multiply (Sep_Cells, Advance)));
+            end;
+         end loop;
+      end;
+
+      return Result;
+   end Calculate_Breadcrumb_Layout;
+
+   function Breadcrumb_At
+     (Rows : Breadcrumb_Segment_Layout_Vectors.Vector;
+      X    : Natural;
+      Y    : Natural)
+      return Natural is
+   begin
+      for Row of Rows loop
+         if Row.Clickable
+           and then Row.Segment_Index /= 0
+           and then Contains_Rectangle_Point (Row.X, Row.Y, Row.Width, Row.Height, X, Y)
+         then
+            return Row.Segment_Index;
+         end if;
+      end loop;
+      return 0;
+   end Breadcrumb_At;
+
+   function Calculate_Tree_Panel_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Tree_Panel_Layout
+   is
+      Preferred_Width : constant Natural :=
+        Natural'Max (Layout.Width / 4, Saturating_Multiply (Line_Height, 16));
+      Panel_Width     : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
+      Row_Height      : constant Natural :=
+        Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2));
+   begin
+      if not Snapshot.Tree_Panel_Open then
+         return (others => <>);
+      end if;
+
+      return
+        (X          => 0,
+         Y          => Layout.Toolbar_Height,
+         Width      => Panel_Width,
+         Height     => Layout.Main_Height,
+         Row_Height => Row_Height);
+   end Calculate_Tree_Panel_Layout;
+
+   function Calculate_Tree_Row_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Tree_Panel_Layout;
+      Line_Height : Positive := 20)
+      return Tree_Row_Layout_Vectors.Vector
+   is
+      Result      : Tree_Row_Layout_Vectors.Vector;
+      Padding     : constant Natural := Root_Selector_Padding;
+      Indent_W    : constant Natural := Line_Height;
+      Header_H    : constant Natural := Layout.Row_Height;
+      Content_X   : constant Natural := Saturating_Add (Layout.X, Padding);
+      Panel_End_Y : constant Natural := Saturating_Add (Layout.Y, Layout.Height);
+      Current     : constant String := To_String (Snapshot.Current_Path);
+   begin
+      if not Snapshot.Tree_Panel_Open or else Layout.Row_Height = 0 then
+         return Result;
+      end if;
+
+      for I in 1 .. Natural (Snapshot.Tree_Rows.Length) loop
+         declare
+            TR    : constant Files.Folder_Tree.Visible_Row :=
+              Snapshot.Tree_Rows.Element (Positive (I));
+            Row_Y : constant Natural :=
+              Saturating_Add
+                (Saturating_Add (Layout.Y, Header_H),
+                 Saturating_Multiply (Natural (I - 1), Layout.Row_Height));
+         begin
+            exit when Row_Y >= Panel_End_Y;
+            declare
+               Remaining    : constant Natural := Panel_End_Y - Row_Y;
+               Row_H        : constant Natural := Natural'Min (Layout.Row_Height, Remaining);
+               Depth_Indent : constant Natural := Saturating_Multiply (TR.Depth, Indent_W);
+               Tri_X        : constant Natural := Saturating_Add (Content_X, Depth_Indent);
+               Tri_Size     : constant Natural := Natural'Min (Line_Height, Row_H);
+               Tri_Y        : constant Natural :=
+                 (if Row_H > Tri_Size
+                  then Saturating_Add (Row_Y, (Row_H - Tri_Size) / 2)
+                  else Row_Y);
+            begin
+               Result.Append
+                 (Tree_Row_Layout'
+                    (Node_Index   => TR.Node_Index,
+                     X            => Layout.X,
+                     Y            => Row_Y,
+                     Width        => Layout.Width,
+                     Height       => Row_H,
+                     Depth        => TR.Depth,
+                     Expanded     => TR.Expanded,
+                     Has_Children => TR.Has_Children,
+                     Selected     => To_String (TR.Path) = Current,
+                     Triangle_X   => Tri_X,
+                     Triangle_Y   => Tri_Y,
+                     Triangle_W   => (if TR.Has_Children then Tri_Size else 0),
+                     Triangle_H   => (if TR.Has_Children then Tri_Size else 0)));
+            end;
+         end;
+      end loop;
+
+      return Result;
+   end Calculate_Tree_Row_Layout;
+
+   function Tree_Row_At
+     (Rows : Tree_Row_Layout_Vectors.Vector;
+      X    : Natural;
+      Y    : Natural)
+      return Natural is
+   begin
+      for Row of Rows loop
+         if Contains_Rectangle_Point (Row.X, Row.Y, Row.Width, Row.Height, X, Y) then
+            return Row.Node_Index;
+         end if;
+      end loop;
+      return 0;
+   end Tree_Row_At;
+
+   function Tree_Triangle_At
+     (Rows : Tree_Row_Layout_Vectors.Vector;
+      X    : Natural;
+      Y    : Natural)
+      return Natural is
+   begin
+      for Row of Rows loop
+         if Row.Has_Children
+           and then Row.Triangle_W > 0
+           and then Contains_Rectangle_Point
+                      (Row.Triangle_X, Row.Triangle_Y, Row.Triangle_W, Row.Triangle_H, X, Y)
+         then
+            return Row.Node_Index;
+         end if;
+      end loop;
+      return 0;
+   end Tree_Triangle_At;
+
    function Info_Metadata_Text
      (Available : Boolean;
       Value     : Ada.Calendar.Time)
@@ -3601,6 +3857,12 @@ package body Files.Rendering is
         Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Rows     : constant Root_Path_Layout_Vectors.Vector :=
         Calculate_Root_Path_Layout (Snapshot, Root_Selector);
+      Breadcrumb_Rows : constant Breadcrumb_Segment_Layout_Vectors.Vector :=
+        Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height);
+      Tree_Panel    : constant Tree_Panel_Layout :=
+        Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
+      Tree_Rows_Layout : constant Tree_Row_Layout_Vectors.Vector :=
+        Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
       Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
       Settings_Pane : constant Files.UI.Settings_Pane_Layout :=
         Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
@@ -5520,15 +5782,66 @@ package body Files.Rendering is
             Path_W,
             Toolbar_Input_H,
             Border_Color);
-         Add_Text
-           (Saturating_Add (Path_X, Files.UI.Input_Field_Padding),
-            Toolbar_Input_Text_Y,
-            (if Path_W > 2 * Files.UI.Input_Field_Padding
-             then Path_W - 2 * Files.UI.Input_Field_Padding
-             else 0),
-            Toolbar_Input_Text_H,
-            Snapshot.Path_Input_Text,
-            Fit => True);
+         if Snapshot.Focus = Files.Types.Focus_Path_Input
+           or else Breadcrumb_Rows.Is_Empty
+         then
+            Add_Text
+              (Saturating_Add (Path_X, Files.UI.Input_Field_Padding),
+               Toolbar_Input_Text_Y,
+               (if Path_W > 2 * Files.UI.Input_Field_Padding
+                then Path_W - 2 * Files.UI.Input_Field_Padding
+                else 0),
+               Toolbar_Input_Text_H,
+               Snapshot.Path_Input_Text,
+               Fit => True);
+         else
+            for I in 1 .. Natural (Breadcrumb_Rows.Length) loop
+               declare
+                  Seg     : constant Breadcrumb_Segment_Layout :=
+                    Breadcrumb_Rows.Element (Positive (I));
+                  Is_Last : constant Boolean := I = Natural (Breadcrumb_Rows.Length);
+                  Advance : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+                  Label   : constant UString :=
+                    (if Seg.Clickable and then Seg.Segment_Index /= 0
+                     then Snapshot.Breadcrumb_Segments.Element (Positive (Seg.Segment_Index)).Label
+                     else To_Unbounded_String (Files.Breadcrumbs.Ellipsis_Label));
+                  Hovered : constant Boolean :=
+                    Seg.Clickable
+                    and then Has_Hover
+                    and then Contains_Point (Seg.X, Seg.Y, Seg.Width, Seg.Height, Hover_X, Hover_Y);
+               begin
+                  Add_Text
+                    (Seg.X,
+                     Toolbar_Input_Text_Y,
+                     Seg.Width,
+                     Toolbar_Input_Text_H,
+                     Label,
+                     Color => (if Seg.Clickable then Text_Color else Muted_Text_Color));
+                  if Hovered then
+                     Add_Border (Seg.X, Seg.Y, Seg.Width, Seg.Height, Hover_Color);
+                  end if;
+                  if Seg.Clickable and then Seg.Segment_Index /= 0 then
+                     Add_Accessibility_Node
+                       (Role_Button,
+                        Seg.X,
+                        Seg.Y,
+                        Seg.Width,
+                        Seg.Height,
+                        Label,
+                        Snapshot.Breadcrumb_Segments.Element (Positive (Seg.Segment_Index)).Ancestor_Path);
+                  end if;
+                  if not Is_Last then
+                     Add_Text
+                       (Saturating_Add (Seg.X, Seg.Width),
+                        Toolbar_Input_Text_Y,
+                        Advance,
+                        Toolbar_Input_Text_H,
+                        To_Unbounded_String (Breadcrumb_Separator_Text),
+                        Color => Muted_Text_Color);
+                  end if;
+               end;
+            end loop;
+         end if;
          if Snapshot.Focus = Files.Types.Focus_Path_Input or else not Snapshot.Path_Input_Valid then
             Add_Border
               (Path_X,
@@ -8080,6 +8393,129 @@ package body Files.Rendering is
          Draw_Close_Button
            (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, Root_Selector.Height,
             Overlay => True);
+      end if;
+
+      if Snapshot.Tree_Panel_Open then
+         if Tree_Panel.Width > 0 and then Tree_Panel.Height > 0 then
+            Add_Overlay_Rect
+              (Saturating_Add (Tree_Panel.X, Tree_Panel.Width),
+               Saturating_Add (Tree_Panel.Y, 3),
+               3,
+               Tree_Panel.Height,
+               Pane_Color);
+            Add_Overlay_Rect
+              (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay_Color);
+            Add_Overlay_Rect (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, 1, Border_Color);
+            Add_Overlay_Rect (Tree_Panel.X, Tree_Panel.Y, 1, Tree_Panel.Height, Border_Color);
+            Add_Overlay_Rect
+              (Tree_Panel.X,
+               Saturating_Add (Tree_Panel.Y, Tree_Panel.Height - 1),
+               Tree_Panel.Width,
+               1,
+               Border_Color);
+            Add_Overlay_Rect
+              (Saturating_Add (Tree_Panel.X, Tree_Panel.Width - 1),
+               Tree_Panel.Y,
+               1,
+               Tree_Panel.Height,
+               Border_Color);
+            --  Title band.
+            Add_Overlay_Rect
+              (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Row_Height, Pane_Color);
+            Add_Overlay_Rect
+              (Tree_Panel.X,
+               Saturating_Add (Tree_Panel.Y, Tree_Panel.Row_Height),
+               Tree_Panel.Width,
+               1,
+               Border_Color);
+            Add_Overlay_Text
+              (Saturating_Add (Tree_Panel.X, Root_Selector_Padding),
+               Saturating_Add
+                 (Tree_Panel.Y,
+                  (if Tree_Panel.Row_Height > Line_Height
+                   then (Tree_Panel.Row_Height - Line_Height) / 2
+                   else 0)),
+               (if Tree_Panel.Width > Saturating_Multiply (Root_Selector_Padding, 2)
+                then Tree_Panel.Width - Saturating_Multiply (Root_Selector_Padding, 2)
+                else 0),
+               Line_Height,
+               Localized ("tree.panel.title"),
+               Fit => True);
+         end if;
+
+         Add_Accessibility_Node
+           (Role_List,
+            Tree_Panel.X,
+            Tree_Panel.Y,
+            Tree_Panel.Width,
+            Tree_Panel.Height,
+            Localized ("accessibility.tree_panel"));
+
+         for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
+            declare
+               Row      : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
+               Data     : constant Files.Folder_Tree.Visible_Row :=
+                 Snapshot.Tree_Rows.Element (Positive (I));
+               Label_X  : constant Natural :=
+                 Saturating_Add (Row.Triangle_X, Line_Height);
+               Label_W  : constant Natural :=
+                 (if Saturating_Add (Row.X, Row.Width)
+                     > Saturating_Add (Label_X, Root_Selector_Padding)
+                  then Saturating_Add (Row.X, Row.Width)
+                       - Saturating_Add (Label_X, Root_Selector_Padding)
+                  else 0);
+               Text_Y   : constant Natural :=
+                 (if Row.Height > Line_Height
+                  then Saturating_Add (Row.Y, (Row.Height - Line_Height) / 2)
+                  else Row.Y);
+               Hovered  : constant Boolean :=
+                 Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
+               Pressed  : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
+            begin
+               Add_Overlay_Rect
+                 (Row.X,
+                  Row.Y,
+                  Row.Width,
+                  Row.Height,
+                  (if Row.Selected then Selection_Color
+                   elsif Pressed then Pressed_Color
+                   elsif Hovered then Hover_Color
+                   else Overlay_Color));
+               if Row.Has_Children and then Row.Triangle_W > 0 then
+                  Add_Overlay_Text
+                    (Row.Triangle_X,
+                     Text_Y,
+                     Row.Triangle_W,
+                     Line_Height,
+                     To_Unbounded_String
+                       (if Row.Expanded
+                        then Tree_Expander_Expanded_Text
+                        else Tree_Expander_Collapsed_Text),
+                     Color => Muted_Text_Color);
+               end if;
+               Add_Overlay_Text
+                 (Label_X,
+                  Text_Y,
+                  Label_W,
+                  Line_Height,
+                  Data.Name,
+                  Color => Text_Color,
+                  Fit   => True);
+               Add_Accessibility_Node
+                 (Role_List_Item,
+                  Row.X,
+                  Row.Y,
+                  Row.Width,
+                  Row.Height,
+                  Data.Name,
+                  Data.Path,
+                  Enabled  => True,
+                  Selected => Row.Selected,
+                  Focused  => Row.Selected);
+            end;
+         end loop;
+         Draw_Close_Button
+           (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => True);
       end if;
 
       if Snapshot.Context_Menu_Open then

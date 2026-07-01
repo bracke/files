@@ -1,6 +1,7 @@
 with Ada.Containers.Vectors;
 
 with Files.File_System;
+with Files.Folder_Tree;
 with Files.Settings;
 with Files.Types;
 
@@ -485,6 +486,122 @@ package Files.Model is
      (Model : Window_Model;
       Index : Positive)
       return Boolean;
+
+   --  Toggle the folder-tree sidebar visibility.
+   --
+   --  @param Model Model to update.
+   procedure Toggle_Tree_Panel
+     (Model : in out Window_Model);
+
+   --  Open the folder-tree sidebar.
+   --
+   --  @param Model Model to update.
+   procedure Open_Tree_Panel
+     (Model : in out Window_Model);
+
+   --  Close the folder-tree sidebar.
+   --
+   --  @param Model Model to update.
+   procedure Close_Tree_Panel
+     (Model : in out Window_Model);
+
+   --  Return whether the folder-tree sidebar is open.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the tree sidebar is open.
+   function Tree_Panel_Is_Open
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return whether the folder tree has been seeded with root nodes.
+   --
+   --  @param Model Model to inspect.
+   --  @return True once the tree holds its root nodes.
+   function Tree_Is_Seeded
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Seed the folder tree with root nodes.
+   --
+   --  @param Model Model to update.
+   --  @param Roots Root locations shown at the top of the tree.
+   procedure Seed_Tree
+     (Model : in out Window_Model;
+      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
+
+   --  Return the number of nodes currently held by the folder tree.
+   --
+   --  @param Model Model to inspect.
+   --  @return Total tree node count.
+   function Tree_Node_Count
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return a tree node's absolute directory path.
+   --
+   --  @param Model Model to inspect.
+   --  @param Index One-based node index.
+   --  @return Node path, or an empty string when Index is out of range.
+   function Tree_Node_Path
+     (Model : Window_Model;
+      Index : Positive)
+      return String;
+
+   --  Return whether a tree node's children have been loaded.
+   --
+   --  @param Model Model to inspect.
+   --  @param Index One-based node index.
+   --  @return True when the node's children are attached.
+   function Tree_Node_Is_Loaded
+     (Model : Window_Model;
+      Index : Positive)
+      return Boolean;
+
+   --  Return whether a tree node is currently expanded.
+   --
+   --  @param Model Model to inspect.
+   --  @param Index One-based node index.
+   --  @return True when the node shows its children.
+   function Tree_Node_Is_Expanded
+     (Model : Window_Model;
+      Index : Positive)
+      return Boolean;
+
+   --  Attach a tree node's child subdirectories and mark it loaded.
+   --
+   --  @param Model Model to update.
+   --  @param Index One-based parent node index.
+   --  @param Children Child subdirectories in display order.
+   procedure Tree_Set_Children
+     (Model    : in out Window_Model;
+      Index    : Positive;
+      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
+
+   --  Set a tree node's expanded flag.
+   --
+   --  @param Model Model to update.
+   --  @param Index One-based node index.
+   --  @param Expanded New expanded state.
+   procedure Tree_Set_Expanded
+     (Model    : in out Window_Model;
+      Index    : Positive;
+      Expanded : Boolean);
+
+   --  Flip a tree node's expanded flag.
+   --
+   --  @param Model Model to update.
+   --  @param Index One-based node index.
+   procedure Tree_Toggle_Expanded
+     (Model : in out Window_Model;
+      Index : Positive);
+
+   --  Return the flattened, currently visible folder-tree rows.
+   --
+   --  @param Model Model to inspect.
+   --  @return Visible tree rows in top-to-bottom display order.
+   function Tree_Visible_Rows
+     (Model : Window_Model)
+      return Files.Folder_Tree.Visible_Row_Vectors.Vector;
 
    --  Return the current focus target.
    --
@@ -1346,6 +1463,8 @@ private
       Root_Selector_Open   : Boolean := False;
       Root_Entries         : Files.File_System.Root_Entry_Vectors.Vector;
       Root_Selected        : Natural := 0;
+      Tree_Panel_Open      : Boolean := False;
+      Folder_Tree_Value    : Files.Folder_Tree.Tree;
       Command_Palette_Open     : Boolean := False;
       Command_Palette_Query    : UString;
       Command_Palette_Cursor   : Natural := 0;
