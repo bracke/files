@@ -82,6 +82,7 @@ package body Files_Suite.Settings is
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
    use type Files.Settings.Sort_Field;
+   use type Files.Settings.Theme_Choice;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.Key_Code;
@@ -173,7 +174,9 @@ package body Files_Suite.Settings is
       Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
       Assert (Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "sort field setting parses");
       Assert (not Parsed.Settings.Sort_Ascending, "sort direction setting parses");
-      Assert (Parsed.Settings.High_Contrast_Theme, "high-contrast theme setting parses");
+      Assert
+        (Parsed.Settings.Theme = Files.Settings.Theme_High_Contrast,
+         "legacy high_contrast_theme key maps to the high-contrast theme");
       Assert
         (To_String (Parsed.Settings.Icon_Theme_Name) = "files-high-contrast",
          "icon theme setting parses");
@@ -1074,7 +1077,10 @@ package body Files_Suite.Settings is
         (Files.Settings.Field_Diagnostic (2, "true" & ASCII.LF & "false") =
          "error.settings.invalid_boolean",
          "boolean field rejects line breaks");
-      Assert (Files.Settings.Field_Diagnostic (5, "false") = "", "settings field validates high-contrast boolean");
+      Assert (Files.Settings.Field_Diagnostic (5, "light") = "", "settings field validates theme value");
+      Assert
+        (Files.Settings.Field_Diagnostic (5, "sepia") = "error.settings.invalid_theme",
+         "settings field reports invalid theme");
       Assert (Files.Settings.Field_Diagnostic (6, "files-basic") = "", "settings field validates icon theme");
       Assert
         (Files.Settings.Field_Diagnostic (6, "unknown-theme") = "error.settings.invalid_icon_theme",
@@ -1519,34 +1525,38 @@ package body Files_Suite.Settings is
         (Files.Settings.Filetype_For_Extension (Default_Parse.Settings, "txt") = "text/plain",
          "default settings text includes filetype mappings");
       Assert
-        (not Default_Parse.Settings.High_Contrast_Theme,
-         "default settings text keeps high-contrast theme disabled");
-      Assert
-        (not Default_Parse.Settings.Light_Theme,
-         "default settings text keeps the light theme disabled (dark default)");
+        (Default_Parse.Settings.Theme = Files.Settings.Theme_Dark,
+         "default settings text keeps the dark theme selected");
       Assert
         (To_String (Default_Parse.Settings.Icon_Theme_Name) = "files-basic",
          "default settings text keeps basic icon theme selected");
       declare
-         --  The light-theme preference is absent from this text, so it must
-         --  default to dark; a round-trip through To_Text must preserve it once
-         --  enabled.
+         --  The theme preference is absent from this text, so it must default to
+         --  dark; a round-trip through To_Text must preserve every enum value.
          Absent_Parse : constant Files.Settings.Settings_Parse_Result :=
            Files.Settings.Parse ("[settings]" & ASCII.LF & "show_hidden_files = true" & ASCII.LF);
          Light_On     : Files.Settings.Settings_Model;
+         High_On      : Files.Settings.Settings_Model;
          Round_Trip   : Files.Settings.Settings_Parse_Result;
       begin
-         Assert (Absent_Parse.Success, "settings without a light_theme key parse");
+         Assert (Absent_Parse.Success, "settings without a theme key parse");
          Assert
-           (not Absent_Parse.Settings.Light_Theme,
-            "absent light_theme setting defaults to dark");
+           (Absent_Parse.Settings.Theme = Files.Settings.Theme_Dark,
+            "absent theme setting defaults to dark");
          Light_On := Files.Settings.Default_Settings;
-         Light_On.Light_Theme := True;
+         Light_On.Theme := Files.Settings.Theme_Light;
          Round_Trip := Files.Settings.Parse (Files.Settings.To_Text (Light_On));
          Assert (Round_Trip.Success, "serialized light-theme settings parse");
          Assert
-           (Round_Trip.Settings.Light_Theme,
-            "light_theme round-trips through To_Text and Parse");
+           (Round_Trip.Settings.Theme = Files.Settings.Theme_Light,
+            "the light theme round-trips through To_Text and Parse");
+         High_On := Files.Settings.Default_Settings;
+         High_On.Theme := Files.Settings.Theme_High_Contrast;
+         Round_Trip := Files.Settings.Parse (Files.Settings.To_Text (High_On));
+         Assert (Round_Trip.Success, "serialized high-contrast settings parse");
+         Assert
+           (Round_Trip.Settings.Theme = Files.Settings.Theme_High_Contrast,
+            "the high-contrast theme round-trips through To_Text and Parse");
       end;
       Missing := Files.Settings.Load_File (Join (Root, "missing.conf"));
       Assert (Missing.Success, "missing settings file falls back to defaults");
@@ -1575,13 +1585,15 @@ package body Files_Suite.Settings is
          "light_theme = true" & ASCII.LF &
          "[filetypes]" & ASCII.LF &
          "foo = application/x-foo" & ASCII.LF);
+      --  Both legacy booleans set: high contrast wins over light (old precedence).
       Loaded := Files.Settings.Load_File (Settings_Path);
       Assert (Loaded.Success, "settings file parses from disk");
       Assert (Loaded.Settings.Show_Hidden_Files, "show-hidden setting loads from disk");
       Assert (Loaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified, "sort field loads from disk");
       Assert (not Loaded.Settings.Sort_Ascending, "sort direction loads from disk");
-      Assert (Loaded.Settings.High_Contrast_Theme, "theme preference loads from disk");
-      Assert (Loaded.Settings.Light_Theme, "light theme preference loads from disk");
+      Assert
+        (Loaded.Settings.Theme = Files.Settings.Theme_High_Contrast,
+         "legacy high-contrast key wins over light and loads from disk");
       Assert
         (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo") = "application/x-foo",
          "filetype mapping loads from disk");
@@ -1651,7 +1663,7 @@ package body Files_Suite.Settings is
          Draft.Show_Hidden_Files := To_Unbounded_String ("true");
          Draft.Sort_Field_Value := To_Unbounded_String ("size");
          Draft.Sort_Ascending := To_Unbounded_String ("false");
-         Draft.High_Contrast_Theme := To_Unbounded_String ("true");
+         Draft.Theme := To_Unbounded_String ("high_contrast");
          Draft.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
          Draft.Filetype_Extension := To_Unbounded_String ("log");
          Draft.Filetype_Value := To_Unbounded_String ("text/x-log");
@@ -1665,7 +1677,9 @@ package body Files_Suite.Settings is
          Assert (Draft_Load.Settings.Default_View = Files.Types.Details, "draft applies default view");
          Assert (Draft_Load.Settings.Show_Hidden_Files, "draft applies hidden-file flag");
          Assert (Draft_Load.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "draft applies sort field");
-         Assert (Draft_Load.Settings.High_Contrast_Theme, "draft applies high-contrast theme flag");
+         Assert
+           (Draft_Load.Settings.Theme = Files.Settings.Theme_High_Contrast,
+            "draft applies the high-contrast theme");
          Assert
            (To_String (Draft_Load.Settings.Icon_Theme_Name) = "files-high-contrast",
             "draft applies icon theme selection");
@@ -1848,7 +1862,7 @@ package body Files_Suite.Settings is
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Down);
          Files.Controller.Replace_Focused_Text (Draft_Model, "true");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 5);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "true");
+         Files.Controller.Replace_Focused_Text (Draft_Model, "high_contrast");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 6);
          Files.Controller.Replace_Focused_Text (Draft_Model, "files-high-contrast");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
@@ -1936,7 +1950,9 @@ package body Files_Suite.Settings is
            (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
             "controller saves edited settings draft");
          Assert (Draft_Settings.Default_View = Files.Types.Details, "controller save updates live settings");
-         Assert (Draft_Settings.High_Contrast_Theme, "controller save updates live high-contrast setting");
+         Assert
+           (Draft_Settings.Theme = Files.Settings.Theme_High_Contrast,
+            "controller save updates the live theme setting");
          Assert
            (To_String (Draft_Settings.Icon_Theme_Name) = "files-high-contrast",
             "controller save updates live icon theme");

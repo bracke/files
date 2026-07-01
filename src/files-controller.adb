@@ -317,7 +317,7 @@ package body Files.Controller is
         and then Left.Show_Hidden_Files = Right.Show_Hidden_Files
         and then Left.Sort_Field_Value = Right.Sort_Field_Value
         and then Left.Sort_Ascending = Right.Sort_Ascending
-        and then Left.High_Contrast_Theme = Right.High_Contrast_Theme
+        and then Left.Theme = Right.Theme
         and then Left.Icon_Theme_Name = Right.Icon_Theme_Name
         and then Left.Filetype_Extension = Right.Filetype_Extension
         and then Left.Filetype_Value = Right.Filetype_Value
@@ -1324,8 +1324,15 @@ package body Files.Controller is
                      when 3 => Files.Model.Set_Settings_Field_Text (Model, "details");
                      when others => null;
                   end case;
-               when 2 | 4 | 5 | 14 =>
+               when 2 | 4 =>
                   Files.Model.Set_Settings_Field_Text (Model, (if Option = 1 then "true" else "false"));
+               when 5 =>
+                  case Option is
+                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "dark");
+                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "light");
+                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "high_contrast");
+                     when others => null;
+                  end case;
                when 6 =>
                   Files.Model.Set_Settings_Field_Text
                     (Model, (if Option = 1 then "files-basic" else "files-high-contrast"));
@@ -1663,7 +1670,7 @@ package body Files.Controller is
                --  controls (default_view + boolean fields). On other
                --  multi-choice fields it falls through to text input.
                if Key = Files.Types.Key_Space
-                 and then Field not in 1 | 2 | 4 | 5 | 14
+                 and then Field not in 1 | 2 | 4 | 5
                then
                   return Make_Result (Controller_Ignored);
                end if;
@@ -1681,9 +1688,21 @@ package body Files.Controller is
                           (Model, (if Forward then "small_icons" else "large_icons"));
                      end if;
                      Touched := True;
-                  when 2 | 4 | 5 | 14 =>
+                  when 2 | 4 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model, (if Current = "true" then "false" else "true"));
+                     Touched := True;
+                  when 5 =>
+                     if Current = "dark" then
+                        Files.Model.Set_Settings_Field_Text
+                          (Model, (if Forward then "light" else "high_contrast"));
+                     elsif Current = "light" then
+                        Files.Model.Set_Settings_Field_Text
+                          (Model, (if Forward then "high_contrast" else "dark"));
+                     else
+                        Files.Model.Set_Settings_Field_Text
+                          (Model, (if Forward then "dark" else "light"));
+                     end if;
                      Touched := True;
                   when 6 =>
                      Files.Model.Set_Settings_Field_Text

@@ -1648,8 +1648,8 @@ package body Files.Model is
    begin
       if Index = 0 then
          Model.Settings_Field := 1;
-      elsif Index > 14 then
-         Model.Settings_Field := 14;
+      elsif Index > 13 then
+         Model.Settings_Field := 13;
       else
          Model.Settings_Field := Index;
       end if;
@@ -1663,9 +1663,9 @@ package body Files.Model is
    begin
       case Direction is
          when Files.Types.Move_Left | Files.Types.Move_Up =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 14 else Model.Settings_Field - 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 13 else Model.Settings_Field - 1));
          when Files.Types.Move_Right | Files.Types.Move_Down =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 14 then 1 else Model.Settings_Field + 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 13 then 1 else Model.Settings_Field + 1));
       end case;
    end Move_Settings_Field;
 
@@ -1907,7 +1907,7 @@ package body Files.Model is
          when 4 =>
             return To_String (Model.Settings_Draft_Value.Sort_Ascending);
          when 5 =>
-            return To_String (Model.Settings_Draft_Value.High_Contrast_Theme);
+            return To_String (Model.Settings_Draft_Value.Theme);
          when 6 =>
             return To_String (Model.Settings_Draft_Value.Icon_Theme_Name);
          when 7 =>
@@ -1924,8 +1924,6 @@ package body Files.Model is
             return To_String (Model.Settings_Draft_Value.Open_Action_Token);
          when 13 =>
             return To_String (Model.Settings_Draft_Value.Open_Action_Command);
-         when 14 =>
-            return To_String (Model.Settings_Draft_Value.Light_Theme);
          when others =>
             return "";
       end case;
@@ -1961,7 +1959,7 @@ package body Files.Model is
          when 4 =>
             Model.Settings_Draft_Value.Sort_Ascending := To_Unbounded_String (Text);
          when 5 =>
-            Model.Settings_Draft_Value.High_Contrast_Theme := To_Unbounded_String (Text);
+            Model.Settings_Draft_Value.Theme := To_Unbounded_String (Text);
          when 6 =>
             Model.Settings_Draft_Value.Icon_Theme_Name := To_Unbounded_String (Text);
          when 7 =>
@@ -2026,8 +2024,6 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 14 =>
-            Model.Settings_Draft_Value.Light_Theme := To_Unbounded_String (Text);
          when others =>
             Edited := False;
       end case;

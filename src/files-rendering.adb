@@ -561,7 +561,7 @@ package body Files.Rendering is
    function Settings_Editor_Profile_Of_Current_UI return Settings_Editor_Profile is
    begin
       return
-        (Scalar_Controls       => 8,
+        (Scalar_Controls       => 7,
          Mapping_Controls      => 4,
          Open_Action_Controls  => 2,
          Supports_Save         => True,
@@ -1088,8 +1088,33 @@ package body Files.Rendering is
          end case;
       end Sort_Field_Token;
 
+      function Theme_Token (Choice : Files.Settings.Theme_Choice) return String is
+      begin
+         case Choice is
+            when Files.Settings.Theme_Dark =>
+               return "dark";
+            when Files.Settings.Theme_Light =>
+               return "light";
+            when Files.Settings.Theme_High_Contrast =>
+               return "high_contrast";
+         end case;
+      end Theme_Token;
+
+      function Theme_Display (Token : String) return String is
+      begin
+         if Token = "light" then
+            return Files.Localization.Text ("settings.theme.light");
+         elsif Token = "high_contrast" then
+            return Files.Localization.Text ("settings.theme.high_contrast");
+         else
+            return Files.Localization.Text ("settings.theme.dark");
+         end if;
+      end Theme_Display;
+
       Theme : constant Render_Theme :=
-        (if Settings.High_Contrast_Theme then High_Contrast_Theme else Default_Theme);
+        (case Settings.Theme is
+            when Files.Settings.Theme_High_Contrast => High_Contrast_Theme,
+            when others => Default_Theme);
 
       function Filetype_Detail
         (Item : Files.File_System.Directory_Item)
@@ -1528,10 +1553,8 @@ package body Files.Rendering is
       Snapshot.Settings_Sort_Field_Token := To_Unbounded_String (Sort_Field_Token (Settings.Sort_Field_Value));
       Snapshot.Settings_Sort_Ascending := To_Unbounded_String (Boolean_Text (Settings.Sort_Ascending));
       Snapshot.Settings_Sort_Ascending_Token := To_Unbounded_String (Boolean_Token (Settings.Sort_Ascending));
-      Snapshot.Settings_High_Contrast := To_Unbounded_String (Boolean_Text (Settings.High_Contrast_Theme));
-      Snapshot.Settings_High_Contrast_Token := To_Unbounded_String (Boolean_Token (Settings.High_Contrast_Theme));
-      Snapshot.Settings_Light_Theme := To_Unbounded_String (Boolean_Text (Settings.Light_Theme));
-      Snapshot.Settings_Light_Theme_Token := To_Unbounded_String (Boolean_Token (Settings.Light_Theme));
+      Snapshot.Settings_Theme_Token := To_Unbounded_String (Theme_Token (Settings.Theme));
+      Snapshot.Settings_Theme := To_Unbounded_String (Theme_Display (Theme_Token (Settings.Theme)));
       Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
       Snapshot.Settings_Font_Pixel_Size :=
         To_Unbounded_String (Natural_Text (Settings.Font_Pixel_Size));
@@ -1558,12 +1581,11 @@ package body Files.Rendering is
                Snapshot.Settings_Sort_Ascending := Draft.Sort_Ascending;
                Snapshot.Settings_Sort_Ascending_Token :=
                  To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Sort_Ascending)));
-               Snapshot.Settings_High_Contrast := Draft.High_Contrast_Theme;
-               Snapshot.Settings_High_Contrast_Token :=
-                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.High_Contrast_Theme)));
-               Snapshot.Settings_Light_Theme := Draft.Light_Theme;
-               Snapshot.Settings_Light_Theme_Token :=
-                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Light_Theme)));
+               Snapshot.Settings_Theme_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Theme)));
+               Snapshot.Settings_Theme :=
+                 To_Unbounded_String
+                   (Theme_Display (Files.Types.To_Lower (To_String (Draft.Theme))));
                Snapshot.Settings_Icon_Theme := Draft.Icon_Theme_Name;
                Snapshot.Settings_Font_Pixel_Size := Draft.Font_Pixel_Size;
                Snapshot.Settings_Filetype_Extension := Draft.Filetype_Extension;
@@ -1594,10 +1616,14 @@ package body Files.Rendering is
               To_Unbounded_String (Files.Localization.Text ("settings.help.default_view"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.default_view"));
-         when 2 | 4 | 5 | 14 =>
+         when 2 | 4 =>
             Snapshot.Settings_Field_Help := To_Unbounded_String (Files.Localization.Text ("settings.help.boolean"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.boolean"));
+         when 5 =>
+            Snapshot.Settings_Field_Help := To_Unbounded_String (Files.Localization.Text ("settings.help.theme"));
+            Snapshot.Settings_Control_Options :=
+              To_Unbounded_String (Files.Localization.Text ("settings.options.theme"));
          when 3 =>
             Snapshot.Settings_Field_Help := To_Unbounded_String (Files.Localization.Text ("settings.help.sort"));
             Snapshot.Settings_Control_Options :=
@@ -1658,9 +1684,10 @@ package body Files.Rendering is
       Snapshot.Theme_Name := Theme.Name;
       Snapshot.Theme_High_Contrast := Theme.High_Contrast;
       Snapshot.Theme_Palette :=
-        (if Settings.High_Contrast_Theme then Theme_High_Contrast
-         elsif Settings.Light_Theme then Theme_Light
-         else Theme_Dark);
+        (case Settings.Theme is
+            when Files.Settings.Theme_Dark          => Theme_Dark,
+            when Files.Settings.Theme_Light         => Theme_Light,
+            when Files.Settings.Theme_High_Contrast => Theme_High_Contrast);
       Snapshot.Theme_Focus_Ring := Theme.Focus_Ring;
       Snapshot.Root_Selector_Open := Files.Model.Root_Selector_Is_Open (Model);
       Snapshot.Root_Selected_Index := Files.Model.Root_Selected_Index (Model);
@@ -6698,7 +6725,7 @@ package body Files.Rendering is
                Y := Visible_Y (Y_Cursor);
                Hidden := Y_Hidden (Y_Cursor, Line_Height);
                case Snapshot.Settings_Field_Index is
-                  when 1 | 2 | 4 | 5 =>
+                  when 1 | 2 | 4 =>
                      --  Inline toggle/segmented control already rendered in
                      --  the field row above.
                      null;
@@ -6707,6 +6734,14 @@ package body Files.Rendering is
                      Add_Cell (1, "settings.sort.filetype", Current = "filetype");
                      Add_Cell (2, "settings.sort.size", Current = "size");
                      Add_Cell (3, "settings.sort.modified", Current = "modified");
+                  when 5 =>
+                     declare
+                        Theme_Current : constant String := To_String (Snapshot.Settings_Theme_Token);
+                     begin
+                        Add_Cell (0, "settings.theme.dark", Theme_Current = "dark");
+                        Add_Cell (1, "settings.theme.light", Theme_Current = "light");
+                        Add_Cell (2, "settings.theme.high_contrast", Theme_Current = "high_contrast");
+                     end;
                   when 6 =>
                      Add_Cell (0, "settings.icon_theme.basic", Snapshot.Settings_Icon_Theme = "files-basic");
                      Add_Cell
@@ -6840,7 +6875,7 @@ package body Files.Rendering is
                Add_Settings_Toggle (Y_Cursor, "settings.hidden_files", Snapshot.Settings_Hidden_Files_Token, 2);
                Add_Settings_Value (Y_Cursor, "settings.sort", Snapshot.Settings_Sort, 3);
                Add_Settings_Toggle (Y_Cursor, "settings.sort_ascending", Snapshot.Settings_Sort_Ascending_Token, 4);
-               Add_Settings_Toggle (Y_Cursor, "settings.high_contrast_theme", Snapshot.Settings_High_Contrast_Token, 5);
+               Add_Settings_Value (Y_Cursor, "settings.theme", Snapshot.Settings_Theme, 5);
                Add_Settings_Value (Y_Cursor, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 6);
                Add_Settings_Number_Stepper (Y_Cursor, "settings.font_pixel_size", Snapshot.Settings_Font_Pixel_Size, 7);
                Add_Settings_Value (Y_Cursor, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
@@ -6855,7 +6890,6 @@ package body Files.Rendering is
                Add_Settings_Entry_Buttons (Y_Cursor, 12);
                Add_Settings_Value (Y_Cursor, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 12);
                Add_Settings_Value (Y_Cursor, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 13);
-               Add_Settings_Toggle (Y_Cursor, "settings.light_theme", Snapshot.Settings_Light_Theme_Token, 14);
                if Length (Snapshot.Settings_Field_Help) > 0 then
                   Add_Wrapped_Row
                     (Y_Cursor,
@@ -6870,7 +6904,7 @@ package body Files.Rendering is
                      Muted_Text_Color,
                      Italic => True);
                end if;
-               if Snapshot.Settings_Field_Index in 3 | 6 then
+               if Snapshot.Settings_Field_Index in 3 | 5 | 6 then
                   Add_Settings_Control_Options (Y_Cursor);
                end if;
                if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then

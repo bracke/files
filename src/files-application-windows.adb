@@ -2513,7 +2513,7 @@ package body Files.Application.Windows is
             end;
 
          when Scenario_Light_Theme =>
-            Runtime.Settings.Light_Theme := True;
+            Runtime.Settings.Theme := Files.Settings.Theme_Light;
 
          when Scenario_Details_View =>
             --  Render the details layout, unless the startup already uses it

@@ -155,8 +155,8 @@ package Files.Rendering is
       Settings_Sort_Field_Token   : UString;
       Settings_Sort_Ascending       : UString;
       Settings_Sort_Ascending_Token : UString;
-      Settings_High_Contrast        : UString;
-      Settings_High_Contrast_Token  : UString;
+      Settings_Theme                : UString;
+      Settings_Theme_Token          : UString;
       Settings_Icon_Theme           : UString;
       Settings_Font_Pixel_Size      : UString;
       Settings_Filetypes            : UString;
@@ -179,8 +179,6 @@ package Files.Rendering is
       Theme_High_Contrast   : Boolean := False;
       Theme_Palette         : Theme_Kind := Theme_Dark;
       Theme_Focus_Ring      : Render_Color := Border_Color;
-      Settings_Light_Theme        : UString;
-      Settings_Light_Theme_Token  : UString;
       Info_Pane_Scroll_Lines : Natural := 0;
       Settings_Pane_Scroll_Lines : Natural := 0;
       Main_View_Scroll_Lines : Natural := 0;

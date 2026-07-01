@@ -1242,6 +1242,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.settings.invalid_mapping");
       Add_Error_Key ("error.settings.invalid_view_mode");
       Add_Error_Key ("error.settings.invalid_boolean");
+      Add_Error_Key ("error.settings.invalid_theme");
       Add_Error_Key ("error.settings.invalid_icon_theme");
       Add_Error_Key ("error.settings.invalid_sort_field");
       Add_Error_Key ("error.settings.invalid_font_pixel_size");

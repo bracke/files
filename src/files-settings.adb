@@ -963,6 +963,12 @@ package body Files.Settings is
       Section    : Settings_Section := No_Section;
       Line_First : Positive := Text'First;
       Line_Last  : Natural;
+      --  Backward-compatibility state: when the file lacks the modern "theme"
+      --  key, the legacy "high_contrast_theme"/"light_theme" booleans below are
+      --  resolved into Settings.Theme after the loop (high contrast wins).
+      Theme_Explicit : Boolean := False;
+      Legacy_High    : Boolean := False;
+      Legacy_Light   : Boolean := False;
    begin
       --  The file is authoritative for filetype/icon/open-action mappings:
       --  start from scalar defaults with empty maps so a mapping deleted from
@@ -1172,14 +1178,33 @@ package body Files.Settings is
                                     Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                               end if;
                            end;
+                        elsif Setting_Key = "theme" then
+                           declare
+                              Theme_Value : constant String := Files.Types.To_Lower (Value);
+                           begin
+                              if Theme_Value = "dark" then
+                                 Settings.Theme := Theme_Dark;
+                              elsif Theme_Value = "light" then
+                                 Settings.Theme := Theme_Light;
+                              elsif Theme_Value = "high_contrast" then
+                                 Settings.Theme := Theme_High_Contrast;
+                              else
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_theme"));
+                              end if;
+                              Theme_Explicit := True;
+                           end;
                         elsif Setting_Key = "high_contrast_theme" then
+                           --  Legacy key: resolved into Settings.Theme after the loop.
                            declare
                               Boolean_Value : constant String := Files.Types.To_Lower (Value);
                            begin
                               if Boolean_Value = "true" then
-                                 Settings.High_Contrast_Theme := True;
+                                 Legacy_High := True;
                               elsif Boolean_Value = "false" then
-                                 Settings.High_Contrast_Theme := False;
+                                 Legacy_High := False;
                               else
                                  return
                                    (Success   => False,
@@ -1188,13 +1213,14 @@ package body Files.Settings is
                               end if;
                            end;
                         elsif Setting_Key = "light_theme" then
+                           --  Legacy key: resolved into Settings.Theme after the loop.
                            declare
                               Boolean_Value : constant String := Files.Types.To_Lower (Value);
                            begin
                               if Boolean_Value = "true" then
-                                 Settings.Light_Theme := True;
+                                 Legacy_Light := True;
                               elsif Boolean_Value = "false" then
-                                 Settings.Light_Theme := False;
+                                 Legacy_Light := False;
                               else
                                  return
                                    (Success   => False,
@@ -1286,6 +1312,19 @@ package body Files.Settings is
 
          Line_First := Line_Last + 1;
       end loop;
+
+      --  When no modern "theme" key was present, fall back to the legacy
+      --  booleans: high contrast takes precedence over light, matching the old
+      --  rendering precedence; absent everything leaves the default (dark).
+      if not Theme_Explicit then
+         if Legacy_High then
+            Settings.Theme := Theme_High_Contrast;
+         elsif Legacy_Light then
+            Settings.Theme := Theme_Light;
+         else
+            Settings.Theme := Theme_Dark;
+         end if;
+      end if;
 
       return
         (Success   => True,
@@ -1379,6 +1418,18 @@ package body Files.Settings is
       return (if Value then "true" else "false");
    end Boolean_Name;
 
+   function Theme_Name (Value : Theme_Choice) return String is
+   begin
+      case Value is
+         when Theme_Dark =>
+            return "dark";
+         when Theme_Light =>
+            return "light";
+         when Theme_High_Contrast =>
+            return "high_contrast";
+      end case;
+   end Theme_Name;
+
    function Action_Token_Text (Value : String) return String is
       Needs_Quotes : Boolean := Value = "";
       Result       : Unbounded_String := Null_Unbounded_String;
@@ -1452,10 +1503,9 @@ package body Files.Settings is
       Append_Line ("show_hidden_files = " & Boolean_Name (Settings.Show_Hidden_Files));
       Append_Line ("sort_field = " & Sort_Field_Name (Settings.Sort_Field_Value));
       Append_Line ("sort_ascending = " & Boolean_Name (Settings.Sort_Ascending));
-      Append_Line ("high_contrast_theme = " & Boolean_Name (Settings.High_Contrast_Theme));
       --  Assembled from fragments so no single string literal mixes letters and
       --  a space (a settings key, not user-visible prose; see check_all).
-      Append_Line ("light_theme" & " = " & Boolean_Name (Settings.Light_Theme));
+      Append_Line ("theme" & " = " & Theme_Name (Settings.Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Settings.Icon_Theme_Name)));
       Append_Line ("font_pixel_size = " & Trim (Positive'Image (Settings.Font_Pixel_Size)));
       Append_Line ("info_pane_open = " & Boolean_Name (Settings.Info_Pane_Open));
@@ -1590,8 +1640,7 @@ package body Files.Settings is
          Show_Hidden_Files      => To_Unbounded_String (Boolean_Name (Settings.Show_Hidden_Files)),
          Sort_Field_Value       => To_Unbounded_String (Sort_Field_Name (Settings.Sort_Field_Value)),
          Sort_Ascending         => To_Unbounded_String (Boolean_Name (Settings.Sort_Ascending)),
-         High_Contrast_Theme    => To_Unbounded_String (Boolean_Name (Settings.High_Contrast_Theme)),
-         Light_Theme            => To_Unbounded_String (Boolean_Name (Settings.Light_Theme)),
+         Theme                  => To_Unbounded_String (Theme_Name (Settings.Theme)),
          Icon_Theme_Name        => Settings.Icon_Theme_Name,
          Font_Pixel_Size        => To_Unbounded_String (Trim (Positive'Image (Settings.Font_Pixel_Size))),
          Filetype_Extension     => Extension,
@@ -1810,8 +1859,7 @@ package body Files.Settings is
       Append_Line ("show_hidden_files = " & To_String (Draft.Show_Hidden_Files));
       Append_Line ("sort_field = " & To_String (Draft.Sort_Field_Value));
       Append_Line ("sort_ascending = " & To_String (Draft.Sort_Ascending));
-      Append_Line ("high_contrast_theme = " & To_String (Draft.High_Contrast_Theme));
-      Append_Line ("light_theme" & " = " & To_String (Draft.Light_Theme));
+      Append_Line ("theme" & " = " & To_String (Draft.Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Draft.Icon_Theme_Name)));
       Append_Line ("font_pixel_size = " & To_String (Draft.Font_Pixel_Size));
 
@@ -1892,8 +1940,10 @@ package body Files.Settings is
          case Field is
             when 1 =>
                return "error.settings.invalid_view_mode";
-            when 2 | 4 | 5 =>
+            when 2 | 4 =>
                return "error.settings.invalid_boolean";
+            when 5 =>
+               return "error.settings.invalid_theme";
             when 3 =>
                return "error.settings.invalid_sort_field";
             when 6 =>
@@ -1922,7 +1972,7 @@ package body Files.Settings is
                end if;
                return "error.settings.invalid_view_mode";
             end;
-         when 2 | 4 | 5 =>
+         when 2 | 4 =>
             declare
                Value : constant String := Files.Types.To_Lower (Clean);
             begin
@@ -1930,6 +1980,15 @@ package body Files.Settings is
                   return "";
                end if;
                return "error.settings.invalid_boolean";
+            end;
+         when 5 =>
+            declare
+               Value : constant String := Files.Types.To_Lower (Clean);
+            begin
+               if Value = "dark" or else Value = "light" or else Value = "high_contrast" then
+                  return "";
+               end if;
+               return "error.settings.invalid_theme";
             end;
          when 3 =>
             declare
@@ -2033,8 +2092,7 @@ package body Files.Settings is
       Result.Show_Hidden_Files := Parsed.Settings.Show_Hidden_Files;
       Result.Sort_Field_Value := Parsed.Settings.Sort_Field_Value;
       Result.Sort_Ascending := Parsed.Settings.Sort_Ascending;
-      Result.High_Contrast_Theme := Parsed.Settings.High_Contrast_Theme;
-      Result.Light_Theme := Parsed.Settings.Light_Theme;
+      Result.Theme := Parsed.Settings.Theme;
       Result.Icon_Theme_Name := Parsed.Settings.Icon_Theme_Name;
       Result.Font_Pixel_Size := Parsed.Settings.Font_Pixel_Size;
       Result.Window_Width := Settings.Window_Width;

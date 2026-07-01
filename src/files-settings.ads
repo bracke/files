@@ -33,6 +33,10 @@ package Files.Settings is
       Sort_By_Created,
       Sort_By_Modified);
 
+   --  Selectable color theme. Theme_Dark is the default. The chosen value maps
+   --  directly onto the renderer's palette (Files.Rendering.Theme_Kind).
+   type Theme_Choice is (Theme_Dark, Theme_Light, Theme_High_Contrast);
+
    type Settings_Model is record
       Extension_Filetypes    : String_Maps.Map;
       Icon_Mappings          : String_Maps.Map;
@@ -41,10 +45,8 @@ package Files.Settings is
       Show_Hidden_Files      : Boolean := False;
       Sort_Field_Value       : Sort_Field := Sort_By_Name;
       Sort_Ascending         : Boolean := True;
-      High_Contrast_Theme    : Boolean := False;
-      --  When True, the light color palette is used for rendering. High contrast
-      --  takes precedence over this when both preferences are enabled.
-      Light_Theme            : Boolean := False;
+      --  Selected color theme applied to the rendering palette.
+      Theme                  : Theme_Choice := Theme_Dark;
       Icon_Theme_Name        : UString;
       Font_Pixel_Size        : Positive := 16;
       --  Global UI state remembered across launches. Window_Width / Height
@@ -86,8 +88,7 @@ package Files.Settings is
       Show_Hidden_Files      : UString;
       Sort_Field_Value       : UString;
       Sort_Ascending         : UString;
-      High_Contrast_Theme    : UString;
-      Light_Theme            : UString;
+      Theme                  : UString;
       Icon_Theme_Name        : UString;
       Font_Pixel_Size        : UString;
       Filetype_Extension     : UString;
