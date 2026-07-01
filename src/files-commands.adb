@@ -449,6 +449,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_Escape, Files.Types.No_Modifiers);
          when Open_Selected_Items_Command =>
             return (True, Files.Types.Key_Return, Files.Types.No_Modifiers);
+         when Undo_Command =>
+            return (True, Files.Types.Key_Z, Ctrl);
          when others =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
       end case;
@@ -501,6 +503,8 @@ package body Files.Commands is
             return "v";
          when Files.Types.Key_X =>
             return "x";
+         when Files.Types.Key_Z =>
+            return "z";
          when Files.Types.Key_Comma =>
             return ",";
          when Files.Types.Key_Backspace =>

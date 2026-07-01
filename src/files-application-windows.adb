@@ -66,6 +66,7 @@ package body Files.Application.Windows is
       Tracked_S,
       Tracked_V,
       Tracked_X,
+      Tracked_Z,
       Tracked_Comma,
       Tracked_Backspace,
       Tracked_Delete,
@@ -658,6 +659,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.V;
          when Tracked_X =>
             return Glfw.Input.Keys.X;
+         when Tracked_Z =>
+            return Glfw.Input.Keys.Z;
          when Tracked_Comma =>
             return Glfw.Input.Keys.Comma;
          when Tracked_Backspace =>
@@ -740,6 +743,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_V;
          when Tracked_X =>
             return Files.Types.Key_X;
+         when Tracked_Z =>
+            return Files.Types.Key_Z;
          when Tracked_Comma =>
             return Files.Types.Key_Comma;
          when Tracked_Backspace =>

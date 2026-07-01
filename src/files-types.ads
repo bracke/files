@@ -62,6 +62,7 @@ package Files.Types is
       Key_S,
       Key_V,
       Key_X,
+      Key_Z,
       Key_Comma,
       Key_Backspace,
       Key_Delete,
