@@ -2396,6 +2396,7 @@ package body Files.Application.Windows is
             Last_Framebuffer_Bytes => 0,
             Framebuffer_Analysis => (others => <>),
             Framebuffer_Passed => False,
+            Vulkan_Device_Ready => False,
             Error_Key          => Plan.Reason_Key);
       end if;
 
@@ -2415,6 +2416,7 @@ package body Files.Application.Windows is
          Last_Framebuffer_Bytes => 0,
          Framebuffer_Analysis => (others => <>),
          Framebuffer_Passed => False,
+         Vulkan_Device_Ready => False,
          Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
    end Evaluate_Live_Window_Smoke;
 
@@ -2478,6 +2480,8 @@ package body Files.Application.Windows is
                begin
                   Result.Last_Status := Runtime.Last_Present_Status;
                   Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
+                  Result.Vulkan_Device_Ready :=
+                    Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
                   if Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented then
                      Result.Frames_Presented := Result.Frames_Presented + 1;
                   end if;
@@ -2523,6 +2527,7 @@ package body Files.Application.Windows is
             Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
             Framebuffer_Analysis => Result.Framebuffer_Analysis,
             Framebuffer_Passed => Result.Framebuffer_Passed,
+            Vulkan_Device_Ready => Result.Vulkan_Device_Ready,
             Error_Key       => To_Unbounded_String ("error.window.create"));
       when others =>
          Release_All (Runtime_Windows);
@@ -2545,8 +2550,30 @@ package body Files.Application.Windows is
             Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
             Framebuffer_Analysis => Result.Framebuffer_Analysis,
             Framebuffer_Passed => Result.Framebuffer_Passed,
+            Vulkan_Device_Ready => Result.Vulkan_Device_Ready,
             Error_Key       => To_Unbounded_String ("error.window.create"));
    end Run_Live_Window_Smoke;
+
+   function Gate_Outcome
+     (Result : Live_Smoke_Result)
+      return Live_Smoke_Gate is
+   begin
+      if Result.Skipped_By_Plan or else not Result.Attempted then
+         return Live_Smoke_Skip;
+      elsif not Result.Vulkan_Device_Ready then
+         --  A window opened but no usable Vulkan device/ICD initialized. That
+         --  is an environment gap (no working driver), not a display defect,
+         --  so it is a skip rather than a failure.
+         return Live_Smoke_Skip;
+      elsif Result.Framebuffer_Passed
+        and then Result.Framebuffer_Readback_Ready
+        and then Result.Closed_Cleanly
+      then
+         return Live_Smoke_Pass;
+      else
+         return Live_Smoke_Fail;
+      end if;
+   end Gate_Outcome;
 
    procedure Run
      (Startup : Files.Application.Startup_Result)

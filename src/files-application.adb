@@ -521,10 +521,50 @@ package body Files.Application is
 
          when Live_Smoke_Run =>
             declare
+               --  Canonical, greppable verdict marker and tokens for CI. These
+               --  are deliberately fixed ASCII (not localized) so a CI grep for
+               --  "live-smoke: PASS" is stable across locales; only the trailing
+               --  reason text is localized via the catalog.
+               Live_Smoke_Marker : constant String := "live-smoke:";
+               Pass_Token        : constant String := "PASS";
+               Fail_Token        : constant String := "FAIL";
+               Skip_Token        : constant String := "SKIP";
+               Space             : constant String := " ";
+
+               --  Automake convention: a skipped test exits with code 77 so CI
+               --  can tell "environment could not run it" apart from a pass (0)
+               --  or a fail (1), while still treating the skip as non-fatal.
+               Live_Smoke_Skip_Exit_Code : constant Ada.Command_Line.Exit_Status := 77;
+
                Plan       : constant Files.Application.Windows.Live_Smoke_Plan :=
                  Files.Application.Windows.Live_Window_Smoke_Plan;
                Live_Result : constant Files.Application.Windows.Live_Smoke_Result :=
                  Files.Application.Windows.Run_Live_Window_Smoke (Result, Plan);
+
+               function Live_Smoke_Fail_Reason
+                 (Failed : Files.Application.Windows.Live_Smoke_Result)
+                  return String is
+               begin
+                  if not Failed.Closed_Cleanly then
+                     return Files.Localization.Text (To_String (Failed.Error_Key));
+                  elsif not Failed.Framebuffer_Readback_Ready then
+                     return Files.Localization.Text ("runtime.smoke.readback_missing");
+                  else
+                     return Files.Localization.Text ("runtime.smoke.structural_failed");
+                  end if;
+               end Live_Smoke_Fail_Reason;
+
+               function Live_Smoke_Skip_Reason
+                 (Skipped : Files.Application.Windows.Live_Smoke_Result)
+                  return String is
+               begin
+                  if Skipped.Skipped_By_Plan or else not Skipped.Attempted then
+                     return Files.Localization.Text (To_String (Skipped.Error_Key));
+                  else
+                     --  A window opened but no usable Vulkan device initialized.
+                     return Files.Localization.Text ("runtime.smoke.no_vulkan");
+                  end if;
+               end Live_Smoke_Skip_Reason;
             begin
                Ada.Text_IO.Put_Line
                  (Files.Localization.Text (To_String (Live_Result.Error_Key)));
@@ -586,16 +626,28 @@ package body Files.Application is
                          (if Live_Result.Framebuffer_Passed
                           then "runtime.smoke.pass"
                           else "runtime.smoke.fail"));
-
-                  --  A live frame that was attempted but did not pass the
-                  --  structural checks is a real display failure. Plans skipped
-                  --  for want of a display or Vulkan keep the success status.
-                  if Live_Result.Attempted
-                    and then not Live_Result.Framebuffer_Passed
-                  then
-                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                  end if;
                end;
+
+               --  Emit exactly one canonical, greppable verdict line and set a
+               --  matching exit code so CI can classify the run:
+               --    PASS -> exit 0, FAIL -> exit 1, SKIP -> exit 77.
+               case Files.Application.Windows.Gate_Outcome (Live_Result) is
+                  when Files.Application.Windows.Live_Smoke_Pass =>
+                     Ada.Text_IO.Put_Line (Live_Smoke_Marker & Space & Pass_Token);
+                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
+
+                  when Files.Application.Windows.Live_Smoke_Fail =>
+                     Ada.Text_IO.Put_Line
+                       (Live_Smoke_Marker & Space & Fail_Token & Space
+                        & Live_Smoke_Fail_Reason (Live_Result));
+                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+
+                  when Files.Application.Windows.Live_Smoke_Skip =>
+                     Ada.Text_IO.Put_Line
+                       (Live_Smoke_Marker & Space & Skip_Token & Space
+                        & Live_Smoke_Skip_Reason (Live_Result));
+                     Ada.Command_Line.Set_Exit_Status (Live_Smoke_Skip_Exit_Code);
+               end case;
             end;
             return;
 

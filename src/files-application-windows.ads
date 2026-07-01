@@ -63,8 +63,16 @@ package Files.Application.Windows is
       Last_Framebuffer_Bytes : Natural := 0;
       Framebuffer_Analysis : Files.Rendering.Frame_Analysis.Frame_Metrics;
       Framebuffer_Passed : Boolean := False;
+      Vulkan_Device_Ready : Boolean := False;
       Error_Key          : UString;
    end record;
+
+   --  CI gate taxonomy for a live-window smoke run.
+   --
+   --  Live_Smoke_Pass marks a rendered frame that passed structural analysis,
+   --  Live_Smoke_Fail marks an attempted-but-degenerate or errored frame, and
+   --  Live_Smoke_Skip marks an environment that could not run the smoke.
+   type Live_Smoke_Gate is (Live_Smoke_Pass, Live_Smoke_Fail, Live_Smoke_Skip);
 
    type Headless_Render_Quality_Result is record
       Window_Count        : Natural := 0;
@@ -210,5 +218,21 @@ package Files.Application.Windows is
      (Startup : Startup_Result;
       Plan    : Live_Smoke_Plan)
       return Live_Smoke_Result;
+
+   --  Classify a live-window smoke result into the CI gate taxonomy.
+   --
+   --  The mapping is pure and headless. A plan that was skipped or never
+   --  attempted yields Live_Smoke_Skip, as does an attempted run in which no
+   --  usable Vulkan device initialized (a missing or unusable ICD is an
+   --  environment gap, not a rendering defect). An attempted run whose frame
+   --  passed structural analysis, produced a framebuffer readback, and closed
+   --  cleanly yields Live_Smoke_Pass; any other attempted run with a ready
+   --  Vulkan device yields Live_Smoke_Fail.
+   --
+   --  @param Result Live smoke execution result to classify.
+   --  @return Gate outcome describing pass, fail, or skip.
+   function Gate_Outcome
+     (Result : Live_Smoke_Result)
+      return Live_Smoke_Gate;
 
 end Files.Application.Windows;
