@@ -18,7 +18,8 @@ package Files.Events is
       Root_Click_Input_Action,
       Breadcrumb_Click_Input_Action,
       Tree_Click_Input_Action,
-      Command_Result_Click_Input_Action);
+      Command_Result_Click_Input_Action,
+      Permission_Toggle_Input_Action);
 
    type Scroll_Target is
      (Scroll_Auto,

@@ -426,6 +426,50 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Apply New_Mode to the single selected item through chmod, recording the
+   --  previous mode for undo and reloading so the info pane reflects the change.
+   --
+   --  The operation is disabled unless exactly one non-trash item is selected,
+   --  its mode was read, and the platform supports permission changes.
+   --
+   --  @param Model Window model whose selected item's mode is changed.
+   --  @param New_Mode POSIX permission bits (low 12 bits) to apply.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Set_Permissions_For
+     (Model    : in out Files.Model.Window_Model;
+      New_Mode : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Toggle one rwx bit of the single selected item's mode and apply it.
+   --
+   --  Bit is the info-pane grid cell index (0 .. 8, rows user/group/other,
+   --  columns read/write/execute); the affected POSIX bit is 2 ** (8 - Bit).
+   --
+   --  @param Model Window model whose selected item's mode is changed.
+   --  @param Bit Grid cell index in 0 .. 8.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Toggle_Permission_Bit
+     (Model    : in out Files.Model.Window_Model;
+      Bit      : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   --  Refresh the cached recursive folder size for the current selection.
+   --
+   --  When exactly one directory is selected and its size is not already cached
+   --  the directory tree is walked (bounded) and the totals are stored on the
+   --  model for the info pane; otherwise any stale cache is cleared. Cheap when
+   --  the selection is unchanged. Never mutates the filesystem.
+   --
+   --  @param Model Window model whose folder-size cache is updated.
+   --  @param Settings Settings model (reserved for future filtering).
+   procedure Update_Folder_Size
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
    --  Undo the most recently recorded reversible action (rename, move, or
    --  move-to-trash), then clear the undo record and reload the directory.
    --

@@ -42,6 +42,10 @@ package body Files.Rendering is
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
    Info_Pane_Padding : constant Natural := 10;
+   --  Vertical rows the interactive 3x3 rwx permission grid reserves in the
+   --  info pane: three cell rows (user/group/other) plus one spacing row. Both
+   --  the row-count math and the renderer use it so layout and scroll agree.
+   Permission_Grid_Rows : constant Natural := 4;
    Main_Content_Padding : constant Natural := 8;
    Main_Grid_Gap : constant Natural := 8;
    Item_Content_Padding : constant Natural := 4;
@@ -491,6 +495,24 @@ package body Files.Rendering is
 
       return To_String (Result);
    end Permission_Text;
+
+   function Folder_Contents_Text (Info : Info_Snapshot) return UString is
+      Result : Unbounded_String;
+   begin
+      Append (Result, Grouped_Integer_Text (Long_Long_Integer (Info.Folder_File_Count)));
+      Append (Result, " ");
+      Append (Result, Files.Localization.Text ("info.contents.items"));
+      Append (Result, Files.Localization.Text ("info.contents.separator"));
+      Append (Result, Size_Text (Info.Folder_Size_Bytes));
+      Append (Result, " ");
+      Append (Result, Files.Localization.Text ("info.contents.total"));
+      if Info.Folder_Size_Capped then
+         Append (Result, " ");
+         Append (Result, Files.Localization.Text ("info.contents.capped"));
+      end if;
+
+      return Result;
+   end Folder_Contents_Text;
 
    function Bounded_Product_Divide
      (Value       : Natural;
@@ -2216,44 +2238,65 @@ package body Files.Rendering is
       if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
          declare
             Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+
+            function Build_Info
+              (Item : Files.File_System.Directory_Item)
+               return Info_Snapshot
+            is
+               Is_Directory : constant Boolean := Item.Kind = Files.Types.Directory_Item;
+               Info : Info_Snapshot :=
+                 (Name               => Item.Name,
+                  Filetype           => Item.Filetype,
+                  Size_Available     => Item.Size_Available,
+                  Size               => Item.Size,
+                  Creation_Available => Item.Creation_Available,
+                  Creation_Time      => Item.Creation_Time,
+                  Modified_Available => Item.Modified_Available,
+                  Modified_Time      => Item.Modified_Time,
+                  Permissions        => Item.Permissions,
+                  Mode_Available     => Item.Mode_Available,
+                  Mode_Bits          => Item.Mode_Bits,
+                  Is_Directory       => Is_Directory,
+                  Metadata_Error     => Item.Metadata_Error,
+                  Error_Key          => Item.Error_Key,
+                  Filetype_Detail    => Filetype_Detail (Item),
+                  Filetype_Extra     => Filetype_Extra (Item),
+                  others             => <>);
+            begin
+               if Is_Directory
+                 and then Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
+               then
+                  declare
+                     Measured : constant Files.File_System.Directory_Size_Result :=
+                       Files.Model.Folder_Size_Value (Model);
+                  begin
+                     Info.Folder_Size_Available := Measured.Available;
+                     Info.Folder_Size_Bytes     := Measured.Total_Bytes;
+                     Info.Folder_File_Count      := Measured.File_Count;
+                     Info.Folder_Item_Count      := Measured.Item_Count;
+                     Info.Folder_Size_Capped     := Measured.Capped;
+                  end;
+               end if;
+
+               return Info;
+            end Build_Info;
+
+            Single_Item : constant Files.File_System.Directory_Item :=
+              Files.Model.Selected_Item (Model);
+            In_Trash    : constant Boolean :=
+              Files.Model.Current_Path (Model) = Files.File_System.Trash_Files_Directory;
          begin
+            Snapshot.Permissions_Editable :=
+              Files.Model.Selected_Count (Model) = 1
+              and then not In_Trash
+              and then Files.File_System.Supports_Permissions
+              and then Single_Item.Mode_Available;
+
             if Items.Is_Empty then
-               declare
-                  Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
-               begin
-                  Snapshot.Selected_Info.Append
-                    (Info_Snapshot'
-                       (Name               => Item.Name,
-                        Filetype           => Item.Filetype,
-                        Size_Available     => Item.Size_Available,
-                        Size               => Item.Size,
-                        Creation_Available => Item.Creation_Available,
-                        Creation_Time      => Item.Creation_Time,
-                        Modified_Available => Item.Modified_Available,
-                        Modified_Time      => Item.Modified_Time,
-                        Permissions        => Item.Permissions,
-                        Metadata_Error     => Item.Metadata_Error,
-                        Error_Key          => Item.Error_Key,
-                        Filetype_Detail    => Filetype_Detail (Item),
-                        Filetype_Extra     => Filetype_Extra (Item)));
-               end;
+               Snapshot.Selected_Info.Append (Build_Info (Single_Item));
             else
                for Item of Items loop
-                  Snapshot.Selected_Info.Append
-                    (Info_Snapshot'
-                       (Name               => Item.Name,
-                        Filetype           => Item.Filetype,
-                        Size_Available     => Item.Size_Available,
-                        Size               => Item.Size,
-                        Creation_Available => Item.Creation_Available,
-                        Creation_Time      => Item.Creation_Time,
-                        Modified_Available => Item.Modified_Available,
-                        Modified_Time      => Item.Modified_Time,
-                        Permissions        => Item.Permissions,
-                        Metadata_Error     => Item.Metadata_Error,
-                        Error_Key          => Item.Error_Key,
-                        Filetype_Detail    => Filetype_Detail (Item),
-                        Filetype_Extra     => Filetype_Extra (Item)));
+                  Snapshot.Selected_Info.Append (Build_Info (Item));
                end loop;
             end if;
          end;
@@ -2699,6 +2742,32 @@ package body Files.Rendering is
 
       return (others => <>);
    end Settings_Hit_At;
+
+   function Permission_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Permission_Hit_Region is
+   begin
+      for Index in 1 .. Natural (Frame.Permission_Hits.Length) loop
+         declare
+            Region : constant Permission_Hit_Region :=
+              Frame.Permission_Hits.Element (Positive (Index));
+         begin
+            if Region.Width > 0
+              and then Region.Height > 0
+              and then X >= Region.X
+              and then X < Region.X + Region.Width
+              and then Y >= Region.Y
+              and then Y < Region.Y + Region.Height
+            then
+               return Region;
+            end if;
+         end;
+      end loop;
+
+      return (others => <>);
+   end Permission_Hit_At;
 
    function Calculate_Context_Menu_Layout
      (Snapshot    : View_Snapshot;
@@ -3685,7 +3754,8 @@ package body Files.Rendering is
    function Info_Section_Row_Count
      (Info        : Info_Snapshot;
       Text_W      : Natural;
-      Line_Height : Positive)
+      Line_Height : Positive;
+      Show_Grid   : Boolean := False)
       return Natural
    is
       Rows : Natural := 0;
@@ -3698,6 +3768,18 @@ package body Files.Rendering is
                  (2,
                  Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height)));
       end loop;
+
+      if Show_Grid then
+         Rows := Saturating_Add (Rows, Permission_Grid_Rows);
+      end if;
+
+      if Info.Is_Directory and then Info.Folder_Size_Available then
+         Rows :=
+           Saturating_Add
+             (Rows,
+              Saturating_Add
+                (2, Wrapped_Line_Count (Folder_Contents_Text (Info), Text_W, Line_Height)));
+      end if;
 
       return Rows;
    end Info_Section_Row_Count;
@@ -3718,7 +3800,8 @@ package body Files.Rendering is
                  Info_Section_Row_Count
                    (Info,
                     Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width)),
-                    Line_Height));
+                    Line_Height,
+                    Show_Grid => Snapshot.Permissions_Editable));
          end loop;
 
          return Rows;
@@ -6911,13 +6994,69 @@ package body Files.Rendering is
                      Add_Info_Wrapped_Value (Current_Row, Display_Value, Color);
                      Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
                   end Add_Info_Field;
+
+                  Show_Grid_Here : constant Boolean :=
+                    Snapshot.Permissions_Editable and then Info.Mode_Available;
+
+                  --  Draw the interactive 3x3 rwx grid (rows user/group/other,
+                  --  columns read/write/execute) and register one click hit
+                  --  region per cell. Cell index Bit maps to POSIX mode bit
+                  --  2 ** (8 - Bit); a filled cell means the bit is set.
+                  procedure Add_Permission_Grid is
+                     Cell : constant Natural := Natural'Max (6, Line_Height - 6);
+                     Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
+                  begin
+                     for Bit in 0 .. 8 loop
+                        declare
+                           Col   : constant Natural := Bit mod 3;
+                           Row   : constant Natural := Bit / 3;
+                           Cell_X : constant Natural :=
+                             Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap));
+                           Cell_Y : constant Integer :=
+                             Saturating_Integer_Add
+                               (Row_Y, Saturating_Multiply (Saturating_Add (Current_Row, Row), Line_Height));
+                           Is_Set : constant Boolean :=
+                             (Info.Mode_Bits / (2 ** (8 - Bit))) mod 2 = 1;
+                        begin
+                           if Cell_Y >= Integer (Info_Pane.Y)
+                             and then Cell_Y + Integer (Cell) <= Integer (Info_Bottom)
+                           then
+                              Add_Rect (Cell_X, Natural (Cell_Y), Cell, Cell, Border_Color);
+                              if Cell > 2 then
+                                 Add_Rect
+                                   (Saturating_Add (Cell_X, 1),
+                                    Natural (Cell_Y) + 1,
+                                    Cell - 2,
+                                    Cell - 2,
+                                    (if Is_Set then Selection_Color else Input_Color));
+                              end if;
+                              Result.Permission_Hits.Append
+                                (Permission_Hit_Region'
+                                   (Present => True,
+                                    Bit     => Bit,
+                                    X       => Cell_X,
+                                    Y       => Natural (Cell_Y),
+                                    Width   => Cell,
+                                    Height  => Cell));
+                           end if;
+                        end;
+                     end loop;
+
+                     Current_Row := Saturating_Add (Current_Row, Permission_Grid_Rows);
+                  end Add_Permission_Grid;
                begin
                   Add_Info_Field ("info.name", Info_Field_Value (Info, 0), 0);
                   Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
                   Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
+                  if Info.Is_Directory and then Info.Folder_Size_Available then
+                     Add_Info_Field ("info.folder_size", Folder_Contents_Text (Info), 2);
+                  end if;
                   Add_Info_Field ("info.created", Info_Field_Value (Info, 3), 3);
                   Add_Info_Field ("info.modified", Info_Field_Value (Info, 4), 4);
                   Add_Info_Field ("info.permissions", Info_Field_Value (Info, 5), 5);
+                  if Show_Grid_Here then
+                     Add_Permission_Grid;
+                  end if;
                   Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
                   Add_Info_Field ("info.kind", Info_Field_Value (Info, 7), 7);
                   Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
@@ -6925,7 +7064,9 @@ package body Files.Rendering is
                      Section_H : constant Natural :=
                        Natural'Min
                          (Saturating_Multiply
-                            (Line_Height, Info_Section_Row_Count (Info, Text_W, Line_Height)),
+                            (Line_Height,
+                             Info_Section_Row_Count
+                               (Info, Text_W, Line_Height, Snapshot.Permissions_Editable)),
                           Info_Pane.Height);
                      Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
                      Raw_Bottom : constant Integer :=
@@ -6964,7 +7105,9 @@ package body Files.Rendering is
                   end;
                   Section_Offset_Rows :=
                     Saturating_Add
-                      (Section_Offset_Rows, Info_Section_Row_Count (Info, Text_W, Line_Height));
+                      (Section_Offset_Rows,
+                       Info_Section_Row_Count
+                         (Info, Text_W, Line_Height, Snapshot.Permissions_Editable));
                end;
             end loop;
          end;

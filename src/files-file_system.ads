@@ -33,6 +33,8 @@ package Files.File_System is
       Modified_Available : Boolean := False;
       Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Permissions        : UString;
+      Mode_Available     : Boolean := False;
+      Mode_Bits          : Natural := 0;
       Filetype_Extra     : UString;
       Thumbnail_Available : Boolean := False;
       Thumbnail_Path      : UString;
@@ -118,6 +120,20 @@ package Files.File_System is
    type Mutation_Result is record
       Success   : Boolean := False;
       Error_Key : UString;
+   end record;
+
+   --  Recursive directory-size measurement. Total_Bytes sums the sizes of all
+   --  descendant regular files; File_Count counts those files and Item_Count
+   --  counts every visited entry (files plus directories). Capped is True when
+   --  the walk stopped early against the entry-count or depth guard, so the
+   --  totals are a lower bound. Available is False when the root was missing or
+   --  unreadable.
+   type Directory_Size_Result is record
+      Available   : Boolean := False;
+      Total_Bytes : Long_Long_Integer := 0;
+      File_Count  : Natural := 0;
+      Item_Count  : Natural := 0;
+      Capped      : Boolean := False;
    end record;
 
    type Trash_Backend is
@@ -574,6 +590,54 @@ package Files.File_System is
      (From_Path : String;
       To_Path   : String)
       return Mutation_Result;
+
+   --  Return whether this build can read and change POSIX permission bits.
+   --
+   --  @return True on the Linux platform, False on the stub platforms.
+   function Supports_Permissions return Boolean;
+
+   --  Return the POSIX permission bits of Path (the low 12 mode bits).
+   --
+   --  @param Path Existing filesystem path to inspect.
+   --  @param Available Set True when the permission bits were obtained.
+   --  @return Permission bits in 0 .. 8#7777#, or 0 when Available is False.
+   function Permission_Bits_Of
+     (Path      : String;
+      Available : out Boolean)
+      return Natural;
+
+   --  Change the POSIX permission bits of an existing entry through chmod(2).
+   --
+   --  The path must already exist. Mode carries the numeric POSIX permission
+   --  bits (the low 12 bits). Failures map to error.permissions.failed, and an
+   --  unsupported platform maps to error.permissions.unsupported.
+   --
+   --  @param Path Existing filesystem path whose mode is changed.
+   --  @param Mode New permission bits to apply.
+   --  @return Mutation result with a localized error key on failure.
+   function Set_Permissions
+     (Path : String;
+      Mode : Natural)
+      return Mutation_Result;
+
+   --  Sum the sizes of every descendant regular file under a directory.
+   --
+   --  The walk skips symbolic links (it never descends through a symlinked
+   --  directory, which guards against link cycles) and stops early against two
+   --  defensive caps: at most Max_Entries visited entries and Max_Depth levels
+   --  of nesting. When a cap trips the result's Capped flag is set and the
+   --  totals become a lower bound. Unreadable subdirectories are skipped rather
+   --  than aborting the whole walk.
+   --
+   --  @param Path Directory whose contents are summed.
+   --  @param Max_Entries Maximum number of entries to visit before capping.
+   --  @param Max_Depth Maximum directory nesting depth to descend.
+   --  @return Recursive size totals; Available is False when Path is unusable.
+   function Directory_Size
+     (Path        : String;
+      Max_Entries : Natural := 50_000;
+      Max_Depth   : Natural := 64)
+      return Directory_Size_Result;
 
    --  Recursively copy a file or directory tree to a new destination path.
    --

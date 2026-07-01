@@ -43,4 +43,30 @@ package body Files.Platform.Metadata is
       return False;
    end Create_Hard_Link;
 
+   function File_Permission_Bits
+     (Path      : String;
+      Available : out Boolean)
+      return Natural
+   is
+      pragma Unreferenced (Path);
+   begin
+      Available := False;
+      return 0;
+   end File_Permission_Bits;
+
+   function Set_Permissions
+     (Path : String;
+      Mode : Natural)
+      return Boolean
+   is
+      pragma Unreferenced (Path, Mode);
+   begin
+      return False;
+   end Set_Permissions;
+
+   function Permissions_Supported return Boolean is
+   begin
+      return False;
+   end Permissions_Supported;
+
 end Files.Platform.Metadata;

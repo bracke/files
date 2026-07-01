@@ -38,6 +38,7 @@ with Files.File_System;
 with Files.File_Types;
 with Files.Features;
 with Files.Fonts;
+with Files.Interaction;
 with Files.Localization;
 with Files.Model;
 with Files.Operations;
@@ -84,6 +85,7 @@ package body Files_Suite.Operations is
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
+   use type Files.Model.Undo_Action_Kind;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
@@ -123,6 +125,9 @@ package body Files_Suite.Operations is
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -178,6 +183,12 @@ package body Files_Suite.Operations is
         (T, Test_Available_Applications'Access, "open-with discovers and parses desktop applications");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Toggle_Hidden_Files'Access, "toggle hidden files persists and reloads with new visibility");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Set_Permissions_And_Undo'Access, "chmod changes selected item mode and undo restores it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Permission_Grid_Click'Access, "info-pane permission cell click toggles the mode bit");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recursive_Folder_Size'Access, "recursive folder size sums descendant files and surfaces the row");
    end Register_Tests;
 
    procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3582,6 +3593,195 @@ package body Files_Suite.Operations is
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
    end Test_Undo_Operations;
+
+   function Mode_Of (Path : String) return Natural is
+      Available : Boolean := False;
+      Bits      : constant Natural := Files.File_System.Permission_Bits_Of (Path, Available);
+   begin
+      Assert (Available, "permission bits are readable for " & Path);
+      return Bits mod 8#1000#;
+   end Mode_Of;
+
+   procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Target   : constant String := Join (Root, "modeable.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Operations.Operation_Result;
+   begin
+      if not Files.File_System.Supports_Permissions then
+         return;
+      end if;
+
+      Reset_Root;
+      Write_File (Target, "mode me");
+      Assert
+        (Files.File_System.Set_Permissions (Target, 8#644#).Success,
+         "baseline chmod to 0644 succeeds");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "modeable.txt");
+      Assert (Mode_Of (Target) = 8#644#, "baseline permission bits are 0644");
+
+      Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Success,
+         "set-permissions operation succeeds");
+      Assert (Mode_Of (Target) = 8#600#, "mode reads back as 0600 after chmod");
+      Assert
+        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Permissions,
+         "set-permissions records a permission undo");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chmod succeeds");
+      Assert (Mode_Of (Target) = 8#644#, "undo restores the previous 0644 mode");
+      Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chmod undo");
+   end Test_Set_Permissions_And_Undo;
+
+   procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Settings_Var : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Sub        : constant String := Join (Root, "perm_dir");
+      Width      : constant Natural := 1400;
+      Height     : constant Natural := 1000;
+      Load       : Files.File_System.Directory_Load_Result;
+      Model      : Files.Model.Window_Model;
+      Target_Bit : constant Natural := 4;  --  group-write cell
+      Mask       : constant Natural := 2 ** (8 - Target_Bit);
+      Found_Cell : Boolean := False;
+      Cell_X     : Natural := 0;
+      Cell_Y     : Natural := 0;
+   begin
+      if not Files.File_System.Supports_Permissions then
+         return;
+      end if;
+
+      Reset_Root;
+      Ada.Directories.Create_Path (Sub);
+      Assert (Files.File_System.Set_Permissions (Sub, 8#755#).Success, "baseline dir mode 0755");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "perm_dir");
+      Files.Model.Toggle_Info_Pane (Model);
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width, Height);
+      begin
+         Assert (Snapshot.Permissions_Editable, "single directory selection is permission-editable");
+         for Index in 1 .. Natural (Frame.Permission_Hits.Length) loop
+            declare
+               Cell : constant Files.Rendering.Permission_Hit_Region :=
+                 Frame.Permission_Hits.Element (Positive (Index));
+            begin
+               if Cell.Bit = Target_Bit then
+                  Found_Cell := True;
+                  Cell_X := Cell.X + Cell.Width / 2;
+                  Cell_Y := Cell.Y + Cell.Height / 2;
+               end if;
+            end;
+         end loop;
+      end;
+
+      Assert (Found_Cell, "the group-write permission cell has a hit region");
+
+      declare
+         Before : constant Natural := Mode_Of (Sub);
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Action : constant Files.Events.Input_Action :=
+           Files_Suite.Support.Click_Action (Snapshot, Cell_X, Cell_Y, Width, Height);
+         Result : Files.Interaction.Interaction_Result;
+      begin
+         Assert
+           (Action.Kind = Files.Events.Permission_Toggle_Input_Action,
+            "clicking a permission cell yields a permission-toggle action");
+         Assert (Action.Item_Index = Target_Bit, "the toggle action carries the clicked cell bit");
+
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings_Var,
+            Settings_Path     => "",
+            Action            => Action,
+            Current_Font_Size => 16,
+            Modifiers         => Files.Types.No_Modifiers,
+            Result            => Result);
+
+         Assert
+           ((Mode_Of (Sub) / Mask) mod 2 /= (Before / Mask) mod 2,
+            "the clicked permission bit is toggled after the reducer applies the action");
+      end;
+   end Test_Permission_Grid_Click;
+
+   procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Tree     : constant String := Join (Root, "tree");
+      Nested   : constant String := Join (Tree, "nested");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Size     : Files.File_System.Directory_Size_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Nested);
+      Write_Binary_File (Join (Tree, "a.txt"), "12345");   --  5 bytes
+      Write_Binary_File (Join (Tree, "b.txt"), "678");     --  3 bytes
+      Write_Binary_File (Join (Nested, "c.txt"), "90");    --  2 bytes
+
+      Size := Files.File_System.Directory_Size (Tree);
+      Assert (Size.Available, "recursive size is available for a real directory");
+      Assert (Size.Total_Bytes = 10, "recursive size sums all descendant file bytes");
+      Assert (Size.File_Count = 3, "recursive size counts every descendant regular file");
+      Assert (not Size.Capped, "a small tree does not trip the entry/depth cap");
+
+      --  A symlink cycle must not hang or be followed. Measure with the loop
+      --  present, then remove the link before any assertion so a failure cannot
+      --  leave a self-referential tree that later cleanup cannot delete.
+      if Files_Suite.Support.Create_Symlink (Tree, Join (Tree, "loop")) then
+         declare
+            Guarded : constant Files.File_System.Directory_Size_Result :=
+              Files.File_System.Directory_Size (Tree);
+         begin
+            Ada.Directories.Delete_File (Join (Tree, "loop"));
+            Assert (Guarded.Available, "size walk completes despite a symlink cycle");
+            Assert (Guarded.Total_Bytes = 10, "symlinked directory is not descended into");
+         end;
+      end if;
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "tree");
+      Files.Model.Toggle_Info_Pane (Model);
+      Files.Operations.Update_Folder_Size (Model, Settings);
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, 1400, 1000);
+         Label    : constant String := Files.Localization.Text ("info.folder_size");
+         Found    : Boolean := False;
+      begin
+         Assert
+           (Snapshot.Selected_Info.Element (1).Folder_Size_Available,
+            "the info snapshot carries the measured folder size");
+         Assert
+           (Snapshot.Selected_Info.Element (1).Folder_Size_Bytes = 10,
+            "the info snapshot folder-size total is correct");
+         for Command of Frame.Text loop
+            if Ada.Strings.Fixed.Index (To_String (Command.Text), Label) > 0 then
+               Found := True;
+            end if;
+         end loop;
+         Assert (Found, "the info pane emits the folder-size row for a selected directory");
+      end;
+   end Test_Recursive_Folder_Size;
 
    procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

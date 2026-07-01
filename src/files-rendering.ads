@@ -109,6 +109,14 @@ package Files.Rendering is
       Modified_Available : Boolean := False;
       Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Permissions        : UString;
+      Mode_Available     : Boolean := False;
+      Mode_Bits          : Natural := 0;
+      Is_Directory       : Boolean := False;
+      Folder_Size_Available : Boolean := False;
+      Folder_Size_Bytes     : Long_Long_Integer := 0;
+      Folder_File_Count     : Natural := 0;
+      Folder_Item_Count     : Natural := 0;
+      Folder_Size_Capped    : Boolean := False;
       Metadata_Error     : Boolean := False;
       Error_Key          : UString;
       Filetype_Detail    : UString;
@@ -158,6 +166,10 @@ package Files.Rendering is
       Temporary_Item_Active : Boolean := False;
       Temporary_Item_Name   : UString;
       Info_Pane_Open        : Boolean := False;
+      --  True when the single selected item's permission bits can be edited in
+      --  place through the info-pane rwx grid: exactly one non-trash item is
+      --  selected, its mode was read, and the platform supports chmod.
+      Permissions_Editable  : Boolean := False;
       Settings_Pane_Open    : Boolean := False;
       Settings_Default_View       : UString;
       Settings_Default_View_Token : UString;
@@ -731,6 +743,22 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Settings_Hit_Region);
 
+   --  A clickable info-pane permission cell. Bit is the 0 .. 8 grid cell index
+   --  in row-major order (rows user/group/other, columns read/write/execute),
+   --  so the corresponding POSIX mode bit is 2 ** (8 - Bit).
+   type Permission_Hit_Region is record
+      Present : Boolean := False;
+      Bit     : Natural := 0;
+      X       : Natural := 0;
+      Y       : Natural := 0;
+      Width   : Natural := 0;
+      Height  : Natural := 0;
+   end record;
+
+   package Permission_Hit_Region_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Permission_Hit_Region);
+
    type Frame_Commands is record
       Layout        : Layout_Metrics;
       Theme_Palette : Theme_Kind := Theme_Dark;
@@ -743,6 +771,7 @@ package Files.Rendering is
       Tooltips      : Tooltip_Command_Vectors.Vector;
       Accessibility : Accessibility_Node_Vectors.Vector;
       Settings_Hits : Settings_Hit_Region_Vectors.Vector;
+      Permission_Hits : Permission_Hit_Region_Vectors.Vector;
    end record;
 
    --  Return the settings-pane hit region containing a point, if any.
@@ -756,6 +785,18 @@ package Files.Rendering is
       X     : Natural;
       Y     : Natural)
       return Settings_Hit_Region;
+
+   --  Return the info-pane permission cell containing a point, if any.
+   --
+   --  @param Frame Frame whose permission hit regions are tested.
+   --  @param X Point X coordinate in pixels.
+   --  @param Y Point Y coordinate in pixels.
+   --  @return The cell at the point, or a region with Present False when none.
+   function Permission_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Permission_Hit_Region;
 
    type Text_Renderer is private;
 

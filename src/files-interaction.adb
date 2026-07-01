@@ -8,6 +8,7 @@ package body Files.Interaction is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
+   use type Files.Operations.Operation_Status;
 
    --  Map the model's runtime sort enum onto the settings enum.
    function Settings_Sort_Of
@@ -254,6 +255,10 @@ package body Files.Interaction is
          Result.Command_Executed :=
            Outcome.Status = Files.Controller.Controller_Command_Executed;
       end if;
+
+      --  Keep the info-pane folder-size cache aligned with keyboard-driven
+      --  selection changes. Cheap when the selected directory is unchanged.
+      Files.Operations.Update_Folder_Size (Model, Settings);
    end Handle_Key;
 
    procedure Apply_Input_Action
@@ -373,6 +378,17 @@ package body Files.Interaction is
                   Current_Font_Size, Files.Types.No_Modifiers, Result);
                Result.Clear_Pending_Text := True;
             end if;
+         when Files.Events.Permission_Toggle_Input_Action =>
+            declare
+               Toggle : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Toggle_Permission_Bit
+                   (Model    => Model,
+                    Bit      => Action.Item_Index,
+                    Settings => Settings);
+            begin
+               Result.Directory_Reloaded :=
+                 Toggle.Status = Files.Operations.Operation_Success;
+            end;
          when Files.Events.Scroll_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Targeted_Scroll
@@ -387,6 +403,10 @@ package body Files.Interaction is
             --  the resize); the no-op kinds are ignored. Nothing to apply here.
             null;
       end case;
+
+      --  Refresh the info-pane folder-size cache for the (possibly changed)
+      --  selection. Cheap when the selected directory is unchanged.
+      Files.Operations.Update_Folder_Size (Model, Settings);
    end Apply_Input_Action;
 
    procedure Apply_Context_Menu_Command

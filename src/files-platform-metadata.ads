@@ -74,4 +74,35 @@ package Files.Platform.Metadata is
       New_Path      : String)
       return Boolean;
 
+   --  Return the POSIX permission bits (the low 12 mode bits: setuid, setgid,
+   --  sticky, and the nine rwxrwxrwx bits) for Path.
+   --
+   --  Non-Linux bodies are stubs that report no metadata (Available => False).
+   --
+   --  @param Path Filesystem path to inspect.
+   --  @param Available Set True when permission bits were obtained.
+   --  @return Permission bits in 0 .. 8#7777#, or 0 when Available is False.
+   function File_Permission_Bits
+     (Path      : String;
+      Available : out Boolean)
+      return Natural;
+
+   --  Change the POSIX permission bits of Path through chmod(2).
+   --
+   --  Mode carries the numeric POSIX permission bits (typically the low 12
+   --  bits). Non-Linux bodies are stubs that report failure.
+   --
+   --  @param Path Filesystem path whose mode is changed.
+   --  @param Mode New permission bits to apply.
+   --  @return True when the mode was changed.
+   function Set_Permissions
+     (Path : String;
+      Mode : Natural)
+      return Boolean;
+
+   --  Return whether this platform can read and change permission bits.
+   --
+   --  @return True on the Linux adapter, False on the stub adapters.
+   function Permissions_Supported return Boolean;
+
 end Files.Platform.Metadata;

@@ -9,6 +9,7 @@ package body Files.Platform.Metadata is
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
    use type Interfaces.C.unsigned_long;
+   use type Interfaces.C.unsigned_short;
    use type Interfaces.C.Strings.chars_ptr;
 
    subtype C_Int is Interfaces.C.int;
@@ -116,6 +117,15 @@ package body Files.Platform.Metadata is
       New_Path      : Interfaces.C.Strings.chars_ptr)
       return C_Int
      with Import, Convention => C, External_Name => "link";
+
+   function Chmod
+     (Pathname : Interfaces.C.Strings.chars_ptr;
+      Mode     : C_Unsigned)
+      return C_Int
+     with Import, Convention => C, External_Name => "chmod";
+
+   Statx_Mode      : constant C_Unsigned := 16#2#;
+   Permission_Mask : constant C_U16 := 8#7777#;
 
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr) is
@@ -287,5 +297,53 @@ package body Files.Platform.Metadata is
          Safe_Free (C_New);
          return False;
    end Create_Hard_Link;
+
+   function File_Permission_Bits
+     (Path      : String;
+      Available : out Boolean)
+      return Natural
+   is
+      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+      Info   : aliased Statx_Record;
+      Status : C_Int;
+   begin
+      Available := False;
+      Status := Statx (At_FDCWD, C_Path, 0, Statx_Mode, Info'Access);
+      Interfaces.C.Strings.Free (C_Path);
+
+      if Status = 0 then
+         Available := True;
+         return Natural (Info.Mode and Permission_Mask);
+      end if;
+
+      return 0;
+   exception
+      when others =>
+         Safe_Free (C_Path);
+         Available := False;
+         return 0;
+   end File_Permission_Bits;
+
+   function Set_Permissions
+     (Path : String;
+      Mode : Natural)
+      return Boolean
+   is
+      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+      Status : C_Int;
+   begin
+      Status := Chmod (C_Path, C_Unsigned (Mode mod 8#10000#));
+      Interfaces.C.Strings.Free (C_Path);
+      return Status = 0;
+   exception
+      when others =>
+         Safe_Free (C_Path);
+         return False;
+   end Set_Permissions;
+
+   function Permissions_Supported return Boolean is
+   begin
+      return True;
+   end Permissions_Supported;
 
 end Files.Platform.Metadata;

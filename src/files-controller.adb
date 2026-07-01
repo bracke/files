@@ -2210,7 +2210,8 @@ package body Files.Controller is
             | Files.Events.Tree_Click_Input_Action
             | Files.Events.Command_Result_Click_Input_Action
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
-            | Files.Events.Column_Resize_Begin_Input_Action =>
+            | Files.Events.Column_Resize_Begin_Input_Action
+            | Files.Events.Permission_Toggle_Input_Action =>
             null;
       end case;
 

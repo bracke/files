@@ -2048,6 +2048,111 @@ package body Files.Operations is
            Path => Files.File_System.Join_Path (Current_Dir, To_String (Focus_Name)));
    end Commit_Rename;
 
+   function Permissions_Editable_Selection
+     (Model : Files.Model.Window_Model)
+      return Boolean
+   is
+      Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+   begin
+      return Files.Model.Selected_Count (Model) = 1
+        and then not Files.Model.Selection_Includes_Temporary (Model)
+        and then Files.File_System.Supports_Permissions
+        and then Item.Mode_Available
+        and then Files.Model.Current_Path (Model) /= Files.File_System.Trash_Files_Directory;
+   end Permissions_Editable_Selection;
+
+   function Set_Permissions_For
+     (Model    : in out Files.Model.Window_Model;
+      New_Mode : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+   begin
+      if not Permissions_Editable_Selection (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      declare
+         Item      : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+         Path      : constant String := To_String (Item.Full_Path);
+         Old_Mode  : constant Natural := Item.Mode_Bits;
+         Mutation  : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Set_Permissions (Path, New_Mode);
+      begin
+         if not Mutation.Success then
+            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Path);
+         end if;
+
+         declare
+            Undo_From : Files.Types.String_Vectors.Vector;
+            Undo_To   : Files.Types.String_Vectors.Vector;
+         begin
+            Undo_From.Append (To_Unbounded_String (Path));
+            Undo_To.Append (To_Unbounded_String (Natural'Image (Old_Mode)));
+            Files.Model.Record_Undo (Model, Files.Model.Undo_Set_Permissions, Undo_From, Undo_To);
+         end;
+
+         declare
+            Reload : constant Operation_Result :=
+              Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
+         begin
+            if Reload.Status /= Operation_Success then
+               return Reload;
+            end if;
+         end;
+
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Path);
+      end;
+   end Set_Permissions_For;
+
+   function Toggle_Permission_Bit
+     (Model    : in out Files.Model.Window_Model;
+      Bit      : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+   begin
+      if Bit > 8 or else not Permissions_Editable_Selection (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      declare
+         Item     : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+         Mask     : constant Natural := 2 ** (8 - Bit);
+         New_Mode : constant Natural :=
+           (if (Item.Mode_Bits / Mask) mod 2 = 1
+            then Item.Mode_Bits - Mask
+            else Item.Mode_Bits + Mask);
+      begin
+         return Set_Permissions_For (Model, New_Mode, Settings);
+      end;
+   end Toggle_Permission_Bit;
+
+   procedure Update_Folder_Size
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+   is
+      pragma Unreferenced (Settings);
+      Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+   begin
+      if Files.Model.Selected_Count (Model) = 1
+        and then not Files.Model.Selection_Includes_Temporary (Model)
+        and then Item.Kind = Files.Types.Directory_Item
+      then
+         declare
+            Path : constant String := To_String (Item.Full_Path);
+         begin
+            if not Files.Model.Folder_Size_Cached_For (Model, Path) then
+               Files.Model.Set_Folder_Size (Model, Path, Files.File_System.Directory_Size (Path));
+            end if;
+         end;
+      else
+         Files.Model.Clear_Folder_Size (Model);
+      end if;
+   end Update_Folder_Size;
+
    function Undo_Last
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -2101,6 +2206,31 @@ package body Files.Operations is
                     and then not Files.File_System.Delete_Permanently (Target).Success
                   then
                      Succeeded := False;
+                  end if;
+               end;
+            end loop;
+
+         when Files.Model.Undo_Set_Permissions =>
+            --  Restore the previous mode recorded before the chmod. From holds
+            --  the path and To holds the decimal image of the old mode bits.
+            for Index in From.First_Index .. From.Last_Index loop
+               declare
+                  Target   : constant String := To_String (From.Element (Index));
+                  Old_Text : constant String :=
+                    Ada.Strings.Fixed.Trim (To_String (To.Element (Index)), Ada.Strings.Both);
+                  Old_Mode : Natural := 0;
+               begin
+                  begin
+                     Old_Mode := Natural'Value (Old_Text);
+                  exception
+                     when others =>
+                        Succeeded := False;
+                  end;
+
+                  if Old_Mode > 0 or else Old_Text = "0" then
+                     if not Files.File_System.Set_Permissions (Target, Old_Mode).Success then
+                        Succeeded := False;
+                     end if;
                   end if;
                end;
             end loop;

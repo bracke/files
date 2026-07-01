@@ -1346,7 +1346,8 @@ package Files.Model is
       Undo_Rename,
       Undo_Move,
       Undo_Restore_Trash,
-      Undo_Delete_Created);
+      Undo_Delete_Created,
+      Undo_Set_Permissions);
 
    --  Record the latest undoable action, replacing any previous record.
    --
@@ -1397,6 +1398,51 @@ package Files.Model is
    function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
+
+   --  Cache a recursive folder-size measurement for a directory path.
+   --
+   --  The cache holds one measurement at a time, keyed by Path, so a repeated
+   --  selection of the same directory reuses it instead of walking again.
+   --
+   --  @param Model Model to update.
+   --  @param Path Directory the measurement describes.
+   --  @param Value Recursive size totals for Path.
+   procedure Set_Folder_Size
+     (Model : in out Window_Model;
+      Path  : String;
+      Value : Files.File_System.Directory_Size_Result);
+
+   --  Forget any cached folder-size measurement.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Folder_Size
+     (Model : in out Window_Model);
+
+   --  Return whether a folder-size measurement is cached for Path.
+   --
+   --  @param Model Model to inspect.
+   --  @param Path Directory path to test against the cache key.
+   --  @return True when a measurement for exactly Path is cached.
+   function Folder_Size_Cached_For
+     (Model : Window_Model;
+      Path  : String)
+      return Boolean;
+
+   --  Return the cached folder-size measurement.
+   --
+   --  @param Model Model to inspect.
+   --  @return Cached totals; Available is False when nothing is cached.
+   function Folder_Size_Value
+     (Model : Window_Model)
+      return Files.File_System.Directory_Size_Result;
+
+   --  Return the path the cached folder-size measurement describes.
+   --
+   --  @param Model Model to inspect.
+   --  @return Cached measurement path, or an empty string when nothing is cached.
+   function Folder_Size_Path
+     (Model : Window_Model)
+      return String;
 
    --  Record a recoverable error key.
    --
@@ -1484,6 +1530,9 @@ private
       Undo_Kind_Value       : Undo_Action_Kind := Undo_None;
       Undo_From_Value       : Files.Types.String_Vectors.Vector;
       Undo_To_Value         : Files.Types.String_Vectors.Vector;
+      Folder_Size_Known_Value : Boolean := False;
+      Folder_Size_Path_Value  : UString;
+      Folder_Size_Value       : Files.File_System.Directory_Size_Result;
       Context_Menu_Open_Value       : Boolean := False;
       Context_Menu_X_Value          : Natural := 0;
       Context_Menu_Y_Value          : Natural := 0;

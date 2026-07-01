@@ -1170,6 +1170,15 @@ package body Files_Suite.Startup is
         (Files.Localization.Text ("missing.test.key") = "missing.test.key",
          "unknown localization key falls back to key text");
       Assert (Files.Localization.Text ("info.name") = "Name", "info pane name label is localized");
+      Assert
+        (Files.Localization.Text ("info.folder_size") = "Contents",
+         "info pane folder-size label is localized");
+      Assert
+        (Files.Localization.Text ("info.contents.items") = "items",
+         "info pane folder-size item label is localized");
+      Assert
+        (Files.Localization.Text ("info.contents.total") = "total",
+         "info pane folder-size total label is localized");
       Assert (Files.Localization.Text ("status.items") = "Items", "item-count label is localized");
       Assert (Files.Localization.Text ("status.visible") = "Visible", "visible-count label is localized");
       Assert (Files.Localization.Text ("status.selected") = "Selected", "selected-count label is localized");
@@ -1210,6 +1219,8 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.search.failed");
       Add_Error_Key ("error.permanent_delete.refused");
       Add_Error_Key ("error.permanent_delete.failed");
+      Add_Error_Key ("error.permissions.failed");
+      Add_Error_Key ("error.permissions.unsupported");
       Add_Error_Key ("error.drop.invalid_destination");
       Add_Error_Key ("error.drop.invalid_source");
       Add_Error_Key ("error.drop.failed");

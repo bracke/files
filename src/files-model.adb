@@ -3233,6 +3233,47 @@ package body Files.Model is
       return Model.Undo_To_Value;
    end Undo_To_Paths;
 
+   procedure Set_Folder_Size
+     (Model : in out Window_Model;
+      Path  : String;
+      Value : Files.File_System.Directory_Size_Result) is
+   begin
+      Model.Folder_Size_Known_Value := True;
+      Model.Folder_Size_Path_Value := To_Unbounded_String (Path);
+      Model.Folder_Size_Value := Value;
+   end Set_Folder_Size;
+
+   procedure Clear_Folder_Size
+     (Model : in out Window_Model) is
+   begin
+      Model.Folder_Size_Known_Value := False;
+      Model.Folder_Size_Path_Value := Null_Unbounded_String;
+      Model.Folder_Size_Value := (others => <>);
+   end Clear_Folder_Size;
+
+   function Folder_Size_Cached_For
+     (Model : Window_Model;
+      Path  : String)
+      return Boolean is
+   begin
+      return Model.Folder_Size_Known_Value
+        and then To_String (Model.Folder_Size_Path_Value) = Path;
+   end Folder_Size_Cached_For;
+
+   function Folder_Size_Value
+     (Model : Window_Model)
+      return Files.File_System.Directory_Size_Result is
+   begin
+      return Model.Folder_Size_Value;
+   end Folder_Size_Value;
+
+   function Folder_Size_Path
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.Folder_Size_Path_Value);
+   end Folder_Size_Path;
+
    procedure Open_Context_Menu
      (Model      : in out Window_Model;
       X          : Natural;

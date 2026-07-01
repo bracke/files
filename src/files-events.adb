@@ -773,6 +773,20 @@ package body Files.Events is
          end if;
       end;
 
+      if Snapshot.Info_Pane_Open and then Snapshot.Permissions_Editable then
+         declare
+            Cell : constant Files.Rendering.Permission_Hit_Region :=
+              Files.Rendering.Permission_Hit_At (Frame, X, Y);
+         begin
+            if Cell.Present then
+               return
+                 (Kind       => Permission_Toggle_Input_Action,
+                  Item_Index => Cell.Bit,
+                  others     => <>);
+            end if;
+         end;
+      end if;
+
       if Info_Pane.Scrollbar_Visible
         and then Within (X, Info_Pane.Scrollbar_X, Info_Pane.Scrollbar_Width)
         and then Within (Y, Info_Pane.Scrollbar_Y, Info_Pane.Scrollbar_Track_Height)
