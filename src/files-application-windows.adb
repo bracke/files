@@ -2394,6 +2394,8 @@ package body Files.Application.Windows is
             Framebuffer_Readback_Ready => False,
             Last_Framebuffer_Hash => 0,
             Last_Framebuffer_Bytes => 0,
+            Framebuffer_Analysis => (others => <>),
+            Framebuffer_Passed => False,
             Error_Key          => Plan.Reason_Key);
       end if;
 
@@ -2411,6 +2413,8 @@ package body Files.Application.Windows is
          Framebuffer_Readback_Ready => False,
          Last_Framebuffer_Hash => 0,
          Last_Framebuffer_Bytes => 0,
+         Framebuffer_Analysis => (others => <>),
+         Framebuffer_Passed => False,
          Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
    end Evaluate_Live_Window_Smoke;
 
@@ -2482,6 +2486,8 @@ package body Files.Application.Windows is
                   if Diagnostics.Framebuffer_Readback_Ready then
                      Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
                      Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
+                     Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
+                     Result.Framebuffer_Passed := Diagnostics.Framebuffer_Passed;
                   end if;
                end;
             end if;
@@ -2515,6 +2521,8 @@ package body Files.Application.Windows is
             Framebuffer_Readback_Ready => Result.Framebuffer_Readback_Ready,
             Last_Framebuffer_Hash => Result.Last_Framebuffer_Hash,
             Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
+            Framebuffer_Analysis => Result.Framebuffer_Analysis,
+            Framebuffer_Passed => Result.Framebuffer_Passed,
             Error_Key       => To_Unbounded_String ("error.window.create"));
       when others =>
          Release_All (Runtime_Windows);
@@ -2535,6 +2543,8 @@ package body Files.Application.Windows is
             Framebuffer_Readback_Ready => Result.Framebuffer_Readback_Ready,
             Last_Framebuffer_Hash => Result.Last_Framebuffer_Hash,
             Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
+            Framebuffer_Analysis => Result.Framebuffer_Analysis,
+            Framebuffer_Passed => Result.Framebuffer_Passed,
             Error_Key       => To_Unbounded_String ("error.window.create"));
    end Run_Live_Window_Smoke;
 

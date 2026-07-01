@@ -6,6 +6,7 @@ with Files_Suite.Commands;
 with Files_Suite.Settings;
 with Files_Suite.Operations;
 with Files_Suite.Rendering;
+with Files_Suite.Frame_Analysis;
 with Files_Suite.Interaction;
 
 package body Files_Suite is
@@ -19,6 +20,7 @@ package body Files_Suite is
       Result.Add_Test (Files_Suite.Settings.Suite);
       Result.Add_Test (Files_Suite.Operations.Suite);
       Result.Add_Test (Files_Suite.Rendering.Suite);
+      Result.Add_Test (Files_Suite.Frame_Analysis.Suite);
       Result.Add_Test (Files_Suite.Interaction.Suite);
       return Result;
    end Suite;

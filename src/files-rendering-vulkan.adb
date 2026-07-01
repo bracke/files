@@ -1699,10 +1699,22 @@ package body Files.Rendering.Vulkan is
       declare
          Bytes : constant Readback_Byte_Array_Conversions.Object_Pointer :=
            Readback_Byte_Array_Conversions.To_Pointer (Mapped_Data);
+         Frame : Frame_Analysis.Byte_Array (1 .. Renderer.Readback_Bytes)
+           with Import, Address => Mapped_Data;
       begin
          for Index in 1 .. Renderer.Readback_Bytes loop
             Mix (Bytes.all (Index));
          end loop;
+
+         --  Analyze the read-back pixels in place for a structural verdict.
+         Renderer.Last_Frame_Metrics :=
+           Frame_Analysis.Analyze
+             (Data   => Frame,
+              Width  => Renderer.Frame_Width_Value,
+              Height => Renderer.Frame_Height_Value,
+              Format => Frame_Analysis.Pixel_Format_RGBA8);
+         Renderer.Last_Frame_Passed :=
+           Frame_Analysis.Passed (Renderer.Last_Frame_Metrics);
       end;
 
       Vk.Unmap_Memory (Renderer.Device, Renderer.Readback_Memory);
@@ -3675,6 +3687,8 @@ package body Files.Rendering.Vulkan is
          Framebuffer_Readback_Ready => Renderer.Readback_Ready,
          Last_Framebuffer_Hash => Renderer.Last_Readback_Hash,
          Last_Framebuffer_Bytes => Renderer.Readback_Bytes,
+         Framebuffer_Analysis  => Renderer.Last_Frame_Metrics,
+         Framebuffer_Passed    => Renderer.Last_Frame_Passed,
          Frame_Width           => Renderer.Frame_Width_Value,
          Frame_Height          => Renderer.Frame_Height_Value,
          Pending_Frame_Width   => Renderer.Pending_Width_Value,

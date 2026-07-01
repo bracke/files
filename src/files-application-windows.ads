@@ -1,4 +1,5 @@
 with Files.Controller;
+with Files.Rendering.Frame_Analysis;
 with Files.Rendering.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
@@ -60,6 +61,8 @@ package Files.Application.Windows is
       Framebuffer_Readback_Ready : Boolean := False;
       Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
       Last_Framebuffer_Bytes : Natural := 0;
+      Framebuffer_Analysis : Files.Rendering.Frame_Analysis.Frame_Metrics;
+      Framebuffer_Passed : Boolean := False;
       Error_Key          : UString;
    end record;
 

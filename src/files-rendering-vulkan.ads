@@ -6,6 +6,8 @@ with Ada.Containers.Vectors;
 with Glfw.Windows;
 with Vk;
 
+with Files.Rendering.Frame_Analysis;
+
 --  Vulkan renderer lifecycle backed by df_vulkan.
 package Files.Rendering.Vulkan is
    use type Interfaces.Unsigned_8;
@@ -154,6 +156,8 @@ package Files.Rendering.Vulkan is
       Framebuffer_Readback_Ready : Boolean := False;
       Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
       Last_Framebuffer_Bytes : Natural := 0;
+      Framebuffer_Analysis  : Files.Rendering.Frame_Analysis.Frame_Metrics;
+      Framebuffer_Passed    : Boolean := False;
       Frame_Width           : Natural := 0;
       Frame_Height          : Natural := 0;
       Pending_Frame_Width   : Natural := 0;
@@ -559,6 +563,8 @@ private
       Readback_Pending     : Boolean := False;
       Readback_Ready       : Boolean := False;
       Last_Readback_Hash   : Interfaces.Unsigned_32 := 0;
+      Last_Frame_Metrics   : Files.Rendering.Frame_Analysis.Frame_Metrics;
+      Last_Frame_Passed    : Boolean := False;
       Pending_Width_Value   : Natural := 0;
       Pending_Height_Value  : Natural := 0;
       Presented_Frames      : Natural := 0;

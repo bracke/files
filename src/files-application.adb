@@ -13,6 +13,7 @@ with Files.Application.Windows;
 with Files_Config;
 with Files.Localization;
 with Files.Rendering;
+with Files.Rendering.Frame_Analysis;
 with Files.Rendering.Vulkan;
 
 package body Files.Application is
@@ -555,6 +556,46 @@ package body Files.Application is
                  (Files.Localization.Text ("runtime.smoke.framebuffer_bytes")
                   & ": "
                   & Natural'Image (Live_Result.Last_Framebuffer_Bytes));
+               declare
+                  Metrics : constant Files.Rendering.Frame_Analysis.Frame_Metrics :=
+                    Live_Result.Framebuffer_Analysis;
+                  Background_Percent : constant Natural :=
+                    Natural (Float'Floor (Metrics.Background_Fraction * 100.0));
+               begin
+                  Ada.Text_IO.Put_Line
+                    (Files.Localization.Text ("runtime.smoke.distinct_colors")
+                     & ": "
+                     & Natural'Image (Metrics.Distinct_Colors));
+                  Ada.Text_IO.Put_Line
+                    (Files.Localization.Text ("runtime.smoke.background_percent")
+                     & ": "
+                     & Natural'Image (Background_Percent));
+                  Ada.Text_IO.Put_Line
+                    (Files.Localization.Text ("runtime.smoke.ink_pixels")
+                     & ": "
+                     & Natural'Image (Metrics.Ink_Pixels));
+                  Ada.Text_IO.Put_Line
+                    (Files.Localization.Text ("runtime.smoke.bands_with_content")
+                     & ": "
+                     & Natural'Image
+                         (Files.Rendering.Frame_Analysis.Bands_With_Content (Metrics)));
+                  Ada.Text_IO.Put_Line
+                    (Files.Localization.Text ("runtime.smoke.structural_verdict")
+                     & ": "
+                     & Files.Localization.Text
+                         (if Live_Result.Framebuffer_Passed
+                          then "runtime.smoke.pass"
+                          else "runtime.smoke.fail"));
+
+                  --  A live frame that was attempted but did not pass the
+                  --  structural checks is a real display failure. Plans skipped
+                  --  for want of a display or Vulkan keep the success status.
+                  if Live_Result.Attempted
+                    and then not Live_Result.Framebuffer_Passed
+                  then
+                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                  end if;
+               end;
             end;
             return;
 
