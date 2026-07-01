@@ -35,6 +35,30 @@ package Files.Rendering is
       Icon_Unknown_Color,
       Overlay_Color);
 
+   --  Selectable color palettes. Theme_Dark is the default. Theme_High_Contrast
+   --  keeps the dark base color values (its extra emphasis is applied through
+   --  Render_Theme) and takes precedence over Theme_Light when both the
+   --  high-contrast and light preferences are enabled.
+   type Theme_Kind is (Theme_Dark, Theme_Light, Theme_High_Contrast);
+
+   --  Resolved sRGB color with straight alpha. Channels are in 0.0 .. 1.0.
+   type Palette_Color is record
+      R : Float := 0.0;
+      G : Float := 0.0;
+      B : Float := 0.0;
+      A : Float := 1.0;
+   end record;
+
+   --  Return the sRGB color a role resolves to under a palette theme.
+   --
+   --  @param Role Semantic color role to resolve.
+   --  @param Theme Active palette theme.
+   --  @return sRGB channel values (0.0 .. 1.0) with straight alpha.
+   function Color_For
+     (Role  : Render_Color;
+      Theme : Theme_Kind := Theme_Dark)
+      return Palette_Color;
+
    type Item_Snapshot is record
       Name               : UString;
       Filetype           : UString;
@@ -153,7 +177,10 @@ package Files.Rendering is
       Settings_Can_Reset    : Boolean := False;
       Theme_Name            : UString;
       Theme_High_Contrast   : Boolean := False;
+      Theme_Palette         : Theme_Kind := Theme_Dark;
       Theme_Focus_Ring      : Render_Color := Border_Color;
+      Settings_Light_Theme        : UString;
+      Settings_Light_Theme_Token  : UString;
       Info_Pane_Scroll_Lines : Natural := 0;
       Settings_Pane_Scroll_Lines : Natural := 0;
       Main_View_Scroll_Lines : Natural := 0;
@@ -615,6 +642,7 @@ package Files.Rendering is
 
    type Frame_Commands is record
       Layout        : Layout_Metrics;
+      Theme_Palette : Theme_Kind := Theme_Dark;
       Rectangles    : Rectangle_Command_Vectors.Vector;
       Triangles     : Triangle_Command_Vectors.Vector;
       Text          : Text_Command_Vectors.Vector;

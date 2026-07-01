@@ -1324,7 +1324,7 @@ package body Files.Controller is
                      when 3 => Files.Model.Set_Settings_Field_Text (Model, "details");
                      when others => null;
                   end case;
-               when 2 | 4 | 5 =>
+               when 2 | 4 | 5 | 14 =>
                   Files.Model.Set_Settings_Field_Text (Model, (if Option = 1 then "true" else "false"));
                when 6 =>
                   Files.Model.Set_Settings_Field_Text
@@ -1663,7 +1663,7 @@ package body Files.Controller is
                --  controls (default_view + boolean fields). On other
                --  multi-choice fields it falls through to text input.
                if Key = Files.Types.Key_Space
-                 and then Field not in 1 | 2 | 4 | 5
+                 and then Field not in 1 | 2 | 4 | 5 | 14
                then
                   return Make_Result (Controller_Ignored);
                end if;
@@ -1681,7 +1681,7 @@ package body Files.Controller is
                           (Model, (if Forward then "small_icons" else "large_icons"));
                      end if;
                      Touched := True;
-                  when 2 | 4 | 5 =>
+                  when 2 | 4 | 5 | 14 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model, (if Current = "true" then "false" else "true"));
                      Touched := True;

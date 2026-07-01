@@ -1522,8 +1522,32 @@ package body Files_Suite.Settings is
         (not Default_Parse.Settings.High_Contrast_Theme,
          "default settings text keeps high-contrast theme disabled");
       Assert
+        (not Default_Parse.Settings.Light_Theme,
+         "default settings text keeps the light theme disabled (dark default)");
+      Assert
         (To_String (Default_Parse.Settings.Icon_Theme_Name) = "files-basic",
          "default settings text keeps basic icon theme selected");
+      declare
+         --  The light-theme preference is absent from this text, so it must
+         --  default to dark; a round-trip through To_Text must preserve it once
+         --  enabled.
+         Absent_Parse : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Parse ("[settings]" & ASCII.LF & "show_hidden_files = true" & ASCII.LF);
+         Light_On     : Files.Settings.Settings_Model;
+         Round_Trip   : Files.Settings.Settings_Parse_Result;
+      begin
+         Assert (Absent_Parse.Success, "settings without a light_theme key parse");
+         Assert
+           (not Absent_Parse.Settings.Light_Theme,
+            "absent light_theme setting defaults to dark");
+         Light_On := Files.Settings.Default_Settings;
+         Light_On.Light_Theme := True;
+         Round_Trip := Files.Settings.Parse (Files.Settings.To_Text (Light_On));
+         Assert (Round_Trip.Success, "serialized light-theme settings parse");
+         Assert
+           (Round_Trip.Settings.Light_Theme,
+            "light_theme round-trips through To_Text and Parse");
+      end;
       Missing := Files.Settings.Load_File (Join (Root, "missing.conf"));
       Assert (Missing.Success, "missing settings file falls back to defaults");
       Assert
@@ -1548,6 +1572,7 @@ package body Files_Suite.Settings is
          "sort_field = modified" & ASCII.LF &
          "sort_ascending = false" & ASCII.LF &
          "high_contrast_theme = true" & ASCII.LF &
+         "light_theme = true" & ASCII.LF &
          "[filetypes]" & ASCII.LF &
          "foo = application/x-foo" & ASCII.LF);
       Loaded := Files.Settings.Load_File (Settings_Path);
@@ -1556,6 +1581,7 @@ package body Files_Suite.Settings is
       Assert (Loaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified, "sort field loads from disk");
       Assert (not Loaded.Settings.Sort_Ascending, "sort direction loads from disk");
       Assert (Loaded.Settings.High_Contrast_Theme, "theme preference loads from disk");
+      Assert (Loaded.Settings.Light_Theme, "light theme preference loads from disk");
       Assert
         (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo") = "application/x-foo",
          "filetype mapping loads from disk");

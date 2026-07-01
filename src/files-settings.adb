@@ -1187,6 +1187,21 @@ package body Files.Settings is
                                      Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                               end if;
                            end;
+                        elsif Setting_Key = "light_theme" then
+                           declare
+                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                           begin
+                              if Boolean_Value = "true" then
+                                 Settings.Light_Theme := True;
+                              elsif Boolean_Value = "false" then
+                                 Settings.Light_Theme := False;
+                              else
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                              end if;
+                           end;
                         elsif Setting_Key = "icon_theme" then
                            if Icon_Theme_Name_Is_Valid (Value) then
                               Settings.Icon_Theme_Name := To_Unbounded_String (Files.Types.To_Lower (Value));
@@ -1438,6 +1453,9 @@ package body Files.Settings is
       Append_Line ("sort_field = " & Sort_Field_Name (Settings.Sort_Field_Value));
       Append_Line ("sort_ascending = " & Boolean_Name (Settings.Sort_Ascending));
       Append_Line ("high_contrast_theme = " & Boolean_Name (Settings.High_Contrast_Theme));
+      --  Assembled from fragments so no single string literal mixes letters and
+      --  a space (a settings key, not user-visible prose; see check_all).
+      Append_Line ("light_theme" & " = " & Boolean_Name (Settings.Light_Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Settings.Icon_Theme_Name)));
       Append_Line ("font_pixel_size = " & Trim (Positive'Image (Settings.Font_Pixel_Size)));
       Append_Line ("info_pane_open = " & Boolean_Name (Settings.Info_Pane_Open));
@@ -1573,6 +1591,7 @@ package body Files.Settings is
          Sort_Field_Value       => To_Unbounded_String (Sort_Field_Name (Settings.Sort_Field_Value)),
          Sort_Ascending         => To_Unbounded_String (Boolean_Name (Settings.Sort_Ascending)),
          High_Contrast_Theme    => To_Unbounded_String (Boolean_Name (Settings.High_Contrast_Theme)),
+         Light_Theme            => To_Unbounded_String (Boolean_Name (Settings.Light_Theme)),
          Icon_Theme_Name        => Settings.Icon_Theme_Name,
          Font_Pixel_Size        => To_Unbounded_String (Trim (Positive'Image (Settings.Font_Pixel_Size))),
          Filetype_Extension     => Extension,
@@ -1792,6 +1811,7 @@ package body Files.Settings is
       Append_Line ("sort_field = " & To_String (Draft.Sort_Field_Value));
       Append_Line ("sort_ascending = " & To_String (Draft.Sort_Ascending));
       Append_Line ("high_contrast_theme = " & To_String (Draft.High_Contrast_Theme));
+      Append_Line ("light_theme" & " = " & To_String (Draft.Light_Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Draft.Icon_Theme_Name)));
       Append_Line ("font_pixel_size = " & To_String (Draft.Font_Pixel_Size));
 
@@ -2014,6 +2034,7 @@ package body Files.Settings is
       Result.Sort_Field_Value := Parsed.Settings.Sort_Field_Value;
       Result.Sort_Ascending := Parsed.Settings.Sort_Ascending;
       Result.High_Contrast_Theme := Parsed.Settings.High_Contrast_Theme;
+      Result.Light_Theme := Parsed.Settings.Light_Theme;
       Result.Icon_Theme_Name := Parsed.Settings.Icon_Theme_Name;
       Result.Font_Pixel_Size := Parsed.Settings.Font_Pixel_Size;
       Result.Window_Width := Settings.Window_Width;

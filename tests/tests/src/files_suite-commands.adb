@@ -449,9 +449,9 @@ package body Files_Suite.Commands is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores entry paging");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Files.Model.Settings_Field_Index (Model) = 2, "down moves to next settings field");
-      Files.Model.Set_Settings_Field_Index (Model, 12);
+      Files.Model.Set_Settings_Field_Index (Model, 13);
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
-      Assert (Files.Model.Settings_Field_Index (Model) = 13, "down reaches the final settings field (13)");
+      Assert (Files.Model.Settings_Field_Index (Model) = 14, "down reaches the final settings field (14)");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Files.Model.Settings_Field_Index (Model) = 1, "down from the final settings field wraps to first");
       Files.Model.Set_Settings_Field_Index (Model, 2);

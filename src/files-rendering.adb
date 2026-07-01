@@ -430,6 +430,86 @@ package body Files.Rendering is
       end if;
    end Saturating_Integer_Add;
 
+   function Color_For
+     (Role  : Render_Color;
+      Theme : Theme_Kind := Theme_Dark)
+      return Palette_Color
+   is
+      function RGB
+        (R : Float;
+         G : Float;
+         B : Float;
+         A : Float := 1.0)
+         return Palette_Color is
+      begin
+         return (R => R, G => G, B => B, A => A);
+      end RGB;
+
+      --  Dark base palette. Theme_High_Contrast reuses these values so its
+      --  rendering is unchanged from before the light theme was introduced.
+      function Dark_Color return Palette_Color is
+      begin
+         case Role is
+            when Canvas_Color          => return RGB (0.08, 0.09, 0.10);
+            when Toolbar_Color         => return RGB (0.07, 0.08, 0.09);
+            when Bottom_Bar_Color      => return RGB (0.07, 0.08, 0.09);
+            when Main_Color            => return RGB (0.10, 0.11, 0.12);
+            when Detail_Alternate_Color => return RGB (0.12, 0.13, 0.14);
+            when Pane_Color            => return RGB (0.16, 0.17, 0.18);
+            when Input_Color           => return RGB (0.18, 0.19, 0.20);
+            when Input_Error_Color     => return RGB (0.44, 0.12, 0.14);
+            when Selection_Color       => return RGB (0.21, 0.38, 0.62);
+            when Hover_Color           => return RGB (0.20, 0.22, 0.24);
+            when Pressed_Color         => return RGB (0.17, 0.24, 0.34);
+            when Border_Color          => return RGB (0.28, 0.29, 0.30);
+            when Text_Color            => return RGB (0.86, 0.87, 0.88);
+            when Muted_Text_Color      => return RGB (0.58, 0.60, 0.62);
+            when Error_Text_Color      => return RGB (0.94, 0.30, 0.27);
+            when Disabled_Text_Color   => return RGB (0.40, 0.41, 0.42);
+            when Icon_Directory_Color  => return RGB (0.32, 0.50, 0.82);
+            when Icon_File_Color       => return RGB (0.70, 0.72, 0.74);
+            when Icon_Executable_Color => return RGB (0.38, 0.68, 0.42);
+            when Icon_Unknown_Color    => return RGB (0.55, 0.55, 0.57);
+            when Overlay_Color         => return RGB (0.04, 0.05, 0.06, 0.86);
+         end case;
+      end Dark_Color;
+
+      --  Light palette: light surfaces, dark text, and selection/hover/border
+      --  colors chosen for legible contrast against the light backgrounds.
+      function Light_Color return Palette_Color is
+      begin
+         case Role is
+            when Canvas_Color          => return RGB (0.93, 0.94, 0.95);
+            when Toolbar_Color         => return RGB (0.88, 0.89, 0.91);
+            when Bottom_Bar_Color      => return RGB (0.88, 0.89, 0.91);
+            when Main_Color            => return RGB (0.98, 0.98, 0.99);
+            when Detail_Alternate_Color => return RGB (0.94, 0.95, 0.96);
+            when Pane_Color            => return RGB (0.90, 0.91, 0.93);
+            when Input_Color           => return RGB (1.00, 1.00, 1.00);
+            when Input_Error_Color     => return RGB (0.98, 0.82, 0.82);
+            when Selection_Color       => return RGB (0.62, 0.78, 0.98);
+            when Hover_Color           => return RGB (0.84, 0.86, 0.89);
+            when Pressed_Color         => return RGB (0.72, 0.82, 0.95);
+            when Border_Color          => return RGB (0.68, 0.70, 0.73);
+            when Text_Color            => return RGB (0.11, 0.12, 0.14);
+            when Muted_Text_Color      => return RGB (0.38, 0.40, 0.43);
+            when Error_Text_Color      => return RGB (0.72, 0.10, 0.10);
+            when Disabled_Text_Color   => return RGB (0.60, 0.62, 0.64);
+            when Icon_Directory_Color  => return RGB (0.18, 0.40, 0.74);
+            when Icon_File_Color       => return RGB (0.34, 0.36, 0.40);
+            when Icon_Executable_Color => return RGB (0.16, 0.52, 0.24);
+            when Icon_Unknown_Color    => return RGB (0.44, 0.44, 0.48);
+            when Overlay_Color         => return RGB (0.20, 0.22, 0.26, 0.62);
+         end case;
+      end Light_Color;
+   begin
+      case Theme is
+         when Theme_Dark          => return Dark_Color;
+         when Theme_High_Contrast => return Dark_Color;
+         when Theme_Light         => return Light_Color;
+      end case;
+   end Color_For;
+
    function Default_Theme return Render_Theme is
    begin
       return
@@ -481,7 +561,7 @@ package body Files.Rendering is
    function Settings_Editor_Profile_Of_Current_UI return Settings_Editor_Profile is
    begin
       return
-        (Scalar_Controls       => 7,
+        (Scalar_Controls       => 8,
          Mapping_Controls      => 4,
          Open_Action_Controls  => 2,
          Supports_Save         => True,
@@ -1450,6 +1530,8 @@ package body Files.Rendering is
       Snapshot.Settings_Sort_Ascending_Token := To_Unbounded_String (Boolean_Token (Settings.Sort_Ascending));
       Snapshot.Settings_High_Contrast := To_Unbounded_String (Boolean_Text (Settings.High_Contrast_Theme));
       Snapshot.Settings_High_Contrast_Token := To_Unbounded_String (Boolean_Token (Settings.High_Contrast_Theme));
+      Snapshot.Settings_Light_Theme := To_Unbounded_String (Boolean_Text (Settings.Light_Theme));
+      Snapshot.Settings_Light_Theme_Token := To_Unbounded_String (Boolean_Token (Settings.Light_Theme));
       Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
       Snapshot.Settings_Font_Pixel_Size :=
         To_Unbounded_String (Natural_Text (Settings.Font_Pixel_Size));
@@ -1479,6 +1561,9 @@ package body Files.Rendering is
                Snapshot.Settings_High_Contrast := Draft.High_Contrast_Theme;
                Snapshot.Settings_High_Contrast_Token :=
                  To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.High_Contrast_Theme)));
+               Snapshot.Settings_Light_Theme := Draft.Light_Theme;
+               Snapshot.Settings_Light_Theme_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Light_Theme)));
                Snapshot.Settings_Icon_Theme := Draft.Icon_Theme_Name;
                Snapshot.Settings_Font_Pixel_Size := Draft.Font_Pixel_Size;
                Snapshot.Settings_Filetype_Extension := Draft.Filetype_Extension;
@@ -1509,7 +1594,7 @@ package body Files.Rendering is
               To_Unbounded_String (Files.Localization.Text ("settings.help.default_view"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.default_view"));
-         when 2 | 4 | 5 =>
+         when 2 | 4 | 5 | 14 =>
             Snapshot.Settings_Field_Help := To_Unbounded_String (Files.Localization.Text ("settings.help.boolean"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.boolean"));
@@ -1572,6 +1657,10 @@ package body Files.Rendering is
       Snapshot.Settings_Can_Reset := Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model);
       Snapshot.Theme_Name := Theme.Name;
       Snapshot.Theme_High_Contrast := Theme.High_Contrast;
+      Snapshot.Theme_Palette :=
+        (if Settings.High_Contrast_Theme then Theme_High_Contrast
+         elsif Settings.Light_Theme then Theme_Light
+         else Theme_Dark);
       Snapshot.Theme_Focus_Ring := Theme.Focus_Ring;
       Snapshot.Root_Selector_Open := Files.Model.Root_Selector_Is_Open (Model);
       Snapshot.Root_Selected_Index := Files.Model.Root_Selected_Index (Model);
@@ -4648,6 +4737,7 @@ package body Files.Rendering is
       end Permission_Text;
    begin
       Result.Layout := Layout;
+      Result.Theme_Palette := Snapshot.Theme_Palette;
 
       Add_Rect (0, 0, Width, Height, Canvas_Color);
       Add_Rect (0, 0, Width, Layout.Toolbar_Height, Toolbar_Color);
@@ -6722,6 +6812,7 @@ package body Files.Rendering is
                Add_Settings_Entry_Buttons (Y_Cursor, 12);
                Add_Settings_Value (Y_Cursor, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 12);
                Add_Settings_Value (Y_Cursor, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 13);
+               Add_Settings_Toggle (Y_Cursor, "settings.light_theme", Snapshot.Settings_Light_Theme_Token, 14);
                if Length (Snapshot.Settings_Field_Help) > 0 then
                   Add_Wrapped_Row
                     (Y_Cursor,

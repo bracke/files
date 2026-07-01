@@ -42,6 +42,9 @@ package Files.Settings is
       Sort_Field_Value       : Sort_Field := Sort_By_Name;
       Sort_Ascending         : Boolean := True;
       High_Contrast_Theme    : Boolean := False;
+      --  When True, the light color palette is used for rendering. High contrast
+      --  takes precedence over this when both preferences are enabled.
+      Light_Theme            : Boolean := False;
       Icon_Theme_Name        : UString;
       Font_Pixel_Size        : Positive := 16;
       --  Global UI state remembered across launches. Window_Width / Height
@@ -84,6 +87,7 @@ package Files.Settings is
       Sort_Field_Value       : UString;
       Sort_Ascending         : UString;
       High_Contrast_Theme    : UString;
+      Light_Theme            : UString;
       Icon_Theme_Name        : UString;
       Font_Pixel_Size        : UString;
       Filetype_Extension     : UString;

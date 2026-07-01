@@ -67,6 +67,7 @@ package Files.Rendering.Vulkan is
 
    type Submission_Batch is record
       Vertices               : Vertex_Vectors.Vector;
+      Palette_Theme          : Files.Rendering.Theme_Kind := Files.Rendering.Theme_Dark;
       Rectangle_Vertex_Count : Natural := 0;
       Triangle_Vertex_Count  : Natural := 0;
       Icon_Vertex_Count      : Natural := 0;

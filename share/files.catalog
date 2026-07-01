@@ -351,6 +351,7 @@ en.settings.hidden_files = Show hidden files
 en.settings.sort = Sort by
 en.settings.sort_ascending = Sort ascending
 en.settings.high_contrast_theme = High contrast theme
+en.settings.light_theme = Light theme
 en.settings.icon_theme = Icon theme
 en.settings.icon_theme.basic = Basic
 en.settings.icon_theme.high_contrast = High Contrast

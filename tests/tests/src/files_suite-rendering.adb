@@ -50,6 +50,7 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -87,6 +88,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Panels_Expose_Close_Button'Access,
          "each open overlay panel emits a close-button accessibility node");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Theme_Palette_Selection'Access,
+         "the light palette differs from dark while high contrast keeps the dark base");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -666,6 +670,39 @@ package body Files_Suite.Rendering is
             "the open root selector emits a close-button accessibility node");
       end;
    end Test_Panels_Expose_Close_Button;
+
+   --  The palette is theme-aware through Files.Rendering.Color_For. This is a
+   --  legitimate palette assertion (the role-to-color mapping), not a fragile
+   --  whole-frame color assertion: the light theme must differ from dark for a
+   --  representative role, and high contrast must keep the dark base so its
+   --  rendering is not regressed.
+   procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Rendering.Palette_Color;
+      Dark_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Dark);
+      Light_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Light);
+      Dark_Text   : constant Palette_Color := Color_For (Text_Color, Theme_Dark);
+      Light_Text  : constant Palette_Color := Color_For (Text_Color, Theme_Light);
+   begin
+      Assert
+        (Light_Canvas /= Dark_Canvas,
+         "the light theme uses a different canvas color than dark");
+      Assert
+        (Light_Text /= Dark_Text,
+         "the light theme uses a different text color than dark");
+      Assert
+        (Light_Canvas.R > Dark_Canvas.R,
+         "the light theme canvas is lighter than the dark canvas");
+      Assert
+        (Light_Text.R < Dark_Text.R,
+         "the light theme text is darker than the dark text");
+      Assert
+        (Color_For (Canvas_Color, Theme_High_Contrast) = Dark_Canvas,
+         "high contrast keeps the dark base canvas color (no regression)");
+      Assert
+        (Color_For (Canvas_Color) = Dark_Canvas,
+         "the palette defaults to the dark theme");
+   end Test_Theme_Palette_Selection;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

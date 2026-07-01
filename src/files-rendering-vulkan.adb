@@ -369,7 +369,8 @@ package body Files.Rendering.Vulkan is
       return Vulkan_Status;
 
    function Color_To_Vertex
-     (Color : Files.Rendering.Render_Color)
+     (Color : Files.Rendering.Render_Color;
+      Theme : Files.Rendering.Theme_Kind := Files.Rendering.Theme_Dark)
       return Gpu_Vertex;
 
    function Host_Visible_Memory_Type
@@ -436,7 +437,8 @@ package body Files.Rendering.Vulkan is
    end Choose_Graphics_Queue_Family;
 
    function Color_To_Vertex
-     (Color : Files.Rendering.Render_Color)
+     (Color : Files.Rendering.Render_Color;
+      Theme : Files.Rendering.Theme_Kind := Files.Rendering.Theme_Dark)
       return Gpu_Vertex
    is
       function Pow (Base : Float; Exponent : Float) return Float is
@@ -453,70 +455,22 @@ package body Files.Rendering.Vulkan is
          end if;
       end To_Linear;
 
-      function Make
-        (R : Interfaces.C.C_float;
-         G : Interfaces.C.C_float;
-         B : Interfaces.C.C_float;
-         A : Interfaces.C.C_float := 1.0)
-         return Gpu_Vertex is
-      begin
-         return
-           (X        => 0.0,
-            Y        => 0.0,
-            U        => 0.0,
-            V        => 0.0,
-            R        => To_Linear (R),
-            G        => To_Linear (G),
-            B        => To_Linear (B),
-            A        => A,
-            Textured => 0.0,
-            Texture  => 0.0);
-      end Make;
+      --  Palette color roles resolve to sRGB channels in Files.Rendering; the
+      --  sRGB-to-linear conversion stays here in the Vulkan backend.
+      Palette : constant Files.Rendering.Palette_Color :=
+        Files.Rendering.Color_For (Color, Theme);
    begin
-      case Color is
-         when Files.Rendering.Canvas_Color =>
-            return Make (0.08, 0.09, 0.10);
-         when Files.Rendering.Toolbar_Color =>
-            return Make (0.07, 0.08, 0.09);
-         when Files.Rendering.Bottom_Bar_Color =>
-            return Make (0.07, 0.08, 0.09);
-         when Files.Rendering.Main_Color =>
-            return Make (0.10, 0.11, 0.12);
-         when Files.Rendering.Detail_Alternate_Color =>
-            return Make (0.12, 0.13, 0.14);
-         when Files.Rendering.Pane_Color =>
-            return Make (0.16, 0.17, 0.18);
-         when Files.Rendering.Input_Color =>
-            return Make (0.18, 0.19, 0.20);
-         when Files.Rendering.Input_Error_Color =>
-            return Make (0.44, 0.12, 0.14);
-         when Files.Rendering.Selection_Color =>
-            return Make (0.21, 0.38, 0.62);
-         when Files.Rendering.Hover_Color =>
-            return Make (0.20, 0.22, 0.24);
-         when Files.Rendering.Pressed_Color =>
-            return Make (0.17, 0.24, 0.34);
-         when Files.Rendering.Border_Color =>
-            return Make (0.28, 0.29, 0.30);
-         when Files.Rendering.Text_Color =>
-            return Make (0.86, 0.87, 0.88);
-         when Files.Rendering.Muted_Text_Color =>
-            return Make (0.58, 0.60, 0.62);
-         when Files.Rendering.Error_Text_Color =>
-            return Make (0.94, 0.30, 0.27);
-         when Files.Rendering.Disabled_Text_Color =>
-            return Make (0.40, 0.41, 0.42);
-         when Files.Rendering.Icon_Directory_Color =>
-            return Make (0.32, 0.50, 0.82);
-         when Files.Rendering.Icon_File_Color =>
-            return Make (0.70, 0.72, 0.74);
-         when Files.Rendering.Icon_Executable_Color =>
-            return Make (0.38, 0.68, 0.42);
-         when Files.Rendering.Icon_Unknown_Color =>
-            return Make (0.55, 0.55, 0.57);
-         when Files.Rendering.Overlay_Color =>
-            return Make (0.04, 0.05, 0.06, 0.86);
-      end case;
+      return
+        (X        => 0.0,
+         Y        => 0.0,
+         U        => 0.0,
+         V        => 0.0,
+         R        => To_Linear (Interfaces.C.C_float (Palette.R)),
+         G        => To_Linear (Interfaces.C.C_float (Palette.G)),
+         B        => To_Linear (Interfaces.C.C_float (Palette.B)),
+         A        => Interfaces.C.C_float (Palette.A),
+         Textured => 0.0,
+         Texture  => 0.0);
    end Color_To_Vertex;
 
    function Host_Visible_Memory_Type
@@ -1578,7 +1532,7 @@ package body Files.Rendering.Vulkan is
       begin
          for Source of Batch.Vertices loop
             declare
-               Packed : Gpu_Vertex := Color_To_Vertex (Source.Color);
+               Packed : Gpu_Vertex := Color_To_Vertex (Source.Color, Batch.Palette_Theme);
             begin
                Packed.X := Interfaces.C.C_float (Source.X);
                Packed.Y := Interfaces.C.C_float (Source.Y);
@@ -4044,6 +3998,7 @@ package body Files.Rendering.Vulkan is
    begin
       Result.Width := Frame.Layout.Width;
       Result.Height := Frame.Layout.Height;
+      Result.Palette_Theme := Frame.Theme_Palette;
       Result.Atlas_Width := Text.Atlas_Width;
       Result.Atlas_Height := Text.Atlas_Height;
       Result.Atlas_Pixels := Text.Atlas_Pixels;
