@@ -14,6 +14,7 @@ with Files.Localization;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
 with Files.Types;
+with Files.UI;
 
 --  Rendering tests expressed as layout INVARIANTS and behaviours rather than
 --  exact pixel coordinates. Each routine constructs its own deterministic view
@@ -47,6 +48,8 @@ package body Files_Suite.Rendering is
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -78,6 +81,12 @@ package body Files_Suite.Rendering is
         (T, Test_Settings_Scroll_Clamp'Access, "settings pane clamps over-scroll to its content");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Count'Access, "bottom bar reflects the hidden count and exposes a toggle button");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Context_Menu_Suppresses_Item_Hover'Access,
+         "an open context menu suppresses the main-grid item hover highlight");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Panels_Expose_Close_Button'Access,
+         "each open overlay panel emits a close-button accessibility node");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -493,6 +502,170 @@ package body Files_Suite.Rendering is
       end loop;
       Assert (Found_Button, "the bottom-bar hidden count is exposed as an accessible toggle button");
    end Test_Bottom_Bar_Hidden_Count;
+
+   --  True when the frame's base layer carries a hover-colored fill anchored at
+   --  Cell's top-left corner -- the main-grid item hover highlight. Context-menu
+   --  row hovers live in the overlay layer, so they never match here.
+   function Cell_Has_Hover_Highlight
+     (Frame : Frame_Commands;
+      Cell  : Item_Layout)
+      return Boolean is
+   begin
+      for Rect of Frame.Rectangles loop
+         if Rect.Color = Hover_Color and then Rect.X = Cell.X and then Rect.Y = Cell.Y then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Cell_Has_Hover_Highlight;
+
+   --  True when the frame exposes a Role_Button accessibility node anchored at
+   --  Close's corner (theme-proof: role and layout-derived position, not color).
+   function Has_Close_Button_Node
+     (Frame : Frame_Commands;
+      Close : Close_Button_Layout)
+      return Boolean is
+   begin
+      for Node of Frame.Accessibility loop
+         if Node.Role = Role_Button and then Node.X = Close.X and then Node.Y = Close.Y then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Close_Button_Node;
+
+   procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Base   : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+      Layout : constant Layout_Metrics := Calculate_Layout (Base, 1000, 800, 20);
+      Items  : constant Item_Layout_Vectors.Vector := Calculate_Item_Layout (Base, Layout, 20);
+      Cell   : Item_Layout;
+      Found  : Boolean := False;
+   begin
+      for C of Items loop
+         if C.Visible_Index = 2 then
+            Cell  := C;
+            Found := True;
+         end if;
+      end loop;
+      Assert (Found, "a layout cell exists for the hovered item");
+
+      declare
+         HX           : constant Natural := Cell.X + Cell.Width / 2;
+         HY           : constant Natural := Cell.Y + Cell.Height / 2;
+         Menu_Open    : View_Snapshot := Base;
+         Closed_Frame : constant Frame_Commands :=
+           Build_Frame_Commands
+             (Base, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+      begin
+         Assert
+           (Cell_Has_Hover_Highlight (Closed_Frame, Cell),
+            "with no context menu the hovered cell shows the main-grid hover highlight");
+
+         Menu_Open.Context_Menu_Open := True;
+         declare
+            Open_Frame : constant Frame_Commands :=
+              Build_Frame_Commands
+                (Menu_Open, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+         begin
+            Assert
+              (not Cell_Has_Hover_Highlight (Open_Frame, Cell),
+               "with the context menu open the hovered main-grid cell shows no hover highlight");
+         end;
+      end;
+   end Test_Context_Menu_Suppresses_Item_Hover;
+
+   procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+   begin
+      --  Command palette.
+      declare
+         Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout  : Layout_Metrics;
+         Palette : Command_Palette_Layout;
+         Close   : Close_Button_Layout;
+         Frame   : Frame_Commands;
+      begin
+         Snap.Command_Palette_Open := True;
+         Layout  := Calculate_Layout (Snap, Width, Height, LH);
+         Palette := Calculate_Command_Palette_Layout (Layout, LH);
+         Close   := Panel_Close_Button (Palette.X, Palette.Y, Palette.Width, Palette.Height, LH);
+         Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the command palette hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open command palette emits a close-button accessibility node");
+      end;
+
+      --  Settings pane.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         Pane   : Files.UI.Settings_Pane_Layout;
+         Close  : Close_Button_Layout;
+         Frame  : Frame_Commands;
+      begin
+         Snap.Settings_Pane_Open := True;
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         Pane   := Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, LH);
+         Close  := Panel_Close_Button (Pane.X, Pane.Y, Pane.Width, Pane.Height, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the settings pane hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open settings pane emits a close-button accessibility node");
+      end;
+
+      --  Info pane.
+      declare
+         Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout  : Layout_Metrics;
+         Info    : Info_Pane_Layout;
+         Panel_W : Natural;
+         Close   : Close_Button_Layout;
+         Frame   : Frame_Commands;
+      begin
+         Snap.Info_Pane_Open := True;
+         Layout  := Calculate_Layout (Snap, Width, Height, LH);
+         Info    := Calculate_Info_Pane_Layout (Snap, Layout, LH);
+         Panel_W :=
+           (if Info.Scrollbar_Visible and then Info.Width > Info.Scrollbar_Width
+            then Info.Width - Info.Scrollbar_Width
+            else Info.Width);
+         Close   := Panel_Close_Button (Info.X, Info.Y, Panel_W, Info.Height, LH);
+         Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the info pane hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open info pane emits a close-button accessibility node");
+      end;
+
+      --  Root selector.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         Root   : Root_Selector_Layout;
+         Close  : Close_Button_Layout;
+         Frame  : Frame_Commands;
+      begin
+         Snap.Root_Selector_Open := True;
+         for Index in 1 .. 3 loop
+            Snap.Root_Paths.Append (To_Unbounded_String ("/root" & Integer'Image (Index)));
+            Snap.Root_Labels.Append (To_Unbounded_String ("Root" & Integer'Image (Index)));
+         end loop;
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         Root   := Calculate_Root_Selector_Layout (Snap, Layout, LH);
+         Close  := Panel_Close_Button (Root.X, Root.Y, Root.Width, Root.Height, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the root selector hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open root selector emits a close-button accessibility node");
+      end;
+   end Test_Panels_Expose_Close_Button;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

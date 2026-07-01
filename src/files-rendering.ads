@@ -837,6 +837,36 @@ package Files.Rendering is
       Line_Height : Positive := 20)
       return Info_Pane_Layout;
 
+   type Close_Button_Layout is record
+      Visible : Boolean := False;
+      X       : Natural := 0;
+      Y       : Natural := 0;
+      Width   : Natural := 0;
+      Height  : Natural := 0;
+   end record;
+
+   --  Calculate the top-right close (X) button rectangle for an overlay panel.
+   --
+   --  The button is a single line-height square inset from the panel's
+   --  top-right corner, clamped inside the panel bounds. Visible is False when
+   --  the panel is too small to host the button. Both the renderer and the
+   --  click hit-test derive the button from this one function so they stay in
+   --  sync.
+   --
+   --  @param Panel_X Panel left edge in pixels.
+   --  @param Panel_Y Panel top edge in pixels.
+   --  @param Panel_Width Panel width in pixels.
+   --  @param Panel_Height Panel height in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Close-button rectangle; Visible is False when it does not fit.
+   function Panel_Close_Button
+     (Panel_X      : Natural;
+      Panel_Y      : Natural;
+      Panel_Width  : Natural;
+      Panel_Height : Natural;
+      Line_Height  : Positive := 20)
+      return Close_Button_Layout;
+
    --  Build a backend-neutral render command list from an immutable snapshot.
    --
    --  The returned commands describe visible filled rectangles and text runs.

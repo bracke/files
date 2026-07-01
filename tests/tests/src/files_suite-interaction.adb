@@ -111,6 +111,8 @@ package body Files_Suite.Interaction is
    procedure Test_Sequence_Palette_Filter_Narrows_And_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sequence_Trash_Then_Restore (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Palette_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -149,6 +151,12 @@ package body Files_Suite.Interaction is
         (T, Test_Root_Selector_Click_Navigates'Access, "root-selector row click navigates to the chosen root");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Command_Palette_Result_Runs'Access, "command-palette result click runs the command and closes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Palette_Close_Button_Closes'Access,
+         "command-palette close (X) button click closes the palette");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Close_Button_Closes'Access,
+         "info-pane close (X) button click closes the info pane");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_With_Palette_Result_Launches'Access, "open-with palette result routes the application launch");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1265,6 +1273,73 @@ package body Files_Suite.Interaction is
         (not Files.Model.Command_Palette_Is_Open (Model),
          "running a palette result closes the command palette");
    end Test_Command_Palette_Result_Runs;
+
+   --  Open the command palette, derive its close (X) button from the real
+   --  palette layout, click the button's center through the shell's
+   --  Translate_Click -> Apply_Input_Action path, and assert the palette closed.
+   procedure Test_Command_Palette_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files.Model.Open_Command_Palette (Model);
+      Assert (Files.Model.Command_Palette_Is_Open (Model), "the command palette is open before the close click");
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Palette  : constant Files.Rendering.Command_Palette_Layout :=
+           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
+         Close    : constant Files.Rendering.Close_Button_Layout :=
+           Files.Rendering.Panel_Close_Button
+             (Palette.X, Palette.Y, Palette.Width, Palette.Height, Line);
+      begin
+         Assert (Close.Visible, "the open command palette exposes a close (X) button");
+         Click
+           (Model, Settings, Close.X + Close.Width / 2, Close.Y + Close.Height / 2,
+            Files.Types.No_Modifiers, Result);
+      end;
+      Assert
+        (not Files.Model.Command_Palette_Is_Open (Model),
+         "clicking the palette close (X) button closes the command palette");
+   end Test_Command_Palette_Close_Button_Closes;
+
+   --  Same seam for the info pane: open it, derive its close (X) button from
+   --  the real info-pane layout (kept clear of the scrollbar column), click the
+   --  button's center, and assert the pane closed.
+   procedure Test_Info_Pane_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files.Model.Toggle_Info_Pane (Model);
+      Assert (Files.Model.Info_Pane_Is_Open (Model), "the info pane is open before the close click");
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Info     : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
+         Panel_W  : constant Natural :=
+           (if Info.Scrollbar_Visible and then Info.Width > Info.Scrollbar_Width
+            then Info.Width - Info.Scrollbar_Width
+            else Info.Width);
+         Close    : constant Files.Rendering.Close_Button_Layout :=
+           Files.Rendering.Panel_Close_Button (Info.X, Info.Y, Panel_W, Info.Height, Line);
+      begin
+         Assert (Close.Visible, "the open info pane exposes a close (X) button");
+         Click
+           (Model, Settings, Close.X + Close.Width / 2, Close.Y + Close.Height / 2,
+            Files.Types.No_Modifiers, Result);
+      end;
+      Assert
+        (not Files.Model.Info_Pane_Is_Open (Model),
+         "clicking the info-pane close (X) button closes the info pane");
+   end Test_Info_Pane_Close_Button_Closes;
 
    procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -31,6 +31,9 @@ package body Files.Rendering is
 
    Ellipsis_Text : constant String :=
      [Character'Val (16#E2#), Character'Val (16#80#), Character'Val (16#A6#)];
+   --  U+00D7 MULTIPLICATION SIGN, the conventional close-affordance glyph.
+   Close_Glyph_Text : constant String :=
+     [Character'Val (16#C3#), Character'Val (16#97#)];
    Info_Pane_Padding : constant Natural := 10;
    Main_Content_Padding : constant Natural := 8;
    Main_Grid_Gap : constant Natural := 8;
@@ -2891,6 +2894,30 @@ package body Files.Rendering is
          Scrollbar_Track_Height => (if Visible then Layout.Main_Height else 0));
    end Calculate_Info_Pane_Layout;
 
+   function Panel_Close_Button
+     (Panel_X      : Natural;
+      Panel_Y      : Natural;
+      Panel_Width  : Natural;
+      Panel_Height : Natural;
+      Line_Height  : Positive := 20)
+      return Close_Button_Layout
+   is
+      Inset   : constant Natural := Natural'Max (4, Line_Height / 4);
+      Reserve : constant Natural := Saturating_Add (Saturating_Multiply (Inset, 2), Line_Height);
+   begin
+      --  Need room for the inset on both sides plus the square itself.
+      if Panel_Width < Reserve or else Panel_Height < Reserve then
+         return (others => <>);
+      end if;
+
+      return
+        (Visible => True,
+         X       => Saturating_Add (Panel_X, Panel_Width - Inset - Line_Height),
+         Y       => Saturating_Add (Panel_Y, Inset),
+         Width   => Line_Height,
+         Height  => Line_Height);
+   end Panel_Close_Button;
+
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
       Width       : Natural;
@@ -3492,6 +3519,74 @@ package body Files.Rendering is
             Add_Rect (Grip_X, Saturating_Add (Mid_Y, 2), Grip_W, 1, Muted_Text_Color);
          end if;
       end Add_Scrollbar;
+
+      --  Draw a panel's top-right close (X) button plus its Role_Button
+      --  accessibility node. Overlay panels (the root selector) render into the
+      --  overlay layer so the button sits above the overlay body; the other
+      --  panels render into the base layer. The button geometry comes from
+      --  Panel_Close_Button so it matches the click hit-test exactly.
+      procedure Draw_Close_Button
+        (Panel_X : Natural;
+         Panel_Y : Natural;
+         Panel_W : Natural;
+         Panel_H : Natural;
+         Overlay : Boolean)
+      is
+         Btn : constant Close_Button_Layout :=
+           Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
+      begin
+         if not Btn.Visible then
+            return;
+         end if;
+
+         declare
+            Hovered    : constant Boolean :=
+              Has_Hover and then Contains_Point (Btn.X, Btn.Y, Btn.Width, Btn.Height, Hover_X, Hover_Y);
+            Pressed    : constant Boolean := Is_Pressed (Btn.X, Btn.Y, Btn.Width, Btn.Height);
+            Fill_Color : constant Render_Color :=
+              (if Pressed then Pressed_Color
+               elsif Hovered then Hover_Color
+               elsif Overlay then Overlay_Color
+               else Pane_Color);
+            --  Center the glyph cell within the square button.
+            Glyph_W    : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+            Glyph_X    : constant Natural :=
+              (if Btn.Width > Glyph_W
+               then Saturating_Add (Btn.X, (Btn.Width - Glyph_W) / 2)
+               else Btn.X);
+            Glyph_Y    : constant Natural :=
+              (if Btn.Height > Line_Height
+               then Saturating_Add (Btn.Y, (Btn.Height - Line_Height) / 2)
+               else Btn.Y);
+         begin
+            if Overlay then
+               Add_Overlay_Rect (Btn.X, Btn.Y, Btn.Width, Btn.Height, Fill_Color);
+               Add_Overlay_Rect (Btn.X, Btn.Y, Btn.Width, 1, Border_Color);
+               Add_Overlay_Rect (Btn.X, Btn.Y, 1, Btn.Height, Border_Color);
+               Add_Overlay_Rect
+                 (Btn.X, Saturating_Add (Btn.Y, Btn.Height - 1), Btn.Width, 1, Border_Color);
+               Add_Overlay_Rect
+                 (Saturating_Add (Btn.X, Btn.Width - 1), Btn.Y, 1, Btn.Height, Border_Color);
+               Add_Overlay_Text
+                 (Glyph_X, Glyph_Y, Glyph_W, Line_Height,
+                  To_Unbounded_String (Close_Glyph_Text), Text_Color);
+            else
+               Add_Rect (Btn.X, Btn.Y, Btn.Width, Btn.Height, Fill_Color);
+               Add_Border (Btn.X, Btn.Y, Btn.Width, Btn.Height, Border_Color);
+               Add_Text
+                 (Glyph_X, Glyph_Y, Glyph_W, Line_Height,
+                  To_Unbounded_String (Close_Glyph_Text), Text_Color);
+            end if;
+
+            Add_Accessibility_Node
+              (Role_Button,
+               Btn.X,
+               Btn.Y,
+               Btn.Width,
+               Btn.Height,
+               Localized ("command.action.close"));
+         end;
+      end Draw_Close_Button;
 
       procedure Add_Hover_Tooltip is
          Padding     : constant Natural := 6;
@@ -5193,8 +5288,13 @@ package body Files.Rendering is
          declare
             Item      : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
             Item_Rect : constant Item_Layout := Items.Element (Positive (Index));
+            --  Suppress the main-grid item hover highlight while the context
+            --  menu is open: the pointer is interacting with the menu, so the
+            --  cell under the cursor must not also light up. The menu's own row
+            --  hover (drawn separately) is unaffected.
             Hovered   : constant Boolean :=
               Has_Hover
+              and then not Snapshot.Context_Menu_Open
               and then Contains_Point
                 (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_X, Hover_Y);
             Drop_Target : constant Boolean :=
@@ -5735,6 +5835,15 @@ package body Files.Rendering is
                Info_Pane.Scrollbar_Thumb_Y,
                Info_Pane.Scrollbar_Height);
          end if;
+         --  Keep the close button clear of the scrollbar column on the right.
+         Draw_Close_Button
+           (Info_Pane.X,
+            Info_Pane.Y,
+            (if Info_Pane.Scrollbar_Visible and then Info_Pane.Width > Info_Pane.Scrollbar_Width
+             then Info_Pane.Width - Info_Pane.Scrollbar_Width
+             else Info_Pane.Width),
+            Info_Pane.Height,
+            Overlay => False);
       end if;
 
       if Snapshot.Settings_Pane_Open then
@@ -6685,6 +6794,7 @@ package body Files.Rendering is
             begin
                Draw_Settings_Fields (Y_Cursor);
             end;
+            Draw_Close_Button (Pane_X, Pane_Y, Pane_W, Pane_H, Overlay => False);
          end;
          Drawing_Settings_Pane := False;
       end if;
@@ -6892,6 +7002,7 @@ package body Files.Rendering is
          end loop;
 
          Add_Palette_Scrollbar;
+         Draw_Close_Button (Palette.X, Palette.Y, Palette.Width, Palette.Height, Overlay => False);
          Drawing_Command_Palette := False;
       end if;
 
@@ -7127,6 +7238,9 @@ package body Files.Rendering is
                   Focused  => Row.Selected);
             end;
          end loop;
+         Draw_Close_Button
+           (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, Root_Selector.Height,
+            Overlay => True);
       end if;
 
       if Snapshot.Context_Menu_Open then

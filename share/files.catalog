@@ -179,6 +179,7 @@ en.command.drive.select = Select Drive
 en.command.drive.open_selected = Open Selected Drive
 en.command.drive.eject_selected = Eject Selected Drive
 en.command.filter.clear = Clear Filter
+en.command.action.close = Close
 en.command.directory.search_recursive = Search Recursively
 en.command.directory.refresh = Refresh Directory
 en.command.settings.save = Save Settings

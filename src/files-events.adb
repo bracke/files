@@ -227,6 +227,8 @@ package body Files.Events is
         Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Rows      : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
+      Settings_Pane  : constant Files.UI.Settings_Pane_Layout :=
+        Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Item_Layout    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
       Result_Index   : constant Natural := Files.Rendering.Command_Result_At (Palette_Rows, X, Y);
@@ -526,7 +528,54 @@ package body Files.Events is
 
          return No_Action (Activate);
       end Settings_Click_Hit;
+
+      --  A click on an overlay panel's top-right close (X) button. The button
+      --  geometry comes from Files.Rendering.Panel_Close_Button so it matches
+      --  what Build_Frame_Commands drew exactly (rule: coordinates from layout).
+      function Close_Button_Hit
+        (Panel_X : Natural;
+         Panel_Y : Natural;
+         Panel_W : Natural;
+         Panel_H : Natural)
+         return Boolean
+      is
+         Btn : constant Files.Rendering.Close_Button_Layout :=
+           Files.Rendering.Panel_Close_Button (Panel_X, Panel_Y, Panel_W, Panel_H, Line_Height);
+      begin
+         return Btn.Visible
+           and then Within (X, Btn.X, Btn.Width)
+           and then Within (Y, Btn.Y, Btn.Height);
+      end Close_Button_Hit;
    begin
+      --  Route a close-button click through the same command Escape uses for
+      --  each panel, before the panel body/scrollbar hit-tests below consume it.
+      if Snapshot.Command_Palette_Open
+        and then Close_Button_Hit
+          (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height)
+      then
+         return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      elsif Snapshot.Settings_Pane_Open
+        and then Close_Button_Hit
+          (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height)
+      then
+         return Command_Action (Files.Commands.Toggle_Settings_Pane_Command, Activate);
+      elsif Snapshot.Root_Selector_Open
+        and then Close_Button_Hit
+          (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
+      then
+         return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      elsif Snapshot.Info_Pane_Open
+        and then Close_Button_Hit
+          (Info_Pane.X,
+           Info_Pane.Y,
+           (if Info_Pane.Scrollbar_Visible and then Info_Pane.Width > Info_Pane.Scrollbar_Width
+            then Info_Pane.Width - Info_Pane.Scrollbar_Width
+            else Info_Pane.Width),
+           Info_Pane.Height)
+      then
+         return Command_Action (Files.Commands.Toggle_Info_Pane_Command, Activate);
+      end if;
+
       declare
          Palette_Scroll : constant Input_Action := Palette_Scrollbar_Click;
       begin
