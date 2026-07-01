@@ -9,6 +9,10 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Headless GPU display-layer test gate: `bin/files --live-smoke` renders the
+  full GLFW + Vulkan path, reads the framebuffer back, and structurally analyses
+  it (not-blank, populated bands, meaningful ink), with a PASS/FAIL/SKIP verdict
+  and exit codes (0/1/77). CI runs it on Linux under Xvfb + Mesa lavapipe.
 - Light color theme, selectable alongside the default dark and high-contrast.
 - Close (×) buttons on every overlay panel (command palette, settings, info
   pane, root selector) that dismiss it like Escape.

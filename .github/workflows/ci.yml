@@ -10,6 +10,10 @@ name: CI
 # `i18n`, and `zlib` are NOT — push them to github.com/<owner>/<name> (or
 # adjust the clone URLs below) before this workflow can succeed.
 #
+# The Linux job also runs a live GPU smoke: the full GLFW + Vulkan render path
+# under Xvfb with the Mesa lavapipe software ICD, structurally analysing the
+# read-back framebuffer (exit 77 = skipped, non-fatal).
+#
 # NOTE: the Linux job is validated. The macOS and Windows jobs are best-effort
 # and have not yet been executed on real runners — the native Vulkan/GLFW
 # dependency setup and the FILES_FONT_PATH values below will likely need
@@ -45,7 +49,9 @@ jobs:
             libgdk-pixbuf-2.0-dev \
             libglib2.0-dev \
             libgtk-3-dev \
-            fonts-dejavu-core
+            fonts-dejavu-core \
+            mesa-vulkan-drivers \
+            xvfb
 
       - name: Install system libraries (macOS)
         if: runner.os == 'macOS'
@@ -93,3 +99,27 @@ jobs:
         run: |
           alr --non-interactive build
           ./bin/tests
+
+      - name: Live GPU smoke (Linux, software Vulkan)
+        # Exercises the full GLFW + Vulkan render path headlessly under Xvfb with
+        # the Mesa lavapipe software ICD, then structurally analyses the read-back
+        # framebuffer. Exit 0 = pass, 1 = degenerate frame (fails the job),
+        # 77 = skipped (no display/Vulkan) which is treated as non-fatal.
+        if: runner.os == 'Linux'
+        shell: bash
+        working-directory: files
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+        run: |
+          set +e
+          xvfb-run -a ./bin/files --live-smoke
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "live-smoke passed the structural framebuffer analysis"
+          elif [ "$code" -eq 77 ]; then
+            echo "::warning::live-smoke skipped (no display/Vulkan device available)"
+          else
+            echo "::error::live-smoke failed the structural analysis (exit $code)"
+            exit "$code"
+          fi

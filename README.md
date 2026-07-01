@@ -71,7 +71,31 @@ bin/files [PATH ...]      # opens at PATH, or the home directory by default
 ```
 
 Runtime smoke checks are available via `bin/files --runtime-smoke` and
-`--live-smoke` (the latter needs Vulkan and a display).
+`--live-smoke`. `--runtime-smoke` is fully headless (it builds frames, rasterizes
+glyphs, and reports counts without a window or GPU).
+
+`--live-smoke` exercises the **full GLFW + Vulkan render path**: it opens a
+window, presents real frames, reads the framebuffer back, and structurally
+analyses it (that it is not blank, the background does not fill the frame, there
+is meaningful drawn "ink", and each of the top/middle/bottom bands has content).
+This gate covers the display layer that the headless AUnit suite cannot reach.
+It reports a canonical verdict line and exit code:
+
+- `live-smoke: PASS` — exit `0`
+- `live-smoke: FAIL <reason>` — exit `1` (a degenerate frame; fails CI)
+- `live-smoke: SKIP <reason>` — exit `77` (no display or no Vulkan device;
+  non-fatal, so environments without a GPU don't fail)
+
+It runs headlessly against the Mesa **lavapipe** software Vulkan driver under a
+virtual display:
+
+```sh
+sudo apt-get install -y mesa-vulkan-drivers xvfb
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
+  xvfb-run -a bin/files --live-smoke
+```
+
+CI runs exactly this on the Linux job (see `.github/workflows/ci.yml`).
 
 ## Tests
 
