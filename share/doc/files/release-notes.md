@@ -9,6 +9,11 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Light color theme, selectable alongside the default dark and high-contrast.
+- Close (×) buttons on every overlay panel (command palette, settings, info
+  pane, root selector) that dismiss it like Escape.
+- The bottom bar shows the number of hidden (dot-file) elements; clicking it
+  toggles Show Hidden Files.
 - Undo the most recent rename, move, or move-to-trash.
 - Duplicate selected items into uniquely-named copies in the same directory.
 - Show Hidden Files toggle command (persists the setting and reloads).
@@ -27,6 +32,10 @@ it under a dated version heading when a release is cut.
   readiness tool (built on `project_tools`), and a documented release process.
 
 ### Changed
+- UI refinements: larger toolbar icons, borderless disabled toolbar buttons,
+  wider (untruncated) context menus, fully-padded tooltips, and tighter
+  bottom-bar sort spacing. The main-grid hover highlight is suppressed while the
+  context menu is open.
 - Adopted `project_tools` in the application and tooling (existence checks,
   recursive delete, text reads); moved general-purpose tool helpers into
   `project_tools`.
@@ -34,6 +43,10 @@ it under a dated version heading when a release is cut.
   refactor-tolerant checks.
 
 ### Fixed
+- Arrow-key navigation no longer reverses under descending sort (Up/Down always
+  follow the displayed order).
+- Renaming in large-icons view: the edit field spans the cell and the caret
+  tracks the text, so names are editable.
 - Numerous correctness fixes across the file-system, operations, controller,
   model, settings, events, rendering, Vulkan, fonts, accessibility, and
   platform subsystems (see git history).
