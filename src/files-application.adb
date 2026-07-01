@@ -539,6 +539,7 @@ package body Files.Application is
                Colon             : constant String := ":";
                Pass_Word         : constant String := "pass";
                Fail_Word         : constant String := "fail";
+               Region_Word       : constant String := "region";
 
                --  Automake convention: a skipped test exits with code 77 so CI
                --  can tell "environment could not run it" apart from a pass (0)
@@ -641,13 +642,30 @@ package body Files.Application is
                --  so a state-specific display regression is visible in CI logs
                --  before the single canonical verdict line below.
                for Scenario in Files.Application.Windows.Live_Smoke_Scenario loop
-                  Ada.Text_IO.Put_Line
-                    (Scenario_Prefix & Space & Scenario_Word & Space
-                     & Files.Application.Windows.Scenario_Name (Scenario)
-                     & Colon & Space
-                     & (if Files.Application.Windows.Scenario_Passed
-                            (Live_Result.Scenario_Results, Scenario)
-                        then Pass_Word else Fail_Word));
+                  declare
+                     Outcome : constant Files.Application.Windows.Scenario_Outcome :=
+                       Live_Result.Scenario_Results (Scenario);
+                     Region_Percent : constant Natural :=
+                       Natural (Float'Floor (Outcome.Region_Ink_Fraction * 100.0));
+                  begin
+                     Ada.Text_IO.Put_Line
+                       (Scenario_Prefix & Space & Scenario_Word & Space
+                        & Files.Application.Windows.Scenario_Name (Scenario)
+                        & Colon & Space
+                        & (if Files.Application.Windows.Scenario_Passed
+                               (Live_Result.Scenario_Results, Scenario)
+                           then Pass_Word else Fail_Word)
+                        --  When a scenario asserted a layout-derived element
+                        --  rectangle, append its verdict and measured ink
+                        --  percent so a coordinate/scaling regression is
+                        --  visible per scenario in CI logs.
+                        & (if Outcome.Region_Checked
+                           then Space & Region_Word & Colon & Space
+                                & (if Outcome.Region_Ink_Present
+                                   then Pass_Word else Fail_Word)
+                                & Space & Natural'Image (Region_Percent)
+                           else ""));
+                  end;
                end loop;
 
                --  Emit exactly one canonical, greppable verdict line and set a

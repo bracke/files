@@ -2420,6 +2420,15 @@ package body Files.Application.Windows is
          return False;
       end if;
 
+      --  A layout-derived region assertion that ran but found no ink means a
+      --  UI element is missing from its computed pixel position (a coordinate
+      --  or DPI-scaling regression), even though the structural Analyze passed.
+      if Outcomes (Scenario).Region_Checked
+        and then not Outcomes (Scenario).Region_Ink_Present
+      then
+         return False;
+      end if;
+
       return True;
    end Scenario_Passed;
 
@@ -2548,6 +2557,96 @@ package body Files.Application.Windows is
       Runtime.Frame_Cache_Valid := False;
       Apply_Scenario (Runtime, Scenario);
    end Prepare_Scenario;
+
+   --  A layout-derived pixel rectangle whose ink presence in the read-back
+   --  framebuffer proves a specific UI element rendered at its computed
+   --  position. Valid is False for scenarios without a region assertion.
+   type Region_Rect is record
+      Valid : Boolean := False;
+      X     : Natural := 0;
+      Y     : Natural := 0;
+      W     : Natural := 0;
+      H     : Natural := 0;
+   end record;
+
+   --  Compute the layout-derived region a scenario asserts against the frame.
+   --
+   --  The rectangle is produced by the same layout functions the live renderer
+   --  uses (Build_Snapshot + Calculate_Layout + Calculate_Item_Layout) at the
+   --  scenario's own model/settings/font and the actual framebuffer size, so it
+   --  indexes the read-back framebuffer directly. Only scenarios with a stable,
+   --  always-present element carry a check.
+   function Scenario_Region
+     (Runtime  : Runtime_Window;
+      Scenario : Live_Smoke_Scenario;
+      Frame_W  : Natural;
+      Frame_H  : Natural)
+      return Region_Rect
+   is
+      Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+      Snapshot    : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+      Layout      : constant Files.Rendering.Layout_Metrics :=
+        Files.Rendering.Calculate_Layout (Snapshot, Frame_W, Frame_H, Line_Height);
+   begin
+      if Frame_W = 0 or else Frame_H = 0 or else Layout.Width = 0 then
+         return (others => <>);
+      end if;
+
+      case Scenario is
+         when Scenario_Default =>
+            --  The toolbar band spans the frame top and always draws a distinct
+            --  bar plus buttons/icons, so its layout rectangle must hold ink.
+            if Layout.Toolbar_Height = 0 then
+               return (others => <>);
+            end if;
+            return
+              (Valid => True,
+               X     => 0,
+               Y     => 0,
+               W     => Layout.Width,
+               H     => Layout.Toolbar_Height);
+
+         when Scenario_Selection =>
+            --  The selected item's cell rectangle must hold ink: its icon,
+            --  label and selection fill render there.
+            declare
+               Items        : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+                 Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+               Target_Index : Natural := 0;
+            begin
+               for Item of Snapshot.Items loop
+                  if Item.Selected then
+                     Target_Index := Item.Visible_Index;
+                     exit;
+                  end if;
+               end loop;
+
+               if Target_Index = 0 then
+                  return (others => <>);
+               end if;
+
+               for Cell of Items loop
+                  if Cell.Visible_Index = Target_Index
+                    and then Cell.Width > 0
+                    and then Cell.Height > 0
+                  then
+                     return
+                       (Valid => True,
+                        X     => Cell.X,
+                        Y     => Cell.Y,
+                        W     => Cell.Width,
+                        H     => Cell.Height);
+                  end if;
+               end loop;
+
+               return (others => <>);
+            end;
+
+         when others =>
+            return (others => <>);
+      end case;
+   end Scenario_Region;
 
    function Live_Window_Smoke_Plan
      (Width  : Natural := 1024;
@@ -2717,6 +2816,30 @@ package body Files.Application.Windows is
                               Outcome.Readback_Ready := True;
                               Outcome.Hash := Diagnostics.Last_Framebuffer_Hash;
                               Outcome.Passed := Diagnostics.Framebuffer_Passed;
+
+                              --  Layout-derived region assertion: prove a
+                              --  specific UI element rendered at the pixel
+                              --  rectangle its layout computed. An empty region
+                              --  where the structural Analyze still passed is
+                              --  exactly what a coordinate/DPI-scaling
+                              --  regression produces, so it fails the scenario.
+                              declare
+                                 Rect : constant Region_Rect :=
+                                   Scenario_Region
+                                     (Runtime, Scenario,
+                                      Diagnostics.Frame_Width, Diagnostics.Frame_Height);
+                              begin
+                                 if Rect.Valid then
+                                    Outcome.Region_Checked := True;
+                                    Outcome.Region_Ink_Fraction :=
+                                      Files.Rendering.Vulkan.Readback_Region_Ink_Fraction
+                                        (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
+                                    Outcome.Region_Ink_Present :=
+                                      Files.Rendering.Vulkan.Readback_Region_Has_Ink
+                                        (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
+                                 end if;
+                              end;
+
                               --  The default scenario feeds the legacy
                               --  single-frame diagnostics printout.
                               if Scenario = Scenario_Default then

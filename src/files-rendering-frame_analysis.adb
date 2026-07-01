@@ -49,35 +49,43 @@ package body Files.Rendering.Frame_Analysis is
       return Band_Index (1 + Natural'Min (Raw, Band_Count - 1));
    end Band_Of;
 
-   function Analyze
+   --  Shared background-color reference derived from a whole frame. Both
+   --  Analyze and the region helpers use this so their ink distance is
+   --  measured against the identical background color.
+   type Frame_Reference is record
+      Valid            : Boolean := False;
+      Distinct         : Natural := 0;
+      Background_Count  : Natural := 0;
+      Red              : Natural := 0;
+      Green            : Natural := 0;
+      Blue             : Natural := 0;
+   end record;
+
+   --  Compute the frame's background reference: the average color of the
+   --  single most common quantized color bucket, plus the distinct-color count
+   --  and the dominant bucket's pixel count. Returns Valid => False when the
+   --  buffer is too small for the stated dimensions or the dimensions are zero.
+   function Compute_Reference
      (Data   : Byte_Array;
       Width  : Natural;
-      Height : Natural;
-      Format : Pixel_Format := Pixel_Format_RGBA8)
-      return Frame_Metrics
+      Height : Natural)
+      return Frame_Reference
    is
-      pragma Unreferenced (Format);
-      Metrics       : Frame_Metrics;
-      Total_Pixels  : constant Natural := Width * Height;
-      Required      : constant Natural := Total_Pixels * Bytes_Per_Pixel;
-      Counts        : Bucket_Counts := [others => 0];
-      Band_Seen     : Band_Seen_Array := [others => [others => False]];
-      Band_Ink      : array (Band_Index) of Natural := [others => 0];
-      Background     : Bucket_Range := 0;
-      Distinct       : Natural := 0;
-      Ink_Total      : Natural := 0;
-      Sum_R          : Long_Long_Integer := 0;
-      Sum_G          : Long_Long_Integer := 0;
-      Sum_B          : Long_Long_Integer := 0;
-      Background_Red   : Natural := 0;
-      Background_Green : Natural := 0;
-      Background_Blue  : Natural := 0;
+      Total_Pixels : constant Natural := Width * Height;
+      Required     : constant Natural := Total_Pixels * Bytes_Per_Pixel;
+      Counts       : Bucket_Counts := [others => 0];
+      Background    : Bucket_Range := 0;
+      Distinct      : Natural := 0;
+      Sum_R         : Long_Long_Integer := 0;
+      Sum_G         : Long_Long_Integer := 0;
+      Sum_B         : Long_Long_Integer := 0;
+      Result        : Frame_Reference;
    begin
       if Width = 0 or else Height = 0
         or else Total_Pixels = 0
         or else Data'Length < Required
       then
-         return Metrics;
+         return Result;
       end if;
 
       --  Pass 1: quantized color histogram.
@@ -114,10 +122,56 @@ package body Files.Rendering.Frame_Analysis is
          end;
       end loop;
 
+      Result.Valid := True;
+      Result.Distinct := Distinct;
+      Result.Background_Count := Counts (Background);
       if Counts (Background) > 0 then
-         Background_Red   := Natural (Sum_R / Long_Long_Integer (Counts (Background)));
-         Background_Green := Natural (Sum_G / Long_Long_Integer (Counts (Background)));
-         Background_Blue  := Natural (Sum_B / Long_Long_Integer (Counts (Background)));
+         Result.Red   := Natural (Sum_R / Long_Long_Integer (Counts (Background)));
+         Result.Green := Natural (Sum_G / Long_Long_Integer (Counts (Background)));
+         Result.Blue  := Natural (Sum_B / Long_Long_Integer (Counts (Background)));
+      end if;
+      return Result;
+   end Compute_Reference;
+
+   --  Return the summed absolute per-channel distance from a reference color.
+   function Ink_Distance
+     (Red, Green, Blue : Interfaces.Unsigned_8;
+      Reference        : Frame_Reference)
+      return Natural
+   is
+   begin
+      return abs (Natural (Red) - Reference.Red)
+        + abs (Natural (Green) - Reference.Green)
+        + abs (Natural (Blue) - Reference.Blue);
+   end Ink_Distance;
+
+   function Analyze
+     (Data   : Byte_Array;
+      Width  : Natural;
+      Height : Natural;
+      Format : Pixel_Format := Pixel_Format_RGBA8)
+      return Frame_Metrics
+   is
+      pragma Unreferenced (Format);
+      Metrics       : Frame_Metrics;
+      Total_Pixels  : constant Natural := Width * Height;
+      Required      : constant Natural := Total_Pixels * Bytes_Per_Pixel;
+      Band_Seen     : Band_Seen_Array := [others => [others => False]];
+      Band_Ink      : array (Band_Index) of Natural := [others => 0];
+      Ink_Total      : Natural := 0;
+      Reference      : Frame_Reference;
+   begin
+      if Width = 0 or else Height = 0
+        or else Total_Pixels = 0
+        or else Data'Length < Required
+      then
+         return Metrics;
+      end if;
+
+      --  Passes 1 and 2: histogram, dominant bucket and background color.
+      Reference := Compute_Reference (Data, Width, Height);
+      if not Reference.Valid then
+         return Metrics;
       end if;
 
       --  Pass 3: ink detection and per-band content.
@@ -132,9 +186,7 @@ package body Files.Rendering.Frame_Analysis is
                   Bucket : constant Bucket_Range :=
                     Bucket_Of (Data (Base), Data (Base + 1), Data (Base + 2));
                   Distance : constant Natural :=
-                    abs (Natural (Data (Base)) - Background_Red)
-                    + abs (Natural (Data (Base + 1)) - Background_Green)
-                    + abs (Natural (Data (Base + 2)) - Background_Blue);
+                    Ink_Distance (Data (Base), Data (Base + 1), Data (Base + 2), Reference);
                begin
                   Band_Seen (Band, Bucket) := True;
                   if Distance >= Ink_Channel_Distance then
@@ -150,9 +202,9 @@ package body Files.Rendering.Frame_Analysis is
       Metrics.Width := Width;
       Metrics.Height := Height;
       Metrics.Total_Pixels := Total_Pixels;
-      Metrics.Distinct_Colors := Distinct;
+      Metrics.Distinct_Colors := Reference.Distinct;
       Metrics.Background_Fraction :=
-        Float (Counts (Background)) / Float (Total_Pixels);
+        Float (Reference.Background_Count) / Float (Total_Pixels);
       Metrics.Ink_Pixels := Ink_Total;
       Metrics.Ink_Fraction := Float (Ink_Total) / Float (Total_Pixels);
 
@@ -205,5 +257,80 @@ package body Files.Rendering.Frame_Analysis is
         and then Metrics.Ink_Pixels >= Min_Ink
         and then All_Bands_Have_Content (Metrics);
    end Passed;
+
+   function Region_Ink_Fraction
+     (Data   : Byte_Array;
+      Width  : Natural;
+      Height : Natural;
+      Format : Pixel_Format := Pixel_Format_RGBA8;
+      X      : Natural;
+      Y      : Natural;
+      W      : Natural;
+      H      : Natural)
+      return Float
+   is
+      pragma Unreferenced (Format);
+      Total_Pixels : constant Natural := Width * Height;
+      Required     : constant Natural := Total_Pixels * Bytes_Per_Pixel;
+      Reference    : Frame_Reference;
+      X_End        : Natural;
+      Y_End        : Natural;
+      Area         : Natural;
+      Ink          : Natural := 0;
+   begin
+      if Width = 0 or else Height = 0
+        or else Total_Pixels = 0
+        or else Data'Length < Required
+        or else W = 0 or else H = 0
+        or else X >= Width or else Y >= Height
+      then
+         return 0.0;
+      end if;
+
+      --  Clamp the exclusive right/bottom edges to the frame.
+      X_End := Natural'Min (X + W, Width);
+      Y_End := Natural'Min (Y + H, Height);
+      Area := (X_End - X) * (Y_End - Y);
+      if Area = 0 then
+         return 0.0;
+      end if;
+
+      Reference := Compute_Reference (Data, Width, Height);
+      if not Reference.Valid then
+         return 0.0;
+      end if;
+
+      for Row in Y .. Y_End - 1 loop
+         for Column in X .. X_End - 1 loop
+            declare
+               Base : constant Positive :=
+                 Data'First + ((Row * Width) + Column) * Bytes_Per_Pixel;
+            begin
+               if Ink_Distance (Data (Base), Data (Base + 1), Data (Base + 2), Reference)
+                    >= Ink_Channel_Distance
+               then
+                  Ink := Ink + 1;
+               end if;
+            end;
+         end loop;
+      end loop;
+
+      return Float (Ink) / Float (Area);
+   end Region_Ink_Fraction;
+
+   function Region_Has_Ink
+     (Data         : Byte_Array;
+      Width        : Natural;
+      Height       : Natural;
+      Format       : Pixel_Format := Pixel_Format_RGBA8;
+      X            : Natural;
+      Y            : Natural;
+      W            : Natural;
+      H            : Natural;
+      Min_Fraction : Float := Default_Region_Ink_Fraction)
+      return Boolean is
+   begin
+      return Region_Ink_Fraction (Data, Width, Height, Format, X, Y, W, H) >= Min_Fraction;
+   end Region_Has_Ink;
 
 end Files.Rendering.Frame_Analysis;

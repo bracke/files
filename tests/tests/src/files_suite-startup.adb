@@ -1932,7 +1932,8 @@ package body Files_Suite.Startup is
            (Rendered       => True,
             Readback_Ready => True,
             Passed         => True,
-            Hash           => Next_Hash);
+            Hash           => Next_Hash,
+            others         => <>);
          Next_Hash := Next_Hash + 1;
       end loop;
 
@@ -1959,6 +1960,29 @@ package body Files_Suite.Startup is
         (not Files.Application.Windows.Scenario_Passed
               (Duplicate, Files.Application.Windows.Scenario_Selection),
          "a non-default scenario identical to default is not a passing scenario");
+
+      --  A scenario that structurally passed and differs from default but whose
+      --  layout-derived region assertion found no ink fails the aggregate: the
+      --  asserted UI element is missing from its computed pixel position.
+      declare
+         Region_Fail : Files.Application.Windows.Scenario_Outcome_Array := All_Distinct;
+      begin
+         Region_Fail (Files.Application.Windows.Scenario_Selection).Region_Checked := True;
+         Region_Fail (Files.Application.Windows.Scenario_Selection).Region_Ink_Present := False;
+         Assert
+           (not Files.Application.Windows.Scenario_Passed
+                 (Region_Fail, Files.Application.Windows.Scenario_Selection),
+            "an empty layout-derived region fails the scenario despite a structural pass");
+         Assert
+           (not Files.Application.Windows.Scenarios_Verdict (Region_Fail),
+            "an empty layout-derived region fails the aggregate verdict");
+
+         --  The same region check passing keeps the scenario and aggregate green.
+         Region_Fail (Files.Application.Windows.Scenario_Selection).Region_Ink_Present := True;
+         Assert
+           (Files.Application.Windows.Scenarios_Verdict (Region_Fail),
+            "a region assertion that found ink keeps the aggregate verdict passing");
+      end;
    end Test_Live_Smoke_Scenarios_Verdict;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is

@@ -89,4 +89,70 @@ package Files.Rendering.Frame_Analysis is
    --  @return True when the frame passes the structural checks.
    function Passed (Metrics : Frame_Metrics) return Boolean;
 
+   Default_Region_Ink_Fraction : constant Float := 0.01;
+   --  Lenient default ink-presence threshold for Region_Has_Ink: a region is
+   --  considered to hold drawn content when at least this fraction of its
+   --  pixels differ strongly from the frame background. Chosen low enough that
+   --  anti-aliasing and theme changes do not flake, yet strictly above zero so
+   --  a fully empty (background-only) region fails.
+
+   --  Return the fraction of "ink" pixels inside a rectangular region.
+   --
+   --  The rectangle (X, Y) .. (X + W, Y + H) is interpreted in the same
+   --  row-major framebuffer pixel coordinates as Analyze and clamped to the
+   --  frame. A pixel is "ink" when it differs strongly from the frame's
+   --  background reference color, using the identical background and ink logic
+   --  Analyze applies, so a layout-derived rectangle can be indexed straight
+   --  into a read-back framebuffer to prove an element rendered there.
+   --
+   --  When the buffer is malformed for the stated dimensions, the region is
+   --  empty, or the region lies fully outside the frame, the result is 0.0.
+   --
+   --  @param Data Raw framebuffer bytes.
+   --  @param Width Frame width in pixels.
+   --  @param Height Frame height in pixels.
+   --  @param Format Pixel layout of Data.
+   --  @param X Left edge of the region in frame pixels.
+   --  @param Y Top edge of the region in frame pixels.
+   --  @param W Region width in pixels.
+   --  @param H Region height in pixels.
+   --  @return Fraction (0.0 .. 1.0) of clamped-region pixels that are ink.
+   function Region_Ink_Fraction
+     (Data   : Byte_Array;
+      Width  : Natural;
+      Height : Natural;
+      Format : Pixel_Format := Pixel_Format_RGBA8;
+      X      : Natural;
+      Y      : Natural;
+      W      : Natural;
+      H      : Natural)
+      return Float;
+
+   --  Return whether a rectangular region holds drawn content (ink).
+   --
+   --  This is Region_Ink_Fraction thresholded by Min_Fraction. An empty or
+   --  out-of-range region returns False.
+   --
+   --  @param Data Raw framebuffer bytes.
+   --  @param Width Frame width in pixels.
+   --  @param Height Frame height in pixels.
+   --  @param Format Pixel layout of Data.
+   --  @param X Left edge of the region in frame pixels.
+   --  @param Y Top edge of the region in frame pixels.
+   --  @param W Region width in pixels.
+   --  @param H Region height in pixels.
+   --  @param Min_Fraction Minimum ink fraction for the region to count as drawn.
+   --  @return True when the region's ink fraction is at least Min_Fraction.
+   function Region_Has_Ink
+     (Data         : Byte_Array;
+      Width        : Natural;
+      Height       : Natural;
+      Format       : Pixel_Format := Pixel_Format_RGBA8;
+      X            : Natural;
+      Y            : Natural;
+      W            : Natural;
+      H            : Natural;
+      Min_Fraction : Float := Default_Region_Ink_Fraction)
+      return Boolean;
+
 end Files.Rendering.Frame_Analysis;

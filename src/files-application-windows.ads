@@ -74,6 +74,15 @@ package Files.Application.Windows is
       --  True when the scenario frame passed structural analysis.
       Hash           : Interfaces.Unsigned_32 := 0;
       --  Hash of the scenario's last read-back framebuffer.
+      Region_Checked : Boolean := False;
+      --  True when the scenario asserted a layout-derived UI element rectangle
+      --  against the read-back framebuffer (only some scenarios do).
+      Region_Ink_Present : Boolean := False;
+      --  True when that layout-derived rectangle held drawn content, proving
+      --  the element rendered at its computed pixel position. Meaningful only
+      --  when Region_Checked is set.
+      Region_Ink_Fraction : Float := 0.0;
+      --  Measured ink fraction of the checked region, retained for diagnostics.
    end record;
 
    type Scenario_Outcome_Array is array (Live_Smoke_Scenario) of Scenario_Outcome;

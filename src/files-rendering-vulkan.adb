@@ -1,5 +1,6 @@
 with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
 
 with Interfaces.C;
 with Glfw.Windows.Vulkan;
@@ -355,6 +356,14 @@ package body Files.Rendering.Vulkan is
       return Boolean;
 
    procedure Capture_Completed_Readback
+     (Renderer : in out Vulkan_Renderer);
+
+   procedure Free_Retained_Frame is new Ada.Unchecked_Deallocation
+     (Object => Files.Rendering.Frame_Analysis.Byte_Array,
+      Name   => Retained_Frame_Access);
+
+   --  Release the retained read-back framebuffer copy, if any.
+   procedure Release_Readback_Copy
      (Renderer : in out Vulkan_Renderer);
 
    function Record_Command_Buffers
@@ -1715,6 +1724,21 @@ package body Files.Rendering.Vulkan is
               Format => Frame_Analysis.Pixel_Format_RGBA8);
          Renderer.Last_Frame_Passed :=
            Frame_Analysis.Passed (Renderer.Last_Frame_Metrics);
+
+         --  Retain a heap copy of the pixels so layout-derived region checks
+         --  can index the same framebuffer after this mapped memory is
+         --  unmapped below.
+         if Renderer.Readback_Copy = null
+           or else Renderer.Readback_Copy_Length /= Renderer.Readback_Bytes
+         then
+            Free_Retained_Frame (Renderer.Readback_Copy);
+            Renderer.Readback_Copy :=
+              new Frame_Analysis.Byte_Array (1 .. Renderer.Readback_Bytes);
+            Renderer.Readback_Copy_Length := Renderer.Readback_Bytes;
+         end if;
+         Renderer.Readback_Copy.all := Frame;
+         Renderer.Readback_Copy_Width := Renderer.Frame_Width_Value;
+         Renderer.Readback_Copy_Height := Renderer.Frame_Height_Value;
       end;
 
       Vk.Unmap_Memory (Renderer.Device, Renderer.Readback_Memory);
@@ -1729,6 +1753,56 @@ package body Files.Rendering.Vulkan is
          Renderer.Readback_Pending := False;
          Renderer.Readback_Ready := False;
    end Capture_Completed_Readback;
+
+   procedure Release_Readback_Copy
+     (Renderer : in out Vulkan_Renderer) is
+   begin
+      Free_Retained_Frame (Renderer.Readback_Copy);
+      Renderer.Readback_Copy := null;
+      Renderer.Readback_Copy_Length := 0;
+      Renderer.Readback_Copy_Width := 0;
+      Renderer.Readback_Copy_Height := 0;
+   end Release_Readback_Copy;
+
+   function Readback_Region_Ink_Fraction
+     (Renderer : Vulkan_Renderer;
+      X        : Natural;
+      Y        : Natural;
+      W        : Natural;
+      H        : Natural)
+      return Float is
+   begin
+      if Renderer.Readback_Copy = null
+        or else not Renderer.Readback_Ready
+        or else Renderer.Readback_Copy_Width = 0
+        or else Renderer.Readback_Copy_Height = 0
+      then
+         return 0.0;
+      end if;
+
+      return Frame_Analysis.Region_Ink_Fraction
+        (Data   => Renderer.Readback_Copy.all,
+         Width  => Renderer.Readback_Copy_Width,
+         Height => Renderer.Readback_Copy_Height,
+         Format => Frame_Analysis.Pixel_Format_RGBA8,
+         X      => X,
+         Y      => Y,
+         W      => W,
+         H      => H);
+   end Readback_Region_Ink_Fraction;
+
+   function Readback_Region_Has_Ink
+     (Renderer     : Vulkan_Renderer;
+      X            : Natural;
+      Y            : Natural;
+      W            : Natural;
+      H            : Natural;
+      Min_Fraction : Float :=
+        Files.Rendering.Frame_Analysis.Default_Region_Ink_Fraction)
+      return Boolean is
+   begin
+      return Readback_Region_Ink_Fraction (Renderer, X, Y, W, H) >= Min_Fraction;
+   end Readback_Region_Has_Ink;
 
    function Upload_Atlas
      (Renderer : in out Vulkan_Renderer;
@@ -3267,6 +3341,7 @@ package body Files.Rendering.Vulkan is
      (Renderer : in out Vulkan_Renderer) is
    begin
       Destroy_Swapchain_Resources (Renderer);
+      Release_Readback_Copy (Renderer);
 
       if Renderer.Surface_Live then
          Vk.Destroy_Surface_KHR

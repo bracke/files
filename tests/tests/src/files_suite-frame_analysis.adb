@@ -30,6 +30,8 @@ package body Files_Suite.Frame_Analysis is
    procedure Test_Uniform_Frame_Fails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Banded_Frame_Passes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Band_Fails (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Region_Ink_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Region_Clamping (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    --  Write one RGBA pixel into Buffer at column X, row Y.
    procedure Set_Pixel
@@ -68,6 +70,19 @@ package body Files_Suite.Frame_Analysis is
       end loop;
    end Paint_Ink_Row;
 
+   --  Fill a solid rectangle of pixels with one color.
+   procedure Fill_Rect
+     (Buffer : in out Sample_Buffer;
+      X, Y, W, H : Natural;
+      Red, Green, Blue : Interfaces.Unsigned_8) is
+   begin
+      for Row in Y .. Y + H - 1 loop
+         for Column in X .. X + W - 1 loop
+            Set_Pixel (Buffer, Column, Row, Red, Green, Blue);
+         end loop;
+      end loop;
+   end Fill_Rect;
+
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -82,6 +97,12 @@ package body Files_Suite.Frame_Analysis is
         (T, Test_Banded_Frame_Passes'Access, "a banded frame with scattered ink passes");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Empty_Band_Fails'Access, "a frame with one empty band fails");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Region_Ink_Detection'Access,
+         "an inked rectangle reports high region ink; a background region reports none");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Region_Clamping'Access,
+         "region checks clamp safely for out-of-range and empty rectangles");
    end Register_Tests;
 
    procedure Test_Uniform_Frame_Fails (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -149,6 +170,97 @@ package body Files_Suite.Frame_Analysis is
       Assert (Bands_With_Content (Metrics) = 2, "only two bands hold content");
       Assert (not Passed (Metrics), "a frame with a missing region must not pass");
    end Test_Empty_Band_Fails;
+
+   procedure Test_Region_Ink_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Buffer : Sample_Buffer;
+      Inked_Rect_X : constant := 8;
+      Inked_Rect_Y : constant := 40;
+      Inked_Rect_W : constant := 24;
+      Inked_Rect_H : constant := 16;
+      Ink_Fraction    : Float;
+      Background_Fraction : Float;
+   begin
+      --  A frame whose background dominates, with one bright solid rectangle
+      --  painted in the middle band. The rectangle's own rectangle must read as
+      --  almost fully inked, while a same-size rectangle over plain background
+      --  reads as empty.
+      Fill_Background (Buffer, 30, 30, 40);
+      Fill_Rect
+        (Buffer, Inked_Rect_X, Inked_Rect_Y, Inked_Rect_W, Inked_Rect_H,
+         240, 240, 250);
+
+      Ink_Fraction :=
+        Region_Ink_Fraction
+          (Buffer, Frame_Width, Frame_Height,
+           X => Inked_Rect_X, Y => Inked_Rect_Y,
+           W => Inked_Rect_W, H => Inked_Rect_H);
+      Assert (Ink_Fraction > 0.9,
+              "a rectangle painted with ink reports a near-full ink fraction");
+      Assert
+        (Region_Has_Ink
+           (Buffer, Frame_Width, Frame_Height,
+            X => Inked_Rect_X, Y => Inked_Rect_Y,
+            W => Inked_Rect_W, H => Inked_Rect_H),
+         "an inked rectangle is reported as holding ink");
+
+      --  A background-only rectangle in the top band, well clear of the ink.
+      Background_Fraction :=
+        Region_Ink_Fraction
+          (Buffer, Frame_Width, Frame_Height,
+           X => 0, Y => 0, W => 16, H => 16);
+      Assert (Background_Fraction < 0.01,
+              "a background-only region reports essentially no ink");
+      Assert
+        (not Region_Has_Ink
+           (Buffer, Frame_Width, Frame_Height,
+            X => 0, Y => 0, W => 16, H => 16),
+         "a background-only region is not reported as holding ink");
+   end Test_Region_Ink_Detection;
+
+   procedure Test_Region_Clamping (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Buffer : Sample_Buffer;
+   begin
+      Fill_Background (Buffer, 30, 30, 40);
+      --  Ink pixels touching the far bottom-right corner, so a rectangle that
+      --  overhangs the frame edge still clamps onto real inked pixels.
+      Fill_Rect
+        (Buffer, Frame_Width - 8, Frame_Height - 8, 8, 8, 250, 250, 250);
+
+      --  A rectangle whose origin is outside the frame yields no ink.
+      Assert
+        (Region_Ink_Fraction
+           (Buffer, Frame_Width, Frame_Height,
+            X => Frame_Width, Y => 0, W => 10, H => 10) = 0.0,
+         "a region starting outside the frame yields zero ink");
+
+      --  A zero-area rectangle yields no ink.
+      Assert
+        (Region_Ink_Fraction
+           (Buffer, Frame_Width, Frame_Height,
+            X => 4, Y => 4, W => 0, H => 0) = 0.0,
+         "an empty region yields zero ink");
+
+      --  A rectangle overhanging the bottom-right edge clamps to the frame and
+      --  still detects the inked corner rather than reading out of bounds.
+      Assert
+        (Region_Has_Ink
+           (Buffer, Frame_Width, Frame_Height,
+            X => Frame_Width - 8, Y => Frame_Height - 8, W => 64, H => 64),
+         "a rectangle overhanging the frame edge clamps and finds corner ink");
+
+      --  A malformed (too small) buffer for the stated dimensions yields no ink.
+      declare
+         Tiny : constant Byte_Array (1 .. 16) := [others => 0];
+      begin
+         Assert
+           (Region_Ink_Fraction
+              (Tiny, Frame_Width, Frame_Height,
+               X => 0, Y => 0, W => 4, H => 4) = 0.0,
+            "a buffer too small for the stated dimensions yields zero ink");
+      end;
+   end Test_Region_Clamping;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

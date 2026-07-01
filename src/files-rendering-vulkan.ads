@@ -460,6 +460,50 @@ package Files.Rendering.Vulkan is
      (Renderer : in out Vulkan_Renderer;
       Enabled  : Boolean);
 
+   --  Return the ink fraction of a layout-derived rectangle of the last frame.
+   --
+   --  The renderer retains a copy of the most recent read-back framebuffer;
+   --  this indexes that copy with a rectangle expressed in the same framebuffer
+   --  pixel coordinates the layout functions produce, delegating to
+   --  Files.Rendering.Frame_Analysis.Region_Ink_Fraction. Returns 0.0 when no
+   --  readback is available or the rectangle is empty/out of range.
+   --
+   --  @param Renderer Renderer holding the retained framebuffer copy.
+   --  @param X Left edge of the region in framebuffer pixels.
+   --  @param Y Top edge of the region in framebuffer pixels.
+   --  @param W Region width in pixels.
+   --  @param H Region height in pixels.
+   --  @return Fraction (0.0 .. 1.0) of clamped-region pixels that are ink.
+   function Readback_Region_Ink_Fraction
+     (Renderer : Vulkan_Renderer;
+      X        : Natural;
+      Y        : Natural;
+      W        : Natural;
+      H        : Natural)
+      return Float;
+
+   --  Return whether a layout-derived rectangle of the last frame holds ink.
+   --
+   --  Thresholds Readback_Region_Ink_Fraction by Min_Fraction. Returns False
+   --  when no readback is available or the rectangle is empty/out of range.
+   --
+   --  @param Renderer Renderer holding the retained framebuffer copy.
+   --  @param X Left edge of the region in framebuffer pixels.
+   --  @param Y Top edge of the region in framebuffer pixels.
+   --  @param W Region width in pixels.
+   --  @param H Region height in pixels.
+   --  @param Min_Fraction Minimum ink fraction for the region to count as drawn.
+   --  @return True when the retained region's ink fraction is at least Min_Fraction.
+   function Readback_Region_Has_Ink
+     (Renderer     : Vulkan_Renderer;
+      X            : Natural;
+      Y            : Natural;
+      W            : Natural;
+      H            : Natural;
+      Min_Fraction : Float :=
+        Files.Rendering.Frame_Analysis.Default_Region_Ink_Fraction)
+      return Boolean;
+
    --  Submit a prepared frame batch to the renderer presentation path.
    --
    --  On a live swapchain this records commands and presents the image. When
@@ -482,6 +526,10 @@ private
    type Image_View_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Image_View_T;
    type Framebuffer_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Framebuffer_T;
    type Command_Buffer_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Command_Buffer_T;
+
+   type Retained_Frame_Access is access Files.Rendering.Frame_Analysis.Byte_Array;
+   --  Heap copy of the last read-back framebuffer, retained so layout-derived
+   --  region checks can index it after the mapped Vulkan memory is unmapped.
 
    type Vulkan_Renderer is record
       Instance              : Vk.Instance_T := System.Null_Address;
@@ -565,6 +613,10 @@ private
       Last_Readback_Hash   : Interfaces.Unsigned_32 := 0;
       Last_Frame_Metrics   : Files.Rendering.Frame_Analysis.Frame_Metrics;
       Last_Frame_Passed    : Boolean := False;
+      Readback_Copy        : Retained_Frame_Access := null;
+      Readback_Copy_Length : Natural := 0;
+      Readback_Copy_Width  : Natural := 0;
+      Readback_Copy_Height : Natural := 0;
       Pending_Width_Value   : Natural := 0;
       Pending_Height_Value  : Natural := 0;
       Presented_Frames      : Natural := 0;
