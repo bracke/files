@@ -36,6 +36,10 @@ it under a dated version heading when a release is cut.
   readiness tool (built on `project_tools`), and a documented release process.
 
 ### Changed
+- Theme is chosen with a single selector (dark / light / high-contrast) instead
+  of separate toggles; the live-smoke GPU gate also checks UI elements render at
+  their layout coordinates.
+- The item context menu is grouped with separators; Undo has a Ctrl+Z shortcut.
 - UI refinements: larger toolbar icons, borderless disabled toolbar buttons,
   wider (untruncated) context menus, fully-padded tooltips, and tighter
   bottom-bar sort spacing. The main-grid hover highlight is suppressed while the
