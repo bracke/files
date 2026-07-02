@@ -173,6 +173,26 @@ package body Files_Suite.Rendering is
       return False;
    end Has_Rectangle_Colored;
 
+   --  True when the frame emits an overlay rectangle at exactly (X, Y) with the
+   --  given width and height (used to check the progress bar's filled portion).
+   function Has_Overlay_Rect_At
+     (Frame  : Frame_Commands;
+      X      : Natural;
+      Y      : Natural;
+      Width  : Natural;
+      Height : Natural)
+      return Boolean is
+   begin
+      for Rect of Frame.Overlay_Rectangles loop
+         if Rect.X = X and then Rect.Y = Y
+           and then Rect.Width = Width and then Rect.Height = Height
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Overlay_Rect_At;
+
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Modes : constant array (1 .. 3) of Files.Types.View_Mode :=
@@ -1240,6 +1260,33 @@ package body Files_Suite.Rendering is
            (Conflict_Hit_At (Frame, Dialog.Replace_X + Dialog.Button_Width / 2,
               Dialog.Button_Y + Dialog.Button_Height / 2).Kind = Conflict_Hit_Replace,
             "the replace button is hit-testable at its center");
+      end;
+
+      --  Paste-progress overlay: exposes a Cancel affordance and a proportional
+      --  progress bar while a long copy/move is in flight.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         Panel  : Paste_Progress_Layout;
+         Frame  : Frame_Commands;
+         Expected_Fill : Natural;
+      begin
+         Snap.Paste_Progress_Open := True;
+         Snap.Paste_Progress_Done := 3;
+         Snap.Paste_Progress_Total := 10;
+         Snap.Paste_Progress_Name := To_Unbounded_String ("bigfile.bin");
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         Panel  := Calculate_Paste_Progress_Layout (Snap, Layout, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress_Done) / Snap.Paste_Progress_Total;
+         Assert
+           (Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
+              Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Conflict_Hit_Progress_Cancel,
+            "the paste-progress overlay exposes a hit-testable Cancel button");
+         Assert (Expected_Fill > 0, "a partial progress produces a non-empty filled bar");
+         Assert
+           (Has_Overlay_Rect_At (Frame, Panel.Bar_X, Panel.Bar_Y, Expected_Fill, Panel.Bar_Height),
+            "the progress bar's filled width is proportional to Done / Total");
       end;
    end Test_Panels_Expose_Close_Button;
 

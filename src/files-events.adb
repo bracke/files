@@ -81,6 +81,29 @@ package body Files.Events is
          Scroll_Drag_Anchor => 0);
    end Conflict_Action;
 
+   function Paste_Cancel_Action
+     (Activate : Boolean := False)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Paste_Cancel_Input_Action,
+         Command         => Files.Commands.No_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => 0,
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => 0,
+         Settings_Field  => 0,
+         Settings_Option => 0,
+         Activate        => Activate,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
+   end Paste_Cancel_Action;
+
    function Selection_Action
      (Direction : Files.Types.Navigation_Direction)
       return Input_Action is
@@ -666,6 +689,22 @@ package body Files.Events is
             Scroll_Drag_Anchor => 0);
       end Breadcrumb_Action;
    begin
+      --  The paste-progress overlay is a modal-lite top-most panel: while a long
+      --  copy/move runs, a click either hits its Cancel button or is swallowed so
+      --  nothing behind it reacts.
+      if Snapshot.Paste_Progress_Open then
+         declare
+            use type Files.Rendering.Conflict_Hit_Kind;
+            Hit : constant Files.Rendering.Conflict_Hit_Region :=
+              Files.Rendering.Conflict_Hit_At (Frame, X, Y);
+         begin
+            if Hit.Kind = Files.Rendering.Conflict_Hit_Progress_Cancel then
+               return Paste_Cancel_Action (Activate);
+            end if;
+            return No_Action (Activate);
+         end;
+      end if;
+
       --  The paste-conflict dialog is a top-most modal: while it is open it
       --  consumes every click, either resolving to one of its controls or being
       --  swallowed so nothing behind it reacts.
@@ -688,7 +727,8 @@ package body Files.Events is
                   return Conflict_Action (Conflict_Button_Cancel, Activate);
                when Files.Rendering.Conflict_Hit_Apply_All =>
                   return Conflict_Action (Conflict_Button_Apply_All, Activate);
-               when Files.Rendering.Conflict_Hit_None =>
+               when Files.Rendering.Conflict_Hit_None
+                  | Files.Rendering.Conflict_Hit_Progress_Cancel =>
                   if Close_Button_Hit (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height) then
                      return Conflict_Action (Conflict_Button_Cancel, Activate);
                   end if;

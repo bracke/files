@@ -131,6 +131,9 @@ package body Files_Suite.Operations is
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Execution_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -198,6 +201,15 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Conflict_Flow'Access,
          "paste into a colliding directory prompts and resolves replace/skip/rename/apply-all/cancel/undo");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Execution_Batches'Access,
+         "the resumable paste executor advances in batches and records one undo over the whole set");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Execution_Cancel'Access,
+         "cancelling a paste keeps completed files, skips the rest, and records undo only for completed");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Execution_Small_Op'Access,
+         "a one-item paste finishes in the first advance and leaves no execution state");
    end Register_Tests;
 
    procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4299,5 +4311,174 @@ package body Files_Suite.Operations is
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "cancel writes no copy");
       Assert (Files.Model.Clipboard_Has_Items (Model), "cancel keeps the clipboard for a retry");
    end Test_Paste_Conflict_Flow;
+
+   procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "exec-src");
+      Dest_Dir : constant String := Join (Root, "exec-dest");
+      Count    : constant := 5;
+      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operations.Operation_Result;
+
+      function Img (N : Integer) return String is
+      begin
+         return Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both);
+      end Img;
+
+      function Src (N : Positive) return String is (Join (Src_Dir, "f" & Img (N) & ".txt"));
+      function Dest (N : Positive) return String is (Join (Dest_Dir, "f" & Img (N) & ".txt"));
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      for N in 1 .. Count loop
+         Write_File (Src (N), "S" & Img (N));
+         Actions.Append
+           (Files.Paste.Resolved_Action'
+              (Source_Path => To_Unbounded_String (Src (N)),
+               Dest_Path   => To_Unbounded_String (Dest (N)),
+               Skip        => False,
+               Replaced    => False));
+      end loop;
+
+      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Assert (Files.Model.Paste_Execution_Is_Active (Model), "arming a paste execution activates it");
+      Assert (Files.Model.Paste_Execution_Total (Model) = Count, "the total counts every write action");
+      Assert (Files.Model.Paste_Execution_Done (Model) = 0, "nothing is done before the first advance");
+
+      --  Max_Items = 2 over 5 actions => completes after ceil(5 / 2) = 3 calls.
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Assert (Step.Status = Files.Operations.Operation_Success, "the first batch reports success");
+      Assert (Files.Model.Paste_Execution_Is_Active (Model), "the execution is still in progress after one batch");
+      Assert (Files.Model.Paste_Execution_Done (Model) = 2, "the first batch completes two writes");
+
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Assert (Files.Model.Paste_Execution_Is_Active (Model), "the execution is still in progress after two batches");
+      Assert (Files.Model.Paste_Execution_Done (Model) = 4, "progress advances to four writes");
+
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the third batch finalizes the execution");
+
+      for N in 1 .. Count loop
+         Assert (Ada.Directories.Exists (Dest (N)), "every source is copied to the destination");
+         Assert (Ada.Directories.Exists (Src (N)), "a copy leaves the sources in place");
+      end loop;
+
+      Assert (Files.Model.Undo_Available (Model), "the completed paste records an undo");
+      Assert
+        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Delete_Created,
+         "a copy paste is undone by deleting the created copies");
+      Assert
+        (Natural (Files.Model.Undo_From_Paths (Model).Length) = Count,
+         "one undo covers the whole completed set");
+
+      Step := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Step.Status = Files.Operations.Operation_Success, "undo of the paste succeeds");
+      for N in 1 .. Count loop
+         Assert (not Ada.Directories.Exists (Dest (N)), "undo removes each pasted copy");
+      end loop;
+   end Test_Paste_Execution_Batches;
+
+   procedure Test_Paste_Execution_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "cancel-src");
+      Dest_Dir : constant String := Join (Root, "cancel-dest");
+      Count    : constant := 4;
+      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operations.Operation_Result;
+      pragma Unreferenced (Step);
+
+      function Img (N : Integer) return String is
+      begin
+         return Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both);
+      end Img;
+
+      function Src (N : Positive) return String is (Join (Src_Dir, "f" & Img (N) & ".txt"));
+      function Dest (N : Positive) return String is (Join (Dest_Dir, "f" & Img (N) & ".txt"));
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      for N in 1 .. Count loop
+         Write_File (Src (N), "S" & Img (N));
+         Actions.Append
+           (Files.Paste.Resolved_Action'
+              (Source_Path => To_Unbounded_String (Src (N)),
+               Dest_Path   => To_Unbounded_String (Dest (N)),
+               Skip        => False,
+               Replaced    => False));
+      end loop;
+
+      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Assert (Files.Model.Paste_Execution_Done (Model) = 2, "two writes complete before cancelling");
+
+      Files.Operations.Cancel_Paste_Execution (Model);
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "a cancelled paste finalizes on the next advance");
+
+      Assert (Ada.Directories.Exists (Dest (1)), "the first completed copy is kept");
+      Assert (Ada.Directories.Exists (Dest (2)), "the second completed copy is kept");
+      Assert (not Ada.Directories.Exists (Dest (3)), "cancelling writes none of the remaining sources");
+      Assert (not Ada.Directories.Exists (Dest (4)), "cancelling writes none of the remaining sources");
+      for N in 1 .. Count loop
+         Assert (Ada.Directories.Exists (Src (N)), "all sources remain after a cancelled copy");
+      end loop;
+
+      Assert (Files.Model.Undo_Available (Model), "a cancelled paste still records an undo for completed items");
+      Assert
+        (Natural (Files.Model.Undo_From_Paths (Model).Length) = 2,
+         "the undo covers only the two completed writes");
+
+      Step := Files.Operations.Undo_Last (Model, Settings);
+      Assert (not Ada.Directories.Exists (Dest (1)), "undo removes the first completed copy");
+      Assert (not Ada.Directories.Exists (Dest (2)), "undo removes the second completed copy");
+   end Test_Paste_Execution_Cancel;
+
+   procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "small-src");
+      Dest_Dir : constant String := Join (Root, "small-dest");
+      Source   : constant String := Join (Src_Dir, "only.txt");
+      Dest     : constant String := Join (Dest_Dir, "only.txt");
+      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Source, "ONLY");
+      Actions.Append
+        (Files.Paste.Resolved_Action'
+           (Source_Path => To_Unbounded_String (Source),
+            Dest_Path   => To_Unbounded_String (Dest),
+            Skip        => False,
+            Replaced    => False));
+
+      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+
+      --  A single-item paste finishes within the first advance and leaves no
+      --  lingering execution state (so no progress overlay is ever shown).
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+      Assert (Step.Status = Files.Operations.Operation_Success, "the one-item paste reports success");
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the one-item paste clears its execution state");
+      Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");
+   end Test_Paste_Execution_Small_Op;
 
 end Files_Suite.Operations;

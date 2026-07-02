@@ -1874,6 +1874,19 @@ package body Files.Application.Windows is
          Frame_W    => Width,
          Mouse_Down => Mouse_Down);
 
+      --  Drive a long copy/move a few actions at a time so the UI stays
+      --  responsive and the progress overlay animates. Small pastes have already
+      --  finished (in Begin_Paste / Resolve_Paste_Conflict) and never get here.
+      if Files.Model.Paste_Execution_Is_Active (Runtime.Model) then
+         declare
+            Progress : constant Files.Operations.Operation_Result :=
+              Files.Operations.Advance_Paste_Execution (Runtime.Model, Runtime.Settings, 8);
+            pragma Unreferenced (Progress);
+         begin
+            null;
+         end;
+      end if;
+
       declare
          Hover_X  : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Width);
          Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);

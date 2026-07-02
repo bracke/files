@@ -1687,6 +1687,22 @@ package body Files.Controller is
            and then not Modifiers (Files.Types.Meta_Key);
       end Control_Only;
    begin
+      --  While a long paste is running the progress overlay owns the keyboard:
+      --  Escape requests cancellation (already-copied files are kept) and every
+      --  other key is swallowed so no command runs behind the modal-lite panel.
+      if Files.Model.Paste_Execution_Is_Active (Model) then
+         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+            Files.Operations.Cancel_Paste_Execution (Model);
+            declare
+               Finalized : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+            begin
+               return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Finalized);
+            end;
+         end if;
+         return Make_Result (Controller_Ignored);
+      end if;
+
       --  While the paste-conflict dialog is open it owns the keyboard: Escape
       --  cancels the whole paste and every other key is swallowed so no command
       --  runs behind the modal.
@@ -2229,7 +2245,8 @@ package body Files.Controller is
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action
             | Files.Events.Permission_Toggle_Input_Action
-            | Files.Events.Conflict_Click_Input_Action =>
+            | Files.Events.Conflict_Click_Input_Action
+            | Files.Events.Paste_Cancel_Input_Action =>
             null;
       end case;
 

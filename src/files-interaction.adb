@@ -414,6 +414,18 @@ package body Files.Interaction is
                     and then not Files.Model.Paste_Conflict_Is_Active (Model);
                end;
             end if;
+         when Files.Events.Paste_Cancel_Input_Action =>
+            --  Request cancellation of the in-flight paste, then finalize over
+            --  the items completed so far (already-copied files are kept).
+            Files.Operations.Cancel_Paste_Execution (Model);
+            declare
+               Outcome : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+            begin
+               Result.Directory_Reloaded :=
+                 Outcome.Status = Files.Operations.Operation_Success
+                 and then not Files.Model.Paste_Execution_Is_Active (Model);
+            end;
          when Files.Events.Scroll_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Targeted_Scroll

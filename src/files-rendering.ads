@@ -240,6 +240,13 @@ package Files.Rendering is
       Paste_Conflict_Open            : Boolean := False;
       Paste_Conflict_Name           : UString;
       Paste_Conflict_Apply_All      : Boolean := False;
+      --  Resumable paste progress: open while a long copy/move is in flight,
+      --  showing Done/Total, the current item name, and a Cancel button.
+      Paste_Progress_Open            : Boolean := False;
+      Paste_Progress_Done            : Natural := 0;
+      Paste_Progress_Total           : Natural := 0;
+      Paste_Progress_Name            : UString;
+      Paste_Progress_Moving          : Boolean := False;
    end record;
 
    --  A context-menu row is either a selectable command or a non-selectable
@@ -426,6 +433,23 @@ package Files.Rendering is
       Rename_X     : Natural := 0;
       Cancel_X     : Natural := 0;
       Button_Width : Natural := 0;
+   end record;
+
+   --  Geometry of the centered paste-progress overlay: the outer panel, the
+   --  progress-bar track, and the single Cancel button.
+   type Paste_Progress_Layout is record
+      X             : Natural := 0;
+      Y             : Natural := 0;
+      Width         : Natural := 0;
+      Height        : Natural := 0;
+      Bar_X         : Natural := 0;
+      Bar_Y         : Natural := 0;
+      Bar_Width     : Natural := 0;
+      Bar_Height    : Natural := 0;
+      Cancel_X      : Natural := 0;
+      Cancel_Y      : Natural := 0;
+      Cancel_Width  : Natural := 0;
+      Cancel_Height : Natural := 0;
    end record;
 
    type Root_Path_Layout is record
@@ -775,7 +799,8 @@ package Files.Rendering is
       Conflict_Hit_Skip,
       Conflict_Hit_Rename,
       Conflict_Hit_Cancel,
-      Conflict_Hit_Apply_All);
+      Conflict_Hit_Apply_All,
+      Conflict_Hit_Progress_Cancel);
 
    type Conflict_Hit_Region is record
       Kind   : Conflict_Hit_Kind := Conflict_Hit_None;
@@ -844,6 +869,18 @@ package Files.Rendering is
       Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Conflict_Dialog_Layout;
+
+   --  Compute the centered paste-progress overlay geometry for a window.
+   --
+   --  @param Snapshot View snapshot (used only for consistent sizing).
+   --  @param Layout Overall layout metrics for the window.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
+   function Calculate_Paste_Progress_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Paste_Progress_Layout;
 
    --  Return the paste-conflict-dialog control containing a point, if any.
    --

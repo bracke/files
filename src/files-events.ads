@@ -20,7 +20,8 @@ package Files.Events is
       Tree_Click_Input_Action,
       Command_Result_Click_Input_Action,
       Permission_Toggle_Input_Action,
-      Conflict_Click_Input_Action);
+      Conflict_Click_Input_Action,
+      Paste_Cancel_Input_Action);
 
    --  Button codes carried in Input_Action.Settings_Field for a
    --  Conflict_Click_Input_Action, identifying which paste-conflict-dialog

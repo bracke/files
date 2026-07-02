@@ -1833,6 +1833,17 @@ package body Files.Rendering is
       Snapshot.Paste_Conflict_Open := Files.Model.Paste_Conflict_Is_Active (Model);
       Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Paste_Conflict_Name (Model));
       Snapshot.Paste_Conflict_Apply_All := Files.Model.Paste_Conflict_Apply_All (Model);
+      Snapshot.Paste_Progress_Open := Files.Model.Paste_Execution_Is_Active (Model);
+      Snapshot.Paste_Progress_Done := Files.Model.Paste_Execution_Done (Model);
+      Snapshot.Paste_Progress_Total := Files.Model.Paste_Execution_Total (Model);
+      Snapshot.Paste_Progress_Name :=
+        To_Unbounded_String (Files.Model.Paste_Execution_Current_Name (Model));
+      declare
+         use type Files.File_System.Drop_Import_Mode;
+      begin
+         Snapshot.Paste_Progress_Moving :=
+           Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move;
+      end;
       Snapshot.Settings_Can_Save := Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model);
       Snapshot.Settings_Can_Reset := Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model);
       Snapshot.Theme_Name := Theme.Name;
@@ -2774,6 +2785,60 @@ package body Files.Rendering is
              (X, Saturating_Add (Saturating_Multiply (Pad, 4), Saturating_Multiply (Button_W, 3))),
          Button_Width  => Button_W);
    end Calculate_Conflict_Dialog_Layout;
+
+   function Calculate_Paste_Progress_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Paste_Progress_Layout
+   is
+      pragma Unreferenced (Snapshot);
+      Pad       : constant Natural := 12;
+      Max_Width : constant Natural := Saturating_Multiply (Line_Height, 22);
+      Margin    : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Inner_W   : constant Natural :=
+        (if Layout.Width > Saturating_Multiply (Margin, 2)
+         then Layout.Width - Saturating_Multiply (Margin, 2)
+         else Layout.Width);
+      Width     : constant Natural := Natural'Min (Max_Width, Inner_W);
+      Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Bar_H     : constant Natural := Natural'Max (6, Line_Height / 2);
+      Button_H  : constant Natural := Saturating_Add (Line_Height, Pad);
+      Height    : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Pad, 5),
+           Saturating_Add (Message_H, Saturating_Add (Bar_H, Button_H)));
+      X         : constant Natural := (if Layout.Width > Width then (Layout.Width - Width) / 2 else 0);
+      Y         : constant Natural := (if Layout.Height > Height then (Layout.Height - Height) / 2 else 0);
+      Bar_W     : constant Natural :=
+        (if Width > Saturating_Multiply (Pad, 2) then Width - Saturating_Multiply (Pad, 2) else Width);
+      Bar_Y     : constant Natural :=
+        Saturating_Add (Y, Saturating_Add (Message_H, Saturating_Multiply (Pad, 2)));
+      Button_H2 : constant Natural := Button_H;
+      Button_Y  : constant Natural :=
+        (if Height > Saturating_Add (Pad, Button_H2)
+         then Saturating_Add (Y, Height - Pad - Button_H2) else Y);
+      Button_W  : constant Natural :=
+        Natural'Min
+          (Saturating_Multiply (Line_Height, 6),
+           (if Width > Saturating_Multiply (Pad, 2) then Width - Saturating_Multiply (Pad, 2) else Width));
+      Button_X  : constant Natural :=
+        (if Width > Saturating_Add (Button_W, Pad) then Saturating_Add (X, Width - Pad - Button_W) else X);
+   begin
+      return
+        (X             => X,
+         Y             => Y,
+         Width         => Width,
+         Height        => Height,
+         Bar_X         => Saturating_Add (X, Pad),
+         Bar_Y         => Bar_Y,
+         Bar_Width     => Bar_W,
+         Bar_Height    => Bar_H,
+         Cancel_X      => Button_X,
+         Cancel_Y      => Button_Y,
+         Cancel_Width  => Button_W,
+         Cancel_Height => Button_H2);
+   end Calculate_Paste_Progress_Layout;
 
    function Conflict_Hit_At
      (Frame : Frame_Commands;
@@ -8971,6 +9036,108 @@ package body Files.Rendering is
 
             --  Close button in the panel corner cancels the whole paste.
             Draw_Close_Button (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay => True);
+         end;
+      end if;
+
+      if Snapshot.Paste_Progress_Open then
+         declare
+            Panel  : constant Paste_Progress_Layout :=
+              Calculate_Paste_Progress_Layout (Snapshot, Layout, Line_Height);
+            Pad    : constant Natural := 12;
+            Text_W : constant Natural :=
+              (if Panel.Width > Saturating_Multiply (Pad, 2) then Panel.Width - Saturating_Multiply (Pad, 2)
+               else Panel.Width);
+            Verb_Key : constant String :=
+              (if Snapshot.Paste_Progress_Moving
+               then "dialog.paste_progress.moving"
+               else "dialog.paste_progress.copying");
+            Count_Line : constant UString :=
+              Localized (Verb_Key)
+              & To_Unbounded_String (" ")
+              & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Done)))
+              & To_Unbounded_String (" ")
+              & Localized ("dialog.paste_progress.of")
+              & To_Unbounded_String (" ")
+              & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Total)));
+            Filled : constant Natural :=
+              (if Snapshot.Paste_Progress_Total = 0 then Panel.Bar_Width
+               else (Panel.Bar_Width * Snapshot.Paste_Progress_Done) / Snapshot.Paste_Progress_Total);
+            Cancel_Hovered : constant Boolean :=
+              Has_Hover
+              and then Contains_Point
+                         (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
+                          Hover_X, Hover_Y);
+            Cancel_Pressed : constant Boolean :=
+              Is_Pressed (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height);
+            Cancel_Inset : constant Natural :=
+              (if Panel.Cancel_Height > Line_Height then (Panel.Cancel_Height - Line_Height) / 2 else 0);
+         begin
+            --  Modal-lite panel body and border.
+            Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, Panel.Height, Overlay_Color);
+            Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, 1, Border_Color);
+            Add_Overlay_Rect (Panel.X, Panel.Y, 1, Panel.Height, Border_Color);
+            if Panel.Height > 0 then
+               Add_Overlay_Rect
+                 (Panel.X, Saturating_Add (Panel.Y, Panel.Height - 1), Panel.Width, 1, Border_Color);
+            end if;
+            if Panel.Width > 0 then
+               Add_Overlay_Rect
+                 (Saturating_Add (Panel.X, Panel.Width - 1), Panel.Y, 1, Panel.Height, Border_Color);
+            end if;
+            Add_Accessibility_Node
+              (Role_Dialog, Panel.X, Panel.Y, Panel.Width, Panel.Height,
+               Localized ("dialog.paste_progress.title"));
+
+            --  "Copying/Moving N of M" plus the current item name.
+            Add_Overlay_Text
+              (Saturating_Add (Panel.X, Pad), Saturating_Add (Panel.Y, Pad), Text_W, Line_Height,
+               Count_Line, Text_Color, Fit => True);
+            Add_Overlay_Text
+              (Saturating_Add (Panel.X, Pad),
+               Saturating_Add (Panel.Y, Saturating_Add (Pad, Line_Height)),
+               Text_W, Line_Height, Snapshot.Paste_Progress_Name, Muted_Text_Color, Fit => True);
+
+            --  Progress bar: track, filled portion proportional to Done/Total, border.
+            Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, Panel.Bar_Height, Hover_Color);
+            if Filled > 0 then
+               Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Filled, Panel.Bar_Height, Selection_Color);
+            end if;
+            Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, 1, Border_Color);
+
+            --  Cancel button.
+            Add_Overlay_Rect
+              (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
+               (if Cancel_Pressed then Pressed_Color
+                elsif Cancel_Hovered then Hover_Color else Overlay_Color));
+            Add_Overlay_Rect (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, 1, Border_Color);
+            Add_Overlay_Rect (Panel.Cancel_X, Panel.Cancel_Y, 1, Panel.Cancel_Height, Border_Color);
+            if Panel.Cancel_Height > 0 then
+               Add_Overlay_Rect
+                 (Panel.Cancel_X, Saturating_Add (Panel.Cancel_Y, Panel.Cancel_Height - 1),
+                  Panel.Cancel_Width, 1, Border_Color);
+            end if;
+            if Panel.Cancel_Width > 0 then
+               Add_Overlay_Rect
+                 (Saturating_Add (Panel.Cancel_X, Panel.Cancel_Width - 1), Panel.Cancel_Y, 1,
+                  Panel.Cancel_Height, Border_Color);
+            end if;
+            Add_Overlay_Text
+              (Saturating_Add (Panel.Cancel_X, Files.UI.Input_Field_Padding),
+               Saturating_Add (Panel.Cancel_Y, Cancel_Inset),
+               (if Panel.Cancel_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                then Panel.Cancel_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                else Panel.Cancel_Width),
+               Line_Height, Localized ("dialog.paste_progress.button.cancel"), Text_Color, Fit => True);
+            Add_Accessibility_Node
+              (Role_Button, Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
+               Localized ("dialog.paste_progress.button.cancel"));
+            Result.Conflict_Hits.Append
+              (Conflict_Hit_Region'
+                 (Kind   => Conflict_Hit_Progress_Cancel,
+                  X      => Panel.Cancel_X,
+                  Y      => Panel.Cancel_Y,
+                  Width  => Panel.Cancel_Width,
+                  Height => Panel.Cancel_Height));
          end;
       end if;
 

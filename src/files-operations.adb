@@ -1890,71 +1890,31 @@ package body Files.Operations is
       return Files.File_System.Delete_Permanently (Path).Success;
    end Clear_Replaced_Destination;
 
-   --  Execute a resolved paste: overwrite any replaced destinations, copy or move
-   --  each written item through Execute_Drop_Import, record a single undo for the
-   --  executed set (move is reversed by moving back; copy is reversed by deleting
-   --  the created copies), reload, and report the first written destination.
-   function Execute_Paste_Actions
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode     : Files.File_System.Drop_Import_Mode)
+   --  Batch size for the first advance driven from Begin_Paste /
+   --  Resolve_Paste_Conflict: large enough that ordinary interactive pastes
+   --  finish in one step (so no progress overlay ever flickers), while larger
+   --  batches keep animating through the per-frame render-loop advances.
+   Paste_Execution_First_Batch : constant := 32;
+
+   --  Finalize an armed paste execution: record one undo covering the items
+   --  actually completed (move reversed by moving back; copy by deleting the
+   --  created copies), clear the move-mode clipboard, reload, and clear the
+   --  execution state. A non-empty Error_Key reports a mid-run write failure.
+   function Finalize_Paste_Execution
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Error_Key : String)
       return Operation_Result
    is
-      Plans     : Files.File_System.Drop_Import_Plan_Vectors.Vector;
-      Undo_From : Files.Types.String_Vectors.Vector;
-      Undo_To   : Files.Types.String_Vectors.Vector;
-      First_Dest : Unbounded_String := Null_Unbounded_String;
+      Mode       : constant Files.File_System.Drop_Import_Mode :=
+        Files.Model.Paste_Execution_Mode (Model);
+      Undo_From  : constant Files.Types.String_Vectors.Vector :=
+        Files.Model.Paste_Execution_Undo_From (Model);
+      Undo_To    : constant Files.Types.String_Vectors.Vector :=
+        Files.Model.Paste_Execution_Undo_To (Model);
+      First_Dest : constant String := Files.Model.Paste_Execution_First_Dest (Model);
    begin
-      for Action of Actions loop
-         if not Action.Skip then
-            if Action.Replaced
-              and then not Clear_Replaced_Destination
-                             (To_String (Action.Dest_Path), To_String (Action.Source_Path))
-            then
-               Files.Model.Set_Error (Model, "error.drop.failed");
-               declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-                  pragma Unreferenced (Reload);
-               begin
-                  Files.Model.Set_Error (Model, "error.drop.failed");
-               end;
-               return Make_Result (Operation_Failed, "error.drop.failed", Files.Model.Current_Path (Model));
-            end if;
-
-            Plans.Append
-              (Files.File_System.Drop_Import_Plan'
-                 (Source_Path      => Action.Source_Path,
-                  Destination_Path => Action.Dest_Path,
-                  Mode             => Mode,
-                  Valid            => True,
-                  Error_Key        => Null_Unbounded_String));
-            Undo_From.Append (Action.Dest_Path);
-            Undo_To.Append (Action.Source_Path);
-            if Length (First_Dest) = 0 then
-               First_Dest := Action.Dest_Path;
-            end if;
-         end if;
-      end loop;
-
-      if not Plans.Is_Empty then
-         declare
-            Mutation : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Execute_Drop_Import (Plans);
-         begin
-            if not Mutation.Success then
-               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-               declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-                  pragma Unreferenced (Reload);
-               begin
-                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-               end;
-               return Make_Result
-                 (Operation_Failed, To_String (Mutation.Error_Key), Files.Model.Current_Path (Model));
-            end if;
-         end;
-
+      if not Undo_From.Is_Empty then
          if Mode = Files.File_System.Drop_Move then
             Files.Model.Record_Undo (Model, Files.Model.Undo_Move, Undo_From, Undo_To);
          else
@@ -1964,19 +1924,117 @@ package body Files.Operations is
               (Model, Files.Model.Undo_Delete_Created, Undo_From,
                Files.Types.String_Vectors.Empty_Vector);
          end if;
+
+         --  A move consumes the clipboard once the paste has run (even if it was
+         --  cancelled part-way, the completed sources have already moved).
+         if Mode = Files.File_System.Drop_Move then
+            Files.Model.Clear_Clipboard (Model);
+         end if;
       end if;
+
+      Files.Model.Clear_Paste_Execution (Model);
 
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
       begin
          if Reload.Status /= Operation_Success then
+            if Error_Key /= "" then
+               Files.Model.Set_Error (Model, Error_Key);
+               return Make_Result (Operation_Failed, Error_Key, Files.Model.Current_Path (Model));
+            end if;
             return Reload;
          end if;
       end;
 
+      if Error_Key /= "" then
+         Files.Model.Set_Error (Model, Error_Key);
+         return Make_Result (Operation_Failed, Error_Key, Files.Model.Current_Path (Model));
+      end if;
+
       Files.Model.Set_Error (Model, "");
-      return Make_Result (Operation_Success, Path => To_String (First_Dest));
-   end Execute_Paste_Actions;
+      return Make_Result (Operation_Success, Path => First_Dest);
+   end Finalize_Paste_Execution;
+
+   function Advance_Paste_Execution
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Max_Items : Positive)
+      return Operation_Result
+   is
+      Processed : Natural := 0;
+   begin
+      if not Files.Model.Paste_Execution_Is_Active (Model) then
+         return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+      end if;
+
+      while Processed < Max_Items
+        and then not Files.Model.Paste_Execution_Cancelled (Model)
+        and then Files.Model.Paste_Execution_Cursor (Model)
+                 < Files.Model.Paste_Execution_Action_Count (Model)
+      loop
+         declare
+            Index  : constant Positive := Files.Model.Paste_Execution_Cursor (Model) + 1;
+            Action : constant Files.Paste.Resolved_Action :=
+              Files.Model.Paste_Execution_Action (Model, Index);
+         begin
+            if Action.Skip then
+               Files.Model.Skip_Paste_Execution_Action (Model);
+            else
+               if Action.Replaced
+                 and then not Clear_Replaced_Destination
+                                (To_String (Action.Dest_Path), To_String (Action.Source_Path))
+               then
+                  return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
+               end if;
+
+               declare
+                  Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+               begin
+                  Plans.Append
+                    (Files.File_System.Drop_Import_Plan'
+                       (Source_Path      => Action.Source_Path,
+                        Destination_Path => Action.Dest_Path,
+                        Mode             => Files.Model.Paste_Execution_Mode (Model),
+                        Valid            => True,
+                        Error_Key        => Null_Unbounded_String));
+                  declare
+                     Mutation : constant Files.File_System.Mutation_Result :=
+                       Files.File_System.Execute_Drop_Import (Plans);
+                  begin
+                     if not Mutation.Success then
+                        return Finalize_Paste_Execution
+                          (Model, Settings, To_String (Mutation.Error_Key));
+                     end if;
+                  end;
+               end;
+
+               Files.Model.Record_Paste_Execution_Write
+                 (Model,
+                  Action.Dest_Path,
+                  Action.Source_Path,
+                  Ada.Directories.Simple_Name (To_String (Action.Dest_Path)));
+            end if;
+         end;
+         Processed := Processed + 1;
+      end loop;
+
+      if Files.Model.Paste_Execution_Cancelled (Model)
+        or else Files.Model.Paste_Execution_Cursor (Model)
+                >= Files.Model.Paste_Execution_Action_Count (Model)
+      then
+         return Finalize_Paste_Execution (Model, Settings, "");
+      end if;
+
+      return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+   end Advance_Paste_Execution;
+
+   procedure Cancel_Paste_Execution
+     (Model : in out Files.Model.Window_Model) is
+   begin
+      if Files.Model.Paste_Execution_Is_Active (Model) then
+         Files.Model.Cancel_Paste_Execution (Model);
+      end if;
+   end Cancel_Paste_Execution;
 
    function Begin_Paste
      (Model        : in out Files.Model.Window_Model;
@@ -2011,19 +2069,17 @@ package body Files.Operations is
              (Work, Files.Paste.Policy_Ask, Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
       begin
          if Conflict = 0 then
-            --  No collisions: resolve (all writes) and execute immediately.
+            --  No collisions: arm the resumable execution and run the first
+            --  batch. Small pastes finish here; larger ones keep advancing under
+            --  the render loop while the progress overlay is shown.
             declare
                Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
                  Files.Paste.Resolve
                    (Work, Files.Paste.Policy_Ask,
                     Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
-               Result  : constant Operation_Result :=
-                 Execute_Paste_Actions (Model, Settings, Actions, Mode);
             begin
-               if Result.Status = Operation_Success and then Mode = Files.File_System.Drop_Move then
-                  Files.Model.Clear_Clipboard (Model);
-               end if;
-               return Result;
+               Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
+               return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
             end;
          else
             --  Collisions remain: arm the conflict dialog and write nothing yet.
@@ -2095,14 +2151,13 @@ package body Files.Operations is
          declare
             Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
               Files.Paste.Resolve (Work, Policy, Overrides, Existing);
-            Result  : constant Operation_Result :=
-              Execute_Paste_Actions (Model, Settings, Actions, Mode);
          begin
-            if Result.Status = Operation_Success and then Mode = Files.File_System.Drop_Move then
-               Files.Model.Clear_Clipboard (Model);
-            end if;
+            --  Leave the conflict sub-mode, arm the resumable execution over the
+            --  resolved actions, and run the first batch (small pastes finish
+            --  here; larger ones continue under the render loop).
             Files.Model.Clear_Paste_Conflict (Model);
-            return Result;
+            Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
+            return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
          end;
       end;
    end Resolve_Paste_Conflict;

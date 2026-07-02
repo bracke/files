@@ -437,6 +437,34 @@ package Files.Operations is
       Apply_All : Boolean)
       return Operation_Result;
 
+   --  Advance an armed paste execution by up to Max_Items resolved actions,
+   --  copying or moving each written item through Execute_Drop_Import and
+   --  updating the model's progress counters. When the cursor reaches the end of
+   --  the action list (or a cancellation was requested) the execution finalizes:
+   --  it records a single undo covering the items actually completed (move is
+   --  reversed by moving back, copy by deleting the created copies), clears the
+   --  move-mode clipboard, reloads the directory, and clears the execution state.
+   --  A no-op Success is returned when no execution is active.
+   --
+   --  @param Model Window model holding the armed execution.
+   --  @param Settings Settings model used for the finalizing directory reload.
+   --  @param Max_Items Maximum resolved actions to process this call.
+   --  @return Success while still in progress or after a clean finalize; a
+   --    failure result with a localized error key when a write failed.
+   function Advance_Paste_Execution
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Max_Items : Positive)
+      return Operation_Result;
+
+   --  Request cancellation of the armed paste execution. Already-completed items
+   --  are kept (like real file managers); the next Advance_Paste_Execution
+   --  finalizes over the completed set. Does nothing when no execution is active.
+   --
+   --  @param Model Window model holding the armed execution.
+   procedure Cancel_Paste_Execution
+     (Model : in out Files.Model.Window_Model);
+
    --  Import dropped paths into a specific destination directory.
    --
    --  @param Model Window model to refresh after a successful import.
