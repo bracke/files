@@ -9,6 +9,11 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Multi-level undo and redo (Ctrl+Z / Ctrl+Shift+Z) — undo is no longer limited
+  to a single step.
+- Type-to-select: type a file's name in the grid to jump to it.
+- Invert Selection (Ctrl+I) and Deselect All (Ctrl+Shift+A).
+- A toolbar Up button (Alt+↑) to go to the parent folder.
 - Drag-and-drop now uses the same conflict resolution (Replace/Skip/Rename) and
   progress/cancel as clipboard paste instead of silently renaming.
 - Editable ownership (chown) in the info pane, alongside the permissions grid.
