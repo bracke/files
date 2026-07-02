@@ -3050,7 +3050,11 @@ package body Files.Rendering is
             Add_Command (Files.Commands.Open_Selected_Items_Command);
             Add_Command (Files.Commands.Open_With_Command);
             Add_Separator;
-            --  Group 2: clipboard / duplication, including the copy-to and
+            --  Group 2: favorite the current selection (its own single-command
+            --  group so it reads as a distinct verb).
+            Add_Command (Files.Commands.Toggle_Favorite_Command);
+            Add_Separator;
+            --  Group 3: clipboard / duplication, including the copy-to and
             --  move-to destination pickers next to the plain clipboard verbs.
             Add_Command (Files.Commands.Copy_Selected_Items_Command);
             Add_Command (Files.Commands.Cut_Selected_Items_Command);
@@ -3058,16 +3062,16 @@ package body Files.Rendering is
             Add_Command (Files.Commands.Move_To_Command);
             Add_Command (Files.Commands.Duplicate_Selected_Command);
             Add_Separator;
-            --  Group 3: archive actions.
+            --  Group 4: archive actions.
             Add_Command (Files.Commands.Compress_Zip_Command);
             Add_Command (Files.Commands.Compress_7z_Command);
             Add_Command (Files.Commands.Extract_Archive_Command);
             Add_Separator;
-            --  Group 4: link creation.
+            --  Group 5: link creation.
             Add_Command (Files.Commands.Create_Symlink_Command);
             Add_Command (Files.Commands.Create_Hardlink_Command);
             Add_Separator;
-            --  Group 5: destructive / recovery actions.
+            --  Group 6: destructive / recovery actions.
             Add_Command (Files.Commands.Rename_Selected_Items_Command);
             Add_Command (Files.Commands.Delete_Selected_Items_Command);
             Add_Command (Files.Commands.Restore_From_Trash_Command);

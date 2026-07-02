@@ -120,8 +120,23 @@ package body Files.Interaction is
                  Files.Model.Selected_Items (Model);
                Changed  : Boolean := False;
 
-               --  Add Path to the favorites list when absent, remove it when
-               --  already present. A favorite is any full item path.
+               --  Add or remove Path so it matches Favorited, toggling only when
+               --  the stored state actually differs. Guarding on Is_Favorite lets
+               --  the group logic leave already-correct items untouched. A
+               --  favorite is any full item path; the empty path is ignored.
+               procedure Set_Favorite (Path : String; Favorited : Boolean) is
+               begin
+                  if Path /= ""
+                    and then Files.Settings.Is_Favorite (Settings, Path) /= Favorited
+                  then
+                     Files.Settings.Toggle_Favorite_Path (Settings, Path);
+                     Changed := True;
+                  end if;
+               end Set_Favorite;
+
+               --  Unconditionally flip Path's favorite state. Used for the
+               --  single-item and folder-fallback cases where the intent is a
+               --  plain toggle. The empty path is ignored.
                procedure Toggle_One (Path : String) is
                begin
                   if Path = "" then
@@ -131,15 +146,34 @@ package body Files.Interaction is
                   Changed := True;
                end Toggle_One;
             begin
-               if not Selected.Is_Empty then
-                  --  Favorite each selected item (file or folder) by full path.
-                  for Item of Selected loop
-                     Toggle_One (To_String (Item.Full_Path));
-                  end loop;
-               else
+               if Selected.Is_Empty then
                   --  No selection: fall back to favoriting the current folder,
                   --  preserving the historical "bookmark this folder" behavior.
                   Toggle_One (Files.Model.Current_Path (Model));
+               elsif Natural (Selected.Length) = 1 then
+                  --  Single selection: plain toggle of that one item's path.
+                  Toggle_One (To_String (Selected.First_Element.Full_Path));
+               else
+                  --  Multi-select group toggle: if every selected item is
+                  --  already a favorite, remove them all; otherwise add every
+                  --  not-yet-favorited item and leave the already-favorited
+                  --  ones starred. Net effect: one invocation reliably stars a
+                  --  whole (even mixed) selection; the next un-stars it.
+                  declare
+                     All_Favorited : Boolean := True;
+                  begin
+                     for Item of Selected loop
+                        if not Files.Settings.Is_Favorite
+                                 (Settings, To_String (Item.Full_Path))
+                        then
+                           All_Favorited := False;
+                        end if;
+                     end loop;
+                     for Item of Selected loop
+                        Set_Favorite
+                          (To_String (Item.Full_Path), not All_Favorited);
+                     end loop;
+                  end;
                end if;
                if Changed then
                   Persist_Settings (Settings, Settings_Path);

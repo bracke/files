@@ -1054,9 +1054,10 @@ package body Files_Suite.Rendering is
 
       --  The full set of real commands the item menu must still offer, in any
       --  order, regardless of the separators woven between the groups.
-      Expected : constant array (1 .. 15) of Files.Commands.Command_Id :=
+      Expected : constant array (1 .. 16) of Files.Commands.Command_Id :=
         [Files.Commands.Open_Selected_Items_Command,
          Files.Commands.Open_With_Command,
+         Files.Commands.Toggle_Favorite_Command,
          Files.Commands.Copy_Selected_Items_Command,
          Files.Commands.Cut_Selected_Items_Command,
          Files.Commands.Copy_To_Command,
@@ -1136,7 +1137,7 @@ package body Files_Suite.Rendering is
          end loop;
 
          Assert (Command_Count = Expected'Length, "all real commands are laid out");
-         Assert (Separator_Count = 4, "four separators divide the five command groups");
+         Assert (Separator_Count = 5, "five separators divide the six command groups");
       end;
    end Test_Context_Menu_Separators;
 
