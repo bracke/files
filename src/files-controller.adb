@@ -1933,6 +1933,54 @@ package body Files.Controller is
            else Controller_Selection_Moved);
    end Root_Jump_Result;
 
+   --  Grid selection paging uses a fixed page size: the exact viewport row
+   --  count is a GLFW/render concern the pure controller cannot see, so a
+   --  sensible constant page is used (matching the +/-10 keyboard scroll step).
+   Grid_Page_Rows : constant := 10;
+
+   function First_Selection_Result
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+   begin
+      Files.Model.Select_First_Visible (Model);
+      return
+        Make_Result
+          (if Files.Model.Selected_Index (Model) = Old_Index
+           then Controller_Ignored
+           else Controller_Selection_Moved);
+   end First_Selection_Result;
+
+   function Last_Selection_Result
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result
+   is
+      Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+   begin
+      Files.Model.Select_Last_Visible (Model);
+      return
+        Make_Result
+          (if Files.Model.Selected_Index (Model) = Old_Index
+           then Controller_Ignored
+           else Controller_Selection_Moved);
+   end Last_Selection_Result;
+
+   function Page_Selection_Result
+     (Model : in out Files.Model.Window_Model;
+      Down  : Boolean)
+      return Controller_Result
+   is
+      Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+   begin
+      Files.Model.Move_Selection_By_Page (Model, Grid_Page_Rows, Down);
+      return
+        Make_Result
+          (if Files.Model.Selected_Index (Model) = Old_Index
+           then Controller_Ignored
+           else Controller_Selection_Moved);
+   end Page_Selection_Result;
+
    function Handle_Key
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
@@ -2364,6 +2412,21 @@ package body Files.Controller is
          end;
       elsif Key = Files.Types.Key_Home
         and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         --  Plain Home in the file grid selects the first visible item. This has
+         --  no modifier, so it never collides with Alt+Home = navigate home.
+         return First_Selection_Result (Model);
+      elsif Key = Files.Types.Key_End
+        and then Modifiers = Files.Types.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         --  Plain End in the file grid selects the last visible item.
+         return Last_Selection_Result (Model);
+      elsif Key = Files.Types.Key_Home
+        and then Modifiers = Files.Types.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
         and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
       then
@@ -2411,10 +2474,12 @@ package body Files.Controller is
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
         and then not Files.Model.Settings_Pane_Is_Open (Model)
       then
+         --  With the info pane open Page Up scrolls it; over the file grid it
+         --  pages the selection up by a page (like the arrow keys move it).
          if Files.Model.Info_Pane_Is_Open (Model) then
             return Scroll_Info_Result (Model, -10);
          else
-            return Scroll_Main_Result (Model, -10);
+            return Page_Selection_Result (Model, Down => False);
          end if;
       elsif Key = Files.Types.Key_Page_Down
         and then Modifiers = Files.Types.No_Modifiers
@@ -2424,7 +2489,7 @@ package body Files.Controller is
          if Files.Model.Info_Pane_Is_Open (Model) then
             return Scroll_Info_Result (Model, 10);
          else
-            return Scroll_Main_Result (Model, 10);
+            return Page_Selection_Result (Model, Down => True);
          end if;
       elsif Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
          if Files.Model.Focus (Model) = Files.Types.Focus_None

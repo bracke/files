@@ -104,6 +104,7 @@ package body Files_Suite.Model is
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_View_Mode_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Grid_Paging_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Type_Ahead_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -136,6 +137,8 @@ package body Files_Suite.Model is
         (T, Test_View_Mode_State'Access, "view mode transitions");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Selection_Movement'Access, "selection movement and wraparound");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Grid_Paging_Selection'Access, "Home/End/Page grid selection paging and clamping");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Type_Ahead_Selection'Access, "type-ahead selection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1028,6 +1031,98 @@ package body Files_Suite.Model is
             "focused input keeps selection unchanged");
       end;
    end Test_Selection_Movement;
+
+   procedure Test_Grid_Paging_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Paging_Model (Count : Natural) return Files.Model.Window_Model is
+         Items : Files.File_System.Item_Vectors.Vector;
+         Built : Files.Model.Window_Model;
+      begin
+         for Index in 1 .. Count loop
+            Items.Append
+              (Files.File_System.Make_Item
+                 (Root,
+                  "Item" & Ada.Strings.Fixed.Trim (Integer'Image (Index), Ada.Strings.Both) & ".txt",
+                  Files.Types.Regular_File_Item,
+                  "text/plain"));
+         end loop;
+         Files.Model.Initialize
+           (Built,
+            Directory_Path    => Root,
+            Items             => Items,
+            Home_Path         => "/home/test",
+            Default_View_Mode => Files.Types.Small_Icons);
+         return Built;
+      end Paging_Model;
+
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Paging_Model (25);
+      Home_Dir : constant String := Files.Model.Current_Path (Model);
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Assert (Files.Model.Visible_Count (Model) = 25, "paging model exposes all 25 visible items");
+
+      --  Direct model primitives: first / last selection.
+      Files.Model.Select_Last_Visible (Model);
+      Assert (Files.Model.Selected_Index (Model) = 25, "Select_Last_Visible selects the last visible item");
+      Files.Model.Select_First_Visible (Model);
+      Assert (Files.Model.Selected_Index (Model) = 1, "Select_First_Visible selects the first visible item");
+
+      --  Single-column paging moves by Page_Rows items and clamps at the edges.
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
+      Assert (Files.Model.Selected_Index (Model) = 11, "PageDown advances the selection by one page (10 rows)");
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
+      Assert (Files.Model.Selected_Index (Model) = 21, "a second PageDown advances another page");
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
+      Assert (Files.Model.Selected_Index (Model) = 25, "PageDown clamps at the last item");
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
+      Assert (Files.Model.Selected_Index (Model) = 25, "PageDown on the last item stays put");
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
+      Assert (Files.Model.Selected_Index (Model) = 15, "PageUp retreats the selection by one page");
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
+      Assert (Files.Model.Selected_Index (Model) = 5, "a second PageUp retreats another page");
+      Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
+      Assert (Files.Model.Selected_Index (Model) = 1, "PageUp clamps at the first item");
+
+      --  Grid stride: with 3 columns a page spans Page_Rows * columns items.
+      Files.Model.Set_Selection_Grid_Columns (Model, 3);
+      Files.Model.Select_First_Visible (Model);
+      Files.Model.Move_Selection_By_Page (Model, 2, Down => True);
+      Assert (Files.Model.Selected_Index (Model) = 7, "grid paging moves Page_Rows * columns items (2*3)");
+
+      --  Empty model: paging clears rather than crashing.
+      declare
+         Empty : Files.Model.Window_Model := Paging_Model (0);
+      begin
+         Files.Model.Select_First_Visible (Empty);
+         Assert (Files.Model.Selected_Index (Empty) = 0, "first-visible on an empty grid selects nothing");
+         Files.Model.Move_Selection_By_Page (Empty, 10, Down => True);
+         Assert (Files.Model.Selected_Index (Empty) = 0, "paging an empty grid selects nothing");
+      end;
+
+      --  Through the real controller key seam: plain Home/End move the grid
+      --  selection and never navigate (Alt+Home stays the navigate-home key).
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_End);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "plain End moves the grid selection");
+      Assert (Files.Model.Selected_Index (Model) = 25, "plain End selects the last visible item");
+      Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain End does not navigate");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "plain Home moves the grid selection");
+      Assert (Files.Model.Selected_Index (Model) = 1, "plain Home selects the first visible item");
+      Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain Home does not navigate home (that stays Alt+Home)");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Home);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "plain Home on the first item is ignored");
+
+      --  Alt+Home remains the navigate-home shortcut, distinct from plain Home.
+      Assert
+        (Files.Commands.Find_By_Shortcut
+           (Files.Types.Key_Home, [Files.Types.Alt_Key => True, others => False])
+           = Files.Commands.Navigate_Home_Command,
+         "Alt+Home is still bound to navigate-home");
+   end Test_Grid_Paging_Selection;
 
    procedure Test_Type_Ahead_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2379,15 +2474,32 @@ package body Files_Suite.Model is
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
 
+      --  Over the file grid (info pane closed) plain Page Up / Page Down now
+      --  page the SELECTION rather than scrolling the main view. The main view
+      --  still scrolls through the wheel / targeted-scroll seam below.
+      Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of main view is ignored");
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageUp on the first item is ignored");
+      Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp keeps the first item selected");
 
       Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "negative main scroll at top is ignored");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageDown scrolls main view");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 10, "PageDown scrolls main view by page");
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageDown pages the selection");
+      Assert
+        (Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
+         "grid PageDown moves the selection a full page down to the last item");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageDown on the last item is ignored");
+      Assert
+        (Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
+         "grid PageDown keeps the last item selected");
+
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageUp pages the selection back");
+      Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp returns the selection to the first item");
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'Last);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large main scroll is handled");
@@ -2396,13 +2508,6 @@ package body Files_Suite.Model is
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'First);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative main scroll is handled");
       Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "large negative main scroll clamps to top");
-
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Down);
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 10, "main view scroll resumes after saturation");
-
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Page_Up);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageUp scrolls main view");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "PageUp returns main view to top");
       Result :=
         Files.Controller.Execute_Command
           (Files.Commands.Toggle_Settings_Pane_Command,

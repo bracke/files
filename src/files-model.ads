@@ -253,6 +253,40 @@ package Files.Model is
      (Model     : in out Window_Model;
       Direction : Files.Types.Navigation_Direction);
 
+   --  Select the first visible item (visible index one).
+   --
+   --  Clears the selection when nothing is visible. Intended for the keyboard
+   --  Home shortcut while the file grid is focused.
+   --
+   --  @param Model Model to update.
+   procedure Select_First_Visible
+     (Model : in out Window_Model);
+
+   --  Select the last visible item (the highest visible index).
+   --
+   --  Clears the selection when nothing is visible. Intended for the keyboard
+   --  End shortcut while the file grid is focused.
+   --
+   --  @param Model Model to update.
+   procedure Select_Last_Visible
+     (Model : in out Window_Model);
+
+   --  Move the single selection by whole pages within the visible projection.
+   --
+   --  A page spans Page_Rows grid rows, i.e. Page_Rows times the selection grid
+   --  column stride items. Movement clamps at the first and last visible item
+   --  (no wraparound). With nothing selected the first visible item is chosen.
+   --  Intended for the keyboard Page Up / Page Down shortcuts while the file
+   --  grid is focused.
+   --
+   --  @param Model Model to update.
+   --  @param Page_Rows Number of grid rows spanned by one page.
+   --  @param Down Move toward the last item when True, toward the first when False.
+   procedure Move_Selection_By_Page
+     (Model     : in out Window_Model;
+      Page_Rows : Positive;
+      Down      : Boolean);
+
    --  Feed a typed printable character run to the grid type-ahead buffer.
    --
    --  Appends Text to the pending type-ahead prefix and jumps the single

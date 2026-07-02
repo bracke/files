@@ -124,6 +124,18 @@ package Files.Settings is
       Valid                  : Boolean := True;
    end record;
 
+   --  Font pixel-size bounds and default shared by every font-size adjustment
+   --  path (keyboard zoom, Ctrl + scroll zoom, and the settings-pane stepper).
+   Min_Font_Pixel_Size     : constant Positive := 10;
+   Max_Font_Pixel_Size     : constant Positive := 32;
+   Default_Font_Pixel_Size : constant Positive := 16;
+
+   --  Clamp a requested font pixel size into the supported range.
+   --
+   --  @param Size Requested pixel size (may be out of range or non-positive).
+   --  @return Size clamped to Min_Font_Pixel_Size .. Max_Font_Pixel_Size.
+   function Clamp_Font_Pixel_Size (Size : Integer) return Positive;
+
    --  Return the built-in settings model used when no settings file exists.
    --
    --  @return Default settings model.

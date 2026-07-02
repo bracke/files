@@ -133,6 +133,7 @@ package Files.Types is
 
    type Key_Code is
      (Key_Unknown,
+      Key_0,
       Key_1,
       Key_2,
       Key_3,
@@ -152,6 +153,8 @@ package Files.Types is
       Key_X,
       Key_Z,
       Key_Comma,
+      Key_Equal,
+      Key_Minus,
       Key_Backspace,
       Key_Delete,
       Key_F2,

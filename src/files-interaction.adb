@@ -269,34 +269,81 @@ package body Files.Interaction is
       Current_Font_Size : Positive;
       Result            : out Interaction_Result)
    is
-      Outcome : constant Files.Controller.Controller_Result :=
-        Files.Controller.Handle_Key
-          (Model     => Model,
-           Settings  => Settings,
-           Key       => Key,
-           Modifiers => Modifiers);
+      --  Ctrl (Shift allowed for '+') without Alt/Meta drives keyboard zoom.
+      Zoom_Modifier : constant Boolean :=
+        Modifiers (Files.Types.Control_Key)
+          and then not Modifiers (Files.Types.Alt_Key)
+          and then not Modifiers (Files.Types.Meta_Key);
+      Zoom_Key      : constant Boolean :=
+        Zoom_Modifier
+          and then Key in Files.Types.Key_Equal
+                        | Files.Types.Key_Minus
+                        | Files.Types.Key_0;
    begin
-      if Outcome.Command = Files.Commands.Save_Settings_Command
-        or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
-      then
-         --  Re-route settings-path commands through Execute_Command for the
-         --  in-out settings handling, exactly as the shell did inline. The
-         --  shell then dropped any parallel character event; surface that as a
-         --  follow-up flag so Apply_Interaction_Result performs the clear.
-         Execute_Command
-           (Model             => Model,
-            Settings          => Settings,
-            Settings_Path     => Settings_Path,
-            Command           => Outcome.Command,
-            Current_Font_Size => Current_Font_Size,
-            Result            => Result);
-         Result.Clear_Pending_Text := True;
-      else
-         Result.Command := Outcome.Command;
-         Result.Status := Outcome.Status;
-         Result.Command_Executed :=
-           Outcome.Status = Files.Controller.Controller_Command_Executed;
+      --  Start from a clean result so no flag leaks from a previous call when a
+      --  caller reuses the same Result object across keystrokes.
+      Result := (others => <>);
+      --  Keyboard zoom is handled on this pure seam (not the controller, whose
+      --  Settings are read-only): Ctrl+'=' / Ctrl+'+' grows, Ctrl+'-' shrinks,
+      --  and Ctrl+0 resets the live font size. The shell's font-size sync and
+      --  glyph rebuild then run through Apply_Interaction_Result, and the
+      --  behaviour is exercisable through the genuine key seam in tests.
+      if Zoom_Key then
+         declare
+            Old_Size : constant Positive := Settings.Font_Pixel_Size;
+            New_Size : constant Positive :=
+              (case Key is
+                  when Files.Types.Key_Equal =>
+                     Files.Settings.Clamp_Font_Pixel_Size (Old_Size + 1),
+                  when Files.Types.Key_Minus =>
+                     Files.Settings.Clamp_Font_Pixel_Size (Old_Size - 1),
+                  when others =>
+                     Files.Settings.Default_Font_Pixel_Size);
+         begin
+            if New_Size /= Old_Size then
+               Settings.Font_Pixel_Size := New_Size;
+               Persist_Settings (Settings, Settings_Path);
+               Result.Settings_Changed    := True;
+               Result.Font_Size_Changed   := True;
+               Result.Needs_Glyph_Rebuild := True;
+            end if;
+            --  Drop any parallel '=' / '-' / '0' character event so a zoomed
+            --  keystroke never leaks a glyph into a focused text field.
+            Result.Clear_Pending_Text := True;
+         end;
+         return;
       end if;
+
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Handle_Key
+             (Model     => Model,
+              Settings  => Settings,
+              Key       => Key,
+              Modifiers => Modifiers);
+      begin
+         if Outcome.Command = Files.Commands.Save_Settings_Command
+           or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
+         then
+            --  Re-route settings-path commands through Execute_Command for the
+            --  in-out settings handling, exactly as the shell did inline. The
+            --  shell then dropped any parallel character event; surface that as
+            --  a follow-up flag so Apply_Interaction_Result performs the clear.
+            Execute_Command
+              (Model             => Model,
+               Settings          => Settings,
+               Settings_Path     => Settings_Path,
+               Command           => Outcome.Command,
+               Current_Font_Size => Current_Font_Size,
+               Result            => Result);
+            Result.Clear_Pending_Text := True;
+         else
+            Result.Command := Outcome.Command;
+            Result.Status := Outcome.Status;
+            Result.Command_Executed :=
+              Outcome.Status = Files.Controller.Controller_Command_Executed;
+         end if;
+      end;
 
       --  Keep the info-pane folder-size cache aligned with keyboard-driven
       --  selection changes. Cheap when the selected directory is unchanged.

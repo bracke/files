@@ -341,6 +341,17 @@ package body Files.Settings is
          Use_Shell  => Use_Shell);
    end Parse_Action;
 
+   function Clamp_Font_Pixel_Size (Size : Integer) return Positive is
+   begin
+      if Size < Min_Font_Pixel_Size then
+         return Min_Font_Pixel_Size;
+      elsif Size > Max_Font_Pixel_Size then
+         return Max_Font_Pixel_Size;
+      else
+         return Size;
+      end if;
+   end Clamp_Font_Pixel_Size;
+
    function Default_Settings return Settings_Model is
       Settings : Settings_Model;
       Args     : String_Vectors.Vector;

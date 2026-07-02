@@ -608,6 +608,8 @@ package body Files.Commands is
       return String is
    begin
       case Key is
+         when Files.Types.Key_0 =>
+            return "0";
          when Files.Types.Key_1 =>
             return "1";
          when Files.Types.Key_2 =>
@@ -646,6 +648,10 @@ package body Files.Commands is
             return "z";
          when Files.Types.Key_Comma =>
             return ",";
+         when Files.Types.Key_Equal =>
+            return "equal";
+         when Files.Types.Key_Minus =>
+            return "minus";
          when Files.Types.Key_Backspace =>
             return "backspace";
          when Files.Types.Key_Delete =>

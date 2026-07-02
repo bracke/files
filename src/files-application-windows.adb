@@ -92,6 +92,7 @@ package body Files.Application.Windows is
       Tracked_Slash,
       Tracked_Numpad_Add,
       Tracked_Numpad_Subtract,
+      Tracked_Zero,
       Tracked_Space);
 
    type Tracked_Key_Counts is array (Tracked_Key) of Natural;
@@ -182,9 +183,6 @@ package body Files.Application.Windows is
            | Tracked_Equal | Tracked_Minus
            | Tracked_Right_Bracket | Tracked_Slash
            | Tracked_Numpad_Add | Tracked_Numpad_Subtract);
-
-   Min_Font_Pixel_Size : constant Positive := 10;
-   Max_Font_Pixel_Size : constant Positive := 32;
 
    function Cell_Width_For  (Size : Positive) return Positive is
      (Positive'Max (1, Size * 3 / 4));
@@ -795,6 +793,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Numpad_Add;
          when Tracked_Numpad_Subtract =>
             return Glfw.Input.Keys.Numpad_Substract;
+         when Tracked_Zero =>
+            return Glfw.Input.Keys.Key_0;
          when Tracked_Space =>
             return Glfw.Input.Keys.Space;
       end case;
@@ -871,10 +871,17 @@ package body Files.Application.Windows is
             return Files.Types.Key_Page_Up;
          when Tracked_Page_Down =>
             return Files.Types.Key_Page_Down;
-         when Tracked_Equal | Tracked_Minus
-            | Tracked_Right_Bracket | Tracked_Slash
-            | Tracked_Numpad_Add | Tracked_Numpad_Subtract =>
-            return Files.Types.Key_Unknown;
+         --  The '+' family (physical '=', ']' and numpad '+') maps to Key_Equal
+         --  and the '-' family (physical '-', '/' and numpad '-') to Key_Minus
+         --  so the shared keyboard-zoom seam handles Ctrl+plus / Ctrl+minus.
+         --  The alternate ']' and '/' positions cover layouts (e.g. German)
+         --  where '+' and '-' sit on those physical keys.
+         when Tracked_Equal | Tracked_Right_Bracket | Tracked_Numpad_Add =>
+            return Files.Types.Key_Equal;
+         when Tracked_Minus | Tracked_Slash | Tracked_Numpad_Subtract =>
+            return Files.Types.Key_Minus;
+         when Tracked_Zero =>
+            return Files.Types.Key_0;
          when Tracked_Space =>
             return Files.Types.Key_Space;
       end case;
@@ -959,52 +966,10 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      --  Ctrl + Plus / Ctrl + Minus: live font-size adjustment. Handled here so
-      --  it bypasses the controller (which doesn't know about font sizing).
-      if Key in Tracked_Equal | Tracked_Minus
-              | Tracked_Right_Bracket | Tracked_Slash
-              | Tracked_Numpad_Add | Tracked_Numpad_Subtract
-      then
-         declare
-            Modifiers : constant Files.Types.Modifier_Set :=
-              To_Modifiers (As_Window (Runtime.Handle));
-            Is_Plus   : constant Boolean :=
-              Key in Tracked_Equal | Tracked_Right_Bracket | Tracked_Numpad_Add;
-            Step      : constant Integer := (if Is_Plus then 1 else -1);
-            New_Size  : Integer;
-         begin
-            if Modifiers (Files.Types.Control_Key) then
-               declare
-                  Changed : Boolean := False;
-               begin
-                  for I in 1 .. Fire_Count loop
-                     New_Size := Integer (Runtime.Font_Pixel_Size) + Step;
-                     if New_Size < Integer (Min_Font_Pixel_Size) then
-                        New_Size := Integer (Min_Font_Pixel_Size);
-                     elsif New_Size > Integer (Max_Font_Pixel_Size) then
-                        New_Size := Integer (Max_Font_Pixel_Size);
-                     end if;
-                     if Positive (New_Size) /= Runtime.Font_Pixel_Size then
-                        Runtime.Font_Pixel_Size := Positive (New_Size);
-                        Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
-                        Runtime.Text_Ready := False;
-                        Runtime.Text_Glyph_Key := Null_Unbounded_String;
-                        Changed := True;
-                     end if;
-                  end loop;
-                  --  Only refresh the grid columns and rewrite the settings file
-                  --  when the size actually changed; otherwise holding +/- at the
-                  --  min/max bound rewrites settings every auto-repeat tick.
-                  if Changed then
-                     Refresh_Selection_Grid_Columns (Runtime);
-                     Persist_Settings (Runtime);
-                  end if;
-               end;
-               return;
-            end if;
-         end;
-      end if;
-
+      --  Ctrl + Plus / Ctrl + Minus / Ctrl + 0 keyboard zoom now flows through
+      --  the shared key seam (Files.Interaction.Handle_Key adjusts the font
+      --  size in the settings model and reports Font_Size_Changed); the shell's
+      --  Apply_Interaction_Result then syncs the live size and rebuilds glyphs.
       Refresh_Selection_Grid_Columns (Runtime);
       for I in 1 .. Fire_Count loop
          declare
@@ -1265,15 +1230,12 @@ package body Files.Application.Windows is
       begin
          if Modifiers (Files.Types.Control_Key) then
             declare
-               New_Size : Integer := Integer (Runtime.Font_Pixel_Size) + Offset;
+               New_Size : constant Positive :=
+                 Files.Settings.Clamp_Font_Pixel_Size
+                   (Integer (Runtime.Font_Pixel_Size) + Offset);
             begin
-               if New_Size < Integer (Min_Font_Pixel_Size) then
-                  New_Size := Integer (Min_Font_Pixel_Size);
-               elsif New_Size > Integer (Max_Font_Pixel_Size) then
-                  New_Size := Integer (Max_Font_Pixel_Size);
-               end if;
-               if Positive (New_Size) /= Runtime.Font_Pixel_Size then
-                  Runtime.Font_Pixel_Size := Positive (New_Size);
+               if New_Size /= Runtime.Font_Pixel_Size then
+                  Runtime.Font_Pixel_Size := New_Size;
                   Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
                   Runtime.Text_Ready := False;
                   Runtime.Text_Glyph_Key := Null_Unbounded_String;
@@ -2931,7 +2893,7 @@ package body Files.Application.Windows is
      (Runtime  : in out Runtime_Window;
       Scenario : Live_Smoke_Scenario)
    is
-      Large_Font : constant Positive := Max_Font_Pixel_Size - 1;
+      Large_Font : constant Positive := Files.Settings.Max_Font_Pixel_Size - 1;
       Has_Item   : constant Boolean := Files.Model.Visible_Count (Runtime.Model) >= 1;
    begin
       case Scenario is
@@ -2968,7 +2930,7 @@ package body Files.Application.Windows is
             declare
                Target : constant Positive :=
                  (if Runtime.Font_Pixel_Size >= Large_Font
-                  then Min_Font_Pixel_Size
+                  then Files.Settings.Min_Font_Pixel_Size
                   else Large_Font);
             begin
                Runtime.Font_Pixel_Size := Target;

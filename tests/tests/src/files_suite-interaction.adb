@@ -97,6 +97,8 @@ package body Files_Suite.Interaction is
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -173,6 +175,12 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Keyboard_Dispatch_Path'Access,
          "live key dispatch flows through Files.Interaction.Handle_Key for view, settings-path, and toggle keys");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Grid_Nav_Keys'Access,
+         "Home/End/PageUp/PageDown page the grid selection through the key seam");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Keyboard_Zoom'Access,
+         "Ctrl+plus/equal grows, Ctrl+minus shrinks and Ctrl+0 resets the font size through the key seam");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Targeted_Scroll'Access, "scroll targets the pane under the cursor");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -772,6 +780,113 @@ package body Files_Suite.Interaction is
             "the key seam toggles the info pane open in the model");
       end;
    end Test_Keyboard_Dispatch_Path;
+
+   --  Home/End/PageUp/PageDown page the file-grid selection through the genuine
+   --  key seam (Files.Interaction.Handle_Key) and never navigate: plain Home is
+   --  distinct from Alt+Home (navigate home).
+   procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Home_Dir : constant String := Files.Model.Current_Path (Model);
+      Last     : constant Positive := Files.Model.Visible_Count (Model);
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files.Interaction.Handle_Key
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Key               => Files.Types.Key_End,
+         Current_Font_Size => Base_Font,
+         Result            => Result);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "End moves the grid selection");
+      Assert (Files.Model.Selected_Index (Model) = Last, "End selects the last visible item");
+      Assert (Files.Model.Current_Path (Model) = Home_Dir, "End does not navigate");
+
+      Files.Interaction.Handle_Key
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Key               => Files.Types.Key_Home,
+         Current_Font_Size => Base_Font,
+         Result            => Result);
+      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Home moves the grid selection");
+      Assert (Files.Model.Selected_Index (Model) = 1, "Home selects the first visible item");
+      Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain Home does not navigate home (that stays Alt+Home)");
+
+      Files.Interaction.Handle_Key
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Key               => Files.Types.Key_Page_Down,
+         Current_Font_Size => Base_Font,
+         Result            => Result);
+      Assert (Files.Model.Selected_Index (Model) = Last, "PageDown pages the selection down to the last item");
+
+      Files.Interaction.Handle_Key
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Key               => Files.Types.Key_Page_Up,
+         Current_Font_Size => Base_Font,
+         Result            => Result);
+      Assert (Files.Model.Selected_Index (Model) = 1, "PageUp pages the selection back to the first item");
+   end Test_Grid_Nav_Keys;
+
+   --  Ctrl+'=' / Ctrl+'+' grow, Ctrl+'-' shrinks, and Ctrl+0 resets the live
+   --  font size, all clamped to the supported range, through the key seam.
+   procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+
+      procedure Zoom (Key : Files.Types.Key_Code; Mods : Files.Types.Modifier_Set) is
+      begin
+         Files.Interaction.Handle_Key
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => "",
+            Key               => Key,
+            Modifiers         => Mods,
+            Current_Font_Size => Settings.Font_Pixel_Size,
+            Result            => Result);
+      end Zoom;
+   begin
+      Assert (Settings.Font_Pixel_Size = 16, "the default font size is the starting point");
+
+      Zoom (Files.Types.Key_Equal, Ctrl);
+      Assert (Settings.Font_Pixel_Size = 17, "Ctrl+Equal grows the font size by one");
+      Assert (Result.Font_Size_Changed, "the growing zoom reports a font-size change");
+      Assert (Result.Settings_Changed, "the growing zoom reports a settings change");
+
+      Zoom (Files.Types.Key_Equal, Ctrl_Shift);
+      Assert (Settings.Font_Pixel_Size = 18, "Ctrl+Plus (Shift+Ctrl+Equal) also grows the font size");
+
+      Zoom (Files.Types.Key_Minus, Ctrl);
+      Assert (Settings.Font_Pixel_Size = 17, "Ctrl+Minus shrinks the font size by one");
+
+      Settings.Font_Pixel_Size := 24;
+      Zoom (Files.Types.Key_0, Ctrl);
+      Assert (Settings.Font_Pixel_Size = Files.Settings.Default_Font_Pixel_Size, "Ctrl+0 resets to the default size");
+      Assert (Result.Font_Size_Changed, "the reset reports a font-size change");
+
+      --  Clamp at the maximum: growing past the ceiling makes no change.
+      Settings.Font_Pixel_Size := Files.Settings.Max_Font_Pixel_Size;
+      Zoom (Files.Types.Key_Equal, Ctrl);
+      Assert
+        (Settings.Font_Pixel_Size = Files.Settings.Max_Font_Pixel_Size,
+         "Ctrl+Equal clamps at the maximum font size");
+      Assert (not Result.Font_Size_Changed, "a no-op zoom at the ceiling reports no font-size change");
+
+      --  Clamp at the minimum: shrinking past the floor makes no change.
+      Settings.Font_Pixel_Size := Files.Settings.Min_Font_Pixel_Size;
+      Zoom (Files.Types.Key_Minus, Ctrl);
+      Assert
+        (Settings.Font_Pixel_Size = Files.Settings.Min_Font_Pixel_Size,
+         "Ctrl+Minus clamps at the minimum font size");
+      Assert (not Result.Font_Size_Changed, "a no-op zoom at the floor reports no font-size change");
+   end Test_Keyboard_Zoom;
 
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

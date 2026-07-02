@@ -1115,6 +1115,67 @@ package body Files.Model is
       Select_Visible (Model, Positive (Next));
    end Move_Selection;
 
+   procedure Select_First_Visible
+     (Model : in out Window_Model)
+   is
+      Count : constant Natural := Visible_Count (Model);
+   begin
+      if Count = 0 then
+         Clear_Selection (Model);
+      else
+         Select_Visible (Model, 1);
+      end if;
+   end Select_First_Visible;
+
+   procedure Select_Last_Visible
+     (Model : in out Window_Model)
+   is
+      Count : constant Natural := Visible_Count (Model);
+   begin
+      if Count = 0 then
+         Clear_Selection (Model);
+      else
+         Select_Visible (Model, Positive (Count));
+      end if;
+   end Select_Last_Visible;
+
+   procedure Move_Selection_By_Page
+     (Model     : in out Window_Model;
+      Page_Rows : Positive;
+      Down      : Boolean)
+   is
+      Count   : constant Natural := Visible_Count (Model);
+      Current : constant Natural := Selected_Index (Model);
+      Stride  : constant Natural :=
+        Natural'Max (1, Natural'Min (Natural (Model.Selection_Columns), Natural'Max (1, Count)));
+      Step    : constant Natural := Natural (Page_Rows) * Stride;
+      Next    : Natural;
+   begin
+      if Count = 0 then
+         Clear_Selection (Model);
+         return;
+      elsif Current = 0 then
+         Select_Visible (Model, 1);
+         return;
+      end if;
+
+      if Down then
+         if Current + Step >= Count then
+            Next := Count;
+         else
+            Next := Current + Step;
+         end if;
+      else
+         if Current <= Step then
+            Next := 1;
+         else
+            Next := Current - Step;
+         end if;
+      end if;
+
+      Select_Visible (Model, Positive (Next));
+   end Move_Selection_By_Page;
+
    procedure Reset_Type_Ahead
      (Model : in out Window_Model) is
    begin
