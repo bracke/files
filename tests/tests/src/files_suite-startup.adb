@@ -1198,6 +1198,14 @@ package body Files_Suite.Startup is
       Assert
         (Files.Localization.Text ("accessibility.root_selector") = "Root locations",
          "root-selector landmark is localized");
+      Assert
+        (Files.Localization.Text ("accessibility.favorite_toggle.on")
+           /= "accessibility.favorite_toggle.on",
+         "path-bar favorite-toggle on-state label is localized");
+      Assert
+        (Files.Localization.Text ("accessibility.favorite_toggle.off")
+           /= "accessibility.favorite_toggle.off",
+         "path-bar favorite-toggle off-state label is localized");
       Add_Error_Key ("error.path.missing");
       Add_Error_Key ("error.path.inaccessible");
       Add_Error_Key ("error.directory.load");

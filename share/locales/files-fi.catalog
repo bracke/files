@@ -493,3 +493,5 @@ fi.command.favorite.toggle = Vaihda suosikki
 fi.command.favorite.toggle.description = Lisää valitut kohteet tai nykyinen kansio suosikkeihin tai poista ne niistä.
 fi.root.favorite.prefix = ★ 
 fi.root.favorite.suffix =
+fi.accessibility.favorite_toggle.off = Lisää nykyinen kansio suosikkeihin
+fi.accessibility.favorite_toggle.on = Poista nykyinen kansio suosikeista

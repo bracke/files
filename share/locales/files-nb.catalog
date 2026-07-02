@@ -493,3 +493,5 @@ nb.command.favorite.toggle = Veksle favoritt
 nb.command.favorite.toggle.description = Legg til eller fjern valgte elementer eller mappen fra favorittene.
 nb.root.favorite.prefix = ★ 
 nb.root.favorite.suffix =
+nb.accessibility.favorite_toggle.off = Legg til gjeldende mappe i favoritter
+nb.accessibility.favorite_toggle.on = Fjern gjeldende mappe fra favoritter

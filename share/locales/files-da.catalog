@@ -493,3 +493,5 @@ da.command.favorite.toggle = Skift favorit
 da.command.favorite.toggle.description = Tilføj eller fjern valgte elementer eller mappen fra dine favoritter.
 da.root.favorite.prefix = ★ 
 da.root.favorite.suffix =
+da.accessibility.favorite_toggle.off = Tilføj aktuel mappe til favoritter
+da.accessibility.favorite_toggle.on = Fjern aktuel mappe fra favoritter

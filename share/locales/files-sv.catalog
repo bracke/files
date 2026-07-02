@@ -493,3 +493,5 @@ sv.command.favorite.toggle = Växla favorit
 sv.command.favorite.toggle.description = Lägg till eller ta bort markerade objekt eller mappen från favoriter.
 sv.root.favorite.prefix = ★ 
 sv.root.favorite.suffix =
+sv.accessibility.favorite_toggle.off = Lägg till aktuell mapp i favoriter
+sv.accessibility.favorite_toggle.on = Ta bort aktuell mapp från favoriter

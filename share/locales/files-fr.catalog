@@ -493,3 +493,5 @@ fr.command.favorite.toggle = Basculer le favori
 fr.command.favorite.toggle.description = Ajouter ou retirer les éléments, ou le dossier actuel, de vos favoris.
 fr.root.favorite.prefix = ★ 
 fr.root.favorite.suffix =
+fr.accessibility.favorite_toggle.off = Ajouter le dossier actuel aux favoris
+fr.accessibility.favorite_toggle.on = Retirer le dossier actuel des favoris

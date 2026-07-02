@@ -66,6 +66,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -138,6 +139,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Reorder_Layout'Access,
          "a reordered column order lays columns out left-to-right in that order with widths following the column");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Favorite_Star_Indicators'Access,
+         "favorited items draw a gold grid star and the path bar draws a filled vs empty star by current-dir state");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -1573,5 +1577,103 @@ package body Files_Suite.Rendering is
                  "a press below the header band is not a separator");
       end;
    end Test_Detail_Header_Separator_Hit_Test;
+
+   procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      --  Star glyphs are symbols emitted from source, not the catalog; rebuild
+      --  their UTF-8 here so the assertions match what the frame carries.
+      Filled_Star : constant String :=
+        Character'Val (16#E2#) & Character'Val (16#98#) & Character'Val (16#85#);
+      Empty_Star  : constant String :=
+        Character'Val (16#E2#) & Character'Val (16#98#) & Character'Val (16#86#);
+
+      function Count_Filled_Gold (Frame : Frame_Commands) return Natural is
+         Total : Natural := 0;
+      begin
+         for Cmd of Frame.Text loop
+            if To_String (Cmd.Text) = Filled_Star
+              and then Cmd.Color = Files.Rendering.Favorite_Star_Color
+            then
+               Total := Total + 1;
+            end if;
+         end loop;
+         return Total;
+      end Count_Filled_Gold;
+
+      function Has_Glyph (Frame : Frame_Commands; Glyph : String) return Boolean is
+      begin
+         for Cmd of Frame.Text loop
+            if To_String (Cmd.Text) = Glyph then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Has_Glyph;
+   begin
+      --  Grid indicator: exactly the favorited items carry a gold filled star.
+      declare
+         Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+         First    : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         First.Is_Favorite := True;
+         Snapshot.Items.Replace_Element (1, First);
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Snapshot, 1000, 800, 20);
+         begin
+            Assert
+              (Count_Filled_Gold (Frame) = 1,
+               "one favorited grid item draws exactly one gold filled star");
+         end;
+      end;
+
+      declare
+         Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
+         Frame    : constant Frame_Commands :=
+           Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      begin
+         Assert
+           (Count_Filled_Gold (Frame) = 0,
+            "no favorited items means no gold filled grid star in details view");
+      end;
+
+      --  Path-bar toggle: with no items in the view, the only star is the path
+      --  star, so its filled/empty glyph reflects the current-dir state.
+      declare
+         Fav      : View_Snapshot := Sample_Snapshot (0, Files.Types.Small_Icons);
+      begin
+         Fav.Current_Path := To_Unbounded_String ("/tmp/starred");
+         Fav.Current_Path_Is_Favorite := True;
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Fav, 1000, 800, 20);
+         begin
+            Assert
+              (Count_Filled_Gold (Frame) = 1,
+               "a favorited current directory draws the filled path star");
+            Assert
+              (not Has_Glyph (Frame, Empty_Star),
+               "the favorited path bar does not also draw the empty star");
+         end;
+      end;
+
+      declare
+         Plain : View_Snapshot := Sample_Snapshot (0, Files.Types.Small_Icons);
+      begin
+         Plain.Current_Path := To_Unbounded_String ("/tmp/plain");
+         Plain.Current_Path_Is_Favorite := False;
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Plain, 1000, 800, 20);
+         begin
+            Assert
+              (Has_Glyph (Frame, Empty_Star),
+               "a non-favorited current directory draws the empty path star");
+            Assert
+              (Count_Filled_Gold (Frame) = 0,
+               "a non-favorited current directory draws no filled star");
+         end;
+      end;
+   end Test_Favorite_Star_Indicators;
 
 end Files_Suite.Rendering;

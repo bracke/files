@@ -493,3 +493,5 @@ it.command.favorite.toggle = Attiva/disattiva preferito
 it.command.favorite.toggle.description = Aggiungi o rimuovi gli elementi, o la cartella corrente, dai preferiti.
 it.root.favorite.prefix = ★ 
 it.root.favorite.suffix =
+it.accessibility.favorite_toggle.off = Aggiungi la cartella corrente ai preferiti
+it.accessibility.favorite_toggle.on = Rimuovi la cartella corrente dai preferiti

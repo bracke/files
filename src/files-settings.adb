@@ -611,6 +611,46 @@ package body Files.Settings is
       return Result;
    end Cycle_Group_By;
 
+   function Is_Favorite
+     (Settings : Settings_Model;
+      Path     : String)
+      return Boolean is
+   begin
+      if Path = "" then
+         return False;
+      end if;
+      for Existing of Settings.Favorite_Paths loop
+         if To_String (Existing) = Path then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Is_Favorite;
+
+   procedure Toggle_Favorite_Path
+     (Settings : in out Settings_Model;
+      Path     : String)
+   is
+      To_Remove : Natural := 0;
+   begin
+      if Path = "" then
+         return;
+      end if;
+      for Index in
+        Settings.Favorite_Paths.First_Index .. Settings.Favorite_Paths.Last_Index
+      loop
+         if To_String (Settings.Favorite_Paths.Element (Index)) = Path then
+            To_Remove := Index;
+            exit;
+         end if;
+      end loop;
+      if To_Remove /= 0 then
+         Settings.Favorite_Paths.Delete (To_Remove);
+      else
+         Settings.Favorite_Paths.Append (To_Unbounded_String (Path));
+      end if;
+   end Toggle_Favorite_Path;
+
    function Has_Embedded_Placeholder
      (Argument : String)
       return Boolean

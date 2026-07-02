@@ -493,3 +493,5 @@ es.command.favorite.toggle = Alternar favorito
 es.command.favorite.toggle.description = Añadir o quitar los elementos, o la carpeta actual, de tus favoritos.
 es.root.favorite.prefix = ★ 
 es.root.favorite.suffix =
+es.accessibility.favorite_toggle.off = Añadir la carpeta actual a favoritos
+es.accessibility.favorite_toggle.on = Quitar la carpeta actual de favoritos

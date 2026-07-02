@@ -2448,6 +2448,7 @@ package body Files.Controller is
             | Files.Events.Item_Click_Input_Action
             | Files.Events.Root_Click_Input_Action
             | Files.Events.Breadcrumb_Click_Input_Action
+            | Files.Events.Path_Favorite_Toggle_Input_Action
             | Files.Events.Tree_Click_Input_Action
             | Files.Events.Tree_Pick_Confirm_Input_Action
             | Files.Events.Command_Result_Click_Input_Action

@@ -373,6 +373,8 @@ package body Files.Events is
         Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
       Breadcrumb_Rows : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height);
+      Path_Star      : constant Files.Rendering.Path_Favorite_Star_Bounds :=
+        Files.Rendering.Path_Favorite_Star_Region (Width, Line_Height);
       Tree_Panel_L   : constant Files.Rendering.Tree_Panel_Layout :=
         Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
       Tree_Rows_L    : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
@@ -998,7 +1000,15 @@ package body Files.Events is
               10);
       end if;
 
-      if Breadcrumb_Index /= 0 then
+      if Path_Star.Visible
+        and then Within (X, Path_Star.X, Path_Star.Width)
+        and then Within (Y, Path_Star.Y, Path_Star.Height)
+      then
+         --  The path-bar favorite star takes precedence over the breadcrumb and
+         --  path-input hit zones it sits inside: a click here toggles the
+         --  current directory's favorite rather than focusing the path field.
+         return (Kind => Path_Favorite_Toggle_Input_Action, others => <>);
+      elsif Breadcrumb_Index /= 0 then
          return Breadcrumb_Action (Breadcrumb_Index);
       elsif Within (X, Toolbar.Middle_X, Toolbar.Middle_Width)
         and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
@@ -1008,7 +1018,10 @@ package body Files.Events is
              (Files.Types.Focus_Path_Input,
               Cursor_At
                  (Text        => Snapshot.Path_Input_Text,
-                 Text_X      => Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
+                 Text_X      =>
+                    Saturating_Add
+                      (Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
+                       Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
                  Click_X     => X));
       elsif Within (X, Toolbar.Right_X, Toolbar.Right_Width)
         and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)

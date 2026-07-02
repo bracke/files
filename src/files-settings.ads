@@ -180,6 +180,25 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Settings_Model;
 
+   --  Report whether Path is currently stored in the favorites list.
+   --
+   --  @param Settings Settings model to query.
+   --  @param Path Full item or folder path to test.
+   --  @return True when Path is a stored favorite, False otherwise.
+   function Is_Favorite
+     (Settings : Settings_Model;
+      Path     : String)
+      return Boolean;
+
+   --  Toggle Path in the favorites list, adding it when absent and removing it
+   --  when present. The empty path is ignored.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full item or folder path to add or remove.
+   procedure Toggle_Favorite_Path
+     (Settings : in out Settings_Model;
+      Path     : String);
+
    --  Add or replace an extension-to-filetype mapping.
    --
    --  @param Settings Settings model to update.

@@ -11,7 +11,9 @@ it under a dated version heading when a release is cut.
 ### Added
 - Favorites: star any file or folder (Toggle Favorite) and reach it from the
   Favorites section of the side panel, marked with a ★. This replaces and
-  generalizes the old folder-only bookmarks.
+  generalizes the old folder-only bookmarks. Favorited items show a ★ in the
+  grid, and the path bar has a star toggle (filled when the current folder is a
+  favorite, empty otherwise) that adds/removes it on click.
 - Multi-level undo and redo (Ctrl+Z / Ctrl+Shift+Z) — undo is no longer limited
   to a single step.
 - Type-to-select: type a file's name in the grid to jump to it.

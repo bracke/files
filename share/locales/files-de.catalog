@@ -492,3 +492,5 @@ de.command.favorite.toggle = Favorit umschalten
 de.command.favorite.toggle.description = Ausgewählte Elemente oder den Ordner zu den Favoriten hinzufügen/entfernen.
 de.root.favorite.prefix = ★ 
 de.root.favorite.suffix =
+de.accessibility.favorite_toggle.off = Aktuellen Ordner zu Favoriten hinzufügen
+de.accessibility.favorite_toggle.on = Aktuellen Ordner aus Favoriten entfernen

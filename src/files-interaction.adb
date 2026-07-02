@@ -123,27 +123,11 @@ package body Files.Interaction is
                --  Add Path to the favorites list when absent, remove it when
                --  already present. A favorite is any full item path.
                procedure Toggle_One (Path : String) is
-                  Existing  : Boolean := False;
-                  To_Remove : Natural := 0;
                begin
                   if Path = "" then
                      return;
                   end if;
-                  for Index in
-                    Settings.Favorite_Paths.First_Index ..
-                    Settings.Favorite_Paths.Last_Index
-                  loop
-                     if To_String (Settings.Favorite_Paths.Element (Index)) = Path then
-                        Existing := True;
-                        To_Remove := Index;
-                        exit;
-                     end if;
-                  end loop;
-                  if Existing then
-                     Settings.Favorite_Paths.Delete (To_Remove);
-                  else
-                     Settings.Favorite_Paths.Append (To_Unbounded_String (Path));
-                  end if;
+                  Files.Settings.Toggle_Favorite_Path (Settings, Path);
                   Changed := True;
                end Toggle_One;
             begin
@@ -332,6 +316,14 @@ package body Files.Interaction is
             Result.Status := Outcome.Status;
             Result.Directory_Reloaded :=
               Outcome.Status = Files.Controller.Controller_Command_Executed;
+         when Files.Events.Path_Favorite_Toggle_Input_Action =>
+            --  Toggle the current directory's favorite state directly by path,
+            --  independent of the selection, then persist through the same
+            --  settings-write seam the Toggle_Favorite_Command uses so it saves.
+            Files.Settings.Toggle_Favorite_Path
+              (Settings, Files.Model.Current_Path (Model));
+            Persist_Settings (Settings, Settings_Path);
+            Result.Settings_Changed := True;
          when Files.Events.Tree_Click_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Tree_Click

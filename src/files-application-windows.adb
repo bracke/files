@@ -2444,7 +2444,8 @@ package body Files.Application.Windows is
                      Rename_Value       => Null_Unbounded_String,
                      Rename_Cursor      => 0,
                      Is_Group_Header    => False,
-                     Group_Label        => Null_Unbounded_String));
+                     Group_Label        => Null_Unbounded_String,
+                     Is_Favorite        => False));
             end if;
 
             declare

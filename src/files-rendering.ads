@@ -35,6 +35,7 @@ package Files.Rendering is
       Icon_File_Color,
       Icon_Executable_Color,
       Icon_Unknown_Color,
+      Favorite_Star_Color,
       Overlay_Color);
 
    --  Selectable color palettes. Theme_Dark is the default. Theme_High_Contrast
@@ -93,6 +94,9 @@ package Files.Rendering is
       --  Visible_Index stays zero so hit-testing never resolves it to an item.
       Is_Group_Header    : Boolean := False;
       Group_Label        : UString;
+      --  True when this item's full path is a stored favorite. Drives the
+      --  small star indicator drawn over the item's icon in every view mode.
+      Is_Favorite        : Boolean := False;
    end record;
 
    package Item_Snapshot_Vectors is new Ada.Containers.Vectors
@@ -150,6 +154,9 @@ package Files.Rendering is
 
    type View_Snapshot is record
       Current_Path         : UString;
+      --  True when Current_Path is a stored favorite. Drives the filled versus
+      --  empty star drawn at the left of the path bar.
+      Current_Path_Is_Favorite : Boolean := False;
       View_Mode            : Files.Types.View_Mode := Files.Types.Small_Icons;
       Sort_Field           : Files.Model.Sort_Field := Files.Model.Sort_Name;
       Sort_Ascending       : Boolean := True;
@@ -495,6 +502,17 @@ package Files.Rendering is
    package Breadcrumb_Segment_Layout_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Breadcrumb_Segment_Layout);
+
+   --  Bounding rectangle of the clickable favorite-star toggle drawn at the
+   --  left of the path bar, in window pixels. Visible is False when the path
+   --  bar is too narrow to reserve room for the star.
+   type Path_Favorite_Star_Bounds is record
+      X       : Natural := 0;
+      Y       : Natural := 0;
+      Width   : Natural := 0;
+      Height  : Natural := 0;
+      Visible : Boolean := False;
+   end record;
 
    type Tree_Panel_Layout is record
       X          : Natural := 0;
@@ -1284,6 +1302,30 @@ package Files.Rendering is
      (Rows : Breadcrumb_Segment_Layout_Vectors.Vector;
       X    : Natural;
       Y    : Natural)
+      return Natural;
+
+   --  Rectangle of the clickable favorite-star toggle at the left of the path
+   --  bar. Rendering, the path-bar layout, and click hit-testing all derive the
+   --  star's position from this single function so they never drift.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Star bounds; Visible is False when the path bar is too narrow.
+   function Path_Favorite_Star_Region
+     (Width       : Natural;
+      Line_Height : Positive := 20)
+      return Path_Favorite_Star_Bounds;
+
+   --  Horizontal space reserved at the left of the path bar's interior for the
+   --  favorite star, in pixels. Breadcrumbs and the editable path field start
+   --  this many pixels further right so they never overlap the star.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Reserved width in pixels, or zero when the star is not shown.
+   function Path_Bar_Content_Offset
+     (Width       : Natural;
+      Line_Height : Positive := 20)
       return Natural;
 
    --  Calculate the folder-tree sidebar panel rectangle.

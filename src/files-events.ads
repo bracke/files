@@ -18,6 +18,7 @@ package Files.Events is
       Item_Click_Input_Action,
       Root_Click_Input_Action,
       Breadcrumb_Click_Input_Action,
+      Path_Favorite_Toggle_Input_Action,
       Tree_Click_Input_Action,
       Tree_Pick_Confirm_Input_Action,
       Command_Result_Click_Input_Action,

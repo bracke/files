@@ -104,6 +104,7 @@ package body Files_Suite.Interaction is
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Filters_By_Query (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -188,6 +189,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Stale_Entry_Is_Skipped'Access,
          "clicking a stale favorite does not crash and is skipped");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Star_Click_Toggles_Current_Dir'Access,
+         "clicking the path-bar star toggles and persists the current directory favorite without focusing the path");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Command_Palette_Result_Runs'Access, "command-palette result click runs the command and closes");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3743,6 +3747,71 @@ package body Files_Suite.Interaction is
          Assert (Saw_File, "a file favorite selects the file in its parent directory");
       end;
    end Test_Favorite_Selector_Star_And_Clicks;
+
+   procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "path-star.conf");
+      Current  : constant String := Files.Model.Current_Path (Model);
+      Star     : constant Files.Rendering.Path_Favorite_Star_Bounds :=
+        Files.Rendering.Path_Favorite_Star_Region (Window_W, Line);
+
+      --  Rebuild the real snapshot/frame each time and translate a click at the
+      --  star's center, so the assertion drives the same seam the shell drives.
+      function Star_Action return Files.Events.Input_Action is
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+      begin
+         return
+           Files.Events.Translate_Click
+             (Snapshot, Frame,
+              Star.X + Star.Width / 2,
+              Star.Y + Star.Height / 2,
+              Window_W, Window_H, Line_Height => Line);
+      end Star_Action;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Assert (Star.Visible, "the path-bar star is laid out at the default window size");
+      Assert (not Has_Favorite (Settings, Current), "the current directory starts unfavorited");
+
+      --  The star coordinate resolves to the favorite-toggle action, not to
+      --  focusing the path field or navigating a breadcrumb.
+      declare
+         Action : constant Files.Events.Input_Action := Star_Action;
+      begin
+         Assert
+           (Action.Kind = Files.Events.Path_Favorite_Toggle_Input_Action,
+            "a click on the empty path star translates to the favorite-toggle action");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, Path, Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+      Assert (Has_Favorite (Settings, Current), "clicking the empty star favorites the current directory");
+      Assert (Result.Settings_Changed, "toggling the path star reports a settings change");
+      Assert (Ada.Directories.Exists (Path), "toggling the path star persists the settings file");
+      Assert
+        (Files.Model.Focus (Model) /= Files.Types.Focus_Path_Input,
+         "toggling the path star does not focus the path input");
+      Assert
+        (Files.Model.Current_Path (Model) = Current,
+         "toggling the path star does not navigate away from the current directory");
+
+      --  The snapshot now reports the favorited state (filled star); clicking
+      --  the same zone again removes the favorite.
+      declare
+         Action : constant Files.Events.Input_Action := Star_Action;
+      begin
+         Assert
+           (Action.Kind = Files.Events.Path_Favorite_Toggle_Input_Action,
+            "a second click on the now-filled path star is still the favorite-toggle action");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, Path, Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+      Assert (not Has_Favorite (Settings, Current), "clicking the filled star unfavorites the current directory");
+   end Test_Path_Star_Click_Toggles_Current_Dir;
 
    procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

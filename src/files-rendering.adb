@@ -39,6 +39,13 @@ package body Files.Rendering is
      [Character'Val (16#C3#), Character'Val (16#97#)];
    --  Separator drawn between breadcrumb segments; a path-like glyph, not text.
    Breadcrumb_Separator_Text : constant String := ">";
+   --  U+2605 BLACK STAR: the filled favorite indicator/toggle glyph, a symbol
+   --  rather than translatable text.
+   Favorite_Star_Filled_Text : constant String :=
+     [Character'Val (16#E2#), Character'Val (16#98#), Character'Val (16#85#)];
+   --  U+2606 WHITE STAR: the empty (not-favorited) path-bar toggle glyph.
+   Favorite_Star_Empty_Text : constant String :=
+     [Character'Val (16#E2#), Character'Val (16#98#), Character'Val (16#86#)];
    --  Folder-tree expander glyphs: a plus/minus affordance, not translatable text.
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
@@ -624,6 +631,7 @@ package body Files.Rendering is
             when Icon_File_Color       => return RGB (0.70, 0.72, 0.74);
             when Icon_Executable_Color => return RGB (0.38, 0.68, 0.42);
             when Icon_Unknown_Color    => return RGB (0.55, 0.55, 0.57);
+            when Favorite_Star_Color   => return RGB (0.96, 0.78, 0.28);
             when Overlay_Color         => return RGB (0.04, 0.05, 0.06, 0.86);
          end case;
       end Dark_Color;
@@ -653,6 +661,7 @@ package body Files.Rendering is
             when Icon_File_Color       => return RGB (0.34, 0.36, 0.40);
             when Icon_Executable_Color => return RGB (0.16, 0.52, 0.24);
             when Icon_Unknown_Color    => return RGB (0.44, 0.44, 0.48);
+            when Favorite_Star_Color   => return RGB (0.82, 0.60, 0.08);
             when Overlay_Color         => return RGB (0.20, 0.22, 0.26, 0.62);
          end case;
       end Light_Color;
@@ -1674,6 +1683,8 @@ package body Files.Rendering is
       end Root_Display_Label;
    begin
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
+      Snapshot.Current_Path_Is_Favorite :=
+        Files.Settings.Is_Favorite (Settings, Files.Model.Current_Path (Model));
       Snapshot.View_Mode := Files.Model.View_Mode_Of (Model);
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
@@ -2008,7 +2019,9 @@ package body Files.Rendering is
                      Rename_Value       => Rename_Value,
                      Rename_Cursor      => Rename_Cursor,
                      Is_Group_Header    => False,
-                     Group_Label        => Null_Unbounded_String));
+                     Group_Label        => Null_Unbounded_String,
+                     Is_Favorite        =>
+                       Files.Settings.Is_Favorite (Settings, To_String (Item.Full_Path))));
             end;
          end loop;
       end;
@@ -3767,6 +3780,44 @@ package body Files.Rendering is
       return 0;
    end Root_Path_At;
 
+   function Path_Favorite_Star_Region
+     (Width       : Natural;
+      Line_Height : Positive := 20)
+      return Path_Favorite_Star_Bounds
+   is
+      Toolbar      : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
+      Field_Margin : constant Natural := 6;
+      Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
+      Pad          : constant Natural := Files.UI.Input_Field_Padding;
+      Star_W       : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+   begin
+      if Toolbar.Middle_Width <= Saturating_Add (Saturating_Multiply (Field_Margin, 2), Saturating_Add (Star_W, Pad))
+      then
+         return (others => <>);
+      end if;
+      return
+        (X       => Saturating_Add (Path_X, Pad),
+         Y       => Files.UI.Toolbar_Input_Y (Line_Height),
+         Width   => Star_W,
+         Height  => Files.UI.Toolbar_Input_Height (Line_Height),
+         Visible => True);
+   end Path_Favorite_Star_Region;
+
+   function Path_Bar_Content_Offset
+     (Width       : Natural;
+      Line_Height : Positive := 20)
+      return Natural
+   is
+      Star : constant Path_Favorite_Star_Bounds :=
+        Path_Favorite_Star_Region (Width, Line_Height);
+   begin
+      if not Star.Visible then
+         return 0;
+      end if;
+      --  Star cell width plus a small gap so breadcrumbs/edit text clear it.
+      return Saturating_Add (Star.Width, Natural'Max (2, Files.UI.Input_Field_Padding / 2));
+   end Path_Bar_Content_Offset;
+
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
@@ -3784,11 +3835,12 @@ package body Files.Rendering is
       Input_Y      : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
       Input_H      : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
       Pad          : constant Natural := Files.UI.Input_Field_Padding;
+      Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
       Advance      : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
-      Inner_X      : constant Natural := Saturating_Add (Path_X, Pad);
+      Inner_X      : constant Natural := Saturating_Add (Saturating_Add (Path_X, Pad), Star_Reserve);
       Inner_W      : constant Natural :=
-        (if Path_W > Saturating_Multiply (Pad, 2)
-         then Path_W - Saturating_Multiply (Pad, 2)
+        (if Path_W > Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
+         then Path_W - Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
          else 0);
       Sep_Cells    : constant Natural := 1;
 
@@ -6325,6 +6377,11 @@ package body Files.Rendering is
            (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
             then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
             else 0);
+         Star         : constant Path_Favorite_Star_Bounds :=
+           Path_Favorite_Star_Region (Width, Line_Height);
+         Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
+         Text_Start   : constant Natural :=
+           Saturating_Add (Saturating_Add (Path_X, Files.UI.Input_Field_Padding), Star_Reserve);
       begin
          Add_Rect
            (Path_X,
@@ -6338,14 +6395,54 @@ package body Files.Rendering is
             Path_W,
             Toolbar_Input_H,
             Border_Color);
+         --  Favorite toggle: a filled star when the current directory is a
+         --  favorite, an empty star when not, drawn at the left of the path bar
+         --  ahead of the breadcrumbs/edit field in both modes.
+         if Star.Visible then
+            declare
+               Star_Hovered : constant Boolean :=
+                 Has_Hover
+                 and then Contains_Point (Star.X, Star.Y, Star.Width, Star.Height, Hover_X, Hover_Y);
+            begin
+               Add_Text
+                 (Star.X,
+                  Toolbar_Input_Text_Y,
+                  Star.Width,
+                  Toolbar_Input_Text_H,
+                  To_Unbounded_String
+                    (if Snapshot.Current_Path_Is_Favorite
+                     then Favorite_Star_Filled_Text
+                     else Favorite_Star_Empty_Text),
+                  Color =>
+                    (if Snapshot.Current_Path_Is_Favorite
+                     then Favorite_Star_Color
+                     else Muted_Text_Color));
+               if Star_Hovered then
+                  Add_Border (Star.X, Star.Y, Star.Width, Star.Height, Hover_Color);
+               end if;
+               Add_Accessibility_Node
+                 (Role_Button,
+                  Star.X,
+                  Star.Y,
+                  Star.Width,
+                  Star.Height,
+                  Localized
+                    (if Snapshot.Current_Path_Is_Favorite
+                     then "accessibility.favorite_toggle.on"
+                     else "accessibility.favorite_toggle.off"),
+                  Snapshot.Current_Path,
+                  Enabled  => True,
+                  Selected => Snapshot.Current_Path_Is_Favorite);
+            end;
+         end if;
          if Snapshot.Focus = Files.Types.Focus_Path_Input
            or else Breadcrumb_Rows.Is_Empty
          then
             Add_Text
-              (Saturating_Add (Path_X, Files.UI.Input_Field_Padding),
+              (Text_Start,
                Toolbar_Input_Text_Y,
-               (if Path_W > 2 * Files.UI.Input_Field_Padding
-                then Path_W - 2 * Files.UI.Input_Field_Padding
+               (if Path_W > 2 * Files.UI.Input_Field_Padding + Star_Reserve
+                then Path_W - 2 * Files.UI.Input_Field_Padding - Star_Reserve
                 else 0),
                Toolbar_Input_Text_H,
                Snapshot.Path_Input_Text,
@@ -6417,9 +6514,9 @@ package body Files.Rendering is
          if Snapshot.Focus = Files.Types.Focus_Path_Input then
             Add_Focus_Ring (Path_X, Toolbar_Input_Y, Path_W, Toolbar_Input_H);
             Add_Caret
-              (Path_X,
+              (Saturating_Add (Path_X, Star_Reserve),
                Toolbar_Input_Y,
-               Path_W,
+               (if Path_W > Star_Reserve then Path_W - Star_Reserve else 0),
                Toolbar_Input_H,
                Snapshot.Path_Input_Text,
                Snapshot.Text_Cursor_Position);
@@ -6973,6 +7070,26 @@ package body Files.Rendering is
                   Item_Rect.Icon_Y,
                   Item_Rect.Icon_Size,
                   Use_Thumbnail => Snapshot.View_Mode = Files.Types.Large_Icons);
+            end if;
+
+            --  Favorite indicator: a small filled star tucked into the
+            --  top-left corner of the item's icon in every view mode. Drawn
+            --  only for favorited items, so a bare icon means "not favorited".
+            if Item.Is_Favorite and then Item_Rect.Icon_Size > 0 then
+               declare
+                  Star_Box : constant Natural :=
+                    Natural'Max
+                      (Files.UI.Caret_Advance_Width (Line_Height),
+                       Item_Rect.Icon_Size / 2);
+               begin
+                  Add_Text
+                    (Item_Rect.Icon_X,
+                     Item_Rect.Icon_Y,
+                     Star_Box,
+                     Star_Box,
+                     To_Unbounded_String (Favorite_Star_Filled_Text),
+                     Color => Favorite_Star_Color);
+               end;
             end if;
             declare
                Renaming : constant Boolean := Item.Renaming;
