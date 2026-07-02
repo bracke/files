@@ -601,7 +601,8 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 59, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 60, "all expected commands are registered");
+      Assert (Files.Commands.Contains ("navigate.parent"), "navigate-parent command identifier is registered");
       Assert (Files.Commands.Contains ("file.copy_to"), "copy-to command identifier is registered");
       Assert (Files.Commands.Contains ("file.move_to"), "move-to command identifier is registered");
       Assert (Files.Commands.Contains ("tree.toggle"), "toggle-folder-tree command identifier is registered");
@@ -894,6 +895,13 @@ package body Files_Suite.Commands is
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_Right, Alt) = Files.Commands.Navigate_Forward_Command,
          "alt+right dispatches forward command");
       Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Up, Alt) = Files.Commands.Navigate_Parent_Command,
+         "alt+up dispatches parent command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Up, Files.Types.No_Modifiers) =
+           Files.Commands.No_Command,
+         "plain up is not a command shortcut so grid navigation keeps it");
+      Assert
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_N, Ctrl) = Files.Commands.Create_File_Command,
          "control+n dispatches create-file command");
       Assert
@@ -953,6 +961,9 @@ package body Files_Suite.Commands is
       Assert
         (Files.Commands.Placement_For (Files.Commands.Navigate_Forward_Command) = Files.Commands.Toolbar_Left,
          "forward command is placed in left toolbar");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Parent_Command) = Files.Commands.Toolbar_Left,
+         "parent command is placed in left toolbar");
       Assert
         (Files.Commands.Placement_For (Files.Commands.Create_File_Command) = Files.Commands.Toolbar_Left,
          "create-file command is placed in left toolbar");

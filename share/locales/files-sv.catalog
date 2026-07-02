@@ -484,3 +484,6 @@ sv.error.ownership.unsupported = Ändra ägarskap stöds inte på den här platt
 sv.error.settings.invalid_column_order = Inställningsfilen har en ogiltig ordning för detaljkolumner.
 sv.info.group = Grupp
 sv.info.owner = Ägare
+sv.command.navigate.parent = Upp
+sv.command.navigate.parent.description = Gå upp till överordnad mapp.
+sv.error.navigate.no_parent = Den aktuella mappen har ingen överordnad mapp.

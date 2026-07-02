@@ -331,6 +331,15 @@ package Files.File_System is
      (Path : String)
       return Path_Result;
 
+   --  Return the parent directory of Path.
+   --
+   --  @param Path Directory path whose parent is requested.
+   --  @return Parent directory path, or an empty string when Path is a
+   --    filesystem root (or otherwise has no parent).
+   function Parent_Directory
+     (Path : String)
+      return String;
+
    --  Load the direct children of a directory.
    --
    --  @param Path Directory path to load.

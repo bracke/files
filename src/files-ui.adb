@@ -147,7 +147,7 @@ package body Files.UI is
       Button_X : constant Natural := Toolbar_Left_Button_X (Toolbar, Button_Index);
       Next_X   : constant Natural := Toolbar_Left_Button_X (Toolbar, Button_Index + 1);
    begin
-      if Button_Index >= 6 or else Next_X <= Button_X then
+      if Button_Index >= Toolbar_Button_Count or else Next_X <= Button_X then
          return 0;
       end if;
 
@@ -404,7 +404,7 @@ package body Files.UI is
          return Files.Commands.No_Command;
       end if;
 
-      for Button_Index in 0 .. 5 loop
+      for Button_Index in 0 .. 6 loop
          if Within_Rect
               (X,
                Y,
@@ -423,6 +423,8 @@ package body Files.UI is
                when 3 =>
                   return Files.Commands.Navigate_Forward_Command;
                when 4 =>
+                  return Files.Commands.Navigate_Parent_Command;
+               when 5 =>
                   return Files.Commands.Create_File_Command;
                when others =>
                   return Files.Commands.Delete_Selected_Items_Command;

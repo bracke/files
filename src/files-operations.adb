@@ -1037,6 +1037,52 @@ package body Files.Operations is
       end;
    end Navigate_Home;
 
+   function Navigate_Parent
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Parent : constant String :=
+        Files.File_System.Parent_Directory (Files.Model.Current_Path (Model));
+   begin
+      --  A filesystem root has no parent, so navigating up is a safe no-op.
+      if Parent = "" then
+         return Disabled (Model, "error.navigate.no_parent");
+      end if;
+
+      declare
+         Path_Result : constant Files.File_System.Path_Result :=
+           Files.File_System.Normalize_Path (Parent);
+      begin
+         if Path_Result.Status /= Files.File_System.Path_Valid then
+            Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
+            return Make_Result
+              (Operation_Failed, To_String (Path_Result.Error_Key), Parent);
+         end if;
+
+         declare
+            Load : constant Files.File_System.Directory_Load_Result :=
+              Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+         begin
+            if not Load.Success then
+               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+               return
+                 Make_Result
+                   (Operation_Failed,
+                    To_String (Load.Error_Key),
+                    To_String (Path_Result.Directory_Path));
+            end if;
+
+            Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
+            Files.Model.Set_Directory_Signature
+              (Model,
+               Files.File_System.Directory_State (To_String (Load.Path)));
+            Files.Model.Set_Error (Model, "");
+            return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
+         end;
+      end;
+   end Navigate_Parent;
+
    function Navigate_Trash
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)

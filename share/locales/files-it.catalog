@@ -484,3 +484,6 @@ it.error.ownership.unsupported = La modifica del proprietario non è supportata 
 it.error.settings.invalid_column_order = Il file impostazioni contiene un ordine di colonne di dettaglio non valido.
 it.info.group = Gruppo
 it.info.owner = Proprietario
+it.command.navigate.parent = Su
+it.command.navigate.parent.description = Vai alla cartella principale.
+it.error.navigate.no_parent = La cartella corrente non ha una cartella principale.

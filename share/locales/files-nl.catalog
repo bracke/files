@@ -484,3 +484,6 @@ nl.error.ownership.unsupported = Eigendom wijzigen wordt op dit platform niet on
 nl.error.settings.invalid_column_order = Het instellingenbestand heeft een ongeldige volgorde van detailkolommen.
 nl.info.group = Groep
 nl.info.owner = Eigenaar
+nl.command.navigate.parent = Omhoog
+nl.command.navigate.parent.description = Ga naar de bovenliggende map.
+nl.error.navigate.no_parent = De huidige map heeft geen bovenliggende map.

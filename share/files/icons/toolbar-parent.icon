@@ -1,0 +1,9 @@
+files-icon-v1
+name=toolbar-parent
+grid=16
+rect=7,3,2,2,border
+rect=5,5,2,2,border
+rect=9,5,2,2,border
+rect=7,7,2,6,border
+rect=3,7,2,2,border
+rect=11,7,2,2,border

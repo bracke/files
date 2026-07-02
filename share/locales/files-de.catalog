@@ -483,3 +483,6 @@ de.error.ownership.unsupported = Ändern des Besitzers wird auf dieser Plattform
 de.error.settings.invalid_column_order = Einstellungsdatei enthält eine ungültige Reihenfolge der Detailspalten.
 de.info.group = Gruppe
 de.info.owner = Besitzer
+de.command.navigate.parent = Aufwärts
+de.command.navigate.parent.description = Zum übergeordneten Verzeichnis wechseln.
+de.error.navigate.no_parent = Das aktuelle Verzeichnis hat kein übergeordnetes Verzeichnis.

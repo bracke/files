@@ -5129,6 +5129,7 @@ package body Files.Rendering is
               when Files.Commands.Navigate_Home_Command => "toolbar-home",
               when Files.Commands.Navigate_Back_Command => "toolbar-back",
               when Files.Commands.Navigate_Forward_Command => "toolbar-forward",
+              when Files.Commands.Navigate_Parent_Command => "toolbar-parent",
               when Files.Commands.Create_File_Command => "toolbar-create",
               when Files.Commands.Delete_Selected_Items_Command => "toolbar-delete",
               when others => "unknown");
@@ -5179,6 +5180,12 @@ package body Files.Rendering is
             Add_Local_Rect (3, 7, 5, 2);
          end Draw_Forward;
 
+         procedure Draw_Parent is
+         begin
+            Add_Triangle (SX (8), SY (3), SX (3), SY (8), SX (13), SY (8), Color);
+            Add_Local_Rect (7, 7, 2, 6);
+         end Draw_Parent;
+
          procedure Draw_Create is
          begin
             Add_Local_Rect (7, 3, 2, 10);
@@ -5218,6 +5225,8 @@ package body Files.Rendering is
             Draw_Back;
          elsif Id = Files.Commands.Navigate_Forward_Command then
             Draw_Forward;
+         elsif Id = Files.Commands.Navigate_Parent_Command then
+            Draw_Parent;
          elsif Id = Files.Commands.Create_File_Command then
             Draw_Create;
          elsif Id = Files.Commands.Delete_Selected_Items_Command then
@@ -6197,7 +6206,7 @@ package body Files.Rendering is
             Border_Color);
       end if;
 
-      for Button_Index in 0 .. 5 loop
+      for Button_Index in 0 .. 6 loop
          declare
             Button_X : constant Natural := Files.UI.Toolbar_Left_Button_X (Toolbar, Button_Index);
             Button_W : constant Natural := Files.UI.Toolbar_Left_Button_Width (Toolbar, Button_Index);
@@ -6207,7 +6216,8 @@ package body Files.Rendering is
                   when 1 => Files.Commands.Navigate_Home_Command,
                   when 2 => Files.Commands.Navigate_Back_Command,
                   when 3 => Files.Commands.Navigate_Forward_Command,
-                  when 4 => Files.Commands.Create_File_Command,
+                  when 4 => Files.Commands.Navigate_Parent_Command,
+                  when 5 => Files.Commands.Create_File_Command,
                   when others => Files.Commands.Delete_Selected_Items_Command);
             Button_Y : constant Natural := Toolbar_Input_Y;
             Button_H : constant Natural :=
@@ -6225,9 +6235,9 @@ package body Files.Rendering is
             Inner_Pad    : constant Natural := Natural'Min (3, Button_W / 6);
             Group_Pad    : constant Natural := Natural'Min (8, Button_W / 4);
             Button_Pad_L : constant Natural :=
-              (if Button_Index = 4 then Group_Pad else Inner_Pad);
+              (if Button_Index = 5 then Group_Pad else Inner_Pad);
             Button_Pad_R : constant Natural :=
-              (if Button_Index = 3 then Group_Pad else Inner_Pad);
+              (if Button_Index = 4 then Group_Pad else Inner_Pad);
             Visible_X : constant Natural := Saturating_Add (Button_X, Button_Pad_L);
             Visible_W : constant Natural :=
               (if Button_W > Saturating_Add (Button_Pad_L, Button_Pad_R)
@@ -6291,7 +6301,7 @@ package body Files.Rendering is
       if Layout.Toolbar_Height > 0 then
          declare
             Group_Boundary_X : constant Natural :=
-              Files.UI.Toolbar_Left_Button_X (Toolbar, 4);
+              Files.UI.Toolbar_Left_Button_X (Toolbar, 5);
             Divider_H : constant Natural :=
               Natural'Max (1, Layout.Toolbar_Height / 3);
             Divider_Y : constant Natural :=

@@ -20,6 +20,7 @@ share/files/icons/high-contrast/toolbar-create.icon
 share/files/icons/high-contrast/toolbar-delete.icon
 share/files/icons/high-contrast/toolbar-forward.icon
 share/files/icons/high-contrast/toolbar-home.icon
+share/files/icons/high-contrast/toolbar-parent.icon
 share/files/icons/high-contrast/unknown.icon
 share/files/icons/image.icon
 share/files/icons/link.icon
@@ -30,6 +31,7 @@ share/files/icons/toolbar-create.icon
 share/files/icons/toolbar-delete.icon
 share/files/icons/toolbar-forward.icon
 share/files/icons/toolbar-home.icon
+share/files/icons/toolbar-parent.icon
 share/files/icons/unknown.icon
 share/files/package.manifest
 share/icons/hicolor/scalable/apps/files.svg

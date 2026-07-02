@@ -273,6 +273,17 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Navigate to the parent of the current directory and load it, recording
+   --  history so Back returns to the origin. A no-op at a filesystem root.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Navigate_Parent
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Navigate to the current backend's trash payload directory.
    --
    --  @param Model Window model to update.

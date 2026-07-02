@@ -77,6 +77,9 @@ package body Files_Suite.Interaction is
    Shift : constant Files.Types.Modifier_Set :=
      [Files.Types.Shift_Key => True, others => False];
 
+   Alt : constant Files.Types.Modifier_Set :=
+     [Files.Types.Alt_Key => True, others => False];
+
    type Interaction_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String;
@@ -89,6 +92,7 @@ package body Files_Suite.Interaction is
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -153,6 +157,9 @@ package body Files_Suite.Interaction is
         (T, Test_Menu_Row_Dispatch'Access, "context-menu row dispatches its command and closes");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Keyboard_Shortcut_Command'Access, "keyboard shortcut routes to its command and model effect");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Alt_Up_Navigates_Parent'Access,
+         "alt+up routes to navigate-parent while plain up moves the selection");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Keyboard_Dispatch_Path'Access,
          "live key dispatch flows through Files.Interaction.Handle_Key for view, settings-path, and toggle keys");
@@ -598,6 +605,31 @@ package body Files_Suite.Interaction is
         (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
          "dispatching the shortcut switches the model to the details view");
    end Test_Keyboard_Shortcut_Command;
+
+   procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Navigation_Direction;
+      Parent_Action : constant Files.Events.Input_Action :=
+        Files.Events.Translate_Key (Files.Types.Key_Up, Alt);
+      Plain_Action  : constant Files.Events.Input_Action :=
+        Files.Events.Translate_Key (Files.Types.Key_Up, Files.Types.No_Modifiers);
+   begin
+      --  Alt+Up is a modifier-specific shortcut, so it routes to the command.
+      Assert
+        (Parent_Action.Kind = Files.Events.Command_Input_Action,
+         "alt+up translates to a command input action");
+      Assert
+        (Parent_Action.Command = Files.Commands.Navigate_Parent_Command,
+         "alt+up dispatches the navigate-parent command");
+
+      --  Plain Up is left for grid navigation so the selection still moves.
+      Assert
+        (Plain_Action.Kind = Files.Events.Selection_Input_Action,
+         "plain up stays a selection movement action");
+      Assert
+        (Plain_Action.Direction = Files.Types.Move_Up,
+         "plain up still moves the selection up in the grid");
+   end Test_Alt_Up_Navigates_Parent;
 
    --  Drive the GENUINE live key-dispatch seam the shell uses --
    --  Files.Interaction.Handle_Key -- rather than the Translate_Key ->

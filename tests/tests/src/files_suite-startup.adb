@@ -1240,6 +1240,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.thumbnail.failed");
       Add_Error_Key ("error.history.back_unavailable");
       Add_Error_Key ("error.history.forward_unavailable");
+      Add_Error_Key ("error.navigate.no_parent");
       Add_Error_Key ("error.selection.empty");
       Add_Error_Key ("error.create.pending");
       Add_Error_Key ("error.create.no_temporary_item");

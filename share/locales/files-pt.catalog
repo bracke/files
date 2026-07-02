@@ -484,3 +484,6 @@ pt.error.ownership.unsupported = A alteração do proprietário não é suportad
 pt.error.settings.invalid_column_order = O ficheiro de definições tem uma ordem de colunas de detalhe inválida.
 pt.info.group = Grupo
 pt.info.owner = Proprietário
+pt.command.navigate.parent = Acima
+pt.command.navigate.parent.description = Ir para a pasta principal.
+pt.error.navigate.no_parent = A pasta atual não tem pasta principal.

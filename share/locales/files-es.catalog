@@ -484,3 +484,6 @@ es.error.ownership.unsupported = Cambiar el propietario no es compatible en esta
 es.error.settings.invalid_column_order = El archivo de ajustes tiene un orden de columnas de detalle no válido.
 es.info.group = Grupo
 es.info.owner = Propietario
+es.command.navigate.parent = Subir
+es.command.navigate.parent.description = Subir al directorio principal.
+es.error.navigate.no_parent = El directorio actual no tiene directorio principal.

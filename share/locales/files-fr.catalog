@@ -484,3 +484,6 @@ fr.error.ownership.unsupported = Le changement de propriétaire n'est pas pris e
 fr.error.settings.invalid_column_order = Le fichier de réglages contient un ordre de colonnes de détail non valide.
 fr.info.group = Groupe
 fr.info.owner = Propriétaire
+fr.command.navigate.parent = Dossier parent
+fr.command.navigate.parent.description = Aller au dossier parent.
+fr.error.navigate.no_parent = Le dossier actuel n'a pas de dossier parent.

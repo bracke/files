@@ -106,6 +106,8 @@ package body Files.Commands is
             return "navigate.back";
          when Navigate_Forward_Command =>
             return "navigate.forward";
+         when Navigate_Parent_Command =>
+            return "navigate.parent";
          when Create_File_Command =>
             return "file.create";
          when New_Folder_Command =>
@@ -234,6 +236,8 @@ package body Files.Commands is
             return "command.navigate.back";
          when Navigate_Forward_Command =>
             return "command.navigate.forward";
+         when Navigate_Parent_Command =>
+            return "command.navigate.parent";
          when Create_File_Command =>
             return "command.file.create";
          when New_Folder_Command =>
@@ -362,6 +366,8 @@ package body Files.Commands is
             return "command.navigate.back.description";
          when Navigate_Forward_Command =>
             return "command.navigate.forward.description";
+         when Navigate_Parent_Command =>
+            return "command.navigate.parent.description";
          when Create_File_Command =>
             return "command.file.create.description";
          when New_Folder_Command =>
@@ -485,6 +491,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_Left, Alt);
          when Navigate_Forward_Command =>
             return (True, Files.Types.Key_Right, Alt);
+         when Navigate_Parent_Command =>
+            return (True, Files.Types.Key_Up, Alt);
          when Create_File_Command =>
             return (True, Files.Types.Key_N, Ctrl);
          when Select_All_Command =>
@@ -745,6 +753,7 @@ package body Files.Commands is
             | Navigate_Home_Command
             | Navigate_Back_Command
             | Navigate_Forward_Command
+            | Navigate_Parent_Command
             | Create_File_Command
             | New_Folder_Command
             | Delete_Selected_Items_Command =>
@@ -892,6 +901,12 @@ package body Files.Commands is
             return Files.Model.Can_Go_Back (Model);
          when Navigate_Forward_Command =>
             return Files.Model.Can_Go_Forward (Model);
+         when Navigate_Parent_Command =>
+            --  Enabled only in an ordinary directory view that has a parent;
+            --  disabled at a filesystem root and in the trash payload view.
+            return not In_Trash_View (Model)
+              and then Files.File_System.Parent_Directory
+                         (Files.Model.Current_Path (Model)) /= "";
          when Delete_Selected_Items_Command | Open_Selected_Items_Command
             | Open_With_Command =>
             return Files.Model.Selected_Count (Model) > 0
@@ -1052,6 +1067,11 @@ package body Files.Commands is
          when Navigate_Back_Command =>
             null;
          when Navigate_Forward_Command =>
+            null;
+         when Navigate_Parent_Command =>
+            --  Navigating to the parent loads a directory from the filesystem,
+            --  so it is routed through Files.Controller rather than this pure
+            --  model-only executor.
             null;
          when Create_File_Command =>
             null;

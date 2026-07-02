@@ -119,6 +119,7 @@ package body Files_Suite.Operations is
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -184,6 +185,8 @@ package body Files_Suite.Operations is
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Navigate_Parent_Operation'Access, "navigate parent moves up and records history");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Compress_Selected_Operation'Access, "compress selected items into zip and 7z archives");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3500,6 +3503,87 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Can_Go_Forward (Model), "new controller navigation clears forward history");
       Assert (Files.Model.Item_Count (Model) = 1, "branch navigation carries loaded directory items");
    end Test_Controller_Refresh_And_History_Loading;
+
+   procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parent_Dir  : constant String := Join (Root, "nav-parent");
+      Child_Dir   : constant String := Join (Parent_Dir, "child");
+      Settings    : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load        : Files.File_System.Directory_Load_Result;
+      Model       : Files.Model.Window_Model;
+      Result      : Files.Controller.Controller_Result;
+      Full_Parent : constant String := Ada.Directories.Full_Name (Parent_Dir);
+      Full_Child  : constant String := Ada.Directories.Full_Name (Child_Dir);
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Child_Dir);
+      Write_File (Join (Child_Dir, "leaf.txt"));
+      Write_File (Join (Parent_Dir, "sibling.txt"));
+      Load := Files.File_System.Load_Directory (Full_Child, Settings);
+      Files.Model.Initialize (Model, Full_Child, Load.Items, Full_Child);
+
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Model),
+         "navigate-parent is enabled in a nested directory");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Parent_Command, Model, Settings);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Navigated,
+         "navigate-parent navigates to the parent");
+      Assert
+        (Files.Model.Current_Path (Model) = Full_Parent,
+         "navigate-parent moves to the parent directory");
+      Assert (Files.Model.Can_Go_Back (Model), "navigate-parent records history for back");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "back returns after navigate-parent");
+      Assert
+        (Files.Model.Current_Path (Model) = Full_Child,
+         "back restores the origin child directory");
+
+      --  At a filesystem root the command is disabled and navigating up is a
+      --  safe no-op that leaves the current path untouched.
+      declare
+         Root_Model : Files.Model.Window_Model;
+         Root_Op    : Files.Operations.Operation_Result;
+      begin
+         Files.Model.Initialize
+           (Root_Model, "/", Files.File_System.Item_Vectors.Empty_Vector, Full_Child);
+         Assert
+           (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Root_Model),
+            "navigate-parent is disabled at the filesystem root");
+         Root_Op := Files.Operations.Navigate_Parent (Root_Model, Settings);
+         Assert
+           (Root_Op.Status = Files.Operations.Operation_Disabled,
+            "navigate-parent at the root is a safe no-op");
+         Assert
+           (Files.Model.Current_Path (Root_Model) = "/",
+            "root navigate-parent keeps the current path");
+      end;
+
+      --  In the trash payload view the command is disabled like other
+      --  directory-context commands.
+      if Files.File_System.Trash_Files_Directory /= "" then
+         declare
+            Trash_Dir   : constant String := Files.File_System.Trash_Files_Directory;
+            Trash_Load  : constant Files.File_System.Directory_Load_Result :=
+              Files.File_System.Load_Directory (Trash_Dir, Settings);
+            Trash_Model : Files.Model.Window_Model;
+         begin
+            if Trash_Load.Success then
+               Files.Model.Initialize
+                 (Trash_Model, To_String (Trash_Load.Path), Trash_Load.Items, Full_Child);
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Trash_Model),
+                  "navigate-parent is disabled in the trash view");
+            end if;
+         end;
+      end if;
+
+      Project_Tools.Files.Delete_Tree (Parent_Dir);
+   end Test_Navigate_Parent_Operation;
 
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

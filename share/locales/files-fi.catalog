@@ -484,3 +484,6 @@ fi.error.ownership.unsupported = Omistajuuden muuttamista ei tueta tällä alust
 fi.error.settings.invalid_column_order = Asetustiedostossa on virheellinen tietosarakkeiden järjestys.
 fi.info.group = Ryhmä
 fi.info.owner = Omistaja
+fi.command.navigate.parent = Ylös
+fi.command.navigate.parent.description = Siirry yläkansioon.
+fi.error.navigate.no_parent = Nykyisellä kansiolla ei ole yläkansiota.

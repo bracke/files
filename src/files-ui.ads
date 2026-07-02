@@ -7,7 +7,7 @@ package Files.UI is
    Sort_Menu_Padding : constant Natural := 8;
    Input_Field_Padding : constant Natural := 8;
    Toolbar_Button_Width : constant Natural := 40;
-   Toolbar_Button_Count : constant Natural := 6;
+   Toolbar_Button_Count : constant Natural := 7;
 
    --  Return the horizontal pixel advance of one text display cell.
    --

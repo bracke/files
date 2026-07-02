@@ -625,6 +625,29 @@ package body Files.File_System is
          return False;
    end Path_Can_Be_Directory;
 
+   function Parent_Directory (Path : String) return String is
+   begin
+      if Path = "" then
+         return "";
+      end if;
+
+      declare
+         --  Containing_Directory resolves the parent cross-platform, trimming
+         --  the final path component and handling trailing separators. It
+         --  raises Use_Error at a filesystem root, where no parent exists.
+         Parent : constant String := Ada.Directories.Containing_Directory (Path);
+      begin
+         if Parent = "" or else Parent = Path then
+            return "";
+         end if;
+
+         return Parent;
+      end;
+   exception
+      when others =>
+         return "";
+   end Parent_Directory;
+
    function Name_Less (Left : Directory_Item; Right : Directory_Item) return Boolean is
       Left_Name       : constant String := To_String (Left.Name);
       Right_Name      : constant String := To_String (Right.Name);
