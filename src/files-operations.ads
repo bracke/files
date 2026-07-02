@@ -377,6 +377,24 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Permanently delete every entry currently in the trash view.
+   --
+   --  Enumerates the trashed payloads the trash view lists and purges each one
+   --  (payload plus its .trashinfo metadata). The pass is best-effort: per-item
+   --  failures are collected and the remaining entries are still removed. The
+   --  trash view is reloaded afterwards. Emptying the trash is terminal and
+   --  never records an undo entry. Returns success when at least one entry was
+   --  removed (with an error.trash.empty_partial diagnostic set on partial
+   --  failure), or Operation_Failed when every entry failed to delete.
+   --
+   --  @param Model Window model to inspect and refresh after mutation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Empty_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Generate cached thumbnails for selected regular files.
    --
    --  @param Model Window model to inspect.

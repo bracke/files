@@ -697,6 +697,8 @@ package body Files.Controller is
             Operation := Files.Operations.Navigate_Trash (Model, Settings);
          when Files.Commands.Restore_From_Trash_Command =>
             Operation := Files.Operations.Restore_Selected_From_Trash (Model, Settings);
+         when Files.Commands.Empty_Trash_Command =>
+            Operation := Files.Operations.Empty_Trash (Model, Settings);
          when Files.Commands.Undo_Command =>
             Operation := Files.Operations.Undo_Last (Model, Settings);
          when Files.Commands.Redo_Command =>
@@ -2508,6 +2510,7 @@ package body Files.Controller is
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action
             | Files.Events.Column_Reorder_Begin_Input_Action
+            | Files.Events.Marquee_Begin_Input_Action
             | Files.Events.Permission_Toggle_Input_Action
             | Files.Events.Ownership_Edit_Input_Action
             | Files.Events.Conflict_Click_Input_Action

@@ -171,6 +171,8 @@ package body Files.Commands is
             return "trash.open";
          when Restore_From_Trash_Command =>
             return "trash.restore";
+         when Empty_Trash_Command =>
+            return "trash.empty";
          when Open_Terminal_Command =>
             return "terminal.open";
          when Create_Symlink_Command =>
@@ -311,6 +313,8 @@ package body Files.Commands is
             return "command.trash.open";
          when Restore_From_Trash_Command =>
             return "command.trash.restore";
+         when Empty_Trash_Command =>
+            return "command.trash.empty";
          when Open_Terminal_Command =>
             return "command.terminal.open";
          when Create_Symlink_Command =>
@@ -451,6 +455,8 @@ package body Files.Commands is
             return "command.trash.open.description";
          when Restore_From_Trash_Command =>
             return "command.trash.restore.description";
+         when Empty_Trash_Command =>
+            return "command.trash.empty.description";
          when Open_Terminal_Command =>
             return "command.terminal.open.description";
          when Create_Symlink_Command =>
@@ -1063,6 +1069,11 @@ package body Files.Commands is
                  and then Files.Model.Selected_Count (Model) > 0
                  and then not Files.Model.Selection_Includes_Temporary (Model);
             end;
+         when Empty_Trash_Command =>
+            --  Emptying is only meaningful in the trash payload view and only
+            --  when at least one trashed entry is present to purge.
+            return In_Trash_View (Model)
+              and then Files.Model.Item_Count (Model) > 0;
          when Undo_Command =>
             return Files.Model.Undo_Available (Model);
          when Redo_Command =>
@@ -1245,6 +1256,11 @@ package body Files.Commands is
          when Navigate_Trash_Command =>
             null;
          when Restore_From_Trash_Command =>
+            null;
+         when Empty_Trash_Command =>
+            --  Permanently purging every trashed entry loads and mutates the
+            --  filesystem trash directory, so it is routed through
+            --  Files.Controller rather than this pure model-only executor.
             null;
          when Open_Terminal_Command =>
             null;

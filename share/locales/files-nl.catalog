@@ -499,3 +499,7 @@ nl.command.edit.copy_path = Pad kopiëren
 nl.command.edit.copy_path.description = Volledige paden van de geselecteerde items naar het klembord kopiëren.
 nl.command.navigate.containing = Bovenliggende map openen
 nl.command.navigate.containing.description = De map openen die het geselecteerde item bevat en het selecteren.
+nl.command.trash.empty = Prullenbak legen
+nl.command.trash.empty.description = Alle items in de prullenbak permanent verwijderen.
+nl.error.trash.empty_partial = Sommige items konden niet uit de prullenbak worden verwijderd.
+nl.error.trash.empty_failed = De prullenbak kon niet worden geleegd.

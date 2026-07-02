@@ -36,6 +36,7 @@ package Files.Rendering is
       Icon_Executable_Color,
       Icon_Unknown_Color,
       Favorite_Star_Color,
+      Marquee_Color,
       Overlay_Color);
 
    --  Selectable color palettes. Theme_Dark is the default. Theme_High_Contrast
@@ -387,6 +388,13 @@ package Files.Rendering is
    package Item_Layout_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Item_Layout);
+
+   --  Deterministic set of one-based visible item indices, ascending. Used to
+   --  carry the items a marquee (rubber-band) rectangle touches from the pure
+   --  hit-test to the selection reducer.
+   package Visible_Index_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Positive);
 
    type Main_View_Layout is record
       Columns           : Positive := 1;
@@ -1087,6 +1095,48 @@ package Files.Rendering is
       Y     : Natural)
       return Natural;
 
+   --  Normalize the two corner points of a marquee (rubber-band) drag into an
+   --  origin-plus-extent rectangle so a drag in any direction (including up or
+   --  left) yields a well-formed rectangle. Start is the press point, Current
+   --  the live pointer.
+   --
+   --  @param Start_X Press-point x coordinate in framebuffer pixels.
+   --  @param Start_Y Press-point y coordinate in framebuffer pixels.
+   --  @param Current_X Live pointer x coordinate in framebuffer pixels.
+   --  @param Current_Y Live pointer y coordinate in framebuffer pixels.
+   --  @param X Normalized left edge.
+   --  @param Y Normalized top edge.
+   --  @param Width Normalized width (Current and Start x distance).
+   --  @param Height Normalized height (Current and Start y distance).
+   procedure Marquee_Rect
+     (Start_X   : Natural;
+      Start_Y   : Natural;
+      Current_X : Natural;
+      Current_Y : Natural;
+      X         : out Natural;
+      Y         : out Natural;
+      Width     : out Natural;
+      Height    : out Natural);
+
+   --  Return, in ascending order, the one-based visible indices of every item
+   --  whose layout rectangle intersects the given (already normalized) marquee
+   --  rectangle. Any overlap counts as a hit; a zero-area rectangle (Width or
+   --  Height zero, e.g. a plain click that never dragged) touches nothing.
+   --
+   --  @param Items Item layout rectangles in visible-item order.
+   --  @param X Marquee left edge in framebuffer pixels.
+   --  @param Y Marquee top edge in framebuffer pixels.
+   --  @param Width Marquee width in framebuffer pixels.
+   --  @param Height Marquee height in framebuffer pixels.
+   --  @return Ascending visible indices the rectangle intersects.
+   function Items_In_Rect
+     (Items  : Item_Layout_Vectors.Vector;
+      X      : Natural;
+      Y      : Natural;
+      Width  : Natural;
+      Height : Natural)
+      return Visible_Index_Vectors.Vector;
+
    --  Return the horizontal extent of an item's inline rename field.
    --
    --  Both the renderer and the click hit-test use this so the editable region
@@ -1450,6 +1500,11 @@ package Files.Rendering is
    --  @param Drag_X Drag pointer x coordinate in framebuffer pixels.
    --  @param Drag_Y Drag pointer y coordinate in framebuffer pixels.
    --  @param Has_Drag Whether drag preview coordinates are currently valid.
+   --  @param Marquee_Active Whether a rubber-band selection rectangle is active.
+   --  @param Marquee_X Marquee left edge in framebuffer pixels.
+   --  @param Marquee_Y Marquee top edge in framebuffer pixels.
+   --  @param Marquee_W Marquee width in framebuffer pixels.
+   --  @param Marquee_H Marquee height in framebuffer pixels.
    --  @return Frame command list for a renderer backend.
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
@@ -1465,7 +1520,12 @@ package Files.Rendering is
       Drag_Item_Index : Natural := 0;
       Drag_X      : Natural := 0;
       Drag_Y      : Natural := 0;
-      Has_Drag    : Boolean := False)
+      Has_Drag    : Boolean := False;
+      Marquee_Active : Boolean := False;
+      Marquee_X   : Natural := 0;
+      Marquee_Y   : Natural := 0;
+      Marquee_W   : Natural := 0;
+      Marquee_H   : Natural := 0)
       return Frame_Commands;
 
    --  Return the first known monospace TrueType font available on the system.

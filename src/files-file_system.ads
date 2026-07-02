@@ -782,6 +782,20 @@ package Files.File_System is
      (Path : String)
       return Mutation_Result;
 
+   --  Permanently delete a single trashed payload and its metadata.
+   --
+   --  Removes the payload through Delete_Permanently and, for freedesktop
+   --  backends, best-effort removes the matching <base>/info/<name>.trashinfo
+   --  sidecar so the trash entry leaves no orphaned metadata behind. Sidecar
+   --  removal never fails the operation; the payload deletion result is
+   --  returned.
+   --
+   --  @param Trashed_Path Payload path inside the trash files directory.
+   --  @return Mutation result with a localized error key on failure.
+   function Delete_Trashed_Item
+     (Trashed_Path : String)
+      return Mutation_Result;
+
    --  Build deterministic copy/move plans for paths dropped into a directory.
    --
    --  @param Source_Paths Paths received from a drag-and-drop operation.

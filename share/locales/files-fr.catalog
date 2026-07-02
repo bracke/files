@@ -499,3 +499,7 @@ fr.command.edit.copy_path = Copier le chemin
 fr.command.edit.copy_path.description = Copier les chemins complets des éléments sélectionnés au presse-papiers.
 fr.command.navigate.containing = Ouvrir le dossier parent
 fr.command.navigate.containing.description = Ouvrir le dossier contenant l'élément sélectionné et le sélectionner.
+fr.command.trash.empty = Vider la corbeille
+fr.command.trash.empty.description = Supprimer définitivement tous les éléments de la corbeille.
+fr.error.trash.empty_partial = Certains éléments n'ont pas pu être retirés de la corbeille.
+fr.error.trash.empty_failed = La corbeille n'a pas pu être vidée.

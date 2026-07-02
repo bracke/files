@@ -499,3 +499,7 @@ pt.command.edit.copy_path = Copiar caminho
 pt.command.edit.copy_path.description = Copiar os caminhos completos dos itens selecionados à área de transferência.
 pt.command.navigate.containing = Abrir pasta que contém
 pt.command.navigate.containing.description = Abrir a pasta que contém o item selecionado e selecioná-lo.
+pt.command.trash.empty = Esvaziar o lixo
+pt.command.trash.empty.description = Eliminar permanentemente todos os itens do lixo.
+pt.error.trash.empty_partial = Não foi possível remover alguns itens do lixo.
+pt.error.trash.empty_failed = Não foi possível esvaziar o lixo.

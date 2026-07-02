@@ -9,6 +9,9 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Empty Trash: permanently clear every item in the trash in one action.
+- Rubber-band (marquee) selection: drag a rectangle over empty space to select
+  items; hold Ctrl/Shift to add to the current selection.
 - Copy Path (Ctrl+Shift+C) copies the selected items' full paths to the system
   clipboard, and Open Containing Folder reveals a search result in its own
   directory.

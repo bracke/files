@@ -499,3 +499,7 @@ fi.command.edit.copy_path = Kopioi polku
 fi.command.edit.copy_path.description = Kopioi valittujen kohteiden täydelliset polut leikepöydälle.
 fi.command.navigate.containing = Avaa yläkansio
 fi.command.navigate.containing.description = Avaa kansio, joka sisältää valitun kohteen, ja valitse se.
+fi.command.trash.empty = Tyhjennä roskakori
+fi.command.trash.empty.description = Poista pysyvästi kaikki roskakorin kohteet.
+fi.error.trash.empty_partial = Joitakin kohteita ei voitu poistaa roskakorista.
+fi.error.trash.empty_failed = Roskakoria ei voitu tyhjentää.

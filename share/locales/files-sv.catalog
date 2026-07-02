@@ -499,3 +499,7 @@ sv.command.edit.copy_path = Kopiera sökväg
 sv.command.edit.copy_path.description = Kopiera fullständiga sökvägar för de markerade objekten till urklipp.
 sv.command.navigate.containing = Öppna överordnad mapp
 sv.command.navigate.containing.description = Öppna mappen som innehåller det markerade objektet och markera det.
+sv.command.trash.empty = Töm papperskorgen
+sv.command.trash.empty.description = Ta bort alla objekt i papperskorgen permanent.
+sv.error.trash.empty_partial = Vissa objekt kunde inte tas bort från papperskorgen.
+sv.error.trash.empty_failed = Papperskorgen kunde inte tömmas.

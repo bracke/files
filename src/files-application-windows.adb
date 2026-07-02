@@ -221,6 +221,23 @@ package body Files.Application.Windows is
       Column_Reorder_Origin_X : Integer := 0;
       Column_Reorder_Started  : Boolean := False;
       Column_Reorder_Sort    : Files.Commands.Command_Id := Files.Commands.No_Command;
+      --  Rubber-band (marquee) selection drag state, owned by the shell like the
+      --  drags above. Active gates the gesture; Origin_X/Y is the press point;
+      --  Moved records whether the pointer crossed the drag threshold (below it a
+      --  press is a plain empty-space click that leaves the selection untouched);
+      --  Additive unions with Base (the selection captured at press) for a
+      --  Ctrl/Shift marquee; Rect_* is the live rectangle surfaced to the
+      --  renderer while Active.
+      Marquee_Active   : Boolean := False;
+      Marquee_Origin_X : Integer := 0;
+      Marquee_Origin_Y : Integer := 0;
+      Marquee_Moved    : Boolean := False;
+      Marquee_Additive : Boolean := False;
+      Marquee_Base     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Marquee_Rect_X   : Natural := 0;
+      Marquee_Rect_Y   : Natural := 0;
+      Marquee_Rect_W   : Natural := 0;
+      Marquee_Rect_H   : Natural := 0;
       Last_Click_Item : Natural := 0;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       --  Wall-clock of the last grid type-ahead keystroke; the event loop clears
@@ -257,6 +274,11 @@ package body Files.Application.Windows is
       Cached_Has_Press     : Boolean := False;
       Cached_Drag_Item     : Natural := 0;
       Cached_Has_Drag      : Boolean := False;
+      Cached_Marquee_Active : Boolean := False;
+      Cached_Marquee_X     : Natural := 0;
+      Cached_Marquee_Y     : Natural := 0;
+      Cached_Marquee_W     : Natural := 0;
+      Cached_Marquee_H     : Natural := 0;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Files.Rendering.Vulkan.Vulkan_Status :=
@@ -1369,6 +1391,26 @@ package body Files.Application.Windows is
          return;
       end if;
 
+      --  Marquee begin arms shell-owned rubber-band state; the continuous
+      --  selection is applied per frame by Update_Marquee_Drag. The press point
+      --  and additive flag are packed into the shared fields (see the
+      --  Input_Action comment). The prior selection is snapshotted now so an
+      --  additive drag can union against it without the per-frame reapply
+      --  erasing it.
+      if Action.Kind = Files.Events.Marquee_Begin_Input_Action then
+         Runtime.Marquee_Active := True;
+         Runtime.Marquee_Moved := False;
+         Runtime.Marquee_Origin_X := Action.Cursor_Position;
+         Runtime.Marquee_Origin_Y := Action.Settings_Field;
+         Runtime.Marquee_Additive := Action.Toggle_Selection;
+         Runtime.Marquee_Base := Files.Interaction.Selected_Visible_Indices (Runtime.Model);
+         Runtime.Marquee_Rect_X := 0;
+         Runtime.Marquee_Rect_Y := 0;
+         Runtime.Marquee_Rect_W := 0;
+         Runtime.Marquee_Rect_H := 0;
+         return;
+      end if;
+
       Files.Interaction.Apply_Input_Action
         (Model             => Runtime.Model,
          Settings          => Runtime.Settings,
@@ -1766,6 +1808,16 @@ package body Files.Application.Windows is
             Column_Reorder_Origin_X => 0,
             Column_Reorder_Started => False,
             Column_Reorder_Sort => Files.Commands.No_Command,
+            Marquee_Active   => False,
+            Marquee_Origin_X => 0,
+            Marquee_Origin_Y => 0,
+            Marquee_Moved    => False,
+            Marquee_Additive => False,
+            Marquee_Base     => <>,
+            Marquee_Rect_X   => 0,
+            Marquee_Rect_Y   => 0,
+            Marquee_Rect_W   => 0,
+            Marquee_Rect_H   => 0,
             Last_Click_Item => 0,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
             Type_Ahead_Input_At => Ada.Calendar.Time_Of (1901, 1, 1),
@@ -1796,6 +1848,11 @@ package body Files.Application.Windows is
             Cached_Has_Press     => False,
             Cached_Drag_Item     => 0,
             Cached_Has_Drag      => False,
+            Cached_Marquee_Active => False,
+            Cached_Marquee_X     => 0,
+            Cached_Marquee_Y     => 0,
+            Cached_Marquee_W     => 0,
+            Cached_Marquee_H     => 0,
             Last_Glyph_Count => 0,
             Last_Missing_Glyph_Count => 0,
             Last_Present_Status => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
@@ -2028,6 +2085,91 @@ package body Files.Application.Windows is
       end if;
    end Update_Column_Reorder_Drag;
 
+   --  Minimum pointer travel, in frame pixels, before an armed empty-space press
+   --  becomes a marquee. Below it the press/release is a plain empty-space click
+   --  that leaves the selection untouched, matching the pre-marquee no-op.
+   Marquee_Drag_Threshold : constant := 4;
+
+   procedure Update_Marquee_Drag
+     (Runtime    : in out Runtime_Window;
+      Cursor_X   : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y   : Glfw.Input.Mouse.Coordinate;
+      Window_W   : Glfw.Size;
+      Window_H   : Glfw.Size;
+      Frame_W    : Glfw.Size;
+      Frame_H    : Glfw.Size;
+      Mouse_Down : Boolean)
+   is
+      X_Frame : Integer;
+      Y_Frame : Integer;
+   begin
+      if not Runtime.Marquee_Active then
+         return;
+      elsif Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
+         Runtime.Marquee_Active := False;
+         return;
+      end if;
+
+      X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+      Y_Frame := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+
+      if not Mouse_Down then
+         --  Released: end the gesture and stop drawing the rectangle, keeping
+         --  whatever selection the drag produced. A press that never crossed the
+         --  threshold left the selection untouched, so an empty-space click that
+         --  did not drag stays a no-op.
+         Runtime.Marquee_Active := False;
+         Runtime.Marquee_Rect_W := 0;
+         Runtime.Marquee_Rect_H := 0;
+         return;
+      end if;
+
+      if not Runtime.Marquee_Moved then
+         if abs (X_Frame - Runtime.Marquee_Origin_X) > Marquee_Drag_Threshold
+           or else abs (Y_Frame - Runtime.Marquee_Origin_Y) > Marquee_Drag_Threshold
+         then
+            Runtime.Marquee_Moved := True;
+         else
+            return;
+         end if;
+      end if;
+
+      declare
+         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Snapshot    : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Layout      : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout
+             (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+         Items       : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+         Rect_X      : Natural;
+         Rect_Y      : Natural;
+         Rect_W      : Natural;
+         Rect_H      : Natural;
+      begin
+         Files.Rendering.Marquee_Rect
+           (Start_X   => Natural'Max (0, Runtime.Marquee_Origin_X),
+            Start_Y   => Natural'Max (0, Runtime.Marquee_Origin_Y),
+            Current_X => Natural'Max (0, X_Frame),
+            Current_Y => Natural'Max (0, Y_Frame),
+            X         => Rect_X,
+            Y         => Rect_Y,
+            Width     => Rect_W,
+            Height    => Rect_H);
+         Files.Interaction.Apply_Marquee_Selection
+           (Model    => Runtime.Model,
+            Hits     =>
+              Files.Rendering.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H),
+            Additive => Runtime.Marquee_Additive,
+            Base     => Runtime.Marquee_Base);
+         Runtime.Marquee_Rect_X := Rect_X;
+         Runtime.Marquee_Rect_Y := Rect_Y;
+         Runtime.Marquee_Rect_W := Rect_W;
+         Runtime.Marquee_Rect_H := Rect_H;
+      end;
+   end Update_Marquee_Drag;
+
    procedure Render_Window
      (Runtime : in out Runtime_Window)
    is
@@ -2080,6 +2222,16 @@ package body Files.Application.Windows is
          Frame_H    => Height,
          Mouse_Down => Mouse_Down);
 
+      Update_Marquee_Drag
+        (Runtime    => Runtime,
+         Cursor_X   => Cursor_X,
+         Cursor_Y   => Cursor_Y,
+         Window_W   => Window_W,
+         Window_H   => Window_H,
+         Frame_W    => Width,
+         Frame_H    => Height,
+         Mouse_Down => Mouse_Down);
+
       --  Drive a long copy/move a few actions at a time so the UI stays
       --  responsive and the progress overlay animates. Small pastes have already
       --  finished (in Begin_Paste / Resolve_Paste_Conflict) and never get here.
@@ -2115,7 +2267,12 @@ package body Files.Application.Windows is
            and then Runtime.Cached_Has_Hover = Has_Hover_Now
            and then Runtime.Cached_Has_Press = Mouse_Down
            and then Runtime.Cached_Drag_Item = Runtime.Drag_Source_Index
-           and then Runtime.Cached_Has_Drag = Has_Drag_Now;
+           and then Runtime.Cached_Has_Drag = Has_Drag_Now
+           and then Runtime.Cached_Marquee_Active = Runtime.Marquee_Active
+           and then Runtime.Cached_Marquee_X = Runtime.Marquee_Rect_X
+           and then Runtime.Cached_Marquee_Y = Runtime.Marquee_Rect_Y
+           and then Runtime.Cached_Marquee_W = Runtime.Marquee_Rect_W
+           and then Runtime.Cached_Marquee_H = Runtime.Marquee_Rect_H;
       begin
          if not Inputs_Match or else Snapshot /= Runtime.Cached_Snapshot then
             Runtime.Cached_Snapshot := Snapshot;
@@ -2134,7 +2291,12 @@ package body Files.Application.Windows is
                  Drag_Item_Index => Runtime.Drag_Source_Index,
                  Drag_X      => Hover_X,
                  Drag_Y      => Hover_Y,
-                 Has_Drag    => Has_Drag_Now);
+                 Has_Drag    => Has_Drag_Now,
+                 Marquee_Active => Runtime.Marquee_Active,
+                 Marquee_X   => Runtime.Marquee_Rect_X,
+                 Marquee_Y   => Runtime.Marquee_Rect_Y,
+                 Marquee_W   => Runtime.Marquee_Rect_W,
+                 Marquee_H   => Runtime.Marquee_Rect_H);
             Runtime.Cached_Frame_W := Natural (Width);
             Runtime.Cached_Frame_H := Natural (Height);
             Runtime.Cached_Line_Height := Line_Height;
@@ -2144,6 +2306,11 @@ package body Files.Application.Windows is
             Runtime.Cached_Has_Press := Mouse_Down;
             Runtime.Cached_Drag_Item := Runtime.Drag_Source_Index;
             Runtime.Cached_Has_Drag := Has_Drag_Now;
+            Runtime.Cached_Marquee_Active := Runtime.Marquee_Active;
+            Runtime.Cached_Marquee_X := Runtime.Marquee_Rect_X;
+            Runtime.Cached_Marquee_Y := Runtime.Marquee_Rect_Y;
+            Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
+            Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Frame_Cache_Valid := True;
          end if;
       end;

@@ -499,3 +499,7 @@ it.command.edit.copy_path = Copia percorso
 it.command.edit.copy_path.description = Copia i percorsi completi degli elementi selezionati negli appunti.
 it.command.navigate.containing = Apri cartella contenitore
 it.command.navigate.containing.description = Apri la cartella che contiene l'elemento selezionato e selezionalo.
+it.command.trash.empty = Svuota il cestino
+it.command.trash.empty.description = Elimina definitivamente tutti gli elementi nel cestino.
+it.error.trash.empty_partial = Alcuni elementi non sono stati rimossi dal cestino.
+it.error.trash.empty_failed = Impossibile svuotare il cestino.

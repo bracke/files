@@ -520,12 +520,14 @@ package body Files.Interaction is
          when Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action
             | Files.Events.Column_Reorder_Begin_Input_Action
+            | Files.Events.Marquee_Begin_Input_Action
             | Files.Events.No_Input_Action
             | Files.Events.Selection_Input_Action =>
-            --  Scrollbar-drag, column-resize, and column-reorder begin all update
-            --  runtime drag state owned by the shell (applied through
-            --  Apply_Column_Resize / Apply_Column_Reorder on drop); the no-op
-            --  kinds are ignored. Nothing to apply here.
+            --  Scrollbar-drag, column-resize, column-reorder, and marquee begin
+            --  all update runtime drag state owned by the shell (applied through
+            --  Apply_Column_Resize / Apply_Column_Reorder on drop, or
+            --  Apply_Marquee_Selection per frame); the no-op kinds are ignored.
+            --  Nothing to apply here.
             null;
       end case;
 
@@ -655,5 +657,54 @@ package body Files.Interaction is
          Result.Settings_Changed := True;
       end if;
    end Apply_Column_Reorder;
+
+   function Selected_Visible_Indices
+     (Model : Files.Model.Window_Model)
+      return Files.Rendering.Visible_Index_Vectors.Vector
+   is
+      Count  : constant Natural := Files.Model.Visible_Count (Model);
+      Result : Files.Rendering.Visible_Index_Vectors.Vector;
+   begin
+      for Index in 1 .. Count loop
+         if Files.Model.Is_Selected (Model, Index) then
+            Result.Append (Index);
+         end if;
+      end loop;
+      return Result;
+   end Selected_Visible_Indices;
+
+   procedure Apply_Marquee_Selection
+     (Model    : in out Files.Model.Window_Model;
+      Hits     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Additive : Boolean;
+      Base     : Files.Rendering.Visible_Index_Vectors.Vector)
+   is
+      Count    : constant Natural := Files.Model.Visible_Count (Model);
+      Combined : Files.Rendering.Visible_Index_Vectors.Vector;
+
+      --  Collect a unique, in-range visible index into the target set. Bounding
+      --  by Count keeps a stale Base snapshot (e.g. after a listing shrank)
+      --  from toggling a no-longer-visible index.
+      procedure Add (Index : Positive) is
+      begin
+         if Index <= Count and then not Combined.Contains (Index) then
+            Combined.Append (Index);
+         end if;
+      end Add;
+   begin
+      if Additive then
+         for Index of Base loop
+            Add (Index);
+         end loop;
+      end if;
+      for Index of Hits loop
+         Add (Index);
+      end loop;
+
+      Files.Model.Clear_Selection (Model);
+      for Index of Combined loop
+         Files.Model.Toggle_Visible_Selection (Model, Index);
+      end loop;
+   end Apply_Marquee_Selection;
 
 end Files.Interaction;

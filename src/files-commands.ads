@@ -56,6 +56,7 @@ package Files.Commands is
       Toggle_Favorite_Command,
       Navigate_Trash_Command,
       Restore_From_Trash_Command,
+      Empty_Trash_Command,
       Open_Terminal_Command,
       Create_Symlink_Command,
       Create_Hardlink_Command,

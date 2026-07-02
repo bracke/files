@@ -499,3 +499,7 @@ nb.command.edit.copy_path = Kopier sti
 nb.command.edit.copy_path.description = Kopier de fullstendige stiene til de valgte elementene til utklippstavlen.
 nb.command.navigate.containing = Åpne overordnet mappe
 nb.command.navigate.containing.description = Åpne mappen som inneholder det valgte elementet, og velg det.
+nb.command.trash.empty = Tøm papirkurven
+nb.command.trash.empty.description = Slett alle elementer i papirkurven permanent.
+nb.error.trash.empty_partial = Noen elementer kunne ikke fjernes fra papirkurven.
+nb.error.trash.empty_failed = Papirkurven kunne ikke tømmes.

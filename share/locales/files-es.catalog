@@ -499,3 +499,7 @@ es.command.edit.copy_path = Copiar ruta
 es.command.edit.copy_path.description = Copiar las rutas completas de los elementos seleccionados al portapapeles.
 es.command.navigate.containing = Abrir carpeta contenedora
 es.command.navigate.containing.description = Abrir la carpeta que contiene el elemento seleccionado y seleccionarlo.
+es.command.trash.empty = Vaciar la papelera
+es.command.trash.empty.description = Eliminar permanentemente todos los elementos de la papelera.
+es.error.trash.empty_partial = Algunos elementos no se pudieron quitar de la papelera.
+es.error.trash.empty_failed = No se pudo vaciar la papelera.

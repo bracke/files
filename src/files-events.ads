@@ -13,6 +13,7 @@ package Files.Events is
       Scrollbar_Drag_Begin_Input_Action,
       Column_Resize_Begin_Input_Action,
       Column_Reorder_Begin_Input_Action,
+      Marquee_Begin_Input_Action,
       Text_Click_Input_Action,
       Settings_Click_Input_Action,
       Item_Click_Input_Action,
@@ -55,7 +56,10 @@ package Files.Events is
    --  Breadcrumb_Click_Input_Action Item_Index holds the one-based breadcrumb
    --  segment index. For a Tree_Click_Input_Action Item_Index holds the tree
    --  node index and Toggle_Selection is True when the expander triangle was
-   --  clicked (expand/collapse) rather than the row label (navigate).
+   --  clicked (expand/collapse) rather than the row label (navigate). For a
+   --  Marquee_Begin_Input_Action Cursor_Position and Settings_Field hold the
+   --  press-point x and y (the rubber-band origin) and Toggle_Selection is True
+   --  when the marquee is additive (Ctrl or Shift held at press).
    type Input_Action is record
       Kind         : Input_Action_Kind := No_Input_Action;
       Command      : Files.Commands.Command_Id := Files.Commands.No_Command;

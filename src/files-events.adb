@@ -270,6 +270,40 @@ package body Files.Events is
          Scroll_Drag_Anchor => 0);
    end Column_Reorder_Begin_Action;
 
+   --  Build a marquee (rubber-band) drag-begin action. The press-point origin is
+   --  packed into Cursor_Position (x) and Settings_Field (y), and Additive (Ctrl
+   --  or Shift held at press) rides in Toggle_Selection. The desktop shell owns
+   --  the continuous drag, mirroring the scrollbar and column drags.
+   --
+   --  @param Origin_X Press-point x coordinate in framebuffer pixels.
+   --  @param Origin_Y Press-point y coordinate in framebuffer pixels.
+   --  @param Additive True when the marquee unions with the prior selection.
+   --  @return Marquee drag-begin input action.
+   function Marquee_Begin_Action
+     (Origin_X : Natural;
+      Origin_Y : Natural;
+      Additive : Boolean)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Marquee_Begin_Input_Action,
+         Command         => Files.Commands.No_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => 0,
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => Origin_X,
+         Settings_Field  => Origin_Y,
+         Settings_Option => 0,
+         Activate        => False,
+         Toggle_Selection => Additive,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
+   end Marquee_Begin_Action;
+
    function Saturating_Negated_Triple (Value : Integer) return Integer is
    begin
       if Value = 0 then
@@ -1137,6 +1171,26 @@ package body Files.Events is
             Toggle_Selection => Modifiers (Files.Types.Control_Key) and then not Modifiers (Files.Types.Shift_Key),
             Range_Selection  => Modifiers (Files.Types.Shift_Key),
             Scroll_Drag_Anchor => 0);
+      end if;
+
+      --  A press that reached here landed on empty main-grid space: every
+      --  overlay, panel, toolbar/bottom-bar command, scrollbar, details header
+      --  cell, and item hit-test above already returned. When it is inside the
+      --  main view (and no bottom-bar sort menu is open, whose stray outside
+      --  click still falls through here) it begins a rubber-band marquee whose
+      --  origin and additive flag the shell tracks per frame; a press that never
+      --  drags leaves the selection untouched, preserving the empty-click no-op.
+      if not Snapshot.Sort_Menu_Open
+        and then Within (X, Layout.Main_X, Layout.Main_Width)
+        and then Within (Y, Layout.Main_Y, Layout.Main_Height)
+      then
+         return
+           Marquee_Begin_Action
+             (Origin_X => X,
+              Origin_Y => Y,
+              Additive =>
+                Modifiers (Files.Types.Control_Key)
+                or else Modifiers (Files.Types.Shift_Key));
       end if;
 
       return No_Action (Activate);

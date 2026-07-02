@@ -1224,6 +1224,8 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.trash.restore_failed");
       Add_Error_Key ("error.trash.restore_parent_missing");
       Add_Error_Key ("error.trash.restore_exists");
+      Add_Error_Key ("error.trash.empty_partial");
+      Add_Error_Key ("error.trash.empty_failed");
       Add_Error_Key ("error.search.failed");
       Add_Error_Key ("error.permanent_delete.refused");
       Add_Error_Key ("error.permanent_delete.failed");

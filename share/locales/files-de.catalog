@@ -498,3 +498,7 @@ de.command.edit.copy_path = Pfad kopieren
 de.command.edit.copy_path.description = Vollständige Pfade der ausgewählten Elemente in die Zwischenablage kopieren.
 de.command.navigate.containing = Beinhaltenden Ordner öffnen
 de.command.navigate.containing.description = Ordner öffnen, der das ausgewählte Element enthält, und es auswählen.
+de.command.trash.empty = Papierkorb leeren
+de.command.trash.empty.description = Alle Elemente im Papierkorb dauerhaft löschen.
+de.error.trash.empty_partial = Einige Elemente konnten nicht aus dem Papierkorb entfernt werden.
+de.error.trash.empty_failed = Der Papierkorb konnte nicht geleert werden.

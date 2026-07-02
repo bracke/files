@@ -67,6 +67,8 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -142,6 +144,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Star_Indicators'Access,
          "favorited items draw a gold grid star and the path bar draws a filled vs empty star by current-dir state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Marquee_Items_In_Rect'Access,
+         "a marquee rectangle intersects exactly the item cells it touches and normalizes any drag direction");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Marquee_Frame_Draws_Rectangle'Access,
+         "an active marquee draws a translucent selection rectangle over the grid");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -719,16 +727,28 @@ package body Files_Suite.Rendering is
            Y      => First.Y + First.Height / 2,
            Width  => 1000,
            Height => 800);
+      Last     : constant Item_Layout := Items.Element (Items.Last_Index);
+      Empty_Y  : constant Natural := Last.Y + Last.Height + 20;
       Off_Item : constant Files.Events.Input_Action :=
         Files.Events.Translate_Click
-          (Snapshot, Frame, X => 995, Y => 700, Width => 1000, Height => 800);
+          (Snapshot, Frame,
+           X => Layout.Main_X + 20, Y => Empty_Y, Width => 1000, Height => 800);
+      Outside  : constant Files.Events.Input_Action :=
+        Files.Events.Translate_Click
+          (Snapshot, Frame, X => 999, Y => 799, Width => 1000, Height => 800);
    begin
       Assert
         (On_Item.Kind /= Files.Events.No_Input_Action,
          "clicking an item produces an input action");
       Assert
-        (Off_Item.Kind = Files.Events.No_Input_Action,
-         "clicking empty space below the content produces no action");
+        (Empty_Y < Layout.Main_Y + Layout.Main_Height,
+         "the six-row list leaves empty grid space below its last row");
+      Assert
+        (Off_Item.Kind = Files.Events.Marquee_Begin_Input_Action,
+         "pressing empty grid space begins a rubber-band marquee");
+      Assert
+        (Outside.Kind /= Files.Events.Marquee_Begin_Input_Action,
+         "pressing the chrome outside the grid never begins a marquee");
    end Test_Click_Translation_Behavior;
 
    procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1678,5 +1698,130 @@ package body Files_Suite.Rendering is
          end;
       end;
    end Test_Favorite_Star_Indicators;
+
+   procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Layout   : constant Layout_Metrics :=
+        Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Items    : constant Item_Layout_Vectors.Vector :=
+        Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
+
+      --  True when Hits contains exactly the ascending indices in Expected.
+      function Exactly
+        (Hits     : Visible_Index_Vectors.Vector;
+         Expected : Visible_Index_Vectors.Vector)
+         return Boolean is
+      begin
+         if Natural (Hits.Length) /= Natural (Expected.Length) then
+            return False;
+         end if;
+         for Offset in 0 .. Natural (Expected.Length) - 1 loop
+            if Hits.Element (Hits.First_Index + Offset)
+              /= Expected.Element (Expected.First_Index + Offset)
+            then
+               return False;
+            end if;
+         end loop;
+         return True;
+      end Exactly;
+
+      Cell_1 : constant Item_Layout := Items.Element (1);
+      Cell_2 : constant Item_Layout := Items.Element (2);
+      Rect_X : Natural;
+      Rect_Y : Natural;
+      Rect_W : Natural;
+      Rect_H : Natural;
+      Two    : Visible_Index_Vectors.Vector;
+   begin
+      Assert (Natural (Items.Length) = 6, "the sample list lays out every item");
+
+      Two.Append (1);
+      Two.Append (2);
+
+      --  A rectangle from inside cell 1 to inside cell 2 touches exactly those
+      --  two cells (details rows stack vertically, so 1 and 2 are adjacent).
+      declare
+         Hits : constant Visible_Index_Vectors.Vector :=
+           Items_In_Rect
+             (Items,
+              X      => Cell_1.X + Cell_1.Width / 2,
+              Y      => Cell_1.Y + Cell_1.Height / 2,
+              Width  => 1,
+              Height => (Cell_2.Y + Cell_2.Height / 2) - (Cell_1.Y + Cell_1.Height / 2));
+      begin
+         Assert (Exactly (Hits, Two), "a rect spanning two cells returns exactly those two indices");
+      end;
+
+      --  Partial overlap counts as a hit: a one-pixel rectangle sitting on the
+      --  top edge of cell 1 still touches it.
+      declare
+         Hits : constant Visible_Index_Vectors.Vector :=
+           Items_In_Rect (Items, Cell_1.X + 1, Cell_1.Y, Width => 1, Height => 1);
+      begin
+         Assert (Natural (Hits.Length) = 1 and then Hits.First_Element = 1,
+                 "a rectangle grazing a cell edge counts as a hit");
+      end;
+
+      --  Empty space well below every laid-out row touches nothing.
+      declare
+         Bottom : constant Natural := Layout.Main_Y + Layout.Main_Height;
+         Hits   : constant Visible_Index_Vectors.Vector :=
+           Items_In_Rect (Items, Layout.Main_X, Bottom + 100, Width => 20, Height => 20);
+      begin
+         Assert (Hits.Is_Empty, "a rect over empty space below the grid returns no items");
+      end;
+
+      --  A zero-area rectangle (a plain click, no drag) touches nothing.
+      declare
+         Hits : constant Visible_Index_Vectors.Vector :=
+           Items_In_Rect (Items, Cell_1.X, Cell_1.Y, Width => 0, Height => 0);
+      begin
+         Assert (Hits.Is_Empty, "a zero-area marquee selects nothing (a plain click)");
+      end;
+
+      --  Normalization: details rows share an X, so a marquee spanning rows 1
+      --  and 2 needs a nonzero width. Drag from a lower-right corner in row 2 up
+      --  to an upper-left corner in row 1; the normalized rectangle (and hence
+      --  its hits) must match the equivalent down-right drag over the same span.
+      Marquee_Rect
+        (Start_X   => Cell_2.X + 15,
+         Start_Y   => Cell_2.Y + Cell_2.Height / 2,
+         Current_X => Cell_1.X + 5,
+         Current_Y => Cell_1.Y + Cell_1.Height / 2,
+         X         => Rect_X,
+         Y         => Rect_Y,
+         Width     => Rect_W,
+         Height    => Rect_H);
+      Assert (Rect_X = Cell_1.X + 5, "up-left drag normalizes X to the min corner");
+      Assert (Rect_Y = Cell_1.Y + Cell_1.Height / 2, "up-left drag normalizes Y to the min corner");
+      Assert (Rect_W = 10, "the normalized width is the corner x distance");
+      declare
+         Hits : constant Visible_Index_Vectors.Vector :=
+           Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H);
+      begin
+         Assert (Exactly (Hits, Two), "an up-left drag selects the same two cells as down-right");
+      end;
+   end Test_Marquee_Items_In_Rect;
+
+   procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+      Idle     : constant Frame_Commands :=
+        Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      Active   : constant Frame_Commands :=
+        Build_Frame_Commands
+          (Snapshot, 1000, 800, 20,
+           Marquee_Active => True,
+           Marquee_X      => 100,
+           Marquee_Y      => 120,
+           Marquee_W      => 200,
+           Marquee_H      => 150);
+   begin
+      Assert (not Has_Rectangle_Colored (Idle, Marquee_Color),
+              "no marquee rectangle is drawn while the marquee is inactive");
+      Assert (Has_Rectangle_Colored (Active, Marquee_Color),
+              "an active marquee draws a translucent marquee-colored fill over the grid");
+   end Test_Marquee_Frame_Draws_Rectangle;
 
 end Files_Suite.Rendering;

@@ -499,3 +499,7 @@ da.command.edit.copy_path = Kopiér sti
 da.command.edit.copy_path.description = Kopiér de fulde stier for de valgte elementer til udklipsholderen.
 da.command.navigate.containing = Åbn overordnet mappe
 da.command.navigate.containing.description = Åbn mappen, der indeholder det valgte element, og markér det.
+da.command.trash.empty = Tøm papirkurv
+da.command.trash.empty.description = Slet permanent alle elementer i papirkurven.
+da.error.trash.empty_partial = Nogle elementer kunne ikke fjernes fra papirkurven.
+da.error.trash.empty_failed = Papirkurven kunne ikke tømmes.

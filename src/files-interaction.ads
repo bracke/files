@@ -2,6 +2,7 @@ with Files.Commands;
 with Files.Controller;
 with Files.Events;
 with Files.Model;
+with Files.Rendering;
 with Files.Settings;
 with Files.Types;
 
@@ -204,5 +205,32 @@ package Files.Interaction is
    procedure Persist_Settings
      (Settings      : Files.Settings.Settings_Model;
       Settings_Path : String);
+
+   --  Snapshot the currently selected visible items as an ascending set of
+   --  one-based visible indices. The shell captures this at a marquee's press so
+   --  an additive (Ctrl/Shift) marquee can union against the prior selection
+   --  without the per-frame reapply erasing it.
+   --
+   --  @param Model Window model to inspect.
+   --  @return Ascending visible indices currently selected.
+   function Selected_Visible_Indices
+     (Model : Files.Model.Window_Model)
+      return Files.Rendering.Visible_Index_Vectors.Vector;
+
+   --  Apply a rubber-band marquee's per-frame selection to the model. The
+   --  selection is cleared and rebuilt from Hits (the items the marquee touches);
+   --  when Additive the Base snapshot (the selection captured at the marquee's
+   --  press) is unioned in first so the drag extends rather than replaces it.
+   --  Called live each frame while the marquee drags so the selection tracks it.
+   --
+   --  @param Model Window model to update.
+   --  @param Hits Visible indices the current marquee rectangle intersects.
+   --  @param Additive True to union Base with Hits (Ctrl/Shift marquee).
+   --  @param Base Selection snapshot captured at the marquee's press.
+   procedure Apply_Marquee_Selection
+     (Model    : in out Files.Model.Window_Model;
+      Hits     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Additive : Boolean;
+      Base     : Files.Rendering.Visible_Index_Vectors.Vector);
 
 end Files.Interaction;
