@@ -454,8 +454,22 @@ package body Files.Controller is
       Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
       New_Text : Unbounded_String;
    begin
-      if Files.Model.Focus (Model) = Files.Types.Focus_None or else Text = "" then
+      if Text = "" then
          return Make_Result (Controller_Ignored);
+      end if;
+
+      --  With no text field focused the file grid owns the keyboard: bare
+      --  printable characters drive type-to-select instead of editing a field.
+      --  Modifier combinations (Ctrl/Alt shortcuts) never reach here because the
+      --  GLFW character callback only emits printable text, so shortcuts stay on
+      --  the command path.
+      if Files.Model.Focus (Model) = Files.Types.Focus_None then
+         declare
+            Matched : Boolean;
+         begin
+            Files.Model.Type_Ahead_Input (Model, Text, Matched);
+            return Make_Result (if Matched then Controller_Selection_Moved else Controller_Ignored);
+         end;
       end if;
 
       --  Rename edits broadcast to every synchronized caret rather than the

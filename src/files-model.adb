@@ -2,6 +2,7 @@ with Ada.Calendar;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Files.Type_Ahead;
 with Files.UTF8;
 
 package body Files.Model is
@@ -849,7 +850,11 @@ package body Files.Model is
       Set_Filter (Model, "");
    end Clear_Filter;
 
-   procedure Select_Visible
+   --  Single-select a visible item without disturbing the type-ahead prefix.
+   --  Type-ahead selection uses this so its own selection jumps do not clear the
+   --  prefix it is accumulating; every other selection path goes through the
+   --  public Select_Visible, which resets the prefix first.
+   procedure Select_Visible_Internal
      (Model         : in out Window_Model;
       Visible_Index : Positive)
    is
@@ -866,6 +871,14 @@ package body Files.Model is
       Add_Selected_Index (Model, Model.Selected_Item_Index);
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
+   end Select_Visible_Internal;
+
+   procedure Select_Visible
+     (Model         : in out Window_Model;
+      Visible_Index : Positive) is
+   begin
+      Reset_Type_Ahead (Model);
+      Select_Visible_Internal (Model, Visible_Index);
    end Select_Visible;
 
    procedure Toggle_Visible_Selection
@@ -874,6 +887,7 @@ package body Files.Model is
    is
       Item_Index : Natural := Visible_To_Item_Index (Model, Visible_Index);
    begin
+      Reset_Type_Ahead (Model);
       if Item_Index = 0
         and then Temporary_Is_Visible (Model)
         and then Visible_Index = Visible_Count (Model)
@@ -921,6 +935,7 @@ package body Files.Model is
          Add_Selected_Index (Model, Item_Index);
       end Add_Visible_Index;
    begin
+      Reset_Type_Ahead (Model);
       if Count = 0
         or else Natural (Anchor_Index) > Count
         or else Natural (Target_Index) > Count
@@ -951,6 +966,7 @@ package body Files.Model is
    procedure Select_All_Visible
      (Model : in out Window_Model) is
    begin
+      Reset_Type_Ahead (Model);
       Model.Selected_Item_Indexes.Clear;
       Model.Selected_Item_Index := 0;
 
@@ -986,6 +1002,7 @@ package body Files.Model is
    procedure Clear_Selection
      (Model : in out Window_Model) is
    begin
+      Reset_Type_Ahead (Model);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.Info_Pane_Scroll := 0;
@@ -1056,6 +1073,132 @@ package body Files.Model is
 
       Select_Visible (Model, Positive (Next));
    end Move_Selection;
+
+   procedure Reset_Type_Ahead
+     (Model : in out Window_Model) is
+   begin
+      Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
+   end Reset_Type_Ahead;
+
+   function Type_Ahead_Buffer
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.Type_Ahead_Buffer_Value);
+   end Type_Ahead_Buffer;
+
+   --  A run is only fed to type-ahead when every byte is a printable glyph.
+   --  Control bytes below the space and the DEL byte never start a prefix.
+   function Is_Printable_Run (Text : String) return Boolean is
+   begin
+      if Text = "" then
+         return False;
+      end if;
+
+      for Char of Text loop
+         if Character'Pos (Char) < Character'Pos (' ')
+           or else Character'Pos (Char) = 16#7F#
+         then
+            return False;
+         end if;
+      end loop;
+
+      return True;
+   end Is_Printable_Run;
+
+   --  Return True when Text is a single UTF-8 codepoint repeated one or more
+   --  times (case-insensitively), e.g. "d", "DD", "www". Used to detect the
+   --  repeated-letter cycling gesture.
+   function Is_Repeated_Single_Codepoint (Text : String) return Boolean is
+      Lower : constant String := Files.Types.To_Lower (Text);
+      First : Natural;
+      Cursor : Natural := 0;
+      Unit   : Natural;
+   begin
+      if Lower = "" then
+         return False;
+      end if;
+
+      First := Files.UTF8.Next_Boundary (Lower, 0);
+      declare
+         Head : constant String := Lower (Lower'First .. Lower'First + First - 1);
+      begin
+         Cursor := First;
+         while Cursor < Lower'Length loop
+            Unit := Files.UTF8.Next_Boundary (Lower, Cursor) - Cursor;
+            if Unit /= Head'Length
+              or else Lower (Lower'First + Cursor .. Lower'First + Cursor + Unit - 1) /= Head
+            then
+               return False;
+            end if;
+            Cursor := Cursor + Unit;
+         end loop;
+      end;
+
+      return True;
+   end Is_Repeated_Single_Codepoint;
+
+   --  Return the first UTF-8 codepoint of Text as a byte string.
+   function First_Codepoint (Text : String) return String is
+      Unit : constant Natural := Files.UTF8.Next_Boundary (Text, 0);
+   begin
+      if Text = "" or else Unit = 0 then
+         return "";
+      end if;
+
+      return Text (Text'First .. Text'First + Unit - 1);
+   end First_Codepoint;
+
+   procedure Type_Ahead_Input
+     (Model   : in out Window_Model;
+      Text    : String;
+      Matched : out Boolean)
+   is
+      Combined : constant String := To_String (Model.Type_Ahead_Buffer_Value) & Text;
+      Current  : constant Natural := Selected_Index (Model);
+      Visible  : Files.File_System.Item_Vectors.Vector;
+      Count    : constant Natural := Visible_Count (Model);
+      Prefix   : Unbounded_String;
+      Start    : Natural;
+      Target   : Natural;
+   begin
+      Matched := False;
+
+      if not Is_Printable_Run (Text) then
+         return;
+      end if;
+
+      --  Snapshot the visible projection in display order so the pure matcher's
+      --  returned index maps straight back to a visible index. Temporary
+      --  create-file items are never type-ahead targets.
+      for Visible_Index in 1 .. Count loop
+         if Visible_To_Item_Index (Model, Visible_Index) /= 0 then
+            Visible.Append (Visible_Item (Model, Visible_Index));
+         else
+            Visible.Append (Files.File_System.Directory_Item'(others => <>));
+         end if;
+      end loop;
+
+      --  Repeatedly typing one letter cycles through the items beginning with
+      --  it: collapse the prefix to that single codepoint and scan from just
+      --  after the current selection. Any other run refines in place, scanning
+      --  from the current selection so an already-matching item is kept.
+      if Is_Repeated_Single_Codepoint (Combined) then
+         Prefix := To_Unbounded_String (First_Codepoint (Combined));
+         Start := Current + 1;
+      else
+         Prefix := To_Unbounded_String (Combined);
+         Start := Current;
+      end if;
+
+      Model.Type_Ahead_Buffer_Value := Prefix;
+
+      Target := Files.Type_Ahead.Type_Ahead_Target (Visible, To_String (Prefix), Start);
+      if Target > 0 then
+         Select_Visible_Internal (Model, Target);
+         Matched := True;
+      end if;
+   end Type_Ahead_Input;
 
    procedure Set_Selection_Grid_Columns
      (Model   : in out Window_Model;
@@ -1336,6 +1479,7 @@ package body Files.Model is
    procedure Focus_Path_Input
      (Model : in out Window_Model) is
    begin
+      Reset_Type_Ahead (Model);
       Model.Focus_Value := Files.Types.Focus_Path_Input;
       Model.Path_Input_Value := Model.Current_Path_Value;
       Model.Path_Input_Cursor := Length (Model.Path_Input_Value);
@@ -1352,6 +1496,7 @@ package body Files.Model is
    procedure Focus_Filter_Input
      (Model : in out Window_Model) is
    begin
+      Reset_Type_Ahead (Model);
       Model.Focus_Value := Files.Types.Focus_Filter_Input;
       Model.Filter_Cursor := Length (Model.Filter_Value);
       Clear_Root_Selector_State (Model);
@@ -1366,6 +1511,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       if Model.Command_Palette_Open then
+         Reset_Type_Ahead (Model);
          Model.Focus_Value := Files.Types.Focus_Command_Palette;
       end if;
    end Focus_Command_Palette_Input;
@@ -1374,6 +1520,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       if Model.Rename_Active then
+         Reset_Type_Ahead (Model);
          Model.Focus_Value := Files.Types.Focus_Rename_Input;
          Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
@@ -1399,6 +1546,7 @@ package body Files.Model is
          return;
       end if;
 
+      Reset_Type_Ahead (Model);
       Model.Focus_Value := Files.Types.Focus_Ownership_Input;
       Model.Ownership_Editing_Group_Value := Editing_Group;
       Model.Ownership_Input_Value :=

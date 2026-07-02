@@ -39,6 +39,7 @@ package body Files.Application.Windows is
    use type Files.Events.Input_Action_Kind;
    use type Files.Commands.Command_Id;
    use type Files.Operations.Operation_Status;
+   use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use type Files.Rendering.Text_Render_Status;
@@ -219,6 +220,10 @@ package body Files.Application.Windows is
       Column_Reorder_Sort    : Files.Commands.Command_Id := Files.Commands.No_Command;
       Last_Click_Item : Natural := 0;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      --  Wall-clock of the last grid type-ahead keystroke; the event loop clears
+      --  the pending prefix once this is older than Type_Ahead_Timeout so a fresh
+      --  keystroke after a pause starts a new prefix.
+      Type_Ahead_Input_At : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Text            : Files.Rendering.Text_Renderer;
       Text_Ready      : Boolean := False;
       Font_Pixel_Size : Positive := 16;
@@ -280,6 +285,7 @@ package body Files.Application.Windows is
    Process_Text_Font_Ready : Boolean := False;
    Process_Text_Font_Path  : Unbounded_String;
    File_Watch_Poll_Interval : constant Duration := 1.0;
+   Type_Ahead_Timeout : constant Duration := 1.0;
    Event_Wait_Timeout : constant Interfaces.C.double := 0.016;
    Inotify_Nonblock : constant Interfaces.C.int := 2_048;
    Inotify_Cloexec : constant Interfaces.C.int := 524_288;
@@ -976,6 +982,14 @@ package body Files.Application.Windows is
 
       Text := Runtime.Handle.Pending_Text;
       Runtime.Handle.Pending_Text := Null_Unbounded_String;
+
+      --  When the grid owns the keyboard this run feeds type-ahead; stamp the
+      --  activity time so the inactivity timeout below measures from the last
+      --  keystroke rather than from the previous field edit.
+      if Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None then
+         Runtime.Type_Ahead_Input_At := Ada.Calendar.Clock;
+      end if;
+
       Result := Files.Controller.Append_Focused_Text (Runtime.Model, To_String (Text));
       pragma Unreferenced (Result);
    end Handle_Text_Input;
@@ -987,6 +1001,27 @@ package body Files.Application.Windows is
          Handle_Text_Input (Runtime);
       end loop;
    end Handle_All_Text_Input;
+
+   --  Clear a stale grid type-ahead prefix once the user has paused. Driven from
+   --  the event loop using the same Ada.Calendar clock as the key-repeat and
+   --  file-watch timers, so a keystroke after the pause begins a fresh prefix.
+   procedure Handle_Type_Ahead_Timeout
+     (Runtime : in out Runtime_Window) is
+   begin
+      if Files.Model.Type_Ahead_Buffer (Runtime.Model) /= ""
+        and then Ada.Calendar.Clock - Runtime.Type_Ahead_Input_At > Type_Ahead_Timeout
+      then
+         Files.Model.Reset_Type_Ahead (Runtime.Model);
+      end if;
+   end Handle_Type_Ahead_Timeout;
+
+   procedure Handle_All_Type_Ahead_Timeout
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   begin
+      for Runtime of Runtime_Windows loop
+         Handle_Type_Ahead_Timeout (Runtime);
+      end loop;
+   end Handle_All_Type_Ahead_Timeout;
 
    procedure Handle_Drop_Input
      (Runtime : in out Runtime_Window)
@@ -1681,6 +1716,7 @@ package body Files.Application.Windows is
             Column_Reorder_Sort => Files.Commands.No_Command,
             Last_Click_Item => 0,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
+            Type_Ahead_Input_At => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
             Text_Ready      => False,
             Font_Pixel_Size => Settings.Font_Pixel_Size,
@@ -3181,6 +3217,7 @@ package body Files.Application.Windows is
             Wait_For_Events_Timeout (Event_Wait_Timeout);
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Text_Input (Runtime_Windows);
+            Handle_All_Type_Ahead_Timeout (Runtime_Windows);
             Handle_All_Mouse (Runtime_Windows);
             Handle_All_Drop_Input (Runtime_Windows);
             Handle_All_Scroll_Input (Runtime_Windows);

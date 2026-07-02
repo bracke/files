@@ -236,6 +236,37 @@ package Files.Model is
      (Model     : in out Window_Model;
       Direction : Files.Types.Navigation_Direction);
 
+   --  Feed a typed printable character run to the grid type-ahead buffer.
+   --
+   --  Appends Text to the pending type-ahead prefix and jumps the single
+   --  selection to the first visible item whose name starts with the prefix,
+   --  scanning from the current selection and wrapping around. Repeatedly
+   --  typing the same single letter cycles through the items beginning with it.
+   --  A run that matches nothing leaves the current selection untouched. Intended
+   --  for use only when the file grid is focused (no text field active).
+   --
+   --  @param Model Model to update.
+   --  @param Text Printable UTF-8 character run typed by the user.
+   --  @param Matched Set True when a matching item was selected.
+   procedure Type_Ahead_Input
+     (Model   : in out Window_Model;
+      Text    : String;
+      Matched : out Boolean);
+
+   --  Clear the pending grid type-ahead prefix.
+   --
+   --  @param Model Model to update.
+   procedure Reset_Type_Ahead
+     (Model : in out Window_Model);
+
+   --  Return the pending grid type-ahead prefix.
+   --
+   --  @param Model Model to inspect.
+   --  @return Current type-ahead prefix, or an empty string when idle.
+   function Type_Ahead_Buffer
+     (Model : Window_Model)
+      return String;
+
    --  Set the visible grid column count used by vertical selection movement.
    --
    --  @param Model Model to update.
@@ -1965,6 +1996,7 @@ private
       Items                : Files.File_System.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System.Directory_Signature;
       Filter_Value         : UString;
+      Type_Ahead_Buffer_Value : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
       Selection_Columns   : Positive := 1;
