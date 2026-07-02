@@ -831,6 +831,23 @@ package body Files.Events is
          end;
       end if;
 
+      --  The Quick Look overlay is a modal-lite top-most panel: a click on its
+      --  close button or anywhere outside the panel toggles it shut, and a click
+      --  inside the panel body is swallowed so nothing behind it reacts.
+      if Snapshot.Quick_Look_Open then
+         declare
+            QL : constant Files.Rendering.Quick_Look_Layout :=
+              Files.Rendering.Calculate_Quick_Look_Layout (Layout, Line_Height);
+         begin
+            if Close_Button_Hit (QL.X, QL.Y, QL.Width, QL.Height)
+              or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
+            then
+               return Command_Action (Files.Commands.Toggle_Quick_Look_Command, Activate);
+            end if;
+            return No_Action (Activate);
+         end;
+      end if;
+
       --  Route a close-button click through the same command Escape uses for
       --  each panel, before the panel body/scrollbar hit-tests below consume it.
       if Snapshot.Command_Palette_Open

@@ -1,5 +1,6 @@
 with Files.File_System;
 with Files.Model;
+with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
 
@@ -621,5 +622,17 @@ package Files.Operations is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
+
+   --  Prepare Quick Look preview content for a directory item, performing the
+   --  bounded filesystem read the pure content-prep seam needs. Image items are
+   --  classified with the shared image detector and previewed by path; other
+   --  regular files get a capped leading-bytes read for text detection; the rest
+   --  fall back to the metadata-only info card.
+   --
+   --  @param Item Directory item to preview.
+   --  @return Prepared Quick Look content.
+   function Prepare_Quick_Look
+     (Item : Files.File_System.Directory_Item)
+      return Files.Quick_Look.Quick_Look_Content;
 
 end Files.Operations;

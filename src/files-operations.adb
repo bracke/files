@@ -2939,4 +2939,34 @@ package body Files.Operations is
          return Make_Result (Operation_Failed, "error.undo.failed", Directory);
    end Redo_Last;
 
+   function Prepare_Quick_Look
+     (Item : Files.File_System.Directory_Item)
+      return Files.Quick_Look.Quick_Look_Content
+   is
+      Name     : constant String := To_String (Item.Name);
+      Filetype : constant String := To_String (Item.Filetype);
+      Icon_Id  : constant String := To_String (Item.Icon_Id);
+      Path     : constant String := To_String (Item.Full_Path);
+      Is_Image : constant Boolean :=
+        Files.File_System.Is_Image_Item (Item.Kind, Filetype, Name, Icon_Id);
+      Raw      : constant String :=
+        (if Is_Image
+           or else (Item.Kind /= Files.Types.Regular_File_Item
+                    and then Item.Kind /= Files.Types.Executable_Item)
+         then ""
+         else Files.File_System.Read_Preview_Text
+                (Path, Files.Quick_Look.Max_Preview_Bytes));
+   begin
+      return Files.Quick_Look.Prepare_Content
+        (Name           => Name,
+         Filetype       => Filetype,
+         Icon_Id        => Icon_Id,
+         Kind           => Item.Kind,
+         Size_Available => Item.Size_Available,
+         Size           => Item.Size,
+         Is_Image       => Is_Image,
+         Image_Path     => Path,
+         Raw_Bytes      => Raw);
+   end Prepare_Quick_Look;
+
 end Files.Operations;

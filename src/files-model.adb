@@ -14,6 +14,17 @@ package body Files.Model is
 
    Temporary_Item_Index : constant Natural := Natural'Last;
 
+   --  Clear the Quick Look overlay state. Declared early so the navigation and
+   --  selection resets below can close a stale preview when the previewed item
+   --  is no longer the single, current selection.
+   procedure Reset_Quick_Look
+     (Model : in out Window_Model) is
+   begin
+      Model.Quick_Look_Active        := False;
+      Model.Quick_Look_Path_Value    := Null_Unbounded_String;
+      Model.Quick_Look_Content_Value := (others => <>);
+   end Reset_Quick_Look;
+
    function Saturating_Add
      (Left  : Natural;
       Right : Natural)
@@ -538,6 +549,7 @@ package body Files.Model is
       Model.Info_Pane_Open := False;
       Model.Main_View_Scroll := 0;
       Clear_Root_Selector_State (Model);
+      Reset_Quick_Look (Model);
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Query := Null_Unbounded_String;
       Model.Command_Palette_Cursor := 0;
@@ -871,6 +883,9 @@ package body Files.Model is
       Add_Selected_Index (Model, Model.Selected_Item_Index);
       Model.Info_Pane_Scroll := 0;
       Reconcile_Rename_With_Selection (Model);
+      --  A changed selection invalidates any open Quick Look preview, which is
+      --  bound to the item that was selected when it opened.
+      Reset_Quick_Look (Model);
    end Select_Visible_Internal;
 
    procedure Select_Visible
@@ -1484,6 +1499,7 @@ package body Files.Model is
       Model.Command_Palette_Offset := 0;
       Model.Command_Palette_Cursor := 0;
       Model.Focus_Value := Files.Types.Focus_None;
+      Reset_Quick_Look (Model);
    end Navigate_To;
 
    function Can_Go_Back
@@ -2877,6 +2893,69 @@ package body Files.Model is
       return Model.Open_With_Targets_Value;
    end Open_With_Targets;
 
+   procedure Open_Quick_Look
+     (Model   : in out Window_Model;
+      Content : Files.Quick_Look.Quick_Look_Content) is
+   begin
+      Model.Quick_Look_Active        := True;
+      Model.Quick_Look_Path_Value    := Selected_Item (Model).Full_Path;
+      Model.Quick_Look_Content_Value := Content;
+   end Open_Quick_Look;
+
+   procedure Close_Quick_Look
+     (Model : in out Window_Model) is
+   begin
+      Reset_Quick_Look (Model);
+   end Close_Quick_Look;
+
+   procedure Toggle_Quick_Look
+     (Model : in out Window_Model) is
+   begin
+      if Model.Quick_Look_Active then
+         Reset_Quick_Look (Model);
+      elsif Selected_Count (Model) = 1 then
+         declare
+            Item    : constant Files.File_System.Directory_Item := Selected_Item (Model);
+            Content : constant Files.Quick_Look.Quick_Look_Content :=
+              Files.Quick_Look.Prepare_Content
+                (Name           => To_String (Item.Name),
+                 Filetype       => To_String (Item.Filetype),
+                 Icon_Id        => To_String (Item.Icon_Id),
+                 Kind           => Item.Kind,
+                 Size_Available => Item.Size_Available,
+                 Size           => Item.Size,
+                 Is_Image       => False,
+                 Image_Path     => To_String (Item.Full_Path),
+                 Raw_Bytes      => "");
+         begin
+            Model.Quick_Look_Active        := True;
+            Model.Quick_Look_Path_Value    := Item.Full_Path;
+            Model.Quick_Look_Content_Value := Content;
+         end;
+      end if;
+   end Toggle_Quick_Look;
+
+   function Quick_Look_Is_Open
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Quick_Look_Active;
+   end Quick_Look_Is_Open;
+
+   function Quick_Look_Path
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.Quick_Look_Path_Value);
+   end Quick_Look_Path;
+
+   function Quick_Look_Content_Of
+     (Model : Window_Model)
+      return Files.Quick_Look.Quick_Look_Content is
+   begin
+      return Model.Quick_Look_Content_Value;
+   end Quick_Look_Content_Of;
+
    function Rename_Is_Enabled
      (Model : Window_Model)
       return Boolean is
@@ -3481,6 +3560,7 @@ package body Files.Model is
    begin
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
+      Reset_Quick_Look (Model);
       if not Model.Items.Is_Empty then
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
             if To_String (Model.Items.Element (Index).Name) = Name

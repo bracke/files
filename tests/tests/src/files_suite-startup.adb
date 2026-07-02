@@ -1196,6 +1196,15 @@ package body Files_Suite.Startup is
         (Files.Localization.Text ("accessibility.command_palette_search") = "Command search",
          "command-palette search label is localized");
       Assert
+        (Files.Localization.Text ("accessibility.quick_look") = "Quick Look preview",
+         "Quick Look landmark is localized");
+      Assert
+        (Files.Localization.Text ("quick_look.empty") /= "quick_look.empty",
+         "Quick Look empty-preview message is localized");
+      Assert
+        (Files.Localization.Text ("quick_look.truncated") /= "quick_look.truncated",
+         "Quick Look truncated-preview message is localized");
+      Assert
         (Files.Localization.Text ("accessibility.root_selector") = "Root locations",
          "root-selector landmark is localized");
       Assert

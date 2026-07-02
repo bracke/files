@@ -877,6 +877,18 @@ package body Files.Controller is
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
             end;
+         when Files.Commands.Toggle_Quick_Look_Command =>
+            --  Toggle the Quick Look overlay. Opening reads the bounded preview
+            --  bytes (or classifies the image) so the overlay shows text/image
+            --  content rather than the metadata-only pure fallback.
+            if Files.Model.Quick_Look_Is_Open (Model) then
+               Files.Model.Close_Quick_Look (Model);
+            else
+               Files.Model.Open_Quick_Look
+                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+            end if;
+            Files.Model.Set_Error (Model, "");
+            Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Reset_Settings_Command =>
             Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
             Files.Model.Set_Settings_Field_Index (Model, 1);
@@ -2033,6 +2045,19 @@ package body Files.Controller is
          return Make_Result (Controller_Ignored);
       end if;
 
+      --  While the Quick Look overlay is open it owns the keyboard: Escape or
+      --  Space close it and every other key is swallowed so nothing behind the
+      --  modal-lite preview reacts.
+      if Files.Model.Quick_Look_Is_Open (Model) then
+         if (Key = Files.Types.Key_Escape or else Key = Files.Types.Key_Space)
+           and then Modifiers = Files.Types.No_Modifiers
+         then
+            Files.Model.Close_Quick_Look (Model);
+            return Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
+         end if;
+         return Make_Result (Controller_Ignored);
+      end if;
+
       if Files.Model.Command_Palette_Is_Open (Model) then
          if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
             Files.Model.Close_Command_Palette (Model);
@@ -2510,6 +2535,14 @@ package body Files.Controller is
 
       case Action.Kind is
          when Files.Events.Command_Input_Action =>
+            if Action.Command = Files.Commands.Toggle_Quick_Look_Command
+              and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+            then
+               --  Space is the Quick Look shortcut only when the grid owns the
+               --  keyboard. With a text field focused it is a typed space, so
+               --  ignore the shortcut and let the character event handle it.
+               return Make_Result (Controller_Ignored);
+            end if;
             return Execute_Command (Action.Command, Model, Settings, Modifiers);
          when Files.Events.Selection_Input_Action =>
             if Files.Model.Focus (Model) = Files.Types.Focus_None

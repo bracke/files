@@ -11,6 +11,8 @@ package body Files.Interaction is
    use type Files.Controller.Controller_Status;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Operations.Operation_Status;
+   use type Files.Types.Focus_Target;
+   use type Files.Types.Key_Code;
 
    --  Map the model's runtime sort enum onto the settings enum.
    function Settings_Sort_Of
@@ -344,6 +346,16 @@ package body Files.Interaction is
               Outcome.Status = Files.Controller.Controller_Command_Executed;
          end if;
       end;
+
+      --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
+      --  character: when the grid owns the keyboard, drop the parallel space
+      --  character event so it never leaks into type-ahead. A space typed into a
+      --  focused text field keeps its character event and types a space.
+      if Key = Files.Types.Key_Space
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+      then
+         Result.Clear_Pending_Text := True;
+      end if;
 
       --  Keep the info-pane folder-size cache aligned with keyboard-driven
       --  selection changes. Cheap when the selected directory is unchanged.

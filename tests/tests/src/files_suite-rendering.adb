@@ -12,6 +12,7 @@ with Files.Events;
 with Files.Fonts;
 with Files.Localization;
 with Files.Model;
+with Files.Quick_Look;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
 with Files.Types;
@@ -69,6 +70,7 @@ package body Files_Suite.Rendering is
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -126,6 +128,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Panels_Expose_Close_Button'Access,
          "each open overlay panel emits a close-button accessibility node");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Quick_Look_Overlay_Content'Access,
+         "the quick look overlay emits its dialog panel and previewed content");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Theme_Palette_Selection'Access,
          "the light palette differs from dark while high contrast keeps the dark base");
@@ -1273,6 +1278,27 @@ package body Files_Suite.Rendering is
             "the open folder tree emits a close-button accessibility node");
       end;
 
+      --  Quick Look overlay.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         QL     : Quick_Look_Layout;
+         Close  : Close_Button_Layout;
+         Frame  : Frame_Commands;
+      begin
+         Snap.Quick_Look_Open := True;
+         Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
+         Snap.Quick_Look_Name := To_Unbounded_String ("notes.txt");
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         QL     := Calculate_Quick_Look_Layout (Layout, LH);
+         Close  := Panel_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the quick look overlay hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open quick look overlay emits a close-button accessibility node");
+      end;
+
       --  Paste-conflict dialog.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
@@ -1324,6 +1350,51 @@ package body Files_Suite.Rendering is
             "the progress bar's filled width is proportional to Done / Total");
       end;
    end Test_Panels_Expose_Close_Button;
+
+   --  True when the frame exposes an accessibility node with the given role.
+   function Frame_Has_Role
+     (Frame : Frame_Commands;
+      Role  : Accessibility_Role)
+      return Boolean is
+   begin
+      for Node of Frame.Accessibility loop
+         if Node.Role = Role then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Frame_Has_Role;
+
+   procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+   begin
+      --  A text preview draws its dialog panel and the previewed lines.
+      declare
+         Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Frame : Frame_Commands;
+      begin
+         Snap.Quick_Look_Open := True;
+         Snap.Quick_Look_Kind := Files.Quick_Look.Text_Content;
+         Snap.Quick_Look_Name := To_Unbounded_String ("readme.txt");
+         Snap.Quick_Look_Text_Lines.Append (To_Unbounded_String ("first preview line"));
+         Snap.Quick_Look_Text_Lines.Append (To_Unbounded_String ("second preview line"));
+         Frame := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Frame_Has_Role (Frame, Role_Dialog), "the quick look overlay emits a dialog panel node");
+         Assert (Frame_Has_Text (Frame, "readme.txt"), "the quick look title shows the item name");
+         Assert (Frame_Has_Text (Frame, "first preview line"), "the quick look text body shows the first line");
+      end;
+
+      --  When closed the overlay draws nothing.
+      declare
+         Snap  : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snap, Width, Height, LH);
+      begin
+         Assert (not Frame_Has_Text (Frame, "readme.txt"), "no quick look content is drawn when closed");
+      end;
+   end Test_Quick_Look_Overlay_Content;
 
    --  The palette is theme-aware through Files.Rendering.Color_For. This is a
    --  legitimate palette assertion (the role-to-color mapping), not a fragile

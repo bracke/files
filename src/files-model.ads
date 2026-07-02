@@ -3,6 +3,7 @@ with Ada.Containers.Vectors;
 with Files.File_System;
 with Files.Folder_Tree;
 with Files.Paste;
+with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
 
@@ -1152,6 +1153,53 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
+   --  Open the Quick Look overlay with prepared preview content, capturing the
+   --  currently selected item's path as the previewed identity.
+   --
+   --  @param Model Model to update.
+   --  @param Content Prepared preview content the overlay renders.
+   procedure Open_Quick_Look
+     (Model   : in out Window_Model;
+      Content : Files.Quick_Look.Quick_Look_Content);
+
+   --  Close the Quick Look overlay and drop its previewed content.
+   --
+   --  @param Model Model to update.
+   procedure Close_Quick_Look
+     (Model : in out Window_Model);
+
+   --  Toggle the Quick Look overlay. When opening, the previewed content is a
+   --  metadata-only info card derived from the selected item without any
+   --  filesystem read; when closing, the previewed content is dropped.
+   --
+   --  @param Model Model to update.
+   procedure Toggle_Quick_Look
+     (Model : in out Window_Model);
+
+   --  Return whether the Quick Look overlay is open.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when Quick Look is active.
+   function Quick_Look_Is_Open
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return the full path of the item Quick Look is previewing.
+   --
+   --  @param Model Model to inspect.
+   --  @return Previewed item full path, or an empty string when closed.
+   function Quick_Look_Path
+     (Model : Window_Model)
+      return String;
+
+   --  Return the prepared Quick Look preview content.
+   --
+   --  @param Model Model to inspect.
+   --  @return Preview content; its kind is Info_Content when closed.
+   function Quick_Look_Content_Of
+     (Model : Window_Model)
+      return Files.Quick_Look.Quick_Look_Content;
+
    --  Return whether rename can start for the current selection.
    --
    --  @param Model Model to inspect.
@@ -2120,6 +2168,9 @@ private
       Command_Palette_Selected : Natural := 0;
       Command_Palette_Offset   : Natural := 0;
       Command_Palette_Mode     : Palette_Mode := Palette_Commands;
+      Quick_Look_Active        : Boolean := False;
+      Quick_Look_Path_Value    : UString;
+      Quick_Look_Content_Value : Files.Quick_Look.Quick_Look_Content;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Rename_Active            : Boolean := False;
       Rename_Fields            : Rename_Field_Vectors.Vector;

@@ -205,6 +205,8 @@ package body Files.Commands is
             return "edit.copy_path";
          when Open_Containing_Folder_Command =>
             return "navigate.containing";
+         when Toggle_Quick_Look_Command =>
+            return "view.quick_look";
       end case;
    end Identifier;
 
@@ -347,6 +349,8 @@ package body Files.Commands is
             return "command.edit.copy_path";
          when Open_Containing_Folder_Command =>
             return "command.navigate.containing";
+         when Toggle_Quick_Look_Command =>
+            return "command.view.quick_look";
       end case;
    end Name_Key;
 
@@ -489,6 +493,8 @@ package body Files.Commands is
             return "command.edit.copy_path.description";
          when Open_Containing_Folder_Command =>
             return "command.navigate.containing.description";
+         when Toggle_Quick_Look_Command =>
+            return "command.view.quick_look.description";
       end case;
    end Description_Key;
 
@@ -582,6 +588,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_Z, Ctrl);
          when Redo_Command =>
             return (True, Files.Types.Key_Z, Ctrl_Shift);
+         when Toggle_Quick_Look_Command =>
+            return (True, Files.Types.Key_Space, Files.Types.No_Modifiers);
          when others =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
       end case;
@@ -1107,6 +1115,13 @@ package body Files.Commands is
             return Files.Model.Selected_Count (Model) = 1
               and then not Files.Model.Selection_Includes_Temporary (Model)
               and then not In_Trash_View (Model);
+         when Toggle_Quick_Look_Command =>
+            --  Quick Look previews exactly one real (non-temporary) item in an
+            --  ordinary directory view; it never opens in the trash payload view
+            --  or on an empty/multi selection.
+            return Files.Model.Selected_Count (Model) = 1
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
          when others =>
             return True;
       end case;
@@ -1309,6 +1324,13 @@ package body Files.Commands is
             --  it, which loads a directory from the filesystem, so it is routed
             --  through Files.Controller rather than this pure model-only executor.
             null;
+         when Toggle_Quick_Look_Command =>
+            --  The pure toggle previews the selected item as a metadata-only info
+            --  card (no filesystem read). The live shell routes this command
+            --  through Files.Controller, which reads the bounded text or image so
+            --  richer text/image previews are prepared.
+            Files.Model.Toggle_Quick_Look (Model);
+            Files.Model.Set_Error (Model, "");
       end case;
    end Execute;
 

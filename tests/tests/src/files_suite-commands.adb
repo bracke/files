@@ -624,7 +624,7 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 66, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 67, "all expected commands are registered");
       Assert (Files.Commands.Contains ("edit.copy_path"), "copy-path command identifier is registered");
       Assert
         (Files.Commands.Contains ("navigate.containing"),

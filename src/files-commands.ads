@@ -72,10 +72,11 @@ package Files.Commands is
       Copy_To_Command,
       Move_To_Command,
       Copy_Path_Command,
-      Open_Containing_Folder_Command);
+      Open_Containing_Folder_Command,
+      Toggle_Quick_Look_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Open_Containing_Folder_Command;
+     Select_Small_Icons_Command .. Toggle_Quick_Look_Command;
 
    type Command_Placement is
      (No_Placement,

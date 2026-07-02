@@ -7,6 +7,7 @@ with Files.Commands;
 with Files.File_System;
 with Files.Folder_Tree;
 with Files.Model;
+with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
 
@@ -273,6 +274,24 @@ package Files.Rendering is
       Paste_Progress_Total           : Natural := 0;
       Paste_Progress_Name            : UString;
       Paste_Progress_Moving          : Boolean := False;
+      --  Quick Look preview overlay: open when previewing a single selected item.
+      --  Quick_Look_Kind selects the body (scaled image, capped text lines, or the
+      --  metadata info card). Quick_Look_Image_* carry the decoded thumbnail pixels
+      --  (reused from the item's thumbnail) the renderer scales to fit; when they
+      --  are empty the image body shows a localized empty-preview message.
+      Quick_Look_Open                : Boolean := False;
+      Quick_Look_Kind                : Files.Quick_Look.Content_Kind :=
+        Files.Quick_Look.Info_Content;
+      Quick_Look_Name                : UString;
+      Quick_Look_Type                : UString;
+      Quick_Look_Icon_Id             : UString;
+      Quick_Look_Size_Available      : Boolean := False;
+      Quick_Look_Size                : Long_Long_Integer := 0;
+      Quick_Look_Text_Lines          : Files.Types.String_Vectors.Vector;
+      Quick_Look_Text_Truncated      : Boolean := False;
+      Quick_Look_Image_Width         : Natural := 0;
+      Quick_Look_Image_Height        : Natural := 0;
+      Quick_Look_Image_Pixels        : Files.Types.Byte_Vectors.Vector;
    end record;
 
    --  A context-menu row is either a selectable command or a non-selectable
@@ -424,6 +443,19 @@ package Files.Rendering is
       Results_Width  : Natural := 0;
       Results_Height : Natural := 0;
       Row_Height     : Natural := 0;
+   end record;
+
+   --  Geometry of the centered Quick Look overlay panel and its inner content
+   --  region (inside the padding, below the title band).
+   type Quick_Look_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Content_X  : Natural := 0;
+      Content_Y  : Natural := 0;
+      Content_Width  : Natural := 0;
+      Content_Height : Natural := 0;
    end record;
 
    type Command_Result_Layout is record
@@ -1268,6 +1300,17 @@ package Files.Rendering is
      (Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Command_Palette_Layout;
+
+   --  Calculate the centered Quick Look overlay panel rectangle and its inner
+   --  content region.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Quick Look panel and content-region geometry.
+   function Calculate_Quick_Look_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Quick_Look_Layout;
 
    --  Calculate command-palette result row rectangles.
    --

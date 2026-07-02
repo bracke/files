@@ -850,4 +850,33 @@ package Files.File_System is
       Cache_Directory : String;
       Size            : Positive := 64)
       return Thumbnail_Result;
+
+   --  Return whether an item is a previewable raster image, using the same
+   --  classification the automatic thumbnail generator applies (image/* MIME,
+   --  the "image" icon id, or a known raster extension). Directories and
+   --  symlinks are never images.
+   --
+   --  @param Kind Filesystem item kind.
+   --  @param Filetype Detected filetype identifier.
+   --  @param Name File name to inspect.
+   --  @param Icon_Id Icon identifier for the item.
+   --  @return True when the item should be previewed as an image.
+   function Is_Image_Item
+     (Kind     : Files.Types.Item_Kind;
+      Filetype : String;
+      Name     : String;
+      Icon_Id  : String)
+      return Boolean;
+
+   --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
+   --  bounded text preview. Returns an empty string when the file cannot be
+   --  opened or read. Never blocks beyond the capped read.
+   --
+   --  @param Path File to read.
+   --  @param Max_Bytes Maximum number of leading bytes to return.
+   --  @return Leading bytes as a String, or an empty string on failure.
+   function Read_Preview_Text
+     (Path      : String;
+      Max_Bytes : Natural)
+      return String;
 end Files.File_System;

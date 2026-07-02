@@ -39,6 +39,7 @@ with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Platform;
+with Files.Quick_Look;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
 with Files.Settings;
@@ -116,6 +117,8 @@ package body Files_Suite.Model is
    procedure Test_Multi_Rename_Broadcast (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Temporary_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Model_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -161,6 +164,10 @@ package body Files_Suite.Model is
         (T, Test_Create_File_Temporary_State'Access, "create-file temporary item state");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Error_State'Access, "error-state representation");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Quick_Look_Content_Prep'Access, "quick look content preparation classifies text, image, and info");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Quick_Look_Model_State'Access, "quick look model open/close state tracks the selection");
    end Register_Tests;
 
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2961,6 +2968,115 @@ package body Files_Suite.Model is
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "trash failure reports selected path");
       Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "trash failure is recorded as data");
    end Test_Error_State;
+
+   procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Quick_Look.Content_Kind;
+
+      function Many_Lines (Count : Positive) return String is
+         Buffer : Unbounded_String;
+      begin
+         for I in 1 .. Count loop
+            Append (Buffer, "line" & ASCII.LF);
+         end loop;
+         return To_String (Buffer);
+      end Many_Lines;
+   begin
+      --  A short text file yields Text content with the leading lines.
+      declare
+         Content : constant Files.Quick_Look.Quick_Look_Content :=
+           Files.Quick_Look.Prepare_Content
+             (Name => "notes.txt", Filetype => "text/plain", Icon_Id => "text",
+              Kind => Files.Types.Regular_File_Item, Size_Available => True, Size => 12,
+              Is_Image => False, Image_Path => "/tmp/notes.txt",
+              Raw_Bytes => "alpha" & ASCII.LF & "beta" & ASCII.LF & "gamma");
+      begin
+         Assert (Content.Kind = Files.Quick_Look.Text_Content, "a text file yields Text content");
+         Assert (Natural (Content.Text_Lines.Length) = 3, "all three short lines are carried");
+         Assert (To_String (Content.Text_Lines.First_Element) = "alpha", "the first line is preserved");
+         Assert (not Content.Text_Truncated, "a short file is not truncated");
+      end;
+
+      --  An oversize text file is capped to Max_Preview_Lines and flagged.
+      declare
+         Content : constant Files.Quick_Look.Quick_Look_Content :=
+           Files.Quick_Look.Prepare_Content
+             (Name => "big.log", Filetype => "text/plain", Icon_Id => "text",
+              Kind => Files.Types.Regular_File_Item, Size_Available => True, Size => 9_999,
+              Is_Image => False, Image_Path => "/tmp/big.log",
+              Raw_Bytes => Many_Lines (Files.Quick_Look.Max_Preview_Lines + 25));
+      begin
+         Assert (Content.Kind = Files.Quick_Look.Text_Content, "an oversize text file is still Text content");
+         Assert
+           (Natural (Content.Text_Lines.Length) <= Files.Quick_Look.Max_Preview_Lines,
+            "the preview caps the number of lines");
+         Assert (Content.Text_Truncated, "an oversize file is flagged truncated");
+      end;
+
+      --  A binary file (embedded NUL) falls back to the info card.
+      declare
+         Content : constant Files.Quick_Look.Quick_Look_Content :=
+           Files.Quick_Look.Prepare_Content
+             (Name => "app.bin", Filetype => "application/octet-stream", Icon_Id => "binary",
+              Kind => Files.Types.Regular_File_Item, Size_Available => True, Size => 64,
+              Is_Image => False, Image_Path => "/tmp/app.bin",
+              Raw_Bytes => "MZ" & ASCII.NUL & "payload");
+      begin
+         Assert (Content.Kind = Files.Quick_Look.Info_Content, "a binary file falls back to Info content");
+      end;
+
+      --  An image item yields Image content carrying its source path.
+      declare
+         Content : constant Files.Quick_Look.Quick_Look_Content :=
+           Files.Quick_Look.Prepare_Content
+             (Name => "photo.png", Filetype => "image/png", Icon_Id => "image",
+              Kind => Files.Types.Regular_File_Item, Size_Available => True, Size => 2048,
+              Is_Image => True, Image_Path => "/tmp/photo.png", Raw_Bytes => "");
+      begin
+         Assert (Content.Kind = Files.Quick_Look.Image_Content, "an image item yields Image content");
+         Assert (To_String (Content.Image_Path) = "/tmp/photo.png", "image content carries the source path");
+      end;
+
+      --  A directory yields the metadata info card with name and type.
+      declare
+         Content : constant Files.Quick_Look.Quick_Look_Content :=
+           Files.Quick_Look.Prepare_Content
+             (Name => "Documents", Filetype => "inode/directory", Icon_Id => "folder",
+              Kind => Files.Types.Directory_Item, Size_Available => False, Size => 0,
+              Is_Image => False, Image_Path => "/tmp/Documents", Raw_Bytes => "");
+      begin
+         Assert (Content.Kind = Files.Quick_Look.Info_Content, "a directory yields Info content");
+         Assert (To_String (Content.Name) = "Documents", "info content carries the item name");
+         Assert (To_String (Content.Filetype) = "inode/directory", "info content carries the item type");
+      end;
+   end Test_Quick_Look_Content_Prep;
+
+   procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Quick_Look.Content_Kind;
+      Model : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+   begin
+      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Assert (not Files.Model.Quick_Look_Is_Open (Model), "quick look starts closed");
+
+      Files.Model.Toggle_Quick_Look (Model);
+      Assert (Files.Model.Quick_Look_Is_Open (Model), "toggling with a single selection opens quick look");
+      Assert
+        (Files.Model.Quick_Look_Path (Model) = To_String (Files.Model.Selected_Item (Model).Full_Path),
+         "quick look records the previewed item path");
+      Assert
+        (Files.Model.Quick_Look_Content_Of (Model).Kind = Files.Quick_Look.Info_Content,
+         "the pure toggle prepares metadata-only info content");
+
+      Files.Model.Toggle_Quick_Look (Model);
+      Assert (not Files.Model.Quick_Look_Is_Open (Model), "toggling again closes quick look");
+
+      --  Reopen, then a selection change closes the now-stale preview.
+      Files.Model.Toggle_Quick_Look (Model);
+      Assert (Files.Model.Quick_Look_Is_Open (Model), "quick look reopens for the current selection");
+      Files_Suite.Support.Select_Name (Model, "Beta.txt");
+      Assert (not Files.Model.Quick_Look_Is_Open (Model), "changing the selection closes quick look");
+   end Test_Quick_Look_Model_State;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

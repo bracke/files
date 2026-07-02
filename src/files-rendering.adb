@@ -27,6 +27,7 @@ package body Files.Rendering is
    use type Files.Commands.Registered_Command_Id;
    use type Files.Model.Sort_Field;
    use type Files.Model.Tree_Pick_Mode;
+   use type Files.Quick_Look.Content_Kind;
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
    use type Files.Types.Item_Kind;
@@ -1891,6 +1892,34 @@ package body Files.Rendering is
       Snapshot.Command_Palette_Open := Files.Model.Command_Palette_Is_Open (Model);
       Snapshot.Command_Palette_Query := To_Unbounded_String (Files.Model.Command_Palette_Query (Model));
 
+      Snapshot.Quick_Look_Open := Files.Model.Quick_Look_Is_Open (Model);
+      if Snapshot.Quick_Look_Open then
+         declare
+            Content : constant Files.Quick_Look.Quick_Look_Content :=
+              Files.Model.Quick_Look_Content_Of (Model);
+            Item    : constant Files.File_System.Directory_Item :=
+              Files.Model.Selected_Item (Model);
+         begin
+            Snapshot.Quick_Look_Kind           := Content.Kind;
+            Snapshot.Quick_Look_Name           := Content.Name;
+            Snapshot.Quick_Look_Type           := Content.Filetype;
+            Snapshot.Quick_Look_Icon_Id        := Content.Icon_Id;
+            Snapshot.Quick_Look_Size_Available := Content.Size_Available;
+            Snapshot.Quick_Look_Size           := Content.Size;
+            Snapshot.Quick_Look_Text_Lines     := Content.Text_Lines;
+            Snapshot.Quick_Look_Text_Truncated := Content.Text_Truncated;
+            --  Reuse the item's already-decoded thumbnail pixels for the image
+            --  preview; the renderer scales them to fit the panel.
+            if Content.Kind = Files.Quick_Look.Image_Content
+              and then Item.Thumbnail_Available
+            then
+               Snapshot.Quick_Look_Image_Width  := Item.Thumbnail_Width;
+               Snapshot.Quick_Look_Image_Height := Item.Thumbnail_Height;
+               Snapshot.Quick_Look_Image_Pixels := Item.Thumbnail_Pixels;
+            end if;
+         end;
+      end if;
+
       for Id in Files.Commands.Registered_Command_Id loop
          Snapshot.Command_Enabled (Id) := Files.Commands.Is_Enabled (Id, Model);
       end loop;
@@ -3664,6 +3693,42 @@ package body Files.Rendering is
              (Saturating_Multiply (Line_Height, 2),
               Saturating_Multiply (Command_Result_Row_Padding, 2)));
    end Calculate_Command_Palette_Layout;
+
+   function Calculate_Quick_Look_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Quick_Look_Layout
+   is
+      Padding   : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+      --  A large centered panel: roughly three quarters of the window, with a
+      --  sensible floor so it stays usable in tiny windows.
+      Panel_W   : constant Natural :=
+        Natural'Min (Layout.Width, Natural'Max (Saturating_Multiply (Line_Height, 16),
+                                                (Layout.Width * 3) / 4));
+      Panel_H   : constant Natural :=
+        Natural'Min (Layout.Height, Natural'Max (Saturating_Multiply (Line_Height, 12),
+                                                 (Layout.Height * 3) / 4));
+      Panel_X   : constant Natural :=
+        (if Layout.Width > Panel_W then (Layout.Width - Panel_W) / 2 else 0);
+      Panel_Y   : constant Natural :=
+        (if Layout.Height > Panel_H then (Layout.Height - Panel_H) / 2 else 0);
+      --  The title band reserves one line height plus padding at the top.
+      Title_H   : constant Natural := Saturating_Add (Line_Height, Padding);
+      Content_X : constant Natural := Saturating_Add (Panel_X, Padding);
+      Content_Y : constant Natural := Saturating_Add (Panel_Y, Title_H);
+      Used_W    : constant Natural := Saturating_Multiply (Padding, 2);
+      Used_H    : constant Natural := Saturating_Add (Title_H, Padding);
+   begin
+      return
+        (X              => Panel_X,
+         Y              => Panel_Y,
+         Width          => Panel_W,
+         Height         => Panel_H,
+         Content_X      => Content_X,
+         Content_Y      => Content_Y,
+         Content_Width  => (if Panel_W > Used_W then Panel_W - Used_W else 0),
+         Content_Height => (if Panel_H > Used_H then Panel_H - Used_H else 0));
+   end Calculate_Quick_Look_Layout;
 
    function Calculate_Command_Result_Layout
      (Snapshot : View_Snapshot;
@@ -9039,6 +9104,125 @@ package body Files.Rendering is
          Add_Palette_Scrollbar;
          Draw_Close_Button (Palette.X, Palette.Y, Palette.Width, Palette.Height, Overlay => False);
          Drawing_Command_Palette := False;
+      end if;
+
+      if Snapshot.Quick_Look_Open then
+         declare
+            QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
+            Margin  : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+            Title_X : constant Natural := Saturating_Add (QL.X, Margin);
+            Title_Y : constant Natural := Saturating_Add (QL.Y, Natural'Max (4, Line_Height / 4));
+            Title_W : constant Natural :=
+              (if QL.Width > Saturating_Multiply (Margin, 2)
+               then QL.Width - Saturating_Multiply (Margin, 2) else QL.Width);
+         begin
+            Add_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
+            Add_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
+            Add_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
+            Add_Rect (QL.X, QL.Y, QL.Width, Natural'Min (3, QL.Height), Selection_Color);
+            Add_Accessibility_Node
+              (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height, Localized ("accessibility.quick_look"));
+            --  Panel title: the previewed item's name, which also serves as the
+            --  content marker tests assert on for every kind.
+            Add_Text (Title_X, Title_Y, Title_W, Line_Height, Snapshot.Quick_Look_Name, Fit => True);
+
+            case Snapshot.Quick_Look_Kind is
+               when Files.Quick_Look.Image_Content =>
+                  if Natural (Snapshot.Quick_Look_Image_Pixels.Length) > 0
+                    and then Snapshot.Quick_Look_Image_Width > 0
+                    and then Snapshot.Quick_Look_Image_Height > 0
+                  then
+                     declare
+                        Img_Size : constant Natural :=
+                          Natural'Min (QL.Content_Width, QL.Content_Height);
+                        Img_X    : constant Natural :=
+                          Saturating_Add
+                            (QL.Content_X,
+                             (if QL.Content_Width > Img_Size then (QL.Content_Width - Img_Size) / 2 else 0));
+                        Img_Y    : constant Natural :=
+                          Saturating_Add
+                            (QL.Content_Y,
+                             (if QL.Content_Height > Img_Size then (QL.Content_Height - Img_Size) / 2 else 0));
+                     begin
+                        if Img_Size > 0 then
+                           --  Reuse the icon/thumbnail draw path: a single icon
+                           --  command carrying the decoded pixels scaled to fit.
+                           Result.Icons.Append
+                             (Icon_Command'
+                                (X                => Img_X,
+                                 Y                => Img_Y,
+                                 Size             => Img_Size,
+                                 Icon_Id          => Snapshot.Quick_Look_Icon_Id,
+                                 Theme_Name       => Snapshot.Theme_Name,
+                                 Asset_Path       => Null_Unbounded_String,
+                                 Thumbnail_Width  => Snapshot.Quick_Look_Image_Width,
+                                 Thumbnail_Height => Snapshot.Quick_Look_Image_Height,
+                                 Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels));
+                        end if;
+                     end;
+                  else
+                     Add_Text
+                       (QL.Content_X, QL.Content_Y, QL.Content_Width, Line_Height,
+                        Localized ("quick_look.empty"), Muted_Text_Color);
+                  end if;
+               when Files.Quick_Look.Text_Content =>
+                  declare
+                     Max_Lines : constant Natural :=
+                       (if QL.Content_Height >= Line_Height then QL.Content_Height / Line_Height else 0);
+                     Row       : Natural := 0;
+                  begin
+                     for Line of Snapshot.Quick_Look_Text_Lines loop
+                        exit when Row >= Max_Lines;
+                        Add_Text
+                          (QL.Content_X,
+                           Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+                           QL.Content_Width, Line_Height, Line, Fit => True);
+                        Row := Row + 1;
+                     end loop;
+                     if Snapshot.Quick_Look_Text_Truncated and then Row < Max_Lines then
+                        Add_Text
+                          (QL.Content_X,
+                           Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+                           QL.Content_Width, Line_Height,
+                           Localized ("quick_look.truncated"), Muted_Text_Color, Italic => True);
+                     end if;
+                  end;
+               when Files.Quick_Look.Info_Content =>
+                  declare
+                     Icon_Size : constant Natural :=
+                       Natural'Min (Saturating_Multiply (Line_Height, 3), QL.Content_Width);
+                     Row_Y     : Natural :=
+                       Saturating_Add (QL.Content_Y, Saturating_Add (Icon_Size, Margin));
+                     Size_Value : constant UString :=
+                       (if Snapshot.Quick_Look_Size_Available
+                        then To_Unbounded_String (Size_Text (Snapshot.Quick_Look_Size))
+                        else Localized ("status.missing_metadata"));
+                  begin
+                     if Icon_Size > 0 then
+                        Result.Icons.Append
+                          (Icon_Command'
+                             (X                => QL.Content_X,
+                              Y                => QL.Content_Y,
+                              Size             => Icon_Size,
+                              Icon_Id          => Snapshot.Quick_Look_Icon_Id,
+                              Theme_Name       => Snapshot.Theme_Name,
+                              Asset_Path       => Null_Unbounded_String,
+                              Thumbnail_Width  => 0,
+                              Thumbnail_Height => 0,
+                              Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
+                     end if;
+                     Add_Text
+                       (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,
+                        Snapshot.Quick_Look_Type, Muted_Text_Color, Fit => True);
+                     Row_Y := Saturating_Add (Row_Y, Line_Height);
+                     Add_Text
+                       (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,
+                        Size_Value, Muted_Text_Color, Fit => True);
+                  end;
+            end case;
+
+            Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => False);
+         end;
       end if;
 
       if Snapshot.Sort_Menu_Open and then Bottom.Sort_Button_Width > 0 then
