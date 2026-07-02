@@ -69,6 +69,11 @@ package Files.Settings is
         Files.Types.Default_Detail_Column_Visibility;
       Column_Widths          : Files.Types.Detail_Column_Widths :=
         Files.Types.Default_Detail_Column_Widths;
+      --  Persisted left-to-right order of the detail columns (a permutation with
+      --  the mandatory name column pinned first). Every layout path iterates the
+      --  visible columns in this order.
+      Column_Order           : Files.Types.Detail_Column_Order :=
+        Files.Types.Default_Detail_Column_Order;
       Group_By               : Files.Types.Group_Mode := Files.Types.No_Grouping;
    end record;
 
@@ -148,6 +153,22 @@ package Files.Settings is
      (Settings : Settings_Model;
       Column   : Files.Types.Detail_Column;
       Width    : Natural)
+      return Settings_Model;
+
+   --  Return Settings with Column moved so it occupies slot To_Index in the
+   --  detail column order. Delegates to Files.Types.Move_Column, so the name
+   --  column stays pinned to the first slot and a no-op move returns Settings
+   --  unchanged. Per-column widths and visibility are unaffected: they follow
+   --  their column, not its position.
+   --
+   --  @param Settings Settings model to update.
+   --  @param Column Detail column to move.
+   --  @param To_Index Target one-based slot for Column.
+   --  @return Updated settings model.
+   function With_Column_Order
+     (Settings : Settings_Model;
+      Column   : Files.Types.Detail_Column;
+      To_Index : Files.Types.Detail_Column_Index)
       return Settings_Model;
 
    --  Return Settings with Group_By advanced to the next grouping mode, cycling

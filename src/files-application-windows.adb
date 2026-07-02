@@ -207,6 +207,16 @@ package body Files.Application.Windows is
       Column_Resize_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
       Column_Resize_Origin_X : Integer := 0;
       Column_Resize_Origin_W : Natural := 0;
+      --  Details-header column-reorder drag state, owned by the shell like the
+      --  resize drag. Active gates a live reorder; Target names the dragged
+      --  column, Origin_X the press x, Started records whether the pointer has
+      --  crossed the drag threshold (distinguishing a reorder from a sort
+      --  click), and Sort_Command the sort to apply on a click without a drag.
+      Column_Reorder_Active  : Boolean := False;
+      Column_Reorder_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Column_Reorder_Origin_X : Integer := 0;
+      Column_Reorder_Started  : Boolean := False;
+      Column_Reorder_Sort    : Files.Commands.Command_Id := Files.Commands.No_Command;
       Last_Click_Item : Natural := 0;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Text            : Files.Rendering.Text_Renderer;
@@ -1259,6 +1269,19 @@ package body Files.Application.Windows is
          return;
       end if;
 
+      --  Column-reorder begin arms shell-owned drag state; the drop (or the
+      --  sort fallback for a press without a drag) is applied per frame by
+      --  Update_Column_Reorder_Drag. The payload is packed into the shared
+      --  fields (see the Input_Action comment).
+      if Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action then
+         Runtime.Column_Reorder_Active := True;
+         Runtime.Column_Reorder_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
+         Runtime.Column_Reorder_Origin_X := Action.Cursor_Position;
+         Runtime.Column_Reorder_Started := False;
+         Runtime.Column_Reorder_Sort := Action.Command;
+         return;
+      end if;
+
       Files.Interaction.Apply_Input_Action
         (Model             => Runtime.Model,
          Settings          => Runtime.Settings,
@@ -1647,6 +1670,11 @@ package body Files.Application.Windows is
             Column_Resize_Target => Files.Types.Modified_Column,
             Column_Resize_Origin_X => 0,
             Column_Resize_Origin_W => 0,
+            Column_Reorder_Active => False,
+            Column_Reorder_Target => Files.Types.Modified_Column,
+            Column_Reorder_Origin_X => 0,
+            Column_Reorder_Started => False,
+            Column_Reorder_Sort => Files.Commands.No_Command,
             Last_Click_Item => 0,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
@@ -1836,6 +1864,78 @@ package body Files.Application.Windows is
       pragma Unreferenced (Result);
    end Update_Column_Resize_Drag;
 
+   --  Minimum pointer travel, in frame pixels, before an armed header press
+   --  becomes a reorder drag. Below it a press/release is treated as a sort
+   --  click, matching the resize hot zone's grabbable-yet-forgiving feel.
+   Column_Reorder_Threshold : constant := 6;
+
+   procedure Update_Column_Reorder_Drag
+     (Runtime    : in out Runtime_Window;
+      Cursor_X   : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y   : Glfw.Input.Mouse.Coordinate;
+      Window_W   : Glfw.Size;
+      Window_H   : Glfw.Size;
+      Frame_W    : Glfw.Size;
+      Frame_H    : Glfw.Size;
+      Mouse_Down : Boolean)
+   is
+      X_Frame : Integer;
+   begin
+      if not Runtime.Column_Reorder_Active then
+         return;
+      elsif Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
+         Runtime.Column_Reorder_Active := False;
+         return;
+      end if;
+
+      X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+
+      if Mouse_Down then
+         if abs (X_Frame - Runtime.Column_Reorder_Origin_X) > Column_Reorder_Threshold then
+            Runtime.Column_Reorder_Started := True;
+         end if;
+         return;
+      end if;
+
+      --  Mouse released: end the gesture. A crossed threshold applies the
+      --  reorder at the drop target; otherwise the press was a plain click and
+      --  falls back to the column's sort command (if any).
+      Runtime.Column_Reorder_Active := False;
+
+      if Runtime.Column_Reorder_Started then
+         declare
+            Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Layout   : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+            Drop     : constant Natural :=
+              Files.Rendering.Details_Header_Drop_Index
+                (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
+            Result   : Files.Interaction.Interaction_Result;
+         begin
+            if Drop in Files.Types.Detail_Column_Index then
+               Files.Interaction.Apply_Column_Reorder
+                 (Settings      => Runtime.Settings,
+                  Settings_Path => To_String (Runtime.Settings_Path),
+                  Column        => Runtime.Column_Reorder_Target,
+                  To_Index      => Drop,
+                  Result        => Result);
+               Apply_Interaction_Result (Runtime, Result);
+            end if;
+         end;
+      elsif Runtime.Column_Reorder_Sort /= Files.Commands.No_Command then
+         Dispatch_Click_Action
+           (Runtime,
+            (Kind    => Files.Events.Command_Input_Action,
+             Command => Runtime.Column_Reorder_Sort,
+             others  => <>),
+            Files.Types.No_Modifiers);
+      end if;
+   end Update_Column_Reorder_Drag;
+
    procedure Render_Window
      (Runtime : in out Runtime_Window)
    is
@@ -1876,6 +1976,16 @@ package body Files.Application.Windows is
          Cursor_X   => Cursor_X,
          Window_W   => Window_W,
          Frame_W    => Width,
+         Mouse_Down => Mouse_Down);
+
+      Update_Column_Reorder_Drag
+        (Runtime    => Runtime,
+         Cursor_X   => Cursor_X,
+         Cursor_Y   => Cursor_Y,
+         Window_W   => Window_W,
+         Window_H   => Window_H,
+         Frame_W    => Width,
+         Frame_H    => Height,
          Mouse_Down => Mouse_Down);
 
       --  Drive a long copy/move a few actions at a time so the UI stays

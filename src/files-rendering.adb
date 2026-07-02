@@ -268,6 +268,7 @@ package body Files.Rendering is
    --
    --  @param Visible Per-column visibility flags.
    --  @param Widths Per-column customized widths (zero means default).
+   --  @param Order Left-to-right permutation of the columns (name pinned first).
    --  @param Content_X Left edge of the detail content area.
    --  @param Content_W Width of the detail content area.
    --  @param Line_Height Text line height in pixels.
@@ -276,12 +277,14 @@ package body Files.Rendering is
    function Compute_Detail_Columns
      (Visible     : Files.Types.Detail_Column_Visibility;
       Widths      : Files.Types.Detail_Column_Widths;
+      Order       : Files.Types.Detail_Column_Order;
       Content_X   : Natural;
       Content_W   : Natural;
       Line_Height : Positive;
       Pad         : Natural)
       return Detail_Column_Geometry_Array
    is
+      use type Files.Types.Detail_Column;
       Icon_Gap  : constant Natural := Saturating_Add (Line_Height, 6);
       Base_X    : constant Natural :=
         Saturating_Add (Saturating_Add (Content_X, Pad), Icon_Gap);
@@ -294,23 +297,30 @@ package body Files.Rendering is
       Fixed_Sum : Natural := 0;
       Cursor    : Natural;
    begin
-      for Column in Files.Types.Optional_Detail_Column loop
-         if Visible (Column) then
-            declare
-               Raw   : constant Natural :=
-                 (if Widths (Column) > 0
-                  then Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width)
-                  else Default_Detail_Column_Width (Column, Line_Height));
-               Room  : constant Natural :=
-                 (if Available > Saturating_Add (Fixed_Sum, Min_Name)
-                  then Available - Fixed_Sum - Min_Name
-                  else 0);
-               Width : constant Natural := Natural'Min (Raw, Room);
-            begin
-               Result (Column) := (Visible => True, X => 0, Width => Width);
-               Fixed_Sum := Saturating_Add (Fixed_Sum, Width);
-            end;
-         end if;
+      --  Size each visible optional column in stored order, so the per-column
+      --  width clamp (which reserves the name column's minimum) is applied in
+      --  the same visual sequence the columns will be laid out.
+      for Slot in Order'Range loop
+         declare
+            Column : constant Files.Types.Detail_Column := Order (Slot);
+         begin
+            if Column /= Files.Types.Name_Column and then Visible (Column) then
+               declare
+                  Raw   : constant Natural :=
+                    (if Widths (Column) > 0
+                     then Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width)
+                     else Default_Detail_Column_Width (Column, Line_Height));
+                  Room  : constant Natural :=
+                    (if Available > Saturating_Add (Fixed_Sum, Min_Name)
+                     then Available - Fixed_Sum - Min_Name
+                     else 0);
+                  Width : constant Natural := Natural'Min (Raw, Room);
+               begin
+                  Result (Column) := (Visible => True, X => 0, Width => Width);
+                  Fixed_Sum := Saturating_Add (Fixed_Sum, Width);
+               end;
+            end if;
+         end;
       end loop;
 
       Result (Files.Types.Name_Column) :=
@@ -318,12 +328,19 @@ package body Files.Rendering is
          X       => Base_X,
          Width   => (if Available > Fixed_Sum then Available - Fixed_Sum else 0));
 
+      --  Place columns left to right: the name column absorbs the remainder in
+      --  the first slot, then the visible optional columns follow in stored
+      --  order.
       Cursor := Saturating_Add (Base_X, Result (Files.Types.Name_Column).Width);
-      for Column in Files.Types.Optional_Detail_Column loop
-         if Result (Column).Visible then
-            Result (Column).X := Cursor;
-            Cursor := Saturating_Add (Cursor, Result (Column).Width);
-         end if;
+      for Slot in Order'Range loop
+         declare
+            Column : constant Files.Types.Detail_Column := Order (Slot);
+         begin
+            if Column /= Files.Types.Name_Column and then Result (Column).Visible then
+               Result (Column).X := Cursor;
+               Cursor := Saturating_Add (Cursor, Result (Column).Width);
+            end if;
+         end;
       end loop;
 
       return Result;
@@ -1663,6 +1680,7 @@ package body Files.Rendering is
       Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
       Snapshot.Detail_Columns_Visible := Settings.Column_Visible;
       Snapshot.Detail_Column_Widths := Settings.Column_Widths;
+      Snapshot.Detail_Column_Order := Settings.Column_Order;
       Snapshot.Group_By := Settings.Group_By;
       Snapshot.Item_Count := Files.Model.Item_Count (Model);
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
@@ -2572,6 +2590,7 @@ package body Files.Rendering is
                     Compute_Detail_Columns
                       (Snapshot.Detail_Columns_Visible,
                        Snapshot.Detail_Column_Widths,
+                       Snapshot.Detail_Column_Order,
                        Content_X,
                        Content_W,
                        Line_Height,
@@ -3246,6 +3265,7 @@ package body Files.Rendering is
         Compute_Detail_Columns
           (Snapshot.Detail_Columns_Visible,
            Snapshot.Detail_Column_Widths,
+           Snapshot.Detail_Column_Order,
            Content_X,
            Content_W,
            Line_Height,
@@ -3277,6 +3297,161 @@ package body Files.Rendering is
          return Files.Commands.No_Command;
       end if;
    end Details_Header_Command_At;
+
+   --  Map a detail column to the sort command a header click on it triggers.
+   --  Columns that do not define a sort (the permissions column) return
+   --  No_Command.
+   function Header_Sort_Command
+     (Column : Files.Types.Detail_Column)
+      return Files.Commands.Command_Id is
+   begin
+      case Column is
+         when Files.Types.Name_Column =>
+            return Files.Commands.Sort_By_Name_Command;
+         when Files.Types.Modified_Column =>
+            return Files.Commands.Sort_By_Changed_Command;
+         when Files.Types.Size_Column =>
+            return Files.Commands.Sort_By_Size_Command;
+         when Files.Types.Filetype_Column =>
+            return Files.Commands.Sort_By_Type_Command;
+         when Files.Types.Created_Column =>
+            return Files.Commands.Sort_By_Created_Command;
+         when Files.Types.Permissions_Column =>
+            return Files.Commands.No_Command;
+      end case;
+   end Header_Sort_Command;
+
+   function Details_Header_Cell_At
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Detail_Header_Cell
+   is
+      Padding   : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+      Content_W : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Width);
+      Content_H : constant Natural :=
+        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Height);
+      Header_H  : constant Natural :=
+        Natural'Min
+          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+      Columns   : constant Detail_Column_Geometry_Array :=
+        Compute_Detail_Columns
+          (Snapshot.Detail_Columns_Visible,
+           Snapshot.Detail_Column_Widths,
+           Snapshot.Detail_Column_Order,
+           Content_X,
+           Content_W,
+           Line_Height,
+           Header_Pad);
+
+      function Within (Column : Files.Types.Detail_Column) return Boolean is
+      begin
+         return Columns (Column).Visible
+           and then Contains_Rectangle_Point
+             (Columns (Column).X, Content_Y, Columns (Column).Width, Header_H, X, Y);
+      end Within;
+   begin
+      if Snapshot.View_Mode /= Files.Types.Details
+        or else Header_H = 0
+        or else not Contains_Rectangle_Point (Content_X, Content_Y, Content_W, Header_H, X, Y)
+      then
+         return (Present => False, others => <>);
+      end if;
+
+      for Column in Files.Types.Detail_Column loop
+         if Within (Column) then
+            return
+              (Present => True,
+               Column  => Column,
+               Command => Header_Sort_Command (Column));
+         end if;
+      end loop;
+
+      return (Present => False, others => <>);
+   end Details_Header_Cell_At;
+
+   function Details_Header_Drop_Index
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Natural
+   is
+      use type Files.Types.Detail_Column;
+      Padding   : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
+      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+      Content_W : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Width);
+      Content_H : constant Natural :=
+        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+         else Layout.Main_Height);
+      Header_H  : constant Natural :=
+        Natural'Min
+          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+      Columns   : constant Detail_Column_Geometry_Array :=
+        Compute_Detail_Columns
+          (Snapshot.Detail_Columns_Visible,
+           Snapshot.Detail_Column_Widths,
+           Snapshot.Detail_Column_Order,
+           Content_X,
+           Content_W,
+           Line_Height,
+           Header_Pad);
+   begin
+      if Snapshot.View_Mode /= Files.Types.Details
+        or else Header_H = 0
+        or else Y < Content_Y
+        or else Y >= Saturating_Add (Content_Y, Header_H)
+        or else X < Content_X
+        or else X >= Saturating_Add (Content_X, Content_W)
+      then
+         return 0;
+      end if;
+
+      --  The dragged column takes the slot of the first visible optional column
+      --  whose right edge is beyond the pointer (i.e. the one the pointer is
+      --  over, or the first to its right). A pointer past all of them targets
+      --  the final slot.
+      for Slot in Snapshot.Detail_Column_Order'Range loop
+         declare
+            Column : constant Files.Types.Detail_Column :=
+              Snapshot.Detail_Column_Order (Slot);
+         begin
+            if Column /= Files.Types.Name_Column
+              and then Columns (Column).Visible
+              and then X < Saturating_Add (Columns (Column).X, Columns (Column).Width)
+            then
+               return Slot;
+            end if;
+         end;
+      end loop;
+
+      return Files.Types.Detail_Column_Count;
+   end Details_Header_Drop_Index;
 
    --  Half-width, in pixels, of the invisible hot zone straddling a header
    --  column separator. A press within this band of a separator's edge begins a
@@ -3315,6 +3490,7 @@ package body Files.Rendering is
         Compute_Detail_Columns
           (Snapshot.Detail_Columns_Visible,
            Snapshot.Detail_Column_Widths,
+           Snapshot.Detail_Column_Order,
            Content_X,
            Content_W,
            Line_Height,
@@ -6526,6 +6702,7 @@ package body Files.Rendering is
               Compute_Detail_Columns
                 (Snapshot.Detail_Columns_Visible,
                  Snapshot.Detail_Column_Widths,
+                 Snapshot.Detail_Column_Order,
                  Content_X,
                  Content_W,
                  Line_Height,
@@ -6954,6 +7131,7 @@ package body Files.Rendering is
               Compute_Detail_Columns
                 (Snapshot.Detail_Columns_Visible,
                  Snapshot.Detail_Column_Widths,
+                 Snapshot.Detail_Column_Order,
                  Content_X,
                  Content_W,
                  Line_Height,

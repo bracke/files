@@ -430,6 +430,114 @@ package body Files.Settings is
       return False;
    end Detail_Column_For_Key;
 
+   --  Return the settings-file token for a detail column in the column-order
+   --  list. The optional columns reuse their stable visibility/width suffix; the
+   --  mandatory name column is written as "name".
+   function Detail_Column_Order_Token (Column : Files.Types.Detail_Column) return String is
+      use type Files.Types.Detail_Column;
+   begin
+      if Column = Files.Types.Name_Column then
+         return "name";
+      else
+         return Detail_Column_Key (Column);
+      end if;
+   end Detail_Column_Order_Token;
+
+   --  Resolve a column-order token (name or an optional-column suffix) to its
+   --  detail column. Accepts "type" as an alias for the filetype column.
+   function Detail_Column_For_Order_Token
+     (Token  : String;
+      Column : out Files.Types.Detail_Column)
+      return Boolean
+   is
+      Optional : Files.Types.Optional_Detail_Column;
+   begin
+      if Token = "name" then
+         Column := Files.Types.Name_Column;
+         return True;
+      elsif Token = "type" then
+         Column := Files.Types.Filetype_Column;
+         return True;
+      elsif Detail_Column_For_Key (Token, Optional) then
+         Column := Optional;
+         return True;
+      else
+         return False;
+      end if;
+   end Detail_Column_For_Order_Token;
+
+   --  Parse a comma-separated column-order value into a permutation with name
+   --  pinned first. Returns False when any token is unknown, duplicated, or the
+   --  list is not a full permutation of the known columns.
+   function Parse_Detail_Column_Order
+     (Value : String;
+      Order : out Files.Types.Detail_Column_Order)
+      return Boolean
+   is
+      use type Files.Types.Detail_Column;
+      Seen  : array (Files.Types.Detail_Column) of Boolean := [others => False];
+      Slot  : Natural := 0;
+      First : Positive := Value'First;
+      Column : Files.Types.Detail_Column;
+   begin
+      Order := Files.Types.Default_Detail_Column_Order;
+      if Value'Length = 0 then
+         return False;
+      end if;
+
+      for Index in Value'First .. Value'Last + 1 loop
+         if Index > Value'Last or else Value (Index) = ',' then
+            declare
+               Token : constant String :=
+                 Files.Types.To_Lower (Trim (Value (First .. Index - 1)));
+            begin
+               if not Detail_Column_For_Order_Token (Token, Column)
+                 or else Seen (Column)
+               then
+                  return False;
+               end if;
+               Seen (Column) := True;
+               Slot := Slot + 1;
+            end;
+            First := Index + 1;
+         end if;
+      end loop;
+
+      --  Every column must appear exactly once for a valid permutation.
+      if Slot /= Files.Types.Detail_Column_Count then
+         return False;
+      end if;
+      for Column_Value in Files.Types.Detail_Column loop
+         if not Seen (Column_Value) then
+            return False;
+         end if;
+      end loop;
+
+      --  Rebuild with name pinned to the first slot, preserving the optional
+      --  columns' relative order as listed.
+      Order (1) := Files.Types.Name_Column;
+      Slot := 1;
+      First := Value'First;
+      for Index in Value'First .. Value'Last + 1 loop
+         if Index > Value'Last or else Value (Index) = ',' then
+            declare
+               Token : constant String :=
+                 Files.Types.To_Lower (Trim (Value (First .. Index - 1)));
+            begin
+               if Detail_Column_For_Order_Token (Token, Column)
+                 and then Column /= Files.Types.Name_Column
+               then
+                  Slot := Slot + 1;
+                  Order (Slot) := Column;
+               end if;
+            end;
+            First := Index + 1;
+         end if;
+      end loop;
+
+      return True;
+   end Parse_Detail_Column_Order;
+
    function Group_Mode_Name (Value : Files.Types.Group_Mode) return String is
    begin
       case Value is
@@ -474,6 +582,19 @@ package body Files.Settings is
       end if;
       return Result;
    end With_Column_Width;
+
+   function With_Column_Order
+     (Settings : Settings_Model;
+      Column   : Files.Types.Detail_Column;
+      To_Index : Files.Types.Detail_Column_Index)
+      return Settings_Model
+   is
+      Result : Settings_Model := Settings;
+   begin
+      Result.Column_Order :=
+        Files.Types.Move_Column (Settings.Column_Order, Column, To_Index);
+      return Result;
+   end With_Column_Order;
 
    function Cycle_Group_By
      (Settings : Settings_Model)
@@ -1407,6 +1528,22 @@ package body Files.Settings is
                                     Error_Key => To_Unbounded_String ("error.settings.invalid_group"));
                               end if;
                            end;
+                        elsif Setting_Key = "detail_column_order" then
+                           declare
+                              Order : Files.Types.Detail_Column_Order;
+                           begin
+                              if Parse_Detail_Column_Order (Value, Order) then
+                                 Settings.Column_Order := Order;
+                              else
+                                 Settings.Column_Order :=
+                                   Files.Types.Default_Detail_Column_Order;
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key =>
+                                      To_Unbounded_String ("error.settings.invalid_column_order"));
+                              end if;
+                           end;
                         elsif Setting_Key'Length >= 20
                           and then Setting_Key
                             (Setting_Key'First .. Setting_Key'First + 19) = "detail_column_width_"
@@ -1653,6 +1790,7 @@ package body Files.Settings is
      (Settings : Settings_Model)
       return String
    is
+      use type Files.Types.Detail_Column_Order;
       Result : Unbounded_String := Null_Unbounded_String;
       Keys   : String_Vectors.Vector;
 
@@ -1678,6 +1816,22 @@ package body Files.Settings is
       --  space-free identifier so the concatenated literal is never mistaken for
       --  user-visible prose (see check_all's no-user-text-literal rule).
       Append_Line ("group_by" & " = " & Group_Mode_Name (Settings.Group_By));
+      --  Persist the column order only when it differs from the enum default so
+      --  untouched settings files stay minimal. Assembled from a space-free
+      --  identifier plus comma-separated tokens (never user-visible prose).
+      if Settings.Column_Order /= Files.Types.Default_Detail_Column_Order then
+         declare
+            Order_Value : Unbounded_String := Null_Unbounded_String;
+         begin
+            for Slot in Settings.Column_Order'Range loop
+               if Slot > Settings.Column_Order'First then
+                  Append (Order_Value, ",");
+               end if;
+               Append (Order_Value, Detail_Column_Order_Token (Settings.Column_Order (Slot)));
+            end loop;
+            Append_Line ("detail_column_order" & " = " & To_String (Order_Value));
+         end;
+      end if;
       for Column in Files.Types.Optional_Detail_Column loop
          Append_Line
            ("detail_column_" & Detail_Column_Key (Column) & " = "

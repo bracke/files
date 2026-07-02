@@ -60,6 +60,45 @@ package Files.Types is
    --  Smallest pixel width a customized detail column may occupy.
    Minimum_Detail_Column_Width : constant := 48;
 
+   --  Number of detail columns; the length of a full column-order permutation.
+   Detail_Column_Count : constant := Detail_Column'Pos (Detail_Column'Last) + 1;
+
+   --  One-based slot index into a detail column-order permutation.
+   subtype Detail_Column_Index is Positive range 1 .. Detail_Column_Count;
+
+   --  A permutation of every detail column giving their left-to-right order in
+   --  the detail view. The mandatory name column always occupies the first
+   --  slot; the optional columns are ordered among themselves after it. Hidden
+   --  columns still occupy a slot but do not render, so re-showing one restores
+   --  it to its ordered position.
+   type Detail_Column_Order is array (Detail_Column_Index) of Detail_Column;
+
+   --  Default column order: the declaration (enum) order, name first.
+   Default_Detail_Column_Order : constant Detail_Column_Order :=
+     [1 => Name_Column,
+      2 => Modified_Column,
+      3 => Size_Column,
+      4 => Filetype_Column,
+      5 => Created_Column,
+      6 => Permissions_Column];
+
+   --  Return Order with Column moved to occupy slot To_Index (one-based) in the
+   --  resulting left-to-right order. The mandatory name column never moves and
+   --  always keeps the first slot: a request to move name, or to target the
+   --  first slot, is clamped so name stays first. Moving a column to the slot it
+   --  already occupies returns Order unchanged. The result is always a
+   --  permutation of Order.
+   --
+   --  @param Order Current column-order permutation.
+   --  @param Column Column to move.
+   --  @param To_Index Target one-based slot for Column in the result.
+   --  @return Updated column-order permutation.
+   function Move_Column
+     (Order    : Detail_Column_Order;
+      Column   : Detail_Column;
+      To_Index : Detail_Column_Index)
+      return Detail_Column_Order;
+
    --  Detail-view row grouping mode. When it is not No_Grouping the detail list
    --  gains non-selectable group header rows composed with the active sort.
    type Group_Mode is

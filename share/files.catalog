@@ -545,6 +545,7 @@ en.error.settings.invalid_icon_theme = Settings file contains an invalid icon th
 en.error.settings.invalid_font_pixel_size = Font pixel size must be an integer between 10 and 32.
 en.error.settings.invalid_sort_field = Settings file contains an invalid sort field.
 en.error.settings.invalid_group = Settings file contains an invalid grouping mode.
+en.error.settings.invalid_column_order = Settings file contains an invalid detail-column order.
 en.error.settings.unknown_key = Settings file contains an unknown key.
 en.error.settings.missing_section = Settings entry appears before any section.
 en.error.settings.invalid = Settings file is invalid.

@@ -235,6 +235,41 @@ package body Files.Events is
          Scroll_Drag_Anchor => Origin_Width);
    end Column_Resize_Begin_Action;
 
+   --  Build a details-header column-reorder drag-begin action. The dragged
+   --  column and the press x are packed into Item_Index and Cursor_Position, and
+   --  the column's sort command is carried in Command so the shell can fall back
+   --  to a sort when the press ends without crossing the drag threshold. The
+   --  desktop shell owns the continuous drag, mirroring the resize drag.
+   --
+   --  @param Column Optional detail column being dragged.
+   --  @param Origin_X Pointer x when the press began.
+   --  @param Sort_Command Sort command for a plain click on the column.
+   --  @return Column-reorder drag-begin input action.
+   function Column_Reorder_Begin_Action
+     (Column       : Files.Types.Optional_Detail_Column;
+      Origin_X     : Natural;
+      Sort_Command : Files.Commands.Command_Id)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Column_Reorder_Begin_Input_Action,
+         Command         => Sort_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => Files.Types.Detail_Column'Pos (Column),
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => Origin_X,
+         Settings_Field  => 0,
+         Settings_Option => 0,
+         Activate        => False,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
+   end Column_Reorder_Begin_Action;
+
    function Saturating_Negated_Triple (Value : Integer) return Integer is
    begin
       if Value = 0 then
@@ -1021,10 +1056,23 @@ package body Files.Events is
          end if;
       end;
 
-      Command := Files.Rendering.Details_Header_Command_At (Snapshot, Layout, X, Y, Line_Height);
-      if Command /= Files.Commands.No_Command then
-         return Command_Action (Command, Activate);
-      end if;
+      --  A press on a header cell body either begins a column-reorder drag (for
+      --  the optional columns) or, for the mandatory name column, sorts on the
+      --  spot. The reorder-begin arms shell-owned drag state: the shell sorts on
+      --  release when the press never crossed the drag threshold, so a reorder
+      --  drag never also fires a sort click.
+      declare
+         Cell : constant Files.Rendering.Detail_Header_Cell :=
+           Files.Rendering.Details_Header_Cell_At (Snapshot, Layout, X, Y, Line_Height);
+      begin
+         if Cell.Present then
+            if Cell.Column in Files.Types.Optional_Detail_Column then
+               return Column_Reorder_Begin_Action (Cell.Column, X, Cell.Command);
+            elsif Cell.Command /= Files.Commands.No_Command then
+               return Command_Action (Cell.Command, Activate);
+            end if;
+         end if;
+      end;
 
       Item_Index := Files.Rendering.Item_At (Item_Layout, X, Y);
       if Item_Index /= 0 then

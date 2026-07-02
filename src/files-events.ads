@@ -12,6 +12,7 @@ package Files.Events is
       Scroll_Input_Action,
       Scrollbar_Drag_Begin_Input_Action,
       Column_Resize_Begin_Input_Action,
+      Column_Reorder_Begin_Input_Action,
       Text_Click_Input_Action,
       Settings_Click_Input_Action,
       Item_Click_Input_Action,
@@ -46,6 +47,10 @@ package Files.Events is
    --  fields: Item_Index holds Files.Types.Detail_Column'Pos of the column the
    --  drag resizes, Cursor_Position holds the separator's origin x edge, and
    --  Scroll_Drag_Anchor holds the column's effective width at drag start. For a
+   --  Column_Reorder_Begin_Input_Action Item_Index holds the dragged optional
+   --  column's Detail_Column'Pos, Cursor_Position the press x, and Command the
+   --  sort command to apply should the press turn out to be a plain click rather
+   --  than a drag. For a
    --  Breadcrumb_Click_Input_Action Item_Index holds the one-based breadcrumb
    --  segment index. For a Tree_Click_Input_Action Item_Index holds the tree
    --  node index and Toggle_Selection is True when the expander triangle was

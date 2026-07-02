@@ -471,11 +471,13 @@ package body Files.Interaction is
             Result.Status := Outcome.Status;
          when Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action
+            | Files.Events.Column_Reorder_Begin_Input_Action
             | Files.Events.No_Input_Action
             | Files.Events.Selection_Input_Action =>
-            --  Scrollbar-drag and column-resize begin both update runtime drag
-            --  state owned by the shell (applied through Apply_Column_Resize for
-            --  the resize); the no-op kinds are ignored. Nothing to apply here.
+            --  Scrollbar-drag, column-resize, and column-reorder begin all update
+            --  runtime drag state owned by the shell (applied through
+            --  Apply_Column_Resize / Apply_Column_Reorder on drop); the no-op
+            --  kinds are ignored. Nothing to apply here.
             null;
       end case;
 
@@ -581,5 +583,24 @@ package body Files.Interaction is
          Result.Settings_Changed := True;
       end if;
    end Apply_Column_Resize;
+
+   procedure Apply_Column_Reorder
+     (Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Column        : Files.Types.Detail_Column;
+      To_Index      : Files.Types.Detail_Column_Index;
+      Result        : out Interaction_Result)
+   is
+      use type Files.Types.Detail_Column_Order;
+      Updated : constant Files.Settings.Settings_Model :=
+        Files.Settings.With_Column_Order (Settings, Column, To_Index);
+   begin
+      Result := (others => <>);
+      if Updated.Column_Order /= Settings.Column_Order then
+         Settings := Updated;
+         Persist_Settings (Settings, Settings_Path);
+         Result.Settings_Changed := True;
+      end if;
+   end Apply_Column_Reorder;
 
 end Files.Interaction;

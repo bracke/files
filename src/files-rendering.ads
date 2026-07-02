@@ -250,6 +250,8 @@ package Files.Rendering is
         Files.Types.Default_Detail_Column_Visibility;
       Detail_Column_Widths           : Files.Types.Detail_Column_Widths :=
         Files.Types.Default_Detail_Column_Widths;
+      Detail_Column_Order            : Files.Types.Detail_Column_Order :=
+        Files.Types.Default_Detail_Column_Order;
       Group_By                       : Files.Types.Group_Mode := Files.Types.No_Grouping;
       --  Pending paste-conflict dialog: open when a paste/move is paused waiting
       --  for the user to resolve the colliding destination named Paste_Conflict_Name.
@@ -1099,6 +1101,59 @@ package Files.Rendering is
       Y           : Natural;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
+
+   --  A details-header cell under a coordinate. Present is False when the
+   --  coordinate misses the header band. Column is the column whose cell body
+   --  the coordinate falls in, and Command the sort command that a plain click
+   --  on it triggers (No_Command for a column that does not sort, e.g. the
+   --  permissions column). Callers use Column to begin a reorder drag and
+   --  Command to fall back to a sort when the press turns out to be a click.
+   type Detail_Header_Cell is record
+      Present : Boolean := False;
+      Column  : Files.Types.Detail_Column := Files.Types.Name_Column;
+      Command : Files.Commands.Command_Id := Files.Commands.No_Command;
+   end record;
+
+   --  Hit-test a details-header coordinate against the header cell bodies,
+   --  returning the column under it plus its sort command. Unlike
+   --  Details_Header_Command_At this reports every column (including ones that
+   --  do not sort) so a press can begin a column-reorder drag. Returns a cell
+   --  with Present False outside the header band or the details view.
+   --
+   --  @param Snapshot Immutable view snapshot.
+   --  @param Layout Calculated frame layout.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The header cell under the coordinate, or one with Present False.
+   function Details_Header_Cell_At
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Detail_Header_Cell;
+
+   --  Return the target order slot for a column-reorder drop at (X, Y): the
+   --  one-based position the dragged column should occupy. It is the ordered
+   --  slot of the visible column under the pointer; a drop left of the first
+   --  optional column targets the slot just after the name column, and a drop
+   --  past the last visible column targets the final slot. Returns 0 when the
+   --  coordinate lies outside the details header band.
+   --
+   --  @param Snapshot Immutable view snapshot.
+   --  @param Layout Calculated frame layout.
+   --  @param X Horizontal window coordinate.
+   --  @param Y Vertical window coordinate.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The target slot index, or 0 outside the header band.
+   function Details_Header_Drop_Index
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := 20)
+      return Natural;
 
    --  A draggable details-header column separator. Present is False when a
    --  coordinate misses every separator hot zone. Column is the optional column

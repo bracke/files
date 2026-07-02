@@ -173,6 +173,25 @@ package Files.Interaction is
       Current_X     : Integer;
       Result        : out Interaction_Result);
 
+   --  Apply a details-header column-reorder drop. Moves Column so it occupies
+   --  slot To_Index in the persisted column order (through With_Column_Order,
+   --  which pins the name column first and treats a no-op move as a no-op), then
+   --  persists the settings. Per-column widths and visibility follow their
+   --  column, not its position. Result.Settings_Changed is set when the order
+   --  actually changed.
+   --
+   --  @param Settings Live settings model, updated in place when the order changes.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Column Detail column being moved.
+   --  @param To_Index Target one-based slot for Column.
+   --  @param Result Follow-up flags; Settings_Changed reports an order change.
+   procedure Apply_Column_Reorder
+     (Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Column        : Files.Types.Detail_Column;
+      To_Index      : Files.Types.Detail_Column_Index;
+      Result        : out Interaction_Result);
+
    --  Persist the settings model to the central settings file. A no-op when the
    --  path is empty; write failures are intentionally ignored.
    --
