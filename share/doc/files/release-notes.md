@@ -9,6 +9,22 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Copy to… / Move to…: pick a destination folder from the tree sidebar and copy
+  or move the selection there, with the same conflict handling and progress as
+  paste.
+- Paste conflict resolution: pasting over an existing name prompts Replace / Skip
+  / Rename (with Apply to all) instead of silently renaming, and long copies/
+  moves show a progress bar with Cancel.
+- Clickable breadcrumb path and a collapsible folder-tree sidebar.
+- Details view: choose which columns to show (incl. new Created and Permissions
+  columns), drag column separators to resize, and group items by type, date, or
+  size.
+- Editable permissions: a rwx grid in the info pane applies chmod (with undo);
+  the info pane also shows a directory's recursive size.
+- Bottom bar shows free disk space and a selection summary (count + total size).
+- Open Terminal Here, and Create Symbolic/Hard Link for the selection.
+- UI strings are now fully translated in ten locales (da, de, es, fi, fr, it, nb,
+  nl, pt, sv).
 - Synchronized multi-cursor rename: select multiple items and rename them all at
   once. Each gets its own inline field and caret; typing/backspace/arrows apply
   to every caret while a mouse click moves just one; Enter commits best-effort.
