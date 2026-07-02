@@ -28,6 +28,7 @@ package body Files.Rendering is
    use type Files.Model.Sort_Field;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Quick_Look.Content_Kind;
+   use type Files.Types.Color_Label;
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
    use type Files.Types.Item_Kind;
@@ -633,6 +634,13 @@ package body Files.Rendering is
             when Icon_Executable_Color => return RGB (0.38, 0.68, 0.42);
             when Icon_Unknown_Color    => return RGB (0.55, 0.55, 0.57);
             when Favorite_Star_Color   => return RGB (0.96, 0.78, 0.28);
+            when Label_Red_Color       => return RGB (0.90, 0.30, 0.28);
+            when Label_Orange_Color    => return RGB (0.94, 0.58, 0.22);
+            when Label_Yellow_Color    => return RGB (0.94, 0.84, 0.30);
+            when Label_Green_Color     => return RGB (0.40, 0.74, 0.42);
+            when Label_Blue_Color      => return RGB (0.34, 0.56, 0.90);
+            when Label_Purple_Color    => return RGB (0.64, 0.44, 0.86);
+            when Label_Gray_Color      => return RGB (0.60, 0.62, 0.66);
             when Marquee_Color         => return RGB (0.21, 0.38, 0.62, 0.25);
             when Overlay_Color         => return RGB (0.04, 0.05, 0.06, 0.86);
          end case;
@@ -664,6 +672,13 @@ package body Files.Rendering is
             when Icon_Executable_Color => return RGB (0.16, 0.52, 0.24);
             when Icon_Unknown_Color    => return RGB (0.44, 0.44, 0.48);
             when Favorite_Star_Color   => return RGB (0.82, 0.60, 0.08);
+            when Label_Red_Color       => return RGB (0.82, 0.20, 0.18);
+            when Label_Orange_Color    => return RGB (0.86, 0.48, 0.12);
+            when Label_Yellow_Color    => return RGB (0.82, 0.70, 0.14);
+            when Label_Green_Color     => return RGB (0.24, 0.60, 0.28);
+            when Label_Blue_Color      => return RGB (0.20, 0.44, 0.82);
+            when Label_Purple_Color    => return RGB (0.50, 0.30, 0.76);
+            when Label_Gray_Color      => return RGB (0.46, 0.48, 0.52);
             when Marquee_Color         => return RGB (0.62, 0.78, 0.98, 0.30);
             when Overlay_Color         => return RGB (0.20, 0.22, 0.26, 0.62);
          end case;
@@ -675,6 +690,33 @@ package body Files.Rendering is
          when Theme_Light         => return Light_Color;
       end case;
    end Color_For;
+
+   function Label_Render_Color
+     (Label : Files.Types.Color_Label)
+      return Render_Color is
+   begin
+      case Label is
+         when Files.Types.No_Label => return Muted_Text_Color;
+         when Files.Types.Red      => return Label_Red_Color;
+         when Files.Types.Orange   => return Label_Orange_Color;
+         when Files.Types.Yellow   => return Label_Yellow_Color;
+         when Files.Types.Green    => return Label_Green_Color;
+         when Files.Types.Blue     => return Label_Blue_Color;
+         when Files.Types.Purple   => return Label_Purple_Color;
+         when Files.Types.Gray     => return Label_Gray_Color;
+      end case;
+   end Label_Render_Color;
+
+   function Label_For_Swatch
+     (Index : Positive)
+      return Files.Types.Color_Label is
+   begin
+      if Index in 1 .. 7 then
+         return Files.Types.Color_Label'Val (Index);
+      else
+         return Files.Types.No_Label;
+      end if;
+   end Label_For_Swatch;
 
    function Default_Theme return Render_Theme is
    begin
@@ -1892,6 +1934,7 @@ package body Files.Rendering is
       Snapshot.Command_Palette_Open := Files.Model.Command_Palette_Is_Open (Model);
       Snapshot.Command_Palette_Query := To_Unbounded_String (Files.Model.Command_Palette_Query (Model));
 
+      Snapshot.Label_Picker_Open := Files.Model.Label_Picker_Is_Open (Model);
       Snapshot.Quick_Look_Open := Files.Model.Quick_Look_Is_Open (Model);
       if Snapshot.Quick_Look_Open then
          declare
@@ -2052,7 +2095,9 @@ package body Files.Rendering is
                      Is_Group_Header    => False,
                      Group_Label        => Null_Unbounded_String,
                      Is_Favorite        =>
-                       Files.Settings.Is_Favorite (Settings, To_String (Item.Full_Path))));
+                       Files.Settings.Is_Favorite (Settings, To_String (Item.Full_Path)),
+                     Label              =>
+                       Files.Settings.Label_Of (Settings, To_String (Item.Full_Path))));
             end;
          end loop;
       end;
@@ -2212,6 +2257,17 @@ package body Files.Rendering is
                end if;
             end Size_Band;
 
+            --  Color-label bands in canonical order: Red .. Gray (bands 1 .. 7,
+            --  mirroring Files.Types.Real_Color_Label) then unlabeled (band 8).
+            function Label_Band (Item : Item_Snapshot) return Positive is
+            begin
+               if Item.Label = Files.Types.No_Label then
+                  return 8;
+               else
+                  return Files.Types.Color_Label'Pos (Item.Label);
+               end if;
+            end Label_Band;
+
             function Band_Count return Positive is
             begin
                case Snapshot.Group_By is
@@ -2221,6 +2277,8 @@ package body Files.Rendering is
                      return 4;
                   when Files.Types.Group_By_Size =>
                      return 5;
+                  when Files.Types.Group_By_Label =>
+                     return 8;
                   when Files.Types.No_Grouping =>
                      return 1;
                end case;
@@ -2235,6 +2293,8 @@ package body Files.Rendering is
                      return Modified_Band (Item);
                   when Files.Types.Group_By_Size =>
                      return Size_Band (Item);
+                  when Files.Types.Group_By_Label =>
+                     return Label_Band (Item);
                   when Files.Types.No_Grouping =>
                      return 1;
                end case;
@@ -2283,6 +2343,25 @@ package body Files.Rendering is
                            return "details.group.size_large";
                         when others =>
                            return "details.group.size_unknown";
+                     end case;
+                  when Files.Types.Group_By_Label =>
+                     case Band is
+                        when 1 =>
+                           return "label.color.red";
+                        when 2 =>
+                           return "label.color.orange";
+                        when 3 =>
+                           return "label.color.yellow";
+                        when 4 =>
+                           return "label.color.green";
+                        when 5 =>
+                           return "label.color.blue";
+                        when 6 =>
+                           return "label.color.purple";
+                        when 7 =>
+                           return "label.color.gray";
+                        when others =>
+                           return "details.group.unlabeled";
                      end case;
                   when Files.Types.No_Grouping =>
                      return "";
@@ -3083,9 +3162,10 @@ package body Files.Rendering is
             Add_Command (Files.Commands.Open_With_Command);
             Add_Command (Files.Commands.Open_Containing_Folder_Command);
             Add_Separator;
-            --  Group 2: favorite the current selection (its own single-command
-            --  group so it reads as a distinct verb).
+            --  Group 2: favorite the current selection and set its color label
+            --  (tagging verbs grouped together).
             Add_Command (Files.Commands.Toggle_Favorite_Command);
+            Add_Command (Files.Commands.Set_Color_Label_Command);
             Add_Separator;
             --  Group 3: clipboard / duplication, including the copy-to and
             --  move-to destination pickers next to the plain clipboard verbs.
@@ -3729,6 +3809,54 @@ package body Files.Rendering is
          Content_Width  => (if Panel_W > Used_W then Panel_W - Used_W else 0),
          Content_Height => (if Panel_H > Used_H then Panel_H - Used_H else 0));
    end Calculate_Quick_Look_Layout;
+
+   function Calculate_Label_Picker_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Label_Picker_Layout
+   is
+      Count    : constant Positive := Label_Picker_Swatch_Count;
+      Padding  : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+      Gap      : constant Natural := Natural'Max (4, Line_Height / 4);
+      --  A compact centered panel: a single row of square swatches under a
+      --  one-line title band. The swatch edge tracks the line height.
+      Swatch   : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Title_H  : constant Natural := Saturating_Add (Line_Height, Padding);
+      Row_W    : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Swatch, Count),
+           Saturating_Multiply (Gap, Count - 1));
+      Panel_W  : constant Natural :=
+        Natural'Min (Layout.Width, Saturating_Add (Row_W, Saturating_Multiply (Padding, 2)));
+      Panel_H  : constant Natural :=
+        Natural'Min
+          (Layout.Height,
+           Saturating_Add (Title_H, Saturating_Add (Swatch, Saturating_Multiply (Padding, 2))));
+      Panel_X  : constant Natural :=
+        (if Layout.Width > Panel_W then (Layout.Width - Panel_W) / 2 else 0);
+      Panel_Y  : constant Natural :=
+        (if Layout.Height > Panel_H then (Layout.Height - Panel_H) / 2 else 0);
+      Row_X    : constant Natural := Saturating_Add (Panel_X, Padding);
+      Row_Y    : constant Natural := Saturating_Add (Panel_Y, Title_H);
+      Result   : Label_Picker_Layout;
+   begin
+      Result.X           := Panel_X;
+      Result.Y           := Panel_Y;
+      Result.Width       := Panel_W;
+      Result.Height      := Panel_H;
+      Result.Swatch_Size := Swatch;
+      Result.Visible     := Panel_W > 0 and then Panel_H > 0;
+      for Index in Result.Swatches'Range loop
+         Result.Swatches (Index) :=
+           (X      => Saturating_Add
+                        (Row_X,
+                         Saturating_Multiply (Index - 1, Saturating_Add (Swatch, Gap))),
+            Y      => Row_Y,
+            Width  => Swatch,
+            Height => Swatch);
+      end loop;
+      return Result;
+   end Calculate_Label_Picker_Layout;
 
    function Calculate_Command_Result_Layout
      (Snapshot : View_Snapshot;
@@ -7224,6 +7352,26 @@ package body Files.Rendering is
                      Color => Favorite_Star_Color);
                end;
             end if;
+
+            --  Color-label indicator: a small filled square dot tucked into the
+            --  bottom-right corner of the item's icon (opposite the favorite
+            --  star), drawn in the label's color. No_Label draws nothing.
+            if Item.Label /= Files.Types.No_Label and then Item_Rect.Icon_Size > 0 then
+               declare
+                  Dot   : constant Natural :=
+                    Natural'Max (4, Item_Rect.Icon_Size / 4);
+                  Dot_X : constant Natural :=
+                    (if Saturating_Add (Item_Rect.Icon_X, Item_Rect.Icon_Size) > Dot
+                     then Saturating_Add (Item_Rect.Icon_X, Item_Rect.Icon_Size) - Dot
+                     else Item_Rect.Icon_X);
+                  Dot_Y : constant Natural :=
+                    (if Saturating_Add (Item_Rect.Icon_Y, Item_Rect.Icon_Size) > Dot
+                     then Saturating_Add (Item_Rect.Icon_Y, Item_Rect.Icon_Size) - Dot
+                     else Item_Rect.Icon_Y);
+               begin
+                  Add_Rect (Dot_X, Dot_Y, Dot, Dot, Label_Render_Color (Item.Label));
+               end;
+            end if;
             declare
                Renaming : constant Boolean := Item.Renaming;
                --  While renaming a large-icons cell we edit across the full
@@ -9222,6 +9370,64 @@ package body Files.Rendering is
             end case;
 
             Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => False);
+         end;
+      end if;
+
+      if Snapshot.Label_Picker_Open then
+         declare
+            Picker  : constant Label_Picker_Layout :=
+              Calculate_Label_Picker_Layout (Layout, Line_Height);
+            Margin  : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+            Title_X : constant Natural := Saturating_Add (Picker.X, Margin);
+            Title_Y : constant Natural := Saturating_Add (Picker.Y, Natural'Max (4, Line_Height / 4));
+            Title_W : constant Natural :=
+              (if Picker.Width > Saturating_Multiply (Margin, 2)
+               then Picker.Width - Saturating_Multiply (Margin, 2) else Picker.Width);
+         begin
+            Add_Drop_Shadow (Picker.X, Picker.Y, Picker.Width, Picker.Height);
+            Add_Rect (Picker.X, Picker.Y, Picker.Width, Picker.Height, Pane_Color);
+            Add_Border (Picker.X, Picker.Y, Picker.Width, Picker.Height, Border_Color);
+            Add_Rect (Picker.X, Picker.Y, Picker.Width, Natural'Min (3, Picker.Height), Selection_Color);
+            Add_Accessibility_Node
+              (Role_Dialog, Picker.X, Picker.Y, Picker.Width, Picker.Height,
+               Localized ("accessibility.label_picker"));
+            Add_Text (Title_X, Title_Y, Title_W, Line_Height, Localized ("label_picker.title"), Fit => True);
+
+            for Index in Picker.Swatches'Range loop
+               declare
+                  Swatch  : constant Label_Swatch_Bounds := Picker.Swatches (Index);
+                  Label   : constant Files.Types.Color_Label := Label_For_Swatch (Index);
+                  Hovered : constant Boolean :=
+                    Has_Hover
+                    and then Contains_Point (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Hover_X, Hover_Y);
+                  Name    : constant UString :=
+                    Localized
+                      ((case Label is
+                          when Files.Types.No_Label => "label.color.none",
+                          when Files.Types.Red      => "label.color.red",
+                          when Files.Types.Orange   => "label.color.orange",
+                          when Files.Types.Yellow   => "label.color.yellow",
+                          when Files.Types.Green    => "label.color.green",
+                          when Files.Types.Blue     => "label.color.blue",
+                          when Files.Types.Purple   => "label.color.purple",
+                          when Files.Types.Gray     => "label.color.gray"));
+               begin
+                  if Label = Files.Types.No_Label then
+                     --  The clear swatch is an empty bordered box rather than a
+                     --  filled color, so it reads as "remove any label".
+                     Add_Rect (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Pane_Color);
+                  else
+                     Add_Rect (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Label_Render_Color (Label));
+                  end if;
+                  Add_Border
+                    (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height,
+                     (if Hovered then Selection_Color else Border_Color));
+                  Add_Accessibility_Node
+                    (Role_Button, Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Name);
+               end;
+            end loop;
+
+            Draw_Close_Button (Picker.X, Picker.Y, Picker.Width, Picker.Height, Overlay => False);
          end;
       end if;
 

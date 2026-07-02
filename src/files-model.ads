@@ -1200,6 +1200,27 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Quick_Look.Quick_Look_Content;
 
+   --  Open the color-label swatch picker overlay. The chosen label is applied to
+   --  the current selection by the interaction reducer when a swatch is clicked.
+   --
+   --  @param Model Model to update.
+   procedure Open_Label_Picker
+     (Model : in out Window_Model);
+
+   --  Close the color-label swatch picker overlay.
+   --
+   --  @param Model Model to update.
+   procedure Close_Label_Picker
+     (Model : in out Window_Model);
+
+   --  Return whether the color-label swatch picker overlay is open.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the label picker is active.
+   function Label_Picker_Is_Open
+     (Model : Window_Model)
+      return Boolean;
+
    --  Return whether rename can start for the current selection.
    --
    --  @param Model Model to inspect.
@@ -2171,6 +2192,7 @@ private
       Quick_Look_Active        : Boolean := False;
       Quick_Look_Path_Value    : UString;
       Quick_Look_Content_Value : Files.Quick_Look.Quick_Look_Content;
+      Label_Picker_Active      : Boolean := False;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Rename_Active            : Boolean := False;
       Rename_Fields            : Rename_Field_Vectors.Vector;

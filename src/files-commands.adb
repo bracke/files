@@ -207,6 +207,8 @@ package body Files.Commands is
             return "navigate.containing";
          when Toggle_Quick_Look_Command =>
             return "view.quick_look";
+         when Set_Color_Label_Command =>
+            return "label.set";
       end case;
    end Identifier;
 
@@ -351,6 +353,8 @@ package body Files.Commands is
             return "command.navigate.containing";
          when Toggle_Quick_Look_Command =>
             return "command.view.quick_look";
+         when Set_Color_Label_Command =>
+            return "command.label.set";
       end case;
    end Name_Key;
 
@@ -495,6 +499,8 @@ package body Files.Commands is
             return "command.navigate.containing.description";
          when Toggle_Quick_Look_Command =>
             return "command.view.quick_look.description";
+         when Set_Color_Label_Command =>
+            return "command.label.set.description";
       end case;
    end Description_Key;
 
@@ -1039,6 +1045,7 @@ package body Files.Commands is
               or else Files.Model.Root_Selector_Is_Open (Model)
               or else Files.Model.Sort_Menu_Is_Open (Model)
               or else Files.Model.Settings_Pane_Is_Open (Model)
+              or else Files.Model.Label_Picker_Is_Open (Model)
               or else Files.Model.Focus (Model) /= Files.Types.Focus_None
               or else Files.Model.Rename_Is_Active (Model);
          when Open_Selected_Root_Command =>
@@ -1120,6 +1127,13 @@ package body Files.Commands is
             --  ordinary directory view; it never opens in the trash payload view
             --  or on an empty/multi selection.
             return Files.Model.Selected_Count (Model) = 1
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
+         when Set_Color_Label_Command =>
+            --  Color labels apply to the current selection, so at least one real
+            --  (non-temporary) item must be selected in an ordinary directory
+            --  rather than the trash payload view.
+            return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)
               and then not In_Trash_View (Model);
          when others =>
@@ -1237,7 +1251,9 @@ package body Files.Commands is
          when Open_Command_Palette_Command =>
             Files.Model.Toggle_Command_Palette (Model);
          when Close_Command_Palette_Command =>
-            if Files.Model.Context_Menu_Is_Open (Model) then
+            if Files.Model.Label_Picker_Is_Open (Model) then
+               Files.Model.Close_Label_Picker (Model);
+            elsif Files.Model.Context_Menu_Is_Open (Model) then
                Files.Model.Close_Context_Menu (Model);
             elsif Files.Model.Command_Palette_Is_Open (Model) then
                Files.Model.Close_Command_Palette (Model);
@@ -1330,6 +1346,12 @@ package body Files.Commands is
             --  through Files.Controller, which reads the bounded text or image so
             --  richer text/image previews are prepared.
             Files.Model.Toggle_Quick_Look (Model);
+            Files.Model.Set_Error (Model, "");
+         when Set_Color_Label_Command =>
+            --  Opening the swatch picker is pure model state; the chosen label is
+            --  applied and persisted through the settings-write seam when the
+            --  user clicks a swatch.
+            Files.Model.Open_Label_Picker (Model);
             Files.Model.Set_Error (Model, "");
       end case;
    end Execute;

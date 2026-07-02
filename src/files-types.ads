@@ -99,13 +99,31 @@ package Files.Types is
       To_Index : Detail_Column_Index)
       return Detail_Column_Order;
 
+   --  A fixed color label (tag) assignable to any item. No_Label means the item
+   --  carries no tag; the remaining values name the seven selectable swatch
+   --  colors in their canonical display order.
+   type Color_Label is
+     (No_Label,
+      Red,
+      Orange,
+      Yellow,
+      Green,
+      Blue,
+      Purple,
+      Gray);
+
+   --  The seven real (assignable) label colors, excluding the No_Label clear
+   --  state. Used to iterate the color swatches and label bands in order.
+   subtype Real_Color_Label is Color_Label range Red .. Gray;
+
    --  Detail-view row grouping mode. When it is not No_Grouping the detail list
    --  gains non-selectable group header rows composed with the active sort.
    type Group_Mode is
      (No_Grouping,
       Group_By_Type,
       Group_By_Modified,
-      Group_By_Size);
+      Group_By_Size,
+      Group_By_Label);
 
    type Item_Kind is
      (Directory_Item,

@@ -895,7 +895,9 @@ package body Files.Controller is
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Close_Command_Palette_Command =>
-            if Files.Model.Context_Menu_Is_Open (Model) then
+            if Files.Model.Label_Picker_Is_Open (Model) then
+               Files.Model.Close_Label_Picker (Model);
+            elsif Files.Model.Context_Menu_Is_Open (Model) then
                Files.Model.Close_Context_Menu (Model);
             elsif Files.Model.Command_Palette_Is_Open (Model) then
                Files.Model.Close_Command_Palette (Model);
@@ -2612,6 +2614,7 @@ package body Files.Controller is
             | Files.Events.Permission_Toggle_Input_Action
             | Files.Events.Ownership_Edit_Input_Action
             | Files.Events.Conflict_Click_Input_Action
+            | Files.Events.Label_Picker_Choice_Input_Action
             | Files.Events.Paste_Cancel_Input_Action =>
             null;
       end case;

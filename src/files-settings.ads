@@ -1,4 +1,5 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
 
 with Files.Types;
@@ -7,6 +8,17 @@ with Files.Types;
 package Files.Settings is
    subtype UString is Files.Types.UString;
    package String_Vectors renames Files.Types.String_Vectors;
+
+   --  One persisted path-to-color-label association. Label is never No_Label for
+   --  a stored entry: clearing a label removes the entry entirely.
+   type Path_Label is record
+      Path  : UString;
+      Label : Files.Types.Color_Label := Files.Types.No_Label;
+   end record;
+
+   package Path_Label_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Path_Label);
 
    package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -56,6 +68,9 @@ package Files.Settings is
       Window_Height          : Natural := 0;
       Info_Pane_Open         : Boolean := False;
       Favorite_Paths         : String_Vectors.Vector;
+      --  Per-path color labels (tags). Each entry maps a full item or folder
+      --  path to one of the seven swatch colors; No_Label is never stored.
+      Labels                 : Path_Label_Vectors.Vector;
       --  When True (the default) and no per-filetype open action matches, fall
       --  back to the host system's default opener (xdg-open on Linux, open on
       --  macOS, cmd /c start on Windows). Set to False to force explicit
@@ -210,6 +225,28 @@ package Files.Settings is
    procedure Toggle_Favorite_Path
      (Settings : in out Settings_Model;
       Path     : String);
+
+   --  Return the color label stored for Path.
+   --
+   --  @param Settings Settings model to query.
+   --  @param Path Full item or folder path to look up.
+   --  @return The stored color label, or No_Label when Path has none.
+   function Label_Of
+     (Settings : Settings_Model;
+      Path     : String)
+      return Files.Types.Color_Label;
+
+   --  Assign Label to Path, replacing any existing label. Passing No_Label
+   --  clears Path's label by removing its stored entry. The empty path is
+   --  ignored.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full item or folder path to label.
+   --  @param Label Color label to assign, or No_Label to clear.
+   procedure Set_Label
+     (Settings : in out Settings_Model;
+      Path     : String;
+      Label    : Files.Types.Color_Label);
 
    --  Add or replace an extension-to-filetype mapping.
    --

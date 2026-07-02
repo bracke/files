@@ -37,6 +37,13 @@ package Files.Rendering is
       Icon_Executable_Color,
       Icon_Unknown_Color,
       Favorite_Star_Color,
+      Label_Red_Color,
+      Label_Orange_Color,
+      Label_Yellow_Color,
+      Label_Green_Color,
+      Label_Blue_Color,
+      Label_Purple_Color,
+      Label_Gray_Color,
       Marquee_Color,
       Overlay_Color);
 
@@ -63,6 +70,16 @@ package Files.Rendering is
      (Role  : Render_Color;
       Theme : Theme_Kind := Theme_Dark)
       return Palette_Color;
+
+   --  Return the palette color role that renders a color label's swatch/dot.
+   --  No_Label resolves to Muted_Text_Color; it is never drawn, so the value
+   --  only keeps the mapping total.
+   --
+   --  @param Label Color label to resolve.
+   --  @return The palette role drawn in that label's color.
+   function Label_Render_Color
+     (Label : Files.Types.Color_Label)
+      return Render_Color;
 
    type Item_Snapshot is record
       Name               : UString;
@@ -99,6 +116,9 @@ package Files.Rendering is
       --  True when this item's full path is a stored favorite. Drives the
       --  small star indicator drawn over the item's icon in every view mode.
       Is_Favorite        : Boolean := False;
+      --  The item's color label (tag). Drives the small colored dot drawn in a
+      --  corner of the icon; No_Label draws nothing.
+      Label              : Files.Types.Color_Label := Files.Types.No_Label;
    end record;
 
    package Item_Snapshot_Vectors is new Ada.Containers.Vectors
@@ -292,6 +312,9 @@ package Files.Rendering is
       Quick_Look_Image_Width         : Natural := 0;
       Quick_Look_Image_Height        : Natural := 0;
       Quick_Look_Image_Pixels        : Files.Types.Byte_Vectors.Vector;
+      --  Color-label swatch picker overlay: open when the user is choosing a
+      --  label for the current selection.
+      Label_Picker_Open              : Boolean := False;
    end record;
 
    --  A context-menu row is either a selectable command or a non-selectable
@@ -299,9 +322,9 @@ package Files.Rendering is
    type Context_Menu_Row_Kind is (Command_Row, Separator_Row);
 
    --  Real commands plus the separators that group them. The item menu carries
-   --  18 commands split into 6 groups by 5 separators (23 rows); the constant
+   --  19 commands split into 6 groups by 5 separators (24 rows); the constant
    --  keeps headroom so the fixed arrays never overflow.
-   Max_Context_Menu_Rows : constant := 24;
+   Max_Context_Menu_Rows : constant := 26;
    type Context_Menu_Command_Array is
      array (1 .. Max_Context_Menu_Rows) of Files.Commands.Command_Id;
    type Context_Menu_Row_Kind_Array is
@@ -457,6 +480,43 @@ package Files.Rendering is
       Content_Width  : Natural := 0;
       Content_Height : Natural := 0;
    end record;
+
+   --  Number of swatches in the color-label picker: the seven assignable colors
+   --  plus a trailing "None" swatch that clears the selection's labels.
+   Label_Picker_Swatch_Count : constant := 8;
+
+   type Label_Swatch_Bounds is record
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   type Label_Swatch_Array is
+     array (1 .. Label_Picker_Swatch_Count) of Label_Swatch_Bounds;
+
+   --  Geometry of the centered color-label picker overlay: the outer panel and
+   --  its row of clickable swatches. Swatches 1 .. 7 correspond to the colors
+   --  Red .. Gray (Files.Types.Real_Color_Label in order); swatch 8 is the
+   --  "None" clear swatch.
+   type Label_Picker_Layout is record
+      X           : Natural := 0;
+      Y           : Natural := 0;
+      Width       : Natural := 0;
+      Height      : Natural := 0;
+      Swatch_Size : Natural := 0;
+      Swatches    : Label_Swatch_Array;
+      Visible     : Boolean := False;
+   end record;
+
+   --  Return the color label a picker swatch index selects. Indices 1 .. 7 map
+   --  to Red .. Gray; index 8 (and any out-of-range value) maps to No_Label.
+   --
+   --  @param Index One-based swatch index.
+   --  @return The color label the swatch assigns.
+   function Label_For_Swatch
+     (Index : Positive)
+      return Files.Types.Color_Label;
 
    type Command_Result_Layout is record
       Result_Index : Natural := 0;
@@ -1311,6 +1371,17 @@ package Files.Rendering is
      (Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Quick_Look_Layout;
+
+   --  Calculate the centered color-label picker overlay panel rectangle and its
+   --  row of swatch rectangles.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Label-picker panel and swatch geometry.
+   function Calculate_Label_Picker_Layout
+     (Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Label_Picker_Layout;
 
    --  Calculate command-palette result row rectangles.
    --

@@ -409,6 +409,26 @@ package body Files.Interaction is
             Result.Status := Outcome.Status;
             Result.Directory_Reloaded :=
               Outcome.Status = Files.Controller.Controller_Command_Executed;
+         when Files.Events.Label_Picker_Choice_Input_Action =>
+            --  Apply the chosen color label to every selected item and persist
+            --  through the same settings-write seam the favorite toggle uses,
+            --  then close the picker. A pos of zero clears the label (No_Label).
+            declare
+               Label : constant Files.Types.Color_Label :=
+                 Files.Types.Color_Label'Val (Action.Item_Index);
+               Selected : constant Files.File_System.Item_Vectors.Vector :=
+                 Files.Model.Selected_Items (Model);
+            begin
+               for Item of Selected loop
+                  Files.Settings.Set_Label
+                    (Settings, To_String (Item.Full_Path), Label);
+               end loop;
+               Files.Model.Close_Label_Picker (Model);
+               if not Selected.Is_Empty then
+                  Persist_Settings (Settings, Settings_Path);
+                  Result.Settings_Changed := True;
+               end if;
+            end;
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
             --  Toggle the current directory's favorite state directly by path,
             --  independent of the selection, then persist through the same

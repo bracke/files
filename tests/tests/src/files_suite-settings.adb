@@ -103,6 +103,7 @@ package body Files_Suite.Settings is
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -122,6 +123,8 @@ package body Files_Suite.Settings is
         (T, Test_Detail_Columns_And_Grouping'Access, "detail column customization and grouping round-trip");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Column_Order_Reorder'Access, "detail column order move helper, round-trip, and validation");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Color_Labels'Access, "color label set/clear, round-trip, and invalid-color skip");
    end Register_Tests;
 
    procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2319,11 +2322,13 @@ package body Files_Suite.Settings is
          G2 : constant Files.Settings.Settings_Model := Files.Settings.Cycle_Group_By (G1);
          G3 : constant Files.Settings.Settings_Model := Files.Settings.Cycle_Group_By (G2);
          G4 : constant Files.Settings.Settings_Model := Files.Settings.Cycle_Group_By (G3);
+         G5 : constant Files.Settings.Settings_Model := Files.Settings.Cycle_Group_By (G4);
       begin
          Assert (G1.Group_By = Files.Types.Group_By_Type, "first cycle selects type grouping");
          Assert (G2.Group_By = Files.Types.Group_By_Modified, "second cycle selects date grouping");
          Assert (G3.Group_By = Files.Types.Group_By_Size, "third cycle selects size grouping");
-         Assert (G4.Group_By = Files.Types.No_Grouping, "grouping cycles back to none");
+         Assert (G4.Group_By = Files.Types.Group_By_Label, "fourth cycle selects label grouping");
+         Assert (G5.Group_By = Files.Types.No_Grouping, "grouping cycles back to none");
       end;
 
       --  Full round-trip through the settings text format.
@@ -2361,6 +2366,76 @@ package body Files_Suite.Settings is
                  "the grouping diagnostic key is reported");
       end;
    end Test_Detail_Columns_And_Grouping;
+
+   procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Color_Label;
+      use type Files.Types.Group_Mode;
+      File_Path   : constant String := "/home/user/report.txt";
+      Folder_Path : constant String := "/home/user/projects";
+      Base        : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   begin
+      --  A fresh model carries no labels.
+      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.No_Label,
+              "an unlabeled path reports No_Label");
+
+      --  Set and replace a label on a file path.
+      Files.Settings.Set_Label (Base, File_Path, Files.Types.Red);
+      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.Red,
+              "a set label is reported back");
+      Files.Settings.Set_Label (Base, File_Path, Files.Types.Blue);
+      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.Blue,
+              "re-labeling replaces the previous color");
+
+      --  Label a folder path too.
+      Files.Settings.Set_Label (Base, Folder_Path, Files.Types.Green);
+      Assert (Files.Settings.Label_Of (Base, Folder_Path) = Files.Types.Green,
+              "a folder path can carry a label");
+
+      --  No_Label clears the entry.
+      Files.Settings.Set_Label (Base, File_Path, Files.Types.No_Label);
+      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.No_Label,
+              "No_Label clears a stored label");
+      Assert (Files.Settings.Label_Of (Base, Folder_Path) = Files.Types.Green,
+              "clearing one path leaves the other labeled");
+
+      --  Full round-trip through the settings text format for file and folder.
+      declare
+         Source : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Files.Settings.Set_Label (Source, File_Path, Files.Types.Purple);
+         Files.Settings.Set_Label (Source, Folder_Path, Files.Types.Gray);
+         Source.Group_By := Files.Types.Group_By_Label;
+         declare
+            Reloaded : constant Files.Settings.Settings_Parse_Result :=
+              Files.Settings.Parse (Files.Settings.To_Text (Source));
+         begin
+            Assert (Reloaded.Success, "labeled settings text parses");
+            Assert (Files.Settings.Label_Of (Reloaded.Settings, File_Path) = Files.Types.Purple,
+                    "a file path's label round-trips");
+            Assert (Files.Settings.Label_Of (Reloaded.Settings, Folder_Path) = Files.Types.Gray,
+                    "a folder path's label round-trips");
+            Assert (Reloaded.Settings.Group_By = Files.Types.Group_By_Label,
+                    "label grouping mode round-trips");
+         end;
+      end;
+
+      --  An unknown color in the file is skipped rather than failing the load.
+      declare
+         Text : constant String :=
+           "[labels]" & ASCII.LF
+           & "label = ""fuchsia|/home/user/bad.txt""" & ASCII.LF
+           & "label = ""yellow|/home/user/good.txt""" & ASCII.LF;
+         Parsed : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Parse (Text);
+      begin
+         Assert (Parsed.Success, "an unknown color does not fail the load");
+         Assert (Files.Settings.Label_Of (Parsed.Settings, "/home/user/bad.txt") = Files.Types.No_Label,
+                 "an entry with an unknown color is skipped");
+         Assert (Files.Settings.Label_Of (Parsed.Settings, "/home/user/good.txt") = Files.Types.Yellow,
+                 "a valid entry alongside an invalid one still loads");
+      end;
+   end Test_Color_Labels;
 
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

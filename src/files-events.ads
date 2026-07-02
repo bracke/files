@@ -26,7 +26,8 @@ package Files.Events is
       Permission_Toggle_Input_Action,
       Ownership_Edit_Input_Action,
       Conflict_Click_Input_Action,
-      Paste_Cancel_Input_Action);
+      Paste_Cancel_Input_Action,
+      Label_Picker_Choice_Input_Action);
 
    --  Button codes carried in Input_Action.Settings_Field for a
    --  Conflict_Click_Input_Action, identifying which paste-conflict-dialog
@@ -59,7 +60,9 @@ package Files.Events is
    --  clicked (expand/collapse) rather than the row label (navigate). For a
    --  Marquee_Begin_Input_Action Cursor_Position and Settings_Field hold the
    --  press-point x and y (the rubber-band origin) and Toggle_Selection is True
-   --  when the marquee is additive (Ctrl or Shift held at press).
+   --  when the marquee is additive (Ctrl or Shift held at press). For a
+   --  Label_Picker_Choice_Input_Action Item_Index holds Files.Types.Color_Label
+   --  'Pos of the chosen swatch (0 for No_Label, i.e. clear).
    type Input_Action is record
       Kind         : Input_Action_Kind := No_Input_Action;
       Command      : Files.Commands.Command_Id := Files.Commands.No_Command;

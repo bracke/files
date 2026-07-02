@@ -2956,6 +2956,25 @@ package body Files.Model is
       return Model.Quick_Look_Content_Value;
    end Quick_Look_Content_Of;
 
+   procedure Open_Label_Picker
+     (Model : in out Window_Model) is
+   begin
+      Model.Label_Picker_Active := True;
+   end Open_Label_Picker;
+
+   procedure Close_Label_Picker
+     (Model : in out Window_Model) is
+   begin
+      Model.Label_Picker_Active := False;
+   end Close_Label_Picker;
+
+   function Label_Picker_Is_Open
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Label_Picker_Active;
+   end Label_Picker_Is_Open;
+
    function Rename_Is_Enabled
      (Model : Window_Model)
       return Boolean is

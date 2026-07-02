@@ -68,6 +68,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -149,6 +150,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Star_Indicators'Access,
          "favorited items draw a gold grid star and the path bar draws a filled vs empty star by current-dir state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Color_Label_Grid_Dots'Access,
+         "labeled items draw a colored corner dot in the label color; unlabeled items draw none");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Marquee_Items_In_Rect'Access,
          "a marquee rectangle intersects exactly the item cells it touches and normalizes any drag direction");
@@ -1079,11 +1083,12 @@ package body Files_Suite.Rendering is
 
       --  The full set of real commands the item menu must still offer, in any
       --  order, regardless of the separators woven between the groups.
-      Expected : constant array (1 .. 18) of Files.Commands.Command_Id :=
+      Expected : constant array (1 .. 19) of Files.Commands.Command_Id :=
         [Files.Commands.Open_Selected_Items_Command,
          Files.Commands.Open_With_Command,
          Files.Commands.Open_Containing_Folder_Command,
          Files.Commands.Toggle_Favorite_Command,
+         Files.Commands.Set_Color_Label_Command,
          Files.Commands.Copy_Selected_Items_Command,
          Files.Commands.Cut_Selected_Items_Command,
          Files.Commands.Copy_Path_Command,
@@ -1297,6 +1302,25 @@ package body Files_Suite.Rendering is
          Assert
            (Has_Close_Button_Node (Frame, Close),
             "the open quick look overlay emits a close-button accessibility node");
+      end;
+
+      --  Color-label picker overlay.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         Picker : Label_Picker_Layout;
+         Close  : Close_Button_Layout;
+         Frame  : Frame_Commands;
+      begin
+         Snap.Label_Picker_Open := True;
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         Picker := Calculate_Label_Picker_Layout (Layout, LH);
+         Close  := Panel_Close_Button (Picker.X, Picker.Y, Picker.Width, Picker.Height, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the label picker hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open label picker emits a close-button accessibility node");
       end;
 
       --  Paste-conflict dialog.
@@ -1769,6 +1793,65 @@ package body Files_Suite.Rendering is
          end;
       end;
    end Test_Favorite_Star_Indicators;
+
+   procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      --  A labeled item emits a filled rectangle in its label color.
+      declare
+         Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+         First    : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         First.Label := Files.Types.Green;
+         Snapshot.Items.Replace_Element (1, First);
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Snapshot, 1000, 800, 20);
+         begin
+            Assert
+              (Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Green)),
+               "a green-labeled item draws a green corner dot");
+            Assert
+              (not Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Red)),
+               "the green-labeled item draws no red dot");
+         end;
+      end;
+
+      --  An unlabeled grid draws no label dot in any label color.
+      declare
+         Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+         Frame    : constant Frame_Commands :=
+           Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      begin
+         Assert
+           (not Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Green)),
+            "an unlabeled grid draws no green dot");
+         Assert
+           (not Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Blue)),
+            "an unlabeled grid draws no blue dot");
+      end;
+
+      --  Different labels resolve to different dot colors.
+      declare
+         Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+         First    : Item_Snapshot := Snapshot.Items.Element (1);
+      begin
+         First.Label := Files.Types.Purple;
+         Snapshot.Items.Replace_Element (1, First);
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Snapshot, 1000, 800, 20);
+         begin
+            Assert
+              (Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Purple)),
+               "a purple-labeled item draws a purple dot");
+            Assert
+              (Files.Rendering.Label_Render_Color (Files.Types.Purple)
+                 /= Files.Rendering.Label_Render_Color (Files.Types.Green),
+               "distinct labels resolve to distinct dot colors");
+         end;
+      end;
+   end Test_Color_Label_Grid_Dots;
 
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

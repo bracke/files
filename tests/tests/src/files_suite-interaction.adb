@@ -63,6 +63,7 @@ package body Files_Suite.Interaction is
    use type Files.Model.Palette_Mode;
    use type Files.Rendering.Accessibility_Role;
    use type Files.Rendering.Settings_Hit_Kind;
+   use type Files.Types.Color_Label;
    use type Files.Types.Focus_Target;
    use type Files.Types.View_Mode;
 
@@ -105,6 +106,7 @@ package body Files_Suite.Interaction is
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -197,6 +199,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Group_Toggle_Multi_Selection'Access,
          "favorite group-toggles a multi-selection: stars a mixed selection then un-stars it as a whole");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Color_Label_Picker_Applies_To_Selection'Access,
+         "the label picker opens and applies/clears a color label across the selection");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Selector_Star_And_Clicks'Access,
          "the selector stars favorites; a folder favorite navigates in and a file favorite opens its parent selected");
@@ -2664,6 +2669,8 @@ package body Files_Suite.Interaction is
               "the item menu lists Open With");
       Assert (Menu_Offers (Model, Settings, Files.Commands.Toggle_Favorite_Command),
               "the item menu lists Toggle Favorite");
+      Assert (Menu_Offers (Model, Settings, Files.Commands.Set_Color_Label_Command),
+              "the item menu lists Set Color Label");
       Assert (Menu_Offers (Model, Settings, Files.Commands.Copy_Selected_Items_Command),
               "the item menu lists Copy");
       Assert (Menu_Offers (Model, Settings, Files.Commands.Cut_Selected_Items_Command),
@@ -2718,6 +2725,8 @@ package body Files_Suite.Interaction is
               "Delete is enabled with a selection");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
               "Rename is enabled for a single real selection");
+      Assert (Files.Commands.Is_Enabled (Files.Commands.Set_Color_Label_Command, Model),
+              "Set Color Label is enabled with a selection");
 
       --  Context-sensitive commands are present but disabled in a normal
       --  directory on a plain file: Extract needs an archive, Restore needs trash.
@@ -4022,6 +4031,71 @@ package body Files_Suite.Interaction is
       Assert (Has_Favorite (Settings, Two), "a mixed group toggle leaves the already-starred second item starred");
       Assert (Has_Favorite (Settings, Three), "a mixed group toggle stars the previously unstarred third item");
    end Test_Favorite_Group_Toggle_Multi_Selection;
+
+   procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "label-group");
+      One      : constant String := Files_Suite.Support.Join (Dir, "one.txt");
+      Two      : constant String := Files_Suite.Support.Join (Dir, "two.txt");
+      Three    : constant String := Files_Suite.Support.Join (Dir, "three.txt");
+      Model    : Files.Model.Window_Model;
+      Open_Cmd : constant Files.Events.Input_Action :=
+        (Kind    => Files.Events.Command_Input_Action,
+         Command => Files.Commands.Set_Color_Label_Command,
+         others  => <>);
+
+      function Choose (Label : Files.Types.Color_Label) return Files.Events.Input_Action is
+      begin
+         return
+           (Kind       => Files.Events.Label_Picker_Choice_Input_Action,
+            Item_Index => Files.Types.Color_Label'Pos (Label),
+            others     => <>);
+      end Choose;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (One, "a");
+      Files_Suite.Support.Write_File (Two, "b");
+      Files_Suite.Support.Write_File (Three, "c");
+
+      --  Open the picker on a multi-selection via the command seam.
+      Model := Loaded_Model (Dir);
+      Files.Model.Select_All_Visible (Model);
+      Assert (Files.Model.Selected_Count (Model) = 3, "all three files are selected before labeling");
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Open_Cmd, Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (Files.Model.Label_Picker_Is_Open (Model), "the set-label command opens the picker");
+
+      --  Choosing a color labels every selected item and closes the picker.
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Choose (Files.Types.Green), Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (not Files.Model.Label_Picker_Is_Open (Model), "choosing a swatch closes the picker");
+      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green, "the first item is labeled green");
+      Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.Green, "the second item is labeled green");
+      Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Green, "the third item is labeled green");
+      Assert (Result.Settings_Changed, "labeling reports a settings change");
+
+      --  Choosing None clears every selected item's label.
+      Files.Model.Open_Label_Picker (Model);
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.No_Label, "None clears the first label");
+      Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.No_Label, "None clears the second label");
+      Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.No_Label, "None clears the third label");
+
+      --  A mixed selection (one already labeled differently) all takes the
+      --  chosen color.
+      Files.Settings.Set_Label (Settings, Two, Files.Types.Red);
+      Files.Model.Open_Label_Picker (Model);
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Choose (Files.Types.Blue), Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Blue, "the first item becomes blue");
+      Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.Blue,
+              "the previously red item is overwritten to blue");
+      Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Blue, "the third item becomes blue");
+   end Test_Color_Label_Picker_Applies_To_Selection;
 
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

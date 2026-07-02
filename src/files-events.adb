@@ -104,6 +104,32 @@ package body Files.Events is
          Scroll_Drag_Anchor => 0);
    end Paste_Cancel_Action;
 
+   --  Build a label-picker swatch-choice action carrying the chosen label's
+   --  Files.Types.Color_Label'Pos in Item_Index (0 clears the label).
+   function Label_Choice_Action
+     (Label_Pos : Natural;
+      Activate  : Boolean := False)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Label_Picker_Choice_Input_Action,
+         Command         => Files.Commands.No_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => Label_Pos,
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => 0,
+         Settings_Field  => 0,
+         Settings_Option => 0,
+         Activate        => Activate,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
+   end Label_Choice_Action;
+
    function Tree_Pick_Confirm_Action
      (Activate : Boolean := False)
       return Input_Action is
@@ -843,6 +869,39 @@ package body Files.Events is
               or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
             then
                return Command_Action (Files.Commands.Toggle_Quick_Look_Command, Activate);
+            end if;
+            return No_Action (Activate);
+         end;
+      end if;
+
+      --  The color-label picker is a modal-lite top-most panel: a swatch click
+      --  chooses that label, the close button or a click outside the panel closes
+      --  it, and a click inside the body is swallowed.
+      if Snapshot.Label_Picker_Open then
+         declare
+            Picker : constant Files.Rendering.Label_Picker_Layout :=
+              Files.Rendering.Calculate_Label_Picker_Layout (Layout, Line_Height);
+         begin
+            for Index in Picker.Swatches'Range loop
+               declare
+                  Swatch : constant Files.Rendering.Label_Swatch_Bounds :=
+                    Picker.Swatches (Index);
+               begin
+                  if Within (X, Swatch.X, Swatch.Width)
+                    and then Within (Y, Swatch.Y, Swatch.Height)
+                  then
+                     return Label_Choice_Action
+                       (Files.Types.Color_Label'Pos
+                          (Files.Rendering.Label_For_Swatch (Index)),
+                        Activate);
+                  end if;
+               end;
+            end loop;
+            if Close_Button_Hit (Picker.X, Picker.Y, Picker.Width, Picker.Height)
+              or else not (Within (X, Picker.X, Picker.Width)
+                           and then Within (Y, Picker.Y, Picker.Height))
+            then
+               return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
             end if;
             return No_Action (Activate);
          end;

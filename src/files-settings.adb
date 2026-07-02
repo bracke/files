@@ -20,7 +20,53 @@ package body Files.Settings is
       Icons_Section,
       Open_Actions_Section,
       Bookmarks_Section,
+      Labels_Section,
       Settings_Section_Name);
+
+   --  Return the stable on-disk token for a color label.
+   function Color_Label_Name (Value : Files.Types.Color_Label) return String is
+   begin
+      case Value is
+         when Files.Types.No_Label => return "none";
+         when Files.Types.Red      => return "red";
+         when Files.Types.Orange   => return "orange";
+         when Files.Types.Yellow   => return "yellow";
+         when Files.Types.Green    => return "green";
+         when Files.Types.Blue     => return "blue";
+         when Files.Types.Purple   => return "purple";
+         when Files.Types.Gray     => return "gray";
+      end case;
+   end Color_Label_Name;
+
+   --  Parse a color-label token into Label. Returns False for an unknown token
+   --  (leaving Label unchanged) so the caller can skip the invalid entry.
+   function Color_Label_From_Name
+     (Text  : String;
+      Label : out Files.Types.Color_Label)
+      return Boolean
+   is
+      Lower : constant String := Files.Types.To_Lower (Text);
+   begin
+      if Lower = "red" then
+         Label := Files.Types.Red;
+      elsif Lower = "orange" then
+         Label := Files.Types.Orange;
+      elsif Lower = "yellow" then
+         Label := Files.Types.Yellow;
+      elsif Lower = "green" then
+         Label := Files.Types.Green;
+      elsif Lower = "blue" then
+         Label := Files.Types.Blue;
+      elsif Lower = "purple" then
+         Label := Files.Types.Purple;
+      elsif Lower = "gray" or else Lower = "grey" then
+         Label := Files.Types.Gray;
+      else
+         Label := Files.Types.No_Label;
+         return False;
+      end if;
+      return True;
+   end Color_Label_From_Name;
 
    procedure Safe_Close
      (File : in out Ada.Text_IO.File_Type) is
@@ -560,6 +606,8 @@ package body Files.Settings is
             return "modified";
          when Files.Types.Group_By_Size =>
             return "size";
+         when Files.Types.Group_By_Label =>
+            return "label";
       end case;
    end Group_Mode_Name;
 
@@ -661,6 +709,54 @@ package body Files.Settings is
          Settings.Favorite_Paths.Append (To_Unbounded_String (Path));
       end if;
    end Toggle_Favorite_Path;
+
+   function Label_Of
+     (Settings : Settings_Model;
+      Path     : String)
+      return Files.Types.Color_Label is
+   begin
+      if Path = "" then
+         return Files.Types.No_Label;
+      end if;
+      for Entry_Value of Settings.Labels loop
+         if To_String (Entry_Value.Path) = Path then
+            return Entry_Value.Label;
+         end if;
+      end loop;
+      return Files.Types.No_Label;
+   end Label_Of;
+
+   procedure Set_Label
+     (Settings : in out Settings_Model;
+      Path     : String;
+      Label    : Files.Types.Color_Label)
+   is
+      use type Files.Types.Color_Label;
+      Existing : Natural := 0;
+   begin
+      if Path = "" then
+         return;
+      end if;
+      for Index in
+        Settings.Labels.First_Index .. Settings.Labels.Last_Index
+      loop
+         if To_String (Settings.Labels.Element (Index).Path) = Path then
+            Existing := Index;
+            exit;
+         end if;
+      end loop;
+      if Label = Files.Types.No_Label then
+         if Existing /= 0 then
+            Settings.Labels.Delete (Existing);
+         end if;
+      elsif Existing /= 0 then
+         Settings.Labels.Replace_Element
+           (Existing, (Path => To_Unbounded_String (Path), Label => Label));
+      else
+         Settings.Labels.Append
+           (Path_Label'(Path => To_Unbounded_String (Path), Label => Label));
+      end if;
+   end Set_Label;
 
    function Has_Embedded_Placeholder
      (Argument : String)
@@ -1288,6 +1384,8 @@ package body Files.Settings is
                      Section := Open_Actions_Section;
                   elsif Name = "bookmarks" then
                      Section := Bookmarks_Section;
+                  elsif Name = "labels" then
+                     Section := Labels_Section;
                   elsif Name = "settings" then
                      Section := Settings_Section_Name;
                   else
@@ -1375,6 +1473,32 @@ package body Files.Settings is
                         elsif Key /= "" then
                            --  Legacy form: the bare path written as the key.
                            Settings.Favorite_Paths.Append (To_Unbounded_String (Key));
+                        end if;
+                     when Labels_Section =>
+                        --  Each entry is written as label = "<color>|<path>".
+                        --  Split on the first '|': the color prefix names the
+                        --  swatch and the remainder is the (possibly '|'- or
+                        --  '='-bearing) path. An unknown color is skipped so a
+                        --  hand-edited file never fails to load over one bad tag.
+                        if Setting_Key = "label" and then Value /= "" then
+                           declare
+                              Bar   : constant Natural :=
+                                Ada.Strings.Fixed.Index (Value, "|");
+                              Label : Files.Types.Color_Label;
+                           begin
+                              if Bar > Value'First and then Bar < Value'Last then
+                                 declare
+                                    Color_Text : constant String :=
+                                      Value (Value'First .. Bar - 1);
+                                    Path_Text  : constant String :=
+                                      Value (Bar + 1 .. Value'Last);
+                                 begin
+                                    if Color_Label_From_Name (Color_Text, Label) then
+                                       Set_Label (Settings, Path_Text, Label);
+                                    end if;
+                                 end;
+                              end if;
+                           end;
                         end if;
                      when Settings_Section_Name =>
                         if Setting_Key = "default_view_mode" then
@@ -1573,6 +1697,8 @@ package body Files.Settings is
                                  Settings.Group_By := Files.Types.Group_By_Modified;
                               elsif Mode = "size" then
                                  Settings.Group_By := Files.Types.Group_By_Size;
+                              elsif Mode = "label" then
+                                 Settings.Group_By := Files.Types.Group_By_Label;
                               else
                                  return
                                    (Success   => False,
@@ -1945,6 +2071,21 @@ package body Files.Settings is
             --  Write the path in a quoted value position so paths containing
             --  '=' or starting with '#' (and trailing whitespace) round-trip.
             Append_Line ("bookmark = " & Action_Token_Text (To_String (Path)));
+         end loop;
+      end if;
+
+      if not Settings.Labels.Is_Empty then
+         Append_Line;
+         Append_Line ("[labels]");
+         for Entry_Value of Settings.Labels loop
+            --  Encode as "<color>|<path>" in a quoted value position so paths
+            --  with '=', '|', or leading '#' (and trailing whitespace) survive
+            --  the round-trip. The label token itself is space-free.
+            Append_Line
+              ("label" & " = "
+               & Action_Token_Text
+                   (Color_Label_Name (Entry_Value.Label)
+                    & "|" & To_String (Entry_Value.Path)));
          end loop;
       end if;
 
@@ -2483,6 +2624,7 @@ package body Files.Settings is
       Result.Window_Height := Settings.Window_Height;
       Result.Info_Pane_Open := Settings.Info_Pane_Open;
       Result.Favorite_Paths := Settings.Favorite_Paths;
+      Result.Labels := Settings.Labels;
       Result.Use_System_Default_Opener := Settings.Use_System_Default_Opener;
       Upsert
         (Filetype_Keys,

@@ -119,6 +119,7 @@ package body Files_Suite.Model is
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Model_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -168,6 +169,9 @@ package body Files_Suite.Model is
         (T, Test_Quick_Look_Content_Prep'Access, "quick look content preparation classifies text, image, and info");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Quick_Look_Model_State'Access, "quick look model open/close state tracks the selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Group_By_Label_Bands'Access,
+         "group-by-label partitions the snapshot into label-band headers with items under the right band");
    end Register_Tests;
 
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3077,6 +3081,63 @@ package body Files_Suite.Model is
       Files_Suite.Support.Select_Name (Model, "Beta.txt");
       Assert (not Files.Model.Quick_Look_Is_Open (Model), "changing the selection closes quick look");
    end Test_Quick_Look_Model_State;
+
+   procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Header_Count : Natural := 0;
+      Alpha_Pos    : Natural := 0;
+      Beta_Pos     : Natural := 0;
+      Gamma_Pos    : Natural := 0;
+      Header_Before_Alpha : Boolean := False;
+   begin
+      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Settings.Group_By := Files.Types.Group_By_Label;
+      --  Alpha -> Red (band 1), Gamma -> Blue (band 5), Beta stays unlabeled
+      --  (band 8, drawn last).
+      Files.Settings.Set_Label (Settings, Join (Root, "Alpha.txt"), Files.Types.Red);
+      Files.Settings.Set_Label (Settings, Join (Root, "Gamma.md"), Files.Types.Blue);
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Prev_Was_Header : Boolean := False;
+         Position : Natural := 0;
+      begin
+         for Item of Snapshot.Items loop
+            Position := Position + 1;
+            if Item.Is_Group_Header then
+               Header_Count := Header_Count + 1;
+               Assert (Item.Visible_Index = 0, "a label band header is non-selectable");
+               Prev_Was_Header := True;
+            else
+               declare
+                  Name : constant String := To_String (Item.Name);
+               begin
+                  if Name = "Alpha.txt" then
+                     Alpha_Pos := Position;
+                     Header_Before_Alpha := Header_Before_Alpha or else Prev_Was_Header;
+                  elsif Name = "Beta.txt" then
+                     Beta_Pos := Position;
+                  elsif Name = "Gamma.md" then
+                     Gamma_Pos := Position;
+                  end if;
+               end;
+               Prev_Was_Header := False;
+            end if;
+         end loop;
+
+         --  Three occupied bands (Red, Blue, Unlabeled) each emit one header.
+         Assert (Header_Count = 3, "three occupied label bands emit three headers");
+         Assert (Header_Before_Alpha, "the first labeled item sits under a band header");
+         --  Band order: Red (Alpha) before Blue (Gamma) before Unlabeled (Beta).
+         Assert (Alpha_Pos > 0 and then Gamma_Pos > 0 and then Beta_Pos > 0,
+                 "every real item is placed under a band");
+         Assert (Alpha_Pos < Gamma_Pos, "the red band precedes the blue band");
+         Assert (Gamma_Pos < Beta_Pos, "the blue band precedes the unlabeled band");
+      end;
+   end Test_Group_By_Label_Bands;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
