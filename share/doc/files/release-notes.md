@@ -9,6 +9,12 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Drag-and-drop now uses the same conflict resolution (Replace/Skip/Rename) and
+  progress/cancel as clipboard paste instead of silently renaming.
+- Editable ownership (chown) in the info pane, alongside the permissions grid.
+- Details columns can be reordered by dragging their headers.
+- The new commands (Copy/Move to…, create link, open terminal) are on the
+  right-click menu, and a details-header menu toggles columns and grouping.
 - Copy to… / Move to…: pick a destination folder from the tree sidebar and copy
   or move the selection there, with the same conflict handling and progress as
   paste.
