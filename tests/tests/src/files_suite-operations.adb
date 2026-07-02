@@ -37,6 +37,7 @@ with Files.Events;
 with Files.File_System;
 with Files.File_Types;
 with Files.Features;
+with Files.Folder_Tree;
 with Files.Fonts;
 with Files.Interaction;
 with Files.Localization;
@@ -86,6 +87,7 @@ package body Files_Suite.Operations is
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
+   use type Files.Model.Tree_Pick_Mode;
    use type Files.Model.Undo_Action_Kind;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
@@ -134,6 +136,11 @@ package body Files_Suite.Operations is
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Move_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_To_Into_Self_Guard (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_To_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_To_Tree_Label_Sets_Target (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -210,6 +217,21 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Execution_Small_Op'Access,
          "a one-item paste finishes in the first advance and leaves no execution state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_To_Picker_Flow'Access,
+         "copy-to opens the picker, copies to the chosen dir, keeps originals, and undo removes copies");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Move_To_Picker_Flow'Access,
+         "move-to moves to the chosen dir, removes originals, and undo moves them back");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_To_Into_Self_Guard'Access,
+         "copy-to into the selection reports the into-self error and changes nothing");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_To_Cancel'Access,
+         "cancelling the copy-to picker clears it and changes nothing");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_To_Tree_Label_Sets_Target'Access,
+         "a tree label click while picking sets the target without navigating the main view");
    end Register_Tests;
 
    procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4480,5 +4502,230 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the one-item paste clears its execution state");
       Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");
    end Test_Paste_Execution_Small_Op;
+
+   --  Confirm the destination picker through the real interaction reducer.
+   procedure Confirm_Pick
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model)
+   is
+      IR : Files.Interaction.Interaction_Result;
+   begin
+      Files.Interaction.Apply_Input_Action
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Action            => (Kind => Files.Events.Tree_Pick_Confirm_Input_Action, others => <>),
+         Current_Font_Size => 16,
+         Modifiers         => Files.Types.No_Modifiers,
+         Result            => IR);
+   end Confirm_Pick;
+
+   procedure Test_Copy_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "copyto-src");
+      Dest_Dir : constant String := Join (Root, "copyto-dest");
+      A_Src    : constant String := Join (Src_Dir, "a.txt");
+      B_Src    : constant String := Join (Src_Dir, "b.txt");
+      A_Dest   : constant String := Join (Dest_Dir, "a.txt");
+      B_Dest   : constant String := Join (Dest_Dir, "b.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+      Undone   : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (A_Src, "AAA");
+      Write_File (B_Src, "BBB");
+
+      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
+      Files.Model.Select_All_Visible (Model);
+
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Copy_To_Command, Model),
+         "copy-to is enabled with a real selection");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "copy-to command starts the picker");
+      Assert (Files.Model.Tree_Panel_Is_Open (Model), "copy-to opens the folder tree");
+      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the destination picker is active");
+      Assert
+        (Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Copy,
+         "the picker records copy intent");
+      Assert
+        (Natural (Files.Model.Tree_Pick_Sources (Model).Length) = 2,
+         "the picker captured both selected sources");
+
+      Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
+      Confirm_Pick (Model, Settings);
+
+      Assert (Ada.Directories.Exists (A_Dest), "a.txt is copied to the destination");
+      Assert (Ada.Directories.Exists (B_Dest), "b.txt is copied to the destination");
+      Assert (Ada.Directories.Exists (A_Src), "a.txt original is kept");
+      Assert (Ada.Directories.Exists (B_Src), "b.txt original is kept");
+      Assert (not Files.Model.Tree_Pick_Is_Active (Model), "confirming clears the picker");
+      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "confirming closes the folder tree");
+
+      Undone := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Undone.Status = Files.Operations.Operation_Success, "the copy is undoable");
+      Assert (not Ada.Directories.Exists (A_Dest), "undo removes the a.txt copy");
+      Assert (not Ada.Directories.Exists (B_Dest), "undo removes the b.txt copy");
+      Assert (Ada.Directories.Exists (A_Src), "undo keeps the a.txt original");
+   end Test_Copy_To_Picker_Flow;
+
+   procedure Test_Move_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "moveto-src");
+      Dest_Dir : constant String := Join (Root, "moveto-dest");
+      A_Src    : constant String := Join (Src_Dir, "a.txt");
+      A_Dest   : constant String := Join (Dest_Dir, "a.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+      Undone   : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (A_Src, "AAA");
+
+      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
+      Select_Name (Model, "a.txt");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Move_To_Command, Model, Settings);
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "move-to command starts the picker");
+      Assert
+        (Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Move,
+         "the picker records move intent");
+
+      Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
+      Confirm_Pick (Model, Settings);
+
+      Assert (Ada.Directories.Exists (A_Dest), "a.txt is moved to the destination");
+      Assert (not Ada.Directories.Exists (A_Src), "a.txt is removed from the source");
+
+      Undone := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Undone.Status = Files.Operations.Operation_Success, "the move is undoable");
+      Assert (Ada.Directories.Exists (A_Src), "undo returns a.txt to the source");
+      Assert (not Ada.Directories.Exists (A_Dest), "undo removes a.txt from the destination");
+   end Test_Move_To_Picker_Flow;
+
+   procedure Test_Copy_To_Into_Self_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "selfguard-src");
+      Box_Dir  : constant String := Join (Src_Dir, "box");
+      Inside   : constant String := Join (Box_Dir, "inside.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Box_Dir);
+      Write_File (Inside, "IN");
+
+      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
+      Select_Name (Model, "box");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "copy-to command starts the picker");
+
+      --  Target the selected directory itself: copying it into itself must fail.
+      Files.Model.Set_Tree_Pick_Target (Model, Box_Dir);
+      Confirm_Pick (Model, Settings);
+
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.drop.into_self",
+         "targeting inside the selection reports the into-self error");
+      Assert (not Ada.Directories.Exists (Join (Box_Dir, "box")), "nothing is copied into the selected folder");
+      Assert (Ada.Directories.Exists (Inside), "the selected folder is unchanged");
+   end Test_Copy_To_Into_Self_Guard;
+
+   procedure Test_Copy_To_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "cancel-src");
+      Dest_Dir : constant String := Join (Root, "cancel-dest");
+      A_Src    : constant String := Join (Src_Dir, "a.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (A_Src, "AAA");
+
+      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
+      Select_Name (Model, "a.txt");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "copy-to command starts the picker");
+      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker is active after the command");
+      Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
+
+      --  Cancel is routed through the tree-toggle command (also used by the
+      --  Cancel button and the panel close box): it closes the tree and clears
+      --  the picker without writing anything.
+      Routed := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Assert
+        (Routed.Status = Files.Controller.Controller_Command_Executed, "the cancel command is executed");
+      Assert (not Files.Model.Tree_Pick_Is_Active (Model), "cancelling clears the picker");
+      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "cancelling closes the folder tree");
+      Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "cancelling copies nothing");
+      Assert (Ada.Directories.Exists (A_Src), "cancelling leaves the source unchanged");
+   end Test_Copy_To_Cancel;
+
+   procedure Test_Copy_To_Tree_Label_Sets_Target (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "label-src");
+      Dest_Dir : constant String := Join (Root, "label-dest");
+      A_Src    : constant String := Join (Src_Dir, "a.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+      Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (A_Src, "AAA");
+
+      Load := Files.File_System.Load_Directory (Src_Dir, Settings);
+      Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
+      Select_Name (Model, "a.txt");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker is active after the command");
+
+      --  Reseed the tree with the destination as its only node so the label
+      --  click has a deterministic target.
+      Seeds.Append
+        (Files.Folder_Tree.Entry_Seed'
+           (Path => To_Unbounded_String (Dest_Dir), Name => To_Unbounded_String ("label-dest")));
+      Files.Model.Seed_Tree (Model, Seeds);
+
+      --  A label click (Toggle => False) while picking sets the target and must
+      --  not navigate the main view away from the source directory.
+      Routed := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => False);
+      Assert
+        (Routed.Status = Files.Controller.Controller_Command_Executed,
+         "the label click is handled");
+      Assert
+        (Files.Model.Tree_Pick_Target (Model) = Dest_Dir,
+         "the label click sets the highlighted target");
+      Assert
+        (Files.Model.Current_Path (Model) = Src_Dir,
+         "the label click does not navigate the main view");
+      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker stays active after choosing a target");
+   end Test_Copy_To_Tree_Label_Sets_Target;
 
 end Files_Suite.Operations;

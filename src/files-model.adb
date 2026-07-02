@@ -1726,7 +1726,66 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       Model.Tree_Panel_Open := False;
+      --  Closing the sidebar also abandons any in-flight destination picker so
+      --  a later reopen starts clean.
+      Model.Tree_Pick_Mode_Value := Pick_None;
+      Model.Tree_Pick_Sources_Value.Clear;
+      Model.Tree_Pick_Target_Value := Null_Unbounded_String;
    end Close_Tree_Panel;
+
+   procedure Begin_Tree_Pick
+     (Model          : in out Window_Model;
+      Mode           : Tree_Pick_Mode;
+      Sources        : Files.Types.String_Vectors.Vector;
+      Initial_Target : String) is
+   begin
+      Model.Tree_Pick_Mode_Value := Mode;
+      Model.Tree_Pick_Sources_Value := Sources;
+      Model.Tree_Pick_Target_Value := To_Unbounded_String (Initial_Target);
+   end Begin_Tree_Pick;
+
+   procedure Set_Tree_Pick_Target
+     (Model  : in out Window_Model;
+      Target : String) is
+   begin
+      Model.Tree_Pick_Target_Value := To_Unbounded_String (Target);
+   end Set_Tree_Pick_Target;
+
+   procedure Clear_Tree_Pick
+     (Model : in out Window_Model) is
+   begin
+      Model.Tree_Pick_Mode_Value := Pick_None;
+      Model.Tree_Pick_Sources_Value.Clear;
+      Model.Tree_Pick_Target_Value := Null_Unbounded_String;
+   end Clear_Tree_Pick;
+
+   function Tree_Pick_Mode_Of
+     (Model : Window_Model)
+      return Tree_Pick_Mode is
+   begin
+      return Model.Tree_Pick_Mode_Value;
+   end Tree_Pick_Mode_Of;
+
+   function Tree_Pick_Is_Active
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Tree_Pick_Mode_Value /= Pick_None;
+   end Tree_Pick_Is_Active;
+
+   function Tree_Pick_Sources
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector is
+   begin
+      return Model.Tree_Pick_Sources_Value;
+   end Tree_Pick_Sources;
+
+   function Tree_Pick_Target
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.Tree_Pick_Target_Value);
+   end Tree_Pick_Target;
 
    function Tree_Panel_Is_Open
      (Model : Window_Model)

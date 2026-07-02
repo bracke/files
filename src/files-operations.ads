@@ -419,6 +419,26 @@ package Files.Operations is
       Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Operation_Result;
 
+   --  Begin a copy or move of the given sources into an explicit destination
+   --  directory, using the same collision handling and resumable progress
+   --  execution as Begin_Paste (which is this with Destination = current path).
+   --  Used by the Copy to.../Move to... destination picker.
+   --
+   --  @param Model Window model receiving the operation.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @param Source_Paths Source paths to copy or move.
+   --  @param Destination Directory that receives the entries.
+   --  @param Mode Copy or move mode.
+   --  @return Success when executed or when the conflict dialog was armed; a
+   --    failure result with a localized error key on a validation failure.
+   function Begin_Paste_To
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Destination  : String;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result;
+
    --  Apply one conflict decision to the pending paste. Records the choice
    --  (per-item, or batch-wide when Apply_All is set), then either advances to
    --  the next unresolved conflict or, once none remain, executes the resolved

@@ -1,6 +1,7 @@
 with Ada.Strings.Unbounded;
 
 with Files.Command_Palette;
+with Files.File_System;
 with Files.Operations;
 
 package body Files.Interaction is
@@ -8,6 +9,7 @@ package body Files.Interaction is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
+   use type Files.Model.Tree_Pick_Mode;
    use type Files.Operations.Operation_Status;
 
    --  Map the model's runtime sort enum onto the settings enum.
@@ -316,6 +318,37 @@ package body Files.Interaction is
             Result.Directory_Reloaded :=
               (not Action.Toggle_Selection)
               and then Outcome.Status = Files.Controller.Controller_Command_Executed;
+         when Files.Events.Tree_Pick_Confirm_Input_Action =>
+            --  Confirm the destination picker: copy or move the captured sources
+            --  into the highlighted directory through the same engine paste path,
+            --  then clear the picker and close the sidebar. Begin_Paste_To surfaces
+            --  a localized error key (e.g. drop-into-self) on the model on failure.
+            declare
+               Mode    : constant Files.Model.Tree_Pick_Mode :=
+                 Files.Model.Tree_Pick_Mode_Of (Model);
+               Sources : constant Files.Types.String_Vectors.Vector :=
+                 Files.Model.Tree_Pick_Sources (Model);
+               Target  : constant String := Files.Model.Tree_Pick_Target (Model);
+            begin
+               if Mode /= Files.Model.Pick_None and then Target /= "" then
+                  declare
+                     Op : constant Files.Operations.Operation_Result :=
+                       Files.Operations.Begin_Paste_To
+                         (Model, Settings, Sources, Target,
+                          (if Mode = Files.Model.Pick_Move
+                           then Files.File_System.Drop_Move
+                           else Files.File_System.Drop_Copy));
+                  begin
+                     Files.Model.Close_Tree_Panel (Model);
+                     Result.Directory_Reloaded :=
+                       Op.Status = Files.Operations.Operation_Success
+                       and then not Files.Model.Paste_Conflict_Is_Active (Model)
+                       and then not Files.Model.Paste_Execution_Is_Active (Model);
+                  end;
+               else
+                  Files.Model.Close_Tree_Panel (Model);
+               end if;
+            end;
          when Files.Events.Command_Result_Click_Input_Action =>
             declare
                Results : constant Files.Command_Palette.Result_Vectors.Vector :=

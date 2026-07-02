@@ -212,6 +212,12 @@ package Files.Rendering is
       Root_Labels                    : Files.Types.String_Vectors.Vector;
       Tree_Panel_Open       : Boolean := False;
       Tree_Rows             : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+      --  Copy to.../Move to... destination picker state driving the tree: when
+      --  active the panel shows a Choose/Cancel bar, the title names the copy or
+      --  move intent, and the row whose path equals Tree_Pick_Target is marked.
+      Tree_Pick_Active      : Boolean := False;
+      Tree_Pick_Moving      : Boolean := False;
+      Tree_Pick_Target      : UString;
       Breadcrumb_Segments   : Files.Breadcrumbs.Segment_Vectors.Vector;
       Command_Palette_Open           : Boolean := False;
       Command_Palette_Query          : UString;
@@ -505,6 +511,18 @@ package Files.Rendering is
    package Tree_Row_Layout_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Tree_Row_Layout);
+
+   --  Geometry of the destination picker's Choose (left) and Cancel (right)
+   --  button bar drawn along the bottom of the folder-tree panel. Both buttons
+   --  share the same Y, Height, and Button_Width.
+   type Tree_Pick_Button_Layout is record
+      Visible      : Boolean := False;
+      Choose_X     : Natural := 0;
+      Cancel_X     : Natural := 0;
+      Y            : Natural := 0;
+      Button_Width : Natural := 0;
+      Height       : Natural := 0;
+   end record;
 
    type Info_Pane_Layout is record
       X                 : Natural := 0;
@@ -1222,6 +1240,18 @@ package Files.Rendering is
       X    : Natural;
       Y    : Natural)
       return Natural;
+
+   --  Calculate the destination picker's Choose/Cancel button bar geometry from
+   --  the folder-tree panel layout. Visible is False when the panel is too small
+   --  to host a button row below its title.
+   --
+   --  @param Panel Folder-tree panel layout.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Button-bar rectangles; Visible is False when they do not fit.
+   function Tree_Pick_Buttons
+     (Panel       : Tree_Panel_Layout;
+      Line_Height : Positive := 20)
+      return Tree_Pick_Button_Layout;
 
    --  Calculate info-pane content and scrollbar geometry.
    --

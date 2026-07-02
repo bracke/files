@@ -604,6 +604,69 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Folder_Tree.Visible_Row_Vectors.Vector;
 
+   --  Destination-picker mode driving the folder tree while the user chooses a
+   --  Copy to.../Move to... target directory.
+   type Tree_Pick_Mode is (Pick_None, Pick_Copy, Pick_Move);
+
+   --  Begin the destination-picker sub-mode: record the copy/move intent, the
+   --  captured source paths, and the initial highlighted target directory.
+   --
+   --  @param Model Model to update.
+   --  @param Mode Copy or move intent (Pick_None clears the picker).
+   --  @param Sources Full source paths to copy or move.
+   --  @param Initial_Target Directory highlighted as the initial destination.
+   procedure Begin_Tree_Pick
+     (Model          : in out Window_Model;
+      Mode           : Tree_Pick_Mode;
+      Sources        : Files.Types.String_Vectors.Vector;
+      Initial_Target : String);
+
+   --  Set the highlighted destination directory for the active picker.
+   --
+   --  @param Model Model to update.
+   --  @param Target Directory to highlight as the destination.
+   procedure Set_Tree_Pick_Target
+     (Model  : in out Window_Model;
+      Target : String);
+
+   --  Clear the destination-picker sub-mode and its captured sources.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Tree_Pick
+     (Model : in out Window_Model);
+
+   --  Return the active destination-picker mode.
+   --
+   --  @param Model Model to inspect.
+   --  @return Pick_None when no destination picker is active.
+   function Tree_Pick_Mode_Of
+     (Model : Window_Model)
+      return Tree_Pick_Mode;
+
+   --  Return whether a destination picker is active.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when a Copy to.../Move to... picker is running.
+   function Tree_Pick_Is_Active
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return the captured destination-picker source paths.
+   --
+   --  @param Model Model to inspect.
+   --  @return Source paths to copy or move when the picker confirms.
+   function Tree_Pick_Sources
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
+   --  Return the highlighted destination directory.
+   --
+   --  @param Model Model to inspect.
+   --  @return Currently highlighted destination path, or an empty string.
+   function Tree_Pick_Target
+     (Model : Window_Model)
+      return String;
+
    --  Return the current focus target.
    --
    --  @param Model Model to inspect.
@@ -1782,6 +1845,9 @@ private
       Root_Selected        : Natural := 0;
       Tree_Panel_Open      : Boolean := False;
       Folder_Tree_Value    : Files.Folder_Tree.Tree;
+      Tree_Pick_Mode_Value    : Tree_Pick_Mode := Pick_None;
+      Tree_Pick_Sources_Value : Files.Types.String_Vectors.Vector;
+      Tree_Pick_Target_Value  : UString;
       Command_Palette_Open     : Boolean := False;
       Command_Palette_Query    : UString;
       Command_Palette_Cursor   : Natural := 0;

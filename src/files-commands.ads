@@ -62,10 +62,12 @@ package Files.Commands is
       Toggle_Column_Created_Command,
       Toggle_Column_Permissions_Command,
       Cycle_Group_By_Command,
-      Toggle_Folder_Tree_Command);
+      Toggle_Folder_Tree_Command,
+      Copy_To_Command,
+      Move_To_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Toggle_Folder_Tree_Command;
+     Select_Small_Icons_Command .. Move_To_Command;
 
    type Command_Placement is
      (No_Placement,

@@ -30,6 +30,44 @@ package body Files.Controller is
          others    => <>);
    end Empty_Operation;
 
+   --  Seed the folder tree's root nodes from the available filesystem roots and
+   --  the user's bookmarks, but only when it has not already been seeded. Used
+   --  by the tree toggle command and the Copy to.../Move to... destination
+   --  picker so both open onto the same populated tree.
+   procedure Seed_Tree_If_Needed
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      if not Files.Model.Tree_Is_Seeded (Model) then
+         declare
+            Roots : Files.File_System.Root_Entry_Vectors.Vector :=
+              Files.File_System.Available_Root_Entries;
+            Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+         begin
+            for Path of Settings.Bookmark_Paths loop
+               Roots.Append
+                 (Files.File_System.Root_Entry'
+                    (Path        => Path,
+                     Label       => Path,
+                     Kind        => Files.File_System.Root_Bookmark,
+                     Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
+                     Ready       => Files.File_System.Root_Ready,
+                     Removable   => False));
+            end loop;
+            for Root of Roots loop
+               Seeds.Append
+                 (Files.Folder_Tree.Entry_Seed'
+                    (Path => Root.Path,
+                     Name =>
+                       (if Length (Root.Label) > 0
+                        then Root.Label
+                        else Root.Path)));
+            end loop;
+            Files.Model.Seed_Tree (Model, Seeds);
+         end;
+      end if;
+   end Seed_Tree_If_Needed;
+
    function Make_Result
      (Status    : Controller_Status;
       Command   : Files.Commands.Command_Id := Files.Commands.No_Command;
@@ -771,37 +809,32 @@ package body Files.Controller is
             if Files.Model.Tree_Panel_Is_Open (Model) then
                Files.Model.Close_Tree_Panel (Model);
             else
-               if not Files.Model.Tree_Is_Seeded (Model) then
-                  declare
-                     Roots : Files.File_System.Root_Entry_Vectors.Vector :=
-                       Files.File_System.Available_Root_Entries;
-                     Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
-                  begin
-                     for Path of Settings.Bookmark_Paths loop
-                        Roots.Append
-                          (Files.File_System.Root_Entry'
-                             (Path        => Path,
-                              Label       => Path,
-                              Kind        => Files.File_System.Root_Bookmark,
-                              Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
-                              Ready       => Files.File_System.Root_Ready,
-                              Removable   => False));
-                     end loop;
-                     for Root of Roots loop
-                        Seeds.Append
-                          (Files.Folder_Tree.Entry_Seed'
-                             (Path => Root.Path,
-                              Name =>
-                                (if Length (Root.Label) > 0
-                                 then Root.Label
-                                 else Root.Path)));
-                     end loop;
-                     Files.Model.Seed_Tree (Model, Seeds);
-                  end;
-               end if;
+               Seed_Tree_If_Needed (Model, Settings);
                Files.Model.Open_Tree_Panel (Model);
             end if;
             Files.Model.Set_Error (Model, "");
+         when Files.Commands.Copy_To_Command | Files.Commands.Move_To_Command =>
+            --  Capture the current selection, then open the folder tree as a
+            --  destination picker seeded with the same roots the toggle uses.
+            declare
+               Items : constant Files.File_System.Item_Vectors.Vector :=
+                 Files.Model.Selected_Items (Model);
+               Paths : Files.Types.String_Vectors.Vector;
+               Mode  : constant Files.Model.Tree_Pick_Mode :=
+                 (if Id = Files.Commands.Move_To_Command
+                  then Files.Model.Pick_Move
+                  else Files.Model.Pick_Copy);
+            begin
+               for Item of Items loop
+                  Paths.Append (Item.Full_Path);
+               end loop;
+               Files.Model.Begin_Tree_Pick
+                 (Model, Mode, Paths, Files.Model.Current_Path (Model));
+               Seed_Tree_If_Needed (Model, Settings);
+               Files.Model.Open_Tree_Panel (Model);
+               Files.Model.Set_Error (Model, "");
+               Operation.Status := Files.Operations.Operation_Success;
+            end;
          when Files.Commands.Reset_Settings_Command =>
             Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
             Files.Model.Set_Settings_Field_Index (Model, 1);
@@ -1067,6 +1100,15 @@ package body Files.Controller is
               (Controller_Command_Executed,
                Files.Commands.Toggle_Folder_Tree_Command,
                Empty_Operation);
+         end if;
+
+         --  While a Copy to.../Move to... picker is active a label click chooses
+         --  the highlighted destination instead of navigating the main view.
+         if Files.Model.Tree_Pick_Is_Active (Model) then
+            Files.Model.Set_Tree_Pick_Target (Model, Node_Path);
+            Files.Model.Set_Error (Model, "");
+            return Make_Result
+              (Controller_Command_Executed, Files.Commands.No_Command, Empty_Operation);
          end if;
 
          if not Files.Model.Tree_Node_Is_Loaded (Model, Index) then
@@ -2241,6 +2283,7 @@ package body Files.Controller is
             | Files.Events.Root_Click_Input_Action
             | Files.Events.Breadcrumb_Click_Input_Action
             | Files.Events.Tree_Click_Input_Action
+            | Files.Events.Tree_Pick_Confirm_Input_Action
             | Files.Events.Command_Result_Click_Input_Action
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action

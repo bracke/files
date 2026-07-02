@@ -104,6 +104,29 @@ package body Files.Events is
          Scroll_Drag_Anchor => 0);
    end Paste_Cancel_Action;
 
+   function Tree_Pick_Confirm_Action
+     (Activate : Boolean := False)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Tree_Pick_Confirm_Input_Action,
+         Command         => Files.Commands.No_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => 0,
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => 0,
+         Settings_Field  => 0,
+         Settings_Option => 0,
+         Activate        => Activate,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
+   end Tree_Pick_Confirm_Action;
+
    function Selection_Action
      (Direction : Files.Types.Navigation_Direction)
       return Input_Action is
@@ -845,6 +868,26 @@ package body Files.Events is
       end if;
 
       if Snapshot.Tree_Panel_Open then
+         --  While the destination picker is active its Choose/Cancel button bar
+         --  sits over the bottom of the tree and is hit-tested before the rows.
+         if Snapshot.Tree_Pick_Active then
+            declare
+               Buttons : constant Files.Rendering.Tree_Pick_Button_Layout :=
+                 Files.Rendering.Tree_Pick_Buttons (Tree_Panel_L, Line_Height);
+            begin
+               if Buttons.Visible then
+                  if Within (X, Buttons.Choose_X, Buttons.Button_Width)
+                    and then Within (Y, Buttons.Y, Buttons.Height)
+                  then
+                     return Tree_Pick_Confirm_Action (Activate);
+                  elsif Within (X, Buttons.Cancel_X, Buttons.Button_Width)
+                    and then Within (Y, Buttons.Y, Buttons.Height)
+                  then
+                     return Command_Action (Files.Commands.Toggle_Folder_Tree_Command, Activate);
+                  end if;
+               end if;
+            end;
+         end if;
          if Tree_Triangle_Index /= 0 then
             return Tree_Action (Tree_Triangle_Index, Toggle => True);
          elsif Tree_Node_Index /= 0 then

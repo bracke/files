@@ -2041,9 +2041,21 @@ package body Files.Operations is
       Settings     : Files.Settings.Settings_Model;
       Source_Paths : Files.Types.String_Vectors.Vector;
       Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result is
+   begin
+      return Begin_Paste_To
+        (Model, Settings, Source_Paths, Files.Model.Current_Path (Model), Mode);
+   end Begin_Paste;
+
+   function Begin_Paste_To
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Destination  : String;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Operation_Result
    is
-      Directory : constant String := Files.Model.Current_Path (Model);
+      Directory : constant String := Destination;
       Plans     : Files.File_System.Drop_Import_Result;
    begin
       if Source_Paths.Is_Empty then
@@ -2088,7 +2100,7 @@ package body Files.Operations is
             return Make_Result (Operation_Success, Path => Directory);
          end if;
       end;
-   end Begin_Paste;
+   end Begin_Paste_To;
 
    function Resolve_Paste_Conflict
      (Model     : in out Files.Model.Window_Model;

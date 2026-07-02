@@ -188,6 +188,10 @@ package body Files.Commands is
             return "columns.cycle_group_by";
          when Toggle_Folder_Tree_Command =>
             return "tree.toggle";
+         when Copy_To_Command =>
+            return "file.copy_to";
+         when Move_To_Command =>
+            return "file.move_to";
       end case;
    end Identifier;
 
@@ -312,6 +316,10 @@ package body Files.Commands is
             return "command.columns.cycle_group_by";
          when Toggle_Folder_Tree_Command =>
             return "command.tree.toggle";
+         when Copy_To_Command =>
+            return "command.copy_to";
+         when Move_To_Command =>
+            return "command.move_to";
       end case;
    end Name_Key;
 
@@ -436,6 +444,10 @@ package body Files.Commands is
             return "command.columns.cycle_group_by.description";
          when Toggle_Folder_Tree_Command =>
             return "command.tree.toggle.description";
+         when Copy_To_Command =>
+            return "command.copy_to.description";
+         when Move_To_Command =>
+            return "command.move_to.description";
       end case;
    end Description_Key;
 
@@ -898,6 +910,13 @@ package body Files.Commands is
             | Duplicate_Selected_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Copy_To_Command | Move_To_Command =>
+            --  Choosing a destination copies/moves the current selection, so at
+            --  least one real (non-temporary) item must be selected in an
+            --  ordinary directory rather than the trash payload view.
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
          when Paste_Items_Command =>
             return Files.Model.Clipboard_Has_Items (Model)
               and then not Files.Model.Temporary_Item_Is_Active (Model);
@@ -1127,6 +1146,11 @@ package body Files.Commands is
             --  toggle is routed through Files.Controller. This pure fallback only
             --  flips the panel flag for callers that never open an empty tree.
             Files.Model.Toggle_Tree_Panel (Model);
+         when Copy_To_Command | Move_To_Command =>
+            --  Capturing the selection and seeding the destination tree needs
+            --  filesystem-backed roots, so these are routed through
+            --  Files.Controller rather than this pure model-only executor.
+            null;
       end case;
    end Execute;
 

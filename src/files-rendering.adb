@@ -26,6 +26,7 @@ package body Files.Rendering is
    use type Ada.Calendar.Time;
    use type Files.Commands.Registered_Command_Id;
    use type Files.Model.Sort_Field;
+   use type Files.Model.Tree_Pick_Mode;
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
    use type Files.Types.Item_Kind;
@@ -1875,6 +1876,10 @@ package body Files.Rendering is
 
       Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel_Is_Open (Model);
       Snapshot.Tree_Rows := Files.Model.Tree_Visible_Rows (Model);
+      Snapshot.Tree_Pick_Active := Files.Model.Tree_Pick_Is_Active (Model);
+      Snapshot.Tree_Pick_Moving :=
+        Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Move;
+      Snapshot.Tree_Pick_Target := To_Unbounded_String (Files.Model.Tree_Pick_Target (Model));
       Snapshot.Breadcrumb_Segments :=
         Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
 
@@ -3710,7 +3715,10 @@ package body Files.Rendering is
                      Depth        => TR.Depth,
                      Expanded     => TR.Expanded,
                      Has_Children => TR.Has_Children,
-                     Selected     => To_String (TR.Path) = Current,
+                     Selected     =>
+                       (if Snapshot.Tree_Pick_Active
+                        then To_String (TR.Path) = To_String (Snapshot.Tree_Pick_Target)
+                        else To_String (TR.Path) = Current),
                      Triangle_X   => Tri_X,
                      Triangle_Y   => Tri_Y,
                      Triangle_W   => (if TR.Has_Children then Tri_Size else 0),
@@ -3753,6 +3761,32 @@ package body Files.Rendering is
       end loop;
       return 0;
    end Tree_Triangle_At;
+
+   function Tree_Pick_Buttons
+     (Panel       : Tree_Panel_Layout;
+      Line_Height : Positive := 20)
+      return Tree_Pick_Button_Layout
+   is
+      pragma Unreferenced (Line_Height);
+      Height : constant Natural := Panel.Row_Height;
+      Half   : constant Natural := Panel.Width / 2;
+   begin
+      --  Need room for the title band, at least one row, and the button bar.
+      if Panel.Width = 0
+        or else Height = 0
+        or else Panel.Height <= Saturating_Multiply (Height, 2)
+      then
+         return (others => <>);
+      end if;
+
+      return
+        (Visible      => True,
+         Choose_X     => Panel.X,
+         Cancel_X     => Saturating_Add (Panel.X, Half),
+         Y            => Saturating_Add (Panel.Y, Panel.Height - Height),
+         Button_Width => Half,
+         Height       => Height);
+   end Tree_Pick_Buttons;
 
    function Info_Metadata_Text
      (Available : Boolean;
@@ -8734,7 +8768,11 @@ package body Files.Rendering is
                 then Tree_Panel.Width - Saturating_Multiply (Root_Selector_Padding, 2)
                 else 0),
                Line_Height,
-               Localized ("tree.panel.title"),
+               (if Snapshot.Tree_Pick_Active
+                then (if Snapshot.Tree_Pick_Moving
+                      then Localized ("tree.pick.move")
+                      else Localized ("tree.pick.copy"))
+                else Localized ("tree.panel.title")),
                Fit => True);
          end if;
 
@@ -8809,6 +8847,53 @@ package body Files.Rendering is
                   Focused  => Row.Selected);
             end;
          end loop;
+
+         --  Destination picker button bar (Choose / Cancel).
+         if Snapshot.Tree_Pick_Active then
+            declare
+               Buttons : constant Tree_Pick_Button_Layout :=
+                 Tree_Pick_Buttons (Tree_Panel, Line_Height);
+
+               procedure Draw_Pick_Button (Button_X : Natural; Label_Key : String) is
+                  Hovered : constant Boolean :=
+                    Has_Hover
+                    and then Contains_Point
+                               (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
+                                Hover_X, Hover_Y);
+                  Pressed : constant Boolean :=
+                    Is_Pressed (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height);
+                  Inset   : constant Natural :=
+                    (if Buttons.Height > Line_Height then (Buttons.Height - Line_Height) / 2 else 0);
+               begin
+                  Add_Overlay_Rect
+                    (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
+                     (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Pane_Color));
+                  Add_Overlay_Rect (Button_X, Buttons.Y, Buttons.Button_Width, 1, Border_Color);
+                  Add_Overlay_Rect (Button_X, Buttons.Y, 1, Buttons.Height, Border_Color);
+                  if Buttons.Button_Width > 0 then
+                     Add_Overlay_Rect
+                       (Saturating_Add (Button_X, Buttons.Button_Width - 1), Buttons.Y, 1,
+                        Buttons.Height, Border_Color);
+                  end if;
+                  Add_Overlay_Text
+                    (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
+                     Saturating_Add (Buttons.Y, Inset),
+                     (if Buttons.Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                      then Buttons.Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                      else Buttons.Button_Width),
+                     Line_Height, Localized (Label_Key), Text_Color, Fit => True);
+                  Add_Accessibility_Node
+                    (Role_Button, Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
+                     Localized (Label_Key));
+               end Draw_Pick_Button;
+            begin
+               if Buttons.Visible then
+                  Draw_Pick_Button (Buttons.Choose_X, "tree.pick.choose");
+                  Draw_Pick_Button (Buttons.Cancel_X, "tree.pick.cancel");
+               end if;
+            end;
+         end if;
+
          Draw_Close_Button
            (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => True);
       end if;
