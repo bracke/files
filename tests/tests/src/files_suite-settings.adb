@@ -1435,24 +1435,31 @@ package body Files_Suite.Settings is
                "modified sort field still round-trips to modified");
          end;
          declare
-            With_Bookmarks : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+            With_Favorites : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
             Round          : Files.Settings.Settings_Parse_Result;
             Found_Eq       : Boolean := False;
             Found_Hash     : Boolean := False;
+            Found_File     : Boolean := False;
          begin
-            With_Bookmarks.Bookmark_Paths.Append (To_Unbounded_String ("/data/a=b"));
-            With_Bookmarks.Bookmark_Paths.Append (To_Unbounded_String ("#hashdir"));
-            Round := Files.Settings.Parse (Files.Settings.To_Text (With_Bookmarks));
-            Assert (Round.Success, "settings with tricky bookmark paths round-trips");
-            for P of Round.Settings.Bookmark_Paths loop
+            With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/a=b"));
+            With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("#hashdir"));
+            --  Favorites may reference files as well as folders; the path is
+            --  stored verbatim and must survive the round-trip either way.
+            With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/report.txt"));
+            Round := Files.Settings.Parse (Files.Settings.To_Text (With_Favorites));
+            Assert (Round.Success, "settings with tricky favorite paths round-trips");
+            for P of Round.Settings.Favorite_Paths loop
                if To_String (P) = "/data/a=b" then
                   Found_Eq := True;
                elsif To_String (P) = "#hashdir" then
                   Found_Hash := True;
+               elsif To_String (P) = "/data/report.txt" then
+                  Found_File := True;
                end if;
             end loop;
-            Assert (Found_Eq, "a bookmark path containing '=' survives the round-trip");
-            Assert (Found_Hash, "a bookmark path starting with '#' survives the round-trip");
+            Assert (Found_Eq, "a favorite path containing '=' survives the round-trip");
+            Assert (Found_Hash, "a favorite path starting with '#' survives the round-trip");
+            Assert (Found_File, "a favorite path pointing at a file survives the round-trip");
          end;
          declare
             --  The file is authoritative for mappings: a built-in mapping

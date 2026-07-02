@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
@@ -12,6 +13,7 @@ package body Files.Controller is
    use type Files.Commands.Command_Id;
    use type Files.Events.Input_Action_Kind;
    use type Files.Events.Scroll_Target;
+   use type Files.File_System.Root_Kind;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
@@ -31,7 +33,7 @@ package body Files.Controller is
    end Empty_Operation;
 
    --  Seed the folder tree's root nodes from the available filesystem roots and
-   --  the user's bookmarks, but only when it has not already been seeded. Used
+   --  the user's favorites, but only when it has not already been seeded. Used
    --  by the tree toggle command and the Copy to.../Move to... destination
    --  picker so both open onto the same populated tree.
    procedure Seed_Tree_If_Needed
@@ -44,12 +46,12 @@ package body Files.Controller is
               Files.File_System.Available_Root_Entries;
             Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
          begin
-            for Path of Settings.Bookmark_Paths loop
+            for Path of Settings.Favorite_Paths loop
                Roots.Append
                  (Files.File_System.Root_Entry'
                     (Path        => Path,
                      Label       => Path,
-                     Kind        => Files.File_System.Root_Bookmark,
+                     Kind        => Files.File_System.Root_Favorite,
                      Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
                      Ready       => Files.File_System.Root_Ready,
                      Removable   => False));
@@ -813,12 +815,19 @@ package body Files.Controller is
                   Roots : Files.File_System.Root_Entry_Vectors.Vector :=
                     Files.File_System.Available_Root_Entries;
                begin
-                  for Path of Settings.Bookmark_Paths loop
+                  for Path of Settings.Favorite_Paths loop
                      Roots.Append
                        (Files.File_System.Root_Entry'
                           (Path        => Path,
-                           Label       => Path,
-                           Kind        => Files.File_System.Root_Bookmark,
+                           --  Use the "root.favorite|<name>" label token so the
+                           --  selector renders the star prefix and base name
+                           --  rather than the full path.
+                           Label       =>
+                             Ada.Strings.Unbounded.To_Unbounded_String
+                               (Files.File_System.Root_Label
+                                  (Ada.Strings.Unbounded.To_String (Path),
+                                   Files.File_System.Root_Favorite)),
+                           Kind        => Files.File_System.Root_Favorite,
                            Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
                            Ready       => Files.File_System.Root_Ready,
                            Removable   => False));
@@ -1015,6 +1024,57 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Files.Commands.Select_Drive_Command, Operation);
    end Select_Root;
 
+   --  Classify a favorite path as a live folder, a live file, or a stale entry
+   --  whose target no longer exists. Any lookup failure is treated as stale so a
+   --  broken favorite click degrades to a no-op rather than raising.
+   type Favorite_Target is (Favorite_Folder, Favorite_File, Favorite_Stale);
+
+   function Classify_Favorite (Path : String) return Favorite_Target is
+      use type Ada.Directories.File_Kind;
+   begin
+      if Path = "" or else not Ada.Directories.Exists (Path) then
+         return Favorite_Stale;
+      elsif Ada.Directories.Kind (Path) = Ada.Directories.Directory then
+         return Favorite_Folder;
+      else
+         return Favorite_File;
+      end if;
+   exception
+      when others =>
+         return Favorite_Stale;
+   end Classify_Favorite;
+
+   --  Open a favorite that points at a file: navigate to its parent directory
+   --  and select the file there, so the folder opens with the item highlighted.
+   function Open_File_Favorite
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Path     : String)
+      return Controller_Result
+   is
+      Parent : constant String := Files.File_System.Parent_Directory (Path);
+   begin
+      if Parent = "" then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      declare
+         Operation : constant Files.Operations.Operation_Result :=
+           Files.Operations.Select_Root (Model, Settings, Parent);
+      begin
+         if Operation.Status = Files.Operations.Operation_Navigated then
+            declare
+               Selected : constant Boolean :=
+                 Files.Model.Select_By_Name (Model, Ada.Directories.Simple_Name (Path));
+               pragma Unreferenced (Selected);
+            begin
+               null;
+            end;
+         end if;
+         return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
+      end;
+   end Open_File_Favorite;
+
    function Handle_Root_Click
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
@@ -1030,10 +1090,31 @@ package body Files.Controller is
 
       Files.Model.Set_Root_Selected_Index (Model, Root_Index);
       declare
-         Operation : constant Files.Operations.Operation_Result :=
-           Files.Operations.Select_Root (Model, Settings, Files.Model.Root_Path (Model, Positive (Root_Index)));
+         Path : constant String := Files.Model.Root_Path (Model, Positive (Root_Index));
+         Kind : constant Files.File_System.Root_Kind :=
+           Files.Model.Root_Kind (Model, Positive (Root_Index));
       begin
-         return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
+         --  A favorite may target a file or a stale path; ordinary roots are
+         --  always directories and take the direct navigation path.
+         if Kind = Files.File_System.Root_Favorite then
+            case Classify_Favorite (Path) is
+               when Favorite_Stale =>
+                  --  Broken favorite: skip the click without raising so a stale
+                  --  entry can never crash the selector.
+                  return Make_Result (Controller_Ignored);
+               when Favorite_File =>
+                  return Open_File_Favorite (Model, Settings, Path);
+               when Favorite_Folder =>
+                  null;
+            end case;
+         end if;
+
+         declare
+            Operation : constant Files.Operations.Operation_Result :=
+              Files.Operations.Select_Root (Model, Settings, Path);
+         begin
+            return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
+         end;
       end;
    end Handle_Root_Click;
 

@@ -620,6 +620,16 @@ package body Files_Suite.Commands is
       Ctrl_Shift (Files.Types.Shift_Key) := True;
       Assert (Files.Commands.Command_Count = 63, "all expected commands are registered");
       Assert (Files.Commands.Contains ("navigate.parent"), "navigate-parent command identifier is registered");
+      Assert (Files.Commands.Contains ("favorite.toggle"), "favorite-toggle command identifier is registered");
+      Assert
+        (not Files.Commands.Contains ("bookmark.toggle"),
+         "the renamed bookmark identifier is no longer registered");
+      Assert
+        (Files.Commands.Identifier (Files.Commands.Toggle_Favorite_Command) = "favorite.toggle",
+         "the favorite command reports its renamed identifier");
+      Assert
+        (Files.Commands.Requires_Settings_Path (Files.Commands.Toggle_Favorite_Command),
+         "the favorite command routes through the settings-path persistence seam");
       Assert (Files.Commands.Contains ("file.copy_to"), "copy-to command identifier is registered");
       Assert (Files.Commands.Contains ("file.move_to"), "move-to command identifier is registered");
       Assert (Files.Commands.Contains ("tree.toggle"), "toggle-folder-tree command identifier is registered");

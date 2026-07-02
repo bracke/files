@@ -222,7 +222,7 @@ package Files.File_System is
       Root_User_Mount,
       Root_Network_Mount,
       Root_Windows_Drive,
-      Root_Bookmark);
+      Root_Favorite);
 
    type Root_Entry is record
       Path  : UString;
@@ -404,6 +404,15 @@ package Files.File_System is
    --
    --  @return Root entries available on the host platform.
    function Available_Root_Entries return Root_Entry_Vectors.Vector;
+
+   --  Return the display-label token for a root location. The token is either a
+   --  localization key (e.g. "root.home") or a "key|value" pair the renderer
+   --  expands with a localized prefix and suffix (e.g. "root.favorite|<name>").
+   --
+   --  @param Path Root path.
+   --  @param Kind Root classification.
+   --  @return Label token for the renderer.
+   function Root_Label (Path : String; Kind : Root_Kind) return String;
 
    --  Return diagnostics for root discovery without changing the root list.
    --

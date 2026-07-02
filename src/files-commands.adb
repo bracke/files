@@ -60,7 +60,8 @@ package body Files.Commands is
             | Toggle_Column_Type_Command
             | Toggle_Column_Created_Command
             | Toggle_Column_Permissions_Command
-            | Cycle_Group_By_Command =>
+            | Cycle_Group_By_Command
+            | Toggle_Favorite_Command =>
             return True;
          when others =>
             return False;
@@ -166,8 +167,8 @@ package body Files.Commands is
             return "settings.save";
          when Reset_Settings_Command =>
             return "settings.reset";
-         when Toggle_Bookmark_Command =>
-            return "bookmark.toggle";
+         when Toggle_Favorite_Command =>
+            return "favorite.toggle";
          when Navigate_Trash_Command =>
             return "trash.open";
          when Restore_From_Trash_Command =>
@@ -302,8 +303,8 @@ package body Files.Commands is
             return "command.settings.save";
          when Reset_Settings_Command =>
             return "command.settings.reset";
-         when Toggle_Bookmark_Command =>
-            return "command.bookmark.toggle";
+         when Toggle_Favorite_Command =>
+            return "command.favorite.toggle";
          when Navigate_Trash_Command =>
             return "command.trash.open";
          when Restore_From_Trash_Command =>
@@ -438,8 +439,8 @@ package body Files.Commands is
             return "command.settings.save.description";
          when Reset_Settings_Command =>
             return "command.settings.reset.description";
-         when Toggle_Bookmark_Command =>
-            return "command.bookmark.toggle.description";
+         when Toggle_Favorite_Command =>
+            return "command.favorite.toggle.description";
          when Navigate_Trash_Command =>
             return "command.trash.open.description";
          when Restore_From_Trash_Command =>
@@ -535,7 +536,7 @@ package body Files.Commands is
             return (True, Files.Types.Key_S, Ctrl);
          when Reset_Settings_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
-         when Toggle_Bookmark_Command =>
+         when Toggle_Favorite_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Open_Selected_Root_Command | Eject_Selected_Root_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
@@ -832,7 +833,8 @@ package body Files.Commands is
             | Toggle_Column_Type_Command
             | Toggle_Column_Created_Command
             | Toggle_Column_Permissions_Command
-            | Cycle_Group_By_Command =>
+            | Cycle_Group_By_Command
+            | Toggle_Favorite_Command =>
             return True;
          when others =>
             return False;
@@ -1003,6 +1005,13 @@ package body Files.Commands is
          when Save_Settings_Command
             | Reset_Settings_Command =>
             return Files.Model.Settings_Pane_Is_Open (Model);
+         when Toggle_Favorite_Command =>
+            --  Favoriting works on the selection when present, otherwise on the
+            --  current directory. Enabled in an ordinary directory view (not the
+            --  trash payload) whenever there is a selection or a navigable path.
+            return not In_Trash_View (Model)
+              and then (Files.Model.Selected_Count (Model) > 0
+                        or else Files.Model.Current_Path (Model) /= "");
          when Navigate_Trash_Command =>
             return Files.File_System.Trash_Files_Directory /= "";
          when Restore_From_Trash_Command =>
@@ -1176,7 +1185,7 @@ package body Files.Commands is
             null;
          when Reset_Settings_Command =>
             null;
-         when Toggle_Bookmark_Command =>
+         when Toggle_Favorite_Command =>
             null;
          when Navigate_Trash_Command =>
             null;

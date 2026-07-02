@@ -9,6 +9,9 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Favorites: star any file or folder (Toggle Favorite) and reach it from the
+  Favorites section of the side panel, marked with a ★. This replaces and
+  generalizes the old folder-only bookmarks.
 - Multi-level undo and redo (Ctrl+Z / Ctrl+Shift+Z) — undo is no longer limited
   to a single step.
 - Type-to-select: type a file's name in the grid to jump to it.

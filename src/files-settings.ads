@@ -55,7 +55,7 @@ package Files.Settings is
       Window_Width           : Natural := 0;
       Window_Height          : Natural := 0;
       Info_Pane_Open         : Boolean := False;
-      Bookmark_Paths         : String_Vectors.Vector;
+      Favorite_Paths         : String_Vectors.Vector;
       --  When True (the default) and no per-filetype open action matches, fall
       --  back to the host system's default opener (xdg-open on Linux, open on
       --  macOS, cmd /c start on Windows). Set to False to force explicit

@@ -114,28 +114,50 @@ package body Files.Interaction is
               Files.Controller.Toggle_Hidden_Files (Model, Settings, Settings_Path);
             Result.Settings_Changed := True;
             Result.Directory_Reloaded := True;
-         when Files.Commands.Toggle_Bookmark_Command =>
+         when Files.Commands.Toggle_Favorite_Command =>
             declare
-               Current   : constant String := Files.Model.Current_Path (Model);
-               Existing  : Boolean := False;
-               To_Remove : Natural := 0;
-            begin
-               if Current /= "" then
+               Selected : constant Files.File_System.Item_Vectors.Vector :=
+                 Files.Model.Selected_Items (Model);
+               Changed  : Boolean := False;
+
+               --  Add Path to the favorites list when absent, remove it when
+               --  already present. A favorite is any full item path.
+               procedure Toggle_One (Path : String) is
+                  Existing  : Boolean := False;
+                  To_Remove : Natural := 0;
+               begin
+                  if Path = "" then
+                     return;
+                  end if;
                   for Index in
-                    Settings.Bookmark_Paths.First_Index ..
-                    Settings.Bookmark_Paths.Last_Index
+                    Settings.Favorite_Paths.First_Index ..
+                    Settings.Favorite_Paths.Last_Index
                   loop
-                     if To_String (Settings.Bookmark_Paths.Element (Index)) = Current then
+                     if To_String (Settings.Favorite_Paths.Element (Index)) = Path then
                         Existing := True;
                         To_Remove := Index;
                         exit;
                      end if;
                   end loop;
                   if Existing then
-                     Settings.Bookmark_Paths.Delete (To_Remove);
+                     Settings.Favorite_Paths.Delete (To_Remove);
                   else
-                     Settings.Bookmark_Paths.Append (To_Unbounded_String (Current));
+                     Settings.Favorite_Paths.Append (To_Unbounded_String (Path));
                   end if;
+                  Changed := True;
+               end Toggle_One;
+            begin
+               if not Selected.Is_Empty then
+                  --  Favorite each selected item (file or folder) by full path.
+                  for Item of Selected loop
+                     Toggle_One (To_String (Item.Full_Path));
+                  end loop;
+               else
+                  --  No selection: fall back to favoriting the current folder,
+                  --  preserving the historical "bookmark this folder" behavior.
+                  Toggle_One (Files.Model.Current_Path (Model));
+               end if;
+               if Changed then
                   Persist_Settings (Settings, Settings_Path);
                   Result.Settings_Changed := True;
                end if;

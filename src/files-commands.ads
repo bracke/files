@@ -52,7 +52,7 @@ package Files.Commands is
       Refresh_Directory_Command,
       Save_Settings_Command,
       Reset_Settings_Command,
-      Toggle_Bookmark_Command,
+      Toggle_Favorite_Command,
       Navigate_Trash_Command,
       Restore_From_Trash_Command,
       Open_Terminal_Command,

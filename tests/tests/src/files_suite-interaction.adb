@@ -101,6 +101,9 @@ package body Files_Suite.Interaction is
    procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Filters_By_Query (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -176,6 +179,15 @@ package body Files_Suite.Interaction is
          "bottom-bar hidden-count click flips Show_Hidden_Files, persists, and reloads");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Selector_Click_Navigates'Access, "root-selector row click navigates to the chosen root");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Favorite_Toggle_On_Selection'Access,
+         "favorite toggle adds/removes the selected item's path and falls back to the current folder");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Favorite_Selector_Star_And_Clicks'Access,
+         "the selector stars favorites; a folder favorite navigates in and a file favorite opens its parent selected");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Favorite_Stale_Entry_Is_Skipped'Access,
+         "clicking a stale favorite does not crash and is skipped");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Command_Palette_Result_Runs'Access, "command-palette result click runs the command and closes");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3554,5 +3566,205 @@ package body Files_Suite.Interaction is
          Base_Font, Files.Types.No_Modifiers, Result);
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "toggling again closes the folder tree");
    end Test_Tree_Toggle_Command_And_Click;
+
+   --  True when Path is present in the persisted favorites list.
+   function Has_Favorite
+     (Settings : Files.Settings.Settings_Model;
+      Path     : String)
+      return Boolean is
+   begin
+      for P of Settings.Favorite_Paths loop
+         if Ada.Strings.Unbounded.To_String (P) = Path then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Favorite;
+
+   --  Drive the real Select_Drive command through the reducer so the root
+   --  selector opens seeded with the platform roots plus the persisted
+   --  favorites (each carrying its star label token).
+   procedure Open_Favorites_Selector
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model)
+   is
+      Action : constant Files.Events.Input_Action :=
+        (Kind    => Files.Events.Command_Input_Action,
+         Command => Files.Commands.Select_Drive_Command,
+         others  => <>);
+      Result : Files.Interaction.Interaction_Result;
+   begin
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+   end Open_Favorites_Selector;
+
+   --  Click the open selector's row whose root path equals Target_Path, deriving
+   --  the coordinate from the real root-path layout (rule a). Found reports
+   --  whether such a row existed.
+   procedure Click_Root_Row
+     (Model       : in out Files.Model.Window_Model;
+      Settings    : in out Files.Settings.Settings_Model;
+      Target_Path : String;
+      Found       : out Boolean;
+      Result      : out Files.Interaction.Interaction_Result)
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Frame    : constant Files.Rendering.Frame_Commands :=
+        Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+      Layout   : constant Files.Rendering.Layout_Metrics :=
+        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+      Selector : constant Files.Rendering.Root_Selector_Layout :=
+        Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
+      Rows     : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
+        Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
+      X, Y     : Natural := 0;
+   begin
+      Found := False;
+      for Row of Rows loop
+         if Files.Model.Root_Path (Model, Positive (Row.Root_Index)) = Target_Path then
+            X := Row.X + Row.Width / 2;
+            Y := Row.Y + Row.Height / 2;
+            Found := True;
+         end if;
+      end loop;
+      if not Found then
+         Result := (others => <>);
+         return;
+      end if;
+      declare
+         Action : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Click
+             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Action, Base_Font, Files.Types.No_Modifiers, Result);
+      end;
+   end Click_Root_Row;
+
+   procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "favorites.conf");
+      Item     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt");
+      Action   : constant Files.Events.Input_Action :=
+        (Kind    => Files.Events.Command_Input_Action,
+         Command => Files.Commands.Toggle_Favorite_Command,
+         others  => <>);
+   begin
+      Files_Suite.Support.Reset_Root;
+
+      --  Selected file: favoriting stores the item's full path, not the folder.
+      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Assert (Files.Model.Selected_Count (Model) = 1, "the sample file is selected before favoriting");
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, Path, Action, Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (Has_Favorite (Settings, Item), "favoriting a selected file stores its path");
+      Assert (Result.Settings_Changed, "favoriting reports a settings change");
+
+      --  Toggling the same selection again removes the favorite.
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, Path, Action, Base_Font, Files.Types.No_Modifiers, Result);
+      Assert (not Has_Favorite (Settings, Item), "toggling the selected file again removes its favorite");
+
+      --  No selection: the toggle falls back to the current directory.
+      Files.Model.Deselect_All (Model);
+      Assert (Files.Model.Selected_Count (Model) = 0, "the selection is cleared for the fallback path");
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, Path, Action, Base_Font, Files.Types.No_Modifiers, Result);
+      Assert
+        (Has_Favorite (Settings, Files.Model.Current_Path (Model)),
+         "with no selection the toggle favorites the current folder");
+   end Test_Favorite_Toggle_On_Selection;
+
+   procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model      : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings   : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result     : Files.Interaction.Interaction_Result;
+      Fav_Folder : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "fav-folder");
+      Fav_File   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "fav-file.txt");
+      Prefix     : constant String := Files.Localization.Text ("root.favorite.prefix");
+      Found      : Boolean;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Fav_Folder);
+      Files_Suite.Support.Write_File (Fav_File);
+      Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Fav_Folder));
+      Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Fav_File));
+
+      Open_Favorites_Selector (Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "the selector opens for the favorites test");
+
+      --  The star-prefixed base names are what the selector renders for
+      --  favorites (semantic label assertion, not pixels).
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Saw_Folder : Boolean := False;
+         Saw_File   : Boolean := False;
+      begin
+         for Label of Snapshot.Root_Labels loop
+            if Ada.Strings.Unbounded.To_String (Label) = Prefix & "fav-folder" then
+               Saw_Folder := True;
+            elsif Ada.Strings.Unbounded.To_String (Label) = Prefix & "fav-file.txt" then
+               Saw_File := True;
+            end if;
+         end loop;
+         Assert (Saw_Folder, "the folder favorite renders as a star-prefixed base name");
+         Assert (Saw_File, "the file favorite renders as a star-prefixed base name");
+      end;
+
+      --  Clicking the folder favorite navigates into it.
+      Click_Root_Row (Model, Settings, Fav_Folder, Found, Result);
+      Assert (Found, "the folder favorite row is laid out");
+      Assert (Files.Model.Current_Path (Model) = Fav_Folder, "a folder favorite navigates into the folder");
+      Assert (not Files.Model.Root_Selector_Is_Open (Model), "a folder favorite click closes the selector");
+
+      --  Clicking the file favorite opens its parent with the file selected.
+      Open_Favorites_Selector (Model, Settings);
+      Click_Root_Row (Model, Settings, Fav_File, Found, Result);
+      Assert (Found, "the file favorite row is laid out");
+      Assert
+        (Files.Model.Current_Path (Model) = Files_Suite.Support.Root,
+         "a file favorite navigates to the file's parent directory");
+      declare
+         Selected  : constant Files.File_System.Item_Vectors.Vector :=
+           Files.Model.Selected_Items (Model);
+         Saw_File  : Boolean := False;
+      begin
+         for Item of Selected loop
+            if Ada.Strings.Unbounded.To_String (Item.Name) = "fav-file.txt" then
+               Saw_File := True;
+            end if;
+         end loop;
+         Assert (Saw_File, "a file favorite selects the file in its parent directory");
+      end;
+   end Test_Favorite_Selector_Star_And_Clicks;
+
+   procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Stale    : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "gone");
+      Before   : constant String := Files.Model.Current_Path (Model);
+      Found    : Boolean;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Stale));
+
+      Open_Favorites_Selector (Model, Settings);
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "the selector opens for the stale-favorite test");
+
+      --  Clicking the stale favorite must not raise and must not navigate.
+      Click_Root_Row (Model, Settings, Stale, Found, Result);
+      Assert (Found, "the stale favorite row is still laid out");
+      Assert (Result.Status = Files.Controller.Controller_Ignored, "a stale favorite click is skipped");
+      Assert (Files.Model.Current_Path (Model) = Before, "a stale favorite click does not navigate");
+      Assert (Files.Model.Root_Selector_Is_Open (Model), "a skipped stale click leaves the selector open");
+   end Test_Favorite_Stale_Entry_Is_Skipped;
 
 end Files_Suite.Interaction;

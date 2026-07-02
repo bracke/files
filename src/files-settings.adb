@@ -1316,13 +1316,14 @@ package body Files.Settings is
                      when Bookmarks_Section =>
                         if Setting_Key = "bookmark" then
                            --  New form: bookmark = "<path>" (path may contain
-                           --  '=' or start with '#').
+                           --  '=' or start with '#'). The on-disk token stays
+                           --  "bookmark" so existing settings files keep loading.
                            if Value /= "" then
-                              Settings.Bookmark_Paths.Append (To_Unbounded_String (Value));
+                              Settings.Favorite_Paths.Append (To_Unbounded_String (Value));
                            end if;
                         elsif Key /= "" then
                            --  Legacy form: the bare path written as the key.
-                           Settings.Bookmark_Paths.Append (To_Unbounded_String (Key));
+                           Settings.Favorite_Paths.Append (To_Unbounded_String (Key));
                         end if;
                      when Settings_Section_Name =>
                         if Setting_Key = "default_view_mode" then
@@ -1886,10 +1887,10 @@ package body Files.Settings is
          Append_Line (To_String (Key) & " = " & Action_Text (Settings.Open_Actions.Element (To_String (Key))));
       end loop;
 
-      if not Settings.Bookmark_Paths.Is_Empty then
+      if not Settings.Favorite_Paths.Is_Empty then
          Append_Line;
          Append_Line ("[bookmarks]");
-         for Path of Settings.Bookmark_Paths loop
+         for Path of Settings.Favorite_Paths loop
             --  Write the path in a quoted value position so paths containing
             --  '=' or starting with '#' (and trailing whitespace) round-trip.
             Append_Line ("bookmark = " & Action_Token_Text (To_String (Path)));
@@ -2430,7 +2431,7 @@ package body Files.Settings is
       Result.Window_Width := Settings.Window_Width;
       Result.Window_Height := Settings.Window_Height;
       Result.Info_Pane_Open := Settings.Info_Pane_Open;
-      Result.Bookmark_Paths := Settings.Bookmark_Paths;
+      Result.Favorite_Paths := Settings.Favorite_Paths;
       Result.Use_System_Default_Opener := Settings.Use_System_Default_Opener;
       Upsert
         (Filetype_Keys,

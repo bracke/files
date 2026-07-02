@@ -1765,7 +1765,7 @@ package body Files_Suite.Model is
                | Files.File_System.Root_User_Mount
                | Files.File_System.Root_Network_Mount
                | Files.File_System.Root_Windows_Drive
-               | Files.File_System.Root_Bookmark =>
+               | Files.File_System.Root_Favorite =>
                null;
          end case;
          if Entries.Element (Index).Kind = Files.File_System.Root_Mount then
