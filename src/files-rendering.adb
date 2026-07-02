@@ -3037,9 +3037,12 @@ package body Files.Rendering is
             Add_Command (Files.Commands.Open_Selected_Items_Command);
             Add_Command (Files.Commands.Open_With_Command);
             Add_Separator;
-            --  Group 2: clipboard / duplication.
+            --  Group 2: clipboard / duplication, including the copy-to and
+            --  move-to destination pickers next to the plain clipboard verbs.
             Add_Command (Files.Commands.Copy_Selected_Items_Command);
             Add_Command (Files.Commands.Cut_Selected_Items_Command);
+            Add_Command (Files.Commands.Copy_To_Command);
+            Add_Command (Files.Commands.Move_To_Command);
             Add_Command (Files.Commands.Duplicate_Selected_Command);
             Add_Separator;
             --  Group 3: archive actions.
@@ -3047,7 +3050,11 @@ package body Files.Rendering is
             Add_Command (Files.Commands.Compress_7z_Command);
             Add_Command (Files.Commands.Extract_Archive_Command);
             Add_Separator;
-            --  Group 4: destructive / recovery actions.
+            --  Group 4: link creation.
+            Add_Command (Files.Commands.Create_Symlink_Command);
+            Add_Command (Files.Commands.Create_Hardlink_Command);
+            Add_Separator;
+            --  Group 5: destructive / recovery actions.
             Add_Command (Files.Commands.Rename_Selected_Items_Command);
             Add_Command (Files.Commands.Delete_Selected_Items_Command);
             Add_Command (Files.Commands.Restore_From_Trash_Command);
@@ -3056,7 +3063,22 @@ package body Files.Rendering is
             Add_Command (Files.Commands.Create_File_Command);
             Add_Command (Files.Commands.New_Folder_Command);
             Add_Command (Files.Commands.Paste_Items_Command);
+            Add_Separator;
+            --  Background directory actions: open a terminal here and refresh.
+            Add_Command (Files.Commands.Open_Terminal_Command);
             Add_Command (Files.Commands.Refresh_Directory_Command);
+            Result.Row_Count := Next;
+         when Files.Model.Context_Menu_Header =>
+            --  Details-view column configuration: toggle each optional column,
+            --  then cycle the grouping mode. Reuses the same layout/hit-test the
+            --  item and empty-area menus draw with.
+            Add_Command (Files.Commands.Toggle_Column_Modified_Command);
+            Add_Command (Files.Commands.Toggle_Column_Size_Command);
+            Add_Command (Files.Commands.Toggle_Column_Type_Command);
+            Add_Command (Files.Commands.Toggle_Column_Created_Command);
+            Add_Command (Files.Commands.Toggle_Column_Permissions_Command);
+            Add_Separator;
+            Add_Command (Files.Commands.Cycle_Group_By_Command);
             Result.Row_Count := Next;
          when Files.Model.Context_Menu_None =>
             return Result;

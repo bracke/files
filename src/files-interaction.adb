@@ -505,13 +505,14 @@ package body Files.Interaction is
    end Apply_Context_Menu_Command;
 
    procedure Apply_Right_Click
-     (Model      : in out Files.Model.Window_Model;
-      Settings   : Files.Settings.Settings_Model;
-      In_Main    : Boolean;
-      Item_Index : Natural;
-      X          : Natural;
-      Y          : Natural;
-      Result     : out Interaction_Result)
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : Files.Settings.Settings_Model;
+      In_Main           : Boolean;
+      Item_Index        : Natural;
+      X                 : Natural;
+      Y                 : Natural;
+      Result            : out Interaction_Result;
+      In_Details_Header : Boolean := False)
    is
       --  A modal overlay (settings, palette, root selector, sort menu) must
       --  swallow the click exactly as left-clicks are suppressed behind these
@@ -524,7 +525,11 @@ package body Files.Interaction is
         or else Files.Model.Root_Selector_Is_Open (Model)
         or else Files.Model.Sort_Menu_Is_Open (Model);
    begin
-      if In_Main and then not Overlay_Open then
+      if In_Details_Header and then not Overlay_Open then
+         --  A right-click on the details-view column header opens the column
+         --  configuration menu regardless of any item under the header band.
+         Files.Model.Open_Context_Menu (Model, X, Y, Files.Model.Context_Menu_Header);
+      elsif In_Main and then not Overlay_Open then
          if Item_Index /= 0 then
             --  Match desktop file-manager convention: right-click on an
             --  unselected item immediately selects it so the user can see what

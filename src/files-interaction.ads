@@ -130,7 +130,9 @@ package Files.Interaction is
    --  Apply a right-click: select the right-clicked item (matching desktop
    --  convention) and open the context menu, unless a modal overlay is open, in
    --  which case the menu is closed. The shell supplies the geometry-derived
-   --  In_Main flag and Item_Index (from Item_At); overlay state is read here.
+   --  In_Main flag and Item_Index (from Item_At); overlay state is read here. A
+   --  right-click on the details-view column header (In_Details_Header) opens the
+   --  column-configuration menu and takes precedence over the item/empty menus.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by item-click selection.
@@ -138,15 +140,17 @@ package Files.Interaction is
    --  @param Item_Index Visible item index under the cursor, or zero when none.
    --  @param X Window-space X coordinate of the click.
    --  @param Y Window-space Y coordinate of the click.
+   --  @param In_Details_Header True when the click landed on the details header.
    --  @param Result Follow-up flags describing the context-menu change.
    procedure Apply_Right_Click
-     (Model      : in out Files.Model.Window_Model;
-      Settings   : Files.Settings.Settings_Model;
-      In_Main    : Boolean;
-      Item_Index : Natural;
-      X          : Natural;
-      Y          : Natural;
-      Result     : out Interaction_Result);
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : Files.Settings.Settings_Model;
+      In_Main           : Boolean;
+      Item_Index        : Natural;
+      X                 : Natural;
+      Y                 : Natural;
+      Result            : out Interaction_Result;
+      In_Details_Header : Boolean := False);
 
    --  Apply one step of a details-header column-resize drag. Sets Column's
    --  persisted width to its width at drag start adjusted by how far the pointer

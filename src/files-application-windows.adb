@@ -1415,16 +1415,20 @@ package body Files.Application.Windows is
               and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
             Item_Index : constant Natural :=
               (if In_Main then Files.Rendering.Item_At (Item_Layout, X, Y) else 0);
+            In_Details_Header : constant Boolean :=
+              Files.Rendering.Details_Header_Cell_At
+                (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
             Result : Files.Interaction.Interaction_Result;
          begin
             Files.Interaction.Apply_Right_Click
-              (Model      => Runtime.Model,
-               Settings   => Runtime.Settings,
-               In_Main    => In_Main,
-               Item_Index => Item_Index,
-               X          => X,
-               Y          => Y,
-               Result     => Result);
+              (Model             => Runtime.Model,
+               Settings          => Runtime.Settings,
+               In_Main           => In_Main,
+               Item_Index        => Item_Index,
+               X                 => X,
+               Y                 => Y,
+               Result            => Result,
+               In_Details_Header => In_Details_Header);
             Apply_Interaction_Result (Runtime, Result);
          end;
       end loop;

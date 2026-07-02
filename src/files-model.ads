@@ -1333,14 +1333,16 @@ package Files.Model is
    type Context_Menu_Target is
      (Context_Menu_None,
       Context_Menu_Item,
-      Context_Menu_Empty);
+      Context_Menu_Empty,
+      Context_Menu_Header);
 
    --  Open the right-click context menu at the given window position.
    --
    --  @param Model Model to update.
    --  @param X Window-space X coordinate of the cursor.
    --  @param Y Window-space Y coordinate of the cursor.
-   --  @param Target Whether the menu is anchored on an item or the empty grid.
+   --  @param Target Whether the menu is anchored on an item, the empty grid, or
+   --    the details-view column header.
    --  @param Item_Index Visible item index when the menu is anchored on a row.
    procedure Open_Context_Menu
      (Model      : in out Window_Model;
