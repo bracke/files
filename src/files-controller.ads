@@ -219,7 +219,10 @@ package Files.Controller is
       Modifiers     : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
       return Controller_Result;
 
-   --  Import paths dropped into the current window.
+   --  Import paths dropped into the current window through the paste engine, so
+   --  a drop gets the same conflict dialog and resumable progress/cancel overlay
+   --  as clipboard paste (a name collision arms the dialog instead of silently
+   --  auto-renaming).
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.

@@ -1473,12 +1473,15 @@ package Files.Model is
    --  @param Existing Destination paths that already exist.
    --  @param Mode Copy or move mode for the whole batch.
    --  @param Index One-based index of the first unresolved conflict.
+   --  @param Clear_Clipboard Whether finalizing a move should clear the
+   --    clipboard (True for clipboard paste, False for drag-and-drop).
    procedure Begin_Paste_Conflict
-     (Model    : in out Window_Model;
-      Items    : Files.Paste.Work_Item_Vectors.Vector;
-      Existing : Files.Types.String_Vectors.Vector;
-      Mode     : Files.File_System.Drop_Import_Mode;
-      Index    : Positive);
+     (Model           : in out Window_Model;
+      Items           : Files.Paste.Work_Item_Vectors.Vector;
+      Existing        : Files.Types.String_Vectors.Vector;
+      Mode            : Files.File_System.Drop_Import_Mode;
+      Index           : Positive;
+      Clear_Clipboard : Boolean := True);
 
    --  Whether the pending paste-conflict dialog is active.
    --
@@ -1527,6 +1530,14 @@ package Files.Model is
    function Paste_Conflict_Mode
      (Model : Window_Model)
       return Files.File_System.Drop_Import_Mode;
+
+   --  Whether finalizing this paste's move should clear the clipboard.
+   --
+   --  @param Model Model to inspect.
+   --  @return True for a clipboard-originated paste, False for drag-and-drop.
+   function Paste_Conflict_Clears_Clipboard
+     (Model : Window_Model)
+      return Boolean;
 
    --  The one-based index of the conflict currently shown, or 0 when inactive.
    --
@@ -1598,10 +1609,13 @@ package Files.Model is
    --  @param Model Model to update.
    --  @param Actions Fully resolved paste actions (post conflict resolution).
    --  @param Mode Copy or move mode for the whole batch.
+   --  @param Clear_Clipboard Whether finalizing a move should clear the
+   --    clipboard (True for clipboard paste, False for drag-and-drop).
    procedure Begin_Paste_Execution
-     (Model   : in out Window_Model;
-      Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode    : Files.File_System.Drop_Import_Mode);
+     (Model           : in out Window_Model;
+      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
+      Mode            : Files.File_System.Drop_Import_Mode;
+      Clear_Clipboard : Boolean := True);
 
    --  Whether a resumable paste execution is currently in flight.
    --
@@ -1642,6 +1656,14 @@ package Files.Model is
    function Paste_Execution_Mode
      (Model : Window_Model)
       return Files.File_System.Drop_Import_Mode;
+
+   --  Whether finalizing this execution's move should clear the clipboard.
+   --
+   --  @param Model Model to inspect.
+   --  @return True for a clipboard-originated paste, False for drag-and-drop.
+   function Paste_Execution_Clears_Clipboard
+     (Model : Window_Model)
+      return Boolean;
 
    --  Whether the armed execution has been asked to cancel.
    --
@@ -1884,6 +1906,7 @@ private
         Files.File_System.Drop_Copy;
       Paste_Conflict_Index_Value     : Natural := 0;
       Paste_Conflict_Apply_All_Value : Boolean := False;
+      Paste_Conflict_Clears_Clip_Val : Boolean := True;
       Paste_Exec_Active_Value        : Boolean := False;
       Paste_Exec_Actions_Value       : Files.Paste.Resolved_Action_Vectors.Vector;
       Paste_Exec_Cursor_Value        : Natural := 0;
@@ -1892,6 +1915,7 @@ private
       Paste_Exec_Mode_Value          : Files.File_System.Drop_Import_Mode :=
         Files.File_System.Drop_Copy;
       Paste_Exec_Cancelled_Value     : Boolean := False;
+      Paste_Exec_Clears_Clip_Value   : Boolean := True;
       Paste_Exec_Current_Value       : UString;
       Paste_Exec_First_Dest_Value    : UString;
       Paste_Exec_Undo_From_Value     : Files.Types.String_Vectors.Vector;

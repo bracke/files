@@ -1248,8 +1248,13 @@ package body Files.Controller is
       Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Controller_Result
    is
+      --  Route drops through the paste engine so a drag-and-drop import gets the
+      --  same conflict dialog and resumable progress/cancel overlay as clipboard
+      --  paste. From_Clipboard => False keeps a dropped move from clearing an
+      --  unrelated clipboard selection on finalize.
       Operation : constant Files.Operations.Operation_Result :=
-        Files.Operations.Import_Dropped_Paths (Model, Settings, Source_Paths, Mode);
+        Files.Operations.Begin_Paste
+          (Model, Settings, Source_Paths, Mode, From_Clipboard => False);
    begin
       return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
    end Handle_Drop_Import;

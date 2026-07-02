@@ -3293,16 +3293,18 @@ package body Files.Model is
    end Undo_To_Paths;
 
    procedure Begin_Paste_Conflict
-     (Model    : in out Window_Model;
-      Items    : Files.Paste.Work_Item_Vectors.Vector;
-      Existing : Files.Types.String_Vectors.Vector;
-      Mode     : Files.File_System.Drop_Import_Mode;
-      Index    : Positive) is
+     (Model           : in out Window_Model;
+      Items           : Files.Paste.Work_Item_Vectors.Vector;
+      Existing        : Files.Types.String_Vectors.Vector;
+      Mode            : Files.File_System.Drop_Import_Mode;
+      Index           : Positive;
+      Clear_Clipboard : Boolean := True) is
    begin
       Model.Paste_Conflict_Active_Value := True;
       Model.Paste_Conflict_Items_Value := Items;
       Model.Paste_Conflict_Existing_Value := Existing;
       Model.Paste_Conflict_Mode_Value := Mode;
+      Model.Paste_Conflict_Clears_Clip_Val := Clear_Clipboard;
       Model.Paste_Conflict_Policy_Value := Files.Paste.Policy_Ask;
       Model.Paste_Conflict_Apply_All_Value := False;
       Model.Paste_Conflict_Index_Value := Index;
@@ -3353,6 +3355,13 @@ package body Files.Model is
    begin
       return Model.Paste_Conflict_Mode_Value;
    end Paste_Conflict_Mode;
+
+   function Paste_Conflict_Clears_Clipboard
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Paste_Conflict_Clears_Clip_Val;
+   end Paste_Conflict_Clears_Clipboard;
 
    function Paste_Conflict_Index
      (Model : Window_Model)
@@ -3425,12 +3434,14 @@ package body Files.Model is
       Model.Paste_Conflict_Mode_Value := Files.File_System.Drop_Copy;
       Model.Paste_Conflict_Index_Value := 0;
       Model.Paste_Conflict_Apply_All_Value := False;
+      Model.Paste_Conflict_Clears_Clip_Val := True;
    end Clear_Paste_Conflict;
 
    procedure Begin_Paste_Execution
-     (Model   : in out Window_Model;
-      Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode    : Files.File_System.Drop_Import_Mode)
+     (Model           : in out Window_Model;
+      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
+      Mode            : Files.File_System.Drop_Import_Mode;
+      Clear_Clipboard : Boolean := True)
    is
       Writes : Natural := 0;
    begin
@@ -3446,6 +3457,7 @@ package body Files.Model is
       Model.Paste_Exec_Done_Value := 0;
       Model.Paste_Exec_Total_Value := Writes;
       Model.Paste_Exec_Mode_Value := Mode;
+      Model.Paste_Exec_Clears_Clip_Value := Clear_Clipboard;
       Model.Paste_Exec_Cancelled_Value := False;
       Model.Paste_Exec_Current_Value := Null_Unbounded_String;
       Model.Paste_Exec_First_Dest_Value := Null_Unbounded_String;
@@ -3487,6 +3499,13 @@ package body Files.Model is
    begin
       return Model.Paste_Exec_Mode_Value;
    end Paste_Execution_Mode;
+
+   function Paste_Execution_Clears_Clipboard
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Paste_Exec_Clears_Clip_Value;
+   end Paste_Execution_Clears_Clipboard;
 
    function Paste_Execution_Cancelled
      (Model : Window_Model)
@@ -3575,6 +3594,7 @@ package body Files.Model is
       Model.Paste_Exec_Done_Value := 0;
       Model.Paste_Exec_Total_Value := 0;
       Model.Paste_Exec_Mode_Value := Files.File_System.Drop_Copy;
+      Model.Paste_Exec_Clears_Clip_Value := True;
       Model.Paste_Exec_Cancelled_Value := False;
       Model.Paste_Exec_Current_Value := Null_Unbounded_String;
       Model.Paste_Exec_First_Dest_Value := Null_Unbounded_String;

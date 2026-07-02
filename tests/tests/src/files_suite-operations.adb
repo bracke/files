@@ -136,6 +136,8 @@ package body Files_Suite.Operations is
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Import_Progress (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_To_Into_Self_Guard (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -217,6 +219,12 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Execution_Small_Op'Access,
          "a one-item paste finishes in the first advance and leaves no execution state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Import_Conflict_Flow'Access,
+         "a colliding drag-and-drop import arms the conflict dialog, resolves replace/skip/rename, and undoes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Import_Progress'Access,
+         "a collision-free drag-and-drop import imports every source through the resumable executor");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_To_Picker_Flow'Access,
          "copy-to opens the picker, copies to the chosen dir, keeps originals, and undo removes copies");
@@ -1730,12 +1738,23 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, Drop_Target, Load.Items, Root);
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Source_File));
+      --  Dropping onto a name that already exists now arms the paste conflict
+      --  dialog (routed through the engine) instead of silently auto-renaming.
       Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
       Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "controller drop import succeeds");
       Assert
+        (Files.Model.Paste_Conflict_Is_Active (Model),
+         "a colliding drop arms the conflict dialog instead of auto-renaming");
+      Assert
+        (Files.Model.Paste_Conflict_Name (Model) = "drop-source.txt",
+         "the drop conflict dialog names the colliding item");
+      Routed.Operation :=
+        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop conflict clears the dialog");
+      Assert
         (Ada.Directories.Exists (Join (Drop_Target, "drop-source 2.txt")),
-         "controller drop import chooses collision-safe destination");
-      Assert (Files.Model.Item_Count (Model) = 3, "controller drop import refreshes destination model");
+         "renaming the drop conflict writes a collision-safe destination");
+      Assert (Files.Model.Item_Count (Model) = 3, "resolved drop import refreshes destination model");
 
       Ada.Directories.Create_Path (Join (Drop_Target, "nested-target"));
       Write_File (Join (Drop_Target, "drag-source.txt"), "drag");
@@ -1743,16 +1762,22 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, Drop_Target, Load.Items, Root);
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Join (Drop_Target, "drag-source.txt")));
+      --  A drop onto a specific folder row routes through Begin_Paste_To; with
+      --  no name collision it executes the move immediately.
       Routed.Operation :=
-        Files.Operations.Import_Dropped_Paths_To
-          (Model                 => Model,
-           Settings              => Settings,
-           Source_Paths          => Sources,
-           Destination_Directory => Join (Drop_Target, "nested-target"),
-           Mode                  => Files.File_System.Drop_Move);
+        Files.Operations.Begin_Paste_To
+          (Model          => Model,
+           Settings       => Settings,
+           Source_Paths   => Sources,
+           Destination    => Join (Drop_Target, "nested-target"),
+           Mode           => Files.File_System.Drop_Move,
+           From_Clipboard => False);
       Assert
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "item drag import can target a specific directory");
+      Assert
+        (not Files.Model.Paste_Conflict_Is_Active (Model),
+         "a collision-free targeted drop executes without arming the dialog");
       Assert
         (Ada.Directories.Exists (Join (Join (Drop_Target, "nested-target"), "drag-source.txt")),
          "item drag import moves the source into the target directory");
@@ -4502,6 +4527,164 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the one-item paste clears its execution state");
       Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");
    end Test_Paste_Execution_Small_Op;
+
+   procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "dropc-src");
+      Dest_Dir : constant String := Join (Root, "dropc-dest");
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+
+      function Read (Path : String) return String is
+         Raw : constant String := Project_Tools.Files.Read_Raw_File (Path);
+      begin
+         if Raw'Length > 0 and then Raw (Raw'Last) = ASCII.LF then
+            return Raw (Raw'First .. Raw'Last - 1);
+         end if;
+         return Raw;
+      end Read;
+
+      --  Reset the fixture and initialize the model on the destination directory
+      --  (the drop target), returning the single external source to drop.
+      function Prepare return Files.Types.String_Vectors.Vector is
+         Load    : Files.File_System.Directory_Load_Result;
+         Sources : Files.Types.String_Vectors.Vector;
+      begin
+         Reset_Root;
+         Ada.Directories.Create_Path (Src_Dir);
+         Ada.Directories.Create_Path (Dest_Dir);
+         Write_File (Join (Src_Dir, "a.txt"), "SRC");
+         Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+         Sources.Append (To_Unbounded_String (Join (Src_Dir, "a.txt")));
+         return Sources;
+      end Prepare;
+   begin
+      --  Replace: the dropped source overwrites the colliding destination.
+      declare
+         Sources : constant Files.Types.String_Vectors.Vector := Prepare;
+      begin
+         Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Assert
+           (Routed.Operation.Status = Files.Operations.Operation_Success,
+            "an armed drop conflict reports success without writing");
+         Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding drop arms the conflict dialog");
+         Assert (Files.Model.Paste_Conflict_Name (Model) = "a.txt", "the drop dialog names the colliding item");
+         Routed.Operation :=
+           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+         Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop clears the dialog");
+         Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC", "replace overwrites the destination with the dropped source");
+      end;
+
+      --  Skip: the destination and the source both stay untouched.
+      declare
+         Sources : constant Files.Types.String_Vectors.Vector := Prepare;
+      begin
+         Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Routed.Operation :=
+           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+         Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "skip leaves the drop destination untouched");
+         Assert (Ada.Directories.Exists (Join (Src_Dir, "a.txt")), "skip leaves the dropped source in place");
+      end;
+
+      --  Rename: a uniquely named copy is written, then undo removes it.
+      declare
+         Sources : constant Files.Types.String_Vectors.Vector := Prepare;
+      begin
+         Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+         Routed.Operation :=
+           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+         Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "rename keeps the original drop destination");
+         Assert (Read (Join (Dest_Dir, "a 2.txt")) = "SRC", "rename writes the dropped source under a unique name");
+         Routed.Operation := Files.Operations.Undo_Last (Model, Settings);
+         Assert
+           (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")),
+            "undo reverses a completed drag-and-drop import");
+         Assert (Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "undo keeps the pre-existing original");
+      end;
+
+      --  A drag-and-drop move must not clear an unrelated clipboard selection.
+      declare
+         Load      : Files.File_System.Directory_Load_Result;
+         Sources   : Files.Types.String_Vectors.Vector;
+         Clip      : Files.Types.String_Vectors.Vector;
+      begin
+         Reset_Root;
+         Ada.Directories.Create_Path (Src_Dir);
+         Ada.Directories.Create_Path (Dest_Dir);
+         Write_File (Join (Src_Dir, "m.txt"), "MOVE");
+         Write_File (Join (Dest_Dir, "clip.txt"), "CLIP");
+         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+         Clip.Append (To_Unbounded_String (Join (Dest_Dir, "clip.txt")));
+         Files.Model.Set_Clipboard (Model, Clip, Files.Model.Clipboard_Copy);
+         Sources.Append (To_Unbounded_String (Join (Src_Dir, "m.txt")));
+         Routed :=
+           Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System.Drop_Move);
+         Assert
+           (Routed.Operation.Status = Files.Operations.Operation_Success,
+            "a collision-free dropped move succeeds");
+         Assert
+           (Ada.Directories.Exists (Join (Dest_Dir, "m.txt")),
+            "a collision-free dropped move imports the source");
+         Assert (not Ada.Directories.Exists (Join (Src_Dir, "m.txt")), "a dropped move removes the source");
+         Assert
+           (Files.Model.Clipboard_Has_Items (Model),
+            "a dropped move does not clear the unrelated clipboard selection");
+      end;
+   end Test_Drop_Import_Conflict_Flow;
+
+   procedure Test_Drop_Import_Progress (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "dropp-src");
+      Dest_Dir : constant String := Join (Root, "dropp-dest");
+      Count    : constant := 40;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Sources  : Files.Types.String_Vectors.Vector;
+      Routed   : Files.Controller.Controller_Result;
+      Step     : Files.Operations.Operation_Result;
+
+      function Img (N : Integer) return String is
+      begin
+         return Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both);
+      end Img;
+
+      function Src (N : Positive) return String is (Join (Src_Dir, "f" & Img (N) & ".txt"));
+      function Dest (N : Positive) return String is (Join (Dest_Dir, "f" & Img (N) & ".txt"));
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      for N in 1 .. Count loop
+         Write_File (Src (N), "S" & Img (N));
+         Sources.Append (To_Unbounded_String (Src (N)));
+      end loop;
+
+      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+
+      --  A collision-free drop arms the resumable executor and runs the first
+      --  batch; a set larger than one batch keeps the progress state active.
+      Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "large drop import reports success");
+      Assert (Files.Model.Paste_Execution_Is_Active (Model), "a large drop keeps the progress executor active");
+      Assert (Files.Model.Paste_Execution_Total (Model) = Count, "the drop progress total counts every source");
+      Assert (Files.Model.Paste_Execution_Done (Model) < Count, "the first drop batch does not finish the whole set");
+
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, Count);
+      Assert (Step.Status = Files.Operations.Operation_Success, "advancing the drop executor reports success");
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the drop executor finalizes after the last batch");
+
+      for N in 1 .. Count loop
+         Assert (Ada.Directories.Exists (Dest (N)), "every dropped source is imported to the destination");
+         Assert (Ada.Directories.Exists (Src (N)), "a dropped copy leaves the sources in place");
+      end loop;
+      Assert (Files.Model.Item_Count (Model) = Count, "the collision-free drop refreshes the destination model");
+   end Test_Drop_Import_Progress;
 
    --  Confirm the destination picker through the real interaction reducer.
    procedure Confirm_Pick

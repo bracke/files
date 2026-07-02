@@ -1748,71 +1748,6 @@ package body Files.Operations is
       return Make_Result (Operation_Success, Path => To_String (First_Path));
    end Generate_Selected_Thumbnails;
 
-   function Import_Dropped_Paths
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
-      return Operation_Result
-   is
-      Plans : Files.File_System.Drop_Import_Result;
-   begin
-      if Source_Paths.Is_Empty then
-         return Disabled (Model, "error.drop.invalid_source");
-      end if;
-
-      Plans := Files.File_System.Plan_Drop_Import (Source_Paths, Files.Model.Current_Path (Model), Mode);
-      if not Plans.Success then
-         Files.Model.Set_Error (Model, To_String (Plans.Error_Key));
-         return Make_Result (Operation_Failed, To_String (Plans.Error_Key), Files.Model.Current_Path (Model));
-      end if;
-
-      declare
-         Mutation : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Execute_Drop_Import (Plans.Plans);
-      begin
-         if not Mutation.Success then
-            --  Execute_Drop_Import is non-atomic: a mid-batch failure may have
-            --  already moved/copied earlier entries (and removed move sources).
-            --  Refresh the view to reflect on-disk state, then restore the
-            --  import error so the user still sees what failed.
-            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            declare
-               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-               pragma Unreferenced (Reload);
-            begin
-               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            end;
-            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Files.Model.Current_Path (Model));
-         end if;
-      end;
-
-      if Mode = Files.File_System.Drop_Move and then not Plans.Plans.Is_Empty then
-         declare
-            Undo_From : Files.Types.String_Vectors.Vector;
-            Undo_To   : Files.Types.String_Vectors.Vector;
-         begin
-            for Plan of Plans.Plans loop
-               Undo_From.Append (Plan.Destination_Path);
-               Undo_To.Append (Plan.Source_Path);
-            end loop;
-            Files.Model.Record_Undo (Model, Files.Model.Undo_Move, Undo_From, Undo_To);
-         end;
-      end if;
-
-      declare
-         First_Path : constant String :=
-           (if Plans.Plans.Is_Empty then "" else To_String (Plans.Plans.First_Element.Destination_Path));
-         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-      begin
-         if Reload.Status /= Operation_Success then
-            return Reload;
-         end if;
-
-         return Make_Result (Operation_Success, Path => First_Path);
-      end;
-   end Import_Dropped_Paths;
-
    --  Full paths of every entry directly inside Directory (hidden entries
    --  included). Used as the "already exists" set for conflict detection and for
    --  rename uniquification, so a renamed paste avoids any existing name, not
@@ -1925,9 +1860,13 @@ package body Files.Operations is
                Files.Types.String_Vectors.Empty_Vector);
          end if;
 
-         --  A move consumes the clipboard once the paste has run (even if it was
-         --  cancelled part-way, the completed sources have already moved).
-         if Mode = Files.File_System.Drop_Move then
+         --  A clipboard cut/move consumes the clipboard once the paste has run
+         --  (even if it was cancelled part-way, the completed sources have
+         --  already moved). A drag-and-drop move never touches the clipboard, so
+         --  it must not clear an unrelated clipboard selection.
+         if Mode = Files.File_System.Drop_Move
+           and then Files.Model.Paste_Execution_Clears_Clipboard (Model)
+         then
             Files.Model.Clear_Clipboard (Model);
          end if;
       end if;
@@ -2037,22 +1976,24 @@ package body Files.Operations is
    end Cancel_Paste_Execution;
 
    function Begin_Paste
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Source_Paths   : Files.Types.String_Vectors.Vector;
+      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      From_Clipboard : Boolean := True)
       return Operation_Result is
    begin
       return Begin_Paste_To
-        (Model, Settings, Source_Paths, Files.Model.Current_Path (Model), Mode);
+        (Model, Settings, Source_Paths, Files.Model.Current_Path (Model), Mode, From_Clipboard);
    end Begin_Paste;
 
    function Begin_Paste_To
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Destination  : String;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Source_Paths   : Files.Types.String_Vectors.Vector;
+      Destination    : String;
+      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      From_Clipboard : Boolean := True)
       return Operation_Result
    is
       Directory : constant String := Destination;
@@ -2090,12 +2031,12 @@ package body Files.Operations is
                    (Work, Files.Paste.Policy_Ask,
                     Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
             begin
-               Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
+               Files.Model.Begin_Paste_Execution (Model, Actions, Mode, From_Clipboard);
                return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
             end;
          else
             --  Collisions remain: arm the conflict dialog and write nothing yet.
-            Files.Model.Begin_Paste_Conflict (Model, Work, Existing, Mode, Conflict);
+            Files.Model.Begin_Paste_Conflict (Model, Work, Existing, Mode, Conflict, From_Clipboard);
             Files.Model.Set_Error (Model, "");
             return Make_Result (Operation_Success, Path => Directory);
          end if;
@@ -2163,67 +2104,21 @@ package body Files.Operations is
          declare
             Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
               Files.Paste.Resolve (Work, Policy, Overrides, Existing);
+            --  Carry the clipboard-clearing intent (clipboard paste vs
+            --  drag-and-drop) captured when the conflict dialog was armed, since
+            --  Clear_Paste_Conflict below resets it.
+            Clears_Clipboard : constant Boolean :=
+              Files.Model.Paste_Conflict_Clears_Clipboard (Model);
          begin
             --  Leave the conflict sub-mode, arm the resumable execution over the
             --  resolved actions, and run the first batch (small pastes finish
             --  here; larger ones continue under the render loop).
             Files.Model.Clear_Paste_Conflict (Model);
-            Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
+            Files.Model.Begin_Paste_Execution (Model, Actions, Mode, Clears_Clipboard);
             return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
          end;
       end;
    end Resolve_Paste_Conflict;
-
-   function Import_Dropped_Paths_To
-     (Model                 : in out Files.Model.Window_Model;
-      Settings              : Files.Settings.Settings_Model;
-      Source_Paths          : Files.Types.String_Vectors.Vector;
-      Destination_Directory : String;
-      Mode                  : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
-      return Operation_Result
-   is
-      Plans : Files.File_System.Drop_Import_Result;
-   begin
-      if Source_Paths.Is_Empty then
-         return Disabled (Model, "error.drop.invalid_source");
-      end if;
-
-      Plans := Files.File_System.Plan_Drop_Import (Source_Paths, Destination_Directory, Mode);
-      if not Plans.Success then
-         Files.Model.Set_Error (Model, To_String (Plans.Error_Key));
-         return Make_Result (Operation_Failed, To_String (Plans.Error_Key), Destination_Directory);
-      end if;
-
-      declare
-         Mutation : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Execute_Drop_Import (Plans.Plans);
-      begin
-         if not Mutation.Success then
-            --  Non-atomic import: refresh so the view reflects on-disk state
-            --  after a mid-batch failure, then restore the import error.
-            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            declare
-               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-               pragma Unreferenced (Reload);
-            begin
-               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            end;
-            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Destination_Directory);
-         end if;
-      end;
-
-      declare
-         First_Path : constant String :=
-           (if Plans.Plans.Is_Empty then "" else To_String (Plans.Plans.First_Element.Destination_Path));
-         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
-      begin
-         if Reload.Status /= Operation_Success then
-            return Reload;
-         end if;
-
-         return Make_Result (Operation_Success, Path => First_Path);
-      end;
-   end Import_Dropped_Paths_To;
 
    function Commit_Create_File
      (Model    : in out Files.Model.Window_Model;

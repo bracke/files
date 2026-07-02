@@ -1334,13 +1334,17 @@ package body Files.Application.Windows is
             return;
          end if;
 
+         --  Route the drop onto a folder row through the paste engine so it
+         --  gets the conflict dialog and progress/cancel overlay. From_Clipboard
+         --  is False: a dropped move must not clear an unrelated clipboard.
          Result :=
-           Files.Operations.Import_Dropped_Paths_To
-             (Model                 => Runtime.Model,
-              Settings              => Runtime.Settings,
-              Source_Paths          => Sources,
-              Destination_Directory => To_String (Target.Full_Path),
-              Mode                  => Mode);
+           Files.Operations.Begin_Paste_To
+             (Model          => Runtime.Model,
+              Settings       => Runtime.Settings,
+              Source_Paths   => Sources,
+              Destination    => To_String (Target.Full_Path),
+              Mode           => Mode,
+              From_Clipboard => False);
       end;
 
       pragma Unreferenced (Result);

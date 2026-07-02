@@ -376,20 +376,6 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  Import dropped paths into the current directory and refresh the model.
-   --
-   --  @param Model Window model receiving the dropped paths.
-   --  @param Settings Settings model used for directory reload classification.
-   --  @param Source_Paths Dropped filesystem paths.
-   --  @param Mode Copy or move mode.
-   --  @return Structured operation result with first imported destination path.
-   function Import_Dropped_Paths
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
-      return Operation_Result;
-
    --  A user's answer to a paste-conflict prompt (mirrors the dialog buttons).
    type Conflict_Choice is
      (Choice_Replace,
@@ -406,37 +392,48 @@ package Files.Operations is
    --  the model enters the pending paste-conflict sub-mode so the shell can show
    --  the conflict dialog; nothing is written until the user resolves them.
    --
+   --  Also the entry point for drag-and-drop imports into the current directory:
+   --  callers pass From_Clipboard => False so that finalizing a move does not
+   --  clear the (unrelated) clipboard.
+   --
    --  @param Model Window model receiving the pasted paths.
    --  @param Settings Settings model used for directory reload classification.
-   --  @param Source_Paths Clipboard source paths.
+   --  @param Source_Paths Clipboard or dropped source paths.
    --  @param Mode Copy or move (cut) mode.
+   --  @param From_Clipboard True for a clipboard paste (a completed move clears
+   --    the clipboard), False for a drag-and-drop import.
    --  @return Success when executed or when the dialog was armed; a failure
    --    result with a localized error key on a validation failure.
    function Begin_Paste
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Source_Paths   : Files.Types.String_Vectors.Vector;
+      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      From_Clipboard : Boolean := True)
       return Operation_Result;
 
    --  Begin a copy or move of the given sources into an explicit destination
    --  directory, using the same collision handling and resumable progress
    --  execution as Begin_Paste (which is this with Destination = current path).
-   --  Used by the Copy to.../Move to... destination picker.
+   --  Used by the Copy to.../Move to... destination picker and by drag-and-drop
+   --  imports onto a specific target directory.
    --
    --  @param Model Window model receiving the operation.
    --  @param Settings Settings model used for directory reload classification.
    --  @param Source_Paths Source paths to copy or move.
    --  @param Destination Directory that receives the entries.
    --  @param Mode Copy or move mode.
+   --  @param From_Clipboard True for a clipboard paste (a completed move clears
+   --    the clipboard), False for a drag-and-drop import.
    --  @return Success when executed or when the conflict dialog was armed; a
    --    failure result with a localized error key on a validation failure.
    function Begin_Paste_To
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Source_Paths : Files.Types.String_Vectors.Vector;
-      Destination  : String;
-      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Source_Paths   : Files.Types.String_Vectors.Vector;
+      Destination    : String;
+      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      From_Clipboard : Boolean := True)
       return Operation_Result;
 
    --  Apply one conflict decision to the pending paste. Records the choice
@@ -484,22 +481,6 @@ package Files.Operations is
    --  @param Model Window model holding the armed execution.
    procedure Cancel_Paste_Execution
      (Model : in out Files.Model.Window_Model);
-
-   --  Import dropped paths into a specific destination directory.
-   --
-   --  @param Model Window model to refresh after a successful import.
-   --  @param Settings Settings model used for directory classification.
-   --  @param Source_Paths Paths received from a drag-and-drop operation.
-   --  @param Destination_Directory Directory receiving the dropped entries.
-   --  @param Mode Copy or move mode for all valid plans.
-   --  @return Structured operation result.
-   function Import_Dropped_Paths_To
-     (Model                 : in out Files.Model.Window_Model;
-      Settings              : Files.Settings.Settings_Model;
-      Source_Paths          : Files.Types.String_Vectors.Vector;
-      Destination_Directory : String;
-      Mode                  : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
-      return Operation_Result;
 
    --  Commit the active create-file temporary item to the filesystem.
    --
