@@ -60,6 +60,7 @@ package body Files.Application.Windows is
       Tracked_C,
       Tracked_D,
       Tracked_F,
+      Tracked_I,
       Tracked_L,
       Tracked_N,
       Tracked_P,
@@ -669,6 +670,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.D;
          when Tracked_F =>
             return Glfw.Input.Keys.F;
+         when Tracked_I =>
+            return Glfw.Input.Keys.I;
          when Tracked_L =>
             return Glfw.Input.Keys.L;
          when Tracked_N =>
@@ -753,6 +756,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_D;
          when Tracked_F =>
             return Files.Types.Key_F;
+         when Tracked_I =>
+            return Files.Types.Key_I;
          when Tracked_L =>
             return Files.Types.Key_L;
          when Tracked_N =>

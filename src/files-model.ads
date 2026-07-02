@@ -228,6 +228,23 @@ package Files.Model is
    procedure Clear_Selection
      (Model : in out Window_Model);
 
+   --  Invert the selection across the currently visible loaded items.
+   --
+   --  Every visible directory item that is currently selected becomes
+   --  unselected and every visible unselected item becomes selected. The
+   --  current directory and view stay intact. Temporary create-file items are
+   --  excluded because they do not exist on disk until committed.
+   --
+   --  @param Model Model to update.
+   procedure Invert_Selection
+     (Model : in out Window_Model);
+
+   --  Clear the entire selection (deselect all visible items).
+   --
+   --  @param Model Model to update.
+   procedure Deselect_All
+     (Model : in out Window_Model);
+
    --  Move selection in the visible projection with wraparound.
    --
    --  @param Model Model to update.

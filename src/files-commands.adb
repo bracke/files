@@ -154,6 +154,10 @@ package body Files.Commands is
             return "filter.clear";
          when Select_All_Command =>
             return "selection.select_all";
+         when Invert_Selection_Command =>
+            return "selection.invert";
+         when Deselect_All_Command =>
+            return "selection.deselect_all";
          when Search_Recursive_Command =>
             return "directory.search_recursive";
          when Refresh_Directory_Command =>
@@ -286,6 +290,10 @@ package body Files.Commands is
             return "command.filter.clear";
          when Select_All_Command =>
             return "command.selection.select_all";
+         when Invert_Selection_Command =>
+            return "command.selection.invert";
+         when Deselect_All_Command =>
+            return "command.selection.deselect_all";
          when Search_Recursive_Command =>
             return "command.directory.search_recursive";
          when Refresh_Directory_Command =>
@@ -418,6 +426,10 @@ package body Files.Commands is
             return "command.filter.clear.description";
          when Select_All_Command =>
             return "command.selection.select_all.description";
+         when Invert_Selection_Command =>
+            return "command.selection.invert.description";
+         when Deselect_All_Command =>
+            return "command.selection.deselect_all.description";
          when Search_Recursive_Command =>
             return "command.directory.search_recursive.description";
          when Refresh_Directory_Command =>
@@ -503,6 +515,10 @@ package body Files.Commands is
             return (True, Files.Types.Key_N, Ctrl);
          when Select_All_Command =>
             return (True, Files.Types.Key_A, Ctrl);
+         when Invert_Selection_Command =>
+            return (True, Files.Types.Key_I, Ctrl);
+         when Deselect_All_Command =>
+            return (True, Files.Types.Key_A, Ctrl_Shift);
          when Open_Command_Palette_Command =>
             return (True, Files.Types.Key_P, Ctrl);
          when Focus_Filter_Input_Command =>
@@ -583,6 +599,8 @@ package body Files.Commands is
             return "d";
          when Files.Types.Key_F =>
             return "f";
+         when Files.Types.Key_I =>
+            return "i";
          when Files.Types.Key_L =>
             return "l";
          when Files.Types.Key_N =>
@@ -783,6 +801,8 @@ package body Files.Commands is
             | Eject_Selected_Root_Command =>
             return Command_Palette_Only;
          when Select_All_Command
+            | Invert_Selection_Command
+            | Deselect_All_Command
             | Copy_Selected_Items_Command
             | Cut_Selected_Items_Command
             | Duplicate_Selected_Command
@@ -975,6 +995,11 @@ package body Files.Commands is
          when Select_All_Command =>
             return Files.Model.Visible_Count (Model) > 0
               and then not Files.Model.Temporary_Item_Is_Active (Model);
+         when Invert_Selection_Command =>
+            return Files.Model.Visible_Count (Model) > 0
+              and then not Files.Model.Temporary_Item_Is_Active (Model);
+         when Deselect_All_Command =>
+            return Files.Model.Selected_Count (Model) > 0;
          when Save_Settings_Command
             | Reset_Settings_Command =>
             return Files.Model.Settings_Pane_Is_Open (Model);
@@ -1139,6 +1164,10 @@ package body Files.Commands is
             Files.Model.Clear_Filter (Model);
          when Select_All_Command =>
             Files.Model.Select_All_Visible (Model);
+         when Invert_Selection_Command =>
+            Files.Model.Invert_Selection (Model);
+         when Deselect_All_Command =>
+            Files.Model.Deselect_All (Model);
          when Search_Recursive_Command =>
             null;
          when Refresh_Directory_Command =>

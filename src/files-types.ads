@@ -141,6 +141,7 @@ package Files.Types is
       Key_C,
       Key_D,
       Key_F,
+      Key_I,
       Key_L,
       Key_N,
       Key_P,

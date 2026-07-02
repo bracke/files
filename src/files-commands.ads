@@ -46,6 +46,8 @@ package Files.Commands is
       Eject_Selected_Root_Command,
       Clear_Filter_Command,
       Select_All_Command,
+      Invert_Selection_Command,
+      Deselect_All_Command,
       Search_Recursive_Command,
       Refresh_Directory_Command,
       Save_Settings_Command,

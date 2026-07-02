@@ -205,6 +205,17 @@ package body Files_Suite.Commands is
         (not Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
          "create-hard-link disabled with no selection");
       Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
+         "deselect-all disabled with nothing selected");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Invert_Selection_Command, Model),
+         "invert-selection enabled with visible items");
+      Files.Model.Select_All_Visible (Model);
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
+         "deselect-all enabled with a non-empty selection");
+      Files.Model.Clear_Selection (Model);
+      Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Undo_Command, Model),
          "undo disabled with no recorded history");
       Assert
@@ -607,7 +618,7 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 61, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 63, "all expected commands are registered");
       Assert (Files.Commands.Contains ("navigate.parent"), "navigate-parent command identifier is registered");
       Assert (Files.Commands.Contains ("file.copy_to"), "copy-to command identifier is registered");
       Assert (Files.Commands.Contains ("file.move_to"), "move-to command identifier is registered");
@@ -626,6 +637,10 @@ package body Files_Suite.Commands is
       Assert (Files.Commands.Contains ("sort.created"), "sort by created command identifier is registered");
       Assert (Files.Commands.Contains ("sort.changed"), "sort by changed command identifier is registered");
       Assert (Files.Commands.Contains ("selection.select_all"), "select-all command identifier is registered");
+      Assert (Files.Commands.Contains ("selection.invert"), "invert-selection command identifier is registered");
+      Assert
+        (Files.Commands.Contains ("selection.deselect_all"),
+         "deselect-all command identifier is registered");
       Assert (Files.Commands.Contains ("settings.save"), "settings save command identifier is registered");
       Assert (Files.Commands.Contains ("settings.reset"), "settings reset command identifier is registered");
       Assert (Files.Commands.Contains ("drive.eject_selected"), "drive eject command identifier is registered");
@@ -1019,6 +1034,30 @@ package body Files_Suite.Commands is
         (Files.Commands.Placement_For (Files.Commands.Select_All_Command) =
            Files.Commands.Command_Palette_Only,
          "select-all command is palette-only metadata");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Invert_Selection_Command) =
+           Files.Commands.Placement_For (Files.Commands.Select_All_Command),
+         "invert-selection placement matches select-all");
+      Assert
+        (Files.Commands.Placement_For (Files.Commands.Deselect_All_Command) =
+           Files.Commands.Placement_For (Files.Commands.Select_All_Command),
+         "deselect-all placement matches select-all");
+      Assert
+        (Same_Shortcut
+           (Files.Commands.Shortcut_For (Files.Commands.Invert_Selection_Command),
+            (True, Files.Types.Key_I, Ctrl)),
+         "invert-selection uses Control+I");
+      Assert
+        (Same_Shortcut
+           (Files.Commands.Shortcut_For (Files.Commands.Deselect_All_Command),
+            (True, Files.Types.Key_A, Ctrl_Shift)),
+         "deselect-all uses Control+Shift+A");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_I, Ctrl) = Files.Commands.Invert_Selection_Command,
+         "Control+I resolves to invert-selection command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_A, Ctrl_Shift) = Files.Commands.Deselect_All_Command,
+         "Control+Shift+A resolves to deselect-all command");
       Assert
         (Files.Commands.Placement_For (Files.Commands.Delete_Selected_Permanently_Command) =
            Files.Commands.Command_Palette_Only,
