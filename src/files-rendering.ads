@@ -235,6 +235,11 @@ package Files.Rendering is
       Detail_Column_Widths           : Files.Types.Detail_Column_Widths :=
         Files.Types.Default_Detail_Column_Widths;
       Group_By                       : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      --  Pending paste-conflict dialog: open when a paste/move is paused waiting
+      --  for the user to resolve the colliding destination named Paste_Conflict_Name.
+      Paste_Conflict_Open            : Boolean := False;
+      Paste_Conflict_Name           : UString;
+      Paste_Conflict_Apply_All      : Boolean := False;
    end record;
 
    --  A context-menu row is either a selectable command or a non-selectable
@@ -401,6 +406,26 @@ package Files.Rendering is
       Width      : Natural := 0;
       Height     : Natural := 0;
       Row_Height : Natural := 0;
+   end record;
+
+   --  Geometry of the centered paste-conflict dialog: the outer panel, its four
+   --  action buttons (left to right) and the "apply to all" toggle row.
+   type Conflict_Dialog_Layout is record
+      X            : Natural := 0;
+      Y            : Natural := 0;
+      Width        : Natural := 0;
+      Height       : Natural := 0;
+      Apply_X      : Natural := 0;
+      Apply_Y      : Natural := 0;
+      Apply_Width  : Natural := 0;
+      Apply_Height : Natural := 0;
+      Button_Y      : Natural := 0;
+      Button_Height : Natural := 0;
+      Replace_X    : Natural := 0;
+      Skip_X       : Natural := 0;
+      Rename_X     : Natural := 0;
+      Cancel_X     : Natural := 0;
+      Button_Width : Natural := 0;
    end record;
 
    type Root_Path_Layout is record
@@ -743,6 +768,27 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Settings_Hit_Region);
 
+   --  Clickable controls of the paste-conflict dialog.
+   type Conflict_Hit_Kind is
+     (Conflict_Hit_None,
+      Conflict_Hit_Replace,
+      Conflict_Hit_Skip,
+      Conflict_Hit_Rename,
+      Conflict_Hit_Cancel,
+      Conflict_Hit_Apply_All);
+
+   type Conflict_Hit_Region is record
+      Kind   : Conflict_Hit_Kind := Conflict_Hit_None;
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   package Conflict_Hit_Region_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Conflict_Hit_Region);
+
    --  A clickable info-pane permission cell. Bit is the 0 .. 8 grid cell index
    --  in row-major order (rows user/group/other, columns read/write/execute),
    --  so the corresponding POSIX mode bit is 2 ** (8 - Bit).
@@ -772,6 +818,7 @@ package Files.Rendering is
       Accessibility : Accessibility_Node_Vectors.Vector;
       Settings_Hits : Settings_Hit_Region_Vectors.Vector;
       Permission_Hits : Permission_Hit_Region_Vectors.Vector;
+      Conflict_Hits : Conflict_Hit_Region_Vectors.Vector;
    end record;
 
    --  Return the settings-pane hit region containing a point, if any.
@@ -785,6 +832,30 @@ package Files.Rendering is
       X     : Natural;
       Y     : Natural)
       return Settings_Hit_Region;
+
+   --  Compute the centered paste-conflict dialog geometry for a window.
+   --
+   --  @param Snapshot View snapshot (used only for consistent sizing).
+   --  @param Layout Overall layout metrics for the window.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Panel, button, and toggle rectangles for the dialog.
+   function Calculate_Conflict_Dialog_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Conflict_Dialog_Layout;
+
+   --  Return the paste-conflict-dialog control containing a point, if any.
+   --
+   --  @param Frame Frame whose conflict hit regions are tested.
+   --  @param X Point X coordinate in pixels.
+   --  @param Y Point Y coordinate in pixels.
+   --  @return The control at the point, or a region with Kind Conflict_Hit_None.
+   function Conflict_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Conflict_Hit_Region;
 
    --  Return the info-pane permission cell containing a point, if any.
    --

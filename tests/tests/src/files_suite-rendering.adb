@@ -1217,6 +1217,30 @@ package body Files_Suite.Rendering is
            (Has_Close_Button_Node (Frame, Close),
             "the open folder tree emits a close-button accessibility node");
       end;
+
+      --  Paste-conflict dialog.
+      declare
+         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout : Layout_Metrics;
+         Dialog : Conflict_Dialog_Layout;
+         Close  : Close_Button_Layout;
+         Frame  : Frame_Commands;
+      begin
+         Snap.Paste_Conflict_Open := True;
+         Snap.Paste_Conflict_Name := To_Unbounded_String ("report.txt");
+         Layout := Calculate_Layout (Snap, Width, Height, LH);
+         Dialog := Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
+         Close  := Panel_Close_Button (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, LH);
+         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+         Assert (Close.Visible, "the paste-conflict dialog hosts a close button");
+         Assert
+           (Has_Close_Button_Node (Frame, Close),
+            "the open paste-conflict dialog emits a close-button accessibility node");
+         Assert
+           (Conflict_Hit_At (Frame, Dialog.Replace_X + Dialog.Button_Width / 2,
+              Dialog.Button_Y + Dialog.Button_Height / 2).Kind = Conflict_Hit_Replace,
+            "the replace button is hit-testable at its center");
+      end;
    end Test_Panels_Expose_Close_Button;
 
    --  The palette is theme-aware through Files.Rendering.Color_For. This is a

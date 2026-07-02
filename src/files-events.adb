@@ -57,6 +57,30 @@ package body Files.Events is
          Scroll_Drag_Anchor => 0);
    end Command_Action;
 
+   function Conflict_Action
+     (Button   : Natural;
+      Activate : Boolean := False)
+      return Input_Action is
+   begin
+      return
+        (Kind            => Conflict_Click_Input_Action,
+         Command         => Files.Commands.No_Command,
+         Direction       => Files.Types.Move_Right,
+         Item_Index      => 0,
+         Root_Index      => 0,
+         Result_Index    => 0,
+         Scroll_Lines    => 0,
+         Scroll_Area     => Scroll_Auto,
+         Focus_Target    => Files.Types.Focus_None,
+         Cursor_Position => 0,
+         Settings_Field  => Button,
+         Settings_Option => 0,
+         Activate        => Activate,
+         Toggle_Selection => False,
+         Range_Selection  => False,
+         Scroll_Drag_Anchor => 0);
+   end Conflict_Action;
+
    function Selection_Action
      (Direction : Files.Types.Navigation_Direction)
       return Input_Action is
@@ -642,6 +666,37 @@ package body Files.Events is
             Scroll_Drag_Anchor => 0);
       end Breadcrumb_Action;
    begin
+      --  The paste-conflict dialog is a top-most modal: while it is open it
+      --  consumes every click, either resolving to one of its controls or being
+      --  swallowed so nothing behind it reacts.
+      if Snapshot.Paste_Conflict_Open then
+         declare
+            use type Files.Rendering.Conflict_Hit_Kind;
+            Hit    : constant Files.Rendering.Conflict_Hit_Region :=
+              Files.Rendering.Conflict_Hit_At (Frame, X, Y);
+            Dialog : constant Files.Rendering.Conflict_Dialog_Layout :=
+              Files.Rendering.Calculate_Conflict_Dialog_Layout (Snapshot, Layout, Line_Height);
+         begin
+            case Hit.Kind is
+               when Files.Rendering.Conflict_Hit_Replace =>
+                  return Conflict_Action (Conflict_Button_Replace, Activate);
+               when Files.Rendering.Conflict_Hit_Skip =>
+                  return Conflict_Action (Conflict_Button_Skip, Activate);
+               when Files.Rendering.Conflict_Hit_Rename =>
+                  return Conflict_Action (Conflict_Button_Rename, Activate);
+               when Files.Rendering.Conflict_Hit_Cancel =>
+                  return Conflict_Action (Conflict_Button_Cancel, Activate);
+               when Files.Rendering.Conflict_Hit_Apply_All =>
+                  return Conflict_Action (Conflict_Button_Apply_All, Activate);
+               when Files.Rendering.Conflict_Hit_None =>
+                  if Close_Button_Hit (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height) then
+                     return Conflict_Action (Conflict_Button_Cancel, Activate);
+                  end if;
+                  return No_Action (Activate);
+            end case;
+         end;
+      end if;
+
       --  Route a close-button click through the same command Escape uses for
       --  each panel, before the panel body/scrollbar hit-tests below consume it.
       if Snapshot.Command_Palette_Open

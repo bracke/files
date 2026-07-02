@@ -718,14 +718,12 @@ package body Files.Controller is
                   then Files.File_System.Drop_Move
                   else Files.File_System.Drop_Copy);
             begin
+               --  Begin_Paste executes immediately when no destination name
+               --  collides, or arms the conflict dialog when one does. The cut
+               --  clipboard is cleared by the operation once the move actually
+               --  runs (immediately, or after the last conflict is resolved).
                Operation :=
-                 Files.Operations.Import_Dropped_Paths
-                   (Model, Settings, Paths, Drop_Mode);
-               if Operation.Status = Files.Operations.Operation_Success
-                 and then Mode = Files.Model.Clipboard_Cut
-               then
-                  Files.Model.Clear_Clipboard (Model);
-               end if;
+                 Files.Operations.Begin_Paste (Model, Settings, Paths, Drop_Mode);
             end;
          when Files.Commands.Generate_Thumbnails_Command =>
             Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
@@ -1689,6 +1687,25 @@ package body Files.Controller is
            and then not Modifiers (Files.Types.Meta_Key);
       end Control_Only;
    begin
+      --  While the paste-conflict dialog is open it owns the keyboard: Escape
+      --  cancels the whole paste and every other key is swallowed so no command
+      --  runs behind the modal.
+      if Files.Model.Paste_Conflict_Is_Active (Model) then
+         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+            declare
+               Cancelled : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Resolve_Paste_Conflict
+                   (Model     => Model,
+                    Settings  => Settings,
+                    Choice    => Files.Operations.Choice_Cancel,
+                    Apply_All => False);
+            begin
+               return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Cancelled);
+            end;
+         end if;
+         return Make_Result (Controller_Ignored);
+      end if;
+
       if Files.Model.Command_Palette_Is_Open (Model) then
          if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
             Files.Model.Close_Command_Palette (Model);
@@ -2211,7 +2228,8 @@ package body Files.Controller is
             | Files.Events.Command_Result_Click_Input_Action
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action
-            | Files.Events.Permission_Toggle_Input_Action =>
+            | Files.Events.Permission_Toggle_Input_Action
+            | Files.Events.Conflict_Click_Input_Action =>
             null;
       end case;
 

@@ -42,6 +42,7 @@ with Files.Interaction;
 with Files.Localization;
 with Files.Model;
 with Files.Operations;
+with Files.Paste;
 with Files.Platform;
 with Files.Rendering;
 with Files.Rendering.Vulkan;
@@ -128,6 +129,8 @@ package body Files_Suite.Operations is
    procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -189,6 +192,12 @@ package body Files_Suite.Operations is
         (T, Test_Permission_Grid_Click'Access, "info-pane permission cell click toggles the mode bit");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recursive_Folder_Size'Access, "recursive folder size sums descendant files and surfaces the row");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Conflict_Resolution_Core'Access,
+         "pure paste-conflict resolver honors replace/skip/rename/no-conflict policies");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Conflict_Flow'Access,
+         "paste into a colliding directory prompts and resolves replace/skip/rename/apply-all/cancel/undo");
    end Register_Tests;
 
    procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4086,5 +4095,209 @@ package body Files_Suite.Operations is
       pragma Warnings (On, "use of an anonymous access type allocator");
       return Result;
    end Suite;
+
+   procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Work_Item (Name : String) return Files.Paste.Work_Item is
+      begin
+         return
+           (Source_Path => To_Unbounded_String (Join ("/src", Name)),
+            Dest_Dir    => To_Unbounded_String ("/dest"),
+            Dest_Name   => To_Unbounded_String (Name));
+      end Work_Item;
+
+      Items    : Files.Paste.Work_Item_Vectors.Vector;
+      Existing : Files.Types.String_Vectors.Vector;
+      None     : constant Files.Paste.Item_Decision_Vectors.Vector :=
+        Files.Paste.Item_Decision_Vectors.Empty_Vector;
+   begin
+      --  a.txt and b.txt already exist at the destination; c.txt does not.
+      Items.Append (Work_Item ("a.txt"));
+      Items.Append (Work_Item ("b.txt"));
+      Items.Append (Work_Item ("c.txt"));
+      Existing.Append (To_Unbounded_String ("/dest/a.txt"));
+      Existing.Append (To_Unbounded_String ("/dest/b.txt"));
+
+      --  Replace_All: every item is written; the colliding two overwrite.
+      declare
+         Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Replace_All, None, Existing);
+      begin
+         Assert (not Actions.Element (1).Skip and then Actions.Element (1).Replaced,
+                 "replace-all overwrites the first colliding item");
+         Assert (not Actions.Element (2).Skip and then Actions.Element (2).Replaced,
+                 "replace-all overwrites the second colliding item");
+         Assert (not Actions.Element (3).Skip and then not Actions.Element (3).Replaced
+                   and then To_String (Actions.Element (3).Dest_Path) = "/dest/c.txt",
+                 "replace-all writes the non-colliding item unchanged");
+      end;
+
+      --  Skip_All: colliding ones are skipped, the free one is written.
+      declare
+         Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Skip_All, None, Existing);
+      begin
+         Assert (Actions.Element (1).Skip, "skip-all skips the first colliding item");
+         Assert (Actions.Element (2).Skip, "skip-all skips the second colliding item");
+         Assert (not Actions.Element (3).Skip
+                   and then To_String (Actions.Element (3).Dest_Path) = "/dest/c.txt",
+                 "skip-all still writes the non-colliding item");
+      end;
+
+      --  Rename_All: colliding ones are written under uniquified names.
+      declare
+         Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Rename_All, None, Existing);
+      begin
+         Assert (not Actions.Element (1).Skip and then not Actions.Element (1).Replaced
+                   and then To_String (Actions.Element (1).Dest_Path) = "/dest/a 2.txt",
+                 "rename-all uniquifies the first colliding item");
+         Assert (not Actions.Element (2).Skip and then not Actions.Element (2).Replaced
+                   and then To_String (Actions.Element (2).Dest_Path) = "/dest/b 2.txt",
+                 "rename-all uniquifies the second colliding item");
+         Assert (To_String (Actions.Element (3).Dest_Path) = "/dest/c.txt",
+                 "rename-all leaves the non-colliding name alone");
+      end;
+
+      --  No conflicts: every policy writes each item to its desired path.
+      declare
+         Empty_Existing : Files.Types.String_Vectors.Vector;
+         Actions        : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+           Files.Paste.Resolve (Items, Files.Paste.Policy_Ask, None, Empty_Existing);
+      begin
+         Assert (not Actions.Element (1).Skip and then To_String (Actions.Element (1).Dest_Path) = "/dest/a.txt",
+                 "with no conflicts the first item is written to its desired path");
+         Assert (not Actions.Element (2).Skip and then To_String (Actions.Element (2).Dest_Path) = "/dest/b.txt",
+                 "with no conflicts the second item is written to its desired path");
+         Assert (not Actions.Element (3).Skip,
+                 "with no conflicts the third item is written");
+      end;
+   end Test_Paste_Conflict_Resolution_Core;
+
+   procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "conflict-src");
+      Dest_Dir : constant String := Join (Root, "conflict-dest");
+
+      --  Read a file, dropping a single trailing newline added by Write_File so
+      --  the payload compares cleanly against the written text.
+      function Read (Path : String) return String is
+         Raw : constant String := Project_Tools.Files.Read_Raw_File (Path);
+      begin
+         if Raw'Length > 0 and then Raw (Raw'Last) = ASCII.LF then
+            return Raw (Raw'First .. Raw'Last - 1);
+         end if;
+         return Raw;
+      end Read;
+
+      procedure Arm_Model
+        (Model : out Files.Model.Window_Model;
+         Names : Files.Types.String_Vectors.Vector)
+      is
+         Load  : Files.File_System.Directory_Load_Result;
+         Paths : Files.Types.String_Vectors.Vector;
+      begin
+         Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+         Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+         for Name of Names loop
+            Paths.Append (To_Unbounded_String (Join (Src_Dir, To_String (Name))));
+         end loop;
+         Files.Model.Set_Clipboard (Model, Paths, Files.Model.Clipboard_Copy);
+      end Arm_Model;
+
+      One_File : Files.Types.String_Vectors.Vector;
+      Two_File : Files.Types.String_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Routed   : Files.Controller.Controller_Result;
+      Resolved : Files.Operations.Operation_Result;
+   begin
+      One_File.Append (To_Unbounded_String ("a.txt"));
+      Two_File.Append (To_Unbounded_String ("a.txt"));
+      Two_File.Append (To_Unbounded_String ("b.txt"));
+
+      --  Replace: the paste overwrites the destination.
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Join (Src_Dir, "a.txt"), "SRC");
+      Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+      Arm_Model (Model, One_File);
+      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      pragma Unreferenced (Routed);
+      Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding paste arms the conflict dialog");
+      Assert (Files.Model.Paste_Conflict_Name (Model) = "a.txt", "the dialog names the colliding item");
+      Resolved :=
+        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+      Assert (Resolved.Status = Files.Operations.Operation_Success, "replace resolves successfully");
+      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving clears the dialog");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC", "replace overwrites the destination with the source");
+
+      --  Skip: the destination is left untouched and the source remains.
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Join (Src_Dir, "a.txt"), "SRC");
+      Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+      Arm_Model (Model, One_File);
+      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Resolved :=
+        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "skip clears the dialog");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "skip leaves the destination untouched");
+      Assert (Ada.Directories.Exists (Join (Src_Dir, "a.txt")), "skip leaves the source in place");
+
+      --  Rename: a uniquely named copy is created and the original is kept.
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Join (Src_Dir, "a.txt"), "SRC");
+      Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+      Arm_Model (Model, One_File);
+      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Resolved :=
+        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "rename clears the dialog");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "rename keeps the original destination");
+      Assert (Read (Join (Dest_Dir, "a 2.txt")) = "SRC", "rename writes the source under a unique name");
+
+      --  Undo of the completed rename paste removes the created copy.
+      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "undo removes the pasted copy");
+      Assert (Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "undo keeps the pre-existing original");
+
+      --  Apply-to-all: one decision resolves every remaining conflict.
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Join (Src_Dir, "a.txt"), "SRCA");
+      Write_File (Join (Src_Dir, "b.txt"), "SRCB");
+      Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+      Write_File (Join (Dest_Dir, "b.txt"), "DEST");
+      Arm_Model (Model, Two_File);
+      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Assert (Files.Model.Paste_Conflict_Is_Active (Model), "two collisions arm the dialog");
+      Resolved :=
+        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
+      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "apply-to-all resolves both without a second prompt");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRCA", "apply-to-all replaces the first item");
+      Assert (Read (Join (Dest_Dir, "b.txt")) = "SRCB", "apply-to-all replaces the second item");
+
+      --  Cancel: the whole paste aborts with no filesystem change.
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Join (Src_Dir, "a.txt"), "SRC");
+      Write_File (Join (Dest_Dir, "a.txt"), "DEST");
+      Arm_Model (Model, One_File);
+      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Resolved :=
+        Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Cancel, False);
+      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "cancel clears the dialog");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "cancel changes nothing at the destination");
+      Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "cancel writes no copy");
+      Assert (Files.Model.Clipboard_Has_Items (Model), "cancel keeps the clipboard for a retry");
+   end Test_Paste_Conflict_Flow;
 
 end Files_Suite.Operations;

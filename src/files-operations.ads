@@ -390,6 +390,53 @@ package Files.Operations is
       Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
       return Operation_Result;
 
+   --  A user's answer to a paste-conflict prompt (mirrors the dialog buttons).
+   type Conflict_Choice is
+     (Choice_Replace,
+      Choice_Skip,
+      Choice_Rename,
+      Choice_Cancel);
+
+   --  Begin a clipboard paste (copy or move) into the current directory,
+   --  resolving name collisions interactively.
+   --
+   --  Sources are validated as for a drag-and-drop import. When no destination
+   --  name collides the paste executes immediately (identical to the old
+   --  behaviour minus the silent auto-rename). When one or more names collide,
+   --  the model enters the pending paste-conflict sub-mode so the shell can show
+   --  the conflict dialog; nothing is written until the user resolves them.
+   --
+   --  @param Model Window model receiving the pasted paths.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @param Source_Paths Clipboard source paths.
+   --  @param Mode Copy or move (cut) mode.
+   --  @return Success when executed or when the dialog was armed; a failure
+   --    result with a localized error key on a validation failure.
+   function Begin_Paste
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result;
+
+   --  Apply one conflict decision to the pending paste. Records the choice
+   --  (per-item, or batch-wide when Apply_All is set), then either advances to
+   --  the next unresolved conflict or, once none remain, executes the resolved
+   --  copies/moves, records undo, reloads, and clears the sub-mode. Choice_Cancel
+   --  aborts the whole paste with no filesystem change.
+   --
+   --  @param Model Window model in the pending paste-conflict sub-mode.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @param Choice The user's decision for the current conflict.
+   --  @param Apply_All True to apply the decision to every remaining conflict.
+   --  @return Structured operation result; Disabled when no paste is pending.
+   function Resolve_Paste_Conflict
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Choice    : Conflict_Choice;
+      Apply_All : Boolean)
+      return Operation_Result;
+
    --  Import dropped paths into a specific destination directory.
    --
    --  @param Model Window model to refresh after a successful import.

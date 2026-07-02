@@ -8,6 +8,8 @@ with GNAT.OS_Lib;
 
 with Files_Config;
 
+with Files.Paste;
+
 with Zlib;
 
 with Project_Tools.Files;
@@ -1810,6 +1812,300 @@ package body Files.Operations is
          return Make_Result (Operation_Success, Path => First_Path);
       end;
    end Import_Dropped_Paths;
+
+   --  Full paths of every entry directly inside Directory (hidden entries
+   --  included). Used as the "already exists" set for conflict detection and for
+   --  rename uniquification, so a renamed paste avoids any existing name, not
+   --  just the colliding one. Falls back to an empty set when the directory
+   --  cannot be scanned; Execute_Drop_Import then still refuses to clobber.
+   function Existing_Destination_Paths
+     (Directory : String)
+      return Files.Types.String_Vectors.Vector
+   is
+      Result : Files.Types.String_Vectors.Vector;
+      Search : Ada.Directories.Search_Type;
+      Entry_Value : Ada.Directories.Directory_Entry_Type;
+   begin
+      Ada.Directories.Start_Search
+        (Search    => Search,
+         Directory => Directory,
+         Pattern   => "",
+         Filter    => [others => True]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Entry_Value);
+         declare
+            Name : constant String := Ada.Directories.Simple_Name (Entry_Value);
+         begin
+            if Name /= "." and then Name /= ".." then
+               Result.Append (To_Unbounded_String (Files.Paste.Desired_Path (Directory, Name)));
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+      return Result;
+   exception
+      when others =>
+         return Files.Types.String_Vectors.Empty_Vector;
+   end Existing_Destination_Paths;
+
+   --  Build the paste work-list from validated plans: one item per valid plan,
+   --  skipping a move whose destination equals its source (moving an item into
+   --  the directory it already lives in is a no-op).
+   function Paste_Work_List
+     (Plans     : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Directory : String)
+      return Files.Paste.Work_Item_Vectors.Vector
+   is
+      Work : Files.Paste.Work_Item_Vectors.Vector;
+   begin
+      for Plan of Plans loop
+         if Plan.Valid
+           and then not (Plan.Mode = Files.File_System.Drop_Move
+                         and then Plan.Source_Path = Plan.Destination_Path)
+         then
+            Work.Append
+              (Files.Paste.Work_Item'
+                 (Source_Path => Plan.Source_Path,
+                  Dest_Dir    => To_Unbounded_String (Directory),
+                  Dest_Name   =>
+                    To_Unbounded_String
+                      (Ada.Directories.Simple_Name (To_String (Plan.Source_Path)))));
+         end if;
+      end loop;
+      return Work;
+   end Paste_Work_List;
+
+   --  Remove a destination that a Replace decision must overwrite: move it to the
+   --  trash when a backend is available, otherwise delete it permanently. Never
+   --  touches a destination that is also the source (a paste onto itself).
+   function Clear_Replaced_Destination (Path : String; Source : String) return Boolean is
+   begin
+      if not Exists_Safely (Path) or else Path = Source then
+         return True;
+      end if;
+
+      if Files.File_System.Move_To_Trash (Path).Success then
+         return True;
+      end if;
+      return Files.File_System.Delete_Permanently (Path).Success;
+   end Clear_Replaced_Destination;
+
+   --  Execute a resolved paste: overwrite any replaced destinations, copy or move
+   --  each written item through Execute_Drop_Import, record a single undo for the
+   --  executed set (move is reversed by moving back; copy is reversed by deleting
+   --  the created copies), reload, and report the first written destination.
+   function Execute_Paste_Actions
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
+      Mode     : Files.File_System.Drop_Import_Mode)
+      return Operation_Result
+   is
+      Plans     : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+      Undo_From : Files.Types.String_Vectors.Vector;
+      Undo_To   : Files.Types.String_Vectors.Vector;
+      First_Dest : Unbounded_String := Null_Unbounded_String;
+   begin
+      for Action of Actions loop
+         if not Action.Skip then
+            if Action.Replaced
+              and then not Clear_Replaced_Destination
+                             (To_String (Action.Dest_Path), To_String (Action.Source_Path))
+            then
+               Files.Model.Set_Error (Model, "error.drop.failed");
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, "error.drop.failed");
+               end;
+               return Make_Result (Operation_Failed, "error.drop.failed", Files.Model.Current_Path (Model));
+            end if;
+
+            Plans.Append
+              (Files.File_System.Drop_Import_Plan'
+                 (Source_Path      => Action.Source_Path,
+                  Destination_Path => Action.Dest_Path,
+                  Mode             => Mode,
+                  Valid            => True,
+                  Error_Key        => Null_Unbounded_String));
+            Undo_From.Append (Action.Dest_Path);
+            Undo_To.Append (Action.Source_Path);
+            if Length (First_Dest) = 0 then
+               First_Dest := Action.Dest_Path;
+            end if;
+         end if;
+      end loop;
+
+      if not Plans.Is_Empty then
+         declare
+            Mutation : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Execute_Drop_Import (Plans);
+         begin
+            if not Mutation.Success then
+               Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               declare
+                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  pragma Unreferenced (Reload);
+               begin
+                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               end;
+               return Make_Result
+                 (Operation_Failed, To_String (Mutation.Error_Key), Files.Model.Current_Path (Model));
+            end if;
+         end;
+
+         if Mode = Files.File_System.Drop_Move then
+            Files.Model.Record_Undo (Model, Files.Model.Undo_Move, Undo_From, Undo_To);
+         else
+            --  A copy is reversed by deleting the created copies; the "to" side
+            --  is unused for Undo_Delete_Created.
+            Files.Model.Record_Undo
+              (Model, Files.Model.Undo_Delete_Created, Undo_From,
+               Files.Types.String_Vectors.Empty_Vector);
+         end if;
+      end if;
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+      end;
+
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Success, Path => To_String (First_Dest));
+   end Execute_Paste_Actions;
+
+   function Begin_Paste
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : Files.Settings.Settings_Model;
+      Source_Paths : Files.Types.String_Vectors.Vector;
+      Mode         : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy)
+      return Operation_Result
+   is
+      Directory : constant String := Files.Model.Current_Path (Model);
+      Plans     : Files.File_System.Drop_Import_Result;
+   begin
+      if Source_Paths.Is_Empty then
+         return Disabled (Model, "error.drop.invalid_source");
+      end if;
+
+      --  Reuse the drag-and-drop planner purely to validate the sources
+      --  (missing source, invalid name, drop-into-self) and to detect same-dir
+      --  move no-ops; its auto-renamed destinations are discarded.
+      Plans := Files.File_System.Plan_Drop_Import (Source_Paths, Directory, Mode);
+      if not Plans.Success then
+         Files.Model.Set_Error (Model, To_String (Plans.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Plans.Error_Key), Directory);
+      end if;
+
+      declare
+         Work     : constant Files.Paste.Work_Item_Vectors.Vector :=
+           Paste_Work_List (Plans.Plans, Directory);
+         Existing : constant Files.Types.String_Vectors.Vector :=
+           Existing_Destination_Paths (Directory);
+         Conflict : constant Natural :=
+           Files.Paste.Next_Unresolved_Conflict
+             (Work, Files.Paste.Policy_Ask, Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
+      begin
+         if Conflict = 0 then
+            --  No collisions: resolve (all writes) and execute immediately.
+            declare
+               Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+                 Files.Paste.Resolve
+                   (Work, Files.Paste.Policy_Ask,
+                    Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
+               Result  : constant Operation_Result :=
+                 Execute_Paste_Actions (Model, Settings, Actions, Mode);
+            begin
+               if Result.Status = Operation_Success and then Mode = Files.File_System.Drop_Move then
+                  Files.Model.Clear_Clipboard (Model);
+               end if;
+               return Result;
+            end;
+         else
+            --  Collisions remain: arm the conflict dialog and write nothing yet.
+            Files.Model.Begin_Paste_Conflict (Model, Work, Existing, Mode, Conflict);
+            Files.Model.Set_Error (Model, "");
+            return Make_Result (Operation_Success, Path => Directory);
+         end if;
+      end;
+   end Begin_Paste;
+
+   function Resolve_Paste_Conflict
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Choice    : Conflict_Choice;
+      Apply_All : Boolean)
+      return Operation_Result
+   is
+   begin
+      if not Files.Model.Paste_Conflict_Is_Active (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      if Choice = Choice_Cancel then
+         Files.Model.Clear_Paste_Conflict (Model);
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+      end if;
+
+      declare
+         Decision : constant Files.Paste.Item_Decision :=
+           (case Choice is
+              when Choice_Replace => Files.Paste.Decision_Replace,
+              when Choice_Skip    => Files.Paste.Decision_Skip,
+              when Choice_Rename  => Files.Paste.Decision_Rename,
+              when Choice_Cancel  => Files.Paste.Decision_Skip);
+      begin
+         if Apply_All then
+            Files.Model.Set_Paste_Conflict_Policy
+              (Model,
+               (case Choice is
+                  when Choice_Replace => Files.Paste.Policy_Replace_All,
+                  when Choice_Skip    => Files.Paste.Policy_Skip_All,
+                  when Choice_Rename  => Files.Paste.Policy_Rename_All,
+                  when Choice_Cancel  => Files.Paste.Policy_Skip_All));
+         else
+            Files.Model.Set_Paste_Conflict_Override
+              (Model, Files.Model.Paste_Conflict_Index (Model), Decision);
+         end if;
+      end;
+
+      declare
+         Work     : constant Files.Paste.Work_Item_Vectors.Vector :=
+           Files.Model.Paste_Conflict_Items (Model);
+         Existing : constant Files.Types.String_Vectors.Vector :=
+           Files.Model.Paste_Conflict_Existing (Model);
+         Policy   : constant Files.Paste.Conflict_Policy := Files.Model.Paste_Conflict_Policy (Model);
+         Overrides : constant Files.Paste.Item_Decision_Vectors.Vector :=
+           Files.Model.Paste_Conflict_Overrides (Model);
+         Mode     : constant Files.File_System.Drop_Import_Mode :=
+           Files.Model.Paste_Conflict_Mode (Model);
+         Next     : constant Natural :=
+           Files.Paste.Next_Unresolved_Conflict (Work, Policy, Overrides, Existing);
+      begin
+         if Next /= 0 then
+            Files.Model.Set_Paste_Conflict_Index (Model, Next);
+            return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+         end if;
+
+         declare
+            Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+              Files.Paste.Resolve (Work, Policy, Overrides, Existing);
+            Result  : constant Operation_Result :=
+              Execute_Paste_Actions (Model, Settings, Actions, Mode);
+         begin
+            if Result.Status = Operation_Success and then Mode = Files.File_System.Drop_Move then
+               Files.Model.Clear_Clipboard (Model);
+            end if;
+            Files.Model.Clear_Paste_Conflict (Model);
+            return Result;
+         end;
+      end;
+   end Resolve_Paste_Conflict;
 
    function Import_Dropped_Paths_To
      (Model                 : in out Files.Model.Window_Model;

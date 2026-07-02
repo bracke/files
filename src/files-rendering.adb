@@ -1830,6 +1830,9 @@ package body Files.Rendering is
       Snapshot.Context_Menu_Y := Files.Model.Context_Menu_Y (Model);
       Snapshot.Context_Menu_Target := Files.Model.Context_Menu_Target_Of (Model);
       Snapshot.Context_Menu_Item_Index := Files.Model.Context_Menu_Item_Index (Model);
+      Snapshot.Paste_Conflict_Open := Files.Model.Paste_Conflict_Is_Active (Model);
+      Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Paste_Conflict_Name (Model));
+      Snapshot.Paste_Conflict_Apply_All := Files.Model.Paste_Conflict_Apply_All (Model);
       Snapshot.Settings_Can_Save := Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model);
       Snapshot.Settings_Can_Reset := Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model);
       Snapshot.Theme_Name := Theme.Name;
@@ -2713,6 +2716,90 @@ package body Files.Rendering is
          Scrollbar_Height  => Thumb_H,
          Scrollbar_Track_Height => (if Visible then Viewport_H else 0));
    end Calculate_Main_View_Layout;
+
+   function Calculate_Conflict_Dialog_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := 20)
+      return Conflict_Dialog_Layout
+   is
+      pragma Unreferenced (Snapshot);
+      Pad        : constant Natural := 12;
+      Max_Width  : constant Natural := Saturating_Multiply (Line_Height, 22);
+      Margin     : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Inner_W    : constant Natural :=
+        (if Layout.Width > Saturating_Multiply (Margin, 2)
+         then Layout.Width - Saturating_Multiply (Margin, 2)
+         else Layout.Width);
+      Width      : constant Natural := Natural'Min (Max_Width, Inner_W);
+      Message_H  : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Apply_H    : constant Natural := Line_Height;
+      Button_H   : constant Natural := Saturating_Add (Line_Height, Pad);
+      Height     : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Pad, 4),
+           Saturating_Add (Message_H, Saturating_Add (Apply_H, Button_H)));
+      X          : constant Natural := (if Layout.Width > Width then (Layout.Width - Width) / 2 else 0);
+      Y          : constant Natural := (if Layout.Height > Height then (Layout.Height - Height) / 2 else 0);
+      Button_Y   : constant Natural :=
+        (if Height > Saturating_Add (Pad, Button_H)
+         then Saturating_Add (Y, Height - Pad - Button_H)
+         else Y);
+      Apply_Y    : constant Natural :=
+        (if Button_Y > Saturating_Add (Pad, Apply_H) then Button_Y - Pad - Apply_H else Button_Y);
+      Inner_Buttons : constant Natural :=
+        (if Width > Saturating_Multiply (Pad, 5) then Width - Saturating_Multiply (Pad, 5) else 0);
+      Button_W   : constant Natural := Inner_Buttons / 4;
+      Apply_W    : constant Natural :=
+        (if Width > Saturating_Multiply (Pad, 2) then Width - Saturating_Multiply (Pad, 2) else Width);
+   begin
+      return
+        (X             => X,
+         Y             => Y,
+         Width         => Width,
+         Height        => Height,
+         Apply_X       => Saturating_Add (X, Pad),
+         Apply_Y       => Apply_Y,
+         Apply_Width   => Apply_W,
+         Apply_Height  => Apply_H,
+         Button_Y      => Button_Y,
+         Button_Height => Button_H,
+         Replace_X     => Saturating_Add (X, Pad),
+         Skip_X        => Saturating_Add (X, Saturating_Add (Saturating_Multiply (Pad, 2), Button_W)),
+         Rename_X      =>
+           Saturating_Add
+             (X, Saturating_Add (Saturating_Multiply (Pad, 3), Saturating_Multiply (Button_W, 2))),
+         Cancel_X      =>
+           Saturating_Add
+             (X, Saturating_Add (Saturating_Multiply (Pad, 4), Saturating_Multiply (Button_W, 3))),
+         Button_Width  => Button_W);
+   end Calculate_Conflict_Dialog_Layout;
+
+   function Conflict_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Conflict_Hit_Region is
+   begin
+      for Index in reverse 1 .. Natural (Frame.Conflict_Hits.Length) loop
+         declare
+            Region : constant Conflict_Hit_Region :=
+              Frame.Conflict_Hits.Element (Positive (Index));
+         begin
+            if Region.Width > 0
+              and then Region.Height > 0
+              and then X >= Region.X
+              and then X < Region.X + Region.Width
+              and then Y >= Region.Y
+              and then Y < Region.Y + Region.Height
+            then
+               return Region;
+            end if;
+         end;
+      end loop;
+
+      return (others => <>);
+   end Conflict_Hit_At;
 
    function Settings_Hit_At
      (Frame : Frame_Commands;
@@ -8758,6 +8845,132 @@ package body Files.Rendering is
                   end loop;
                end;
             end if;
+         end;
+      end if;
+
+      if Snapshot.Paste_Conflict_Open then
+         declare
+            Dialog : constant Conflict_Dialog_Layout :=
+              Calculate_Conflict_Dialog_Layout (Snapshot, Layout, Line_Height);
+            Pad    : constant Natural := 12;
+            Text_W : constant Natural :=
+              (if Dialog.Width > Saturating_Multiply (Pad, 2) then Dialog.Width - Saturating_Multiply (Pad, 2)
+               else Dialog.Width);
+
+            procedure Draw_Button (Kind : Conflict_Hit_Kind; Button_X : Natural; Label_Key : String) is
+               Hovered : constant Boolean :=
+                 Has_Hover
+                 and then Contains_Point
+                            (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
+                             Hover_X, Hover_Y);
+               Pressed : constant Boolean :=
+                 Is_Pressed (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height);
+               Inset   : constant Natural :=
+                 (if Dialog.Button_Height > Line_Height then (Dialog.Button_Height - Line_Height) / 2 else 0);
+            begin
+               Add_Overlay_Rect
+                 (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
+                  (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Overlay_Color));
+               Add_Overlay_Rect (Button_X, Dialog.Button_Y, Dialog.Button_Width, 1, Border_Color);
+               Add_Overlay_Rect (Button_X, Dialog.Button_Y, 1, Dialog.Button_Height, Border_Color);
+               if Dialog.Button_Height > 0 then
+                  Add_Overlay_Rect
+                    (Button_X, Saturating_Add (Dialog.Button_Y, Dialog.Button_Height - 1),
+                     Dialog.Button_Width, 1, Border_Color);
+               end if;
+               if Dialog.Button_Width > 0 then
+                  Add_Overlay_Rect
+                    (Saturating_Add (Button_X, Dialog.Button_Width - 1), Dialog.Button_Y, 1,
+                     Dialog.Button_Height, Border_Color);
+               end if;
+               Add_Overlay_Text
+                 (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
+                  Saturating_Add (Dialog.Button_Y, Inset),
+                  (if Dialog.Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                   then Dialog.Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                   else Dialog.Button_Width),
+                  Line_Height, Localized (Label_Key), Text_Color, Fit => True);
+               Add_Accessibility_Node
+                 (Role_Button, Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
+                  Localized (Label_Key));
+               Result.Conflict_Hits.Append
+                 (Conflict_Hit_Region'
+                    (Kind   => Kind,
+                     X      => Button_X,
+                     Y      => Dialog.Button_Y,
+                     Width  => Dialog.Button_Width,
+                     Height => Dialog.Button_Height));
+            end Draw_Button;
+         begin
+            --  Modal backdrop and panel body.
+            Add_Overlay_Rect (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay_Color);
+            Add_Overlay_Rect (Dialog.X, Dialog.Y, Dialog.Width, 1, Border_Color);
+            Add_Overlay_Rect (Dialog.X, Dialog.Y, 1, Dialog.Height, Border_Color);
+            if Dialog.Height > 0 then
+               Add_Overlay_Rect
+                 (Dialog.X, Saturating_Add (Dialog.Y, Dialog.Height - 1), Dialog.Width, 1, Border_Color);
+            end if;
+            if Dialog.Width > 0 then
+               Add_Overlay_Rect
+                 (Saturating_Add (Dialog.X, Dialog.Width - 1), Dialog.Y, 1, Dialog.Height, Border_Color);
+            end if;
+            Add_Accessibility_Node
+              (Role_Dialog, Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height,
+               Localized ("dialog.paste_conflict.title"));
+
+            --  Conflicting name and the "already exists" line.
+            Add_Overlay_Text
+              (Saturating_Add (Dialog.X, Pad), Saturating_Add (Dialog.Y, Pad), Text_W, Line_Height,
+               Snapshot.Paste_Conflict_Name, Text_Color, Fit => True);
+            Add_Overlay_Text
+              (Saturating_Add (Dialog.X, Pad), Saturating_Add (Dialog.Y, Saturating_Add (Pad, Line_Height)),
+               Text_W, Line_Height, Localized ("dialog.paste_conflict.exists"), Text_Color, Fit => True);
+
+            --  "Apply to all remaining" toggle row.
+            declare
+               Box_Size : constant Natural := Natural'Min (Line_Height, Dialog.Apply_Height);
+               Hovered  : constant Boolean :=
+                 Has_Hover
+                 and then Contains_Point
+                            (Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height,
+                             Hover_X, Hover_Y);
+            begin
+               if Hovered then
+                  Add_Overlay_Rect
+                    (Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height, Hover_Color);
+               end if;
+               Add_Overlay_Rect (Dialog.Apply_X, Dialog.Apply_Y, Box_Size, Box_Size, Border_Color);
+               Add_Overlay_Rect
+                 (Saturating_Add (Dialog.Apply_X, 1), Saturating_Add (Dialog.Apply_Y, 1),
+                  (if Box_Size > 2 then Box_Size - 2 else 0), (if Box_Size > 2 then Box_Size - 2 else 0),
+                  (if Snapshot.Paste_Conflict_Apply_All then Selection_Color else Overlay_Color));
+               Add_Overlay_Text
+                 (Saturating_Add (Dialog.Apply_X, Saturating_Add (Box_Size, Files.UI.Input_Field_Padding)),
+                  Dialog.Apply_Y,
+                  (if Dialog.Apply_Width > Saturating_Add (Box_Size, Files.UI.Input_Field_Padding)
+                   then Dialog.Apply_Width - Saturating_Add (Box_Size, Files.UI.Input_Field_Padding)
+                   else Dialog.Apply_Width),
+                  Line_Height, Localized ("dialog.paste_conflict.apply_to_all"), Text_Color, Fit => True);
+               Add_Accessibility_Node
+                 (Role_Button, Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height,
+                  Localized ("dialog.paste_conflict.apply_to_all"),
+                  Selected => Snapshot.Paste_Conflict_Apply_All);
+               Result.Conflict_Hits.Append
+                 (Conflict_Hit_Region'
+                    (Kind   => Conflict_Hit_Apply_All,
+                     X      => Dialog.Apply_X,
+                     Y      => Dialog.Apply_Y,
+                     Width  => Dialog.Apply_Width,
+                     Height => Dialog.Apply_Height));
+            end;
+
+            Draw_Button (Conflict_Hit_Replace, Dialog.Replace_X, "dialog.paste_conflict.button.replace");
+            Draw_Button (Conflict_Hit_Skip, Dialog.Skip_X, "dialog.paste_conflict.button.skip");
+            Draw_Button (Conflict_Hit_Rename, Dialog.Rename_X, "dialog.paste_conflict.button.rename");
+            Draw_Button (Conflict_Hit_Cancel, Dialog.Cancel_X, "dialog.paste_conflict.button.cancel");
+
+            --  Close button in the panel corner cancels the whole paste.
+            Draw_Close_Button (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay => True);
          end;
       end if;
 

@@ -389,6 +389,31 @@ package body Files.Interaction is
                Result.Directory_Reloaded :=
                  Toggle.Status = Files.Operations.Operation_Success;
             end;
+         when Files.Events.Conflict_Click_Input_Action =>
+            if Action.Settings_Field = Files.Events.Conflict_Button_Apply_All then
+               Files.Model.Toggle_Paste_Conflict_Apply_All (Model);
+            else
+               declare
+                  Choice : constant Files.Operations.Conflict_Choice :=
+                    (if Action.Settings_Field = Files.Events.Conflict_Button_Replace
+                     then Files.Operations.Choice_Replace
+                     elsif Action.Settings_Field = Files.Events.Conflict_Button_Skip
+                     then Files.Operations.Choice_Skip
+                     elsif Action.Settings_Field = Files.Events.Conflict_Button_Rename
+                     then Files.Operations.Choice_Rename
+                     else Files.Operations.Choice_Cancel);
+                  Outcome : constant Files.Operations.Operation_Result :=
+                    Files.Operations.Resolve_Paste_Conflict
+                      (Model     => Model,
+                       Settings  => Settings,
+                       Choice    => Choice,
+                       Apply_All => Files.Model.Paste_Conflict_Apply_All (Model));
+               begin
+                  Result.Directory_Reloaded :=
+                    Outcome.Status = Files.Operations.Operation_Success
+                    and then not Files.Model.Paste_Conflict_Is_Active (Model);
+               end;
+            end if;
          when Files.Events.Scroll_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Targeted_Scroll

@@ -19,7 +19,17 @@ package Files.Events is
       Breadcrumb_Click_Input_Action,
       Tree_Click_Input_Action,
       Command_Result_Click_Input_Action,
-      Permission_Toggle_Input_Action);
+      Permission_Toggle_Input_Action,
+      Conflict_Click_Input_Action);
+
+   --  Button codes carried in Input_Action.Settings_Field for a
+   --  Conflict_Click_Input_Action, identifying which paste-conflict-dialog
+   --  control was clicked.
+   Conflict_Button_Replace   : constant := 1;
+   Conflict_Button_Skip      : constant := 2;
+   Conflict_Button_Rename    : constant := 3;
+   Conflict_Button_Cancel    : constant := 4;
+   Conflict_Button_Apply_All : constant := 5;
 
    type Scroll_Target is
      (Scroll_Auto,
