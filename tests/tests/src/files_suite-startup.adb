@@ -1221,6 +1221,9 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.permanent_delete.failed");
       Add_Error_Key ("error.permissions.failed");
       Add_Error_Key ("error.permissions.unsupported");
+      Add_Error_Key ("error.ownership.denied");
+      Add_Error_Key ("error.ownership.unsupported");
+      Add_Error_Key ("error.ownership.invalid_name");
       Add_Error_Key ("error.drop.invalid_destination");
       Add_Error_Key ("error.drop.invalid_source");
       Add_Error_Key ("error.drop.failed");

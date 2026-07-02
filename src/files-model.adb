@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Files.UTF8;
@@ -1383,6 +1384,59 @@ package body Files.Model is
       end if;
    end Focus_Rename_Input;
 
+   procedure Focus_Ownership_Input
+     (Model         : in out Window_Model;
+      Editing_Group : Boolean)
+   is
+      Item : constant Files.File_System.Directory_Item := Selected_Item (Model);
+   begin
+      if Selected_Count (Model) /= 1
+        or else Selection_Includes_Temporary (Model)
+        or else not Files.File_System.Supports_Ownership
+        or else not Item.Ownership_Available
+        or else Current_Path (Model) = Files.File_System.Trash_Files_Directory
+      then
+         return;
+      end if;
+
+      Model.Focus_Value := Files.Types.Focus_Ownership_Input;
+      Model.Ownership_Editing_Group_Value := Editing_Group;
+      Model.Ownership_Input_Value :=
+        To_Unbounded_String
+          (Ada.Strings.Fixed.Trim
+             (Natural'Image (if Editing_Group then Item.Group_Id else Item.Owner_Id),
+              Ada.Strings.Both));
+      Model.Ownership_Input_Cursor := Length (Model.Ownership_Input_Value);
+      Clear_Root_Selector_State (Model);
+      Model.Command_Palette_Open := False;
+      Model.Command_Palette_Query := Null_Unbounded_String;
+      Model.Command_Palette_Selected := 0;
+      Model.Command_Palette_Offset := 0;
+      Model.Command_Palette_Cursor := 0;
+   end Focus_Ownership_Input;
+
+   function Ownership_Input_Text
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.Ownership_Input_Value);
+   end Ownership_Input_Text;
+
+   procedure Set_Ownership_Input_Text
+     (Model : in out Window_Model;
+      Text  : String) is
+   begin
+      Model.Ownership_Input_Value := To_Unbounded_String (Text);
+      Model.Ownership_Input_Cursor := Text'Length;
+   end Set_Ownership_Input_Text;
+
+   function Ownership_Editing_Group
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Ownership_Editing_Group_Value;
+   end Ownership_Editing_Group;
+
    procedure Open_Root_Selector
      (Model : in out Window_Model;
       Roots : Files.Types.String_Vectors.Vector)
@@ -1554,6 +1608,8 @@ package body Files.Model is
             return Length (Model.Command_Palette_Query);
          when Files.Types.Focus_Settings_Input =>
             return Settings_Field_Text (Model)'Length;
+         when Files.Types.Focus_Ownership_Input =>
+            return Length (Model.Ownership_Input_Value);
          when Files.Types.Focus_None =>
             return 0;
       end case;
@@ -1574,6 +1630,8 @@ package body Files.Model is
             return To_String (Model.Command_Palette_Query);
          when Files.Types.Focus_Settings_Input =>
             return Settings_Field_Text (Model);
+         when Files.Types.Focus_Ownership_Input =>
+            return To_String (Model.Ownership_Input_Value);
          when Files.Types.Focus_None =>
             return "";
       end case;
@@ -1594,6 +1652,9 @@ package body Files.Model is
             return Text_Boundary_At_Or_Before (To_String (Model.Command_Palette_Query), Model.Command_Palette_Cursor);
          when Files.Types.Focus_Settings_Input =>
             return Text_Boundary_At_Or_Before (Settings_Field_Text (Model), Model.Settings_Field_Cursor);
+         when Files.Types.Focus_Ownership_Input =>
+            return Text_Boundary_At_Or_Before
+                     (To_String (Model.Ownership_Input_Value), Model.Ownership_Input_Cursor);
          when Files.Types.Focus_None =>
             return 0;
       end case;
@@ -1624,6 +1685,8 @@ package body Files.Model is
             Model.Command_Palette_Cursor := Clamped;
          when Files.Types.Focus_Settings_Input =>
             Model.Settings_Field_Cursor := Clamped;
+         when Files.Types.Focus_Ownership_Input =>
+            Model.Ownership_Input_Cursor := Clamped;
          when Files.Types.Focus_None =>
             null;
       end case;

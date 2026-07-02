@@ -422,6 +422,11 @@ package body Files.Interaction is
                Result.Directory_Reloaded :=
                  Toggle.Status = Files.Operations.Operation_Success;
             end;
+         when Files.Events.Ownership_Edit_Input_Action =>
+            --  Open the info-pane ownership editor prefilled with the current
+            --  owner or group id; typing then Enter commits the change.
+            Files.Model.Focus_Ownership_Input
+              (Model, Editing_Group => Action.Item_Index = 1);
          when Files.Events.Conflict_Click_Input_Action =>
             if Action.Settings_Field = Files.Events.Conflict_Button_Apply_All then
                Files.Model.Toggle_Paste_Conflict_Apply_All (Model);

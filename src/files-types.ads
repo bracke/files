@@ -132,7 +132,8 @@ package Files.Types is
       Focus_Filter_Input,
       Focus_Rename_Input,
       Focus_Command_Palette,
-      Focus_Settings_Input);
+      Focus_Settings_Input,
+      Focus_Ownership_Input);
 
    --  Return Text converted to lower case using simple Ada character folding
    --  plus common UTF-8 Latin-1 uppercase letters.

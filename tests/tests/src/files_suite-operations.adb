@@ -130,6 +130,10 @@ package body Files_Suite.Operations is
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -202,6 +206,18 @@ package body Files_Suite.Operations is
         (T, Test_Set_Permissions_And_Undo'Access, "chmod changes selected item mode and undo restores it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Permission_Grid_Click'Access, "info-pane permission cell click toggles the mode bit");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Set_Ownership_Identity_And_Undo'Access,
+         "chown to the file's own uid/gid succeeds, records undo, and undo restores");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Set_Ownership_Denied'Access,
+         "chown to a different owner is denied for a non-root process without changing the file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Ownership_Name_Resolution'Access,
+         "user/group name resolution finds known names and rejects bogus ones");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Ownership_Edit_Through_Reducer'Access,
+         "info-pane ownership click focuses the editor and Enter commits the identity change");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recursive_Folder_Size'Access, "recursive folder size sums descendant files and surfaces the row");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -2997,7 +3013,9 @@ package body Files_Suite.Operations is
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 800, Line_Height => 20);
+      --  Tall enough that every info-pane row (now including the owner/group
+      --  fields) stays within the visible pane rather than being clipped.
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 1200, Line_Height => 20);
       declare
          Found_Name         : Boolean := False;
          Found_Name_Value   : Boolean := False;
@@ -3786,6 +3804,222 @@ package body Files_Suite.Operations is
             "the clicked permission bit is toggled after the reducer applies the action");
       end;
    end Test_Permission_Grid_Click;
+
+   procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Target   : constant String := Join (Root, "ownable.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Operations.Operation_Result;
+      Uid, Gid : Natural := 0;
+      Avail    : Boolean := False;
+   begin
+      if not Files.File_System.Supports_Ownership then
+         return;
+      end if;
+
+      Reset_Root;
+      Write_File (Target, "own me");
+      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Assert (Avail, "ownership of the temp file is readable");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "ownable.txt");
+
+      --  Setting ownership to the file's OWN uid/gid is permitted even for a
+      --  non-root process, so this exercises the primitive and undo plumbing.
+      Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Success,
+         "identity chown to the file's own owner succeeds");
+      Assert
+        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
+         "set-ownership records an ownership undo");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chown succeeds");
+      Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chown undo");
+
+      declare
+         New_Uid, New_Gid : Natural := 0;
+         Now_Avail        : Boolean := False;
+      begin
+         Files.File_System.Ownership_Of (Target, New_Uid, New_Gid, Now_Avail);
+         Assert
+           (Now_Avail and then New_Uid = Uid and then New_Gid = Gid,
+            "ownership is unchanged after identity chown and undo");
+      end;
+   end Test_Set_Ownership_Identity_And_Undo;
+
+   procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Target   : constant String := Join (Root, "denied.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Operations.Operation_Result;
+      Uid, Gid : Natural := 0;
+      Avail    : Boolean := False;
+   begin
+      if not Files.File_System.Supports_Ownership then
+         return;
+      end if;
+
+      Reset_Root;
+      Write_File (Target, "deny me");
+      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Assert (Avail, "ownership of the temp file is readable");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "denied.txt");
+
+      --  Attempt to give the file to root. A non-root process is refused with
+      --  error.ownership.denied; a root test process would instead succeed.
+      --  Either way there must be no crash.
+      Result := Files.Operations.Set_Ownership_For (Model, 0, 0, Settings);
+      if Result.Status = Files.Operations.Operation_Success then
+         Assert (Uid = 0, "unexpected chown-to-root success only permitted when running as root");
+      else
+         Assert
+           (Result.Status = Files.Operations.Operation_Failed,
+            "chown to a different owner reports a failure");
+         Assert
+           (To_String (Result.Error_Key) = "error.ownership.denied",
+            "chown denial surfaces error.ownership.denied");
+         declare
+            Now_Uid, Now_Gid : Natural := 0;
+            Now_Avail        : Boolean := False;
+         begin
+            Files.File_System.Ownership_Of (Target, Now_Uid, Now_Gid, Now_Avail);
+            Assert
+              (Now_Avail and then Now_Uid = Uid and then Now_Gid = Gid,
+               "a denied chown leaves the file ownership unchanged");
+         end;
+      end if;
+   end Test_Set_Ownership_Denied;
+
+   procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Found : Boolean := False;
+      Id    : Natural := 0;
+   begin
+      if not Files.File_System.Supports_Ownership then
+         return;
+      end if;
+
+      Id := Files.File_System.User_Id_For_Name ("root", Found);
+      Assert (Found and then Id = 0, "user name root resolves to uid 0");
+
+      Id := Files.File_System.Group_Id_For_Name ("root", Found);
+      --  The root group is gid 0 on Linux; on some systems it is named
+      --  "wheel", so accept a successful resolution to 0 or a not-found result
+      --  rather than asserting a fixed gid that may vary by distribution.
+      if Found then
+         Assert (Id = 0, "group name root, when present, resolves to gid 0");
+      end if;
+
+      Id := Files.File_System.User_Id_For_Name ("no_such_user_xyzzy_42", Found);
+      Assert (not Found and then Id = 0, "a bogus user name reports Found => False");
+
+      Id := Files.File_System.Group_Id_For_Name ("no_such_group_xyzzy_42", Found);
+      Assert (not Found and then Id = 0, "a bogus group name reports Found => False");
+   end Test_Ownership_Name_Resolution;
+
+   procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Settings_Var : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Target       : constant String := Join (Root, "reducer_own.txt");
+      Width        : constant Natural := 1400;
+      Height       : constant Natural := 1000;
+      Load         : Files.File_System.Directory_Load_Result;
+      Model        : Files.Model.Window_Model;
+      Uid, Gid     : Natural := 0;
+      Avail        : Boolean := False;
+      Found_Owner  : Boolean := False;
+      Owner_X      : Natural := 0;
+      Owner_Y      : Natural := 0;
+   begin
+      if not Files.File_System.Supports_Ownership then
+         return;
+      end if;
+
+      Reset_Root;
+      Write_File (Target, "reduce me");
+      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Assert (Avail, "ownership of the temp file is readable");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "reducer_own.txt");
+      Files.Model.Toggle_Info_Pane (Model);
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width, Height);
+      begin
+         Assert (Snapshot.Ownership_Editable, "single non-trash selection is ownership-editable");
+         for Index in 1 .. Natural (Frame.Ownership_Hits.Length) loop
+            declare
+               Cell : constant Files.Rendering.Ownership_Hit_Region :=
+                 Frame.Ownership_Hits.Element (Positive (Index));
+            begin
+               if not Cell.Is_Group then
+                  Found_Owner := True;
+                  Owner_X := Cell.X + Cell.Width / 2;
+                  Owner_Y := Cell.Y + Cell.Height / 2;
+               end if;
+            end;
+         end loop;
+      end;
+
+      Assert (Found_Owner, "the owner value has a click hit region");
+
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Action : constant Files.Events.Input_Action :=
+           Files_Suite.Support.Click_Action (Snapshot, Owner_X, Owner_Y, Width, Height);
+         Reduce : Files.Interaction.Interaction_Result;
+         Routed : Files.Controller.Controller_Result;
+      begin
+         Assert
+           (Action.Kind = Files.Events.Ownership_Edit_Input_Action,
+            "clicking the owner value yields an ownership-edit action");
+         Assert (Action.Item_Index = 0, "the owner action targets the owner (not group)");
+
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings_Var,
+            Settings_Path     => "",
+            Action            => Action,
+            Current_Font_Size => 16,
+            Modifiers         => Files.Types.No_Modifiers,
+            Result            => Reduce);
+
+         Assert
+           (Files.Model.Focus (Model) = Files.Types.Focus_Ownership_Input,
+            "the reducer focuses the ownership editor");
+
+         --  Type the file's own numeric uid (a bare number is accepted as an
+         --  id) and commit with Enter through the controller.
+         Files.Controller.Replace_Focused_Text
+           (Model, Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both));
+         Routed := Files.Controller.Handle_Key (Model, Settings_Var, Files.Types.Key_Return);
+
+         Assert
+           (Routed.Operation.Status = Files.Operations.Operation_Success,
+            "committing the identity ownership edit through the reducer seam succeeds");
+         Assert
+           (Files.Model.Focus (Model) = Files.Types.Focus_None,
+            "committing the ownership edit clears the editor focus");
+      end;
+   end Test_Ownership_Edit_Through_Reducer;
 
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

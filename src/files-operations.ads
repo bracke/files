@@ -533,6 +533,27 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Apply User_Id/Group_Id to the single selected item through chown,
+   --  recording the previous owner/group for undo and reloading so the info
+   --  pane reflects the change.
+   --
+   --  The operation is disabled unless exactly one non-trash item is selected,
+   --  its ownership was read, and the platform supports ownership changes.
+   --  Changing ownership usually requires root, so an unprivileged attempt to
+   --  set a different owner fails with error.ownership.denied.
+   --
+   --  @param Model Window model whose selected item's ownership is changed.
+   --  @param User_Id New owning user id to apply.
+   --  @param Group_Id New owning group id to apply.
+   --  @param Settings Settings model used for directory reload classification.
+   --  @return Structured operation result.
+   function Set_Ownership_For
+     (Model    : in out Files.Model.Window_Model;
+      User_Id  : Natural;
+      Group_Id : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Refresh the cached recursive folder size for the current selection.
    --
    --  When exactly one directory is selected and its size is not already cached

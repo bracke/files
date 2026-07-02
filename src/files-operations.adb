@@ -2388,6 +2388,71 @@ package body Files.Operations is
       end;
    end Toggle_Permission_Bit;
 
+   function Ownership_Editable_Selection
+     (Model : Files.Model.Window_Model)
+      return Boolean
+   is
+      Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+   begin
+      return Files.Model.Selected_Count (Model) = 1
+        and then not Files.Model.Selection_Includes_Temporary (Model)
+        and then Files.File_System.Supports_Ownership
+        and then Item.Ownership_Available
+        and then Files.Model.Current_Path (Model) /= Files.File_System.Trash_Files_Directory;
+   end Ownership_Editable_Selection;
+
+   function Set_Ownership_For
+     (Model    : in out Files.Model.Window_Model;
+      User_Id  : Natural;
+      Group_Id : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+   begin
+      if not Ownership_Editable_Selection (Model) then
+         return Disabled (Model, "error.selection.empty");
+      end if;
+
+      declare
+         Item      : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+         Path      : constant String := To_String (Item.Full_Path);
+         Old_Uid   : constant Natural := Item.Owner_Id;
+         Old_Gid   : constant Natural := Item.Group_Id;
+         Mutation  : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Set_Ownership (Path, User_Id, Group_Id);
+      begin
+         if not Mutation.Success then
+            Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+            return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Path);
+         end if;
+
+         declare
+            Undo_From : Files.Types.String_Vectors.Vector;
+            Undo_To   : Files.Types.String_Vectors.Vector;
+         begin
+            Undo_From.Append (To_Unbounded_String (Path));
+            Undo_To.Append
+              (To_Unbounded_String
+                 (Ada.Strings.Fixed.Trim (Natural'Image (Old_Uid), Ada.Strings.Both)
+                  & " "
+                  & Ada.Strings.Fixed.Trim (Natural'Image (Old_Gid), Ada.Strings.Both)));
+            Files.Model.Record_Undo (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To);
+         end;
+
+         declare
+            Reload : constant Operation_Result :=
+              Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
+         begin
+            if Reload.Status /= Operation_Success then
+               return Reload;
+            end if;
+         end;
+
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Path);
+      end;
+   end Set_Ownership_For;
+
    procedure Update_Folder_Size
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -2489,6 +2554,35 @@ package body Files.Operations is
                      if not Files.File_System.Set_Permissions (Target, Old_Mode).Success then
                         Succeeded := False;
                      end if;
+                  end if;
+               end;
+            end loop;
+
+         when Files.Model.Undo_Set_Ownership =>
+            --  Restore the previous owner/group recorded before the chown.
+            --  From holds the path and To holds "uid gid" decimal images.
+            for Index in From.First_Index .. From.Last_Index loop
+               declare
+                  Target   : constant String := To_String (From.Element (Index));
+                  Old_Text : constant String :=
+                    Ada.Strings.Fixed.Trim (To_String (To.Element (Index)), Ada.Strings.Both);
+                  Space    : constant Natural := Ada.Strings.Fixed.Index (Old_Text, " ");
+                  Old_Uid  : Natural := 0;
+                  Old_Gid  : Natural := 0;
+               begin
+                  if Space > 0 then
+                     begin
+                        Old_Uid := Natural'Value (Old_Text (Old_Text'First .. Space - 1));
+                        Old_Gid := Natural'Value (Old_Text (Space + 1 .. Old_Text'Last));
+                        if not Files.File_System.Set_Ownership (Target, Old_Uid, Old_Gid).Success then
+                           Succeeded := False;
+                        end if;
+                     exception
+                        when others =>
+                           Succeeded := False;
+                     end;
+                  else
+                     Succeeded := False;
                   end if;
                end;
             end loop;

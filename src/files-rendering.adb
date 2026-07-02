@@ -2275,6 +2275,9 @@ package body Files.Rendering is
                   Permissions        => Item.Permissions,
                   Mode_Available     => Item.Mode_Available,
                   Mode_Bits          => Item.Mode_Bits,
+                  Ownership_Available => Item.Ownership_Available,
+                  Owner_Id           => Item.Owner_Id,
+                  Group_Id           => Item.Group_Id,
                   Is_Directory       => Is_Directory,
                   Metadata_Error     => Item.Metadata_Error,
                   Error_Key          => Item.Error_Key,
@@ -2311,12 +2314,39 @@ package body Files.Rendering is
               and then Files.File_System.Supports_Permissions
               and then Single_Item.Mode_Available;
 
+            Snapshot.Ownership_Editable :=
+              Files.Model.Selected_Count (Model) = 1
+              and then not In_Trash
+              and then Files.File_System.Supports_Ownership
+              and then Single_Item.Ownership_Available;
+
             if Items.Is_Empty then
                Snapshot.Selected_Info.Append (Build_Info (Single_Item));
             else
                for Item of Items loop
                   Snapshot.Selected_Info.Append (Build_Info (Item));
                end loop;
+            end if;
+
+            --  Reflect an active ownership edit on the single selected item so
+            --  the info pane shows the editor buffer and draws the caret.
+            if Snapshot.Ownership_Editable
+              and then Natural (Snapshot.Selected_Info.Length) = 1
+              and then Files.Model.Focus (Model) = Files.Types.Focus_Ownership_Input
+            then
+               declare
+                  Editing : Info_Snapshot := Snapshot.Selected_Info.First_Element;
+               begin
+                  Editing.Ownership_Buffer :=
+                    To_Unbounded_String (Files.Model.Ownership_Input_Text (Model));
+                  if Files.Model.Ownership_Editing_Group (Model) then
+                     Editing.Group_Editing := True;
+                  else
+                     Editing.Owner_Editing := True;
+                  end if;
+                  Snapshot.Selected_Info.Replace_Element
+                    (Snapshot.Selected_Info.First_Index, Editing);
+               end;
             end if;
          end;
       end if;
@@ -2925,6 +2955,32 @@ package body Files.Rendering is
 
       return (others => <>);
    end Permission_Hit_At;
+
+   function Ownership_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Ownership_Hit_Region is
+   begin
+      for Index in 1 .. Natural (Frame.Ownership_Hits.Length) loop
+         declare
+            Region : constant Ownership_Hit_Region :=
+              Frame.Ownership_Hits.Element (Positive (Index));
+         begin
+            if Region.Width > 0
+              and then Region.Height > 0
+              and then X >= Region.X
+              and then X < Region.X + Region.Width
+              and then Y >= Region.Y
+              and then Y < Region.Y + Region.Height
+            then
+               return Region;
+            end if;
+         end;
+      end loop;
+
+      return (others => <>);
+   end Ownership_Hit_At;
 
    function Calculate_Context_Menu_Layout
      (Snapshot    : View_Snapshot;
@@ -3836,6 +3892,18 @@ package body Files.Rendering is
             return Info.Filetype_Detail;
          when 8 =>
             return Info.Filetype_Extra;
+         when 9 =>
+            return
+              (if Info.Owner_Editing
+               then Info.Ownership_Buffer
+               else To_Unbounded_String
+                      (Ada.Strings.Fixed.Trim (Natural'Image (Info.Owner_Id), Ada.Strings.Both)));
+         when 10 =>
+            return
+              (if Info.Group_Editing
+               then Info.Ownership_Buffer
+               else To_Unbounded_String
+                      (Ada.Strings.Fixed.Trim (Natural'Image (Info.Group_Id), Ada.Strings.Both)));
          when others =>
             return Null_Unbounded_String;
       end case;
@@ -3957,6 +4025,17 @@ package body Files.Rendering is
 
       if Show_Grid then
          Rows := Saturating_Add (Rows, Permission_Grid_Rows);
+      end if;
+
+      if Info.Ownership_Available then
+         for Field in 9 .. 10 loop
+            Rows :=
+              Saturating_Add
+                (Rows,
+                 Saturating_Add
+                   (2,
+                    Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height)));
+         end loop;
       end if;
 
       if Info.Is_Directory and then Info.Folder_Size_Available then
@@ -7230,6 +7309,68 @@ package body Files.Rendering is
 
                      Current_Row := Saturating_Add (Current_Row, Permission_Grid_Rows);
                   end Add_Permission_Grid;
+
+                  --  Draw an editable owner or group value and register one
+                  --  click hit region over it. While editing, the value shows
+                  --  the editor buffer with an underline and a text caret.
+                  procedure Add_Ownership_Field
+                    (Key     : String;
+                     Field   : Natural;
+                     Editing : Boolean)
+                  is
+                     Value      : constant UString := Info_Field_Value (Info, Field);
+                     Value_Rows : constant Natural := Wrapped_Line_Count (Value, Text_W, Line_Height);
+                     Value_Row  : Natural;
+                     Cell_Y     : Integer;
+                  begin
+                     Add_Info_Label (Current_Row, Key);
+                     Current_Row := Saturating_Add (Current_Row, 1);
+                     Value_Row := Current_Row;
+                     Add_Info_Wrapped_Value
+                       (Value_Row, Value, (if Editing then Text_Color else Muted_Text_Color));
+                     Cell_Y :=
+                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Value_Row, Line_Height));
+                     if Cell_Y >= Integer (Info_Pane.Y)
+                       and then Cell_Y < Integer (Info_Bottom)
+                       and then Text_W > 0
+                     then
+                        Result.Ownership_Hits.Append
+                          (Ownership_Hit_Region'
+                             (Present  => True,
+                              Is_Group => Field = 10,
+                              X        => Text_X,
+                              Y        => Natural (Cell_Y),
+                              Width    => Text_W,
+                              Height   => Line_Height));
+                        if Editing then
+                           Add_Rect
+                             (Text_X,
+                              Saturating_Add (Natural (Cell_Y), Line_Height - 1),
+                              Text_W,
+                              1,
+                              Selection_Color);
+                           declare
+                              Char_W  : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+                              Raw     : constant String := To_String (Value);
+                              Caret_X : constant Natural :=
+                                Saturating_Add
+                                  (Text_X,
+                                   Saturating_Multiply
+                                     (Files.UTF8.Display_Units_Before
+                                        (Raw, Snapshot.Text_Cursor_Position),
+                                      Char_W));
+                           begin
+                              Add_Rect
+                                (Caret_X,
+                                 Saturating_Add (Natural (Cell_Y), 2),
+                                 2,
+                                 (if Line_Height > 4 then Line_Height - 4 else Line_Height),
+                                 Text_Color);
+                           end;
+                        end if;
+                     end if;
+                     Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
+                  end Add_Ownership_Field;
                begin
                   Add_Info_Field ("info.name", Info_Field_Value (Info, 0), 0);
                   Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
@@ -7242,6 +7383,10 @@ package body Files.Rendering is
                   Add_Info_Field ("info.permissions", Info_Field_Value (Info, 5), 5);
                   if Show_Grid_Here then
                      Add_Permission_Grid;
+                  end if;
+                  if Info.Ownership_Available then
+                     Add_Ownership_Field ("info.owner", 9, Info.Owner_Editing);
+                     Add_Ownership_Field ("info.group", 10, Info.Group_Editing);
                   end if;
                   Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
                   Add_Info_Field ("info.kind", Info_Field_Value (Info, 7), 7);

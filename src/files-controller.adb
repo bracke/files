@@ -416,6 +416,8 @@ package body Files.Controller is
             Reconcile_Palette_Selection (Model);
          when Files.Types.Focus_Settings_Input =>
             Files.Model.Set_Settings_Field_Text (Model, Text);
+         when Files.Types.Focus_Ownership_Input =>
+            Files.Model.Set_Ownership_Input_Text (Model, Text);
          when Files.Types.Focus_None =>
             null;
       end case;
@@ -436,6 +438,8 @@ package body Files.Controller is
             return Files.Model.Command_Palette_Query (Model);
          when Files.Types.Focus_Settings_Input =>
             return Files.Model.Settings_Field_Text (Model);
+         when Files.Types.Focus_Ownership_Input =>
+            return Files.Model.Ownership_Input_Text (Model);
          when Files.Types.Focus_None =>
             return "";
       end case;
@@ -1449,6 +1453,10 @@ package body Files.Controller is
             Files.Model.Focus_Command_Palette_Input (Model);
          when Files.Types.Focus_Settings_Input =>
             Files.Model.Set_Settings_Field_Index (Model, Files.Model.Settings_Field_Index (Model));
+         when Files.Types.Focus_Ownership_Input =>
+            --  The ownership editor is opened through its own click action, not
+            --  the generic text-click path.
+            return Make_Result (Controller_Ignored);
          when Files.Types.Focus_None =>
             return Make_Result (Controller_Ignored);
       end case;
@@ -1682,6 +1690,60 @@ package body Files.Controller is
                 (Controller_Command_Executed,
                  Files.Commands.Toggle_Settings_Pane_Command,
                  Operation);
+         when Files.Types.Focus_Ownership_Input =>
+            declare
+               Raw   : constant String :=
+                 Ada.Strings.Fixed.Trim (Files.Model.Ownership_Input_Text (Model), Ada.Strings.Both);
+               Group : constant Boolean := Files.Model.Ownership_Editing_Group (Model);
+               Item  : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+               Resolved : Natural := 0;
+               Found    : Boolean := False;
+
+               function Is_Numeric (Text : String) return Boolean is
+               begin
+                  if Text'Length = 0 then
+                     return False;
+                  end if;
+                  for Ch of Text loop
+                     if Ch not in '0' .. '9' then
+                        return False;
+                     end if;
+                  end loop;
+                  return True;
+               end Is_Numeric;
+            begin
+               if Is_Numeric (Raw) then
+                  begin
+                     Resolved := Natural'Value (Raw);
+                     Found := True;
+                  exception
+                     when others =>
+                        Found := False;
+                  end;
+               elsif Group then
+                  Resolved := Files.File_System.Group_Id_For_Name (Raw, Found);
+               else
+                  Resolved := Files.File_System.User_Id_For_Name (Raw, Found);
+               end if;
+
+               if not Found then
+                  Files.Model.Set_Error (Model, "error.ownership.invalid_name");
+                  Files.Model.Cancel_Focus_Or_Edit (Model);
+                  Operation.Status := Files.Operations.Operation_Failed;
+                  Operation.Error_Key := To_Unbounded_String ("error.ownership.invalid_name");
+                  return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
+               end if;
+
+               if Group then
+                  Operation :=
+                    Files.Operations.Set_Ownership_For (Model, Item.Owner_Id, Resolved, Settings);
+               else
+                  Operation :=
+                    Files.Operations.Set_Ownership_For (Model, Resolved, Item.Group_Id, Settings);
+               end if;
+               Files.Model.Cancel_Focus_Or_Edit (Model);
+               return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
+            end;
          when others =>
             return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
       end case;
@@ -2293,6 +2355,7 @@ package body Files.Controller is
             | Files.Events.Scrollbar_Drag_Begin_Input_Action
             | Files.Events.Column_Resize_Begin_Input_Action
             | Files.Events.Permission_Toggle_Input_Action
+            | Files.Events.Ownership_Edit_Input_Action
             | Files.Events.Conflict_Click_Input_Action
             | Files.Events.Paste_Cancel_Input_Action =>
             null;

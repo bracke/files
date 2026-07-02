@@ -105,4 +105,63 @@ package Files.Platform.Metadata is
    --  @return True on the Linux adapter, False on the stub adapters.
    function Permissions_Supported return Boolean;
 
+   --  Return the numeric owner (UID) and group (GID) of Path.
+   --
+   --  Non-Linux bodies are stubs that report no metadata (Available => False).
+   --
+   --  @param Path Filesystem path to inspect.
+   --  @param User_Id Set to the owning user id when Available is True.
+   --  @param Group_Id Set to the owning group id when Available is True.
+   --  @param Available Set True when ownership ids were obtained.
+   procedure File_Ownership
+     (Path      : String;
+      User_Id   : out Natural;
+      Group_Id  : out Natural;
+      Available : out Boolean);
+
+   --  Change the owner and group of Path through chown(2).
+   --
+   --  Changing the owner of a file typically requires root privileges, so this
+   --  usually fails with EPERM for an unprivileged process. Non-Linux bodies
+   --  are stubs that report failure.
+   --
+   --  @param Path Filesystem path whose ownership is changed.
+   --  @param User_Id New owning user id to apply.
+   --  @param Group_Id New owning group id to apply.
+   --  @return True when the ownership was changed.
+   function Set_Ownership
+     (Path     : String;
+      User_Id  : Natural;
+      Group_Id : Natural)
+      return Boolean;
+
+   --  Resolve a user name to its numeric id through getpwnam(3).
+   --
+   --  Non-Linux bodies are stubs that report Found => False.
+   --
+   --  @param Name User name to resolve.
+   --  @param Found Set True when the name resolved to an id.
+   --  @return The user id when Found, otherwise 0.
+   function User_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural;
+
+   --  Resolve a group name to its numeric id through getgrnam(3).
+   --
+   --  Non-Linux bodies are stubs that report Found => False.
+   --
+   --  @param Name Group name to resolve.
+   --  @param Found Set True when the name resolved to an id.
+   --  @return The group id when Found, otherwise 0.
+   function Group_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural;
+
+   --  Return whether this platform can read and change file ownership.
+   --
+   --  @return True on the Linux adapter, False on the stub adapters.
+   function Ownership_Supported return Boolean;
+
 end Files.Platform.Metadata;

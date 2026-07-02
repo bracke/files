@@ -111,6 +111,12 @@ package Files.Rendering is
       Permissions        : UString;
       Mode_Available     : Boolean := False;
       Mode_Bits          : Natural := 0;
+      Ownership_Available : Boolean := False;
+      Owner_Id           : Natural := 0;
+      Group_Id           : Natural := 0;
+      Owner_Editing      : Boolean := False;
+      Group_Editing      : Boolean := False;
+      Ownership_Buffer   : UString;
       Is_Directory       : Boolean := False;
       Folder_Size_Available : Boolean := False;
       Folder_Size_Bytes     : Long_Long_Integer := 0;
@@ -170,6 +176,10 @@ package Files.Rendering is
       --  place through the info-pane rwx grid: exactly one non-trash item is
       --  selected, its mode was read, and the platform supports chmod.
       Permissions_Editable  : Boolean := False;
+      --  True when the single selected item's ownership can be edited in the
+      --  info pane: exactly one non-trash item is selected, its ownership was
+      --  read, and the platform supports chown.
+      Ownership_Editable    : Boolean := False;
       Settings_Pane_Open    : Boolean := False;
       Settings_Default_View       : UString;
       Settings_Default_View_Token : UString;
@@ -848,6 +858,21 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Permission_Hit_Region);
 
+   --  A clickable info-pane ownership value. Is_Group is True for the group
+   --  row and False for the owner row; clicking opens the ownership editor.
+   type Ownership_Hit_Region is record
+      Present  : Boolean := False;
+      Is_Group : Boolean := False;
+      X        : Natural := 0;
+      Y        : Natural := 0;
+      Width    : Natural := 0;
+      Height   : Natural := 0;
+   end record;
+
+   package Ownership_Hit_Region_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Ownership_Hit_Region);
+
    type Frame_Commands is record
       Layout        : Layout_Metrics;
       Theme_Palette : Theme_Kind := Theme_Dark;
@@ -861,6 +886,7 @@ package Files.Rendering is
       Accessibility : Accessibility_Node_Vectors.Vector;
       Settings_Hits : Settings_Hit_Region_Vectors.Vector;
       Permission_Hits : Permission_Hit_Region_Vectors.Vector;
+      Ownership_Hits : Ownership_Hit_Region_Vectors.Vector;
       Conflict_Hits : Conflict_Hit_Region_Vectors.Vector;
    end record;
 
@@ -923,6 +949,18 @@ package Files.Rendering is
       X     : Natural;
       Y     : Natural)
       return Permission_Hit_Region;
+
+   --  Return the info-pane ownership value containing a point, if any.
+   --
+   --  @param Frame Frame whose ownership hit regions are tested.
+   --  @param X Point X coordinate in pixels.
+   --  @param Y Point Y coordinate in pixels.
+   --  @return The value at the point, or a region with Present False when none.
+   function Ownership_Hit_At
+     (Frame : Frame_Commands;
+      X     : Natural;
+      Y     : Natural)
+      return Ownership_Hit_Region;
 
    type Text_Renderer is private;
 

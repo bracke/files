@@ -1466,6 +1466,9 @@ package body Files.File_System is
                      Permissions        => Null_Unbounded_String,
                      Mode_Available     => False,
                      Mode_Bits          => 0,
+                     Ownership_Available => False,
+                     Owner_Id           => 0,
+                     Group_Id           => 0,
                      Filetype_Extra     => Null_Unbounded_String,
                      Thumbnail_Available => False,
                      Thumbnail_Path      => Null_Unbounded_String,
@@ -1499,6 +1502,8 @@ package body Files.File_System is
                      Item.Permissions := To_Unbounded_String (Permission_String (Full));
                      Item.Mode_Bits :=
                        Files.Platform.Metadata.File_Permission_Bits (Full, Item.Mode_Available);
+                     Files.Platform.Metadata.File_Ownership
+                       (Full, Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
                      if Kind /= Files.Types.Symlink_Item then
                         Item.Filetype_Extra :=
                           To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
@@ -2751,6 +2756,9 @@ package body Files.File_System is
          Permissions        => Null_Unbounded_String,
          Mode_Available     => False,
          Mode_Bits          => 0,
+         Ownership_Available => False,
+         Owner_Id           => 0,
+         Group_Id           => 0,
          Filetype_Extra     => Null_Unbounded_String,
          Thumbnail_Available => False,
          Thumbnail_Path      => Null_Unbounded_String,
@@ -2786,6 +2794,9 @@ package body Files.File_System is
          Permissions        => Null_Unbounded_String,
          Mode_Available     => False,
          Mode_Bits          => 0,
+         Ownership_Available => False,
+         Owner_Id           => 0,
+         Group_Id           => 0,
          Filetype_Extra     => Null_Unbounded_String,
          Thumbnail_Available => False,
          Thumbnail_Path      => Null_Unbounded_String,
@@ -3465,6 +3476,72 @@ package body Files.File_System is
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.permissions.failed"));
    end Set_Permissions;
+
+   function Supports_Ownership return Boolean is
+   begin
+      return Files.Platform.Metadata.Ownership_Supported;
+   end Supports_Ownership;
+
+   procedure Ownership_Of
+     (Path      : String;
+      User_Id   : out Natural;
+      Group_Id  : out Natural;
+      Available : out Boolean) is
+   begin
+      Files.Platform.Metadata.File_Ownership (Path, User_Id, Group_Id, Available);
+   end Ownership_Of;
+
+   function Set_Ownership
+     (Path     : String;
+      User_Id  : Natural;
+      Group_Id : Natural)
+      return Mutation_Result
+   is
+      function Exists_Safely (Candidate : String) return Boolean is
+      begin
+         return Candidate /= "" and then Project_Tools.Files.Exists (Candidate);
+      exception
+         when others =>
+            return False;
+      end Exists_Safely;
+   begin
+      if not Files.Platform.Metadata.Ownership_Supported then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.ownership.unsupported"));
+      elsif not Exists_Safely (Path) then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.ownership.denied"));
+      elsif Files.Platform.Metadata.Set_Ownership (Path, User_Id, Group_Id) then
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      else
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.ownership.denied"));
+      end if;
+   exception
+      when others =>
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.ownership.denied"));
+   end Set_Ownership;
+
+   function User_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural is
+   begin
+      return Files.Platform.Metadata.User_Id_For_Name (Name, Found);
+   end User_Id_For_Name;
+
+   function Group_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural is
+   begin
+      return Files.Platform.Metadata.Group_Id_For_Name (Name, Found);
+   end Group_Id_For_Name;
 
    function Directory_Size
      (Path        : String;

@@ -21,6 +21,7 @@ package Files.Events is
       Tree_Pick_Confirm_Input_Action,
       Command_Result_Click_Input_Action,
       Permission_Toggle_Input_Action,
+      Ownership_Edit_Input_Action,
       Conflict_Click_Input_Action,
       Paste_Cancel_Input_Action);
 

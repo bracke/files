@@ -925,6 +925,20 @@ package body Files.Events is
          end;
       end if;
 
+      if Snapshot.Info_Pane_Open and then Snapshot.Ownership_Editable then
+         declare
+            Cell : constant Files.Rendering.Ownership_Hit_Region :=
+              Files.Rendering.Ownership_Hit_At (Frame, X, Y);
+         begin
+            if Cell.Present then
+               return
+                 (Kind       => Ownership_Edit_Input_Action,
+                  Item_Index => (if Cell.Is_Group then 1 else 0),
+                  others     => <>);
+            end if;
+         end;
+      end if;
+
       if Info_Pane.Scrollbar_Visible
         and then Within (X, Info_Pane.Scrollbar_X, Info_Pane.Scrollbar_Width)
         and then Within (Y, Info_Pane.Scrollbar_Y, Info_Pane.Scrollbar_Track_Height)

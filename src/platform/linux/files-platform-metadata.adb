@@ -124,6 +124,43 @@ package body Files.Platform.Metadata is
       return C_Int
      with Import, Convention => C, External_Name => "chmod";
 
+   function Chown
+     (Pathname : Interfaces.C.Strings.chars_ptr;
+      Owner    : C_U32;
+      Group    : C_U32)
+      return C_Int
+     with Import, Convention => C, External_Name => "chown";
+
+   --  Front of the C "struct passwd": we only read pw_uid, which follows the
+   --  pw_name and pw_passwd pointers. Trailing members are omitted because the
+   --  imported pointer refers to the library's full record.
+   type Passwd_Front is record
+      Name   : Interfaces.C.Strings.chars_ptr;
+      Passwd : Interfaces.C.Strings.chars_ptr;
+      Uid    : C_U32;
+      Gid    : C_U32;
+   end record
+     with Convention => C;
+
+   --  Front of the C "struct group": we only read gr_gid, which follows the
+   --  gr_name and gr_passwd pointers.
+   type Group_Front is record
+      Name   : Interfaces.C.Strings.chars_ptr;
+      Passwd : Interfaces.C.Strings.chars_ptr;
+      Gid    : C_U32;
+   end record
+     with Convention => C;
+
+   function Getpwnam
+     (Name : Interfaces.C.Strings.chars_ptr)
+      return access Passwd_Front
+     with Import, Convention => C, External_Name => "getpwnam";
+
+   function Getgrnam
+     (Name : Interfaces.C.Strings.chars_ptr)
+      return access Group_Front
+     with Import, Convention => C, External_Name => "getgrnam";
+
    Statx_Mode      : constant C_Unsigned := 16#2#;
    Permission_Mask : constant C_U16 := 8#7777#;
 
@@ -345,5 +382,108 @@ package body Files.Platform.Metadata is
    begin
       return True;
    end Permissions_Supported;
+
+   Statx_Uid : constant C_Unsigned := 16#8#;
+   Statx_Gid : constant C_Unsigned := 16#10#;
+
+   procedure File_Ownership
+     (Path      : String;
+      User_Id   : out Natural;
+      Group_Id  : out Natural;
+      Available : out Boolean)
+   is
+      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+      Info   : aliased Statx_Record;
+      Status : C_Int;
+   begin
+      User_Id := 0;
+      Group_Id := 0;
+      Available := False;
+      Status := Statx (At_FDCWD, C_Path, 0, Statx_Uid or Statx_Gid, Info'Access);
+      Interfaces.C.Strings.Free (C_Path);
+
+      if Status = 0 then
+         Available := True;
+         User_Id := Natural (Info.User_Id);
+         Group_Id := Natural (Info.Group_Id);
+      end if;
+   exception
+      when others =>
+         Safe_Free (C_Path);
+         User_Id := 0;
+         Group_Id := 0;
+         Available := False;
+   end File_Ownership;
+
+   function Set_Ownership
+     (Path     : String;
+      User_Id  : Natural;
+      Group_Id : Natural)
+      return Boolean
+   is
+      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+      Status : C_Int;
+   begin
+      Status := Chown (C_Path, C_U32 (User_Id), C_U32 (Group_Id));
+      Interfaces.C.Strings.Free (C_Path);
+      return Status = 0;
+   exception
+      when others =>
+         Safe_Free (C_Path);
+         return False;
+   end Set_Ownership;
+
+   function User_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural
+   is
+      C_Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Name);
+      Entry_Ptr : access Passwd_Front;
+      Result : Natural := 0;
+   begin
+      Found := False;
+      Entry_Ptr := Getpwnam (C_Name);
+      Interfaces.C.Strings.Free (C_Name);
+      if Entry_Ptr /= null then
+         Found := True;
+         Result := Natural (Entry_Ptr.Uid);
+      end if;
+      return Result;
+   exception
+      when others =>
+         Safe_Free (C_Name);
+         Found := False;
+         return 0;
+   end User_Id_For_Name;
+
+   function Group_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural
+   is
+      C_Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Name);
+      Entry_Ptr : access Group_Front;
+      Result : Natural := 0;
+   begin
+      Found := False;
+      Entry_Ptr := Getgrnam (C_Name);
+      Interfaces.C.Strings.Free (C_Name);
+      if Entry_Ptr /= null then
+         Found := True;
+         Result := Natural (Entry_Ptr.Gid);
+      end if;
+      return Result;
+   exception
+      when others =>
+         Safe_Free (C_Name);
+         Found := False;
+         return 0;
+   end Group_Id_For_Name;
+
+   function Ownership_Supported return Boolean is
+   begin
+      return True;
+   end Ownership_Supported;
 
 end Files.Platform.Metadata;
