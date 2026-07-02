@@ -495,3 +495,7 @@ it.root.favorite.prefix = ★
 it.root.favorite.suffix =
 it.accessibility.favorite_toggle.off = Aggiungi la cartella corrente ai preferiti
 it.accessibility.favorite_toggle.on = Rimuovi la cartella corrente dai preferiti
+it.command.edit.copy_path = Copia percorso
+it.command.edit.copy_path.description = Copia i percorsi completi degli elementi selezionati negli appunti.
+it.command.navigate.containing = Apri cartella contenitore
+it.command.navigate.containing.description = Apri la cartella che contiene l'elemento selezionato e selezionalo.

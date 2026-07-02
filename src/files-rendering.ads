@@ -279,9 +279,9 @@ package Files.Rendering is
    type Context_Menu_Row_Kind is (Command_Row, Separator_Row);
 
    --  Real commands plus the separators that group them. The item menu carries
-   --  16 commands split into 6 groups by 5 separators (21 rows); the constant
+   --  18 commands split into 6 groups by 5 separators (23 rows); the constant
    --  keeps headroom so the fixed arrays never overflow.
-   Max_Context_Menu_Rows : constant := 22;
+   Max_Context_Menu_Rows : constant := 24;
    type Context_Menu_Command_Array is
      array (1 .. Max_Context_Menu_Rows) of Files.Commands.Command_Id;
    type Context_Menu_Row_Kind_Array is

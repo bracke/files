@@ -495,3 +495,7 @@ pt.root.favorite.prefix = ★
 pt.root.favorite.suffix =
 pt.accessibility.favorite_toggle.off = Adicionar a pasta atual aos favoritos
 pt.accessibility.favorite_toggle.on = Remover a pasta atual dos favoritos
+pt.command.edit.copy_path = Copiar caminho
+pt.command.edit.copy_path.description = Copiar os caminhos completos dos itens selecionados à área de transferência.
+pt.command.navigate.containing = Abrir pasta que contém
+pt.command.navigate.containing.description = Abrir a pasta que contém o item selecionado e selecioná-lo.

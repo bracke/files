@@ -495,3 +495,7 @@ nl.root.favorite.prefix = ★
 nl.root.favorite.suffix =
 nl.accessibility.favorite_toggle.off = Huidige map toevoegen aan favorieten
 nl.accessibility.favorite_toggle.on = Huidige map verwijderen uit favorieten
+nl.command.edit.copy_path = Pad kopiëren
+nl.command.edit.copy_path.description = Volledige paden van de geselecteerde items naar het klembord kopiëren.
+nl.command.navigate.containing = Bovenliggende map openen
+nl.command.navigate.containing.description = De map openen die het geselecteerde item bevat en het selecteren.

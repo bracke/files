@@ -2,8 +2,6 @@ with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
-with Files.File_System;
-
 package body Files.Commands is
    use Ada.Strings.Unbounded;
    use type Files.File_System.Path_Status;
@@ -201,6 +199,10 @@ package body Files.Commands is
             return "file.copy_to";
          when Move_To_Command =>
             return "file.move_to";
+         when Copy_Path_Command =>
+            return "edit.copy_path";
+         when Open_Containing_Folder_Command =>
+            return "navigate.containing";
       end case;
    end Identifier;
 
@@ -337,6 +339,10 @@ package body Files.Commands is
             return "command.copy_to";
          when Move_To_Command =>
             return "command.move_to";
+         when Copy_Path_Command =>
+            return "command.edit.copy_path";
+         when Open_Containing_Folder_Command =>
+            return "command.navigate.containing";
       end case;
    end Name_Key;
 
@@ -473,6 +479,10 @@ package body Files.Commands is
             return "command.copy_to.description";
          when Move_To_Command =>
             return "command.move_to.description";
+         when Copy_Path_Command =>
+            return "command.edit.copy_path.description";
+         when Open_Containing_Folder_Command =>
+            return "command.navigate.containing.description";
       end case;
    end Description_Key;
 
@@ -514,6 +524,10 @@ package body Files.Commands is
             return (True, Files.Types.Key_Up, Alt);
          when Create_File_Command =>
             return (True, Files.Types.Key_N, Ctrl);
+         when New_Folder_Command =>
+            return (True, Files.Types.Key_N, Ctrl_Shift);
+         when Copy_Path_Command =>
+            return (True, Files.Types.Key_C, Ctrl_Shift);
          when Select_All_Command =>
             return (True, Files.Types.Key_A, Ctrl);
          when Invert_Selection_Command =>
@@ -529,7 +543,7 @@ package body Files.Commands is
          when Clear_Filter_Command =>
             return (True, Files.Types.Key_F, Ctrl_Shift);
          when Search_Recursive_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (True, Files.Types.Key_S, Ctrl_Shift);
          when Refresh_Directory_Command =>
             return (True, Files.Types.Key_R, Ctrl);
          when Save_Settings_Command =>
@@ -537,7 +551,7 @@ package body Files.Commands is
          when Reset_Settings_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Toggle_Favorite_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (True, Files.Types.Key_B, Ctrl);
          when Open_Selected_Root_Command | Eject_Selected_Root_Command =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
          when Delete_Selected_Items_Command =>
@@ -574,6 +588,10 @@ package body Files.Commands is
       case Id is
          when Delete_Selected_Items_Command =>
             return (True, Files.Types.Key_Backspace, Files.Types.No_Modifiers);
+         when Refresh_Directory_Command =>
+            --  F5 is the universal refresh accelerator, offered in addition to
+            --  the displayed Control+R primary shortcut.
+            return (True, Files.Types.Key_F5, Files.Types.No_Modifiers);
          when others =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
       end case;
@@ -594,6 +612,8 @@ package body Files.Commands is
             return "4";
          when Files.Types.Key_A =>
             return "a";
+         when Files.Types.Key_B =>
+            return "b";
          when Files.Types.Key_C =>
             return "c";
          when Files.Types.Key_D =>
@@ -626,6 +646,8 @@ package body Files.Commands is
             return "delete";
          when Files.Types.Key_F2 =>
             return "f2";
+         when Files.Types.Key_F5 =>
+            return "f5";
          when Files.Types.Key_Escape =>
             return "escape";
          when Files.Types.Key_Return =>
@@ -909,6 +931,24 @@ package body Files.Commands is
         and then Normalized_Path (Files.Model.Current_Path (Model)) = Normalized_Path (Trash_Dir);
    end In_Trash_View;
 
+   function Joined_Full_Paths
+     (Items : Files.File_System.Item_Vectors.Vector)
+      return String
+   is
+      Result : Unbounded_String;
+      First  : Boolean := True;
+   begin
+      for Item of Items loop
+         if not First then
+            Append (Result, ASCII.LF);
+         end if;
+         Append (Result, Item.Full_Path);
+         First := False;
+      end loop;
+
+      return To_String (Result);
+   end Joined_Full_Paths;
+
    function Is_Enabled
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
@@ -1033,6 +1073,21 @@ package body Files.Commands is
             return not In_Trash_View (Model);
          when Create_Symlink_Command | Create_Hardlink_Command =>
             return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
+         when Copy_Path_Command =>
+            --  Copying paths to the system clipboard needs at least one real
+            --  (non-temporary) item selected in an ordinary directory rather
+            --  than the trash payload view.
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
+         when Open_Containing_Folder_Command =>
+            --  Reveal navigates to a single item's parent directory. It is
+            --  enabled for exactly one real selected item in an ordinary
+            --  directory view and is a safe no-op when that parent is already
+            --  the current directory.
+            return Files.Model.Selected_Count (Model) = 1
               and then not Files.Model.Selection_Includes_Temporary (Model)
               and then not In_Trash_View (Model);
          when others =>
@@ -1220,6 +1275,17 @@ package body Files.Commands is
             --  Capturing the selection and seeding the destination tree needs
             --  filesystem-backed roots, so these are routed through
             --  Files.Controller rather than this pure model-only executor.
+            null;
+         when Copy_Path_Command =>
+            --  Building the newline-joined selection paths is pure; the shell
+            --  reads the recorded request and writes the system clipboard.
+            Files.Model.Set_System_Clipboard_Request
+              (Model, Joined_Full_Paths (Files.Model.Selected_Items (Model)));
+            Files.Model.Set_Error (Model, "");
+         when Open_Containing_Folder_Command =>
+            --  Revealing an item navigates to its parent directory and selects
+            --  it, which loads a directory from the filesystem, so it is routed
+            --  through Files.Controller rather than this pure model-only executor.
             null;
       end case;
    end Execute;

@@ -1989,6 +1989,39 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
+   --  Record text to be written to the system text clipboard by the platform
+   --  shell on its next follow-up pass. The model only stores the request; the
+   --  GLFW-backed shell performs the actual clipboard write and clears it.
+   --
+   --  @param Model Model to update.
+   --  @param Text Text to place on the system clipboard.
+   procedure Set_System_Clipboard_Request
+     (Model : in out Window_Model;
+      Text  : String);
+
+   --  Return whether a system-clipboard write has been requested and not yet
+   --  consumed by the shell.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when a pending system-clipboard request exists.
+   function System_Clipboard_Request_Pending
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return the text of the pending system-clipboard request.
+   --
+   --  @param Model Model to inspect.
+   --  @return Requested clipboard text, or an empty string when none is pending.
+   function System_Clipboard_Request_Text
+     (Model : Window_Model)
+      return String;
+
+   --  Clear any pending system-clipboard request once the shell has written it.
+   --
+   --  @param Model Model to update.
+   procedure Clear_System_Clipboard_Request
+     (Model : in out Window_Model);
+
 private
    package Natural_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
@@ -2061,6 +2094,8 @@ private
       Temporary_Name_Value : UString;
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
+      System_Clipboard_Request_Value   : UString;
+      System_Clipboard_Request_Pending : Boolean := False;
       Clipboard_Paths_Value : Files.Types.String_Vectors.Vector;
       Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
       Undo_Stack            : Undo_Entry_Vectors.Vector;

@@ -3451,6 +3451,35 @@ package body Files.Model is
       return To_String (Model.Last_Error);
    end Last_Error_Key;
 
+   procedure Set_System_Clipboard_Request
+     (Model : in out Window_Model;
+      Text  : String) is
+   begin
+      Model.System_Clipboard_Request_Value := To_Unbounded_String (Text);
+      Model.System_Clipboard_Request_Pending := True;
+   end Set_System_Clipboard_Request;
+
+   function System_Clipboard_Request_Pending
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.System_Clipboard_Request_Pending;
+   end System_Clipboard_Request_Pending;
+
+   function System_Clipboard_Request_Text
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.System_Clipboard_Request_Value);
+   end System_Clipboard_Request_Text;
+
+   procedure Clear_System_Clipboard_Request
+     (Model : in out Window_Model) is
+   begin
+      Model.System_Clipboard_Request_Value := Null_Unbounded_String;
+      Model.System_Clipboard_Request_Pending := False;
+   end Clear_System_Clipboard_Request;
+
    procedure Set_Clipboard
      (Model : in out Window_Model;
       Paths : Files.Types.String_Vectors.Vector;

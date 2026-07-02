@@ -3046,9 +3046,11 @@ package body Files.Rendering is
 
       case Snapshot.Context_Menu_Target is
          when Files.Model.Context_Menu_Item =>
-            --  Group 1: open actions.
+            --  Group 1: open actions, including revealing a search result in its
+            --  containing folder.
             Add_Command (Files.Commands.Open_Selected_Items_Command);
             Add_Command (Files.Commands.Open_With_Command);
+            Add_Command (Files.Commands.Open_Containing_Folder_Command);
             Add_Separator;
             --  Group 2: favorite the current selection (its own single-command
             --  group so it reads as a distinct verb).
@@ -3058,6 +3060,7 @@ package body Files.Rendering is
             --  move-to destination pickers next to the plain clipboard verbs.
             Add_Command (Files.Commands.Copy_Selected_Items_Command);
             Add_Command (Files.Commands.Cut_Selected_Items_Command);
+            Add_Command (Files.Commands.Copy_Path_Command);
             Add_Command (Files.Commands.Copy_To_Command);
             Add_Command (Files.Commands.Move_To_Command);
             Add_Command (Files.Commands.Duplicate_Selected_Command);

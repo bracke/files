@@ -495,3 +495,7 @@ fr.root.favorite.prefix = ★
 fr.root.favorite.suffix =
 fr.accessibility.favorite_toggle.off = Ajouter le dossier actuel aux favoris
 fr.accessibility.favorite_toggle.on = Retirer le dossier actuel des favoris
+fr.command.edit.copy_path = Copier le chemin
+fr.command.edit.copy_path.description = Copier les chemins complets des éléments sélectionnés au presse-papiers.
+fr.command.navigate.containing = Ouvrir le dossier parent
+fr.command.navigate.containing.description = Ouvrir le dossier contenant l'élément sélectionné et le sélectionner.

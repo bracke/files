@@ -109,6 +109,8 @@ package body Files_Suite.Commands is
    procedure Test_Controller_Palette_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Disabled_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Empty_Palette_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Command_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -142,6 +144,10 @@ package body Files_Suite.Commands is
         (T, Test_Controller_Disabled_Palette_Result'Access, "controller ignores disabled palette result");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Empty_Palette_Result'Access, "controller ignores empty palette result");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_Path_Command'Access, "copy-path joins selection paths for the system clipboard");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Containing_Folder_Command'Access, "open-containing-folder reveals a search result");
    end Register_Tests;
 
    procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -618,7 +624,11 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 63, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 65, "all expected commands are registered");
+      Assert (Files.Commands.Contains ("edit.copy_path"), "copy-path command identifier is registered");
+      Assert
+        (Files.Commands.Contains ("navigate.containing"),
+         "open-containing-folder command identifier is registered");
       Assert (Files.Commands.Contains ("navigate.parent"), "navigate-parent command identifier is registered");
       Assert (Files.Commands.Contains ("favorite.toggle"), "favorite-toggle command identifier is registered");
       Assert
@@ -953,6 +963,28 @@ package body Files_Suite.Commands is
       Assert
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_R, Ctrl) = Files.Commands.Refresh_Directory_Command,
          "control+r dispatches refresh command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_F5, Files.Types.No_Modifiers) =
+           Files.Commands.Refresh_Directory_Command,
+         "F5 also dispatches refresh command as a secondary accelerator");
+      Assert
+        (Files.Commands.Shortcut_For (Files.Commands.Refresh_Directory_Command).Key = Files.Types.Key_R,
+         "refresh keeps control+r as its displayed primary shortcut");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_N, Ctrl_Shift) = Files.Commands.New_Folder_Command,
+         "control+shift+n dispatches new-folder command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_C, Ctrl_Shift) = Files.Commands.Copy_Path_Command,
+         "control+shift+c dispatches copy-path command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_B, Ctrl) = Files.Commands.Toggle_Favorite_Command,
+         "control+b dispatches toggle-favorite command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_S, Ctrl_Shift) = Files.Commands.Search_Recursive_Command,
+         "control+shift+s dispatches recursive search command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_C, Ctrl) = Files.Commands.Copy_Selected_Items_Command,
+         "plain control+c still dispatches copy, distinct from copy-path");
       Assert
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_S, Ctrl) = Files.Commands.Save_Settings_Command,
          "control+s dispatches settings save command");
@@ -2537,6 +2569,100 @@ package body Files_Suite.Commands is
       Assert (Found_Empty_Text, "empty palette renders localized empty state");
       Assert (Found_Empty_Status, "empty palette exposes accessible status node");
    end Test_Controller_Empty_Palette_Result;
+
+   procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model      : Files.Model.Window_Model := Sample_Model;
+      Empty      : Files.File_System.Item_Vectors.Vector;
+      Pair       : Files.File_System.Item_Vectors.Vector;
+      Ctrl_Shift : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result     : Files.Controller.Controller_Result;
+      Alpha_Path : constant String := Join (Root, "Alpha.txt");
+      Beta_Path  : constant String := Join (Root, "Beta.txt");
+      Gamma_Path : constant String := Join (Root, "Gamma.md");
+   begin
+      Ctrl_Shift (Files.Types.Control_Key) := True;
+      Ctrl_Shift (Files.Types.Shift_Key) := True;
+
+      --  Pure, filesystem-free join seam.
+      Assert (Files.Commands.Joined_Full_Paths (Empty) = "", "an empty selection joins to empty text");
+      Pair.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Pair.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Assert
+        (Files.Commands.Joined_Full_Paths (Pair) = Alpha_Path & ASCII.LF & Beta_Path,
+         "full paths join one per line in item order");
+
+      --  Enablement follows the selection.
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
+         "copy-path is disabled with no selection");
+      Files.Model.Select_All_Visible (Model);
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
+         "copy-path is enabled with a real selection");
+
+      --  Executing records the system-clipboard request without touching disk.
+      Assert
+        (not Files.Model.System_Clipboard_Request_Pending (Model),
+         "no clipboard request is pending before copy-path runs");
+      Files.Commands.Execute (Files.Commands.Copy_Path_Command, Model);
+      Assert
+        (Files.Model.System_Clipboard_Request_Pending (Model),
+         "copy-path records a pending system-clipboard request");
+      Assert
+        (Files.Model.System_Clipboard_Request_Text (Model) =
+           Alpha_Path & ASCII.LF & Beta_Path & ASCII.LF & Gamma_Path,
+         "copy-path stores the newline-joined selection paths");
+      Files.Model.Clear_System_Clipboard_Request (Model);
+      Assert
+        (not Files.Model.System_Clipboard_Request_Pending (Model),
+         "the shell clears the request once consumed");
+
+      --  Control+Shift+C routes to the command through the controller.
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_C, Ctrl_Shift);
+      Assert (Result.Command = Files.Commands.Copy_Path_Command, "Control+Shift+C routes to copy-path");
+   end Test_Copy_Path_Command;
+
+   procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Sub      : constant String := Join (Root, "sub");
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Sub);
+      Write_File (Join (Sub, "found.txt"));
+
+      --  A recursive-search-style model: the current directory is Root, but the
+      --  single result item lives in Root/sub.
+      Items.Append (Files.File_System.Make_Item (Sub, "found.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+
+      --  Disabled without a selection, enabled with a single result selected.
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Open_Containing_Folder_Command, Model),
+         "reveal is disabled with no selection");
+      Select_Name (Model, "found.txt");
+      Assert
+        (Files.Commands.Is_Enabled (Files.Commands.Open_Containing_Folder_Command, Model),
+         "reveal is enabled for a single selected result");
+
+      Result :=
+        Files.Controller.Execute_Command (Files.Commands.Open_Containing_Folder_Command, Model, Settings);
+      Assert
+        (Result.Command = Files.Commands.Open_Containing_Folder_Command,
+         "reveal reports its command");
+      Assert
+        (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Sub),
+         "reveal navigates to the item's containing folder");
+      Assert
+        (Files.Model.Selected_Count (Model) = 1
+           and then To_String (Files.Model.Selected_Items (Model).First_Element.Name) = "found.txt",
+         "reveal selects the item in its containing folder");
+   end Test_Open_Containing_Folder_Command;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

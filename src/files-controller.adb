@@ -660,6 +660,13 @@ package body Files.Controller is
       return Make_Result (Controller_Text_Updated);
    end Delete_Focused_Text_Word_Forward;
 
+   --  Forward declaration: the reveal helper is defined alongside the other
+   --  navigation helpers below, but Execute_Command routes to it above them.
+   function Reveal_Selected_Item
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Controller_Result;
+
    function Execute_Command
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
@@ -793,6 +800,8 @@ package body Files.Controller is
             Operation := Files.Operations.Run_Recursive_Search (Model, Settings);
          when Files.Commands.Refresh_Directory_Command =>
             Operation := Files.Operations.Refresh (Model, Settings);
+         when Files.Commands.Open_Containing_Folder_Command =>
+            return Reveal_Selected_Item (Model, Settings);
          when Files.Commands.Open_Selected_Root_Command =>
             return Handle_Root_Click (Model, Settings, Files.Model.Root_Selected_Index (Model));
          when Files.Commands.Eject_Selected_Root_Command =>
@@ -1074,6 +1083,50 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
       end;
    end Open_File_Favorite;
+
+   --  Reveal the single selected item by navigating to its parent directory and
+   --  selecting it there, mirroring the file-favorite click behaviour. When the
+   --  parent is empty or already the current directory the reveal is a safe
+   --  no-op that reports success without navigating.
+   function Reveal_Selected_Item
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Controller_Result
+   is
+      Items : constant Files.File_System.Item_Vectors.Vector :=
+        Files.Model.Selected_Items (Model);
+   begin
+      if Natural (Items.Length) /= 1 then
+         return Make_Result (Controller_Ignored, Files.Commands.Open_Containing_Folder_Command);
+      end if;
+
+      declare
+         Path   : constant String := To_String (Items.First_Element.Full_Path);
+         Parent : constant String := Files.File_System.Parent_Directory (Path);
+      begin
+         if Parent = "" or else Parent = Files.Model.Current_Path (Model) then
+            --  Already in the containing folder (or no parent): nothing to do.
+            return Make_Result (Controller_Command_Executed, Files.Commands.Open_Containing_Folder_Command);
+         end if;
+
+         declare
+            Operation : constant Files.Operations.Operation_Result :=
+              Files.Operations.Select_Root (Model, Settings, Parent);
+         begin
+            if Operation.Status = Files.Operations.Operation_Navigated then
+               declare
+                  Selected : constant Boolean :=
+                    Files.Model.Select_By_Name (Model, Ada.Directories.Simple_Name (Path));
+                  pragma Unreferenced (Selected);
+               begin
+                  null;
+               end;
+            end if;
+            return Make_Result
+              (Controller_Command_Executed, Files.Commands.Open_Containing_Folder_Command, Operation);
+         end;
+      end;
+   end Reveal_Selected_Item;
 
    function Handle_Root_Click
      (Model      : in out Files.Model.Window_Model;

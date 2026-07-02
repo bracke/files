@@ -495,3 +495,7 @@ fi.root.favorite.prefix = ★
 fi.root.favorite.suffix =
 fi.accessibility.favorite_toggle.off = Lisää nykyinen kansio suosikkeihin
 fi.accessibility.favorite_toggle.on = Poista nykyinen kansio suosikeista
+fi.command.edit.copy_path = Kopioi polku
+fi.command.edit.copy_path.description = Kopioi valittujen kohteiden täydelliset polut leikepöydälle.
+fi.command.navigate.containing = Avaa yläkansio
+fi.command.navigate.containing.description = Avaa kansio, joka sisältää valitun kohteen, ja valitse se.

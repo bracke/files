@@ -495,3 +495,7 @@ da.root.favorite.prefix = ★
 da.root.favorite.suffix =
 da.accessibility.favorite_toggle.off = Tilføj aktuel mappe til favoritter
 da.accessibility.favorite_toggle.on = Fjern aktuel mappe fra favoritter
+da.command.edit.copy_path = Kopiér sti
+da.command.edit.copy_path.description = Kopiér de fulde stier for de valgte elementer til udklipsholderen.
+da.command.navigate.containing = Åbn overordnet mappe
+da.command.navigate.containing.description = Åbn mappen, der indeholder det valgte element, og markér det.

@@ -494,3 +494,7 @@ de.root.favorite.prefix = ★
 de.root.favorite.suffix =
 de.accessibility.favorite_toggle.off = Aktuellen Ordner zu Favoriten hinzufügen
 de.accessibility.favorite_toggle.on = Aktuellen Ordner aus Favoriten entfernen
+de.command.edit.copy_path = Pfad kopieren
+de.command.edit.copy_path.description = Vollständige Pfade der ausgewählten Elemente in die Zwischenablage kopieren.
+de.command.navigate.containing = Beinhaltenden Ordner öffnen
+de.command.navigate.containing.description = Ordner öffnen, der das ausgewählte Element enthält, und es auswählen.

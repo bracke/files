@@ -495,3 +495,7 @@ sv.root.favorite.prefix = ★
 sv.root.favorite.suffix =
 sv.accessibility.favorite_toggle.off = Lägg till aktuell mapp i favoriter
 sv.accessibility.favorite_toggle.on = Ta bort aktuell mapp från favoriter
+sv.command.edit.copy_path = Kopiera sökväg
+sv.command.edit.copy_path.description = Kopiera fullständiga sökvägar för de markerade objekten till urklipp.
+sv.command.navigate.containing = Öppna överordnad mapp
+sv.command.navigate.containing.description = Öppna mappen som innehåller det markerade objektet och markera det.

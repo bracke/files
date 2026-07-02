@@ -495,3 +495,7 @@ nb.root.favorite.prefix = ★
 nb.root.favorite.suffix =
 nb.accessibility.favorite_toggle.off = Legg til gjeldende mappe i favoritter
 nb.accessibility.favorite_toggle.on = Fjern gjeldende mappe fra favoritter
+nb.command.edit.copy_path = Kopier sti
+nb.command.edit.copy_path.description = Kopier de fullstendige stiene til de valgte elementene til utklippstavlen.
+nb.command.navigate.containing = Åpne overordnet mappe
+nb.command.navigate.containing.description = Åpne mappen som inneholder det valgte elementet, og velg det.

@@ -495,3 +495,7 @@ es.root.favorite.prefix = ★
 es.root.favorite.suffix =
 es.accessibility.favorite_toggle.off = Añadir la carpeta actual a favoritos
 es.accessibility.favorite_toggle.on = Quitar la carpeta actual de favoritos
+es.command.edit.copy_path = Copiar ruta
+es.command.edit.copy_path.description = Copiar las rutas completas de los elementos seleccionados al portapapeles.
+es.command.navigate.containing = Abrir carpeta contenedora
+es.command.navigate.containing.description = Abrir la carpeta que contiene el elemento seleccionado y seleccionarlo.

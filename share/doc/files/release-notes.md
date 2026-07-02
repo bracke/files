@@ -9,6 +9,11 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Copy Path (Ctrl+Shift+C) copies the selected items' full paths to the system
+  clipboard, and Open Containing Folder reveals a search result in its own
+  directory.
+- More keyboard shortcuts: New Folder (Ctrl+Shift+N), Toggle Favorite (Ctrl+B),
+  Recursive Search (Ctrl+Shift+S), F5 to refresh, and Backspace to delete.
 - Favorites: star any file or folder (Toggle Favorite) and reach it from the
   Favorites section of the side panel, marked with a ★. This replaces and
   generalizes the old folder-only bookmarks. Favorited items show a ★ in the

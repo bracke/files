@@ -57,6 +57,7 @@ package body Files.Application.Windows is
       Tracked_Key_3,
       Tracked_Key_4,
       Tracked_A,
+      Tracked_B,
       Tracked_C,
       Tracked_D,
       Tracked_F,
@@ -73,6 +74,7 @@ package body Files.Application.Windows is
       Tracked_Backspace,
       Tracked_Delete,
       Tracked_F2,
+      Tracked_F5,
       Tracked_Escape,
       Tracked_Enter,
       Tracked_Numpad_Enter,
@@ -337,6 +339,13 @@ package body Files.Application.Windows is
       Hint   : Interfaces.C.int)
      with Import, Convention => C, External_Name => "glfwWindowHint";
 
+   --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
+   --  retained for the historic signature; modern GLFW ignores it.
+   procedure Set_Raw_Clipboard_String
+     (Window : System.Address;
+      Text   : Interfaces.C.Strings.chars_ptr)
+     with Import, Convention => C, External_Name => "glfwSetClipboardString";
+
    procedure Configure_Vulkan_Window_Hints;
 
    procedure Free_Window is new Ada.Unchecked_Deallocation
@@ -374,6 +383,11 @@ package body Files.Application.Windows is
         (Runtime.Settings, To_String (Runtime.Settings_Path));
    end Persist_Settings;
 
+   --  Write any pending system-clipboard request the model recorded (for
+   --  example from the Copy Path command) to the GLFW system clipboard, then
+   --  clear it. A no-op when no request is pending.
+   procedure Flush_System_Clipboard (Runtime : in out Runtime_Window);
+
    --  Consume the GPU/GLFW/timing follow-up an interaction asks the shell to
    --  perform. Everything touching Runtime_Window's GPU/cache/input state stays
    --  here; Files.Interaction performs the model/settings mutation itself.
@@ -391,6 +405,7 @@ package body Files.Application.Windows is
       if Result.Clear_Pending_Text and then Runtime.Handle /= null then
          Runtime.Handle.Pending_Text := Null_Unbounded_String;
       end if;
+      Flush_System_Clipboard (Runtime);
    end Apply_Interaction_Result;
 
    function As_Window
@@ -399,6 +414,30 @@ package body Files.Application.Windows is
    begin
       return Glfw.Windows.Window_Reference (Handle);
    end As_Window;
+
+   procedure Flush_System_Clipboard (Runtime : in out Runtime_Window) is
+   begin
+      if Runtime.Handle = null
+        or else not Files.Model.System_Clipboard_Request_Pending (Runtime.Model)
+      then
+         return;
+      end if;
+
+      declare
+         Raw    : constant System.Address :=
+           Glfw.Windows.Drop.Raw_Handle (As_Window (Runtime.Handle));
+         C_Text : Interfaces.C.Strings.chars_ptr :=
+           Interfaces.C.Strings.New_String
+             (Files.Model.System_Clipboard_Request_Text (Runtime.Model));
+      begin
+         if Raw /= System.Null_Address then
+            Set_Raw_Clipboard_String (Raw, C_Text);
+         end if;
+         Interfaces.C.Strings.Free (C_Text);
+      end;
+
+      Files.Model.Clear_System_Clipboard_Request (Runtime.Model);
+   end Flush_System_Clipboard;
 
    procedure Register_Drop_Window
      (Raw_Window : System.Address;
@@ -664,6 +703,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Key_4;
          when Tracked_A =>
             return Glfw.Input.Keys.A;
+         when Tracked_B =>
+            return Glfw.Input.Keys.B;
          when Tracked_C =>
             return Glfw.Input.Keys.C;
          when Tracked_D =>
@@ -696,6 +737,8 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Delete;
          when Tracked_F2 =>
             return Glfw.Input.Keys.F2;
+         when Tracked_F5 =>
+            return Glfw.Input.Keys.F5;
          when Tracked_Escape =>
             return Glfw.Input.Keys.Escape;
          when Tracked_Enter =>
@@ -750,6 +793,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_4;
          when Tracked_A =>
             return Files.Types.Key_A;
+         when Tracked_B =>
+            return Files.Types.Key_B;
          when Tracked_C =>
             return Files.Types.Key_C;
          when Tracked_D =>
@@ -782,6 +827,8 @@ package body Files.Application.Windows is
             return Files.Types.Key_Delete;
          when Tracked_F2 =>
             return Files.Types.Key_F2;
+         when Tracked_F5 =>
+            return Files.Types.Key_F5;
          when Tracked_Escape =>
             return Files.Types.Key_Escape;
          when Tracked_Enter | Tracked_Numpad_Enter =>

@@ -1,3 +1,4 @@
+with Files.File_System;
 with Files.Model;
 with Files.Types;
 
@@ -68,10 +69,12 @@ package Files.Commands is
       Cycle_Group_By_Command,
       Toggle_Folder_Tree_Command,
       Copy_To_Command,
-      Move_To_Command);
+      Move_To_Command,
+      Copy_Path_Command,
+      Open_Containing_Folder_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Move_To_Command;
+     Select_Small_Icons_Command .. Open_Containing_Folder_Command;
 
    type Command_Placement is
      (No_Placement,
@@ -171,6 +174,18 @@ package Files.Commands is
    --
    --  @return Registered command count.
    function Command_Count return Natural;
+
+   --  Join the full paths of the given items into a single newline-separated
+   --  string, one path per line, in item order. Returns an empty string when no
+   --  items are supplied. This is the pure, filesystem-free text seam the
+   --  Copy_Path_Command uses before the platform layer writes the system
+   --  clipboard.
+   --
+   --  @param Items Items whose full paths are joined.
+   --  @return Newline-joined full paths, or an empty string when Items is empty.
+   function Joined_Full_Paths
+     (Items : Files.File_System.Item_Vectors.Vector)
+      return String;
 
    --  Return whether Identifier names a registered command.
    --
