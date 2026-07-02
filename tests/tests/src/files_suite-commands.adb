@@ -204,6 +204,12 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
          "create-hard-link disabled with no selection");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Undo_Command, Model),
+         "undo disabled with no recorded history");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Redo_Command, Model),
+         "redo disabled with no recorded history");
       --  The info pane can always be toggled, even with nothing selected: an
       --  empty selection simply shows an empty pane.
       Assert
@@ -601,7 +607,7 @@ package body Files_Suite.Commands is
       Shift (Files.Types.Shift_Key) := True;
       Ctrl_Shift (Files.Types.Control_Key) := True;
       Ctrl_Shift (Files.Types.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 60, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 61, "all expected commands are registered");
       Assert (Files.Commands.Contains ("navigate.parent"), "navigate-parent command identifier is registered");
       Assert (Files.Commands.Contains ("file.copy_to"), "copy-to command identifier is registered");
       Assert (Files.Commands.Contains ("file.move_to"), "move-to command identifier is registered");
@@ -949,6 +955,12 @@ package body Files_Suite.Commands is
         (Files.Commands.Find_By_Shortcut (Files.Types.Key_Return, Files.Types.No_Modifiers) =
            Files.Commands.Open_Selected_Items_Command,
          "return dispatches open-selected command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Z, Ctrl) = Files.Commands.Undo_Command,
+         "Ctrl+Z dispatches the undo command");
+      Assert
+        (Files.Commands.Find_By_Shortcut (Files.Types.Key_Z, Ctrl_Shift) = Files.Commands.Redo_Command,
+         "Ctrl+Shift+Z dispatches the redo command distinct from undo");
       Assert
         (Files.Commands.Placement_For (Files.Commands.Select_Drive_Command) = Files.Commands.Toolbar_Left,
          "drive selector is placed in left toolbar");

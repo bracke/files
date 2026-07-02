@@ -124,6 +124,11 @@ package body Files_Suite.Operations is
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Redo_Paste_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -195,6 +200,17 @@ package body Files_Suite.Operations is
         (T, Test_Extract_Selected_Operation'Access, "extract selected archive into a new folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Undo_Operations'Access, "undo restores the most recent rename");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Undo_Redo_History'Access,
+         "multi-level undo unwinds LIFO, redo re-applies, and a new op clears redo");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Redo_Set_Permissions'Access, "chmod undoes to the old mode and redoes to the new mode");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Redo_Set_Ownership_Identity'Access, "identity chown undoes and redoes symmetrically");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Redo_Paste_Move'Access, "a move paste undoes back and redoes forward");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_Symlink_Operation'Access, "create-symlink links the selected item and undo removes it");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -4255,6 +4271,265 @@ package body Files_Suite.Operations is
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created hard link");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original file");
    end Test_Create_Hardlink_Operation;
+
+   procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      A0     : constant String := Join (Root, "a0.txt");
+      A1     : constant String := Join (Root, "a1.txt");
+      B0     : constant String := Join (Root, "b0.txt");
+      B1     : constant String := Join (Root, "b1.txt");
+      B2     : constant String := Join (Root, "b2.txt");
+      C0     : constant String := Join (Root, "c0.txt");
+      C1     : constant String := Join (Root, "c1.txt");
+      Load   : Files.File_System.Directory_Load_Result;
+      Model  : Files.Model.Window_Model;
+      Result : Files.Operations.Operation_Result;
+
+      procedure Rename (From_Name, To_Name : String) is
+         Step : Files.Operations.Operation_Result;
+      begin
+         Select_Name (Model, From_Name);
+         Files.Model.Toggle_Rename (Model);
+         Files.Model.Set_Rename_Text (Model, To_Name);
+         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Assert
+           (Step.Status = Files.Operations.Operation_Success,
+            "rename " & From_Name & " to " & To_Name & " commits");
+      end Rename;
+   begin
+      Reset_Root;
+      Write_File (A0, "A");
+      Write_File (B0, "B");
+      Write_File (C0, "C");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+
+      --  Three undoable operations are pushed in order.
+      Rename ("a0.txt", "a1.txt");
+      Rename ("b0.txt", "b1.txt");
+      Rename ("c0.txt", "c1.txt");
+      Assert (Files.Model.Undo_Available (Model), "undo is available after three renames");
+      Assert (not Files.Model.Redo_Available (Model), "no redo is pending before undoing");
+
+      --  Undo unwinds last-in-first-out: C, then B, then A.
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "first undo succeeds");
+      Assert
+        (Ada.Directories.Exists (C0) and then not Ada.Directories.Exists (C1),
+         "the first undo reverses the most recent rename (C)");
+      Assert (Ada.Directories.Exists (B1), "earlier renames stay applied after one undo");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert
+        (Ada.Directories.Exists (B0) and then not Ada.Directories.Exists (B1),
+         "the second undo reverses B");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert
+        (Ada.Directories.Exists (A0) and then not Ada.Directories.Exists (A1),
+         "the third undo reverses A");
+      Assert (not Files.Model.Undo_Available (Model), "the undo stack empties after unwinding all three");
+      Assert (Files.Model.Redo_Available (Model), "redo becomes available after undoing");
+
+      --  Redo re-applies forward across all levels: A, then B, then C.
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert
+        (Ada.Directories.Exists (A1) and then not Ada.Directories.Exists (A0),
+         "the first redo re-applies A");
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Ada.Directories.Exists (B1), "the second redo re-applies B");
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Ada.Directories.Exists (C1), "the third redo re-applies C");
+      Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying all three");
+      Assert (Files.Model.Undo_Available (Model), "undo is available again after redoing");
+
+      --  undo -> redo -> undo round-trips the current top action.
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Ada.Directories.Exists (C0), "round-trip: undo returns C to its original name");
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Ada.Directories.Exists (C1), "round-trip: redo re-applies C");
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Ada.Directories.Exists (C0), "round-trip: undo again returns C");
+
+      --  A new undoable operation clears the pending redo history.
+      Assert (Files.Model.Redo_Available (Model), "redo is still pending before the new operation");
+      Rename ("b1.txt", "b2.txt");
+      Assert (Ada.Directories.Exists (B2), "the new rename applies");
+      Assert (not Files.Model.Redo_Available (Model), "a new operation clears the redo stack");
+   end Test_Undo_Redo_History;
+
+   procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir       : constant String := Join (Root, "redo-symlink");
+      Source    : constant String := Join (Dir, "report.txt");
+      Link_Path : constant String := Join (Dir, "report (link).txt");
+      Load      : Files.File_System.Directory_Load_Result;
+      Model     : Files.Model.Window_Model;
+      Routed    : Files.Controller.Controller_Result;
+      Result    : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File (Source, "payload");
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "report.txt");
+
+      Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "create-symlink succeeds");
+      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "the symbolic link is created");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "undo of a created link succeeds");
+      Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created link");
+      Assert (Files.Model.Redo_Available (Model), "a created link is redoable");
+
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "redo of a created link succeeds");
+      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "redo re-creates the symbolic link from its source");
+      Assert (Ada.Directories.Exists (Source), "redo keeps the original source item");
+      Assert (Files.Model.Undo_Available (Model), "the re-created link is undoable again");
+      Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying");
+   end Test_Redo_Symlink_Creation;
+
+   procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Target   : constant String := Join (Root, "redo-mode.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Operations.Operation_Result;
+   begin
+      if not Files.File_System.Supports_Permissions then
+         return;
+      end if;
+
+      Reset_Root;
+      Write_File (Target, "mode me");
+      Assert (Files.File_System.Set_Permissions (Target, 8#644#).Success, "baseline chmod to 0644 succeeds");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "redo-mode.txt");
+
+      Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "chmod to 0600 succeeds");
+      Assert (Mode_Of (Target) = 8#600#, "mode reads back as 0600 after chmod");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chmod succeeds");
+      Assert (Mode_Of (Target) = 8#644#, "undo restores the previous 0644 mode");
+      Assert (Files.Model.Redo_Available (Model), "chmod is redoable");
+
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "redo of chmod succeeds");
+      Assert (Mode_Of (Target) = 8#600#, "redo re-applies the new 0600 mode");
+      Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying chmod");
+   end Test_Redo_Set_Permissions;
+
+   procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Target   : constant String := Join (Root, "redo-owner.txt");
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Operations.Operation_Result;
+      Uid, Gid : Natural := 0;
+      Avail    : Boolean := False;
+   begin
+      if not Files.File_System.Supports_Ownership then
+         return;
+      end if;
+
+      Reset_Root;
+      Write_File (Target, "own me");
+      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Assert (Avail, "ownership of the temp file is readable");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "redo-owner.txt");
+
+      --  An identity chown to the file's own uid/gid is permitted without root
+      --  and exercises the undo/redo ownership plumbing.
+      Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "identity chown succeeds");
+      Assert
+        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
+         "set-ownership records an ownership undo");
+
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chown succeeds");
+      Assert (Files.Model.Redo_Available (Model), "chown is redoable");
+
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Result.Status = Files.Operations.Operation_Success, "redo of chown succeeds");
+      Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying chown");
+
+      declare
+         New_Uid, New_Gid : Natural := 0;
+         Now_Avail        : Boolean := False;
+      begin
+         Files.File_System.Ownership_Of (Target, New_Uid, New_Gid, Now_Avail);
+         Assert
+           (Now_Avail and then New_Uid = Uid and then New_Gid = Gid,
+            "ownership is unchanged after identity chown undo and redo");
+      end;
+   end Test_Redo_Set_Ownership_Identity;
+
+   procedure Test_Redo_Paste_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Src_Dir  : constant String := Join (Root, "redo-move-src");
+      Dest_Dir : constant String := Join (Root, "redo-move-dest");
+      Source   : constant String := Join (Src_Dir, "m.txt");
+      Dest     : constant String := Join (Dest_Dir, "m.txt");
+      Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Step     : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Source, "MOVE");
+      Actions.Append
+        (Files.Paste.Resolved_Action'
+           (Source_Path => To_Unbounded_String (Source),
+            Dest_Path   => To_Unbounded_String (Dest),
+            Skip        => False,
+            Replaced    => False));
+
+      Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
+      Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
+      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
+      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the move paste finalizes");
+      Assert
+        (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
+         "the move relocates the file to the destination");
+      Assert
+        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Move,
+         "a move paste records an Undo_Move entry");
+
+      Step := Files.Operations.Undo_Last (Model, Settings);
+      Assert (Step.Status = Files.Operations.Operation_Success, "undo of the move succeeds");
+      Assert
+        (Ada.Directories.Exists (Source) and then not Ada.Directories.Exists (Dest),
+         "undo moves the file back to its source");
+      Assert (Files.Model.Redo_Available (Model), "a move is redoable");
+
+      Step := Files.Operations.Redo_Last (Model, Settings);
+      Assert (Step.Status = Files.Operations.Operation_Success, "redo of the move succeeds");
+      Assert
+        (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
+         "redo re-applies the move to the destination");
+      Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying the move");
+   end Test_Redo_Paste_Move;
 
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

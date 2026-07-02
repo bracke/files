@@ -3302,57 +3302,128 @@ package body Files.Model is
    end Clipboard_Has_Items;
 
    procedure Record_Undo
-     (Model : in out Window_Model;
-      Kind  : Undo_Action_Kind;
-      From  : Files.Types.String_Vectors.Vector;
-      To    : Files.Types.String_Vectors.Vector) is
+     (Model       : in out Window_Model;
+      Kind        : Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Undo_Create_Kind := Create_None;
+      Redoable    : Boolean := True) is
    begin
       if Kind = Undo_None or else From.Is_Empty then
-         Model.Undo_Kind_Value := Undo_None;
-         Model.Undo_From_Value.Clear;
-         Model.Undo_To_Value.Clear;
-      else
-         Model.Undo_Kind_Value := Kind;
-         Model.Undo_From_Value := From;
-         Model.Undo_To_Value := To;
+         return;
       end if;
+
+      Model.Undo_Stack.Append
+        (Undo_Entry'
+           (Kind        => Kind,
+            From        => From,
+            To          => To,
+            Forward     => Forward,
+            Create_Kind => Create_Kind,
+            Redoable    => Redoable));
+      Model.Redo_Stack.Clear;
    end Record_Undo;
 
    procedure Clear_Undo
      (Model : in out Window_Model) is
    begin
-      Model.Undo_Kind_Value := Undo_None;
-      Model.Undo_From_Value.Clear;
-      Model.Undo_To_Value.Clear;
+      Model.Undo_Stack.Clear;
+      Model.Redo_Stack.Clear;
    end Clear_Undo;
 
    function Undo_Available
      (Model : Window_Model)
       return Boolean is
    begin
-      return Model.Undo_Kind_Value /= Undo_None
-        and then not Model.Undo_From_Value.Is_Empty;
+      return not Model.Undo_Stack.Is_Empty;
    end Undo_Available;
+
+   function Redo_Available
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return not Model.Redo_Stack.Is_Empty;
+   end Redo_Available;
+
+   procedure Take_Undo
+     (Model  : in out Window_Model;
+      Action : out Undo_Entry;
+      Found  : out Boolean) is
+   begin
+      if Model.Undo_Stack.Is_Empty then
+         Action := (others => <>);
+         Found := False;
+         return;
+      end if;
+
+      Action := Model.Undo_Stack.Last_Element;
+      Model.Undo_Stack.Delete_Last;
+      Found := True;
+   end Take_Undo;
+
+   procedure Take_Redo
+     (Model  : in out Window_Model;
+      Action : out Undo_Entry;
+      Found  : out Boolean) is
+   begin
+      if Model.Redo_Stack.Is_Empty then
+         Action := (others => <>);
+         Found := False;
+         return;
+      end if;
+
+      Action := Model.Redo_Stack.Last_Element;
+      Model.Redo_Stack.Delete_Last;
+      Found := True;
+   end Take_Redo;
+
+   procedure Push_Redo
+     (Model  : in out Window_Model;
+      Action : Undo_Entry) is
+   begin
+      Model.Redo_Stack.Append (Action);
+   end Push_Redo;
+
+   procedure Push_Undo
+     (Model  : in out Window_Model;
+      Action : Undo_Entry) is
+   begin
+      Model.Undo_Stack.Append (Action);
+   end Push_Undo;
 
    function Undo_Kind_Of
      (Model : Window_Model)
       return Undo_Action_Kind is
    begin
-      return Model.Undo_Kind_Value;
+      if Model.Undo_Stack.Is_Empty then
+         return Undo_None;
+      end if;
+
+      return Model.Undo_Stack.Last_Element.Kind;
    end Undo_Kind_Of;
 
    function Undo_From_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is
    begin
-      return Model.Undo_From_Value;
+      if Model.Undo_Stack.Is_Empty then
+         return Files.Types.String_Vectors.Empty_Vector;
+      end if;
+
+      return Model.Undo_Stack.Last_Element.From;
    end Undo_From_Paths;
 
    function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is
    begin
-      return Model.Undo_To_Value;
+      if Model.Undo_Stack.Is_Empty then
+         return Files.Types.String_Vectors.Empty_Vector;
+      end if;
+
+      return Model.Undo_Stack.Last_Element.To;
    end Undo_To_Paths;
 
    procedure Begin_Paste_Conflict

@@ -176,6 +176,8 @@ package body Files.Commands is
             return "link.hard";
          when Undo_Command =>
             return "edit.undo";
+         when Redo_Command =>
+            return "edit.redo";
          when Toggle_Column_Modified_Command =>
             return "columns.toggle_modified";
          when Toggle_Column_Size_Command =>
@@ -306,6 +308,8 @@ package body Files.Commands is
             return "command.link.hard";
          when Undo_Command =>
             return "command.edit.undo";
+         when Redo_Command =>
+            return "command.edit.redo";
          when Toggle_Column_Modified_Command =>
             return "command.columns.toggle_modified";
          when Toggle_Column_Size_Command =>
@@ -436,6 +440,8 @@ package body Files.Commands is
             return "command.link.hard.description";
          when Undo_Command =>
             return "command.edit.undo.description";
+         when Redo_Command =>
+            return "command.edit.redo.description";
          when Toggle_Column_Modified_Command =>
             return "command.columns.toggle_modified.description";
          when Toggle_Column_Size_Command =>
@@ -537,6 +543,8 @@ package body Files.Commands is
             return (True, Files.Types.Key_Return, Files.Types.No_Modifiers);
          when Undo_Command =>
             return (True, Files.Types.Key_Z, Ctrl);
+         when Redo_Command =>
+            return (True, Files.Types.Key_Z, Ctrl_Shift);
          when others =>
             return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
       end case;
@@ -983,6 +991,8 @@ package body Files.Commands is
             end;
          when Undo_Command =>
             return Files.Model.Undo_Available (Model);
+         when Redo_Command =>
+            return Files.Model.Redo_Available (Model);
          when Open_Terminal_Command =>
             --  A terminal can be opened for any real directory view, but not the
             --  trash payload directory.
@@ -1150,6 +1160,8 @@ package body Files.Commands is
          when Create_Hardlink_Command =>
             null;
          when Undo_Command =>
+            null;
+         when Redo_Command =>
             null;
          when Toggle_Column_Modified_Command
             | Toggle_Column_Size_Command

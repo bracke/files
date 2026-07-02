@@ -57,6 +57,7 @@ package Files.Commands is
       Create_Symlink_Command,
       Create_Hardlink_Command,
       Undo_Command,
+      Redo_Command,
       Toggle_Column_Modified_Command,
       Toggle_Column_Size_Command,
       Toggle_Column_Type_Command,

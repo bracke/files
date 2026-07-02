@@ -676,6 +676,8 @@ package body Files.Controller is
             Operation := Files.Operations.Restore_Selected_From_Trash (Model, Settings);
          when Files.Commands.Undo_Command =>
             Operation := Files.Operations.Undo_Last (Model, Settings);
+         when Files.Commands.Redo_Command =>
+            Operation := Files.Operations.Redo_Last (Model, Settings);
          when Files.Commands.Navigate_Back_Command =>
             Operation := Files.Operations.Navigate_Back (Model, Settings);
          when Files.Commands.Navigate_Forward_Command =>

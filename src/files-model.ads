@@ -1439,10 +1439,10 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Single-level undo of the most recent reversible action (rename, move,
-   --  move-to-trash, or created-link deletion). Paths are stored as parallel
-   --  From/To vectors. For Undo_Delete_Created the From vector holds the paths
-   --  to remove and the To vector is unused.
+   --  Multi-level undo/redo history. Each entry stores enough to BOTH reverse
+   --  (undo) and re-apply (redo) one action. Paths are parallel From/To
+   --  vectors; Forward carries the redo payload and Create_Kind names the kind
+   --  of creation to re-run for Undo_Delete_Created entries.
    type Undo_Action_Kind is
      (Undo_None,
       Undo_Rename,
@@ -1452,41 +1452,127 @@ package Files.Model is
       Undo_Set_Permissions,
       Undo_Set_Ownership);
 
-   --  Record the latest undoable action, replacing any previous record.
-   --
-   --  @param Model Model to update.
-   --  @param Kind  Kind of action that can be undone.
-   --  @param From  Current locations to undo from (parallel to To).
-   --  @param To    Restore targets (ignored for Undo_Restore_Trash).
-   procedure Record_Undo
-     (Model : in out Window_Model;
-      Kind  : Undo_Action_Kind;
-      From  : Files.Types.String_Vectors.Vector;
-      To    : Files.Types.String_Vectors.Vector);
+   --  How an Undo_Delete_Created entry re-creates its paths on redo.
+   type Undo_Create_Kind is
+     (Create_None,
+      Create_Copy,
+      Create_Symbolic_Link,
+      Create_Hard_Link);
 
-   --  Forget any recorded undo action.
+   --  A single reversible/re-applicable action.
+   --
+   --  Undo runs the reverse direction, redo the forward direction:
+   --    * Rename/Move: reverse moves From back to To, redo re-does the original
+   --      To -> From transition.
+   --    * Restore_Trash: reverse restores the trashed From paths; it is
+   --      undo-only (Redoable is False), so redo never re-runs it.
+   --    * Delete_Created: reverse deletes From; redo re-creates each From path
+   --      from the parallel source path in Forward using Create_Kind.
+   --    * Set_Permissions/Set_Ownership: To holds the old value (reverse) and
+   --      Forward holds the new value (redo), both parallel to From.
+   type Undo_Entry is record
+      Kind        : Undo_Action_Kind := Undo_None;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector;
+      Create_Kind : Undo_Create_Kind := Create_None;
+      Redoable    : Boolean := True;
+   end record;
+
+   --  Stack of undo/redo entries; the last element is the top of the stack.
+   package Undo_Entry_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Undo_Entry);
+
+   --  Push a newly performed undoable action onto the undo stack and clear the
+   --  redo stack (a new operation invalidates any pending redo). Empty actions
+   --  (Undo_None or no From paths) are ignored.
+   --
+   --  @param Model       Model to update.
+   --  @param Kind        Kind of action that can be undone.
+   --  @param From        Current locations to undo from (parallel to To).
+   --  @param To          Restore targets / old values (reverse payload).
+   --  @param Forward     Redo payload: source paths or new values; may be empty.
+   --  @param Create_Kind Creation kind re-run for Undo_Delete_Created redo.
+   --  @param Redoable    False marks the entry undo-only (skipped by redo).
+   procedure Record_Undo
+     (Model       : in out Window_Model;
+      Kind        : Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Undo_Create_Kind := Create_None;
+      Redoable    : Boolean := True);
+
+   --  Forget the entire undo and redo history.
    --
    --  @param Model Model to update.
    procedure Clear_Undo
      (Model : in out Window_Model);
 
-   --  Return whether an undoable action is recorded.
+   --  Return whether an undoable action is available.
    --
    --  @param Model Model to inspect.
-   --  @return True when Undo can act.
+   --  @return True when the undo stack is non-empty.
    function Undo_Available
      (Model : Window_Model)
       return Boolean;
 
-   --  Return the recorded undo action kind.
+   --  Return whether a redoable action is available.
    --
    --  @param Model Model to inspect.
-   --  @return Undo_None when nothing is recorded.
+   --  @return True when the redo stack is non-empty.
+   function Redo_Available
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Pop the top entry off the undo stack.
+   --
+   --  @param Model  Model to update.
+   --  @param Action Popped action; a default entry when Found is False.
+   --  @param Found  True when an entry was popped.
+   procedure Take_Undo
+     (Model  : in out Window_Model;
+      Action : out Undo_Entry;
+      Found  : out Boolean);
+
+   --  Pop the top entry off the redo stack.
+   --
+   --  @param Model  Model to update.
+   --  @param Action Popped action; a default entry when Found is False.
+   --  @param Found  True when an entry was popped.
+   procedure Take_Redo
+     (Model  : in out Window_Model;
+      Action : out Undo_Entry;
+      Found  : out Boolean);
+
+   --  Push an action onto the redo stack (after a successful undo).
+   --
+   --  @param Model  Model to update.
+   --  @param Action Action to push.
+   procedure Push_Redo
+     (Model  : in out Window_Model;
+      Action : Undo_Entry);
+
+   --  Push an action back onto the undo stack (after a successful redo),
+   --  leaving the redo stack untouched.
+   --
+   --  @param Model  Model to update.
+   --  @param Action Action to push.
+   procedure Push_Undo
+     (Model  : in out Window_Model;
+      Action : Undo_Entry);
+
+   --  Return the kind of the top undo entry.
+   --
+   --  @param Model Model to inspect.
+   --  @return Undo_None when the undo stack is empty.
    function Undo_Kind_Of
      (Model : Window_Model)
       return Undo_Action_Kind;
 
-   --  Return the recorded undo "from" (current) paths.
+   --  Return the top undo entry's "from" (current) paths.
    --
    --  @param Model Model to inspect.
    --  @return Vector of current locations, parallel to Undo_To_Paths.
@@ -1494,7 +1580,7 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
-   --  Return the recorded undo "to" (restore-target) paths.
+   --  Return the top undo entry's "to" (restore-target) paths.
    --
    --  @param Model Model to inspect.
    --  @return Vector of restore targets, parallel to Undo_From_Paths.
@@ -1928,9 +2014,8 @@ private
       Last_Error           : UString;
       Clipboard_Paths_Value : Files.Types.String_Vectors.Vector;
       Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
-      Undo_Kind_Value       : Undo_Action_Kind := Undo_None;
-      Undo_From_Value       : Files.Types.String_Vectors.Vector;
-      Undo_To_Value         : Files.Types.String_Vectors.Vector;
+      Undo_Stack            : Undo_Entry_Vectors.Vector;
+      Redo_Stack            : Undo_Entry_Vectors.Vector;
       Folder_Size_Known_Value : Boolean := False;
       Folder_Size_Path_Value  : UString;
       Folder_Size_Value       : Files.File_System.Directory_Size_Result;

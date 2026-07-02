@@ -746,6 +746,7 @@ package body Files.Operations is
       Created_Any   : Boolean := False;
       Undo_From     : Files.Types.String_Vectors.Vector;
       Undo_To       : Files.Types.String_Vectors.Vector;
+      Undo_Sources  : Files.Types.String_Vectors.Vector;
 
       function Trimmed_Image (Value : Positive) return String is
          Image : constant String := Positive'Image (Value);
@@ -813,6 +814,7 @@ package body Files.Operations is
 
             Undo_From.Append (To_Unbounded_String (Dest_Path));
             Undo_To.Append (To_Unbounded_String (Dest_Path));
+            Undo_Sources.Append (To_Unbounded_String (Source));
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);
                Created_Any := True;
@@ -824,8 +826,15 @@ package body Files.Operations is
          return Make_Result (Operation_Failed, "error.link.failed", Directory);
       end if;
 
-      --  A created link is undone by deleting it again.
-      Files.Model.Record_Undo (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To);
+      --  A created link is undone by deleting it again and redone by
+      --  re-creating it from its recorded source.
+      Files.Model.Record_Undo
+        (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To,
+         Forward     => Undo_Sources,
+         Create_Kind =>
+           (if Hard
+            then Files.Model.Create_Hard_Link
+            else Files.Model.Create_Symbolic_Link));
 
       --  Reload so the new links appear, and select the first one.
       return Reload_Current_Directory (Model, Settings, To_String (First_Created));
@@ -1624,7 +1633,11 @@ package body Files.Operations is
          end;
       end loop;
 
-      Files.Model.Record_Undo (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To);
+      --  Restoring from trash reproduces the original path, but re-trashing
+      --  allocates a fresh trash location, so this entry is undo-only.
+      Files.Model.Record_Undo
+        (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To,
+         Redoable => False);
 
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -1899,11 +1912,13 @@ package body Files.Operations is
          if Mode = Files.File_System.Drop_Move then
             Files.Model.Record_Undo (Model, Files.Model.Undo_Move, Undo_From, Undo_To);
          else
-            --  A copy is reversed by deleting the created copies; the "to" side
-            --  is unused for Undo_Delete_Created.
+            --  A copy is reversed by deleting the created copies (Undo_From) and
+            --  redone by copying each source (Undo_To) back to its destination.
             Files.Model.Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Undo_From,
-               Files.Types.String_Vectors.Empty_Vector);
+               Files.Types.String_Vectors.Empty_Vector,
+               Forward     => Undo_To,
+               Create_Kind => Files.Model.Create_Copy);
          end if;
 
          --  A clipboard cut/move consumes the clipboard once the paste has run
@@ -2389,12 +2404,16 @@ package body Files.Operations is
          end if;
 
          declare
-            Undo_From : Files.Types.String_Vectors.Vector;
-            Undo_To   : Files.Types.String_Vectors.Vector;
+            Undo_From    : Files.Types.String_Vectors.Vector;
+            Undo_To      : Files.Types.String_Vectors.Vector;
+            Undo_Forward : Files.Types.String_Vectors.Vector;
          begin
             Undo_From.Append (To_Unbounded_String (Path));
             Undo_To.Append (To_Unbounded_String (Natural'Image (Old_Mode)));
-            Files.Model.Record_Undo (Model, Files.Model.Undo_Set_Permissions, Undo_From, Undo_To);
+            Undo_Forward.Append (To_Unbounded_String (Natural'Image (New_Mode)));
+            Files.Model.Record_Undo
+              (Model, Files.Model.Undo_Set_Permissions, Undo_From, Undo_To,
+               Forward => Undo_Forward);
          end;
 
          declare
@@ -2473,8 +2492,9 @@ package body Files.Operations is
          end if;
 
          declare
-            Undo_From : Files.Types.String_Vectors.Vector;
-            Undo_To   : Files.Types.String_Vectors.Vector;
+            Undo_From    : Files.Types.String_Vectors.Vector;
+            Undo_To      : Files.Types.String_Vectors.Vector;
+            Undo_Forward : Files.Types.String_Vectors.Vector;
          begin
             Undo_From.Append (To_Unbounded_String (Path));
             Undo_To.Append
@@ -2482,7 +2502,14 @@ package body Files.Operations is
                  (Ada.Strings.Fixed.Trim (Natural'Image (Old_Uid), Ada.Strings.Both)
                   & " "
                   & Ada.Strings.Fixed.Trim (Natural'Image (Old_Gid), Ada.Strings.Both)));
-            Files.Model.Record_Undo (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To);
+            Undo_Forward.Append
+              (To_Unbounded_String
+                 (Ada.Strings.Fixed.Trim (Natural'Image (User_Id), Ada.Strings.Both)
+                  & " "
+                  & Ada.Strings.Fixed.Trim (Natural'Image (Group_Id), Ada.Strings.Both)));
+            Files.Model.Record_Undo
+              (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To,
+               Forward => Undo_Forward);
          end;
 
          declare
@@ -2522,54 +2549,61 @@ package body Files.Operations is
       end if;
    end Update_Folder_Size;
 
-   function Undo_Last
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result
+   --  Move each item from its current location back to its original one,
+   --  guarding against missing sources and occupied targets. Shared by the
+   --  reverse (undo) and forward (redo) rename/move handlers, which differ only
+   --  in the direction of the Source/Target pairing.
+   function Move_Back
+     (Sources : Files.Types.String_Vectors.Vector;
+      Targets : Files.Types.String_Vectors.Vector)
+      return Boolean
    is
-      Kind      : constant Files.Model.Undo_Action_Kind := Files.Model.Undo_Kind_Of (Model);
-      From      : constant Files.Types.String_Vectors.Vector := Files.Model.Undo_From_Paths (Model);
-      To        : constant Files.Types.String_Vectors.Vector := Files.Model.Undo_To_Paths (Model);
-      Directory : constant String := Files.Model.Current_Path (Model);
       Succeeded : Boolean := True;
    begin
-      if Kind = Files.Model.Undo_None or else From.Is_Empty then
-         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
-      end if;
+      for Index in Sources.First_Index .. Sources.Last_Index loop
+         declare
+            Source : constant String := To_String (Sources.Element (Index));
+            Target : constant String := To_String (Targets.Element (Index));
+         begin
+            if Exists_Safely (Source) and then not Exists_Safely (Target) then
+               if not Files.File_System.Rename_Item (Source, Target).Success then
+                  Succeeded := False;
+               end if;
+            else
+               Succeeded := False;
+            end if;
+         end;
+      end loop;
+      return Succeeded;
+   end Move_Back;
 
-      case Kind is
+   --  Apply the reverse (undo) direction of Action. Returns True on full
+   --  success. Mirrors the pre-existing single-level undo behaviour.
+   function Apply_Reverse
+     (Action : Files.Model.Undo_Entry)
+      return Boolean
+   is
+      Succeeded : Boolean := True;
+   begin
+      case Action.Kind is
          when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
-            --  Move each item back from its current location to its original.
-            for Index in From.First_Index .. From.Last_Index loop
-               declare
-                  Source : constant String := To_String (From.Element (Index));
-                  Target : constant String := To_String (To.Element (Index));
-               begin
-                  if Exists_Safely (Source) and then not Exists_Safely (Target) then
-                     if not Files.File_System.Rename_Item (Source, Target).Success then
-                        Succeeded := False;
-                     end if;
-                  else
-                     Succeeded := False;
-                  end if;
-               end;
-            end loop;
+            Succeeded := Move_Back (Action.From, Action.To);
 
          when Files.Model.Undo_Restore_Trash =>
-            for Index in From.First_Index .. From.Last_Index loop
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
                if not Files.File_System.Restore_From_Trash
-                        (To_String (From.Element (Index))).Success
+                        (To_String (Action.From.Element (Index))).Success
                then
                   Succeeded := False;
                end if;
             end loop;
 
          when Files.Model.Undo_Delete_Created =>
-            --  Undo a created link (or other freshly created path) by removing
-            --  it again. Missing paths are treated as already undone.
-            for Index in From.First_Index .. From.Last_Index loop
+            --  Undo a created path by removing it again. Missing paths are
+            --  treated as already undone.
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
                declare
-                  Target : constant String := To_String (From.Element (Index));
+                  Target : constant String := To_String (Action.From.Element (Index));
                begin
                   if Exists_Safely (Target)
                     and then not Files.File_System.Delete_Permanently (Target).Success
@@ -2582,11 +2616,11 @@ package body Files.Operations is
          when Files.Model.Undo_Set_Permissions =>
             --  Restore the previous mode recorded before the chmod. From holds
             --  the path and To holds the decimal image of the old mode bits.
-            for Index in From.First_Index .. From.Last_Index loop
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
                declare
-                  Target   : constant String := To_String (From.Element (Index));
+                  Target   : constant String := To_String (Action.From.Element (Index));
                   Old_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (To_String (To.Element (Index)), Ada.Strings.Both);
+                    Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
                   Old_Mode : Natural := 0;
                begin
                   begin
@@ -2607,11 +2641,11 @@ package body Files.Operations is
          when Files.Model.Undo_Set_Ownership =>
             --  Restore the previous owner/group recorded before the chown.
             --  From holds the path and To holds "uid gid" decimal images.
-            for Index in From.First_Index .. From.Last_Index loop
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
                declare
-                  Target   : constant String := To_String (From.Element (Index));
+                  Target   : constant String := To_String (Action.From.Element (Index));
                   Old_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (To_String (To.Element (Index)), Ada.Strings.Both);
+                    Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
                   Space    : constant Natural := Ada.Strings.Fixed.Index (Old_Text, " ");
                   Old_Uid  : Natural := 0;
                   Old_Gid  : Natural := 0;
@@ -2636,8 +2670,149 @@ package body Files.Operations is
          when Files.Model.Undo_None =>
             Succeeded := False;
       end case;
+      return Succeeded;
+   end Apply_Reverse;
 
-      Files.Model.Clear_Undo (Model);
+   --  Apply the forward (redo) direction of Action. Returns True on full
+   --  success. Undo_Restore_Trash is undo-only and never reaches here.
+   function Apply_Forward
+     (Action : Files.Model.Undo_Entry)
+      return Boolean
+   is
+      Succeeded : Boolean := True;
+   begin
+      case Action.Kind is
+         when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
+            --  Re-run the original transition: from the reverted (To) location
+            --  back to the post-operation (From) location.
+            Succeeded := Move_Back (Action.To, Action.From);
+
+         when Files.Model.Undo_Delete_Created =>
+            --  Re-create each destination from its recorded source using the
+            --  stored creation kind.
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
+               declare
+                  Dest   : constant String := To_String (Action.From.Element (Index));
+                  Source : constant String :=
+                    (if Index <= Action.Forward.Last_Index
+                     then To_String (Action.Forward.Element (Index))
+                     else "");
+               begin
+                  if Source = ""
+                    or else not Exists_Safely (Source)
+                    or else Exists_Safely (Dest)
+                  then
+                     Succeeded := False;
+                  else
+                     case Action.Create_Kind is
+                        when Files.Model.Create_Copy =>
+                           if not Files.File_System.Copy_Tree (Source, Dest).Success then
+                              Succeeded := False;
+                           end if;
+                        when Files.Model.Create_Symbolic_Link =>
+                           if not Files.File_System.Create_Symbolic_Link (Source, Dest).Success then
+                              Succeeded := False;
+                           end if;
+                        when Files.Model.Create_Hard_Link =>
+                           if not Files.File_System.Create_Hard_Link (Source, Dest).Success then
+                              Succeeded := False;
+                           end if;
+                        when Files.Model.Create_None =>
+                           Succeeded := False;
+                     end case;
+                  end if;
+               end;
+            end loop;
+
+         when Files.Model.Undo_Set_Permissions =>
+            --  Re-apply the new mode stored in Forward.
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
+               declare
+                  Target   : constant String := To_String (Action.From.Element (Index));
+                  New_Text : constant String :=
+                    (if Index <= Action.Forward.Last_Index
+                     then Ada.Strings.Fixed.Trim (To_String (Action.Forward.Element (Index)), Ada.Strings.Both)
+                     else "");
+                  New_Mode : Natural := 0;
+               begin
+                  if New_Text = "" then
+                     Succeeded := False;
+                  else
+                     begin
+                        New_Mode := Natural'Value (New_Text);
+                     exception
+                        when others =>
+                           Succeeded := False;
+                     end;
+
+                     if (New_Mode > 0 or else New_Text = "0")
+                       and then not Files.File_System.Set_Permissions (Target, New_Mode).Success
+                     then
+                        Succeeded := False;
+                     end if;
+                  end if;
+               end;
+            end loop;
+
+         when Files.Model.Undo_Set_Ownership =>
+            --  Re-apply the new owner/group stored in Forward.
+            for Index in Action.From.First_Index .. Action.From.Last_Index loop
+               declare
+                  Target   : constant String := To_String (Action.From.Element (Index));
+                  New_Text : constant String :=
+                    (if Index <= Action.Forward.Last_Index
+                     then Ada.Strings.Fixed.Trim (To_String (Action.Forward.Element (Index)), Ada.Strings.Both)
+                     else "");
+                  Space    : constant Natural :=
+                    (if New_Text = "" then 0 else Ada.Strings.Fixed.Index (New_Text, " "));
+                  New_Uid  : Natural := 0;
+                  New_Gid  : Natural := 0;
+               begin
+                  if Space > 0 then
+                     begin
+                        New_Uid := Natural'Value (New_Text (New_Text'First .. Space - 1));
+                        New_Gid := Natural'Value (New_Text (Space + 1 .. New_Text'Last));
+                        if not Files.File_System.Set_Ownership (Target, New_Uid, New_Gid).Success then
+                           Succeeded := False;
+                        end if;
+                     exception
+                        when others =>
+                           Succeeded := False;
+                     end;
+                  else
+                     Succeeded := False;
+                  end if;
+               end;
+            end loop;
+
+         when Files.Model.Undo_Restore_Trash | Files.Model.Undo_None =>
+            Succeeded := False;
+      end case;
+      return Succeeded;
+   end Apply_Forward;
+
+   function Undo_Last
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Directory : constant String := Files.Model.Current_Path (Model);
+      Action    : Files.Model.Undo_Entry;
+      Found     : Boolean;
+      Succeeded : Boolean;
+   begin
+      Files.Model.Take_Undo (Model, Action, Found);
+      if not Found then
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+      end if;
+
+      Succeeded := Apply_Reverse (Action);
+
+      --  A reversed action moves onto the redo stack, unless it is undo-only or
+      --  its reverse could not be fully applied.
+      if Succeeded and then Action.Redoable then
+         Files.Model.Push_Redo (Model, Action);
+      end if;
 
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -2655,8 +2830,49 @@ package body Files.Operations is
       return Make_Result (Operation_Success, Path => Directory);
    exception
       when others =>
-         Files.Model.Clear_Undo (Model);
          return Make_Result (Operation_Failed, "error.undo.failed", Directory);
    end Undo_Last;
+
+   function Redo_Last
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Directory : constant String := Files.Model.Current_Path (Model);
+      Action    : Files.Model.Undo_Entry;
+      Found     : Boolean;
+      Succeeded : Boolean;
+   begin
+      Files.Model.Take_Redo (Model, Action, Found);
+      if not Found then
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+      end if;
+
+      Succeeded := Apply_Forward (Action);
+
+      --  A re-applied action returns to the undo stack without disturbing the
+      --  rest of the redo history.
+      if Succeeded then
+         Files.Model.Push_Undo (Model, Action);
+      end if;
+
+      declare
+         Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+         pragma Unreferenced (Reload);
+      begin
+         null;
+      end;
+
+      if not Succeeded then
+         Files.Model.Set_Error (Model, "error.undo.failed");
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+      end if;
+
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Success, Path => Directory);
+   exception
+      when others =>
+         return Make_Result (Operation_Failed, "error.undo.failed", Directory);
+   end Redo_Last;
 
 end Files.Operations;
