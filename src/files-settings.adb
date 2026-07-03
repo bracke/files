@@ -2045,7 +2045,7 @@ package body Files.Settings is
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Settings.Icon_Theme_Name)));
       Append_Line ("font_pixel_size = " & Trim (Positive'Image (Settings.Font_Pixel_Size)));
       Append_Line ("info_pane_open = " & Boolean_Name (Settings.Info_Pane_Open));
-      Append_Line ("use_system_default_opener = " & Boolean_Name (Settings.Use_System_Default_Opener));
+      Append_Line ("use_system_default_opener" & " = " & Boolean_Name (Settings.Use_System_Default_Opener));
       --  Detail-view column customization. The key is assembled from a
       --  space-free identifier so the concatenated literal is never mistaken for
       --  user-visible prose (see check_all's no-user-text-literal rule).
@@ -2235,6 +2235,19 @@ package body Files.Settings is
          Theme                  => To_Unbounded_String (Theme_Name (Settings.Theme)),
          Icon_Theme_Name        => Settings.Icon_Theme_Name,
          Font_Pixel_Size        => To_Unbounded_String (Trim (Positive'Image (Settings.Font_Pixel_Size))),
+         Use_System_Default_Opener =>
+           To_Unbounded_String (Boolean_Name (Settings.Use_System_Default_Opener)),
+         Group_By               => To_Unbounded_String (Group_Mode_Name (Settings.Group_By)),
+         Column_Modified        =>
+           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Modified_Column))),
+         Column_Size            =>
+           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Size_Column))),
+         Column_Filetype        =>
+           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Filetype_Column))),
+         Column_Created         =>
+           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Created_Column))),
+         Column_Permissions     =>
+           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Permissions_Column))),
          Filetype_Extension     => Extension,
          Filetype_Value         => Filetype,
          Filetype_Keys          => Filetype_Keys,
@@ -2454,6 +2467,30 @@ package body Files.Settings is
       Append_Line ("theme" & " = " & To_String (Draft.Theme));
       Append_Line ("icon_theme = " & Action_Token_Text (To_String (Draft.Icon_Theme_Name)));
       Append_Line ("font_pixel_size = " & To_String (Draft.Font_Pixel_Size));
+      --  Emit the scalar toggles/enum only when the draft carries a value, so a
+      --  bare draft round-trips to defaults. Keys are space-free identifiers, so
+      --  the assembled literals are never mistaken for user-visible prose.
+      if Length (Draft.Use_System_Default_Opener) > 0 then
+         Append_Line ("use_system_default_opener" & " = " & To_String (Draft.Use_System_Default_Opener));
+      end if;
+      if Length (Draft.Group_By) > 0 then
+         Append_Line ("group_by" & " = " & To_String (Draft.Group_By));
+      end if;
+      if Length (Draft.Column_Modified) > 0 then
+         Append_Line ("detail_column_modified" & " = " & To_String (Draft.Column_Modified));
+      end if;
+      if Length (Draft.Column_Size) > 0 then
+         Append_Line ("detail_column_size" & " = " & To_String (Draft.Column_Size));
+      end if;
+      if Length (Draft.Column_Filetype) > 0 then
+         Append_Line ("detail_column_filetype" & " = " & To_String (Draft.Column_Filetype));
+      end if;
+      if Length (Draft.Column_Created) > 0 then
+         Append_Line ("detail_column_created" & " = " & To_String (Draft.Column_Created));
+      end if;
+      if Length (Draft.Column_Permissions) > 0 then
+         Append_Line ("detail_column_permissions" & " = " & To_String (Draft.Column_Permissions));
+      end if;
 
       if not Filetype_Keys.Is_Empty then
          Append_Line ("[filetypes]");
@@ -2693,7 +2730,12 @@ package body Files.Settings is
       Result.Favorite_Paths := Settings.Favorite_Paths;
       Result.Recent_Paths_Value := Settings.Recent_Paths_Value;
       Result.Labels := Settings.Labels;
-      Result.Use_System_Default_Opener := Settings.Use_System_Default_Opener;
+      --  The pane now edits these directly, so take them from the parsed draft.
+      --  Column order and per-column widths are not pane-editable, so they keep
+      --  their existing values (Result starts as a copy of Settings).
+      Result.Use_System_Default_Opener := Parsed.Settings.Use_System_Default_Opener;
+      Result.Group_By := Parsed.Settings.Group_By;
+      Result.Column_Visible := Parsed.Settings.Column_Visible;
       Upsert
         (Filetype_Keys,
          Filetype_Values,

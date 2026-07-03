@@ -131,6 +131,19 @@ package Files.Settings is
       Theme                  : UString;
       Icon_Theme_Name        : UString;
       Font_Pixel_Size        : UString;
+      --  Whether unmatched files fall back to the host's default opener.
+      --  Holds the canonical boolean text "true"/"false".
+      Use_System_Default_Opener : UString;
+      --  Detail-view row grouping mode, holding a Group_Mode token
+      --  ("none"/"type"/"modified"/"size"/"label").
+      Group_By               : UString;
+      --  Per-optional-column visibility, each holding boolean text
+      --  "true"/"false". The mandatory name column is never toggleable.
+      Column_Modified        : UString;
+      Column_Size            : UString;
+      Column_Filetype        : UString;
+      Column_Created         : UString;
+      Column_Permissions     : UString;
       Filetype_Extension     : UString;
       Filetype_Value         : UString;
       Filetype_Keys          : String_Vectors.Vector;

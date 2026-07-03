@@ -105,6 +105,7 @@ package body Files_Suite.Settings is
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Pane_Extended_Fields (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -128,6 +129,9 @@ package body Files_Suite.Settings is
         (T, Test_Color_Labels'Access, "color label set/clear, round-trip, and invalid-color skip");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recent_Items'Access, "recent items note/dedup/cap/clear and round-trip");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Pane_Extended_Fields'Access,
+         "settings pane system-opener, grouping, and column-visibility fields round-trip");
    end Register_Tests;
 
    procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1755,19 +1759,19 @@ package body Files_Suite.Settings is
             Empty_Settings.Use_System_Default_Opener := False;
             Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 15);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
                "empty filetype list ignores mapping text without selected row");
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 11);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 18);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "text/x-ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
                "empty icon list ignores mapping text without selected row");
 
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 13);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 20);
             Files.Model.Set_Settings_Field_Text (Empty_Model, "text/x-ghost");
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "",
@@ -1792,7 +1796,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
             Repair_Draft.Filetype_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 15);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -1807,7 +1811,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
             Repair_Draft.Icon_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 11);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 18);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -1822,7 +1826,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
             Repair_Draft.Open_Action_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 13);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 20);
             Files.Model.Remove_Settings_Entry (Empty_Model);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert
@@ -1851,7 +1855,7 @@ package body Files_Suite.Settings is
             Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
             Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files.Model.Set_Settings_Field_Index (Empty_Model, 8);
+            Files.Model.Set_Settings_Field_Index (Empty_Model, 15);
             Assert
               (Files.Model.Settings_Field_Text (Empty_Model) = "ada",
                "begin settings edit syncs stale filetype selection");
@@ -1884,7 +1888,7 @@ package body Files_Suite.Settings is
          Files.Controller.Replace_Focused_Text (Draft_Model, "high_contrast");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 6);
          Files.Controller.Replace_Focused_Text (Draft_Model, "files-high-contrast");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 15);
          declare
             First_Extension : constant String := Files.Model.Settings_Field_Text (Draft_Model);
          begin
@@ -1899,43 +1903,43 @@ package body Files_Suite.Settings is
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_N, Ctrl);
          Assert (Files.Model.Settings_Field_Text (Draft_Model) = "", "settings add creates a blank mapping entry");
          Files.Controller.Replace_Focused_Text (Draft_Model, "tmpdel");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 16);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 16);
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Types.Key_Delete, Ctrl);
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "tmpdel",
             "settings remove deletes the selected mapping entry");
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 100);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 15, Option => 100);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Command_Executed,
             "settings add button executes and saves");
          Files.Controller.Replace_Focused_Text (Draft_Model, "buttondel");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 10);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 17);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-button-delete");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 8);
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 8, Option => 101);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 15);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 15, Option => 101);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Command_Executed,
             "settings remove button executes and saves");
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "buttondel",
             "settings remove button deletes the selected mapping entry");
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 9, Option => 101);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 16, Option => 101);
          Assert
            (Controller_Result.Status = Files.Controller.Controller_Ignored,
             "settings value-field remove button is ignored");
          Files.Controller.Replace_Focused_Text (Draft_Model, "cfg");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 9);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 16);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 10);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 17);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 11);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 18);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
-         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 12, Option => 100);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 19);
+         Controller_Result := Files.Controller.Handle_Settings_Click (Draft_Model, Field => 19, Option => 100);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/markdown");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 13);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 20);
          Files.Controller.Replace_Focused_Text (Draft_Model, "reader {path}");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 1);
          Files.Controller.Replace_Focused_Text (Draft_Model, "bad-view");
@@ -1950,7 +1954,7 @@ package body Files_Suite.Settings is
            (To_String (Controller_Result.Operation.Path) = Draft_Path,
             "controller invalid settings save reports settings path");
          Files.Controller.Replace_Focused_Text (Draft_Model, "details");
-         Files.Model.Set_Settings_Field_Index (Draft_Model, 12);
+         Files.Model.Set_Settings_Field_Index (Draft_Model, 19);
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
          Assert
            (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
@@ -2660,5 +2664,74 @@ package body Files_Suite.Settings is
                  "the type alias resolves to the filetype column in the parsed order");
       end;
    end Test_Column_Order_Reorder;
+
+   procedure Test_Settings_Pane_Extended_Fields (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Group_Mode;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Applied  : Files.Settings.Settings_Parse_Result;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));
+
+      --  The pane now exposes twenty fields; navigation wraps at both ends.
+      Files.Model.Set_Settings_Field_Index (Model, 20);
+      Files.Model.Move_Settings_Field (Model, Files.Types.Move_Down);
+      Assert (Files.Model.Settings_Field_Index (Model) = 1, "navigation wraps forward past the twentieth field");
+      Files.Model.Move_Settings_Field (Model, Files.Types.Move_Up);
+      Assert
+        (Files.Model.Settings_Field_Index (Model) = 20,
+         "navigation wraps backward from the first field to the last");
+
+      --  Field 8: Use System Default Opener toggle.
+      Files.Model.Set_Settings_Field_Index (Model, 8);
+      Assert (Files.Model.Settings_Field_Text (Model) = "true", "system-opener field starts true by default");
+      Files.Model.Set_Settings_Field_Text (Model, "false");
+      Applied := Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
+      Assert (Applied.Success, "system-opener draft applies");
+      Assert
+        (not Applied.Settings.Use_System_Default_Opener,
+         "toggling the system-opener field persists false through the draft");
+
+      --  Field 9: Group_By cycles none -> type -> modified -> size -> label -> none.
+      Files.Model.Set_Settings_Field_Index (Model, 9);
+      Assert (Files.Model.Settings_Field_Text (Model) = "none", "grouping field starts at none");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Settings_Field_Text (Model) = "type", "grouping right cycles none to type");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Settings_Field_Text (Model) = "modified", "grouping right cycles type to modified");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Settings_Field_Text (Model) = "size", "grouping right cycles modified to size");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Settings_Field_Text (Model) = "label", "grouping right cycles size to label");
+      Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Right);
+      Assert (Files.Model.Settings_Field_Text (Model) = "none", "grouping right wraps label back to none");
+      Files.Model.Set_Settings_Field_Text (Model, "modified");
+      Applied := Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
+      Assert (Applied.Success, "grouping draft applies");
+      Assert
+        (Applied.Settings.Group_By = Files.Types.Group_By_Modified,
+         "setting the grouping field persists the modified grouping mode");
+
+      --  Fields 10..14: the five optional detail-column visibility toggles.
+      Files.Model.Set_Settings_Field_Index (Model, 13);
+      Assert (Files.Model.Settings_Field_Text (Model) = "false", "created column starts hidden by default");
+      Files.Model.Set_Settings_Field_Text (Model, "true");
+      Files.Model.Set_Settings_Field_Index (Model, 11);
+      Assert (Files.Model.Settings_Field_Text (Model) = "true", "size column starts shown by default");
+      Files.Model.Set_Settings_Field_Text (Model, "false");
+      Applied := Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
+      Assert (Applied.Success, "column-visibility draft applies");
+      Assert
+        (Applied.Settings.Column_Visible (Files.Types.Created_Column),
+         "toggling the created-column field persists it visible");
+      Assert
+        (not Applied.Settings.Column_Visible (Files.Types.Size_Column),
+         "toggling the size-column field persists it hidden");
+      Assert
+        (Applied.Settings.Column_Visible (Files.Types.Name_Column),
+         "the mandatory name column stays visible after column toggles");
+   end Test_Settings_Pane_Extended_Fields;
 
 end Files_Suite.Settings;

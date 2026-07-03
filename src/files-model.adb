@@ -2413,8 +2413,8 @@ package body Files.Model is
    begin
       if Index = 0 then
          Model.Settings_Field := 1;
-      elsif Index > 13 then
-         Model.Settings_Field := 13;
+      elsif Index > 20 then
+         Model.Settings_Field := 20;
       else
          Model.Settings_Field := Index;
       end if;
@@ -2428,9 +2428,9 @@ package body Files.Model is
    begin
       case Direction is
          when Files.Types.Move_Left | Files.Types.Move_Up =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 13 else Model.Settings_Field - 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 20 else Model.Settings_Field - 1));
          when Files.Types.Move_Right | Files.Types.Move_Down =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 13 then 1 else Model.Settings_Field + 1));
+            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 20 then 1 else Model.Settings_Field + 1));
       end case;
    end Move_Settings_Field;
 
@@ -2488,14 +2488,14 @@ package body Files.Model is
       end Next_Index;
    begin
       case Model.Settings_Field is
-         when 8 | 9 =>
+         when 15 | 16 =>
             Select_Filetype
               (Next_Index
                  (Draft.Filetype_Index,
                   Pair_Count (Draft.Filetype_Keys, Draft.Filetype_Values)));
-         when 10 | 11 =>
+         when 17 | 18 =>
             Select_Icon (Next_Index (Draft.Icon_Index, Pair_Count (Draft.Icon_Keys, Draft.Icon_Values)));
-         when 12 | 13 =>
+         when 19 | 20 =>
             Select_Action
               (Next_Index
                  (Draft.Open_Action_Index,
@@ -2516,27 +2516,27 @@ package body Files.Model is
       Edited : Boolean := True;
    begin
       case Model.Settings_Field is
-         when 8 | 9 =>
+         when 15 | 16 =>
             Draft.Filetype_Keys.Append (Null_Unbounded_String);
             Draft.Filetype_Values.Append (Null_Unbounded_String);
             Draft.Filetype_Index := Natural (Draft.Filetype_Keys.Length);
             Draft.Filetype_Extension := Null_Unbounded_String;
             Draft.Filetype_Value := Null_Unbounded_String;
-            Model.Settings_Field := 8;
-         when 10 | 11 =>
+            Model.Settings_Field := 15;
+         when 17 | 18 =>
             Draft.Icon_Keys.Append (Null_Unbounded_String);
             Draft.Icon_Values.Append (Null_Unbounded_String);
             Draft.Icon_Index := Natural (Draft.Icon_Keys.Length);
             Draft.Icon_Filetype := Null_Unbounded_String;
             Draft.Icon_Value := Null_Unbounded_String;
-            Model.Settings_Field := 10;
-         when 12 | 13 =>
+            Model.Settings_Field := 17;
+         when 19 | 20 =>
             Draft.Open_Action_Keys.Append (Null_Unbounded_String);
             Draft.Open_Action_Commands.Append (Null_Unbounded_String);
             Draft.Open_Action_Index := Natural (Draft.Open_Action_Keys.Length);
             Draft.Open_Action_Token := Null_Unbounded_String;
             Draft.Open_Action_Command := Null_Unbounded_String;
-            Model.Settings_Field := 12;
+            Model.Settings_Field := 19;
          when others =>
             Edited := False;
       end case;
@@ -2580,7 +2580,7 @@ package body Files.Model is
 
    begin
       case Model.Settings_Field is
-         when 8 | 9 =>
+         when 15 | 16 =>
             if Draft.Filetype_Index = 0
               or else
                 (Draft.Filetype_Index > Natural (Draft.Filetype_Keys.Length)
@@ -2601,8 +2601,8 @@ package body Files.Model is
                Draft.Filetype_Extension := Draft.Filetype_Keys.Element (Draft.Filetype_Index);
                Draft.Filetype_Value := Draft.Filetype_Values.Element (Draft.Filetype_Index);
             end if;
-            Model.Settings_Field := 8;
-         when 10 | 11 =>
+            Model.Settings_Field := 15;
+         when 17 | 18 =>
             if Draft.Icon_Index = 0
               or else
                 (Draft.Icon_Index > Natural (Draft.Icon_Keys.Length)
@@ -2623,8 +2623,8 @@ package body Files.Model is
                Draft.Icon_Filetype := Draft.Icon_Keys.Element (Draft.Icon_Index);
                Draft.Icon_Value := Draft.Icon_Values.Element (Draft.Icon_Index);
             end if;
-            Model.Settings_Field := 10;
-         when 12 | 13 =>
+            Model.Settings_Field := 17;
+         when 19 | 20 =>
             if Draft.Open_Action_Index = 0
               or else
                 (Draft.Open_Action_Index > Natural (Draft.Open_Action_Keys.Length)
@@ -2645,7 +2645,7 @@ package body Files.Model is
                Draft.Open_Action_Token := Draft.Open_Action_Keys.Element (Draft.Open_Action_Index);
                Draft.Open_Action_Command := Draft.Open_Action_Commands.Element (Draft.Open_Action_Index);
             end if;
-            Model.Settings_Field := 12;
+            Model.Settings_Field := 19;
          when others =>
             Edited := False;
       end case;
@@ -2678,16 +2678,30 @@ package body Files.Model is
          when 7 =>
             return To_String (Model.Settings_Draft_Value.Font_Pixel_Size);
          when 8 =>
-            return To_String (Model.Settings_Draft_Value.Filetype_Extension);
+            return To_String (Model.Settings_Draft_Value.Use_System_Default_Opener);
          when 9 =>
-            return To_String (Model.Settings_Draft_Value.Filetype_Value);
+            return To_String (Model.Settings_Draft_Value.Group_By);
          when 10 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Filetype);
+            return To_String (Model.Settings_Draft_Value.Column_Modified);
          when 11 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Value);
+            return To_String (Model.Settings_Draft_Value.Column_Size);
          when 12 =>
-            return To_String (Model.Settings_Draft_Value.Open_Action_Token);
+            return To_String (Model.Settings_Draft_Value.Column_Filetype);
          when 13 =>
+            return To_String (Model.Settings_Draft_Value.Column_Created);
+         when 14 =>
+            return To_String (Model.Settings_Draft_Value.Column_Permissions);
+         when 15 =>
+            return To_String (Model.Settings_Draft_Value.Filetype_Extension);
+         when 16 =>
+            return To_String (Model.Settings_Draft_Value.Filetype_Value);
+         when 17 =>
+            return To_String (Model.Settings_Draft_Value.Icon_Filetype);
+         when 18 =>
+            return To_String (Model.Settings_Draft_Value.Icon_Value);
+         when 19 =>
+            return To_String (Model.Settings_Draft_Value.Open_Action_Token);
+         when 20 =>
             return To_String (Model.Settings_Draft_Value.Open_Action_Command);
          when others =>
             return "";
@@ -2730,6 +2744,20 @@ package body Files.Model is
          when 7 =>
             Model.Settings_Draft_Value.Font_Pixel_Size := To_Unbounded_String (Text);
          when 8 =>
+            Model.Settings_Draft_Value.Use_System_Default_Opener := To_Unbounded_String (Text);
+         when 9 =>
+            Model.Settings_Draft_Value.Group_By := To_Unbounded_String (Text);
+         when 10 =>
+            Model.Settings_Draft_Value.Column_Modified := To_Unbounded_String (Text);
+         when 11 =>
+            Model.Settings_Draft_Value.Column_Size := To_Unbounded_String (Text);
+         when 12 =>
+            Model.Settings_Draft_Value.Column_Filetype := To_Unbounded_String (Text);
+         when 13 =>
+            Model.Settings_Draft_Value.Column_Created := To_Unbounded_String (Text);
+         when 14 =>
+            Model.Settings_Draft_Value.Column_Permissions := To_Unbounded_String (Text);
+         when 15 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Filetype_Keys,
                   Model.Settings_Draft_Value.Filetype_Index,
@@ -2739,7 +2767,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 9 =>
+         when 16 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Filetype_Values,
                   Model.Settings_Draft_Value.Filetype_Index,
@@ -2749,7 +2777,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 10 =>
+         when 17 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Icon_Keys,
                   Model.Settings_Draft_Value.Icon_Index,
@@ -2759,7 +2787,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 11 =>
+         when 18 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Icon_Values,
                   Model.Settings_Draft_Value.Icon_Index,
@@ -2769,7 +2797,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 12 =>
+         when 19 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Open_Action_Keys,
                   Model.Settings_Draft_Value.Open_Action_Index,
@@ -2779,7 +2807,7 @@ package body Files.Model is
             else
                Edited := False;
             end if;
-         when 13 =>
+         when 20 =>
             if Replace_List_Value
                  (Model.Settings_Draft_Value.Open_Action_Commands,
                   Model.Settings_Draft_Value.Open_Action_Index,

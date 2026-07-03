@@ -769,7 +769,7 @@ package body Files.Rendering is
    function Settings_Editor_Profile_Of_Current_UI return Settings_Editor_Profile is
    begin
       return
-        (Scalar_Controls       => 7,
+        (Scalar_Controls       => 14,
          Mapping_Controls      => 4,
          Open_Action_Controls  => 2,
          Supports_Save         => True,
@@ -1319,6 +1319,37 @@ package body Files.Rendering is
          end if;
       end Theme_Display;
 
+      function Group_By_Token (Mode : Files.Types.Group_Mode) return String is
+      begin
+         case Mode is
+            when Files.Types.No_Grouping =>
+               return "none";
+            when Files.Types.Group_By_Type =>
+               return "type";
+            when Files.Types.Group_By_Modified =>
+               return "modified";
+            when Files.Types.Group_By_Size =>
+               return "size";
+            when Files.Types.Group_By_Label =>
+               return "label";
+         end case;
+      end Group_By_Token;
+
+      function Group_By_Display (Token : String) return String is
+      begin
+         if Token = "type" then
+            return Files.Localization.Text ("settings.group.type");
+         elsif Token = "modified" then
+            return Files.Localization.Text ("settings.group.modified");
+         elsif Token = "size" then
+            return Files.Localization.Text ("settings.group.size");
+         elsif Token = "label" then
+            return Files.Localization.Text ("settings.group.label");
+         else
+            return Files.Localization.Text ("settings.group.none");
+         end if;
+      end Group_By_Display;
+
       Theme : constant Render_Theme :=
         (case Settings.Theme is
             when Files.Settings.Theme_High_Contrast => High_Contrast_Theme,
@@ -1787,6 +1818,22 @@ package body Files.Rendering is
       Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
       Snapshot.Settings_Font_Pixel_Size :=
         To_Unbounded_String (Natural_Text (Settings.Font_Pixel_Size));
+      Snapshot.Settings_Opener_Token :=
+        To_Unbounded_String (Boolean_Token (Settings.Use_System_Default_Opener));
+      Snapshot.Settings_Group_By_Token :=
+        To_Unbounded_String (Group_By_Token (Settings.Group_By));
+      Snapshot.Settings_Group_By :=
+        To_Unbounded_String (Group_By_Display (Group_By_Token (Settings.Group_By)));
+      Snapshot.Settings_Column_Modified_Token :=
+        To_Unbounded_String (Boolean_Token (Settings.Column_Visible (Files.Types.Modified_Column)));
+      Snapshot.Settings_Column_Size_Token :=
+        To_Unbounded_String (Boolean_Token (Settings.Column_Visible (Files.Types.Size_Column)));
+      Snapshot.Settings_Column_Filetype_Token :=
+        To_Unbounded_String (Boolean_Token (Settings.Column_Visible (Files.Types.Filetype_Column)));
+      Snapshot.Settings_Column_Created_Token :=
+        To_Unbounded_String (Boolean_Token (Settings.Column_Visible (Files.Types.Created_Column)));
+      Snapshot.Settings_Column_Permissions_Token :=
+        To_Unbounded_String (Boolean_Token (Settings.Column_Visible (Files.Types.Permissions_Column)));
       Snapshot.Settings_Filetypes :=
         To_Unbounded_String (Natural_Text (Natural (Settings.Extension_Filetypes.Length)));
       Snapshot.Settings_Icons :=
@@ -1817,6 +1864,23 @@ package body Files.Rendering is
                    (Theme_Display (Files.Types.To_Lower (To_String (Draft.Theme))));
                Snapshot.Settings_Icon_Theme := Draft.Icon_Theme_Name;
                Snapshot.Settings_Font_Pixel_Size := Draft.Font_Pixel_Size;
+               Snapshot.Settings_Opener_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Use_System_Default_Opener)));
+               Snapshot.Settings_Group_By_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Group_By)));
+               Snapshot.Settings_Group_By :=
+                 To_Unbounded_String
+                   (Group_By_Display (Files.Types.To_Lower (To_String (Draft.Group_By))));
+               Snapshot.Settings_Column_Modified_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Column_Modified)));
+               Snapshot.Settings_Column_Size_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Column_Size)));
+               Snapshot.Settings_Column_Filetype_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Column_Filetype)));
+               Snapshot.Settings_Column_Created_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Column_Created)));
+               Snapshot.Settings_Column_Permissions_Token :=
+                 To_Unbounded_String (Files.Types.To_Lower (To_String (Draft.Column_Permissions)));
                Snapshot.Settings_Filetype_Extension := Draft.Filetype_Extension;
                Snapshot.Settings_Filetype_Value := Draft.Filetype_Value;
                Snapshot.Settings_Icon_Filetype := Draft.Icon_Filetype;
@@ -1868,30 +1932,45 @@ package body Files.Rendering is
             Snapshot.Settings_Control_Options := Null_Unbounded_String;
          when 8 =>
             Snapshot.Settings_Field_Help :=
+              To_Unbounded_String (Files.Localization.Text ("settings.help.system_opener"));
+            Snapshot.Settings_Control_Options :=
+              To_Unbounded_String (Files.Localization.Text ("settings.options.boolean"));
+         when 9 =>
+            Snapshot.Settings_Field_Help :=
+              To_Unbounded_String (Files.Localization.Text ("settings.help.grouping"));
+            Snapshot.Settings_Control_Options :=
+              To_Unbounded_String (Files.Localization.Text ("settings.options.grouping"));
+         when 10 | 11 | 12 | 13 | 14 =>
+            Snapshot.Settings_Field_Help :=
+              To_Unbounded_String (Files.Localization.Text ("settings.help.column"));
+            Snapshot.Settings_Control_Options :=
+              To_Unbounded_String (Files.Localization.Text ("settings.options.boolean"));
+         when 15 =>
+            Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_extension"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 9 =>
+         when 16 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.filetype_value"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 10 =>
+         when 17 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.icon_filetype"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 11 =>
+         when 18 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.icon_value"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 12 =>
+         when 19 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_token"));
             Snapshot.Settings_Control_Options :=
               To_Unbounded_String (Files.Localization.Text ("settings.options.mapping"));
-         when 13 =>
+         when 20 =>
             Snapshot.Settings_Field_Help :=
               To_Unbounded_String (Files.Localization.Text ("settings.help.open_action_command"));
             Snapshot.Settings_Control_Options :=
@@ -8779,7 +8858,11 @@ package body Files.Rendering is
 
             procedure Add_Settings_Control_Options (Y_Cursor : in out Natural) is
                Y      : Natural;
-               Cell_W : constant Natural := (if Text_W > 0 then Text_W / 4 else 0);
+               --  Segmented-option grid: four cells for most cycling fields,
+               --  five for the group-by field. Both are set in the body before
+               --  any Add_Cell call, so the nested proc reads the live values.
+               Cell_Count : Natural := 4;
+               Cell_W     : Natural := 0;
                Hidden : Boolean;
 
                procedure Add_Cell
@@ -8789,7 +8872,8 @@ package body Files.Rendering is
                is
                   Offset_X : constant Natural := Saturating_Multiply (Offset, Cell_W);
                   X        : constant Natural := Saturating_Add (Text_X, Offset_X);
-                  W        : constant Natural := (if Offset = 3 then Text_W - Offset_X else Cell_W);
+                  W        : constant Natural :=
+                    (if Offset = Cell_Count - 1 then Text_W - Offset_X else Cell_W);
                begin
                   if W = 0 or else Hidden then
                      return;
@@ -8859,6 +8943,8 @@ package body Files.Rendering is
                Begin_Row (Y_Cursor);
                Y := Visible_Y (Y_Cursor);
                Hidden := Y_Hidden (Y_Cursor, Line_Height);
+               Cell_Count := (if Snapshot.Settings_Field_Index = 9 then 5 else 4);
+               Cell_W := (if Text_W > 0 then Text_W / Cell_Count else 0);
                case Snapshot.Settings_Field_Index is
                   when 1 | 2 | 4 =>
                      --  Inline toggle/segmented control already rendered in
@@ -8869,6 +8955,17 @@ package body Files.Rendering is
                      Add_Cell (1, "settings.sort.filetype", Current = "filetype");
                      Add_Cell (2, "settings.sort.size", Current = "size");
                      Add_Cell (3, "settings.sort.modified", Current = "modified");
+                  when 9 =>
+                     declare
+                        Group_Current : constant String :=
+                          To_String (Snapshot.Settings_Group_By_Token);
+                     begin
+                        Add_Cell (0, "settings.group.none", Group_Current = "none");
+                        Add_Cell (1, "settings.group.type", Group_Current = "type");
+                        Add_Cell (2, "settings.group.modified", Group_Current = "modified");
+                        Add_Cell (3, "settings.group.size", Group_Current = "size");
+                        Add_Cell (4, "settings.group.label", Group_Current = "label");
+                     end;
                   when 5 =>
                      declare
                         Theme_Current : constant String := To_String (Snapshot.Settings_Theme_Token);
@@ -9013,18 +9110,26 @@ package body Files.Rendering is
                Add_Settings_Value (Y_Cursor, "settings.theme", Snapshot.Settings_Theme, 5);
                Add_Settings_Value (Y_Cursor, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 6);
                Add_Settings_Number_Stepper (Y_Cursor, "settings.font_pixel_size", Snapshot.Settings_Font_Pixel_Size, 7);
+               Add_Settings_Toggle (Y_Cursor, "settings.system_opener", Snapshot.Settings_Opener_Token, 8);
+               Add_Settings_Value (Y_Cursor, "settings.grouping", Snapshot.Settings_Group_By, 9);
+               Add_Settings_Toggle (Y_Cursor, "settings.column.modified", Snapshot.Settings_Column_Modified_Token, 10);
+               Add_Settings_Toggle (Y_Cursor, "settings.column.size", Snapshot.Settings_Column_Size_Token, 11);
+               Add_Settings_Toggle (Y_Cursor, "settings.column.type", Snapshot.Settings_Column_Filetype_Token, 12);
+               Add_Settings_Toggle (Y_Cursor, "settings.column.created", Snapshot.Settings_Column_Created_Token, 13);
+               Add_Settings_Toggle
+                 (Y_Cursor, "settings.column.permissions", Snapshot.Settings_Column_Permissions_Token, 14);
                Add_Settings_Value (Y_Cursor, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
-               Add_Settings_Entry_Buttons (Y_Cursor, 8);
-               Add_Settings_Value (Y_Cursor, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 8);
-               Add_Settings_Value (Y_Cursor, "settings.filetype_value", Snapshot.Settings_Filetype_Value, 9);
+               Add_Settings_Entry_Buttons (Y_Cursor, 15);
+               Add_Settings_Value (Y_Cursor, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 15);
+               Add_Settings_Value (Y_Cursor, "settings.filetype_value", Snapshot.Settings_Filetype_Value, 16);
                Add_Settings_Value (Y_Cursor, "settings.icons", Snapshot.Settings_Icons, 0);
-               Add_Settings_Entry_Buttons (Y_Cursor, 10);
-               Add_Settings_Value (Y_Cursor, "settings.icon_filetype", Snapshot.Settings_Icon_Filetype, 10);
-               Add_Settings_Value (Y_Cursor, "settings.icon_value", Snapshot.Settings_Icon_Value, 11);
+               Add_Settings_Entry_Buttons (Y_Cursor, 17);
+               Add_Settings_Value (Y_Cursor, "settings.icon_filetype", Snapshot.Settings_Icon_Filetype, 17);
+               Add_Settings_Value (Y_Cursor, "settings.icon_value", Snapshot.Settings_Icon_Value, 18);
                Add_Settings_Value (Y_Cursor, "settings.open_actions", Snapshot.Settings_Open_Actions, 0);
-               Add_Settings_Entry_Buttons (Y_Cursor, 12);
-               Add_Settings_Value (Y_Cursor, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 12);
-               Add_Settings_Value (Y_Cursor, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 13);
+               Add_Settings_Entry_Buttons (Y_Cursor, 19);
+               Add_Settings_Value (Y_Cursor, "settings.open_action_token", Snapshot.Settings_Open_Action_Token, 19);
+               Add_Settings_Value (Y_Cursor, "settings.open_action_command", Snapshot.Settings_Open_Action_Command, 20);
                if Length (Snapshot.Settings_Field_Help) > 0 then
                   Add_Wrapped_Row
                     (Y_Cursor,
@@ -9039,7 +9144,7 @@ package body Files.Rendering is
                      Muted_Text_Color,
                      Italic => True);
                end if;
-               if Snapshot.Settings_Field_Index in 3 | 5 | 6 then
+               if Snapshot.Settings_Field_Index in 3 | 5 | 6 | 9 then
                   Add_Settings_Control_Options (Y_Cursor);
                end if;
                if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then

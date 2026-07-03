@@ -231,6 +231,14 @@ package Files.Rendering is
       Settings_Theme_Token          : UString;
       Settings_Icon_Theme           : UString;
       Settings_Font_Pixel_Size      : UString;
+      Settings_Opener_Token         : UString;
+      Settings_Group_By             : UString;
+      Settings_Group_By_Token       : UString;
+      Settings_Column_Modified_Token    : UString;
+      Settings_Column_Size_Token        : UString;
+      Settings_Column_Filetype_Token    : UString;
+      Settings_Column_Created_Token     : UString;
+      Settings_Column_Permissions_Token : UString;
       Settings_Filetypes            : UString;
       Settings_Icons                : UString;
       Settings_Open_Actions         : UString;

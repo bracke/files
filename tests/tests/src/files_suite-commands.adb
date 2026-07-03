@@ -447,7 +447,7 @@ package body Files_Suite.Commands is
          Old_Mapping_Count : constant Natural :=
            Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length);
       begin
-         Result := Files.Controller.Handle_Settings_Click (Model, Field => 8, Option => 100);
+         Result := Files.Controller.Handle_Settings_Click (Model, Field => 15, Option => 100);
          Assert
            (Result.Status = Files.Controller.Controller_Command_Executed,
             "settings value-field add click executes");
@@ -455,12 +455,12 @@ package body Files_Suite.Commands is
            (Result.Command = Files.Commands.Save_Settings_Command,
             "settings value-field add click reports the save command");
          Assert
-           (Files.Model.Settings_Field_Index (Model) = 8,
+           (Files.Model.Settings_Field_Index (Model) = 15,
             "settings value-field add click moves focus to the clicked field");
          Assert
            (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length) = Old_Mapping_Count + 1,
             "settings value-field add click creates a mapping row");
-         Result := Files.Controller.Handle_Settings_Click (Model, Field => 8, Option => 101);
+         Result := Files.Controller.Handle_Settings_Click (Model, Field => 15, Option => 101);
          Assert
            (Result.Status = Files.Controller.Controller_Command_Executed,
             "settings value-field remove click executes");
@@ -487,9 +487,9 @@ package body Files_Suite.Commands is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores entry paging");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Files.Model.Settings_Field_Index (Model) = 2, "down moves to next settings field");
-      Files.Model.Set_Settings_Field_Index (Model, 12);
+      Files.Model.Set_Settings_Field_Index (Model, 19);
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
-      Assert (Files.Model.Settings_Field_Index (Model) = 13, "down reaches the final settings field (13)");
+      Assert (Files.Model.Settings_Field_Index (Model) = 20, "down reaches the final settings field (20)");
       Result := Files.Controller.Handle_Key (Model, Settings, Files.Types.Key_Down);
       Assert (Files.Model.Settings_Field_Index (Model) = 1, "down from the final settings field wraps to first");
       Files.Model.Set_Settings_Field_Index (Model, 2);

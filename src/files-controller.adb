@@ -362,6 +362,13 @@ package body Files.Controller is
         and then Left.Sort_Ascending = Right.Sort_Ascending
         and then Left.Theme = Right.Theme
         and then Left.Icon_Theme_Name = Right.Icon_Theme_Name
+        and then Left.Use_System_Default_Opener = Right.Use_System_Default_Opener
+        and then Left.Group_By = Right.Group_By
+        and then Left.Column_Modified = Right.Column_Modified
+        and then Left.Column_Size = Right.Column_Size
+        and then Left.Column_Filetype = Right.Column_Filetype
+        and then Left.Column_Created = Right.Column_Created
+        and then Left.Column_Permissions = Right.Column_Permissions
         and then Left.Filetype_Extension = Right.Filetype_Extension
         and then Left.Filetype_Value = Right.Filetype_Value
         and then Left.Filetype_Keys = Right.Filetype_Keys
@@ -1707,7 +1714,7 @@ package body Files.Controller is
          if Option = 0 then
             return True;
          elsif Option = 100 or else Option = 101 then
-            return Field in 8 | 10 | 12;
+            return Field in 15 | 17 | 19;
          elsif Option = 150 or else Option = 151 then
             return Field = 7;
          end if;
@@ -1715,9 +1722,9 @@ package body Files.Controller is
          case Field is
             when 1 =>
                return Option in 1 .. 3;
-            when 2 | 4 | 5 | 6 =>
+            when 2 | 4 | 5 | 6 | 8 | 10 | 11 | 12 | 13 | 14 =>
                return Option in 1 .. 2;
-            when 3 =>
+            when 3 | 9 =>
                return Option in 1 .. 5;
             when others =>
                return False;
@@ -1727,7 +1734,7 @@ package body Files.Controller is
       if Files.Model.Command_Palette_Is_Open (Model)
         or else not Files.Model.Settings_Pane_Is_Open (Model)
         or else Field = 0
-        or else Field > 13
+        or else Field > 20
         or else not Valid_Option
       then
          return Make_Result (Controller_Ignored);
@@ -1783,7 +1790,7 @@ package body Files.Controller is
                      when 3 => Files.Model.Set_Settings_Field_Text (Model, "details");
                      when others => null;
                   end case;
-               when 2 | 4 =>
+               when 2 | 4 | 8 | 10 | 11 | 12 | 13 | 14 =>
                   Files.Model.Set_Settings_Field_Text (Model, (if Option = 1 then "true" else "false"));
                when 5 =>
                   case Option is
@@ -1802,6 +1809,15 @@ package body Files.Controller is
                      when 3 => Files.Model.Set_Settings_Field_Text (Model, "size");
                      when 4 => Files.Model.Set_Settings_Field_Text (Model, "modified");
                      when 5 => Files.Model.Set_Settings_Field_Text (Model, "created");
+                     when others => null;
+                  end case;
+               when 9 =>
+                  case Option is
+                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "none");
+                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "type");
+                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "modified");
+                     when 4 => Files.Model.Set_Settings_Field_Text (Model, "size");
+                     when 5 => Files.Model.Set_Settings_Field_Text (Model, "label");
                      when others => null;
                   end case;
                when others =>
@@ -2264,7 +2280,7 @@ package body Files.Controller is
          elsif (Key = Files.Types.Key_Left or else Key = Files.Types.Key_Right
                 or else Key = Files.Types.Key_Space)
            and then Modifiers = Files.Types.No_Modifiers
-           and then Files.Model.Settings_Field_Index (Model) <= 7
+           and then Files.Model.Settings_Field_Index (Model) <= 14
          then
             declare
                Min_Font_Pixel_Size : constant := 10;
@@ -2276,10 +2292,11 @@ package body Files.Controller is
                Touched : Boolean := False;
             begin
                --  Space cycles fields that have inline toggle/segmented
-               --  controls (default_view + boolean fields). On other
+               --  controls (default_view, boolean toggles, theme, grouping,
+               --  system opener, and the column-visibility toggles). On other
                --  multi-choice fields it falls through to text input.
                if Key = Files.Types.Key_Space
-                 and then Field not in 1 | 2 | 4 | 5
+                 and then Field not in 1 | 2 | 4 | 5 | 8 | 9 | 10 | 11 | 12 | 13 | 14
                then
                   return Make_Result (Controller_Ignored);
                end if;
@@ -2297,9 +2314,22 @@ package body Files.Controller is
                           (Model, (if Forward then "small_icons" else "large_icons"));
                      end if;
                      Touched := True;
-                  when 2 | 4 =>
+                  when 2 | 4 | 8 | 10 | 11 | 12 | 13 | 14 =>
                      Files.Model.Set_Settings_Field_Text
                        (Model, (if Current = "true" then "false" else "true"));
+                     Touched := True;
+                  when 9 =>
+                     if Current = "none" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "type" else "label"));
+                     elsif Current = "type" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "modified" else "none"));
+                     elsif Current = "modified" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "size" else "type"));
+                     elsif Current = "size" then
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "label" else "modified"));
+                     else
+                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "none" else "size"));
+                     end if;
                      Touched := True;
                   when 5 =>
                      if Current = "dark" then
