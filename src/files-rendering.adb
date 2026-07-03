@@ -7895,6 +7895,44 @@ package body Files.Rendering is
             Cell_W_Settings : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
             Capacity_Settings : constant Natural := Text_W / Cell_W_Settings;
 
+            --  Resolve a segmented-selector cell label for Draw_Segmented:
+            --  localize Key, fit it to the cell's padded interior exactly as
+            --  Add_Text (Fit => True) would, and report whether that fitting
+            --  truncated it. The label is suppressed (empty text) when its box
+            --  clips to nothing or is covered by an open overlay pane, matching
+            --  Add_Text's own drop conditions, so Draw_Segmented reproduces the
+            --  former per-cell Add_Text call byte for byte.
+            function Segment_Label_For
+              (Cell_X  : Natural;
+               Cell_W  : Natural;
+               Label_Y : Natural;
+               Key     : String)
+               return Files.Gui.Widgets.Segment_Label
+            is
+               Pad     : constant Natural := Files.Gui.Layout.Input_Field_Padding;
+               Label_X : constant Natural := Saturating_Add (Cell_X, Pad);
+               Label_W : constant Natural :=
+                 (if Cell_W > 2 * Pad then Cell_W - 2 * Pad else 0);
+               Draw_W  : constant Natural := Clipped_Size (Label_X, Label_W, Layout.Width);
+               Draw_H  : constant Natural := Clipped_Size (Label_Y, Line_Height, Layout.Height);
+               Capacity : constant Natural := Draw_W / Cell_W_Settings;
+               Raw     : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+               Fitted  : constant UString := Fitted_Text_For (Raw, Capacity);
+            begin
+               if Hidden_By_Settings_Pane (Label_X, Label_Y, Draw_W, Draw_H)
+                 or else Hidden_By_Command_Palette (Label_X, Label_Y, Draw_W, Draw_H)
+                 or else Draw_W = 0
+                 or else Draw_H = 0
+                 or else Length (Fitted) = 0
+               then
+                  return (Text => Null_Unbounded_String, Truncated => False);
+               end if;
+
+               return
+                 (Text      => Fitted,
+                  Truncated => To_String (Fitted) /= To_String (Raw));
+            end Segment_Label_For;
+
             function Wrap_To_Lines (Text : String; Capacity : Natural)
                return Files.Types.String_Vectors.Vector
             is
@@ -8453,6 +8491,13 @@ package body Files.Rendering is
                  (if Text_W > 0 then Text_W / Cell_Count else 0);
                Hidden : Boolean;
 
+               --  Collected per-cell labels and the active cell, resolved here
+               --  and drawn in one Draw_Segmented call after the case below.
+               Labels       : Files.Gui.Widgets.Segment_Label_Array (1 .. Cell_Count) :=
+                 (others => (Text => Null_Unbounded_String, Truncated => False));
+               Cell_Total   : Natural := 0;
+               Active_Index : Natural := 0;
+
                procedure Add_Cell
                  (Offset : Natural;
                   Key    : String;
@@ -8463,6 +8508,12 @@ package body Files.Rendering is
                   W        : constant Natural :=
                     (if Offset = Cell_Count - 1 then Text_W - Offset_X else Cell_W);
                begin
+                  Cell_Total := Natural'Max (Cell_Total, Offset + 1);
+                  if Active then
+                     Active_Index := Offset + 1;
+                  end if;
+                  Labels (Offset + 1) := Segment_Label_For (X, W, Text_Y_In_Row (Y), Key);
+
                   if W = 0 or else Hidden then
                      return;
                   end if;
@@ -8476,18 +8527,6 @@ package body Files.Rendering is
                         Y      => Y,
                         Width  => W,
                         Height => Line_Height));
-                  Add_Rect (X, Sel_Y (Y), W, Line_Height, (if Active then Selection_Color else Input_Color));
-                  Add_Border (X, Sel_Y (Y), W, Line_Height, Border_Color);
-                  Add_Text
-                    (Saturating_Add (X, Files.Gui.Layout.Input_Field_Padding),
-                     Text_Y_In_Row (Y),
-                     (if W > 2 * Files.Gui.Layout.Input_Field_Padding
-                      then W - 2 * Files.Gui.Layout.Input_Field_Padding
-                      else 0),
-                     Line_Height,
-                     To_Unbounded_String (Files.Localization.Text (Key)),
-                     Muted_Text_Color,
-                     Fit => True);
                end Add_Cell;
 
                procedure Add_Toggle (Is_On : Boolean) is
@@ -8558,6 +8597,28 @@ package body Files.Rendering is
                   when others =>
                      null;
                end case;
+
+               if not Hidden and then Cell_Total > 0 then
+                  Files.Gui.Widgets.Draw_Segmented
+                    (Rectangles     => Result.Rectangles,
+                     Text           => Result.Text,
+                     Clip_Width     => Layout.Width,
+                     Clip_Height    => Layout.Height,
+                     X              => Text_X,
+                     Box_Y          => Sel_Y (Y),
+                     Label_Y        => Text_Y_In_Row (Y),
+                     Content_Width  => Text_W,
+                     Cell_Count     => Cell_Count,
+                     Height         => Line_Height,
+                     Labels         => Labels (1 .. Cell_Total),
+                     Active_Index   => Active_Index,
+                     Active_Color   => Selection_Color,
+                     Inactive_Color => Input_Color,
+                     Border_Color   => Border_Color,
+                     Label_Color    => Muted_Text_Color,
+                     Padding        => Files.Gui.Layout.Input_Field_Padding);
+               end if;
+
                Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Control_Options;
 
@@ -8581,6 +8642,12 @@ package body Files.Rendering is
                Y      : Natural;
                Hidden : Boolean;
 
+               --  Collected per-cell labels and the active cell, resolved here
+               --  and drawn in one Draw_Segmented call after the cells below.
+               Labels       : Files.Gui.Widgets.Segment_Label_Array (1 .. Cell_Count) :=
+                 (others => (Text => Null_Unbounded_String, Truncated => False));
+               Active_Index : Natural := 0;
+
                procedure Add_Cell
                  (Offset : Natural;
                   Key    : String;
@@ -8595,6 +8662,11 @@ package body Files.Rendering is
                         (if Text_W > Offset_X then Text_W - Offset_X else 0)
                      else Cell_W);
                begin
+                  if Active then
+                     Active_Index := Offset + 1;
+                  end if;
+                  Labels (Offset + 1) := Segment_Label_For (X, W, Text_Y_In_Row (Y), Key);
+
                   if W = 0 or else Hidden then
                      return;
                   end if;
@@ -8608,18 +8680,6 @@ package body Files.Rendering is
                         Y      => Y,
                         Width  => W,
                         Height => Line_Height));
-                  Add_Rect (X, Sel_Y (Y), W, Line_Height, (if Active then Selection_Color else Input_Color));
-                  Add_Border (X, Sel_Y (Y), W, Line_Height, Border_Color);
-                  Add_Text
-                    (Saturating_Add (X, Files.Gui.Layout.Input_Field_Padding),
-                     Text_Y_In_Row (Y),
-                     (if W > 2 * Files.Gui.Layout.Input_Field_Padding
-                      then W - 2 * Files.Gui.Layout.Input_Field_Padding
-                      else 0),
-                     Line_Height,
-                     To_Unbounded_String (Files.Localization.Text (Key)),
-                     Muted_Text_Color,
-                     Fit => True);
                end Add_Cell;
             begin
                Begin_Row (Y_Cursor);
@@ -8630,6 +8690,28 @@ package body Files.Rendering is
                Add_Cell (2, "settings.group.modified", Group_Current = "modified");
                Add_Cell (3, "settings.group.size", Group_Current = "size");
                Add_Cell (4, "settings.group.label", Group_Current = "label");
+
+               if not Hidden then
+                  Files.Gui.Widgets.Draw_Segmented
+                    (Rectangles     => Result.Rectangles,
+                     Text           => Result.Text,
+                     Clip_Width     => Layout.Width,
+                     Clip_Height    => Layout.Height,
+                     X              => Text_X,
+                     Box_Y          => Sel_Y (Y),
+                     Label_Y        => Text_Y_In_Row (Y),
+                     Content_Width  => Text_W,
+                     Cell_Count     => Cell_Count,
+                     Height         => Line_Height,
+                     Labels         => Labels,
+                     Active_Index   => Active_Index,
+                     Active_Color   => Selection_Color,
+                     Inactive_Color => Input_Color,
+                     Border_Color   => Border_Color,
+                     Label_Color    => Muted_Text_Color,
+                     Padding        => Files.Gui.Layout.Input_Field_Padding);
+               end if;
+
                Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Group_By_Segments;
 

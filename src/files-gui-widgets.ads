@@ -103,4 +103,67 @@ package Files.Gui.Widgets is
       Glyph_Color   : Files.Gui.Draw.Render_Color;
       Show_Glyph    : Boolean);
 
+   --  One cell's label for a segmented selector: the display text (already
+   --  localized and fitted to the cell width by the caller) and whether that
+   --  fitting truncated it. An empty Text draws no label for that cell -- the
+   --  fill and border still draw -- letting the caller suppress a label that is
+   --  fully clipped or covered by an overlay while keeping the cell box.
+   type Segment_Label is record
+      Text      : Files.Gui.Draw.UString;
+      Truncated : Boolean := False;
+   end record;
+
+   --  One-based row of segment labels; its length is the number of cells drawn.
+   type Segment_Label_Array is array (Positive range <>) of Segment_Label;
+
+   --  Draw a horizontal segmented cycling selector: a row of cells, each a
+   --  filled, bordered box with a left-aligned label inset by Padding. Cell
+   --  widths come from Content_Width / Cell_Count; the cell whose zero-based
+   --  offset equals Cell_Count - 1 absorbs the integer-division remainder so a
+   --  full row of cells spans exactly Content_Width. Cell_Count is the grid
+   --  divisor, which may exceed Labels'Length: a caller that draws fewer cells
+   --  than the divisor (so no drawn cell is the remainder cell) leaves the
+   --  cells at the uniform Content_Width / Cell_Count width. The cell whose
+   --  one-based index equals Active_Index is filled with Active_Color; the rest
+   --  with Inactive_Color (Active_Index = 0 draws none active). Cells of zero
+   --  width are skipped. The caller resolves the labels, the active index, and
+   --  the colors, and registers any hit regions; the widget only emits pixels.
+   --
+   --  @param Rectangles Rectangle command vector for the fills and borders.
+   --  @param Text Text command vector for the labels.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param X Row left edge in pixels.
+   --  @param Box_Y Top edge of each cell's fill and border in pixels.
+   --  @param Label_Y Top edge of each cell's label in pixels.
+   --  @param Content_Width Total row width in pixels; cell width is this over
+   --    Cell_Count and nothing is drawn when zero.
+   --  @param Cell_Count Grid divisor for the cell width and remainder cell.
+   --  @param Height Height of each cell and its label in pixels.
+   --  @param Labels One label per drawn cell, at offsets 0 .. Labels'Length - 1.
+   --  @param Active_Index One-based index of the active cell, or 0 for none.
+   --  @param Active_Color Fill color of the active cell.
+   --  @param Inactive_Color Fill color of the inactive cells.
+   --  @param Border_Color Cell border color.
+   --  @param Label_Color Label text color.
+   --  @param Padding Left inset of each label from its cell edge in pixels.
+   procedure Draw_Segmented
+     (Rectangles     : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Text           : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+      Clip_Width     : Natural;
+      Clip_Height    : Natural;
+      X              : Natural;
+      Box_Y          : Natural;
+      Label_Y        : Natural;
+      Content_Width  : Natural;
+      Cell_Count     : Natural;
+      Height         : Natural;
+      Labels         : Segment_Label_Array;
+      Active_Index   : Natural;
+      Active_Color   : Files.Gui.Draw.Render_Color;
+      Inactive_Color : Files.Gui.Draw.Render_Color;
+      Border_Color   : Files.Gui.Draw.Render_Color;
+      Label_Color    : Files.Gui.Draw.Render_Color;
+      Padding        : Natural);
+
 end Files.Gui.Widgets;
