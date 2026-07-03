@@ -56,6 +56,7 @@ package body Files_Suite.Rendering is
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Section_Headers (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -112,6 +113,9 @@ package body Files_Suite.Rendering is
         (T, Test_Vulkan_Submission'Access, "frame builds a vulkan submission batch");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Scroll_Clamp'Access, "settings pane clamps over-scroll to its content");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Section_Headers'Access,
+         "settings pane draws non-interactive section headers above their field groups");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Count'Access, "bottom bar reflects the hidden count and exposes a toggle button");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -933,6 +937,76 @@ package body Files_Suite.Rendering is
       end loop;
       return False;
    end Frame_Has_Text;
+
+   procedure Test_Settings_Section_Headers (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot;
+      Frame    : Frame_Commands;
+
+      View_Head       : constant String := Files.Localization.Text ("settings.section.view");
+      Sorting_Head    : constant String := Files.Localization.Text ("settings.section.sorting");
+      Appearance_Head : constant String := Files.Localization.Text ("settings.section.appearance");
+      Filetypes_Head  : constant String := Files.Localization.Text ("settings.section.file_types");
+      View_Field      : constant String := Files.Localization.Text ("settings.default_view");
+
+      --  Y of the first text command containing Needle, or -1 when absent.
+      function First_Text_Y (F : Frame_Commands; Needle : String) return Integer is
+      begin
+         for Command of F.Text loop
+            if Contains (To_String (Command.Text), Needle) then
+               return Command.Y;
+            end if;
+         end loop;
+         return -1;
+      end First_Text_Y;
+
+      Header_X, Header_Y : Integer := -1;
+      Scrolled : Frame_Commands;
+   begin
+      Snapshot.Settings_Pane_Open := True;
+      --  A pane tall enough to reveal the first few sections but short enough
+      --  that the trailing "File types" section stays below the fold at the
+      --  top of the scroll range.
+      Frame := Build_Frame_Commands (Snapshot, Width => 640, Height => 520, Line_Height => 20);
+
+      --  The leading section headers are drawn, and the trailing one is not yet
+      --  visible (it lives further down the scrollable content).
+      Assert (Frame_Has_Text (Frame, View_Head), "the View section header is drawn");
+      Assert (Frame_Has_Text (Frame, Sorting_Head), "the Sorting section header is drawn");
+      Assert (Frame_Has_Text (Frame, Appearance_Head), "the Appearance section header is drawn");
+      Assert (not Frame_Has_Text (Frame, Filetypes_Head),
+              "the File types header is below the fold at the top of the scroll range");
+
+      --  Each header sits above the first field of the group it introduces, and
+      --  the headers appear in declaration order down the pane.
+      Assert (First_Text_Y (Frame, View_Head) >= 0
+              and then First_Text_Y (Frame, View_Head) < First_Text_Y (Frame, View_Field),
+              "the View header sits above the first View field");
+      Assert (First_Text_Y (Frame, View_Head) < First_Text_Y (Frame, Sorting_Head)
+              and then First_Text_Y (Frame, Sorting_Head) < First_Text_Y (Frame, Appearance_Head),
+              "the section headers are laid out top-to-bottom in declaration order");
+
+      --  A header row carries no settings hit region, so a click landing on the
+      --  header text resolves to no field.
+      for Command of Frame.Text loop
+         if Header_Y < 0 and then Contains (To_String (Command.Text), View_Head) then
+            Header_X := Command.X;
+            Header_Y := Command.Y;
+         end if;
+      end loop;
+      Assert (Header_Y >= 0, "the View header text was emitted");
+      Assert
+        (Settings_Hit_At (Frame, Natural (Header_X) + 2, Natural (Header_Y) + 1).Kind = Settings_Hit_None,
+         "a click on a section header resolves to no settings field");
+
+      --  Scrolling to the bottom reveals the trailing header: the measured
+      --  content height (used to clamp the scroll) grew to include the header
+      --  rows, so the last section becomes reachable.
+      Snapshot.Settings_Pane_Scroll_Lines := 100_000;
+      Scrolled := Build_Frame_Commands (Snapshot, Width => 640, Height => 520, Line_Height => 20);
+      Assert (Frame_Has_Text (Scrolled, Filetypes_Head),
+              "scrolling to the bottom reveals the File types section header");
+   end Test_Settings_Section_Headers;
 
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

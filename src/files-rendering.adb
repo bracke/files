@@ -9096,6 +9096,57 @@ package body Files.Rendering is
                Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Action_Buttons;
 
+            --  A non-interactive section header that visually groups the
+            --  editable fields below it. Headers are NOT fields: they carry no
+            --  Settings_Hit region, are skipped by keyboard/click navigation,
+            --  and do not affect the field index bookkeeping. They only advance
+            --  the shared Y cursor, so both the measurement pass and the paint
+            --  pass shift the following field rows (and their hit regions) down
+            --  by the same amount, keeping hit-testing and scroll bounds exact.
+            procedure Add_Settings_Section_Header
+              (Y_Cursor : in out Natural;
+               Key      : String)
+            is
+               --  Extra breathing room above the header, layered on top of the
+               --  standard inter-row gap applied by Begin_Row, so the section
+               --  visually detaches from the preceding group.
+               Top_Gap   : constant Natural := Inter_Row_Px;
+               Divider_H : constant Natural := Natural'Max (1, Line_Height / 12);
+            begin
+               Begin_Row (Y_Cursor);
+               Y_Cursor := Saturating_Add (Y_Cursor, Top_Gap);
+               declare
+                  Start_Visible_Y : constant Natural := Visible_Y (Y_Cursor);
+               begin
+                  if not Y_Hidden (Y_Cursor, Line_Height) then
+                     Add_Text
+                       (Text_X,
+                        Text_Y_In_Row (Start_Visible_Y),
+                        Text_W,
+                        Line_Height,
+                        To_Unbounded_String (Files.Localization.Text (Key)),
+                        Text_Color,
+                        Fit => True);
+                     --  Thin accent divider directly under the heading text,
+                     --  spanning the pane content width.
+                     Add_Rect
+                       (Text_X,
+                        Saturating_Add (Sel_Y (Start_Visible_Y), Line_Height),
+                        Text_W,
+                        Divider_H,
+                        Selection_Color);
+                     Add_Accessibility_Node
+                       (Role_Heading,
+                        Text_X,
+                        Start_Visible_Y,
+                        Text_W,
+                        Line_Height,
+                        Localized (Key));
+                  end if;
+               end;
+               Y_Cursor := Saturating_Add (Y_Cursor, Saturating_Add (Line_Height, Divider_H));
+            end Add_Settings_Section_Header;
+
             --  Single source of truth for the settings field sequence, run by
             --  both the measurement pass (to size content for scroll clamping)
             --  and the real paint pass below.
@@ -9103,14 +9154,19 @@ package body Files.Rendering is
             begin
                Add_Settings_Row_At (Y_Cursor, "settings.title", Text_Color);
                Add_Settings_Action_Buttons (Y_Cursor);
+               Add_Settings_Section_Header (Y_Cursor, "settings.section.view");
                Add_Settings_Default_View_Toggle (Y_Cursor, 1);
                Add_Settings_Toggle (Y_Cursor, "settings.hidden_files", Snapshot.Settings_Hidden_Files_Token, 2);
+               Add_Settings_Section_Header (Y_Cursor, "settings.section.sorting");
                Add_Settings_Value (Y_Cursor, "settings.sort", Snapshot.Settings_Sort, 3);
                Add_Settings_Toggle (Y_Cursor, "settings.sort_ascending", Snapshot.Settings_Sort_Ascending_Token, 4);
+               Add_Settings_Section_Header (Y_Cursor, "settings.section.appearance");
                Add_Settings_Value (Y_Cursor, "settings.theme", Snapshot.Settings_Theme, 5);
                Add_Settings_Value (Y_Cursor, "settings.icon_theme", Snapshot.Settings_Icon_Theme, 6);
                Add_Settings_Number_Stepper (Y_Cursor, "settings.font_pixel_size", Snapshot.Settings_Font_Pixel_Size, 7);
+               Add_Settings_Section_Header (Y_Cursor, "settings.section.behavior");
                Add_Settings_Toggle (Y_Cursor, "settings.system_opener", Snapshot.Settings_Opener_Token, 8);
+               Add_Settings_Section_Header (Y_Cursor, "settings.section.details");
                Add_Settings_Value (Y_Cursor, "settings.grouping", Snapshot.Settings_Group_By, 9);
                Add_Settings_Toggle (Y_Cursor, "settings.column.modified", Snapshot.Settings_Column_Modified_Token, 10);
                Add_Settings_Toggle (Y_Cursor, "settings.column.size", Snapshot.Settings_Column_Size_Token, 11);
@@ -9118,6 +9174,7 @@ package body Files.Rendering is
                Add_Settings_Toggle (Y_Cursor, "settings.column.created", Snapshot.Settings_Column_Created_Token, 13);
                Add_Settings_Toggle
                  (Y_Cursor, "settings.column.permissions", Snapshot.Settings_Column_Permissions_Token, 14);
+               Add_Settings_Section_Header (Y_Cursor, "settings.section.file_types");
                Add_Settings_Value (Y_Cursor, "settings.filetypes", Snapshot.Settings_Filetypes, 0);
                Add_Settings_Entry_Buttons (Y_Cursor, 15);
                Add_Settings_Value (Y_Cursor, "settings.filetype_extension", Snapshot.Settings_Filetype_Extension, 15);

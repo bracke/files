@@ -913,6 +913,7 @@ package Files.Rendering is
       Role_Table_Row,
       Role_Pane,
       Role_Dialog,
+      Role_Heading,
       Role_Status);
 
    type Accessibility_Node is record
