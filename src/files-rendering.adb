@@ -13,6 +13,7 @@ with Files.Accessibility;
 with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
+with Files.Gui.Layout;
 with Files.Localization;
 with Files.Platform.Metadata;
 with Files.UTF8;
@@ -2156,7 +2157,7 @@ package body Files.Rendering is
    is
       Toolbar    : constant Natural := Saturating_Multiply (Line_Height, 2);
       Bottom     : constant Natural :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2));
+        Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Bottom_Bar_Padding, 2));
       Used_Y     : constant Natural := Saturating_Add (Toolbar, Bottom);
       Main_H     : constant Natural := (if Height > Used_Y then Height - Used_Y else 0);
       Pane_W     : constant Natural := (if Snapshot.Info_Pane_Open then Width / 4 else 0);
@@ -2889,7 +2890,7 @@ package body Files.Rendering is
          Cell_W    : constant Positive :=
            Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Edge_Pad  : constant Natural :=
-           Saturating_Multiply (Files.UI.Input_Field_Padding, 2);
+           Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2);
          Max_Label : Natural := 0;
       begin
          for Row in 1 .. Result.Row_Count loop
@@ -3392,7 +3393,7 @@ package body Files.Rendering is
    is
       Search_H  : constant Natural :=
         Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
+          (Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)),
            (if Layout.Command_Height > Saturating_Multiply (Command_Palette_Padding, 2)
             then Layout.Command_Height - Saturating_Multiply (Command_Palette_Padding, 2)
             else Layout.Command_Height));
@@ -3585,7 +3586,7 @@ package body Files.Rendering is
       Dropdown_Width  : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
       Row_Height      : constant Natural :=
         Saturating_Add
-          (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
+          (Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)),
            Saturating_Multiply (Root_Selector_Padding, 2));
       Wanted_Height   : constant Natural :=
         Saturating_Add
@@ -3696,11 +3697,11 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Path_Favorite_Star_Bounds
    is
-      Toolbar      : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
+      Toolbar      : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Width);
       Field_Margin : constant Natural := 6;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
-      Pad          : constant Natural := Files.UI.Input_Field_Padding;
-      Star_W       : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+      Pad          : constant Natural := Files.Gui.Layout.Input_Field_Padding;
+      Star_W       : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
    begin
       if Toolbar.Middle_Width <= Saturating_Add (Saturating_Multiply (Field_Margin, 2), Saturating_Add (Star_W, Pad))
       then
@@ -3708,9 +3709,9 @@ package body Files.Rendering is
       end if;
       return
         (X       => Saturating_Add (Path_X, Pad),
-         Y       => Files.UI.Toolbar_Input_Y (Line_Height),
+         Y       => Files.Gui.Layout.Toolbar_Input_Y (Line_Height),
          Width   => Star_W,
-         Height  => Files.UI.Toolbar_Input_Height (Line_Height),
+         Height  => Files.Gui.Layout.Toolbar_Input_Height (Line_Height),
          Visible => True);
    end Path_Favorite_Star_Region;
 
@@ -3726,7 +3727,7 @@ package body Files.Rendering is
          return 0;
       end if;
       --  Star cell width plus a small gap so breadcrumbs/edit text clear it.
-      return Saturating_Add (Star.Width, Natural'Max (2, Files.UI.Input_Field_Padding / 2));
+      return Saturating_Add (Star.Width, Natural'Max (2, Files.Gui.Layout.Input_Field_Padding / 2));
    end Path_Bar_Content_Offset;
 
    function Calculate_Breadcrumb_Layout
@@ -3736,18 +3737,18 @@ package body Files.Rendering is
       return Breadcrumb_Segment_Layout_Vectors.Vector
    is
       Result       : Breadcrumb_Segment_Layout_Vectors.Vector;
-      Toolbar      : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
+      Toolbar      : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Width);
       Field_Margin : constant Natural := 6;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Path_W       : constant Natural :=
         (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
          then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
          else 0);
-      Input_Y      : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
-      Input_H      : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
-      Pad          : constant Natural := Files.UI.Input_Field_Padding;
+      Input_Y      : constant Natural := Files.Gui.Layout.Toolbar_Input_Y (Line_Height);
+      Input_H      : constant Natural := Files.Gui.Layout.Toolbar_Input_Height (Line_Height);
+      Pad          : constant Natural := Files.Gui.Layout.Input_Field_Padding;
       Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
-      Advance      : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+      Advance      : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
       Inner_X      : constant Natural := Saturating_Add (Saturating_Add (Path_X, Pad), Star_Reserve);
       Inner_W      : constant Natural :=
         (if Path_W > Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
@@ -3869,7 +3870,7 @@ package body Files.Rendering is
         Natural'Max (Layout.Width / 4, Saturating_Multiply (Line_Height, 16));
       Panel_Width     : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
       Row_Height      : constant Natural :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2));
+        Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2));
    begin
       if not Snapshot.Tree_Panel_Open then
          return (others => <>);
@@ -4341,12 +4342,12 @@ package body Files.Rendering is
       Items         : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Snapshot, Layout, Line_Height);
       Main_View     : constant Main_View_Layout := Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
-      Toolbar       : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
-      Bottom        : constant Files.UI.Bottom_Bar_Layout :=
+      Toolbar       : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Width);
+      Bottom        : constant Files.Gui.Layout.Bottom_Bar_Layout :=
         Files.UI.Calculate_Bottom_Bar_Layout (Width, Line_Height);
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Toolbar_Input_Y : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
-      Toolbar_Input_H : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
+      Toolbar_Input_Y : constant Natural := Files.Gui.Layout.Toolbar_Input_Y (Line_Height);
+      Toolbar_Input_H : constant Natural := Files.Gui.Layout.Toolbar_Input_Height (Line_Height);
       --  Visible glyph content sits in the lower half of the Line_Height cell
       --  (see Sel_Y_Offset elsewhere). Pull the text origin up by Line_Height/12
       --  so the rendered glyph centers in the field instead of biasing low.
@@ -4378,17 +4379,17 @@ package body Files.Rendering is
       Tree_Rows_Layout : constant Tree_Row_Layout_Vectors.Vector :=
         Calculate_Tree_Row_Layout (Snapshot, Tree_Panel, Line_Height);
       Info_Pane     : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
-      Settings_Pane : constant Files.UI.Settings_Pane_Layout :=
-        Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+      Settings_Pane : constant Files.Gui.Layout.Settings_Pane_Layout :=
+        Files.Gui.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Bottom_Y      : constant Natural :=
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
       Bottom_Content_Y : constant Natural :=
         Saturating_Add
           (Bottom_Y,
-           (if Files.UI.Bottom_Bar_Padding >= 2 then Files.UI.Bottom_Bar_Padding - 2 else 0));
+           (if Files.Gui.Layout.Bottom_Bar_Padding >= 2 then Files.Gui.Layout.Bottom_Bar_Padding - 2 else 0));
       Bottom_Content_H : constant Natural :=
-        (if Layout.Bottom_Bar_Height > Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
-         then Layout.Bottom_Bar_Height - Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2)
+        (if Layout.Bottom_Bar_Height > Saturating_Multiply (Files.Gui.Layout.Bottom_Bar_Padding, 2)
+         then Layout.Bottom_Bar_Height - Saturating_Multiply (Files.Gui.Layout.Bottom_Bar_Padding, 2)
          else Layout.Bottom_Bar_Height);
       Drawing_Settings_Pane : Boolean := False;
       Drawing_Command_Palette : Boolean := False;
@@ -5243,11 +5244,11 @@ package body Files.Rendering is
          Text    : UString;
          Cursor  : Natural)
       is
-         Char_W : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+         Char_W : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
          Raw_X  : constant Natural :=
            Saturating_Add
-             (Saturating_Add (X, Files.UI.Input_Field_Padding),
+             (Saturating_Add (X, Files.Gui.Layout.Input_Field_Padding),
               Saturating_Multiply
                 (Files.UTF8.Display_Units_Before (Raw, Cursor), Char_W));
          Max_X  : constant Natural := (if Field_W > 2 then Saturating_Add (X, Field_W - 2) else X);
@@ -6178,8 +6179,8 @@ package body Files.Rendering is
 
       for Button_Index in 0 .. 6 loop
          declare
-            Button_X : constant Natural := Files.UI.Toolbar_Left_Button_X (Toolbar, Button_Index);
-            Button_W : constant Natural := Files.UI.Toolbar_Left_Button_Width (Toolbar, Button_Index);
+            Button_X : constant Natural := Files.Gui.Layout.Toolbar_Left_Button_X (Toolbar, Button_Index);
+            Button_W : constant Natural := Files.Gui.Layout.Toolbar_Left_Button_Width (Toolbar, Button_Index);
             Command  : constant Files.Commands.Registered_Command_Id :=
               (case Button_Index is
                   when 0 => Files.Commands.Select_Drive_Command,
@@ -6219,8 +6220,8 @@ package body Files.Rendering is
                then Button_H - Saturating_Multiply (Pad_V, 2)
                else 0);
             Icon_Size : constant Natural :=
-              (if Visible_W >= Files.UI.Toolbar_Button_Width - 4
-               then Natural'Min (Visible_H, Files.UI.Toolbar_Button_Width - 8)
+              (if Visible_W >= Files.Gui.Layout.Toolbar_Button_Width - 4
+               then Natural'Min (Visible_H, Files.Gui.Layout.Toolbar_Button_Width - 8)
                else Natural'Min (Visible_W, Visible_H));
             Icon_X   : constant Natural :=
               (if Visible_W > Icon_Size then Visible_X + (Visible_W - Icon_Size) / 2 else Visible_X);
@@ -6271,7 +6272,7 @@ package body Files.Rendering is
       if Layout.Toolbar_Height > 0 then
          declare
             Group_Boundary_X : constant Natural :=
-              Files.UI.Toolbar_Left_Button_X (Toolbar, 5);
+              Files.Gui.Layout.Toolbar_Left_Button_X (Toolbar, 5);
             Divider_H : constant Natural :=
               Natural'Max (1, Layout.Toolbar_Height / 3);
             Divider_Y : constant Natural :=
@@ -6299,7 +6300,7 @@ package body Files.Rendering is
            Path_Favorite_Star_Region (Width, Line_Height);
          Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
          Text_Start   : constant Natural :=
-           Saturating_Add (Saturating_Add (Path_X, Files.UI.Input_Field_Padding), Star_Reserve);
+           Saturating_Add (Saturating_Add (Path_X, Files.Gui.Layout.Input_Field_Padding), Star_Reserve);
       begin
          Add_Rect
            (Path_X,
@@ -6359,8 +6360,8 @@ package body Files.Rendering is
             Add_Text
               (Text_Start,
                Toolbar_Input_Text_Y,
-               (if Path_W > 2 * Files.UI.Input_Field_Padding + Star_Reserve
-                then Path_W - 2 * Files.UI.Input_Field_Padding - Star_Reserve
+               (if Path_W > 2 * Files.Gui.Layout.Input_Field_Padding + Star_Reserve
+                then Path_W - 2 * Files.Gui.Layout.Input_Field_Padding - Star_Reserve
                 else 0),
                Toolbar_Input_Text_H,
                Snapshot.Path_Input_Text,
@@ -6371,7 +6372,7 @@ package body Files.Rendering is
                   Seg     : constant Breadcrumb_Segment_Layout :=
                     Breadcrumb_Rows.Element (Positive (I));
                   Is_Last : constant Boolean := I = Natural (Breadcrumb_Rows.Length);
-                  Advance : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+                  Advance : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
                   Label   : constant UString :=
                     (if Seg.Clickable and then Seg.Segment_Index /= 0
                      then Snapshot.Breadcrumb_Segments.Element (Positive (Seg.Segment_Index)).Label
@@ -6463,9 +6464,9 @@ package body Files.Rendering is
          --  The filter field is narrowed to end before the scope chip (when the
          --  chip fits); Files.UI owns the shared geometry the click hit-test uses.
          Filter_W : constant Natural :=
-           Files.UI.Filter_Input_Field_Width (Toolbar, Line_Height);
-         Scope_Chip : constant Files.UI.Scope_Chip_Region :=
-           Files.UI.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+           Files.Gui.Layout.Filter_Input_Field_Width (Toolbar, Line_Height);
+         Scope_Chip : constant Files.Gui.Layout.Scope_Chip_Region :=
+           Files.Gui.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
          Scope_Key : constant String :=
            (case Snapshot.Search_Scope is
               when Files.Types.Filter_Here => "search.scope.here",
@@ -6485,10 +6486,10 @@ package body Files.Rendering is
             Toolbar_Input_H,
             Border_Color);
          Add_Text
-           (Saturating_Add (Filter_X, Files.UI.Input_Field_Padding),
+           (Saturating_Add (Filter_X, Files.Gui.Layout.Input_Field_Padding),
             Toolbar_Input_Text_Y,
-            (if Filter_W > 2 * Files.UI.Input_Field_Padding
-             then Filter_W - 2 * Files.UI.Input_Field_Padding
+            (if Filter_W > 2 * Files.Gui.Layout.Input_Field_Padding
+             then Filter_W - 2 * Files.Gui.Layout.Input_Field_Padding
              else 0),
             Toolbar_Input_Text_H,
             (if Length (Snapshot.Filter_Text) = 0
@@ -6529,10 +6530,10 @@ package body Files.Rendering is
                Scope_Chip.Height,
                (if Snapshot.Search_Results_Active then Pressed_Color else Border_Color));
             Add_Text
-              (Saturating_Add (Scope_Chip.X, Files.UI.Input_Field_Padding),
+              (Saturating_Add (Scope_Chip.X, Files.Gui.Layout.Input_Field_Padding),
                Toolbar_Input_Text_Y,
-               (if Scope_Chip.Width > 2 * Files.UI.Input_Field_Padding
-                then Scope_Chip.Width - 2 * Files.UI.Input_Field_Padding
+               (if Scope_Chip.Width > 2 * Files.Gui.Layout.Input_Field_Padding
+                then Scope_Chip.Width - 2 * Files.Gui.Layout.Input_Field_Padding
                 else 0),
                Toolbar_Input_Text_H,
                Localized (Scope_Key),
@@ -6609,10 +6610,10 @@ package body Files.Rendering is
             Cell_W      : constant Positive :=
               Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
             Text_X0     : constant Natural :=
-              Saturating_Add (Bottom.Sort_Button_X, Files.UI.Input_Field_Padding);
+              Saturating_Add (Bottom.Sort_Button_X, Files.Gui.Layout.Input_Field_Padding);
             Content_W   : constant Natural :=
-              (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-               then Bottom.Sort_Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+              (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
+               then Bottom.Sort_Button_Width - Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
                else 0);
             Label_W     : constant Natural :=
               Saturating_Multiply (Files.UTF8.Display_Units (Field_Label), Cell_W);
@@ -7045,7 +7046,7 @@ package body Files.Rendering is
                declare
                   Star_Box : constant Natural :=
                     Natural'Max
-                      (Files.UI.Caret_Advance_Width (Line_Height),
+                      (Files.Gui.Layout.Caret_Advance_Width (Line_Height),
                        Item_Rect.Icon_Size / 2);
                begin
                   Add_Text
@@ -7097,7 +7098,7 @@ package body Files.Rendering is
                Field_H  : constant Natural :=
                  (if Wide
                   then Natural'Min
-                    (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2)),
+                    (Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)),
                      Label_H)
                   else Item_Rect.Height);
             begin
@@ -7118,8 +7119,8 @@ package body Files.Rendering is
                   Add_Focus_Ring (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
                   declare
                      Caret_X     : constant Natural :=
-                       (if Field_X > Files.UI.Input_Field_Padding
-                        then Field_X - Files.UI.Input_Field_Padding
+                       (if Field_X > Files.Gui.Layout.Input_Field_Padding
+                        then Field_X - Files.Gui.Layout.Input_Field_Padding
                         else 0);
                      Caret_Inset : constant Natural := Field_X - Caret_X;
                   begin
@@ -7677,7 +7678,7 @@ package body Files.Rendering is
                               1,
                               Selection_Color);
                            declare
-                              Char_W  : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+                              Char_W  : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
                               Raw     : constant String := To_String (Value);
                               Caret_X : constant Natural :=
                                 Saturating_Add
@@ -7793,7 +7794,7 @@ package body Files.Rendering is
       if Snapshot.Settings_Pane_Open then
          Drawing_Settings_Pane := True;
          declare
-            Pane : constant Files.UI.Settings_Pane_Layout := Settings_Pane;
+            Pane : constant Files.Gui.Layout.Settings_Pane_Layout := Settings_Pane;
             Pane_W : constant Natural := Pane.Width;
             Pane_H : constant Natural := Pane.Height;
             Pane_X : constant Natural := Pane.X;
@@ -7801,16 +7802,16 @@ package body Files.Rendering is
             Text_X : constant Natural := Pane.Text_X;
             Text_Y : constant Natural := Pane.Text_Y;
             Text_W : constant Natural := Pane.Text_Width;
-            Row_Step : constant Natural := Saturating_Add (Line_Height, Files.UI.Settings_Row_Gap);
+            Row_Step : constant Natural := Saturating_Add (Line_Height, Files.Gui.Layout.Settings_Row_Gap);
             Inter_Row_Px : constant Natural :=
-              Saturating_Multiply (Files.UI.Settings_Row_Gap, 2);
+              Saturating_Multiply (Files.Gui.Layout.Settings_Row_Gap, 2);
             --  Requested scroll offset; clamped against measured content
             --  height once the settings content has been measured below.
             Scroll_Px : Natural :=
               Saturating_Multiply (Snapshot.Settings_Pane_Scroll_Lines, Line_Height);
             Pane_Bottom : constant Natural :=
-              (if Pane_Y + Pane_H > Files.UI.Settings_Pane_Padding
-               then Pane_Y + Pane_H - Files.UI.Settings_Pane_Padding
+              (if Pane_Y + Pane_H > Files.Gui.Layout.Settings_Pane_Padding
+               then Pane_Y + Pane_H - Files.Gui.Layout.Settings_Pane_Padding
                else Pane_Y);
 
             --  Settings_Row_Y / Row_Hidden remain for legacy callers that still
@@ -7990,7 +7991,7 @@ package body Files.Rendering is
             is
                Is_On      : constant Boolean := To_String (Token) = "true";
                Toggle_W   : constant Natural := Saturating_Multiply (Line_Height, 2);
-               Pad        : constant Natural := Files.UI.Input_Field_Padding;
+               Pad        : constant Natural := Files.Gui.Layout.Input_Field_Padding;
                Label_W    : constant Natural :=
                  (if Text_W > Saturating_Add (Toggle_W, Pad) then Text_W - Toggle_W - Pad else Text_W);
                Label_Cap  : constant Natural :=
@@ -8094,7 +8095,7 @@ package body Files.Rendering is
                  To_String (Snapshot.Settings_Default_View_Token);
                Label_Text  : constant String :=
                  Files.Localization.Text ("settings.default_view");
-               Pad         : constant Natural := Files.UI.Input_Field_Padding;
+               Pad         : constant Natural := Files.Gui.Layout.Input_Field_Padding;
 
                function Segment_Width_For (Key : String) return Natural is
                   Text : constant String := Files.Localization.Text (Key);
@@ -8232,7 +8233,7 @@ package body Files.Rendering is
                Index    : Natural)
             is
                Label_Text : constant String := Files.Localization.Text (Key);
-               Pad        : constant Natural := Files.UI.Input_Field_Padding;
+               Pad        : constant Natural := Files.Gui.Layout.Input_Field_Padding;
                Button_W   : constant Natural :=
                  Natural'Max (Line_Height, Saturating_Multiply (Cell_W_Settings, 2));
                Value_W    : constant Natural :=
@@ -8463,10 +8464,10 @@ package body Files.Rendering is
                   Add_Rect (X, Sel_Y (Y), W, Line_Height, (if Active then Selection_Color else Input_Color));
                   Add_Border (X, Sel_Y (Y), W, Line_Height, Border_Color);
                   Add_Text
-                    (Saturating_Add (X, Files.UI.Input_Field_Padding),
+                    (Saturating_Add (X, Files.Gui.Layout.Input_Field_Padding),
                      Text_Y_In_Row (Y),
-                     (if W > 2 * Files.UI.Input_Field_Padding
-                      then W - 2 * Files.UI.Input_Field_Padding
+                     (if W > 2 * Files.Gui.Layout.Input_Field_Padding
+                      then W - 2 * Files.Gui.Layout.Input_Field_Padding
                       else 0),
                      Line_Height,
                      To_Unbounded_String (Files.Localization.Text (Key)),
@@ -8497,10 +8498,10 @@ package body Files.Rendering is
                   Add_Border (Text_X, Sel_Y (Y), Toggle_W, Line_Height, Border_Color);
                   Add_Rect (Knob_X, Knob_Y, Knob_Sz, Knob_Sz, Text_Color);
                   Add_Text
-                    (Saturating_Add (Text_X, Saturating_Add (Toggle_W, Files.UI.Input_Field_Padding)),
+                    (Saturating_Add (Text_X, Saturating_Add (Toggle_W, Files.Gui.Layout.Input_Field_Padding)),
                      Text_Y_In_Row (Y),
-                     (if Text_W > Saturating_Add (Toggle_W, Files.UI.Input_Field_Padding)
-                      then Text_W - Toggle_W - Files.UI.Input_Field_Padding
+                     (if Text_W > Saturating_Add (Toggle_W, Files.Gui.Layout.Input_Field_Padding)
+                      then Text_W - Toggle_W - Files.Gui.Layout.Input_Field_Padding
                       else 0),
                      Line_Height,
                      To_Unbounded_String
@@ -8595,10 +8596,10 @@ package body Files.Rendering is
                   Add_Rect (X, Sel_Y (Y), W, Line_Height, (if Active then Selection_Color else Input_Color));
                   Add_Border (X, Sel_Y (Y), W, Line_Height, Border_Color);
                   Add_Text
-                    (Saturating_Add (X, Files.UI.Input_Field_Padding),
+                    (Saturating_Add (X, Files.Gui.Layout.Input_Field_Padding),
                      Text_Y_In_Row (Y),
-                     (if W > 2 * Files.UI.Input_Field_Padding
-                      then W - 2 * Files.UI.Input_Field_Padding
+                     (if W > 2 * Files.Gui.Layout.Input_Field_Padding
+                      then W - 2 * Files.Gui.Layout.Input_Field_Padding
                       else 0),
                      Line_Height,
                      To_Unbounded_String (Files.Localization.Text (Key)),
@@ -8621,7 +8622,7 @@ package body Files.Rendering is
               (Y_Cursor : in out Natural;
                Field    : Natural)
             is
-               Buttons  : constant Files.UI.Settings_Entry_Button_Layout :=
+               Buttons  : constant Files.Gui.Layout.Settings_Entry_Button_Layout :=
                  Files.UI.Calculate_Settings_Entry_Button_Layout (Pane_X, Pane_W, Line_Height);
                Y        : Natural;
                Hidden   : Boolean;
@@ -8649,10 +8650,10 @@ package body Files.Rendering is
                   Add_Rect (Button_X, Sel_Y (Y), Button_W, Line_Height, Input_Color);
                   Add_Border (Button_X, Sel_Y (Y), Button_W, Line_Height, Border_Color);
                   Add_Text
-                    (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
+                    (Saturating_Add (Button_X, Files.Gui.Layout.Input_Field_Padding),
                      Text_Y_In_Row (Y),
-                     (if Button_W > 2 * Files.UI.Input_Field_Padding
-                      then Button_W - 2 * Files.UI.Input_Field_Padding
+                     (if Button_W > 2 * Files.Gui.Layout.Input_Field_Padding
+                      then Button_W - 2 * Files.Gui.Layout.Input_Field_Padding
                       else 0),
                      Line_Height,
                      To_Unbounded_String (Files.Localization.Text (Key)),
@@ -8704,10 +8705,10 @@ package body Files.Rendering is
                             (if Enabled then Input_Color else Pane_Color));
                   Add_Border (Text_X, Sel_Y (Y), Text_W, Line_Height, Border_Color);
                   Add_Text
-                    (Saturating_Add (Text_X, Files.UI.Input_Field_Padding),
+                    (Saturating_Add (Text_X, Files.Gui.Layout.Input_Field_Padding),
                      Text_Y_In_Row (Y),
-                     (if Text_W > 2 * Files.UI.Input_Field_Padding
-                      then Text_W - 2 * Files.UI.Input_Field_Padding
+                     (if Text_W > 2 * Files.Gui.Layout.Input_Field_Padding
+                      then Text_W - 2 * Files.Gui.Layout.Input_Field_Padding
                       else 0),
                      Line_Height,
                      Command_Label (Command),
@@ -8900,12 +8901,12 @@ package body Files.Rendering is
          Drawing_Command_Palette := True;
          declare
             Search_Text_Y : constant Natural :=
-              (if Palette.Search_Height > 2 * Files.UI.Input_Field_Padding
-               then Saturating_Add (Palette.Search_Y, Files.UI.Input_Field_Padding)
+              (if Palette.Search_Height > 2 * Files.Gui.Layout.Input_Field_Padding
+               then Saturating_Add (Palette.Search_Y, Files.Gui.Layout.Input_Field_Padding)
                else Palette.Search_Y);
             Search_Text_H : constant Natural :=
-              (if Palette.Search_Height > 2 * Files.UI.Input_Field_Padding
-               then Natural'Min (Line_Height, Palette.Search_Height - 2 * Files.UI.Input_Field_Padding)
+              (if Palette.Search_Height > 2 * Files.Gui.Layout.Input_Field_Padding
+               then Natural'Min (Line_Height, Palette.Search_Height - 2 * Files.Gui.Layout.Input_Field_Padding)
                else Palette.Search_Height);
          begin
             Add_Drop_Shadow (Palette.X, Palette.Y, Palette.Width, Palette.Height);
@@ -8921,10 +8922,10 @@ package body Files.Rendering is
                Localized ("command.palette.open"));
             Add_Rect (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height, Input_Color);
             Add_Text
-              (Saturating_Add (Palette.Search_X, Files.UI.Input_Field_Padding),
+              (Saturating_Add (Palette.Search_X, Files.Gui.Layout.Input_Field_Padding),
                Search_Text_Y,
-               (if Palette.Search_Width > 2 * Files.UI.Input_Field_Padding
-                then Palette.Search_Width - 2 * Files.UI.Input_Field_Padding
+               (if Palette.Search_Width > 2 * Files.Gui.Layout.Input_Field_Padding
+                then Palette.Search_Width - 2 * Files.Gui.Layout.Input_Field_Padding
                 else 0),
                Search_Text_H,
                Snapshot.Command_Palette_Query,
@@ -9285,21 +9286,21 @@ package body Files.Rendering is
          declare
             Row_Count : constant Natural := 5;
             Row_H     : constant Natural :=
-              Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Bottom_Bar_Padding, 2));
+              Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Bottom_Bar_Padding, 2));
             Rows_H    : constant Natural := Saturating_Multiply (Row_H, Row_Count);
             Menu_H    : constant Natural :=
-              Saturating_Add (Rows_H, Saturating_Multiply (Files.UI.Sort_Menu_Padding, 2));
+              Saturating_Add (Rows_H, Saturating_Multiply (Files.Gui.Layout.Sort_Menu_Padding, 2));
             Menu_X    : constant Natural := Bottom.Sort_Button_X;
             Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
             Menu_W    : constant Natural := Bottom.Sort_Button_Width;
-            Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Files.UI.Sort_Menu_Padding);
+            Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Files.Gui.Layout.Sort_Menu_Padding);
             Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
             Text_X    : constant Natural :=
-              Saturating_Add (Row_X, Files.UI.Input_Field_Padding);
+              Saturating_Add (Row_X, Files.Gui.Layout.Input_Field_Padding);
             Text_W    : constant Natural :=
-              (if Row_W > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-               then Row_W - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+              (if Row_W > Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
+               then Row_W - Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
                else 0);
 
             type Sort_Field_Array is array (Positive range <>) of Files.Model.Sort_Field;
@@ -9355,7 +9356,7 @@ package body Files.Rendering is
                   end if;
                   Add_Overlay_Text
                     (Text_X,
-                     Saturating_Add (Row_Y, Files.UI.Bottom_Bar_Padding),
+                     Saturating_Add (Row_Y, Files.Gui.Layout.Bottom_Bar_Padding),
                      Text_W,
                      Line_Height,
                      Label,
@@ -9425,7 +9426,7 @@ package body Files.Rendering is
             declare
                Row       : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
                Toolbar_Icon_Size : constant Natural :=
-                 Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Input_Field_Padding, 2));
+                 Saturating_Add (Line_Height, Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2));
                Row_Pad    : constant Natural := Natural'Min (Root_Selector_Padding, Row.Height);
                Inner_H    : constant Natural :=
                  (if Row.Height > Saturating_Multiply (Row_Pad, 2)
@@ -9670,10 +9671,10 @@ package body Files.Rendering is
                         Buttons.Height, Border_Color);
                   end if;
                   Add_Overlay_Text
-                    (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
+                    (Saturating_Add (Button_X, Files.Gui.Layout.Input_Field_Padding),
                      Saturating_Add (Buttons.Y, Inset),
-                     (if Buttons.Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-                      then Buttons.Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                     (if Buttons.Button_Width > Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
+                      then Buttons.Button_Width - Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
                       else Buttons.Button_Width),
                      Line_Height, Localized (Label_Key), Text_Color, Fit => True);
                   Add_Accessibility_Node
@@ -9752,7 +9753,7 @@ package body Files.Rendering is
                              Is_Pressed
                                (Menu.X, Row_Y, Menu.Width, Menu.Row_Height);
                            Text_X  : constant Natural :=
-                             Menu.X + Files.UI.Input_Field_Padding;
+                             Menu.X + Files.Gui.Layout.Input_Field_Padding;
                            Text_Y_Off : constant Natural :=
                              (if Menu.Row_Height > Line_Height
                               then (Menu.Row_Height - Line_Height) / 2
@@ -9770,8 +9771,8 @@ package body Files.Rendering is
                            Add_Overlay_Text
                              (Text_X,
                               Row_Y + Text_Y_Off,
-                              (if Menu.Width > 2 * Files.UI.Input_Field_Padding
-                               then Menu.Width - 2 * Files.UI.Input_Field_Padding
+                              (if Menu.Width > 2 * Files.Gui.Layout.Input_Field_Padding
+                               then Menu.Width - 2 * Files.Gui.Layout.Input_Field_Padding
                                else 0),
                               Line_Height,
                               Command_Label (Command),
@@ -9828,10 +9829,10 @@ package body Files.Rendering is
                      Dialog.Button_Height, Border_Color);
                end if;
                Add_Overlay_Text
-                 (Saturating_Add (Button_X, Files.UI.Input_Field_Padding),
+                 (Saturating_Add (Button_X, Files.Gui.Layout.Input_Field_Padding),
                   Saturating_Add (Dialog.Button_Y, Inset),
-                  (if Dialog.Button_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-                   then Dialog.Button_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+                  (if Dialog.Button_Width > Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
+                   then Dialog.Button_Width - Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
                    else Dialog.Button_Width),
                   Line_Height, Localized (Label_Key), Text_Color, Fit => True);
                Add_Accessibility_Node
@@ -9889,10 +9890,10 @@ package body Files.Rendering is
                   (if Box_Size > 2 then Box_Size - 2 else 0), (if Box_Size > 2 then Box_Size - 2 else 0),
                   (if Snapshot.Paste_Conflict_Apply_All then Selection_Color else Overlay_Color));
                Add_Overlay_Text
-                 (Saturating_Add (Dialog.Apply_X, Saturating_Add (Box_Size, Files.UI.Input_Field_Padding)),
+                 (Saturating_Add (Dialog.Apply_X, Saturating_Add (Box_Size, Files.Gui.Layout.Input_Field_Padding)),
                   Dialog.Apply_Y,
-                  (if Dialog.Apply_Width > Saturating_Add (Box_Size, Files.UI.Input_Field_Padding)
-                   then Dialog.Apply_Width - Saturating_Add (Box_Size, Files.UI.Input_Field_Padding)
+                  (if Dialog.Apply_Width > Saturating_Add (Box_Size, Files.Gui.Layout.Input_Field_Padding)
+                   then Dialog.Apply_Width - Saturating_Add (Box_Size, Files.Gui.Layout.Input_Field_Padding)
                    else Dialog.Apply_Width),
                   Line_Height, Localized ("dialog.paste_conflict.apply_to_all"), Text_Color, Fit => True);
                Add_Accessibility_Node
@@ -10001,10 +10002,10 @@ package body Files.Rendering is
                   Panel.Cancel_Height, Border_Color);
             end if;
             Add_Overlay_Text
-              (Saturating_Add (Panel.Cancel_X, Files.UI.Input_Field_Padding),
+              (Saturating_Add (Panel.Cancel_X, Files.Gui.Layout.Input_Field_Padding),
                Saturating_Add (Panel.Cancel_Y, Cancel_Inset),
-               (if Panel.Cancel_Width > Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
-                then Panel.Cancel_Width - Saturating_Multiply (Files.UI.Input_Field_Padding, 2)
+               (if Panel.Cancel_Width > Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
+                then Panel.Cancel_Width - Saturating_Multiply (Files.Gui.Layout.Input_Field_Padding, 2)
                 else Panel.Cancel_Width),
                Line_Height, Localized ("dialog.paste_progress.button.cancel"), Text_Color, Fit => True);
             Add_Accessibility_Node

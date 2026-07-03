@@ -24,7 +24,7 @@ with Files.Gui.Draw;
 with Files.Rendering;
 with Files.Settings;
 with Files.Types;
-with Files.UI;
+with Files.Gui.Layout;
 
 with Files_Suite.Support;
 
@@ -1839,10 +1839,10 @@ package body Files_Suite.Interaction is
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Toolbar  : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Window_W);
+      Toolbar  : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Window_W);
       Center_Y : constant Natural :=
-        Files.UI.Toolbar_Input_Y (Line) + Files.UI.Toolbar_Input_Height (Line) / 2;
-      Left_X   : constant Natural := Toolbar.Middle_X + Files.UI.Input_Field_Padding;
+        Files.Gui.Layout.Toolbar_Input_Y (Line) + Files.Gui.Layout.Toolbar_Input_Height (Line) / 2;
+      Left_X   : constant Natural := Toolbar.Middle_X + Files.Gui.Layout.Input_Field_Padding;
       Right_X  : constant Natural := Toolbar.Middle_X + Toolbar.Middle_Width - 1;
    begin
       Files.Model.Set_Path_Input_Text (Model, "abcdef");
@@ -4484,9 +4484,9 @@ package body Files_Suite.Interaction is
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Result   : Files.Interaction.Interaction_Result;
-      Toolbar  : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Window_W);
-      Chip     : constant Files.UI.Scope_Chip_Region :=
-        Files.UI.Filter_Scope_Chip_Region_Of (Toolbar, Line);
+      Toolbar  : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Window_W);
+      Chip     : constant Files.Gui.Layout.Scope_Chip_Region :=
+        Files.Gui.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line);
       Chip_X   : constant Natural := Chip.X + Chip.Width / 2;
       Chip_Y   : constant Natural := Chip.Y + Chip.Height / 2;
       Full_Count : Natural;

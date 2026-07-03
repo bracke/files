@@ -1,5 +1,6 @@
 with Ada.Strings.Unbounded;
 
+with Files.Gui.Layout;
 with Files.UTF8;
 with Files.UI;
 
@@ -412,11 +413,11 @@ package body Files.Events is
    is
       Layout         : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Toolbar        : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
-      Toolbar_Input_Y : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
-      Toolbar_Input_H : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
-      Scope_Chip     : constant Files.UI.Scope_Chip_Region :=
-        Files.UI.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+      Toolbar        : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Width);
+      Toolbar_Input_Y : constant Natural := Files.Gui.Layout.Toolbar_Input_Y (Line_Height);
+      Toolbar_Input_H : constant Natural := Files.Gui.Layout.Toolbar_Input_Height (Line_Height);
+      Scope_Chip     : constant Files.Gui.Layout.Scope_Chip_Region :=
+        Files.Gui.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
       Palette_Rows   : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
@@ -429,8 +430,8 @@ package body Files.Events is
         Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Rows      : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
-      Settings_Pane  : constant Files.UI.Settings_Pane_Layout :=
-        Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+      Settings_Pane  : constant Files.Gui.Layout.Settings_Pane_Layout :=
+        Files.Gui.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Item_Layout    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
       Breadcrumb_Rows : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
@@ -551,7 +552,7 @@ package body Files.Events is
          Click_X     : Natural)
          return Natural
       is
-         Char_W : constant Positive := Files.UI.Caret_Advance_Width (Line_Height);
+         Char_W : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
          Click_Column : Natural;
       begin
@@ -692,8 +693,8 @@ package body Files.Events is
       end Settings_Click;
 
       function Settings_Click_Hit return Input_Action is
-         Pane : constant Files.UI.Settings_Pane_Layout :=
-           Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+         Pane : constant Files.Gui.Layout.Settings_Pane_Layout :=
+           Files.Gui.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
          Hit  : constant Files.Rendering.Settings_Hit_Region :=
            Files.Rendering.Settings_Hit_At (Frame, X, Y);
          use type Files.Rendering.Settings_Hit_Kind;
@@ -962,7 +963,7 @@ package body Files.Events is
              (Files.Types.Focus_Command_Palette,
               Cursor_At
                  (Text        => Snapshot.Command_Palette_Query,
-                 Text_X      => Saturating_Add (Palette_Layout.Search_X, Files.UI.Input_Field_Padding),
+                 Text_X      => Saturating_Add (Palette_Layout.Search_X, Files.Gui.Layout.Input_Field_Padding),
                  Click_X     => X));
       end if;
 
@@ -1132,7 +1133,7 @@ package body Files.Events is
                  (Text        => Snapshot.Path_Input_Text,
                  Text_X      =>
                     Saturating_Add
-                      (Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
+                      (Saturating_Add (Toolbar.Middle_X, Files.Gui.Layout.Input_Field_Padding),
                        Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
                  Click_X     => X));
       elsif Scope_Chip.Visible
@@ -1151,7 +1152,7 @@ package body Files.Events is
              (Files.Types.Focus_Filter_Input,
               Cursor_At
                  (Text        => Snapshot.Filter_Text,
-                  Text_X      => Saturating_Add (Toolbar.Right_X, Files.UI.Input_Field_Padding),
+                  Text_X      => Saturating_Add (Toolbar.Right_X, Files.Gui.Layout.Input_Field_Padding),
                   Click_X     => X));
       end if;
 
@@ -1344,8 +1345,8 @@ package body Files.Events is
 
       if Snapshot.Settings_Pane_Open then
          declare
-            Settings_Pane : constant Files.UI.Settings_Pane_Layout :=
-              Files.UI.Calculate_Settings_Pane_Layout
+            Settings_Pane : constant Files.Gui.Layout.Settings_Pane_Layout :=
+              Files.Gui.Layout.Calculate_Settings_Pane_Layout
                 (Width, Height, Layout.Toolbar_Height, Line_Height);
          begin
             if Within (X, Settings_Pane.X, Settings_Pane.Width)

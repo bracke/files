@@ -17,7 +17,7 @@ with Files.Gui.Draw;
 with Files.Rendering;
 with Files.Gui.Vulkan;
 with Files.Types;
-with Files.UI;
+with Files.Gui.Layout;
 
 --  Rendering tests expressed as layout INVARIANTS and behaviours rather than
 --  exact pixel coordinates. Each routine constructs its own deterministic view
@@ -644,7 +644,7 @@ package body Files_Suite.Rendering is
       --  their carets sit three advance-widths apart.
       Assert
         (Natural'Max (First_X, Second_X) - Natural'Min (First_X, Second_X)
-           = 3 * Files.UI.Caret_Advance_Width (20),
+           = 3 * Files.Gui.Layout.Caret_Advance_Width (20),
          "each row's caret tracks that row's own cursor position");
    end Test_Multi_Rename_Fields_And_Carets;
 
@@ -1407,13 +1407,13 @@ package body Files_Suite.Rendering is
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
          Layout : Layout_Metrics;
-         Pane   : Files.UI.Settings_Pane_Layout;
+         Pane   : Files.Gui.Layout.Settings_Pane_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
       begin
          Snap.Settings_Pane_Open := True;
          Layout := Calculate_Layout (Snap, Width, Height, LH);
-         Pane   := Files.UI.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, LH);
+         Pane   := Files.Gui.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, LH);
          Close  := Panel_Close_Button (Pane.X, Pane.Y, Pane.Width, Pane.Height, LH);
          Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
          Assert (Close.Visible, "the settings pane hosts a close button");
