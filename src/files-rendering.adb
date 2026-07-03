@@ -1730,6 +1730,7 @@ package body Files.Rendering is
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.Current_Path_Is_Favorite :=
         Files.Settings.Is_Favorite (Settings, Files.Model.Current_Path (Model));
+      Snapshot.In_Recent_View := Files.Model.In_Recent_View (Model);
       Snapshot.View_Mode := Files.Model.View_Mode_Of (Model);
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
@@ -3202,6 +3203,9 @@ package body Files.Rendering is
             --  Trash-view action: permanently purge every trashed entry. Enabled
             --  only while the trash payload directory is shown and non-empty.
             Add_Command (Files.Commands.Empty_Trash_Command);
+            --  Recent-view action: empty the recent list. Enabled only while the
+            --  virtual recent view is shown and non-empty.
+            Add_Command (Files.Commands.Clear_Recent_Command);
             Result.Row_Count := Next;
          when Files.Model.Context_Menu_Header =>
             --  Details-view column configuration: toggle each optional column,
@@ -6323,7 +6327,9 @@ package body Files.Rendering is
 
       function Empty_State_Key return String is
       begin
-         if Snapshot.Item_Count = 0 then
+         if Snapshot.Item_Count = 0 and then Snapshot.In_Recent_View then
+            return "recent.empty";
+         elsif Snapshot.Item_Count = 0 then
             return "status.empty_directory";
          elsif Snapshot.Visible_Count = 0 and then Length (Snapshot.Filter_Text) > 0 then
             return "status.empty_filter";

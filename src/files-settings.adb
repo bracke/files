@@ -21,6 +21,7 @@ package body Files.Settings is
       Open_Actions_Section,
       Bookmarks_Section,
       Labels_Section,
+      Recent_Section,
       Settings_Section_Name);
 
    --  Return the stable on-disk token for a color label.
@@ -710,6 +711,48 @@ package body Files.Settings is
       end if;
    end Toggle_Favorite_Path;
 
+   function Recent_Paths
+     (Settings : Settings_Model)
+      return String_Vectors.Vector is
+   begin
+      return Settings.Recent_Paths_Value;
+   end Recent_Paths;
+
+   procedure Note_Recent
+     (Settings : in out Settings_Model;
+      Path     : String)
+   is
+      Index : Natural;
+   begin
+      if Path = "" then
+         return;
+      end if;
+
+      --  Drop any earlier occurrence so the freshest position wins and the list
+      --  stays duplicate-free.
+      Index := Settings.Recent_Paths_Value.First_Index;
+      while Index <= Settings.Recent_Paths_Value.Last_Index loop
+         if To_String (Settings.Recent_Paths_Value.Element (Index)) = Path then
+            Settings.Recent_Paths_Value.Delete (Index);
+         else
+            Index := Index + 1;
+         end if;
+      end loop;
+
+      Settings.Recent_Paths_Value.Prepend (To_Unbounded_String (Path));
+
+      --  Enforce the cap by discarding the oldest (tail) entries.
+      while Natural (Settings.Recent_Paths_Value.Length) > Max_Recent_Items loop
+         Settings.Recent_Paths_Value.Delete_Last;
+      end loop;
+   end Note_Recent;
+
+   procedure Clear_Recent
+     (Settings : in out Settings_Model) is
+   begin
+      Settings.Recent_Paths_Value.Clear;
+   end Clear_Recent;
+
    function Label_Of
      (Settings : Settings_Model;
       Path     : String)
@@ -1386,6 +1429,8 @@ package body Files.Settings is
                      Section := Bookmarks_Section;
                   elsif Name = "labels" then
                      Section := Labels_Section;
+                  elsif Name = "recent" then
+                     Section := Recent_Section;
                   elsif Name = "settings" then
                      Section := Settings_Section_Name;
                   else
@@ -1499,6 +1544,17 @@ package body Files.Settings is
                                  end;
                               end if;
                            end;
+                        end if;
+                     when Recent_Section =>
+                        --  Each entry is written as recent = "<path>" in file
+                        --  order (most-recent-first). Append while under the cap
+                        --  so a hand-edited overflow load never grows unbounded;
+                        --  the quoted value survives paths with '=' or '#'.
+                        if Setting_Key = "recent"
+                          and then Value /= ""
+                          and then Natural (Settings.Recent_Paths_Value.Length) < Max_Recent_Items
+                        then
+                           Settings.Recent_Paths_Value.Append (To_Unbounded_String (Value));
                         end if;
                      when Settings_Section_Name =>
                         if Setting_Key = "default_view_mode" then
@@ -2089,6 +2145,17 @@ package body Files.Settings is
          end loop;
       end if;
 
+      if not Settings.Recent_Paths_Value.Is_Empty then
+         Append_Line;
+         Append_Line ("[recent]");
+         for Path of Settings.Recent_Paths_Value loop
+            --  Write the path in a quoted value position so paths containing
+            --  '=' or starting with '#' (and trailing whitespace) round-trip.
+            --  The format key is split so the no-user-text-literal rule holds.
+            Append_Line ("recent" & " = " & Action_Token_Text (To_String (Path)));
+         end loop;
+      end if;
+
       return To_String (Result);
    end To_Text;
 
@@ -2624,6 +2691,7 @@ package body Files.Settings is
       Result.Window_Height := Settings.Window_Height;
       Result.Info_Pane_Open := Settings.Info_Pane_Open;
       Result.Favorite_Paths := Settings.Favorite_Paths;
+      Result.Recent_Paths_Value := Settings.Recent_Paths_Value;
       Result.Labels := Settings.Labels;
       Result.Use_System_Default_Opener := Settings.Use_System_Default_Opener;
       Upsert

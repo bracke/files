@@ -20,6 +20,11 @@ package Files.Settings is
      (Index_Type   => Positive,
       Element_Type => Path_Label);
 
+   --  Maximum number of recently-opened paths retained. The recent list is a
+   --  most-recent-first, deduplicated, capped ring: opening a new item drops the
+   --  oldest entry once this bound is reached.
+   Max_Recent_Items : constant := 50;
+
    package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => String,
@@ -68,6 +73,12 @@ package Files.Settings is
       Window_Height          : Natural := 0;
       Info_Pane_Open         : Boolean := False;
       Favorite_Paths         : String_Vectors.Vector;
+      --  Recently-opened item and folder paths, most-recent-first, capped at
+      --  Max_Recent_Items. Maintained through Note_Recent / Clear_Recent and read
+      --  back through the Recent_Paths accessor; persisted as the [recent]
+      --  section. Kept as a distinct value field so the accessor can expose a
+      --  read-only view without colliding with the function name.
+      Recent_Paths_Value     : String_Vectors.Vector;
       --  Per-path color labels (tags). Each entry maps a full item or folder
       --  path to one of the seven swatch colors; No_Label is never stored.
       Labels                 : Path_Label_Vectors.Vector;
@@ -225,6 +236,32 @@ package Files.Settings is
    procedure Toggle_Favorite_Path
      (Settings : in out Settings_Model;
       Path     : String);
+
+   --  Return the recently-opened paths, most-recent-first. The list is capped at
+   --  Max_Recent_Items and never contains duplicates or the empty path.
+   --
+   --  @param Settings Settings model to query.
+   --  @return Ordered recent paths, freshest first.
+   function Recent_Paths
+     (Settings : Settings_Model)
+      return String_Vectors.Vector;
+
+   --  Record Path as the most recently opened item: move it to the front,
+   --  removing any earlier occurrence, and drop the oldest entries once the list
+   --  exceeds Max_Recent_Items. The empty path is ignored. Records both files and
+   --  folders.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full item or folder path that was just opened.
+   procedure Note_Recent
+     (Settings : in out Settings_Model;
+      Path     : String);
+
+   --  Clear the entire recently-opened list.
+   --
+   --  @param Settings Settings model updated in place.
+   procedure Clear_Recent
+     (Settings : in out Settings_Model);
 
    --  Return the color label stored for Path.
    --

@@ -378,6 +378,11 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result is
    begin
+      --  The virtual recent view has no backing directory to reload; rebuild its
+      --  synthetic listing from the current recent paths instead.
+      if Files.Model.In_Recent_View (Model) then
+         return Navigate_Recent (Model, Settings);
+      end if;
       --  Preserve the current selection across a manual refresh when the item
       --  still exists (Reload re-selects by name; empty name => no selection).
       return Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
@@ -1137,6 +1142,33 @@ package body Files.Operations is
       end;
    end Navigate_Trash;
 
+   function Navigate_Recent
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is
+      Recent : constant Files.Types.String_Vectors.Vector :=
+        Files.Settings.Recent_Paths (Settings);
+      Items  : Files.File_System.Item_Vectors.Vector;
+   begin
+      --  Stat each stored path in most-recent-first order, skipping any that no
+      --  longer resolve so a stale entry silently drops from the view.
+      for Path of Recent loop
+         declare
+            Loaded : constant Files.File_System.Item_Load_Result :=
+              Files.File_System.Load_Item (To_String (Path), Settings);
+         begin
+            if Loaded.Success then
+               Items.Append (Loaded.Item);
+            end if;
+         end;
+      end loop;
+
+      Files.Model.Navigate_Recent (Model, Items);
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Navigated);
+   end Navigate_Recent;
+
    function Navigate_Back
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -1370,6 +1402,9 @@ package body Files.Operations is
                           Exit_Status => Exit_Status);
                   end if;
 
+                  --  Each launched file joins the recent list, freshest last.
+                  Files.Model.Note_Recent_Open (Model, To_String (Item.Full_Path));
+
                   if To_String (Item.Full_Path) = To_String (First_Path) then
                      First_Exit_Status := Exit_Status;
                   end if;
@@ -1408,6 +1443,8 @@ package body Files.Operations is
                Files.Model.Set_Directory_Signature
                  (Model,
                   Files.File_System.Directory_State (To_String (Load.Path)));
+               --  Opening a folder records it too: recent folders are useful.
+               Files.Model.Note_Recent_Open (Model, To_String (Load.Path));
                Files.Model.Set_Error (Model, "");
                return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
             end;
@@ -1433,6 +1470,8 @@ package body Files.Operations is
                --  mask. Spawn_OK reflects whether the wrapper shell ran, not
                --  the application's own exit code.
                if Spawn_OK then
+                  --  The opened file joins the recent list.
+                  Files.Model.Note_Recent_Open (Model, To_String (Prepared.Path));
                   Files.Model.Set_Error (Model, "");
                   return
                     Make_Result

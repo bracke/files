@@ -541,6 +541,8 @@ package body Files.Model is
       Model.Sort_Menu_Open := False;
       Model.Back_History.Clear;
       Model.Forward_History.Clear;
+      Model.Recent_View_Active := False;
+      Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
       Model.Path_Input_Value := To_Unbounded_String (Directory_Path);
       Model.Path_Input_Cursor := Directory_Path'Length;
@@ -1470,11 +1472,15 @@ package body Files.Model is
       Directory_Path : String;
       Items          : Files.File_System.Item_Vectors.Vector) is
    begin
-      if Current_Path (Model) /= Directory_Path then
+      --  Leaving the virtual recent view does not preserve it in history (its
+      --  path is synthetic); an ordinary directory change pushes back history as
+      --  usual.
+      if not Model.Recent_View_Active and then Current_Path (Model) /= Directory_Path then
          Model.Back_History.Append (Model.Current_Path_Value);
          Model.Forward_History.Clear;
       end if;
 
+      Model.Recent_View_Active := False;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
@@ -1502,6 +1508,71 @@ package body Files.Model is
       Reset_Quick_Look (Model);
    end Navigate_To;
 
+   procedure Navigate_Recent
+     (Model : in out Window_Model;
+      Items : Files.File_System.Item_Vectors.Vector) is
+   begin
+      --  Only the initial entry into the view records the departure point; a
+      --  refresh or clear re-enters while already active and just swaps items.
+      if not Model.Recent_View_Active then
+         Model.Back_History.Append (Model.Current_Path_Value);
+         Model.Forward_History.Clear;
+      end if;
+
+      Model.Recent_View_Active := True;
+      Model.Current_Path_Value := Null_Unbounded_String;
+      Model.Items := Items;
+      Model.Directory_Signature := Signature_From_Items ("", Items);
+      Model.Selected_Item_Index := 0;
+      Model.Selected_Item_Indexes.Clear;
+      Model.Path_Input_Value := Null_Unbounded_String;
+      Model.Path_Input_Cursor := 0;
+      Model.Path_Input_Valid := True;
+      Model.Path_Input_Error := Null_Unbounded_String;
+      Reset_Rename_State (Model);
+      Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
+      Model.Temporary_Name_Value := Null_Unbounded_String;
+      Clear_Root_Selector_State (Model);
+      Model.Info_Pane_Scroll := 0;
+      Model.Main_View_Scroll := 0;
+      Model.Filter_Value := Null_Unbounded_String;
+      Model.Filter_Cursor := 0;
+      Model.Command_Palette_Open := False;
+      Model.Command_Palette_Query := Null_Unbounded_String;
+      Model.Command_Palette_Selected := 0;
+      Model.Command_Palette_Offset := 0;
+      Model.Command_Palette_Cursor := 0;
+      Model.Focus_Value := Files.Types.Focus_None;
+      Reset_Quick_Look (Model);
+   end Navigate_Recent;
+
+   function In_Recent_View
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Recent_View_Active;
+   end In_Recent_View;
+
+   procedure Note_Recent_Open
+     (Model : in out Window_Model;
+      Path  : String) is
+   begin
+      if Path /= "" then
+         Model.Recent_Open_Queue.Append (To_Unbounded_String (Path));
+      end if;
+   end Note_Recent_Open;
+
+   function Take_Recent_Opens
+     (Model : in out Window_Model)
+      return Files.Types.String_Vectors.Vector
+   is
+      Drained : constant Files.Types.String_Vectors.Vector := Model.Recent_Open_Queue;
+   begin
+      Model.Recent_Open_Queue.Clear;
+      return Drained;
+   end Take_Recent_Opens;
+
    function Can_Go_Back
      (Model : Window_Model)
       return Boolean is
@@ -1526,7 +1597,11 @@ package body Files.Model is
 
       Previous := Model.Back_History.Last_Element;
       Model.Back_History.Delete_Last;
-      Model.Forward_History.Append (Model.Current_Path_Value);
+      --  The synthetic recent view is never preserved in forward history.
+      if not Model.Recent_View_Active then
+         Model.Forward_History.Append (Model.Current_Path_Value);
+      end if;
+      Model.Recent_View_Active := False;
       Model.Current_Path_Value := Previous;
       Model.Path_Input_Value := Previous;
       Model.Path_Input_Cursor := Length (Previous);
@@ -1561,7 +1636,11 @@ package body Files.Model is
 
       Next := Model.Forward_History.Last_Element;
       Model.Forward_History.Delete_Last;
-      Model.Back_History.Append (Model.Current_Path_Value);
+      --  The synthetic recent view is never preserved in back history.
+      if not Model.Recent_View_Active then
+         Model.Back_History.Append (Model.Current_Path_Value);
+      end if;
+      Model.Recent_View_Active := False;
       Model.Current_Path_Value := Next;
       Model.Path_Input_Value := Next;
       Model.Path_Input_Cursor := Length (Next);

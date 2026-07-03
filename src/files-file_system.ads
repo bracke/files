@@ -350,6 +350,26 @@ package Files.File_System is
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result;
 
+   type Item_Load_Result is record
+      Success   : Boolean := False;
+      Item      : Directory_Item;
+      Error_Key : UString;
+   end record;
+
+   --  Stat a single path and build its directory item, classifying kind,
+   --  filetype, icon, and metadata the same way directory loading does. Used to
+   --  materialize a synthetic listing (such as the recent-items view) from a set
+   --  of stored paths.
+   --
+   --  @param Full_Path Absolute or relative path to describe.
+   --  @param Settings Settings used for filetype and icon classification.
+   --  @return Loaded item, or a failure result when the path is missing or
+   --  cannot be described.
+   function Load_Item
+     (Full_Path : String;
+      Settings  : Files.Settings.Settings_Model)
+      return Item_Load_Result;
+
    --  Sort Items in place into the display order for the given sort field and
    --  direction. Shared by directory loading and by the window model so that
    --  keyboard navigation follows exactly the order shown on screen, in either

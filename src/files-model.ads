@@ -411,6 +411,46 @@ package Files.Model is
       Directory_Path : String;
       Items          : Files.File_System.Item_Vectors.Vector);
 
+   --  Enter the virtual recent-items view, showing Items in place of an ordinary
+   --  directory listing. The first entry into the view pushes the current path
+   --  onto back history so Back leaves the view; re-entering while already in the
+   --  view (a refresh or clear) simply replaces the listing. The current path is
+   --  cleared because the view is synthetic and has no backing directory.
+   --
+   --  @param Model Model to update.
+   --  @param Items Recent items materialized from the stored recent paths.
+   procedure Navigate_Recent
+     (Model : in out Window_Model;
+      Items : Files.File_System.Item_Vectors.Vector);
+
+   --  Return whether the virtual recent-items view is currently shown.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while the recent-items view is active.
+   function In_Recent_View
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Record Path as an item that was just opened, queued for the settings layer
+   --  to fold into the persisted recent list. Both files and folders are
+   --  recorded; the empty path is ignored.
+   --
+   --  @param Model Model to update.
+   --  @param Path Full path of the opened item.
+   procedure Note_Recent_Open
+     (Model : in out Window_Model;
+      Path  : String);
+
+   --  Return and clear the paths queued by Note_Recent_Open since the last drain.
+   --  The interaction layer calls this after dispatching a user action to persist
+   --  any newly opened items into the recent list.
+   --
+   --  @param Model Model to update.
+   --  @return Opened paths in the order they were recorded.
+   function Take_Recent_Opens
+     (Model : in out Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
    --  Return whether back navigation is available.
    --
    --  @param Model Model to inspect.
@@ -2146,6 +2186,13 @@ private
    type Window_Model is record
       Current_Path_Value   : UString;
       Home_Path_Value      : UString;
+      --  True while the synthetic recent-items view is shown. The listing then
+      --  reflects the stored recent paths rather than a real directory, so
+      --  editing commands gate on it exactly as they gate on the trash view.
+      Recent_View_Active   : Boolean := False;
+      --  Paths opened since the last drain, awaiting fold into the persisted
+      --  recent list by the interaction layer (see Note_Recent_Open).
+      Recent_Open_Queue    : Files.Types.String_Vectors.Vector;
       Items                : Files.File_System.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System.Directory_Signature;
       Filter_Value         : UString;

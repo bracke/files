@@ -104,6 +104,7 @@ package body Files_Suite.Settings is
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -125,6 +126,8 @@ package body Files_Suite.Settings is
         (T, Test_Column_Order_Reorder'Access, "detail column order move helper, round-trip, and validation");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Color_Labels'Access, "color label set/clear, round-trip, and invalid-color skip");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recent_Items'Access, "recent items note/dedup/cap/clear and round-trip");
    end Register_Tests;
 
    procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2436,6 +2439,108 @@ package body Files_Suite.Settings is
                  "a valid entry alongside an invalid one still loads");
       end;
    end Test_Color_Labels;
+
+   procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      File_Path   : constant String := "/home/user/report.txt";
+      Folder_Path : constant String := "/home/user/projects";
+      Base        : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+
+      function Nth (Settings : Files.Settings.Settings_Model; Index : Positive) return String is
+         Paths : constant Files.Types.String_Vectors.Vector :=
+           Files.Settings.Recent_Paths (Settings);
+      begin
+         if Index <= Natural (Paths.Length) then
+            return To_String (Paths.Element (Index));
+         end if;
+         return "";
+      end Nth;
+
+      function Count (Settings : Files.Settings.Settings_Model) return Natural is
+      begin
+         return Natural (Files.Settings.Recent_Paths (Settings).Length);
+      end Count;
+   begin
+      --  A fresh model has no recents; the empty path is ignored.
+      Assert (Count (Base) = 0, "a fresh model has no recent items");
+      Files.Settings.Note_Recent (Base, "");
+      Assert (Count (Base) = 0, "the empty path is not recorded");
+
+      --  Note records most-recent-first (a file and a folder both round in).
+      Files.Settings.Note_Recent (Base, File_Path);
+      Files.Settings.Note_Recent (Base, Folder_Path);
+      Assert (Count (Base) = 2, "two distinct items are recorded");
+      Assert (Nth (Base, 1) = Folder_Path, "the most recent item is at the front");
+      Assert (Nth (Base, 2) = File_Path, "the earlier item follows");
+
+      --  Re-noting an existing path moves it to the front and dedups.
+      Files.Settings.Note_Recent (Base, File_Path);
+      Assert (Count (Base) = 2, "re-noting an existing path does not grow the list");
+      Assert (Nth (Base, 1) = File_Path, "a re-noted path moves to the front");
+      Assert (Nth (Base, 2) = Folder_Path, "the previously-front path drops back");
+
+      --  Clearing empties the list.
+      Files.Settings.Clear_Recent (Base);
+      Assert (Count (Base) = 0, "Clear_Recent empties the recent list");
+
+      --  The list is capped at Max_Recent_Items, dropping the oldest entries.
+      declare
+         Capped : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         for I in 1 .. Files.Settings.Max_Recent_Items + 10 loop
+            Files.Settings.Note_Recent
+              (Capped, "/tmp/item" & Ada.Strings.Fixed.Trim (Integer'Image (I), Ada.Strings.Both));
+         end loop;
+         Assert (Count (Capped) = Files.Settings.Max_Recent_Items,
+                 "the recent list is capped at Max_Recent_Items");
+         Assert (Nth (Capped, 1) = "/tmp/item" &
+                   Ada.Strings.Fixed.Trim
+                     (Integer'Image (Files.Settings.Max_Recent_Items + 10), Ada.Strings.Both),
+                 "the newest item is retained at the front");
+         Assert (Nth (Capped, Files.Settings.Max_Recent_Items) = "/tmp/item11",
+                 "the oldest surviving item sits at the cap boundary");
+      end;
+
+      --  Full round-trip through the settings text format preserves order, cap,
+      --  and both file and folder paths.
+      declare
+         Source : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Files.Settings.Note_Recent (Source, File_Path);
+         Files.Settings.Note_Recent (Source, Folder_Path);
+         declare
+            Reloaded : constant Files.Settings.Settings_Parse_Result :=
+              Files.Settings.Parse (Files.Settings.To_Text (Source));
+         begin
+            Assert (Reloaded.Success, "recent settings text parses");
+            Assert (Count (Reloaded.Settings) = 2, "both recent paths round-trip");
+            Assert (Nth (Reloaded.Settings, 1) = Folder_Path,
+                    "recent order is preserved most-recent-first");
+            Assert (Nth (Reloaded.Settings, 2) = File_Path,
+                    "the earlier recent path round-trips in order");
+         end;
+      end;
+
+      --  A hand-edited file above the cap loads only the first Max_Recent_Items.
+      declare
+         Body_Text : Unbounded_String := To_Unbounded_String ("[recent]" & ASCII.LF);
+      begin
+         for I in 1 .. Files.Settings.Max_Recent_Items + 5 loop
+            Append
+              (Body_Text,
+               "recent = ""/tmp/over" &
+               Ada.Strings.Fixed.Trim (Integer'Image (I), Ada.Strings.Both) & """" & ASCII.LF);
+         end loop;
+         declare
+            Parsed : constant Files.Settings.Settings_Parse_Result :=
+              Files.Settings.Parse (To_String (Body_Text));
+         begin
+            Assert (Parsed.Success, "an over-cap recent section still loads");
+            Assert (Count (Parsed.Settings) = Files.Settings.Max_Recent_Items,
+                    "loading enforces the recent cap");
+         end;
+      end;
+   end Test_Recent_Items;
 
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

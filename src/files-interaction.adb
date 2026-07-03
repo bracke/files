@@ -40,6 +40,28 @@ package body Files.Interaction is
       pragma Unreferenced (Saved);
    end Persist_Settings;
 
+   --  Fold any paths the model queued while opening items into the persisted
+   --  recent list and write the settings. A no-op when nothing was opened, so it
+   --  is safe to call after every dispatch seam (open routes through several).
+   procedure Persist_Recent_Opens
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Result        : in out Interaction_Result)
+   is
+      Opened : constant Files.Types.String_Vectors.Vector :=
+        Files.Model.Take_Recent_Opens (Model);
+   begin
+      if Opened.Is_Empty then
+         return;
+      end if;
+      for Path of Opened loop
+         Files.Settings.Note_Recent (Settings, To_String (Path));
+      end loop;
+      Persist_Settings (Settings, Settings_Path);
+      Result.Settings_Changed := True;
+   end Persist_Recent_Opens;
+
    --  Copy the user-visible global UI state from the model into the settings
    --  record and persist it. Called whenever a runtime command flips one of the
    --  persisted toggles. Returns True when a change was written.
@@ -215,6 +237,23 @@ package body Files.Interaction is
             Result.Settings_Changed := True;
             Outcome :=
               (Status => Files.Controller.Controller_Command_Executed, others => <>);
+         when Files.Commands.Clear_Recent_Command =>
+            Files.Settings.Clear_Recent (Settings);
+            Persist_Settings (Settings, Settings_Path);
+            Result.Settings_Changed := True;
+            --  Rebuild the (now empty) recent view in place so it reflects the
+            --  cleared list without leaving the view or touching history.
+            if Files.Model.In_Recent_View (Model) then
+               declare
+                  Rebuilt : constant Files.Operations.Operation_Result :=
+                    Files.Operations.Navigate_Recent (Model, Settings);
+                  pragma Unreferenced (Rebuilt);
+               begin
+                  Result.Directory_Reloaded := True;
+               end;
+            end if;
+            Outcome :=
+              (Status => Files.Controller.Controller_Command_Executed, others => <>);
          when others =>
             Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Modifiers);
       end case;
@@ -356,6 +395,10 @@ package body Files.Interaction is
       then
          Result.Clear_Pending_Text := True;
       end if;
+
+      --  Fold any item opened by this key press (Enter on the selection) into
+      --  the persisted recent list.
+      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
 
       --  Keep the info-pane folder-size cache aligned with keyboard-driven
       --  selection changes. Cheap when the selected directory is unchanged.
@@ -610,6 +653,10 @@ package body Files.Interaction is
             null;
       end case;
 
+      --  Fold any item opened by this action (double-click activation or an
+      --  Open command / palette result) into the persisted recent list.
+      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
+
       --  Refresh the info-pane folder-size cache for the (possibly changed)
       --  selection. Cheap when the selected directory is unchanged.
       Files.Operations.Update_Folder_Size (Model, Settings);
@@ -629,6 +676,9 @@ package body Files.Interaction is
          Execute_Command
            (Model, Settings, Settings_Path, Command,
             Current_Font_Size, Modifiers, Result);
+         --  Fold any item opened via the context menu's Open entry into the
+         --  persisted recent list.
+         Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
       end if;
       Result.Context_Menu_Changed := True;
    end Apply_Context_Menu_Command;

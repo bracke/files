@@ -695,6 +695,8 @@ package body Files.Controller is
             Operation := Files.Operations.Navigate_Parent (Model, Settings);
          when Files.Commands.Navigate_Trash_Command =>
             Operation := Files.Operations.Navigate_Trash (Model, Settings);
+         when Files.Commands.Navigate_Recent_Command =>
+            Operation := Files.Operations.Navigate_Recent (Model, Settings);
          when Files.Commands.Restore_From_Trash_Command =>
             Operation := Files.Operations.Restore_Selected_From_Trash (Model, Settings);
          when Files.Commands.Empty_Trash_Command =>

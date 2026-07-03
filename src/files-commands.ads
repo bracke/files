@@ -74,10 +74,12 @@ package Files.Commands is
       Copy_Path_Command,
       Open_Containing_Folder_Command,
       Toggle_Quick_Look_Command,
-      Set_Color_Label_Command);
+      Set_Color_Label_Command,
+      Navigate_Recent_Command,
+      Clear_Recent_Command);
 
    subtype Registered_Command_Id is Command_Id range
-     Select_Small_Icons_Command .. Set_Color_Label_Command;
+     Select_Small_Icons_Command .. Clear_Recent_Command;
 
    type Command_Placement is
      (No_Placement,

@@ -1460,6 +1460,99 @@ package body Files.File_System is
             Error_Key      => To_Unbounded_String ("error.path.inaccessible"));
    end Normalize_Path;
 
+   --  Build a fully-classified directory item for a single filesystem entry.
+   --  Shared by directory loading and single-path stat so both populate size,
+   --  timestamps, permissions, ownership, thumbnails, and filetype extras
+   --  identically. Metadata failures are captured on the item rather than
+   --  raised, matching the per-entry behaviour of directory loading.
+   function Item_For_Path
+     (Full        : String;
+      Name        : String;
+      Parent_Path : String;
+      Kind        : Files.Types.Item_Kind;
+      Settings    : Files.Settings.Settings_Model)
+      return Directory_Item
+   is
+      Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
+      Icon_Id  : constant String := Files.File_Types.Icon_Id_For (Settings, Kind, Filetype);
+      Thumbnail_Cache : constant String := Default_Thumbnail_Cache_Directory (Parent_Path);
+      Thumbnail_Path  : constant String := Thumbnail_Path_For (Full, Thumbnail_Cache);
+      Thumbnail : constant Cached_Thumbnail :=
+        Thumbnail_For_Item
+          (Full_Path       => Full,
+           Kind            => Kind,
+           Filetype        => Filetype,
+           Name            => Name,
+           Icon_Id         => Icon_Id,
+           Cache_Directory => Thumbnail_Cache,
+           Thumbnail_Path  => Thumbnail_Path);
+      Item : Directory_Item :=
+        (Name               => To_Unbounded_String (Name),
+         Full_Path          => To_Unbounded_String (Full),
+         Parent_Path        => To_Unbounded_String (Parent_Path),
+         Kind               => Kind,
+         Filetype           => To_Unbounded_String (Filetype),
+         Icon_Id            => To_Unbounded_String (Icon_Id),
+         Size_Available     => False,
+         Size               => 0,
+         Creation_Available => False,
+         Creation_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
+         Modified_Available => False,
+         Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
+         Permissions        => Null_Unbounded_String,
+         Mode_Available     => False,
+         Mode_Bits          => 0,
+         Ownership_Available => False,
+         Owner_Id           => 0,
+         Group_Id           => 0,
+         Filetype_Extra     => Null_Unbounded_String,
+         Thumbnail_Available => False,
+         Thumbnail_Path      => Null_Unbounded_String,
+         Thumbnail_Width     => 0,
+         Thumbnail_Height    => 0,
+         Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
+         Metadata_Error     => False,
+         Error_Key          => Null_Unbounded_String);
+   begin
+      if Kind = Files.Types.Symlink_Item then
+         Item.Filetype_Extra :=
+           To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
+      end if;
+
+      begin
+         if Kind /= Files.Types.Directory_Item then
+            Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
+            Item.Size_Available := True;
+            if Thumbnail.Loaded then
+               Item.Thumbnail_Available := True;
+               Item.Thumbnail_Path := To_Unbounded_String (Thumbnail_Path);
+               Item.Thumbnail_Width := Thumbnail.Width;
+               Item.Thumbnail_Height := Thumbnail.Height;
+               Item.Thumbnail_Pixels := Thumbnail.Pixels;
+            end if;
+         end if;
+         Item.Creation_Time :=
+           Files.Platform.Metadata.File_Creation_Time (Full, Item.Creation_Available);
+         Item.Modified_Time := Ada.Directories.Modification_Time (Full);
+         Item.Modified_Available := True;
+         Item.Permissions := To_Unbounded_String (Permission_String (Full));
+         Item.Mode_Bits :=
+           Files.Platform.Metadata.File_Permission_Bits (Full, Item.Mode_Available);
+         Files.Platform.Metadata.File_Ownership
+           (Full, Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
+         if Kind /= Files.Types.Symlink_Item then
+            Item.Filetype_Extra :=
+              To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
+         end if;
+      exception
+         when others =>
+            Item.Metadata_Error := True;
+            Item.Error_Key := To_Unbounded_String ("error.metadata.read");
+      end;
+
+      return Item;
+   end Item_For_Path;
+
    function Load_Directory
      (Path     : String;
       Settings : Files.Settings.Settings_Model)
@@ -1502,88 +1595,11 @@ package body Files.File_System is
               and then (Settings.Show_Hidden_Files or else Name (Name'First) /= '.')
             then
                declare
-                  Full     : constant String := Ada.Directories.Full_Name (Dir_Entry);
-                  Kind     : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
-                  Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
-                  Icon_Id  : constant String := Files.File_Types.Icon_Id_For (Settings, Kind, Filetype);
-                  Thumbnail_Cache : constant String :=
-                    Default_Thumbnail_Cache_Directory (To_String (Normalized_Path));
-                  Thumbnail_Path : constant String :=
-                    Thumbnail_Path_For (Full, Thumbnail_Cache);
-                  Thumbnail : constant Cached_Thumbnail :=
-                    Thumbnail_For_Item
-                      (Full_Path       => Full,
-                       Kind            => Kind,
-                       Filetype        => Filetype,
-                       Name            => Name,
-                       Icon_Id         => Icon_Id,
-                       Cache_Directory => Thumbnail_Cache,
-                       Thumbnail_Path  => Thumbnail_Path);
-                  Item     : Directory_Item :=
-                    (Name               => To_Unbounded_String (Name),
-                     Full_Path          => To_Unbounded_String (Full),
-                     Parent_Path        => Normalized_Path,
-                     Kind               => Kind,
-                     Filetype           => To_Unbounded_String (Filetype),
-                     Icon_Id            => To_Unbounded_String (Icon_Id),
-                     Size_Available     => False,
-                     Size               => 0,
-                     Creation_Available => False,
-                     Creation_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
-                     Modified_Available => False,
-                     Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
-                     Permissions        => Null_Unbounded_String,
-                     Mode_Available     => False,
-                     Mode_Bits          => 0,
-                     Ownership_Available => False,
-                     Owner_Id           => 0,
-                     Group_Id           => 0,
-                     Filetype_Extra     => Null_Unbounded_String,
-                     Thumbnail_Available => False,
-                     Thumbnail_Path      => Null_Unbounded_String,
-                     Thumbnail_Width     => 0,
-                     Thumbnail_Height    => 0,
-                     Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
-                     Metadata_Error     => False,
-                     Error_Key          => Null_Unbounded_String);
+                  Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
+                  Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
                begin
-                  if Kind = Files.Types.Symlink_Item then
-                     Item.Filetype_Extra :=
-                       To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
-                  end if;
-
-                  begin
-                     if Kind /= Files.Types.Directory_Item then
-                        Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
-                        Item.Size_Available := True;
-                        if Thumbnail.Loaded then
-                           Item.Thumbnail_Available := True;
-                           Item.Thumbnail_Path := To_Unbounded_String (Thumbnail_Path);
-                           Item.Thumbnail_Width := Thumbnail.Width;
-                           Item.Thumbnail_Height := Thumbnail.Height;
-                           Item.Thumbnail_Pixels := Thumbnail.Pixels;
-                        end if;
-                     end if;
-                     Item.Creation_Time :=
-                       Files.Platform.Metadata.File_Creation_Time (Full, Item.Creation_Available);
-                     Item.Modified_Time := Ada.Directories.Modification_Time (Full);
-                     Item.Modified_Available := True;
-                     Item.Permissions := To_Unbounded_String (Permission_String (Full));
-                     Item.Mode_Bits :=
-                       Files.Platform.Metadata.File_Permission_Bits (Full, Item.Mode_Available);
-                     Files.Platform.Metadata.File_Ownership
-                       (Full, Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
-                     if Kind /= Files.Types.Symlink_Item then
-                        Item.Filetype_Extra :=
-                          To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
-                     end if;
-                  exception
-                     when others =>
-                        Item.Metadata_Error := True;
-                        Item.Error_Key := To_Unbounded_String ("error.metadata.read");
-                  end;
-
-                  Items.Append (Item);
+                  Items.Append
+                    (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings));
                end;
             end if;
          end;
@@ -1607,6 +1623,56 @@ package body Files.File_System is
             Items     => Items,
             Error_Key => To_Unbounded_String ("error.directory.load"));
    end Load_Directory;
+
+   function Load_Item
+     (Full_Path : String;
+      Settings  : Files.Settings.Settings_Model)
+      return Item_Load_Result
+   is
+      Empty : Directory_Item;
+   begin
+      if Full_Path = "" or else not Ada.Directories.Exists (Full_Path) then
+         return
+           (Success   => False,
+            Item      => Empty,
+            Error_Key => To_Unbounded_String ("error.path.missing"));
+      end if;
+
+      declare
+         Full   : constant String := Ada.Directories.Full_Name (Full_Path);
+         Name   : constant String := Ada.Directories.Simple_Name (Full);
+         Parent : constant String := Ada.Directories.Containing_Directory (Full);
+         Kind   : Files.Types.Item_Kind;
+      begin
+         if GNAT.OS_Lib.Is_Symbolic_Link (Full) then
+            Kind := Files.Types.Symlink_Item;
+         else
+            case Ada.Directories.Kind (Full) is
+               when Ada.Directories.Directory =>
+                  Kind := Files.Types.Directory_Item;
+               when Ada.Directories.Ordinary_File =>
+                  if GNAT.OS_Lib.Is_Executable_File (Full) then
+                     Kind := Files.Types.Executable_Item;
+                  else
+                     Kind := Files.Types.Regular_File_Item;
+                  end if;
+               when Ada.Directories.Special_File =>
+                  Kind := Files.Types.Other_Item;
+            end case;
+         end if;
+
+         return
+           (Success   => True,
+            Item      => Item_For_Path (Full, Name, Parent, Kind, Settings),
+            Error_Key => Null_Unbounded_String);
+      end;
+   exception
+      when others =>
+         return
+           (Success   => False,
+            Item      => Empty,
+            Error_Key => To_Unbounded_String ("error.path.inaccessible"));
+   end Load_Item;
 
    function Search_Recursive
      (Root_Path : String;

@@ -179,6 +179,9 @@ package Files.Rendering is
       --  True when Current_Path is a stored favorite. Drives the filled versus
       --  empty star drawn at the left of the path bar.
       Current_Path_Is_Favorite : Boolean := False;
+      --  True while the virtual recent-items view is shown, so the empty-state
+      --  message reads as an empty recent list rather than an empty directory.
+      In_Recent_View       : Boolean := False;
       View_Mode            : Files.Types.View_Mode := Files.Types.Small_Icons;
       Sort_Field           : Files.Model.Sort_Field := Files.Model.Sort_Name;
       Sort_Ascending       : Boolean := True;

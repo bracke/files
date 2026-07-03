@@ -59,7 +59,8 @@ package body Files.Commands is
             | Toggle_Column_Created_Command
             | Toggle_Column_Permissions_Command
             | Cycle_Group_By_Command
-            | Toggle_Favorite_Command =>
+            | Toggle_Favorite_Command
+            | Clear_Recent_Command =>
             return True;
          when others =>
             return False;
@@ -209,6 +210,10 @@ package body Files.Commands is
             return "view.quick_look";
          when Set_Color_Label_Command =>
             return "label.set";
+         when Navigate_Recent_Command =>
+            return "navigate.recent";
+         when Clear_Recent_Command =>
+            return "recent.clear";
       end case;
    end Identifier;
 
@@ -355,6 +360,10 @@ package body Files.Commands is
             return "command.view.quick_look";
          when Set_Color_Label_Command =>
             return "command.label.set";
+         when Navigate_Recent_Command =>
+            return "command.navigate.recent";
+         when Clear_Recent_Command =>
+            return "command.recent.clear";
       end case;
    end Name_Key;
 
@@ -501,6 +510,10 @@ package body Files.Commands is
             return "command.view.quick_look.description";
          when Set_Color_Label_Command =>
             return "command.label.set.description";
+         when Navigate_Recent_Command =>
+            return "command.navigate.recent.description";
+         when Clear_Recent_Command =>
+            return "command.recent.clear.description";
       end case;
    end Description_Key;
 
@@ -882,7 +895,8 @@ package body Files.Commands is
             | Toggle_Column_Created_Command
             | Toggle_Column_Permissions_Command
             | Cycle_Group_By_Command
-            | Toggle_Favorite_Command =>
+            | Toggle_Favorite_Command
+            | Clear_Recent_Command =>
             return True;
          when others =>
             return False;
@@ -999,8 +1013,9 @@ package body Files.Commands is
             return Files.Model.Can_Go_Forward (Model);
          when Navigate_Parent_Command =>
             --  Enabled only in an ordinary directory view that has a parent;
-            --  disabled at a filesystem root and in the trash payload view.
+            --  disabled at a filesystem root and in the trash and recent views.
             return not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model)
               and then Files.File_System.Parent_Directory
                          (Files.Model.Current_Path (Model)) /= "";
          when Delete_Selected_Items_Command | Open_Selected_Items_Command
@@ -1027,7 +1042,8 @@ package body Files.Commands is
             --  ordinary directory rather than the trash payload view.
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)
-              and then not In_Trash_View (Model);
+              and then not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when Paste_Items_Command =>
             return Files.Model.Clipboard_Has_Items (Model)
               and then not Files.Model.Temporary_Item_Is_Active (Model);
@@ -1077,6 +1093,7 @@ package body Files.Commands is
             --  current directory. Enabled in an ordinary directory view (not the
             --  trash payload) whenever there is a selection or a navigable path.
             return not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model)
               and then (Files.Model.Selected_Count (Model) > 0
                         or else Files.Model.Current_Path (Model) /= "");
          when Navigate_Trash_Command =>
@@ -1095,25 +1112,37 @@ package body Files.Commands is
             --  when at least one trashed entry is present to purge.
             return In_Trash_View (Model)
               and then Files.Model.Item_Count (Model) > 0;
+         when Navigate_Recent_Command =>
+            --  The recent-items view is always reachable; an empty list simply
+            --  opens onto an empty view.
+            return True;
+         when Clear_Recent_Command =>
+            --  Clearing is only meaningful in the recent view and only when at
+            --  least one recent entry is present to purge.
+            return Files.Model.In_Recent_View (Model)
+              and then Files.Model.Item_Count (Model) > 0;
          when Undo_Command =>
             return Files.Model.Undo_Available (Model);
          when Redo_Command =>
             return Files.Model.Redo_Available (Model);
          when Open_Terminal_Command =>
             --  A terminal can be opened for any real directory view, but not the
-            --  trash payload directory.
-            return not In_Trash_View (Model);
+            --  trash payload directory or the virtual recent view.
+            return not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when Create_Symlink_Command | Create_Hardlink_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)
-              and then not In_Trash_View (Model);
+              and then not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when Copy_Path_Command =>
             --  Copying paths to the system clipboard needs at least one real
             --  (non-temporary) item selected in an ordinary directory rather
             --  than the trash payload view.
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)
-              and then not In_Trash_View (Model);
+              and then not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when Open_Containing_Folder_Command =>
             --  Reveal navigates to a single item's parent directory. It is
             --  enabled for exactly one real selected item in an ordinary
@@ -1132,10 +1161,11 @@ package body Files.Commands is
          when Set_Color_Label_Command =>
             --  Color labels apply to the current selection, so at least one real
             --  (non-temporary) item must be selected in an ordinary directory
-            --  rather than the trash payload view.
+            --  rather than the trash payload or virtual recent view.
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)
-              and then not In_Trash_View (Model);
+              and then not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when others =>
             return True;
       end case;
@@ -1353,6 +1383,15 @@ package body Files.Commands is
             --  user clicks a swatch.
             Files.Model.Open_Label_Picker (Model);
             Files.Model.Set_Error (Model, "");
+         when Navigate_Recent_Command =>
+            --  Building the recent listing stats the stored paths, so it is
+            --  routed through Files.Controller rather than this pure executor.
+            null;
+         when Clear_Recent_Command =>
+            --  Clearing mutates persisted settings, so it is routed through
+            --  Files.Interaction (which owns the settings path) rather than this
+            --  pure model-only executor.
+            null;
       end case;
    end Execute;
 

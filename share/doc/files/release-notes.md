@@ -9,6 +9,14 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Quick Look: press Space to preview the selected item (image or text) in a
+  centered overlay.
+- Color labels (tags): assign a color label to any item from a swatch picker;
+  labeled items show a colored dot in the grid and can be grouped by label.
+- Recent files: a Recent view lists recently opened files and folders, with a
+  Clear Recent action.
+- More keyboard navigation: Home/End jump to the first/last item, PageUp/PageDown
+  page the selection, and Ctrl+plus / Ctrl+minus / Ctrl+0 zoom the font.
 - Empty Trash: permanently clear every item in the trash in one action.
 - Rubber-band (marquee) selection: drag a rectangle over empty space to select
   items; hold Ctrl/Shift to add to the current selection.

@@ -295,6 +295,19 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Enter the virtual recent-items view, materializing a listing from the
+   --  stored recent paths. Each path is stat-ed through Load_Item; paths that no
+   --  longer resolve are skipped so a stale entry never blocks the view. Also
+   --  used to rebuild the view in place after the recent list changes.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model providing the recent paths and classification.
+   --  @return Structured operation result (always navigated).
+   function Navigate_Recent
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Select a root location and load it in the current window.
    --
    --  @param Model Window model to update.
