@@ -14,6 +14,7 @@ with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
 with Files.Gui.Layout;
+with Files.Gui.Widgets;
 with Files.Localization;
 with Files.Platform.Metadata;
 with Files.UTF8;
@@ -4864,45 +4865,32 @@ package body Files.Rendering is
          Ring_W : Natural;
          Ring_H : Natural) is
       begin
-         if Ring_W = 0 or else Ring_H = 0 then
-            return;
-         end if;
-
-         Add_Border (X, Y, Ring_W, Ring_H, Snapshot.Theme_Focus_Ring);
-         if X > 0 and then Y > 0 then
-            Add_Border
-              (X - 1,
-               Y - 1,
-               Saturating_Add (Ring_W, 2),
-               Saturating_Add (Ring_H, 2),
-               Snapshot.Theme_Focus_Ring);
-         end if;
+         Files.Gui.Widgets.Draw_Focus_Ring
+           (Rectangles  => Result.Rectangles,
+            Clip_Width  => Layout.Width,
+            Clip_Height => Layout.Height,
+            X           => X,
+            Y           => Y,
+            Width       => Ring_W,
+            Height      => Ring_H,
+            Color       => Snapshot.Theme_Focus_Ring);
       end Add_Focus_Ring;
 
       procedure Add_Drop_Shadow
         (X        : Natural;
          Y        : Natural;
          Shadow_W : Natural;
-         Shadow_H : Natural)
-      is
-         Shadow_Offset : constant Natural := 3;
+         Shadow_H : Natural) is
       begin
-         if Shadow_W = 0 or else Shadow_H = 0 then
-            return;
-         end if;
-
-         Add_Rect
-           (Saturating_Add (X, Shadow_Offset),
-            Saturating_Add (Y, Shadow_H),
-            Shadow_W,
-            Shadow_Offset,
-            Pane_Color);
-         Add_Rect
-           (Saturating_Add (X, Shadow_W),
-            Saturating_Add (Y, Shadow_Offset),
-            Shadow_Offset,
-            Shadow_H,
-            Pane_Color);
+         Files.Gui.Widgets.Draw_Drop_Shadow
+           (Rectangles  => Result.Rectangles,
+            Clip_Width  => Layout.Width,
+            Clip_Height => Layout.Height,
+            X           => X,
+            Y           => Y,
+            Width       => Shadow_W,
+            Height      => Shadow_H,
+            Color       => Pane_Color);
       end Add_Drop_Shadow;
 
       procedure Add_Scrollbar
@@ -4965,24 +4953,51 @@ package body Files.Rendering is
               (if Btn.Height > Line_Height
                then Saturating_Add (Btn.Y, (Btn.Height - Line_Height) / 2)
                else Btn.Y);
+            --  Base-layer glyph text is suppressed when covered by the settings
+            --  pane or command palette; overlay glyphs are never hidden.
+            Show_Glyph : constant Boolean :=
+              Overlay
+              or else not (Hidden_By_Settings_Pane (Glyph_X, Glyph_Y, Glyph_W, Line_Height)
+                           or else Hidden_By_Command_Palette (Glyph_X, Glyph_Y, Glyph_W, Line_Height));
          begin
             if Overlay then
-               Add_Overlay_Rect (Btn.X, Btn.Y, Btn.Width, Btn.Height, Fill_Color);
-               Add_Overlay_Rect (Btn.X, Btn.Y, Btn.Width, 1, Border_Color);
-               Add_Overlay_Rect (Btn.X, Btn.Y, 1, Btn.Height, Border_Color);
-               Add_Overlay_Rect
-                 (Btn.X, Saturating_Add (Btn.Y, Btn.Height - 1), Btn.Width, 1, Border_Color);
-               Add_Overlay_Rect
-                 (Saturating_Add (Btn.X, Btn.Width - 1), Btn.Y, 1, Btn.Height, Border_Color);
-               Add_Overlay_Text
-                 (Glyph_X, Glyph_Y, Glyph_W, Line_Height,
-                  To_Unbounded_String (Close_Glyph_Text), Text_Color);
+               Files.Gui.Widgets.Draw_Close_Button
+                 (Rectangles    => Result.Overlay_Rectangles,
+                  Text          => Result.Overlay_Text,
+                  Clip_Width    => Layout.Width,
+                  Clip_Height   => Layout.Height,
+                  Button_X      => Btn.X,
+                  Button_Y      => Btn.Y,
+                  Button_Width  => Btn.Width,
+                  Button_Height => Btn.Height,
+                  Fill_Color    => Fill_Color,
+                  Border_Color  => Border_Color,
+                  Glyph_X       => Glyph_X,
+                  Glyph_Y       => Glyph_Y,
+                  Glyph_Width   => Glyph_W,
+                  Glyph_Height  => Line_Height,
+                  Glyph         => To_Unbounded_String (Close_Glyph_Text),
+                  Glyph_Color   => Text_Color,
+                  Show_Glyph    => Show_Glyph);
             else
-               Add_Rect (Btn.X, Btn.Y, Btn.Width, Btn.Height, Fill_Color);
-               Add_Border (Btn.X, Btn.Y, Btn.Width, Btn.Height, Border_Color);
-               Add_Text
-                 (Glyph_X, Glyph_Y, Glyph_W, Line_Height,
-                  To_Unbounded_String (Close_Glyph_Text), Text_Color);
+               Files.Gui.Widgets.Draw_Close_Button
+                 (Rectangles    => Result.Rectangles,
+                  Text          => Result.Text,
+                  Clip_Width    => Layout.Width,
+                  Clip_Height   => Layout.Height,
+                  Button_X      => Btn.X,
+                  Button_Y      => Btn.Y,
+                  Button_Width  => Btn.Width,
+                  Button_Height => Btn.Height,
+                  Fill_Color    => Fill_Color,
+                  Border_Color  => Border_Color,
+                  Glyph_X       => Glyph_X,
+                  Glyph_Y       => Glyph_Y,
+                  Glyph_Width   => Glyph_W,
+                  Glyph_Height  => Line_Height,
+                  Glyph         => To_Unbounded_String (Close_Glyph_Text),
+                  Glyph_Color   => Text_Color,
+                  Show_Glyph    => Show_Glyph);
             end if;
 
             Add_Accessibility_Node
