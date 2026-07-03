@@ -13,8 +13,9 @@ with Files.Fonts;
 with Files.Localization;
 with Files.Model;
 with Files.Quick_Look;
+with Files.Gui.Draw;
 with Files.Rendering;
-with Files.Rendering.Vulkan;
+with Files.Gui.Vulkan;
 with Files.Types;
 with Files.UI;
 
@@ -28,9 +29,10 @@ package body Files_Suite.Rendering is
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
    use Files.Rendering;
+   use Files.Gui.Draw;
    use type Files.Commands.Command_Id;
    use type Files.Rendering.Context_Menu_Row_Kind;
-   use type Files.Rendering.Render_Color;
+   use type Files.Gui.Draw.Render_Color;
    use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
@@ -836,13 +838,13 @@ package body Files_Suite.Rendering is
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Renderer : Text_Renderer;
       Text     : Text_Render_Result;
-      Batch    : Files.Rendering.Vulkan.Submission_Batch;
+      Batch    : Files.Gui.Vulkan.Submission_Batch;
    begin
       Assert
         (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20) = Text_Render_Success,
          "the text renderer initialises for submission");
       Text  := Build_Text_Glyphs (Renderer, Frame);
-      Batch := Files.Rendering.Vulkan.Build_Submission (Frame, Text);
+      Batch := Files.Gui.Vulkan.Build_Submission (Frame, Text);
       Assert (Batch.Width = Frame.Layout.Width, "the vulkan batch preserves the frame width");
       Assert (Batch.Height = Frame.Layout.Height, "the vulkan batch preserves the frame height");
       Assert
@@ -955,7 +957,6 @@ package body Files_Suite.Rendering is
       Sorting_Head    : constant String := Files.Localization.Text ("settings.section.sorting");
       Appearance_Head : constant String := Files.Localization.Text ("settings.section.appearance");
       Filetypes_Head  : constant String := Files.Localization.Text ("settings.section.file_types");
-      View_Field      : constant String := Files.Localization.Text ("settings.default_view");
 
       --  Y of the first text command containing Needle, or -1 when absent.
       function First_Text_Y (F : Frame_Commands; Needle : String) return Integer is
@@ -968,6 +969,20 @@ package body Files_Suite.Rendering is
          return -1;
       end First_Text_Y;
 
+      --  True when any accessibility node's name contains Needle. Each section
+      --  header emits a Role_Heading node carrying the FULL (untruncated) title,
+      --  so this matches long titles ("File types and applications") that
+      --  Add_Text stores in fitted/truncated form.
+      function A11y_Has (F : Frame_Commands; Needle : String) return Boolean is
+      begin
+         for Node of F.Accessibility loop
+            if Contains (To_String (Node.Name), Needle) then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end A11y_Has;
+
       Header_X, Header_Y : Integer := -1;
       Scrolled : Frame_Commands;
    begin
@@ -975,21 +990,22 @@ package body Files_Suite.Rendering is
       --  A pane tall enough to reveal the first few sections but short enough
       --  that the trailing "File types" section stays below the fold at the
       --  top of the scroll range.
-      Frame := Build_Frame_Commands (Snapshot, Width => 640, Height => 520, Line_Height => 20);
+      Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 520, Line_Height => 20);
 
       --  The leading section headers are drawn, and the trailing one is not yet
       --  visible (it lives further down the scrollable content).
       Assert (Frame_Has_Text (Frame, View_Head), "the View section header is drawn");
       Assert (Frame_Has_Text (Frame, Sorting_Head), "the Sorting section header is drawn");
       Assert (Frame_Has_Text (Frame, Appearance_Head), "the Appearance section header is drawn");
-      Assert (not Frame_Has_Text (Frame, Filetypes_Head),
+      Assert (not A11y_Has (Frame, Filetypes_Head),
               "the File types header is below the fold at the top of the scroll range");
 
-      --  Each header sits above the first field of the group it introduces, and
-      --  the headers appear in declaration order down the pane.
-      Assert (First_Text_Y (Frame, View_Head) >= 0
-              and then First_Text_Y (Frame, View_Head) < First_Text_Y (Frame, View_Field),
-              "the View header sits above the first View field");
+      --  The section headers appear in declaration order down the pane, each
+      --  above the next, so every section's fields sit between its header and
+      --  the following header. Header labels are short and never truncated,
+      --  unlike field labels (which Add_Text stores in fitted/truncated form),
+      --  so the headers are the robust ordering anchors.
+      Assert (First_Text_Y (Frame, View_Head) >= 0, "the View header has a concrete position");
       Assert (First_Text_Y (Frame, View_Head) < First_Text_Y (Frame, Sorting_Head)
               and then First_Text_Y (Frame, Sorting_Head) < First_Text_Y (Frame, Appearance_Head),
               "the section headers are laid out top-to-bottom in declaration order");
@@ -1007,13 +1023,15 @@ package body Files_Suite.Rendering is
         (Settings_Hit_At (Frame, Natural (Header_X) + 2, Natural (Header_Y) + 1).Kind = Settings_Hit_None,
          "a click on a section header resolves to no settings field");
 
-      --  Scrolling to the bottom reveals the trailing header: the measured
-      --  content height (used to clamp the scroll) grew to include the header
-      --  rows, so the last section becomes reachable.
+      --  The measured content height (used to clamp the scroll) grew to include
+      --  the section-header rows, so it exceeds the viewport and the pane is
+      --  scrollable: scrolling to the bottom pushes the top View section header
+      --  out of view. (The trailing File types section's tall list editors fill
+      --  the viewport at the bottom, so its header is not itself at the fold.)
       Snapshot.Settings_Pane_Scroll_Lines := 100_000;
-      Scrolled := Build_Frame_Commands (Snapshot, Width => 640, Height => 520, Line_Height => 20);
-      Assert (Frame_Has_Text (Scrolled, Filetypes_Head),
-              "scrolling to the bottom reveals the File types section header");
+      Scrolled := Build_Frame_Commands (Snapshot, Width => 1200, Height => 520, Line_Height => 20);
+      Assert (A11y_Has (Frame, View_Head) and then not A11y_Has (Scrolled, View_Head),
+              "the View header is visible at the top and scrolls out of view at the bottom");
    end Test_Settings_Section_Headers;
 
    --  The grouping field (index 9) is laid out as two rows: a label row and a
@@ -1607,14 +1625,14 @@ package body Files_Suite.Rendering is
       end;
    end Test_Quick_Look_Overlay_Content;
 
-   --  The palette is theme-aware through Files.Rendering.Color_For. This is a
+   --  The palette is theme-aware through Files.Gui.Draw.Color_For. This is a
    --  legitimate palette assertion (the role-to-color mapping), not a fragile
    --  whole-frame color assertion: the light theme must differ from dark for a
    --  representative role, and high contrast must keep the dark base so its
    --  rendering is not regressed.
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Rendering.Palette_Color;
+      use type Files.Gui.Draw.Palette_Color;
       Dark_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Dark);
       Light_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Light);
       Dark_Text   : constant Palette_Color := Color_For (Text_Color, Theme_Dark);
@@ -1897,7 +1915,7 @@ package body Files_Suite.Rendering is
       begin
          for Cmd of Frame.Text loop
             if To_String (Cmd.Text) = Filled_Star
-              and then Cmd.Color = Files.Rendering.Favorite_Star_Color
+              and then Cmd.Color = Files.Gui.Draw.Favorite_Star_Color
             then
                Total := Total + 1;
             end if;

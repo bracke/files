@@ -25,6 +25,7 @@ with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Operations;
+with Files.Gui.Draw;
 with Files.Rendering;
 with Files.Settings;
 with Files.Types;
@@ -43,7 +44,7 @@ package body Files.Application.Windows is
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Rendering.Vulkan.Vulkan_Status;
+   use type Files.Gui.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
@@ -250,7 +251,7 @@ package body Files.Application.Windows is
       Text_Content_Font_Path : Unbounded_String;
       Text_Glyph_Key  : Unbounded_String;
       Text_Glyphs     : Files.Rendering.Text_Render_Result;
-      Vulkan          : Files.Rendering.Vulkan.Vulkan_Renderer;
+      Vulkan          : Files.Gui.Vulkan.Vulkan_Renderer;
       Vulkan_Tried    : Boolean := False;
       Surface_Tried   : Boolean := False;
       Shown           : Boolean := False;
@@ -279,8 +280,8 @@ package body Files.Application.Windows is
       Cached_Marquee_H     : Natural := 0;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
-      Last_Present_Status : Files.Rendering.Vulkan.Vulkan_Status :=
-        Files.Rendering.Vulkan.Vulkan_Not_Initialized;
+      Last_Present_Status : Files.Gui.Vulkan.Vulkan_Status :=
+        Files.Gui.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Native_Watch_FD : Interfaces.C.int := -1;
       Native_Watch_ID : Interfaces.C.int := -1;
@@ -1632,7 +1633,7 @@ package body Files.Application.Windows is
       Result : Unbounded_String;
 
       procedure Append_Text_Key
-        (Command : Files.Rendering.Text_Command)
+        (Command : Files.Gui.Draw.Text_Command)
       is
       begin
          Append (Result, Natural'Image (Command.X));
@@ -1643,7 +1644,7 @@ package body Files.Application.Windows is
          Append (Result, ":");
          Append (Result, Natural'Image (Command.Height));
          Append (Result, ":");
-         Append (Result, Files.Rendering.Render_Color'Image (Command.Color));
+         Append (Result, Files.Gui.Draw.Render_Color'Image (Command.Color));
          Append (Result, ":");
          Append (Result, (if Command.Italic then "i" else "r"));
          Append (Result, ":");
@@ -1685,7 +1686,7 @@ package body Files.Application.Windows is
             end;
          end if;
 
-         Files.Rendering.Vulkan.Shutdown (Runtime.Vulkan);
+         Files.Gui.Vulkan.Shutdown (Runtime.Vulkan);
          Release_Native_Watch (Runtime);
 
          if Runtime.Handle /= null then
@@ -1817,7 +1818,7 @@ package body Files.Application.Windows is
             Cached_Marquee_H     => 0,
             Last_Glyph_Count => 0,
             Last_Missing_Glyph_Count => 0,
-            Last_Present_Status => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
+            Last_Present_Status => Files.Gui.Vulkan.Vulkan_Not_Initialized,
             Last_Watch_Poll => Ada.Calendar.Time_Of (1901, 1, 1),
             Native_Watch_FD => -1,
             Native_Watch_ID => -1,
@@ -2285,8 +2286,8 @@ package body Files.Application.Windows is
 
          if not Runtime.Vulkan_Tried then
             declare
-               Status : constant Files.Rendering.Vulkan.Vulkan_Status :=
-                 Files.Rendering.Vulkan.Initialize (Runtime.Vulkan);
+               Status : constant Files.Gui.Vulkan.Vulkan_Status :=
+                 Files.Gui.Vulkan.Initialize (Runtime.Vulkan);
             begin
                Runtime.Vulkan_Tried := True;
                pragma Unreferenced (Status);
@@ -2295,11 +2296,11 @@ package body Files.Application.Windows is
 
          if Runtime.Vulkan_Tried
            and then not Runtime.Surface_Tried
-           and then Files.Rendering.Vulkan.Ready (Runtime.Vulkan)
+           and then Files.Gui.Vulkan.Ready (Runtime.Vulkan)
          then
             declare
-               Status : constant Files.Rendering.Vulkan.Vulkan_Status :=
-                 Files.Rendering.Vulkan.Create_Surface (Runtime.Vulkan, As_Window (Runtime.Handle));
+               Status : constant Files.Gui.Vulkan.Vulkan_Status :=
+                 Files.Gui.Vulkan.Create_Surface (Runtime.Vulkan, As_Window (Runtime.Handle));
             begin
                Runtime.Surface_Tried := True;
                pragma Unreferenced (Status);
@@ -2307,18 +2308,18 @@ package body Files.Application.Windows is
          end if;
 
          if Runtime.Surface_Tried
-           and then Files.Rendering.Vulkan.Surface_Ready (Runtime.Vulkan)
+           and then Files.Gui.Vulkan.Surface_Ready (Runtime.Vulkan)
            and then
-             (not Files.Rendering.Vulkan.Swapchain_Ready (Runtime.Vulkan)
+             (not Files.Gui.Vulkan.Swapchain_Ready (Runtime.Vulkan)
               or else Runtime.Last_Frame_Width /= Natural (Width)
               or else Runtime.Last_Frame_Height /= Natural (Height))
          then
-            Files.Rendering.Vulkan.Request_Swapchain_Recreate
+            Files.Gui.Vulkan.Request_Swapchain_Recreate
               (Renderer => Runtime.Vulkan,
                Width    => Natural (Width),
                Height   => Natural (Height));
             Runtime.Last_Present_Status :=
-              Files.Rendering.Vulkan.Configure_Swapchain
+              Files.Gui.Vulkan.Configure_Swapchain
                 (Renderer => Runtime.Vulkan,
                  Width    => Natural (Width),
                  Height   => Natural (Height));
@@ -2389,32 +2390,32 @@ package body Files.Application.Windows is
                   end if;
 
                   declare
-                     Batch : constant Files.Rendering.Vulkan.Submission_Batch :=
-                       Files.Rendering.Vulkan.Build_Submission (Frame, Glyphs);
+                     Batch : constant Files.Gui.Vulkan.Submission_Batch :=
+                       Files.Gui.Vulkan.Build_Submission (Frame, Glyphs);
                   begin
                      Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
                      Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
-                     Runtime.Last_Present_Status := Files.Rendering.Vulkan.Present (Runtime.Vulkan, Batch);
+                     Runtime.Last_Present_Status := Files.Gui.Vulkan.Present (Runtime.Vulkan, Batch);
 
                      if Runtime.Last_Present_Status =
-                       Files.Rendering.Vulkan.Vulkan_Swapchain_Recreate_Needed
+                       Files.Gui.Vulkan.Vulkan_Swapchain_Recreate_Needed
                      then
                         Runtime.Last_Present_Status :=
-                          Files.Rendering.Vulkan.Configure_Swapchain
+                          Files.Gui.Vulkan.Configure_Swapchain
                             (Renderer => Runtime.Vulkan,
                              Width    => Natural (Width),
                              Height   => Natural (Height));
                         Runtime.Last_Frame_Width := Natural (Width);
                         Runtime.Last_Frame_Height := Natural (Height);
                         if Runtime.Last_Present_Status =
-                          Files.Rendering.Vulkan.Vulkan_Swapchain_Ready
+                          Files.Gui.Vulkan.Vulkan_Swapchain_Ready
                         then
                            Runtime.Last_Present_Status :=
-                             Files.Rendering.Vulkan.Present (Runtime.Vulkan, Batch);
+                             Files.Gui.Vulkan.Present (Runtime.Vulkan, Batch);
                         end if;
                      end if;
 
-                     if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Presented then
+                     if Runtime.Last_Present_Status /= Files.Gui.Vulkan.Vulkan_Presented then
                         Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
                      end if;
                   end;
@@ -2441,7 +2442,7 @@ package body Files.Application.Windows is
    begin
       for Runtime of Runtime_Windows loop
          if Runtime.Last_Glyph_Count > 0
-           and then Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented
+           and then Runtime.Last_Present_Status = Files.Gui.Vulkan.Vulkan_Presented
          then
             return True;
          end if;
@@ -3096,7 +3097,7 @@ package body Files.Application.Windows is
             Input_Polled       => False,
             Closed_Cleanly     => False,
             Skipped_By_Plan    => True,
-            Last_Status        => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
+            Last_Status        => Files.Gui.Vulkan.Vulkan_Not_Initialized,
             Last_Vk_Result     => 0,
             Framebuffer_Readback_Ready => False,
             Last_Framebuffer_Hash => 0,
@@ -3117,7 +3118,7 @@ package body Files.Application.Windows is
          Input_Polled       => False,
          Closed_Cleanly     => False,
          Skipped_By_Plan    => False,
-         Last_Status        => Files.Rendering.Vulkan.Vulkan_Not_Initialized,
+         Last_Status        => Files.Gui.Vulkan.Vulkan_Not_Initialized,
          Last_Vk_Result     => 0,
          Framebuffer_Readback_Ready => False,
          Last_Framebuffer_Hash => 0,
@@ -3161,7 +3162,7 @@ package body Files.Application.Windows is
             Height          => Plan.Height);
       end loop;
       for Runtime of Runtime_Windows loop
-         Files.Rendering.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);
+         Files.Gui.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);
       end loop;
 
       Result.Window_Created := not Runtime_Windows.Is_Empty;
@@ -3209,16 +3210,16 @@ package body Files.Application.Windows is
                   Result.Frame_Rendered :=
                     Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
                   for Runtime of Runtime_Windows loop
-                     if Runtime.Last_Present_Status /= Files.Rendering.Vulkan.Vulkan_Not_Initialized then
+                     if Runtime.Last_Present_Status /= Files.Gui.Vulkan.Vulkan_Not_Initialized then
                         declare
-                           Diagnostics : constant Files.Rendering.Vulkan.Renderer_Diagnostics :=
-                             Files.Rendering.Vulkan.Diagnostics (Runtime.Vulkan);
+                           Diagnostics : constant Files.Gui.Vulkan.Renderer_Diagnostics :=
+                             Files.Gui.Vulkan.Diagnostics (Runtime.Vulkan);
                         begin
                            Result.Last_Status := Runtime.Last_Present_Status;
                            Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
                            Result.Vulkan_Device_Ready :=
                              Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
-                           if Runtime.Last_Present_Status = Files.Rendering.Vulkan.Vulkan_Presented then
+                           if Runtime.Last_Present_Status = Files.Gui.Vulkan.Vulkan_Presented then
                               Result.Frames_Presented := Result.Frames_Presented + 1;
                            end if;
                            if Diagnostics.Framebuffer_Readback_Ready then
@@ -3244,10 +3245,10 @@ package body Files.Application.Windows is
                                  if Rect.Valid then
                                     Outcome.Region_Checked := True;
                                     Outcome.Region_Ink_Fraction :=
-                                      Files.Rendering.Vulkan.Readback_Region_Ink_Fraction
+                                      Files.Gui.Vulkan.Readback_Region_Ink_Fraction
                                         (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
                                     Outcome.Region_Ink_Present :=
-                                      Files.Rendering.Vulkan.Readback_Region_Has_Ink
+                                      Files.Gui.Vulkan.Readback_Region_Has_Ink
                                         (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
                                  end if;
                               end;

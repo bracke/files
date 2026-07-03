@@ -6,10 +6,12 @@ with Ada.Containers.Vectors;
 with Glfw.Windows;
 with Vk;
 
-with Files.Rendering.Frame_Analysis;
+with Files.Gui.Draw;
+with Files.Gui.Frame_Analysis;
+with Files.Rendering;
 
 --  Vulkan renderer lifecycle backed by df_vulkan.
-package Files.Rendering.Vulkan is
+package Files.Gui.Vulkan is
    use type Interfaces.Unsigned_8;
 
    type Vulkan_Status is
@@ -54,7 +56,7 @@ package Files.Rendering.Vulkan is
       Y       : Float := 0.0;
       U       : Float := 0.0;
       V       : Float := 0.0;
-      Color   : Files.Rendering.Render_Color := Files.Rendering.Canvas_Color;
+      Color   : Files.Gui.Draw.Render_Color := Files.Gui.Draw.Canvas_Color;
       Textured : Boolean := False;
       Texture : Texture_Source := Texture_None;
    end record;
@@ -69,7 +71,7 @@ package Files.Rendering.Vulkan is
 
    type Submission_Batch is record
       Vertices               : Vertex_Vectors.Vector;
-      Palette_Theme          : Files.Rendering.Theme_Kind := Files.Rendering.Theme_Dark;
+      Palette_Theme          : Files.Gui.Draw.Theme_Kind := Files.Gui.Draw.Theme_Dark;
       Rectangle_Vertex_Count : Natural := 0;
       Triangle_Vertex_Count  : Natural := 0;
       Icon_Vertex_Count      : Natural := 0;
@@ -156,7 +158,7 @@ package Files.Rendering.Vulkan is
       Framebuffer_Readback_Ready : Boolean := False;
       Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
       Last_Framebuffer_Bytes : Natural := 0;
-      Framebuffer_Analysis  : Files.Rendering.Frame_Analysis.Frame_Metrics;
+      Framebuffer_Analysis  : Files.Gui.Frame_Analysis.Frame_Metrics;
       Framebuffer_Passed    : Boolean := False;
       Frame_Width           : Natural := 0;
       Frame_Height          : Natural := 0;
@@ -465,7 +467,7 @@ package Files.Rendering.Vulkan is
    --  The renderer retains a copy of the most recent read-back framebuffer;
    --  this indexes that copy with a rectangle expressed in the same framebuffer
    --  pixel coordinates the layout functions produce, delegating to
-   --  Files.Rendering.Frame_Analysis.Region_Ink_Fraction. Returns 0.0 when no
+   --  Files.Gui.Frame_Analysis.Region_Ink_Fraction. Returns 0.0 when no
    --  readback is available or the rectangle is empty/out of range.
    --
    --  @param Renderer Renderer holding the retained framebuffer copy.
@@ -501,7 +503,7 @@ package Files.Rendering.Vulkan is
       W            : Natural;
       H            : Natural;
       Min_Fraction : Float :=
-        Files.Rendering.Frame_Analysis.Default_Region_Ink_Fraction)
+        Files.Gui.Frame_Analysis.Default_Region_Ink_Fraction)
       return Boolean;
 
    --  Submit a prepared frame batch to the renderer presentation path.
@@ -527,7 +529,7 @@ private
    type Framebuffer_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Framebuffer_T;
    type Command_Buffer_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Command_Buffer_T;
 
-   type Retained_Frame_Access is access Files.Rendering.Frame_Analysis.Byte_Array;
+   type Retained_Frame_Access is access Files.Gui.Frame_Analysis.Byte_Array;
    --  Heap copy of the last read-back framebuffer, retained so layout-derived
    --  region checks can index it after the mapped Vulkan memory is unmapped.
 
@@ -611,7 +613,7 @@ private
       Readback_Pending     : Boolean := False;
       Readback_Ready       : Boolean := False;
       Last_Readback_Hash   : Interfaces.Unsigned_32 := 0;
-      Last_Frame_Metrics   : Files.Rendering.Frame_Analysis.Frame_Metrics;
+      Last_Frame_Metrics   : Files.Gui.Frame_Analysis.Frame_Metrics;
       Last_Frame_Passed    : Boolean := False;
       Readback_Copy        : Retained_Frame_Access := null;
       Readback_Copy_Length : Natural := 0;
@@ -635,4 +637,4 @@ private
       Surface_Loss_Validated : Boolean := False;
    end record;
 
-end Files.Rendering.Vulkan;
+end Files.Gui.Vulkan;

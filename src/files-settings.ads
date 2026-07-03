@@ -51,7 +51,7 @@ package Files.Settings is
       Sort_By_Modified);
 
    --  Selectable color theme. Theme_Dark is the default. The chosen value maps
-   --  directly onto the renderer's palette (Files.Rendering.Theme_Kind).
+   --  directly onto the renderer's palette (Files.Gui.Draw.Theme_Kind).
    type Theme_Choice is (Theme_Dark, Theme_Light, Theme_High_Contrast);
 
    type Settings_Model is record

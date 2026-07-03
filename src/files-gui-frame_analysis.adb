@@ -1,4 +1,4 @@
-package body Files.Rendering.Frame_Analysis is
+package body Files.Gui.Frame_Analysis is
 
    use type Interfaces.Unsigned_8;
 
@@ -333,4 +333,4 @@ package body Files.Rendering.Frame_Analysis is
       return Region_Ink_Fraction (Data, Width, Height, Format, X, Y, W, H) >= Min_Fraction;
    end Region_Has_Ink;
 
-end Files.Rendering.Frame_Analysis;
+end Files.Gui.Frame_Analysis;

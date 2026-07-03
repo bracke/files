@@ -13,8 +13,8 @@ with Files.Application.Windows;
 with Files_Config;
 with Files.Localization;
 with Files.Rendering;
-with Files.Rendering.Frame_Analysis;
-with Files.Rendering.Vulkan;
+with Files.Gui.Frame_Analysis;
+with Files.Gui.Vulkan;
 
 package body Files.Application is
    use Ada.Strings.Unbounded;
@@ -449,8 +449,8 @@ package body Files.Application is
                  Cell_Height => 20);
             Glyphs        : constant Files.Rendering.Text_Render_Result :=
               Files.Rendering.Build_Text_Glyphs (Text_Renderer, Frame);
-            Batch         : constant Files.Rendering.Vulkan.Submission_Batch :=
-              Files.Rendering.Vulkan.Build_Submission (Frame, Glyphs);
+            Batch         : constant Files.Gui.Vulkan.Submission_Batch :=
+              Files.Gui.Vulkan.Build_Submission (Frame, Glyphs);
          begin
             Append_Line
               (Files.Localization.Text ("runtime.smoke.window", Locale)
@@ -581,7 +581,7 @@ package body Files.Application is
                Ada.Text_IO.Put_Line
                  (Files.Localization.Text ("runtime.smoke.vulkan_status")
                   & ": "
-                  & Files.Rendering.Vulkan.Vulkan_Status'Image (Live_Result.Last_Status));
+                  & Files.Gui.Vulkan.Vulkan_Status'Image (Live_Result.Last_Status));
                Ada.Text_IO.Put_Line
                  (Files.Localization.Text ("runtime.smoke.vulkan_result")
                   & ": "
@@ -607,7 +607,7 @@ package body Files.Application is
                   & ": "
                   & Natural'Image (Live_Result.Last_Framebuffer_Bytes));
                declare
-                  Metrics : constant Files.Rendering.Frame_Analysis.Frame_Metrics :=
+                  Metrics : constant Files.Gui.Frame_Analysis.Frame_Metrics :=
                     Live_Result.Framebuffer_Analysis;
                   Background_Percent : constant Natural :=
                     Natural (Float'Floor (Metrics.Background_Fraction * 100.0));
@@ -628,7 +628,7 @@ package body Files.Application is
                     (Files.Localization.Text ("runtime.smoke.bands_with_content")
                      & ": "
                      & Natural'Image
-                         (Files.Rendering.Frame_Analysis.Bands_With_Content (Metrics)));
+                         (Files.Gui.Frame_Analysis.Bands_With_Content (Metrics)));
                   Ada.Text_IO.Put_Line
                     (Files.Localization.Text ("runtime.smoke.structural_verdict")
                      & ": "

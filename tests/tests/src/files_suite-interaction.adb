@@ -20,6 +20,7 @@ with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
+with Files.Gui.Draw;
 with Files.Rendering;
 with Files.Settings;
 with Files.Types;
@@ -61,7 +62,7 @@ package body Files_Suite.Interaction is
    use type Files.File_System.Path_Status;
    use type Files.Model.Clipboard_Mode;
    use type Files.Model.Palette_Mode;
-   use type Files.Rendering.Accessibility_Role;
+   use type Files.Gui.Draw.Accessibility_Role;
    use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Types.Color_Label;
    use type Files.Types.Focus_Target;
@@ -364,8 +365,8 @@ package body Files_Suite.Interaction is
       Count    : Natural := 0;
    begin
       for Node of Frame.Accessibility loop
-         if (Node.Role = Files.Rendering.Role_List_Item
-             or else Node.Role = Files.Rendering.Role_Table_Row)
+         if (Node.Role = Files.Gui.Draw.Role_List_Item
+             or else Node.Role = Files.Gui.Draw.Role_Table_Row)
            and then Node.Selected
          then
             Count := Count + 1;
@@ -1195,7 +1196,7 @@ package body Files_Suite.Interaction is
 
       --  Derive the click coordinate from the real bottom-bar control node.
       for Node of Frame.Accessibility loop
-         if Node.Role = Files.Rendering.Role_Button
+         if Node.Role = Files.Gui.Draw.Role_Button
            and then Ada.Strings.Unbounded.To_String (Node.Name) = Toggle_Name
          then
             X := Node.X + Node.Width / 2;

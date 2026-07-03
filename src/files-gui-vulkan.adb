@@ -6,7 +6,7 @@ with Interfaces.C;
 with Glfw.Windows.Vulkan;
 with System.Address_To_Access_Conversions;
 
-package body Files.Rendering.Vulkan is
+package body Files.Gui.Vulkan is
    use Ada.Strings.Unbounded;
    use type Interfaces.C.C_float;
    use type Interfaces.Unsigned_32;
@@ -359,7 +359,7 @@ package body Files.Rendering.Vulkan is
      (Renderer : in out Vulkan_Renderer);
 
    procedure Free_Retained_Frame is new Ada.Unchecked_Deallocation
-     (Object => Files.Rendering.Frame_Analysis.Byte_Array,
+     (Object => Files.Gui.Frame_Analysis.Byte_Array,
       Name   => Retained_Frame_Access);
 
    --  Release the retained read-back framebuffer copy, if any.
@@ -378,8 +378,8 @@ package body Files.Rendering.Vulkan is
       return Vulkan_Status;
 
    function Color_To_Vertex
-     (Color : Files.Rendering.Render_Color;
-      Theme : Files.Rendering.Theme_Kind := Files.Rendering.Theme_Dark)
+     (Color : Files.Gui.Draw.Render_Color;
+      Theme : Files.Gui.Draw.Theme_Kind := Files.Gui.Draw.Theme_Dark)
       return Gpu_Vertex;
 
    function Host_Visible_Memory_Type
@@ -446,8 +446,8 @@ package body Files.Rendering.Vulkan is
    end Choose_Graphics_Queue_Family;
 
    function Color_To_Vertex
-     (Color : Files.Rendering.Render_Color;
-      Theme : Files.Rendering.Theme_Kind := Files.Rendering.Theme_Dark)
+     (Color : Files.Gui.Draw.Render_Color;
+      Theme : Files.Gui.Draw.Theme_Kind := Files.Gui.Draw.Theme_Dark)
       return Gpu_Vertex
    is
       function Pow (Base : Float; Exponent : Float) return Float is
@@ -466,8 +466,8 @@ package body Files.Rendering.Vulkan is
 
       --  Palette color roles resolve to sRGB channels in Files.Rendering; the
       --  sRGB-to-linear conversion stays here in the Vulkan backend.
-      Palette : constant Files.Rendering.Palette_Color :=
-        Files.Rendering.Color_For (Color, Theme);
+      Palette : constant Files.Gui.Draw.Palette_Color :=
+        Files.Gui.Draw.Color_For (Color, Theme);
    begin
       return
         (X        => 0.0,
@@ -1798,7 +1798,7 @@ package body Files.Rendering.Vulkan is
       W            : Natural;
       H            : Natural;
       Min_Fraction : Float :=
-        Files.Rendering.Frame_Analysis.Default_Region_Ink_Fraction)
+        Files.Gui.Frame_Analysis.Default_Region_Ink_Fraction)
       return Boolean is
    begin
       return Readback_Region_Ink_Fraction (Renderer, X, Y, W, H) >= Min_Fraction;
@@ -3807,7 +3807,7 @@ package body Files.Rendering.Vulkan is
          V0       : Float;
          U1       : Float;
          V1       : Float;
-         Color    : Files.Rendering.Render_Color;
+         Color    : Files.Gui.Draw.Render_Color;
          Textured : Boolean;
          Texture  : Texture_Source := Texture_None)
       is
@@ -3854,7 +3854,7 @@ package body Files.Rendering.Vulkan is
          Y2    : Float;
          X3    : Float;
          Y3    : Float;
-         Color : Files.Rendering.Render_Color)
+         Color : Files.Gui.Draw.Render_Color)
       is
       begin
          if Natural (Result.Vertices.Length) > Max_Batch_Vertices - 3 then
@@ -3921,7 +3921,7 @@ package body Files.Rendering.Vulkan is
 
          procedure Role_Color
            (Icon_Id : String;
-            Role    : Files.Rendering.Icon_Asset_Color_Role;
+            Role    : Files.Gui.Draw.Icon_Asset_Color_Role;
             R       : out Interfaces.Unsigned_8;
             G       : out Interfaces.Unsigned_8;
             B       : out Interfaces.Unsigned_8;
@@ -3929,7 +3929,7 @@ package body Files.Rendering.Vulkan is
          is
          begin
             case Role is
-               when Files.Rendering.Icon_Asset_Base =>
+               when Files.Gui.Draw.Icon_Asset_Base =>
                   if Icon_Id = "folder" then
                      R := 82;
                      G := 128;
@@ -3939,15 +3939,15 @@ package body Files.Rendering.Vulkan is
                      G := 190;
                      B := 198;
                   end if;
-               when Files.Rendering.Icon_Asset_Accent =>
+               when Files.Gui.Draw.Icon_Asset_Accent =>
                   R := 57;
                   G := 127;
                   B := 218;
-               when Files.Rendering.Icon_Asset_Border =>
+               when Files.Gui.Draw.Icon_Asset_Border =>
                   R := 30;
                   G := 35;
                   B := 42;
-               when Files.Rendering.Icon_Asset_Muted =>
+               when Files.Gui.Draw.Icon_Asset_Muted =>
                   R := 112;
                   G := 120;
                   B := 130;
@@ -3957,15 +3957,15 @@ package body Files.Rendering.Vulkan is
 
          procedure Rasterize_Asset
            (Tile_Index : Natural;
-            Icon       : Files.Rendering.Icon_Command)
+            Icon       : Files.Gui.Draw.Icon_Command)
          is
             Asset_Text : constant String :=
-              Files.Rendering.Icon_Asset_Text (To_String (Icon.Icon_Id), To_String (Icon.Theme_Name));
-            Asset      : Files.Rendering.Icon_Asset := Files.Rendering.Parse_Icon_Asset (Asset_Text);
+              Files.Gui.Draw.Icon_Asset_Text (To_String (Icon.Icon_Id), To_String (Icon.Theme_Name));
+            Asset      : Files.Gui.Draw.Icon_Asset := Files.Gui.Draw.Parse_Icon_Asset (Asset_Text);
             Tile_X     : constant Natural := Tile_Index * Tile_Size;
 
             procedure Fill_Rect
-              (Rect : Files.Rendering.Icon_Asset_Rect)
+              (Rect : Files.Gui.Draw.Icon_Asset_Rect)
             is
                X0 : constant Natural :=
                  Saturating_Add
@@ -4044,8 +4044,8 @@ package body Files.Rendering.Vulkan is
 
             if not Asset.Valid then
                Asset :=
-                 Files.Rendering.Parse_Icon_Asset
-                   (Files.Rendering.Icon_Asset_Text ("unknown", To_String (Icon.Theme_Name)));
+                 Files.Gui.Draw.Parse_Icon_Asset
+                   (Files.Gui.Draw.Icon_Asset_Text ("unknown", To_String (Icon.Theme_Name)));
             end if;
 
             if Asset.Valid then
@@ -4178,7 +4178,7 @@ package body Files.Rendering.Vulkan is
                         V0       => 0.0,
                         U1       => U1,
                         V1       => 1.0,
-                        Color    => Files.Rendering.Icon_File_Color,
+                        Color    => Files.Gui.Draw.Icon_File_Color,
                         Textured => True,
                         Texture  => Texture_Icon_Atlas);
                      Result.Icon_Vertex_Count :=
@@ -4328,7 +4328,7 @@ package body Files.Rendering.Vulkan is
             Mix (Float_Code (Item.Y));
             Mix (Float_Code (Item.U));
             Mix (Float_Code (Item.V));
-            Mix (Natural_Code (Files.Rendering.Render_Color'Pos (Item.Color)));
+            Mix (Natural_Code (Files.Gui.Draw.Render_Color'Pos (Item.Color)));
             Mix (Boolean_Code (Item.Textured));
             Mix (Natural_Code (Texture_Source'Pos (Item.Texture)));
          end loop;
@@ -4555,4 +4555,4 @@ package body Files.Rendering.Vulkan is
          return Renderer.Last_Status;
    end Present;
 
-end Files.Rendering.Vulkan;
+end Files.Gui.Vulkan;

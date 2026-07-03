@@ -12,7 +12,7 @@ with Interfaces;
 --  margin, and layout tweaks yet still catch genuine display failures such as
 --  a blank frame, a single flat color, or a whole region (toolbar, main area,
 --  bottom bar) that failed to draw.
-package Files.Rendering.Frame_Analysis is
+package Files.Gui.Frame_Analysis is
 
    type Byte_Array is array (Positive range <>) of Interfaces.Unsigned_8;
    --  A raw framebuffer payload, one 8-bit component per element.
@@ -155,4 +155,4 @@ package Files.Rendering.Frame_Analysis is
       Min_Fraction : Float := Default_Region_Ink_Fraction)
       return Boolean;
 
-end Files.Rendering.Frame_Analysis;
+end Files.Gui.Frame_Analysis;

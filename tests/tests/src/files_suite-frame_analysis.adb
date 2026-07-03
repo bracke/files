@@ -4,7 +4,7 @@ with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Files.Rendering.Frame_Analysis;
+with Files.Gui.Frame_Analysis;
 
 --  Structural framebuffer-analysis tests. These exercise the pure, GPU-free
 --  analysis on synthetic in-memory RGBA buffers: a blank frame must fail, a
@@ -13,7 +13,7 @@ with Files.Rendering.Frame_Analysis;
 package body Files_Suite.Frame_Analysis is
 
    use AUnit.Assertions;
-   use Files.Rendering.Frame_Analysis;
+   use Files.Gui.Frame_Analysis;
    use type Interfaces.Unsigned_8;
 
    Frame_Width  : constant := 64;

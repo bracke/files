@@ -45,8 +45,9 @@ with Files.Model;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
+with Files.Gui.Draw;
 with Files.Rendering;
-with Files.Rendering.Vulkan;
+with Files.Gui.Vulkan;
 with Files.Settings;
 with Files.Types;
 with Files.UTF8;
@@ -76,13 +77,13 @@ package body Files_Suite.Operations is
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Files.Rendering.Accessibility_Role;
-   use type Files.Rendering.Icon_Asset_Color_Role;
-   use type Files.Rendering.Render_Color;
+   use type Files.Gui.Draw.Accessibility_Role;
+   use type Files.Gui.Draw.Icon_Asset_Color_Role;
+   use type Files.Gui.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Rendering.Vulkan.Atlas_Texture_Format;
-   use type Files.Rendering.Vulkan.Texture_Source;
-   use type Files.Rendering.Vulkan.Vulkan_Status;
+   use type Files.Gui.Vulkan.Atlas_Texture_Format;
+   use type Files.Gui.Vulkan.Texture_Source;
+   use type Files.Gui.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
@@ -2409,7 +2410,7 @@ package body Files_Suite.Operations is
               Height      => 800,
               Line_Height => 20);
          Empty_Text : Files.Rendering.Text_Render_Result;
-         Thumbnail_Batch : Files.Rendering.Vulkan.Submission_Batch;
+         Thumbnail_Batch : Files.Gui.Vulkan.Submission_Batch;
          Found_Thumbnail_Command : Boolean := False;
          Found_Thumbnail_Icon    : Boolean := False;
          Thumbnail_Tile          : Natural := 0;
@@ -2436,7 +2437,7 @@ package body Files_Suite.Operations is
          Assert
            (Found_Thumbnail_Icon,
             "large-icons item icon command uses a thumbnail-specific icon asset");
-         Thumbnail_Batch := Files.Rendering.Vulkan.Build_Submission (Thumbnail_Frame, Empty_Text);
+         Thumbnail_Batch := Files.Gui.Vulkan.Build_Submission (Thumbnail_Frame, Empty_Text);
          declare
             Pixel_Offset : constant Positive := Positive (Thumbnail_Tile * 64 * 4 + 1);
          begin
@@ -3467,7 +3468,7 @@ package body Files_Suite.Operations is
          end loop;
 
          for Node of Frame.Accessibility loop
-            if Node.Role = Files.Rendering.Role_List_Item
+            if Node.Role = Files.Gui.Draw.Role_List_Item
               and then To_String (Node.Name) = "meta.txt"
               and then Ada.Strings.Fixed.Index
                 (To_String (Node.Description),
@@ -3530,7 +3531,7 @@ package body Files_Suite.Operations is
             end if;
          end loop;
          for Node of Frame.Accessibility loop
-            if Node.Role = Files.Rendering.Role_List_Item
+            if Node.Role = Files.Gui.Draw.Role_List_Item
               and then To_String (Node.Name) = "broken.txt"
               and then Ada.Strings.Fixed.Index
                 (To_String (Node.Description),

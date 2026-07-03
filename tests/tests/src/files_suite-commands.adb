@@ -39,8 +39,9 @@ with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Platform;
+with Files.Gui.Draw;
 with Files.Rendering;
-with Files.Rendering.Vulkan;
+with Files.Gui.Vulkan;
 with Files.Settings;
 with Files.Types;
 with Files.UTF8;
@@ -70,13 +71,13 @@ package body Files_Suite.Commands is
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Files.Rendering.Accessibility_Role;
-   use type Files.Rendering.Icon_Asset_Color_Role;
-   use type Files.Rendering.Render_Color;
+   use type Files.Gui.Draw.Accessibility_Role;
+   use type Files.Gui.Draw.Icon_Asset_Color_Role;
+   use type Files.Gui.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Rendering.Vulkan.Atlas_Texture_Format;
-   use type Files.Rendering.Vulkan.Texture_Source;
-   use type Files.Rendering.Vulkan.Vulkan_Status;
+   use type Files.Gui.Vulkan.Atlas_Texture_Format;
+   use type Files.Gui.Vulkan.Texture_Source;
+   use type Files.Gui.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
@@ -2558,13 +2559,13 @@ package body Files_Suite.Commands is
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       for Command of Frame.Text loop
          if To_String (Command.Text) = Files.Localization.Text ("command.palette.empty")
-           and then Command.Color = Files.Rendering.Muted_Text_Color
+           and then Command.Color = Files.Gui.Draw.Muted_Text_Color
          then
             Found_Empty_Text := True;
          end if;
       end loop;
       for Node of Frame.Accessibility loop
-         if Node.Role = Files.Rendering.Role_Status
+         if Node.Role = Files.Gui.Draw.Role_Status
            and then To_String (Node.Name) = Files.Localization.Text ("command.palette.empty")
          then
             Found_Empty_Status := True;

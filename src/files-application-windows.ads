@@ -1,6 +1,6 @@
 with Files.Controller;
-with Files.Rendering.Frame_Analysis;
-with Files.Rendering.Vulkan;
+with Files.Gui.Frame_Analysis;
+with Files.Gui.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
 with Interfaces;
@@ -96,13 +96,13 @@ package Files.Application.Windows is
       Input_Polled       : Boolean := False;
       Closed_Cleanly     : Boolean := False;
       Skipped_By_Plan    : Boolean := True;
-      Last_Status        : Files.Rendering.Vulkan.Vulkan_Status :=
-        Files.Rendering.Vulkan.Vulkan_Not_Initialized;
+      Last_Status        : Files.Gui.Vulkan.Vulkan_Status :=
+        Files.Gui.Vulkan.Vulkan_Not_Initialized;
       Last_Vk_Result     : Interfaces.Integer_32 := 0;
       Framebuffer_Readback_Ready : Boolean := False;
       Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
       Last_Framebuffer_Bytes : Natural := 0;
-      Framebuffer_Analysis : Files.Rendering.Frame_Analysis.Frame_Metrics;
+      Framebuffer_Analysis : Files.Gui.Frame_Analysis.Frame_Metrics;
       Framebuffer_Passed : Boolean := False;
       Vulkan_Device_Ready : Boolean := False;
       Scenario_Results   : Scenario_Outcome_Array;
