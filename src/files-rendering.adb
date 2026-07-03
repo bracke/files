@@ -4900,19 +4900,20 @@ package body Files.Rendering is
          Track_H  : Natural;
          Thumb_Y  : Natural;
          Thumb_H  : Natural) is
-         Grip_W : constant Natural := (if Track_W > 2 then Track_W - 2 else 0);
-         Grip_X : constant Natural := Saturating_Add (Track_X, 1);
-         Mid_Y  : constant Natural := Saturating_Add (Thumb_Y, Thumb_H / 2);
       begin
-         Add_Rect (Track_X, Track_Y, Track_W, Track_H, Border_Color);
-         Add_Rect (Track_X, Thumb_Y, Track_W, Thumb_H, Selection_Color);
-         Add_Border (Track_X, Thumb_Y, Track_W, Thumb_H, Border_Color);
-
-         if Grip_W > 0 and then Thumb_H >= 7 then
-            Add_Rect (Grip_X, Mid_Y - 2, Grip_W, 1, Muted_Text_Color);
-            Add_Rect (Grip_X, Mid_Y, Grip_W, 1, Muted_Text_Color);
-            Add_Rect (Grip_X, Saturating_Add (Mid_Y, 2), Grip_W, 1, Muted_Text_Color);
-         end if;
+         Files.Gui.Widgets.Draw_Scrollbar
+           (Rectangles   => Result.Rectangles,
+            Clip_Width   => Layout.Width,
+            Clip_Height  => Layout.Height,
+            Track_X      => Track_X,
+            Track_Y      => Track_Y,
+            Track_Width  => Track_W,
+            Track_Height => Track_H,
+            Thumb_Y      => Thumb_Y,
+            Thumb_Height => Thumb_H,
+            Track_Color  => Border_Color,
+            Thumb_Color  => Selection_Color,
+            Grip_Color   => Muted_Text_Color);
       end Add_Scrollbar;
 
       --  Draw a panel's top-right close (X) button plus its Role_Button

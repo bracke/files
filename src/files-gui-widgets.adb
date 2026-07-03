@@ -271,4 +271,39 @@ package body Files.Gui.Widgets is
       end loop;
    end Draw_Segmented;
 
+   procedure Draw_Scrollbar
+     (Rectangles   : in out Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      Track_X      : Natural;
+      Track_Y      : Natural;
+      Track_Width  : Natural;
+      Track_Height : Natural;
+      Thumb_Y      : Natural;
+      Thumb_Height : Natural;
+      Track_Color  : Render_Color;
+      Thumb_Color  : Render_Color;
+      Grip_Color   : Render_Color)
+   is
+      Grip_W : constant Natural := (if Track_Width > 2 then Track_Width - 2 else 0);
+      Grip_X : constant Natural := Saturating_Add (Track_X, 1);
+      Mid_Y  : constant Natural := Saturating_Add (Thumb_Y, Thumb_Height / 2);
+   begin
+      Add_Clipped_Rect
+        (Rectangles, Clip_Width, Clip_Height, Track_X, Track_Y, Track_Width, Track_Height, Track_Color);
+      Add_Clipped_Rect
+        (Rectangles, Clip_Width, Clip_Height, Track_X, Thumb_Y, Track_Width, Thumb_Height, Thumb_Color);
+      Add_Border
+        (Rectangles, Clip_Width, Clip_Height, Track_X, Thumb_Y, Track_Width, Thumb_Height, Track_Color);
+
+      if Grip_W > 0 and then Thumb_Height >= 7 then
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, Grip_X, Mid_Y - 2, Grip_W, 1, Grip_Color);
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, Grip_X, Mid_Y, Grip_W, 1, Grip_Color);
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, Grip_X, Saturating_Add (Mid_Y, 2), Grip_W, 1, Grip_Color);
+      end if;
+   end Draw_Scrollbar;
+
 end Files.Gui.Widgets;

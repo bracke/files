@@ -166,4 +166,38 @@ package Files.Gui.Widgets is
       Label_Color    : Files.Gui.Draw.Render_Color;
       Padding        : Natural);
 
+   --  Draw a vertical scrollbar: a full-height track rectangle with a thumb
+   --  rectangle painted on top of it, the thumb outlined by a one-pixel border
+   --  and -- when it is at least seven pixels tall and the track is wide enough
+   --  for a grip -- three horizontal grip lines centered on the thumb. The
+   --  caller computes the track and thumb geometry from the scroll offset and
+   --  content height, resolves the theme colors, decides visibility, and
+   --  registers any drag hit region; the widget only emits the rectangles.
+   --
+   --  @param Rectangles Rectangle command vector to append the scrollbar to.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param Track_X Left edge of the track and thumb in pixels.
+   --  @param Track_Y Track top edge in pixels.
+   --  @param Track_Width Width of both the track and the thumb in pixels.
+   --  @param Track_Height Track height in pixels.
+   --  @param Thumb_Y Thumb top edge in pixels.
+   --  @param Thumb_Height Thumb height in pixels.
+   --  @param Track_Color Track fill color; also used for the thumb's border.
+   --  @param Thumb_Color Thumb fill color.
+   --  @param Grip_Color Color of the three grip lines.
+   procedure Draw_Scrollbar
+     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      Track_X      : Natural;
+      Track_Y      : Natural;
+      Track_Width  : Natural;
+      Track_Height : Natural;
+      Thumb_Y      : Natural;
+      Thumb_Height : Natural;
+      Track_Color  : Files.Gui.Draw.Render_Color;
+      Thumb_Color  : Files.Gui.Draw.Render_Color;
+      Grip_Color   : Files.Gui.Draw.Render_Color);
+
 end Files.Gui.Widgets;
