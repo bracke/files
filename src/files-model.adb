@@ -11,6 +11,7 @@ package body Files.Model is
    use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Navigation_Direction;
+   use type Files.Types.Search_Scope;
 
    Temporary_Item_Index : constant Natural := Natural'Last;
 
@@ -542,6 +543,8 @@ package body Files.Model is
       Model.Back_History.Clear;
       Model.Forward_History.Clear;
       Model.Recent_View_Active := False;
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
       Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
       Model.Path_Input_Value := To_Unbounded_String (Directory_Path);
@@ -862,7 +865,45 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       Set_Filter (Model, "");
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
    end Clear_Filter;
+
+   function Search_Scope_Of
+     (Model : Window_Model)
+      return Files.Types.Search_Scope is
+   begin
+      return Model.Search_Scope_Value;
+   end Search_Scope_Of;
+
+   procedure Set_Search_Scope
+     (Model : in out Window_Model;
+      Scope : Files.Types.Search_Scope) is
+   begin
+      Model.Search_Scope_Value := Scope;
+   end Set_Search_Scope;
+
+   function Search_Results_Are_Active
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Search_Results_Active;
+   end Search_Results_Are_Active;
+
+   procedure Note_Search_Results
+     (Model : in out Window_Model;
+      Scope : Files.Types.Search_Scope) is
+   begin
+      Model.Search_Scope_Value := Scope;
+      Model.Search_Results_Active := Scope /= Files.Types.Filter_Here;
+   end Note_Search_Results;
+
+   procedure Clear_Search_Results
+     (Model : in out Window_Model) is
+   begin
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
+   end Clear_Search_Results;
 
    --  Single-select a visible item without disturbing the type-ahead prefix.
    --  Type-ahead selection uses this so its own selection jumps do not clear the
@@ -1481,6 +1522,8 @@ package body Files.Model is
       end if;
 
       Model.Recent_View_Active := False;
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);

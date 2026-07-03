@@ -415,6 +415,8 @@ package body Files.Events is
       Toolbar        : constant Files.UI.Toolbar_Layout := Files.UI.Calculate_Toolbar_Layout (Width);
       Toolbar_Input_Y : constant Natural := Files.UI.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Files.UI.Toolbar_Input_Height (Line_Height);
+      Scope_Chip     : constant Files.UI.Scope_Chip_Region :=
+        Files.UI.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
       Palette_Rows   : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
@@ -1133,6 +1135,14 @@ package body Files.Events is
                       (Saturating_Add (Toolbar.Middle_X, Files.UI.Input_Field_Padding),
                        Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
                  Click_X     => X));
+      elsif Scope_Chip.Visible
+        and then Within (X, Scope_Chip.X, Scope_Chip.Width)
+        and then Within (Y, Scope_Chip.Y, Scope_Chip.Height)
+      then
+         --  The scope chip sits inside the filter section and takes precedence
+         --  over the filter input hit zone: a click here cycles the search scope
+         --  rather than focusing the filter field.
+         return (Kind => Search_Scope_Toggle_Input_Action, others => <>);
       elsif Within (X, Toolbar.Right_X, Toolbar.Right_Width)
         and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
       then

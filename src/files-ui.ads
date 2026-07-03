@@ -45,6 +45,40 @@ package Files.UI is
       Right_Width  : Natural := 0;
    end record;
 
+   --  Rectangle of the filter-bar search-scope chip. The chip is a small
+   --  clickable control right-aligned inside the toolbar's right (filter)
+   --  section; the filter input field is narrowed to end before it. Visible is
+   --  False when the right section is too narrow to host the chip alongside a
+   --  usable input field, in which case the chip is neither drawn nor hit-tested.
+   type Scope_Chip_Region is record
+      Visible : Boolean := False;
+      X       : Natural := 0;
+      Y       : Natural := 0;
+      Width   : Natural := 0;
+      Height  : Natural := 0;
+   end record;
+
+   --  Return the filter-bar search-scope chip rectangle for a toolbar layout.
+   --
+   --  @param Toolbar Toolbar layout containing the right (filter) section.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Chip rectangle, with Visible reflecting whether it fits.
+   function Filter_Scope_Chip_Region_Of
+     (Toolbar     : Toolbar_Layout;
+      Line_Height : Positive := 20)
+      return Scope_Chip_Region;
+
+   --  Return the width of the filter input field once the scope chip has been
+   --  carved out of the toolbar's right section, matching the renderer's layout.
+   --
+   --  @param Toolbar Toolbar layout containing the right (filter) section.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Filter input field width in pixels (never negative).
+   function Filter_Input_Field_Width
+     (Toolbar     : Toolbar_Layout;
+      Line_Height : Positive := 20)
+      return Natural;
+
    type Bottom_Bar_Layout is record
       View_Mode_X          : Natural := 0;
       View_Mode_Width      : Natural := 0;

@@ -82,6 +82,60 @@ package body Files.UI is
       return Saturating_Multiply (Files.UTF8.Display_Units (Text), Cell_W);
    end Label_Pixel_Width;
 
+   --  Horizontal gap between the filter field, the scope chip, and the right
+   --  edge of the toolbar section, matching the renderer's field margin.
+   Scope_Chip_Margin : constant Natural := 6;
+
+   function Scope_Chip_Fixed_Width (Line_Height : Positive) return Natural is
+   begin
+      return Saturating_Multiply (Line_Height, 3);
+   end Scope_Chip_Fixed_Width;
+
+   function Filter_Scope_Chip_Region_Of
+     (Toolbar     : Toolbar_Layout;
+      Line_Height : Positive := 20)
+      return Scope_Chip_Region
+   is
+      Chip_Width : constant Natural := Scope_Chip_Fixed_Width (Line_Height);
+      Min_Input  : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Required   : constant Natural :=
+        Saturating_Add
+          (Saturating_Add (Chip_Width, Min_Input), Saturating_Multiply (Scope_Chip_Margin, 3));
+   begin
+      if Toolbar.Right_Width < Required then
+         return (Visible => False, others => 0);
+      end if;
+
+      return
+        (Visible => True,
+         X       => Saturating_Add (Toolbar.Right_X, Toolbar.Right_Width)
+                      - Scope_Chip_Margin - Chip_Width,
+         Y       => Toolbar_Input_Y (Line_Height),
+         Width   => Chip_Width,
+         Height  => Toolbar_Input_Height (Line_Height));
+   end Filter_Scope_Chip_Region_Of;
+
+   function Filter_Input_Field_Width
+     (Toolbar     : Toolbar_Layout;
+      Line_Height : Positive := 20)
+      return Natural
+   is
+      Chip : constant Scope_Chip_Region := Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+      Both_Margins : constant Natural := Saturating_Multiply (Scope_Chip_Margin, 2);
+   begin
+      if not Chip.Visible then
+         return (if Toolbar.Right_Width > Both_Margins then Toolbar.Right_Width - Both_Margins else 0);
+      end if;
+
+      declare
+         Filter_X : constant Natural := Saturating_Add (Toolbar.Right_X, Scope_Chip_Margin);
+         Field_End : constant Natural :=
+           (if Chip.X > Scope_Chip_Margin then Chip.X - Scope_Chip_Margin else 0);
+      begin
+         return (if Field_End > Filter_X then Field_End - Filter_X else 0);
+      end;
+   end Filter_Input_Field_Width;
+
    function Calculate_Toolbar_Layout
      (Width : Natural)
       return Toolbar_Layout

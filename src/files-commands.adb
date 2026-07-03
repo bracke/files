@@ -160,6 +160,8 @@ package body Files.Commands is
             return "selection.deselect_all";
          when Search_Recursive_Command =>
             return "directory.search_recursive";
+         when Search_Contents_Command =>
+            return "search.contents";
          when Refresh_Directory_Command =>
             return "directory.refresh";
          when Save_Settings_Command =>
@@ -310,6 +312,8 @@ package body Files.Commands is
             return "command.selection.deselect_all";
          when Search_Recursive_Command =>
             return "command.directory.search_recursive";
+         when Search_Contents_Command =>
+            return "command.search.contents";
          when Refresh_Directory_Command =>
             return "command.directory.refresh";
          when Save_Settings_Command =>
@@ -460,6 +464,8 @@ package body Files.Commands is
             return "command.selection.deselect_all.description";
          when Search_Recursive_Command =>
             return "command.directory.search_recursive.description";
+         when Search_Contents_Command =>
+            return "command.search.contents.description";
          when Refresh_Directory_Command =>
             return "command.directory.refresh.description";
          when Save_Settings_Command =>
@@ -1075,7 +1081,7 @@ package body Files.Commands is
               and then Files.Model.Root_Is_Removable (Model, Files.Model.Root_Selected_Index (Model));
          when Clear_Filter_Command =>
             return Files.Model.Filter_Text (Model) /= "";
-         when Search_Recursive_Command =>
+         when Search_Recursive_Command | Search_Contents_Command =>
             return Files.Model.Filter_Text (Model) /= "";
          when Select_All_Command =>
             return Files.Model.Visible_Count (Model) > 0
@@ -1311,6 +1317,11 @@ package body Files.Commands is
          when Deselect_All_Command =>
             Files.Model.Deselect_All (Model);
          when Search_Recursive_Command =>
+            null;
+         when Search_Contents_Command =>
+            --  Walking the subtree and reading each file's bounded bytes needs
+            --  filesystem access, so content search is routed through
+            --  Files.Controller rather than this pure model-only executor.
             null;
          when Refresh_Directory_Command =>
             null;

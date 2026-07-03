@@ -182,10 +182,53 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
-   --  Clear the current filter text.
+   --  Clear the current filter text. Resets the search scope to Filter_Here and
+   --  drops any recorded search-results state.
    --
    --  @param Model Model to update.
    procedure Clear_Filter
+     (Model : in out Window_Model);
+
+   --  Return the active scope of the shared filter-bar query.
+   --
+   --  @param Model Model to inspect.
+   --  @return Current search scope.
+   function Search_Scope_Of
+     (Model : Window_Model)
+      return Files.Types.Search_Scope;
+
+   --  Set the active scope of the shared filter-bar query. Does not itself run a
+   --  search; callers run the matching operation and record results separately.
+   --
+   --  @param Model Model to update.
+   --  @param Scope New search scope.
+   procedure Set_Search_Scope
+     (Model : in out Window_Model;
+      Scope : Files.Types.Search_Scope);
+
+   --  Return whether the current view holds recursive search results rather than
+   --  a plain directory listing.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when search results are shown.
+   function Search_Results_Are_Active
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Record that the current view now holds recursive search results for the
+   --  given scope. Used by the name and content search operations.
+   --
+   --  @param Model Model to update.
+   --  @param Scope Scope that produced the results.
+   procedure Note_Search_Results
+     (Model : in out Window_Model;
+      Scope : Files.Types.Search_Scope);
+
+   --  Drop any recorded search-results state and reset the scope to Filter_Here,
+   --  leaving the loaded items untouched so the caller can restore the directory.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Search_Results
      (Model : in out Window_Model);
 
    --  Select a visible item by one-based visible index.
@@ -2190,6 +2233,11 @@ private
       --  reflects the stored recent paths rather than a real directory, so
       --  editing commands gate on it exactly as they gate on the trash view.
       Recent_View_Active   : Boolean := False;
+      --  Active scope of the shared filter-bar query, and whether the current
+      --  view holds recursive search results (name or content) rather than a
+      --  plain directory listing. Both reset on navigation and on Clear_Filter.
+      Search_Scope_Value    : Files.Types.Search_Scope := Files.Types.Filter_Here;
+      Search_Results_Active : Boolean := False;
       --  Paths opened since the last drain, awaiting fold into the persisted
       --  recent list by the interaction layer (see Note_Recent_Open).
       Recent_Open_Queue    : Files.Types.String_Vectors.Vector;

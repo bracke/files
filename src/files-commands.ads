@@ -50,6 +50,7 @@ package Files.Commands is
       Invert_Selection_Command,
       Deselect_All_Command,
       Search_Recursive_Command,
+      Search_Contents_Command,
       Refresh_Directory_Command,
       Save_Settings_Command,
       Reset_Settings_Command,

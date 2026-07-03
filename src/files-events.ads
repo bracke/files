@@ -27,6 +27,7 @@ package Files.Events is
       Ownership_Edit_Input_Action,
       Conflict_Click_Input_Action,
       Paste_Cancel_Input_Action,
+      Search_Scope_Toggle_Input_Action,
       Label_Picker_Choice_Input_Action);
 
    --  Button codes carried in Input_Action.Settings_Field for a

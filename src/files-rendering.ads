@@ -194,6 +194,12 @@ package Files.Rendering is
       Free_Space_Bytes      : Long_Long_Integer := 0;
       Total_Space_Bytes     : Long_Long_Integer := 0;
       Filter_Text           : UString;
+      --  Active filter-bar search scope and whether the current view holds
+      --  recursive search results (name or content) rather than a plain
+      --  directory listing, so the renderer can draw the scope chip in its
+      --  current state and mark the results as a search rather than a directory.
+      Search_Scope          : Files.Types.Search_Scope := Files.Types.Filter_Here;
+      Search_Results_Active : Boolean := False;
       Last_Error_Key        : UString;
       Focus                 : Files.Types.Focus_Target := Files.Types.Focus_None;
       Text_Cursor_Position  : Natural := 0;

@@ -9,6 +9,10 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Added
+- Content search: find files by what's inside them, not just their names. A scope
+  chip on the filter bar switches between filtering the current folder by name,
+  searching names in subfolders, and searching file contents; a Search Contents
+  command does the same.
 - Quick Look: press Space to preview the selected item (image or text) in a
   centered overlay.
 - Color labels (tags): assign a color label to any item from a swatch picker;

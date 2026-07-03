@@ -9,6 +9,18 @@ package body Files.Types is
       return Code in 16#80# .. 16#BF#;
    end Is_Continuation;
 
+   function Next_Scope (Scope : Search_Scope) return Search_Scope is
+   begin
+      case Scope is
+         when Filter_Here =>
+            return Search_Names;
+         when Search_Names =>
+            return Search_Contents;
+         when Search_Contents =>
+            return Filter_Here;
+      end case;
+   end Next_Scope;
+
    function To_Lower (Text : String) return String is
       Result : String (Text'Range);
       Index  : Integer := Text'First;

@@ -234,6 +234,37 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Return whether Query occurs, case-insensitively, in the raw bytes Bytes.
+   --
+   --  This is the pure, filesystem-free match seam the content search uses on
+   --  each file's bounded leading bytes. An empty Query never matches, and bytes
+   --  classified as binary (via the Quick Look NUL/control heuristic) never match
+   --  so binary files are skipped without further inspection.
+   --
+   --  @param Bytes Raw leading bytes of a file.
+   --  @param Query Text to look for.
+   --  @return True when Query occurs case-insensitively in textual Bytes.
+   function Content_Matches
+     (Bytes : String;
+      Query : String)
+      return Boolean;
+
+   --  Replace the current view with recursive content-search results for the
+   --  filter text: files under the current directory whose bounded leading bytes
+   --  contain the query, case-insensitively. The walk is bounded (capped files
+   --  scanned, directory depth, and bytes read per file), skips binary and
+   --  unreadable files, and does not descend symlinked directories. An empty
+   --  query performs no search; a search with no matches shows an empty view and
+   --  reports the "search.no_matches" status key.
+   --
+   --  @param Model Window model containing the current path and filter query.
+   --  @param Settings Settings model used for directory classification.
+   --  @return Structured operation result.
+   function Run_Content_Search
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
    --  Commit the current path-input text by validating and loading the destination.
    --
    --  @param Model Window model to update.

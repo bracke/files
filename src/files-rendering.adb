@@ -1757,6 +1757,8 @@ package body Files.Rendering is
          Snapshot.Total_Space_Bytes := Capacity.Capacity_Bytes;
       end;
       Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filter_Text (Model));
+      Snapshot.Search_Scope := Files.Model.Search_Scope_Of (Model);
+      Snapshot.Search_Results_Active := Files.Model.Search_Results_Are_Active (Model);
       Snapshot.Last_Error_Key := To_Unbounded_String (Files.Model.Last_Error_Key (Model));
       Snapshot.Focus := Files.Model.Focus (Model);
       Snapshot.Text_Cursor_Position := Files.Model.Text_Cursor_Position (Model);
@@ -6809,10 +6811,17 @@ package body Files.Rendering is
          Field_Margin : constant Natural := 6;
          Filter_X : constant Natural :=
            Saturating_Add (Toolbar.Right_X, Field_Margin);
+         --  The filter field is narrowed to end before the scope chip (when the
+         --  chip fits); Files.UI owns the shared geometry the click hit-test uses.
          Filter_W : constant Natural :=
-           (if Toolbar.Right_Width > Saturating_Multiply (Field_Margin, 2)
-            then Toolbar.Right_Width - Saturating_Multiply (Field_Margin, 2)
-            else 0);
+           Files.UI.Filter_Input_Field_Width (Toolbar, Line_Height);
+         Scope_Chip : constant Files.UI.Scope_Chip_Region :=
+           Files.UI.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+         Scope_Key : constant String :=
+           (case Snapshot.Search_Scope is
+              when Files.Types.Filter_Here => "search.scope.here",
+              when Files.Types.Search_Names => "search.scope.names",
+              when Files.Types.Search_Contents => "search.scope.contents");
       begin
          Add_Rect
            (Filter_X,
@@ -6856,6 +6865,47 @@ package body Files.Rendering is
          end if;
          if Is_Pressed (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H) then
             Add_Border (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Pressed_Color);
+         end if;
+
+         if Scope_Chip.Visible then
+            --  The scope chip shows the active scope's short label; its border is
+            --  accented while recursive search results are on screen so the view
+            --  reads clearly as a search rather than a plain directory listing.
+            Add_Rect
+              (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Input_Color);
+            Add_Border
+              (Scope_Chip.X,
+               Scope_Chip.Y,
+               Scope_Chip.Width,
+               Scope_Chip.Height,
+               (if Snapshot.Search_Results_Active then Pressed_Color else Border_Color));
+            Add_Text
+              (Saturating_Add (Scope_Chip.X, Files.UI.Input_Field_Padding),
+               Toolbar_Input_Text_Y,
+               (if Scope_Chip.Width > 2 * Files.UI.Input_Field_Padding
+                then Scope_Chip.Width - 2 * Files.UI.Input_Field_Padding
+                else 0),
+               Toolbar_Input_Text_H,
+               Localized (Scope_Key),
+               (if Snapshot.Search_Results_Active then Text_Color else Muted_Text_Color),
+               Fit => True);
+            if Has_Hover
+              and then Contains_Point
+                (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Hover_X, Hover_Y)
+            then
+               Add_Border
+                 (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Hover_Color);
+            end if;
+            Add_Accessibility_Node
+              (Role_Button,
+               Scope_Chip.X,
+               Scope_Chip.Y,
+               Scope_Chip.Width,
+               Scope_Chip.Height,
+               Localized ("accessibility.search_scope"),
+               Localized (Scope_Key),
+               Enabled => True,
+               Focused => False);
          end if;
       end;
       Add_Command_Tooltip

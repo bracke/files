@@ -634,6 +634,17 @@ package body Files.Interaction is
                  Outcome.Status = Files.Operations.Operation_Success
                  and then not Files.Model.Paste_Execution_Is_Active (Model);
             end;
+         when Files.Events.Search_Scope_Toggle_Input_Action =>
+            --  Clicking the filter-bar scope chip cycles the search scope and
+            --  re-runs the shared query in the new scope, replacing the view with
+            --  (or restoring it from) recursive search results.
+            Outcome := Files.Controller.Handle_Search_Scope_Toggle (Model, Settings);
+            Result.Status := Outcome.Status;
+            Result.Command := Outcome.Command;
+            Result.Command_Executed :=
+              Outcome.Status = Files.Controller.Controller_Command_Executed;
+            Result.Directory_Reloaded :=
+              Outcome.Operation.Status = Files.Operations.Operation_Success;
          when Files.Events.Scroll_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Targeted_Scroll

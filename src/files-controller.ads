@@ -129,6 +129,21 @@ package Files.Controller is
       Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
       return Controller_Result;
 
+   --  Cycle the filter-bar search scope one step forward and re-run the shared
+   --  query in the new scope. Filter_Here restores the live-filtered directory,
+   --  Search_Names runs a recursive name search, and Search_Contents runs a
+   --  recursive content search. With an empty query the scope still advances but
+   --  no search runs; any prior search results are cleared and the directory is
+   --  reloaded when returning to Filter_Here.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @return Controller result with the executed operation, when any.
+   function Handle_Search_Scope_Toggle
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Controller_Result;
+
    --  Select a root path from the root selector.
    --
    --  @param Model Window model to update.

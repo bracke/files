@@ -198,6 +198,22 @@ package Files.Types is
       Focus_Settings_Input,
       Focus_Ownership_Input);
 
+   --  Scope the shared filter-bar query applies to. Filter_Here live-filters the
+   --  current directory by name (the default), Search_Names replaces the view
+   --  with a recursive name search of the subtree, and Search_Contents replaces
+   --  it with a recursive content (grep) search. All three reuse one query text.
+   type Search_Scope is
+     (Filter_Here,
+      Search_Names,
+      Search_Contents);
+
+   --  Return the search scope reached by cycling one step forward, wrapping from
+   --  Search_Contents back to Filter_Here.
+   --
+   --  @param Scope Current search scope.
+   --  @return Next search scope in the cycle.
+   function Next_Scope (Scope : Search_Scope) return Search_Scope;
+
    --  Return Text converted to lower case using simple Ada character folding
    --  plus common UTF-8 Latin-1 uppercase letters.
    --
