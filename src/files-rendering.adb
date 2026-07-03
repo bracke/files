@@ -8858,11 +8858,13 @@ package body Files.Rendering is
 
             procedure Add_Settings_Control_Options (Y_Cursor : in out Natural) is
                Y      : Natural;
-               --  Segmented-option grid: four cells for most cycling fields,
-               --  five for the group-by field. Both are set in the body before
-               --  any Add_Cell call, so the nested proc reads the live values.
-               Cell_Count : Natural := 4;
-               Cell_W     : Natural := 0;
+               --  Segmented-option grid: four cells for the cycling fields that
+               --  render their options here (Sort / Theme / Icon theme). The
+               --  group-by field (index 9) is rendered separately as its own
+               --  full-width two-row control by Add_Settings_Group_By_Segments.
+               Cell_Count : constant Natural := 4;
+               Cell_W     : constant Natural :=
+                 (if Text_W > 0 then Text_W / Cell_Count else 0);
                Hidden : Boolean;
 
                procedure Add_Cell
@@ -8943,8 +8945,6 @@ package body Files.Rendering is
                Begin_Row (Y_Cursor);
                Y := Visible_Y (Y_Cursor);
                Hidden := Y_Hidden (Y_Cursor, Line_Height);
-               Cell_Count := (if Snapshot.Settings_Field_Index = 9 then 5 else 4);
-               Cell_W := (if Text_W > 0 then Text_W / Cell_Count else 0);
                case Snapshot.Settings_Field_Index is
                   when 1 | 2 | 4 =>
                      --  Inline toggle/segmented control already rendered in
@@ -8955,17 +8955,6 @@ package body Files.Rendering is
                      Add_Cell (1, "settings.sort.filetype", Current = "filetype");
                      Add_Cell (2, "settings.sort.size", Current = "size");
                      Add_Cell (3, "settings.sort.modified", Current = "modified");
-                  when 9 =>
-                     declare
-                        Group_Current : constant String :=
-                          To_String (Snapshot.Settings_Group_By_Token);
-                     begin
-                        Add_Cell (0, "settings.group.none", Group_Current = "none");
-                        Add_Cell (1, "settings.group.type", Group_Current = "type");
-                        Add_Cell (2, "settings.group.modified", Group_Current = "modified");
-                        Add_Cell (3, "settings.group.size", Group_Current = "size");
-                        Add_Cell (4, "settings.group.label", Group_Current = "label");
-                     end;
                   when 5 =>
                      declare
                         Theme_Current : constant String := To_String (Snapshot.Settings_Theme_Token);
@@ -8985,6 +8974,78 @@ package body Files.Rendering is
                end case;
                Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
             end Add_Settings_Control_Options;
+
+            --  The group-by field (index 9) is rendered as two rows: its label
+            --  row above (drawn by Add_Settings_Value like every other field)
+            --  and this dedicated segment row below. Splitting the five options
+            --  (None / Type / Modified / Size / Label) onto their own row --
+            --  rather than squeezing them beside the label -- gives each segment
+            --  a full fifth of the content width, so long labels ("Modified")
+            --  are no longer cramped. This runs unconditionally in
+            --  Draw_Settings_Fields, so the measurement pass and the paint pass
+            --  advance the shared Y cursor by the same extra row: scroll bounds
+            --  grow to include it and the segment hit regions land on the same Y
+            --  in both passes.
+            procedure Add_Settings_Group_By_Segments (Y_Cursor : in out Natural) is
+               Cell_Count    : constant Natural := 5;
+               Cell_W        : constant Natural :=
+                 (if Text_W > 0 then Text_W / Cell_Count else 0);
+               Group_Current : constant String :=
+                 To_String (Snapshot.Settings_Group_By_Token);
+               Y      : Natural;
+               Hidden : Boolean;
+
+               procedure Add_Cell
+                 (Offset : Natural;
+                  Key    : String;
+                  Active : Boolean)
+               is
+                  Offset_X : constant Natural := Saturating_Multiply (Offset, Cell_W);
+                  X        : constant Natural := Saturating_Add (Text_X, Offset_X);
+                  --  The final cell absorbs the integer-division remainder so the
+                  --  five segments span exactly the full content width Text_W.
+                  W        : constant Natural :=
+                    (if Offset = Cell_Count - 1 then
+                        (if Text_W > Offset_X then Text_W - Offset_X else 0)
+                     else Cell_W);
+               begin
+                  if W = 0 or else Hidden then
+                     return;
+                  end if;
+
+                  Result.Settings_Hits.Append
+                    (Settings_Hit_Region'
+                       (Kind   => Settings_Hit_Segment,
+                        Field  => 9,
+                        Option => Offset + 1,
+                        X      => X,
+                        Y      => Y,
+                        Width  => W,
+                        Height => Line_Height));
+                  Add_Rect (X, Sel_Y (Y), W, Line_Height, (if Active then Selection_Color else Input_Color));
+                  Add_Border (X, Sel_Y (Y), W, Line_Height, Border_Color);
+                  Add_Text
+                    (Saturating_Add (X, Files.UI.Input_Field_Padding),
+                     Text_Y_In_Row (Y),
+                     (if W > 2 * Files.UI.Input_Field_Padding
+                      then W - 2 * Files.UI.Input_Field_Padding
+                      else 0),
+                     Line_Height,
+                     To_Unbounded_String (Files.Localization.Text (Key)),
+                     Muted_Text_Color,
+                     Fit => True);
+               end Add_Cell;
+            begin
+               Begin_Row (Y_Cursor);
+               Y := Visible_Y (Y_Cursor);
+               Hidden := Y_Hidden (Y_Cursor, Line_Height);
+               Add_Cell (0, "settings.group.none", Group_Current = "none");
+               Add_Cell (1, "settings.group.type", Group_Current = "type");
+               Add_Cell (2, "settings.group.modified", Group_Current = "modified");
+               Add_Cell (3, "settings.group.size", Group_Current = "size");
+               Add_Cell (4, "settings.group.label", Group_Current = "label");
+               Y_Cursor := Saturating_Add (Y_Cursor, Line_Height);
+            end Add_Settings_Group_By_Segments;
 
             procedure Add_Settings_Entry_Buttons
               (Y_Cursor : in out Natural;
@@ -9168,6 +9229,7 @@ package body Files.Rendering is
                Add_Settings_Toggle (Y_Cursor, "settings.system_opener", Snapshot.Settings_Opener_Token, 8);
                Add_Settings_Section_Header (Y_Cursor, "settings.section.details");
                Add_Settings_Value (Y_Cursor, "settings.grouping", Snapshot.Settings_Group_By, 9);
+               Add_Settings_Group_By_Segments (Y_Cursor);
                Add_Settings_Toggle (Y_Cursor, "settings.column.modified", Snapshot.Settings_Column_Modified_Token, 10);
                Add_Settings_Toggle (Y_Cursor, "settings.column.size", Snapshot.Settings_Column_Size_Token, 11);
                Add_Settings_Toggle (Y_Cursor, "settings.column.type", Snapshot.Settings_Column_Filetype_Token, 12);
@@ -9201,7 +9263,7 @@ package body Files.Rendering is
                      Muted_Text_Color,
                      Italic => True);
                end if;
-               if Snapshot.Settings_Field_Index in 3 | 5 | 6 | 9 then
+               if Snapshot.Settings_Field_Index in 3 | 5 | 6 then
                   Add_Settings_Control_Options (Y_Cursor);
                end if;
                if not Snapshot.Settings_Draft_Valid and then Length (Snapshot.Settings_Draft_Error) > 0 then

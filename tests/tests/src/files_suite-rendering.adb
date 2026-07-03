@@ -57,6 +57,8 @@ package body Files_Suite.Rendering is
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Section_Headers (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Grouping_Segments_Full_Width (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Grouping_Segment_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -116,6 +118,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Section_Headers'Access,
          "settings pane draws non-interactive section headers above their field groups");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Grouping_Segments_Full_Width'Access,
+         "the grouping field's five option segments span the full control width on their own row below the label");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Grouping_Segment_Click'Access,
+         "a click on a grouping option segment resolves to that option at its new row");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Count'Access, "bottom bar reflects the hidden count and exposes a toggle button");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1007,6 +1015,111 @@ package body Files_Suite.Rendering is
       Assert (Frame_Has_Text (Scrolled, Filetypes_Head),
               "scrolling to the bottom reveals the File types section header");
    end Test_Settings_Section_Headers;
+
+   --  The grouping field (index 9) is laid out as two rows: a label row and a
+   --  dedicated segment row spanning the full content width. The five option
+   --  segments (None / Type / Modified / Size / Label) therefore sit on their
+   --  own row BELOW the label and together span the whole control width (each
+   --  roughly a fifth), instead of being squeezed into a partial width shared
+   --  with the label. They render even when the field is not the focused one,
+   --  so the measured content height -- and thus the scroll bound -- always
+   --  accounts for the extra row.
+   procedure Test_Settings_Grouping_Segments_Full_Width (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot;
+      Frame    : Frame_Commands;
+
+      Have_Field : Boolean := False;
+      Field_X    : Natural := 0;
+      Field_Y    : Natural := 0;
+      Field_W    : Natural := 0;
+
+      Segment_Count : Natural := 0;
+      Segments_W    : Natural := 0;
+      First_Seg_X   : Natural := 0;
+      Seg_Y         : Natural := 0;
+      Y_Consistent  : Boolean := True;
+   begin
+      Snapshot.Settings_Pane_Open := True;
+      --  A window tall enough that the "Details" section (which holds the
+      --  grouping field) is on screen without scrolling, and note that the
+      --  focused field is left at its default (0), so the segments are proven
+      --  to render as a permanent extra row rather than only when focused.
+      Frame := Build_Frame_Commands (Snapshot, Width => 900, Height => 3000, Line_Height => 20);
+
+      --  Locate the grouping field's catch-all row region (its label row) and
+      --  the five option segments below it.
+      for R of Frame.Settings_Hits loop
+         if R.Field = 9 and then R.Kind = Settings_Hit_Field then
+            Have_Field := True;
+            Field_X := R.X;
+            Field_Y := R.Y;
+            Field_W := R.Width;
+         elsif R.Field = 9 and then R.Kind = Settings_Hit_Segment then
+            Segment_Count := Segment_Count + 1;
+            Segments_W := Segments_W + R.Width;
+            if Segment_Count = 1 then
+               Seg_Y := R.Y;
+            elsif R.Y /= Seg_Y then
+               Y_Consistent := False;
+            end if;
+            if R.Option = 1 then
+               First_Seg_X := R.X;
+            end if;
+         end if;
+      end loop;
+
+      Assert (Have_Field, "the grouping field's label row emits a settings-field hit region");
+      Assert (Segment_Count = 5, "the grouping field renders all five option segments");
+      Assert (Y_Consistent, "the five grouping segments share a single row (identical Y)");
+      Assert (Seg_Y > Field_Y,
+              "the grouping segment row sits below the field's label row (a separate second row)");
+      --  The catch-all field region is the content strip inset by 2px on each
+      --  side (X = Text_X - 2, Width = Text_W + 4), so the segments starting at
+      --  Field_X + 2 begin at the control's left edge and together span the full
+      --  control width Text_W (the final cell absorbs the division remainder).
+      Assert (First_Seg_X = Field_X + 2,
+              "the first grouping segment starts at the control's left edge, below the label");
+      Assert (Segments_W = Field_W - 4,
+              "the five grouping segments together span the full control width, not a shared partial one");
+   end Test_Settings_Grouping_Segments_Full_Width;
+
+   --  A click on a grouping option segment resolves through the hit-test to that
+   --  option (field 9, the clicked option index) at the segment's new row Y --
+   --  the same field/option the events layer feeds to Settings_Click -- so
+   --  choosing a grouping mode still works after the layout split.
+   procedure Test_Settings_Grouping_Segment_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot;
+      Frame    : Frame_Commands;
+
+      Target_Option : constant Natural := 3;  --  "Modified" (offset 2, option 3)
+      Have_Target   : Boolean := False;
+      Cx            : Natural := 0;
+      Cy            : Natural := 0;
+      Hit           : Settings_Hit_Region;
+   begin
+      Snapshot.Settings_Pane_Open := True;
+      Snapshot.Settings_Group_By_Token := To_Unbounded_String ("type");
+      Frame := Build_Frame_Commands (Snapshot, Width => 900, Height => 3000, Line_Height => 20);
+
+      for R of Frame.Settings_Hits loop
+         if R.Field = 9 and then R.Kind = Settings_Hit_Segment
+           and then R.Option = Target_Option
+         then
+            Have_Target := True;
+            Cx := R.X + R.Width / 2;
+            Cy := R.Y + R.Height / 2;
+         end if;
+      end loop;
+
+      Assert (Have_Target, "the grouping 'modified' option segment is emitted");
+      Hit := Settings_Hit_At (Frame, Cx, Cy);
+      Assert (Hit.Kind = Settings_Hit_Segment,
+              "a click at the grouping segment resolves to a segment hit, not the row behind it");
+      Assert (Hit.Field = 9 and then Hit.Option = Target_Option,
+              "the click resolves to the grouping field and the clicked option index");
+   end Test_Settings_Grouping_Segment_Click;
 
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
