@@ -2,6 +2,7 @@ with Files.Events;
 with Files.File_System;
 with Files.Model;
 with Files.Rendering;
+with Files.Gui.Input;
 with Files.Types;
 
 package Files_Suite.Support is
@@ -26,7 +27,7 @@ package Files_Suite.Support is
       Width       : Natural;
       Height      : Natural;
       Activate    : Boolean := False;
-      Modifiers   : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Modifiers   : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
       Line_Height : Positive := 20)
       return Files.Events.Input_Action;
 

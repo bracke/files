@@ -1414,7 +1414,7 @@ package body Files.Operations is
    function Open_Selected
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Operation_Result
    is
       Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
@@ -1611,7 +1611,7 @@ package body Files.Operations is
    function Prepare_Open_Selected_Action
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Operation_Result
    is
       Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);

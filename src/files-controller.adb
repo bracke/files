@@ -17,9 +17,9 @@ package body Files.Controller is
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Types.Key_Code;
-   use type Files.Types.Modifier_Set;
-   use type Files.Types.Navigation_Direction;
+   use type Files.Gui.Input.Key_Code;
+   use type Files.Gui.Input.Modifier_Set;
+   use type Files.Gui.Input.Navigation_Direction;
    use type Files.Types.String_Vectors.Vector;
 
    function Empty_Operation return Files.Operations.Operation_Result is
@@ -226,7 +226,7 @@ package body Files.Controller is
 
    procedure Move_Palette_Selection
      (Model     : in out Files.Model.Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
    is
       Results : constant Files.Command_Palette.Result_Vectors.Vector :=
         Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
@@ -240,7 +240,7 @@ package body Files.Controller is
          return;
       elsif Current = 0 or else Current > Count then
          Next := 1;
-      elsif Direction = Files.Types.Move_Up or else Direction = Files.Types.Move_Left then
+      elsif Direction = Files.Gui.Input.Move_Up or else Direction = Files.Gui.Input.Move_Left then
          Next := (if Current = 1 then Count else Current - 1);
       else
          Next := (if Current = Count then 1 else Current + 1);
@@ -285,7 +285,7 @@ package body Files.Controller is
       for Step in 1 .. Steps loop
          Move_Palette_Selection
            (Model,
-            (if Lines > 0 then Files.Types.Move_Down else Files.Types.Move_Up));
+            (if Lines > 0 then Files.Gui.Input.Move_Down else Files.Gui.Input.Move_Up));
       end loop;
    end Scroll_Palette_Selection;
 
@@ -678,7 +678,7 @@ package body Files.Controller is
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
@@ -1038,7 +1038,7 @@ package body Files.Controller is
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result is
    begin
       if Id = Files.Commands.No_Command then
@@ -1384,7 +1384,7 @@ package body Files.Controller is
      (Model        : in out Files.Model.Window_Model;
       Settings     : Files.Settings.Settings_Model;
       Result_Index : Natural;
-      Modifiers    : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers    : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result
    is
       Results : constant Files.Command_Palette.Result_Vectors.Vector :=
@@ -1429,7 +1429,7 @@ package body Files.Controller is
       Settings      : Files.Settings.Settings_Model;
       Visible_Index : Natural;
       Activate      : Boolean := False;
-      Modifiers     : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers     : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result is
    begin
       if Files.Model.Command_Palette_Is_Open (Model)
@@ -1449,7 +1449,7 @@ package body Files.Controller is
          return Successful_Command_Result (Files.Commands.No_Command);
       end if;
 
-      if Modifiers (Files.Types.Shift_Key) and then not Activate then
+      if Modifiers (Files.Gui.Input.Shift_Key) and then not Activate then
          declare
             Anchor : constant Natural := Files.Model.Selected_Index (Model);
          begin
@@ -1458,7 +1458,7 @@ package body Files.Controller is
                Positive ((if Anchor = 0 then Visible_Index else Anchor)),
                Positive (Visible_Index));
          end;
-      elsif Modifiers (Files.Types.Control_Key) and then not Activate then
+      elsif Modifiers (Files.Gui.Input.Control_Key) and then not Activate then
          Files.Model.Toggle_Visible_Selection (Model, Positive (Visible_Index));
       else
          Files.Model.Select_Visible (Model, Positive (Visible_Index));
@@ -1842,7 +1842,7 @@ package body Files.Controller is
    function Commit_Focused_Text
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set)
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
@@ -1986,7 +1986,7 @@ package body Files.Controller is
 
    function Root_Selection_Result
      (Model     : in out Files.Model.Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
       return Controller_Result
    is
       Old_Index : constant Natural := Files.Model.Root_Selected_Index (Model);
@@ -2065,25 +2065,25 @@ package body Files.Controller is
    function Handle_Key
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Key       : Files.Types.Key_Code;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Key       : Files.Gui.Input.Key_Code;
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result
    is
       Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
 
       function Control_Only return Boolean is
       begin
-         return Modifiers (Files.Types.Control_Key)
-           and then not Modifiers (Files.Types.Shift_Key)
-           and then not Modifiers (Files.Types.Alt_Key)
-           and then not Modifiers (Files.Types.Meta_Key);
+         return Modifiers (Files.Gui.Input.Control_Key)
+           and then not Modifiers (Files.Gui.Input.Shift_Key)
+           and then not Modifiers (Files.Gui.Input.Alt_Key)
+           and then not Modifiers (Files.Gui.Input.Meta_Key);
       end Control_Only;
    begin
       --  While a long paste is running the progress overlay owns the keyboard:
       --  Escape requests cancellation (already-copied files are kept) and every
       --  other key is swallowed so no command runs behind the modal-lite panel.
       if Files.Model.Paste_Execution_Is_Active (Model) then
-         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+         if Key = Files.Gui.Input.Key_Escape and then Modifiers = Files.Gui.Input.No_Modifiers then
             Files.Operations.Cancel_Paste_Execution (Model);
             declare
                Finalized : constant Files.Operations.Operation_Result :=
@@ -2099,7 +2099,7 @@ package body Files.Controller is
       --  cancels the whole paste and every other key is swallowed so no command
       --  runs behind the modal.
       if Files.Model.Paste_Conflict_Is_Active (Model) then
-         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+         if Key = Files.Gui.Input.Key_Escape and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Cancelled : constant Files.Operations.Operation_Result :=
                  Files.Operations.Resolve_Paste_Conflict
@@ -2118,8 +2118,8 @@ package body Files.Controller is
       --  Space close it and every other key is swallowed so nothing behind the
       --  modal-lite preview reacts.
       if Files.Model.Quick_Look_Is_Open (Model) then
-         if (Key = Files.Types.Key_Escape or else Key = Files.Types.Key_Space)
-           and then Modifiers = Files.Types.No_Modifiers
+         if (Key = Files.Gui.Input.Key_Escape or else Key = Files.Gui.Input.Key_Space)
+           and then Modifiers = Files.Gui.Input.No_Modifiers
          then
             Files.Model.Close_Quick_Look (Model);
             return Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
@@ -2128,44 +2128,44 @@ package body Files.Controller is
       end if;
 
       if Files.Model.Command_Palette_Is_Open (Model) then
-         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+         if Key = Files.Gui.Input.Key_Escape and then Modifiers = Files.Gui.Input.No_Modifiers then
             Files.Model.Close_Command_Palette (Model);
             return Make_Result (Controller_Palette_Updated, Files.Commands.Close_Command_Palette_Command);
-         elsif Key = Files.Types.Key_Return and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Return and then Modifiers = Files.Gui.Input.No_Modifiers then
             return Commit_Focused_Text (Model, Settings, Modifiers);
-         elsif Key = Files.Types.Key_Left and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Left and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
             begin
-               Move_Palette_Selection (Model, Files.Types.Move_Left);
+               Move_Palette_Selection (Model, Files.Gui.Input.Move_Left);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_Right and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Right and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
             begin
-               Move_Palette_Selection (Model, Files.Types.Move_Right);
+               Move_Palette_Selection (Model, Files.Gui.Input.Move_Right);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Up and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
             begin
-               Move_Palette_Selection (Model, Files.Types.Move_Up);
+               Move_Palette_Selection (Model, Files.Gui.Input.Move_Up);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Down and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
             begin
-               Move_Palette_Selection (Model, Files.Types.Move_Down);
+               Move_Palette_Selection (Model, Files.Gui.Input.Move_Down);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_Home and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Home and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
@@ -2173,7 +2173,7 @@ package body Files.Controller is
                Jump_Palette_Selection (Model, Last => False);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_End and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_End and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
@@ -2181,7 +2181,7 @@ package body Files.Controller is
                Jump_Palette_Selection (Model, Last => True);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_Page_Up and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Page_Up and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
@@ -2189,7 +2189,7 @@ package body Files.Controller is
                Page_Palette_Selection (Model, Down => False);
                return Palette_Selection_Result (Model, Old_Index, Old_Offset);
             end;
-         elsif Key = Files.Types.Key_Page_Down and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Page_Down and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
                Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
@@ -2201,22 +2201,22 @@ package body Files.Controller is
       end if;
 
       if Files.Model.Root_Selector_Is_Open (Model) then
-         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+         if Key = Files.Gui.Input.Key_Escape and then Modifiers = Files.Gui.Input.No_Modifiers then
             Files.Model.Close_Root_Selector (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
-         elsif Key = Files.Types.Key_Return and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Return and then Modifiers = Files.Gui.Input.No_Modifiers then
             return Handle_Root_Click (Model, Settings, Files.Model.Root_Selected_Index (Model));
-         elsif Key = Files.Types.Key_Left and then Modifiers = Files.Types.No_Modifiers then
-            return Root_Selection_Result (Model, Files.Types.Move_Left);
-         elsif Key = Files.Types.Key_Right and then Modifiers = Files.Types.No_Modifiers then
-            return Root_Selection_Result (Model, Files.Types.Move_Right);
-         elsif Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
-            return Root_Selection_Result (Model, Files.Types.Move_Up);
-         elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
-            return Root_Selection_Result (Model, Files.Types.Move_Down);
-         elsif Key = Files.Types.Key_Home and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Left and then Modifiers = Files.Gui.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Gui.Input.Move_Left);
+         elsif Key = Files.Gui.Input.Key_Right and then Modifiers = Files.Gui.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Gui.Input.Move_Right);
+         elsif Key = Files.Gui.Input.Key_Up and then Modifiers = Files.Gui.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Gui.Input.Move_Up);
+         elsif Key = Files.Gui.Input.Key_Down and then Modifiers = Files.Gui.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Files.Gui.Input.Move_Down);
+         elsif Key = Files.Gui.Input.Key_Home and then Modifiers = Files.Gui.Input.No_Modifiers then
             return Root_Jump_Result (Model, 1);
-         elsif Key = Files.Types.Key_End and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_End and then Modifiers = Files.Gui.Input.No_Modifiers then
             return Root_Jump_Result (Model, Files.Model.Root_Count (Model));
          elsif Action.Kind = Files.Events.Command_Input_Action
            and then Action.Command = Files.Commands.Open_Command_Palette_Command
@@ -2228,16 +2228,16 @@ package body Files.Controller is
       end if;
 
       if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
-         if Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+         if Key = Files.Gui.Input.Key_Escape and then Modifiers = Files.Gui.Input.No_Modifiers then
             Files.Model.Toggle_Settings_Pane (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
-         elsif Key = Files.Types.Key_Up and then Modifiers = Files.Types.No_Modifiers then
-            Files.Model.Move_Settings_Field (Model, Files.Types.Move_Up);
+         elsif Key = Files.Gui.Input.Key_Up and then Modifiers = Files.Gui.Input.No_Modifiers then
+            Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Up);
             return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
-         elsif Key = Files.Types.Key_Down and then Modifiers = Files.Types.No_Modifiers then
-            Files.Model.Move_Settings_Field (Model, Files.Types.Move_Down);
+         elsif Key = Files.Gui.Input.Key_Down and then Modifiers = Files.Gui.Input.No_Modifiers then
+            Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Down);
             return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
-         elsif Key = Files.Types.Key_N and then Modifiers (Files.Types.Control_Key) then
+         elsif Key = Files.Gui.Input.Key_N and then Modifiers (Files.Gui.Input.Control_Key) then
             declare
                Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
                Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
@@ -2247,7 +2247,7 @@ package body Files.Controller is
                Files.Model.Add_Settings_Entry (Model);
                return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
             end;
-         elsif Key = Files.Types.Key_Delete and then Modifiers (Files.Types.Control_Key) then
+         elsif Key = Files.Gui.Input.Key_Delete and then Modifiers (Files.Gui.Input.Control_Key) then
             declare
                Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
                Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
@@ -2257,29 +2257,29 @@ package body Files.Controller is
                Files.Model.Remove_Settings_Entry (Model);
                return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
             end;
-         elsif Key = Files.Types.Key_Page_Up and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Page_Up and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
                Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
                Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
                Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
             begin
-               Files.Model.Move_Settings_Entry (Model, Files.Types.Move_Up);
+               Files.Model.Move_Settings_Entry (Model, Files.Gui.Input.Move_Up);
                return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
             end;
-         elsif Key = Files.Types.Key_Page_Down and then Modifiers = Files.Types.No_Modifiers then
+         elsif Key = Files.Gui.Input.Key_Page_Down and then Modifiers = Files.Gui.Input.No_Modifiers then
             declare
                Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
                Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
                Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
                Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
             begin
-               Files.Model.Move_Settings_Entry (Model, Files.Types.Move_Down);
+               Files.Model.Move_Settings_Entry (Model, Files.Gui.Input.Move_Down);
                return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
             end;
-         elsif (Key = Files.Types.Key_Left or else Key = Files.Types.Key_Right
-                or else Key = Files.Types.Key_Space)
-           and then Modifiers = Files.Types.No_Modifiers
+         elsif (Key = Files.Gui.Input.Key_Left or else Key = Files.Gui.Input.Key_Right
+                or else Key = Files.Gui.Input.Key_Space)
+           and then Modifiers = Files.Gui.Input.No_Modifiers
            and then Files.Model.Settings_Field_Index (Model) <= 14
          then
             declare
@@ -2288,14 +2288,14 @@ package body Files.Controller is
 
                Field   : constant Natural := Files.Model.Settings_Field_Index (Model);
                Current : constant String := Files.Types.To_Lower (Files.Model.Settings_Field_Text (Model));
-               Forward : constant Boolean := Key /= Files.Types.Key_Left;
+               Forward : constant Boolean := Key /= Files.Gui.Input.Key_Left;
                Touched : Boolean := False;
             begin
                --  Space cycles fields that have inline toggle/segmented
                --  controls (default_view, boolean toggles, theme, grouping,
                --  system opener, and the column-visibility toggles). On other
                --  multi-choice fields it falls through to text input.
-               if Key = Files.Types.Key_Space
+               if Key = Files.Gui.Input.Key_Space
                  and then Field not in 1 | 2 | 4 | 5 | 8 | 9 | 10 | 11 | 12 | 13 | 14
                then
                   return Make_Result (Controller_Ignored);
@@ -2404,23 +2404,23 @@ package body Files.Controller is
          end if;
       end if;
 
-      if Key = Files.Types.Key_Return then
-         if Modifiers = Files.Types.No_Modifiers then
+      if Key = Files.Gui.Input.Key_Return then
+         if Modifiers = Files.Gui.Input.No_Modifiers then
             return Commit_Focused_Text (Model, Settings, Modifiers);
          elsif Files.Model.Focus (Model) = Files.Types.Focus_None then
             return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
          end if;
-      elsif Key = Files.Types.Key_Backspace
+      elsif Key = Files.Gui.Input.Key_Backspace
         and then Control_Only
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
       then
          return Delete_Focused_Text_Word_Backward (Model);
-      elsif Key = Files.Types.Key_Delete
+      elsif Key = Files.Gui.Input.Key_Delete
         and then Control_Only
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
       then
          return Delete_Focused_Text_Word_Forward (Model);
-      elsif Key = Files.Types.Key_Left
+      elsif Key = Files.Gui.Input.Key_Left
         and then Control_Only
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
       then
@@ -2430,7 +2430,7 @@ package body Files.Controller is
             if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
                return
                  Make_Result
-                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Files.Types.Move_Left)
+                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Files.Gui.Input.Move_Left)
                     then Controller_Text_Updated
                     else Controller_Ignored);
             end if;
@@ -2442,7 +2442,7 @@ package body Files.Controller is
                  then Controller_Ignored
                  else Controller_Text_Updated);
          end;
-      elsif Key = Files.Types.Key_Right
+      elsif Key = Files.Gui.Input.Key_Right
         and then Control_Only
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
       then
@@ -2452,7 +2452,7 @@ package body Files.Controller is
             if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
                return
                  Make_Result
-                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Files.Types.Move_Right)
+                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Files.Gui.Input.Move_Right)
                     then Controller_Text_Updated
                     else Controller_Ignored);
             end if;
@@ -2464,18 +2464,18 @@ package body Files.Controller is
                  then Controller_Ignored
                  else Controller_Text_Updated);
          end;
-      elsif Key = Files.Types.Key_Backspace
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Backspace
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
       then
          return Delete_Focused_Text_Backward (Model);
-      elsif Key = Files.Types.Key_Delete
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Delete
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
       then
          return Delete_Focused_Text_Forward (Model);
-      elsif Key = Files.Types.Key_Left
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Left
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
         and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
       then
@@ -2485,19 +2485,19 @@ package body Files.Controller is
             if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
                return
                  Make_Result
-                   (if Files.Model.Rename_Move_All_Carets (Model, Files.Types.Move_Left)
+                   (if Files.Model.Rename_Move_All_Carets (Model, Files.Gui.Input.Move_Left)
                     then Controller_Text_Updated
                     else Controller_Ignored);
             end if;
-            Files.Model.Move_Text_Cursor (Model, Files.Types.Move_Left);
+            Files.Model.Move_Text_Cursor (Model, Files.Gui.Input.Move_Left);
             return
               Make_Result
                 (if Files.Model.Text_Cursor_Position (Model) = Old_Position
                  then Controller_Ignored
                  else Controller_Text_Updated);
          end;
-      elsif Key = Files.Types.Key_Right
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Right
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
         and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
       then
@@ -2507,34 +2507,34 @@ package body Files.Controller is
             if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
                return
                  Make_Result
-                   (if Files.Model.Rename_Move_All_Carets (Model, Files.Types.Move_Right)
+                   (if Files.Model.Rename_Move_All_Carets (Model, Files.Gui.Input.Move_Right)
                     then Controller_Text_Updated
                     else Controller_Ignored);
             end if;
-            Files.Model.Move_Text_Cursor (Model, Files.Types.Move_Right);
+            Files.Model.Move_Text_Cursor (Model, Files.Gui.Input.Move_Right);
             return
               Make_Result
                 (if Files.Model.Text_Cursor_Position (Model) = Old_Position
                  then Controller_Ignored
                  else Controller_Text_Updated);
          end;
-      elsif Key = Files.Types.Key_Home
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Home
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
         and then not Files.Model.Settings_Pane_Is_Open (Model)
       then
          --  Plain Home in the file grid selects the first visible item. This has
          --  no modifier, so it never collides with Alt+Home = navigate home.
          return First_Selection_Result (Model);
-      elsif Key = Files.Types.Key_End
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_End
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
         and then not Files.Model.Settings_Pane_Is_Open (Model)
       then
          --  Plain End in the file grid selects the last visible item.
          return Last_Selection_Result (Model);
-      elsif Key = Files.Types.Key_Home
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Home
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
         and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
       then
@@ -2555,8 +2555,8 @@ package body Files.Controller is
                  then Controller_Ignored
                  else Controller_Text_Updated);
          end;
-      elsif Key = Files.Types.Key_End
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_End
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) /= Files.Types.Focus_None
         and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
       then
@@ -2577,8 +2577,8 @@ package body Files.Controller is
                  then Controller_Ignored
                  else Controller_Text_Updated);
          end;
-      elsif Key = Files.Types.Key_Page_Up
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Page_Up
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
         and then not Files.Model.Settings_Pane_Is_Open (Model)
       then
@@ -2589,8 +2589,8 @@ package body Files.Controller is
          else
             return Page_Selection_Result (Model, Down => False);
          end if;
-      elsif Key = Files.Types.Key_Page_Down
-        and then Modifiers = Files.Types.No_Modifiers
+      elsif Key = Files.Gui.Input.Key_Page_Down
+        and then Modifiers = Files.Gui.Input.No_Modifiers
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
         and then not Files.Model.Settings_Pane_Is_Open (Model)
       then
@@ -2599,7 +2599,7 @@ package body Files.Controller is
          else
             return Page_Selection_Result (Model, Down => True);
          end if;
-      elsif Key = Files.Types.Key_Escape and then Modifiers = Files.Types.No_Modifiers then
+      elsif Key = Files.Gui.Input.Key_Escape and then Modifiers = Files.Gui.Input.No_Modifiers then
          if Files.Model.Focus (Model) = Files.Types.Focus_None
            and then not Files.Model.Rename_Is_Active (Model)
            and then not Files.Model.Temporary_Item_Is_Active (Model)

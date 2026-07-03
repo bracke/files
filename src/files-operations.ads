@@ -2,6 +2,7 @@ with Files.File_System;
 with Files.Model;
 with Files.Quick_Look;
 with Files.Settings;
+with Files.Gui.Input;
 with Files.Types;
 
 --  Filesystem-backed command operations and open-action preparation.
@@ -374,7 +375,7 @@ package Files.Operations is
    function Prepare_Open_Selected_Action
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Operation_Result;
 
    --  Open the selected item using directory navigation or configured file action execution.
@@ -386,7 +387,7 @@ package Files.Operations is
    function Open_Selected
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Operation_Result;
 
    --  Move selected items to the platform trash when available.

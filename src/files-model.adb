@@ -10,7 +10,7 @@ package body Files.Model is
    use type Ada.Calendar.Time;
    use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
-   use type Files.Types.Navigation_Direction;
+   use type Files.Gui.Input.Navigation_Direction;
    use type Files.Types.Search_Scope;
 
    Temporary_Item_Index : constant Natural := Natural'Last;
@@ -1110,7 +1110,7 @@ package body Files.Model is
 
    procedure Move_Selection
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
    is
       Count   : constant Natural := Visible_Count (Model);
       Current : constant Natural := Selected_Index (Model);
@@ -1140,19 +1140,19 @@ package body Files.Model is
       end if;
 
       case Direction is
-         when Files.Types.Move_Left =>
+         when Files.Gui.Input.Move_Left =>
             if Current = 1 then
                Next := Count;
             else
                Next := Current - 1;
             end if;
-         when Files.Types.Move_Right =>
+         when Files.Gui.Input.Move_Right =>
             if Current = Count then
                Next := 1;
             else
                Next := Current + 1;
             end if;
-         when Files.Types.Move_Up =>
+         when Files.Gui.Input.Move_Up =>
             if Current = 1 then
                Next := Count;
             elsif Current > Stride then
@@ -1160,7 +1160,7 @@ package body Files.Model is
             else
                Next := Last_In_Column (Positive (Current));
             end if;
-         when Files.Types.Move_Down =>
+         when Files.Gui.Input.Move_Down =>
             if Current = Count then
                Next := 1;
             elsif Current + Stride <= Count then
@@ -1910,7 +1910,7 @@ package body Files.Model is
 
    procedure Move_Root_Selection
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
    is
       Count   : constant Natural := Root_Count (Model);
       Current : constant Natural := Root_Selected_Index (Model);
@@ -1919,7 +1919,7 @@ package body Files.Model is
          Model.Root_Selected := 0;
       elsif Current = 0 then
          Model.Root_Selected := 1;
-      elsif Direction = Files.Types.Move_Up or else Direction = Files.Types.Move_Left then
+      elsif Direction = Files.Gui.Input.Move_Up or else Direction = Files.Gui.Input.Move_Left then
          Model.Root_Selected := (if Current = 1 then Count else Current - 1);
       else
          Model.Root_Selected := (if Current = Count then 1 else Current + 1);
@@ -2082,11 +2082,11 @@ package body Files.Model is
 
    procedure Move_Text_Cursor
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
    is
       Cursor : constant Natural := Text_Cursor_Position (Model);
    begin
-      if Direction = Files.Types.Move_Left or else Direction = Files.Types.Move_Up then
+      if Direction = Files.Gui.Input.Move_Left or else Direction = Files.Gui.Input.Move_Up then
          if Cursor > 0 then
             Set_Text_Cursor_Position (Model, Previous_Text_Boundary (Focused_Text_Value (Model), Cursor));
          end if;
@@ -2424,19 +2424,19 @@ package body Files.Model is
 
    procedure Move_Settings_Field
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction) is
+      Direction : Files.Gui.Input.Navigation_Direction) is
    begin
       case Direction is
-         when Files.Types.Move_Left | Files.Types.Move_Up =>
+         when Files.Gui.Input.Move_Left | Files.Gui.Input.Move_Up =>
             Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 20 else Model.Settings_Field - 1));
-         when Files.Types.Move_Right | Files.Types.Move_Down =>
+         when Files.Gui.Input.Move_Right | Files.Gui.Input.Move_Down =>
             Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 20 then 1 else Model.Settings_Field + 1));
       end case;
    end Move_Settings_Field;
 
    procedure Move_Settings_Entry
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
    is
       Draft : Files.Settings.Settings_Draft := Model.Settings_Draft_Value;
 
@@ -2480,7 +2480,7 @@ package body Files.Model is
       begin
          if Count = 0 then
             return 0;
-         elsif Direction = Files.Types.Move_Left or else Direction = Files.Types.Move_Up then
+         elsif Direction = Files.Gui.Input.Move_Left or else Direction = Files.Gui.Input.Move_Up then
             return (if Current <= 1 then Count else Current - 1);
          else
             return (if Current >= Count then 1 else Current + 1);
@@ -3407,11 +3407,11 @@ package body Files.Model is
 
    function Rename_Move_All_Carets
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
       return Boolean
    is
       Backward : constant Boolean :=
-        Direction = Files.Types.Move_Left or else Direction = Files.Types.Move_Up;
+        Direction = Files.Gui.Input.Move_Left or else Direction = Files.Gui.Input.Move_Up;
       Changed  : Boolean := False;
    begin
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
@@ -3441,11 +3441,11 @@ package body Files.Model is
 
    function Rename_Move_All_Carets_Word
      (Model     : in out Window_Model;
-      Direction : Files.Types.Navigation_Direction)
+      Direction : Files.Gui.Input.Navigation_Direction)
       return Boolean
    is
       Backward : constant Boolean :=
-        Direction = Files.Types.Move_Left or else Direction = Files.Types.Move_Up;
+        Direction = Files.Gui.Input.Move_Left or else Direction = Files.Gui.Input.Move_Up;
       Changed  : Boolean := False;
    begin
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop

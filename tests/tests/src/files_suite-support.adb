@@ -84,9 +84,9 @@ package body Files_Suite.Support is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Types.Key_Code;
-   use type Files.Types.Modifier_Set;
-   use type Files.Types.Navigation_Direction;
+   use type Files.Gui.Input.Key_Code;
+   use type Files.Gui.Input.Modifier_Set;
+   use type Files.Gui.Input.Navigation_Direction;
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
@@ -104,7 +104,7 @@ package body Files_Suite.Support is
       Width       : Natural;
       Height      : Natural;
       Activate    : Boolean := False;
-      Modifiers   : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Modifiers   : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
       Line_Height : Positive := 20)
       return Files.Events.Input_Action
    is (Files.Events.Translate_Click

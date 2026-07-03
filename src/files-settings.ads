@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
 
+with Files.Gui.Input;
 with Files.Types;
 
 --  Settings loading, validation, and filetype-to-action mapping.
@@ -353,7 +354,7 @@ package Files.Settings is
    --  @param Modifiers Active modifier set.
    --  @return Normalized token suffix without a leading filetype.
    function Modifier_Token
-     (Modifiers : Files.Types.Modifier_Set)
+     (Modifiers : Files.Gui.Input.Modifier_Set)
       return String;
 
    --  Lookup an open action using full filetype-plus-modifier fallback rules.
@@ -365,7 +366,7 @@ package Files.Settings is
    function Lookup_Open_Action
      (Settings  : Settings_Model;
       Filetype  : String;
-      Modifiers : Files.Types.Modifier_Set)
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Action_Lookup_Result;
 
    --  Parse settings text into a settings model.

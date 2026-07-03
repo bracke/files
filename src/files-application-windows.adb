@@ -28,6 +28,7 @@ with Files.Operations;
 with Files.Gui.Draw;
 with Files.Rendering;
 with Files.Settings;
+with Files.Gui.Input;
 with Files.Types;
 
 package body Files.Application.Windows is
@@ -690,20 +691,20 @@ package body Files.Application.Windows is
 
    function To_Modifiers
      (Window : not null access Glfw.Windows.Window)
-      return Files.Types.Modifier_Set
+      return Files.Gui.Input.Modifier_Set
    is
-      Result : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Result : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
    begin
-      Result (Files.Types.Shift_Key) :=
+      Result (Files.Gui.Input.Shift_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Shift) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Shift) = Glfw.Input.Pressed;
-      Result (Files.Types.Control_Key) :=
+      Result (Files.Gui.Input.Control_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Control) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Control) = Glfw.Input.Pressed;
-      Result (Files.Types.Alt_Key) :=
+      Result (Files.Gui.Input.Alt_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Alt) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Alt) = Glfw.Input.Pressed;
-      Result (Files.Types.Meta_Key) :=
+      Result (Files.Gui.Input.Meta_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Super) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Super) = Glfw.Input.Pressed;
       return Result;
@@ -803,88 +804,88 @@ package body Files.Application.Windows is
 
    function To_Key_Code
      (Key : Tracked_Key)
-      return Files.Types.Key_Code is
+      return Files.Gui.Input.Key_Code is
    begin
       case Key is
          when Tracked_Key_1 =>
-            return Files.Types.Key_1;
+            return Files.Gui.Input.Key_1;
          when Tracked_Key_2 =>
-            return Files.Types.Key_2;
+            return Files.Gui.Input.Key_2;
          when Tracked_Key_3 =>
-            return Files.Types.Key_3;
+            return Files.Gui.Input.Key_3;
          when Tracked_Key_4 =>
-            return Files.Types.Key_4;
+            return Files.Gui.Input.Key_4;
          when Tracked_A =>
-            return Files.Types.Key_A;
+            return Files.Gui.Input.Key_A;
          when Tracked_B =>
-            return Files.Types.Key_B;
+            return Files.Gui.Input.Key_B;
          when Tracked_C =>
-            return Files.Types.Key_C;
+            return Files.Gui.Input.Key_C;
          when Tracked_D =>
-            return Files.Types.Key_D;
+            return Files.Gui.Input.Key_D;
          when Tracked_F =>
-            return Files.Types.Key_F;
+            return Files.Gui.Input.Key_F;
          when Tracked_I =>
-            return Files.Types.Key_I;
+            return Files.Gui.Input.Key_I;
          when Tracked_L =>
-            return Files.Types.Key_L;
+            return Files.Gui.Input.Key_L;
          when Tracked_N =>
-            return Files.Types.Key_N;
+            return Files.Gui.Input.Key_N;
          when Tracked_P =>
-            return Files.Types.Key_P;
+            return Files.Gui.Input.Key_P;
          when Tracked_R =>
-            return Files.Types.Key_R;
+            return Files.Gui.Input.Key_R;
          when Tracked_S =>
-            return Files.Types.Key_S;
+            return Files.Gui.Input.Key_S;
          when Tracked_V =>
-            return Files.Types.Key_V;
+            return Files.Gui.Input.Key_V;
          when Tracked_X =>
-            return Files.Types.Key_X;
+            return Files.Gui.Input.Key_X;
          when Tracked_Z =>
-            return Files.Types.Key_Z;
+            return Files.Gui.Input.Key_Z;
          when Tracked_Comma =>
-            return Files.Types.Key_Comma;
+            return Files.Gui.Input.Key_Comma;
          when Tracked_Backspace =>
-            return Files.Types.Key_Backspace;
+            return Files.Gui.Input.Key_Backspace;
          when Tracked_Delete =>
-            return Files.Types.Key_Delete;
+            return Files.Gui.Input.Key_Delete;
          when Tracked_F2 =>
-            return Files.Types.Key_F2;
+            return Files.Gui.Input.Key_F2;
          when Tracked_F5 =>
-            return Files.Types.Key_F5;
+            return Files.Gui.Input.Key_F5;
          when Tracked_Escape =>
-            return Files.Types.Key_Escape;
+            return Files.Gui.Input.Key_Escape;
          when Tracked_Enter | Tracked_Numpad_Enter =>
-            return Files.Types.Key_Return;
+            return Files.Gui.Input.Key_Return;
          when Tracked_Left =>
-            return Files.Types.Key_Left;
+            return Files.Gui.Input.Key_Left;
          when Tracked_Right =>
-            return Files.Types.Key_Right;
+            return Files.Gui.Input.Key_Right;
          when Tracked_Up =>
-            return Files.Types.Key_Up;
+            return Files.Gui.Input.Key_Up;
          when Tracked_Down =>
-            return Files.Types.Key_Down;
+            return Files.Gui.Input.Key_Down;
          when Tracked_Home =>
-            return Files.Types.Key_Home;
+            return Files.Gui.Input.Key_Home;
          when Tracked_End =>
-            return Files.Types.Key_End;
+            return Files.Gui.Input.Key_End;
          when Tracked_Page_Up =>
-            return Files.Types.Key_Page_Up;
+            return Files.Gui.Input.Key_Page_Up;
          when Tracked_Page_Down =>
-            return Files.Types.Key_Page_Down;
+            return Files.Gui.Input.Key_Page_Down;
          --  The '+' family (physical '=', ']' and numpad '+') maps to Key_Equal
          --  and the '-' family (physical '-', '/' and numpad '-') to Key_Minus
          --  so the shared keyboard-zoom seam handles Ctrl+plus / Ctrl+minus.
          --  The alternate ']' and '/' positions cover layouts (e.g. German)
          --  where '+' and '-' sit on those physical keys.
          when Tracked_Equal | Tracked_Right_Bracket | Tracked_Numpad_Add =>
-            return Files.Types.Key_Equal;
+            return Files.Gui.Input.Key_Equal;
          when Tracked_Minus | Tracked_Slash | Tracked_Numpad_Subtract =>
-            return Files.Types.Key_Minus;
+            return Files.Gui.Input.Key_Minus;
          when Tracked_Zero =>
-            return Files.Types.Key_0;
+            return Files.Gui.Input.Key_0;
          when Tracked_Space =>
-            return Files.Types.Key_Space;
+            return Files.Gui.Input.Key_Space;
       end case;
    end To_Key_Code;
 
@@ -1226,10 +1227,10 @@ package body Files.Application.Windows is
 
       --  Ctrl + scroll: live font-size adjustment (zoom in / out).
       declare
-         Modifiers : constant Files.Types.Modifier_Set :=
+         Modifiers : constant Files.Gui.Input.Modifier_Set :=
            To_Modifiers (As_Window (Runtime.Handle));
       begin
-         if Modifiers (Files.Types.Control_Key) then
+         if Modifiers (Files.Gui.Input.Control_Key) then
             declare
                New_Size : constant Positive :=
                  Files.Settings.Clamp_Font_Pixel_Size
@@ -1318,7 +1319,7 @@ package body Files.Application.Windows is
    procedure Dispatch_Click_Action
      (Runtime  : in out Runtime_Window;
       Action   : Files.Events.Input_Action;
-      Modifiers : Files.Types.Modifier_Set)
+      Modifiers : Files.Gui.Input.Modifier_Set)
    is
       Result : Files.Interaction.Interaction_Result;
    begin
@@ -1393,7 +1394,7 @@ package body Files.Application.Windows is
       Frame_H   : Glfw.Size;
       Cursor_X  : Glfw.Input.Mouse.Coordinate;
       Cursor_Y  : Glfw.Input.Mouse.Coordinate;
-      Modifiers : Files.Types.Modifier_Set)
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Files.Events.Input_Action
    is
       X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
@@ -1430,11 +1431,11 @@ package body Files.Application.Windows is
    procedure Handle_Item_Drop
      (Runtime      : in out Runtime_Window;
       Target_Index : Natural;
-      Modifiers    : Files.Types.Modifier_Set)
+      Modifiers    : Files.Gui.Input.Modifier_Set)
    is
       Sources : constant Files.Types.String_Vectors.Vector := Selected_File_Paths (Runtime.Model);
       Mode    : constant Files.File_System.Drop_Import_Mode :=
-        (if Modifiers (Files.Types.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
+        (if Modifiers (Files.Gui.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
       Result  : Files.Operations.Operation_Result;
    begin
       if Target_Index = 0 or else Sources.Is_Empty then
@@ -1539,7 +1540,7 @@ package body Files.Application.Windows is
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
                     Cell_Height_For (Runtime.Font_Pixel_Size));
                Row      : constant Natural := Files.Rendering.Context_Menu_Row_At (Menu, X, Y);
-               Modifiers : constant Files.Types.Modifier_Set :=
+               Modifiers : constant Files.Gui.Input.Modifier_Set :=
                  To_Modifiers (As_Window (Runtime.Handle));
                Command  : constant Files.Commands.Command_Id :=
                  (if Row > 0 and then Row <= Menu.Row_Count then Menu.Commands (Row)
@@ -1561,7 +1562,7 @@ package body Files.Application.Windows is
 
          declare
             Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-            Modifiers : constant Files.Types.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+            Modifiers : constant Files.Gui.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
             Action    : constant Files.Events.Input_Action :=
               Current_Click_Action
                 (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
@@ -1600,7 +1601,7 @@ package body Files.Application.Windows is
 
          if Runtime.Handle.Drag_Moved and then Runtime.Drag_Source_Index /= 0 then
             declare
-               Modifiers : constant Files.Types.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+               Modifiers : constant Files.Gui.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
                Action    : constant Files.Events.Input_Action :=
                  Current_Click_Action
                    (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
@@ -2044,7 +2045,7 @@ package body Files.Application.Windows is
             (Kind    => Files.Events.Command_Input_Action,
              Command => Runtime.Column_Reorder_Sort,
              others  => <>),
-            Files.Types.No_Modifiers);
+            Files.Gui.Input.No_Modifiers);
       end if;
    end Update_Column_Reorder_Drag;
 

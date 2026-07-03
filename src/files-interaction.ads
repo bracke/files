@@ -4,6 +4,7 @@ with Files.Events;
 with Files.Model;
 with Files.Rendering;
 with Files.Settings;
+with Files.Gui.Input;
 with Files.Types;
 
 --  GLFW-free interaction reducer. Peer to Files.Events (which translates raw
@@ -60,7 +61,7 @@ package Files.Interaction is
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
       Current_Font_Size : Positive;
-      Modifiers         : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Modifiers         : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
       Result            : out Interaction_Result);
 
    --  Dispatch one keyboard press through the focus-aware controller, applying
@@ -82,8 +83,8 @@ package Files.Interaction is
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
-      Key               : Files.Types.Key_Code;
-      Modifiers         : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Key               : Files.Gui.Input.Key_Code;
+      Modifiers         : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
       Current_Font_Size : Positive;
       Result            : out Interaction_Result);
 
@@ -106,7 +107,7 @@ package Files.Interaction is
       Settings_Path     : String;
       Action            : Files.Events.Input_Action;
       Current_Font_Size : Positive;
-      Modifiers         : Files.Types.Modifier_Set;
+      Modifiers         : Files.Gui.Input.Modifier_Set;
       Result            : out Interaction_Result);
 
    --  Apply a chosen context-menu row command: close the menu, then execute the
@@ -125,7 +126,7 @@ package Files.Interaction is
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
       Current_Font_Size : Positive;
-      Modifiers         : Files.Types.Modifier_Set;
+      Modifiers         : Files.Gui.Input.Modifier_Set;
       Result            : out Interaction_Result);
 
    --  Apply a right-click: select the right-clicked item (matching desktop

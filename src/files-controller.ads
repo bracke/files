@@ -4,6 +4,7 @@ with Files.File_System;
 with Files.Model;
 with Files.Operations;
 with Files.Settings;
+with Files.Gui.Input;
 with Files.Types;
 
 --  Focus-aware input controller for command, text, palette, and filesystem operations.
@@ -83,7 +84,7 @@ package Files.Controller is
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result;
 
    --  Validate, save, apply, and refresh edited settings.
@@ -126,7 +127,7 @@ package Files.Controller is
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result;
 
    --  Cycle the filter-bar search scope one step forward and re-run the shared
@@ -215,7 +216,7 @@ package Files.Controller is
      (Model        : in out Files.Model.Window_Model;
       Settings     : Files.Settings.Settings_Model;
       Result_Index : Natural;
-      Modifiers    : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers    : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result;
 
    --  Select or activate a visible item.
@@ -231,7 +232,7 @@ package Files.Controller is
       Settings      : Files.Settings.Settings_Model;
       Visible_Index : Natural;
       Activate      : Boolean := False;
-      Modifiers     : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Modifiers     : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result;
 
    --  Import paths dropped into the current window through the paste engine, so
@@ -309,8 +310,8 @@ package Files.Controller is
    function Handle_Key
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Key       : Files.Types.Key_Code;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers)
+      Key       : Files.Gui.Input.Key_Code;
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers)
       return Controller_Result;
 
 end Files.Controller;

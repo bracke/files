@@ -133,62 +133,6 @@ package Files.Types is
       Unknown_Item,
       Other_Item);
 
-   type Navigation_Direction is
-     (Move_Left,
-      Move_Right,
-      Move_Up,
-      Move_Down);
-
-   type Modifier_Key is
-     (Shift_Key,
-      Control_Key,
-      Alt_Key,
-      Meta_Key);
-
-   type Modifier_Set is array (Modifier_Key) of Boolean;
-
-   No_Modifiers : constant Modifier_Set := [others => False];
-
-   type Key_Code is
-     (Key_Unknown,
-      Key_0,
-      Key_1,
-      Key_2,
-      Key_3,
-      Key_4,
-      Key_A,
-      Key_B,
-      Key_C,
-      Key_D,
-      Key_F,
-      Key_I,
-      Key_L,
-      Key_N,
-      Key_P,
-      Key_R,
-      Key_S,
-      Key_V,
-      Key_X,
-      Key_Z,
-      Key_Comma,
-      Key_Equal,
-      Key_Minus,
-      Key_Backspace,
-      Key_Delete,
-      Key_F2,
-      Key_F5,
-      Key_Escape,
-      Key_Return,
-      Key_Left,
-      Key_Right,
-      Key_Up,
-      Key_Down,
-      Key_Home,
-      Key_End,
-      Key_Page_Up,
-      Key_Page_Down,
-      Key_Space);
-
    type Focus_Target is
      (Focus_None,
       Focus_Path_Input,

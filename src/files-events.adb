@@ -8,8 +8,8 @@ package body Files.Events is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Types.Focus_Target;
-   use type Files.Types.Key_Code;
-   use type Files.Types.Modifier_Set;
+   use type Files.Gui.Input.Key_Code;
+   use type Files.Gui.Input.Modifier_Set;
 
    function No_Action
      (Activate : Boolean := False)
@@ -18,7 +18,7 @@ package body Files.Events is
       return
         (Kind            => No_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -42,7 +42,7 @@ package body Files.Events is
       return
         (Kind            => Command_Input_Action,
          Command         => Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -66,7 +66,7 @@ package body Files.Events is
       return
         (Kind            => Conflict_Click_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -89,7 +89,7 @@ package body Files.Events is
       return
         (Kind            => Paste_Cancel_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -115,7 +115,7 @@ package body Files.Events is
       return
         (Kind            => Label_Picker_Choice_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => Label_Pos,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -138,7 +138,7 @@ package body Files.Events is
       return
         (Kind            => Tree_Pick_Confirm_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -155,7 +155,7 @@ package body Files.Events is
    end Tree_Pick_Confirm_Action;
 
    function Selection_Action
-     (Direction : Files.Types.Navigation_Direction)
+     (Direction : Files.Gui.Input.Navigation_Direction)
       return Input_Action is
    begin
       return
@@ -186,7 +186,7 @@ package body Files.Events is
       return
         (Kind            => Scroll_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => (if Lines < 0 then Files.Types.Move_Up else Files.Types.Move_Down),
+         Direction       => (if Lines < 0 then Files.Gui.Input.Move_Up else Files.Gui.Input.Move_Down),
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -211,7 +211,7 @@ package body Files.Events is
       return
         (Kind             => Scrollbar_Drag_Begin_Input_Action,
          Command          => Files.Commands.No_Command,
-         Direction        => Files.Types.Move_Down,
+         Direction        => Files.Gui.Input.Move_Down,
          Item_Index       => 0,
          Root_Index       => 0,
          Result_Index     => 0,
@@ -246,7 +246,7 @@ package body Files.Events is
       return
         (Kind            => Column_Resize_Begin_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
          Root_Index      => 0,
          Result_Index    => 0,
@@ -281,7 +281,7 @@ package body Files.Events is
       return
         (Kind            => Column_Reorder_Begin_Input_Action,
          Command         => Sort_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
          Root_Index      => 0,
          Result_Index    => 0,
@@ -315,7 +315,7 @@ package body Files.Events is
       return
         (Kind            => Marquee_Begin_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Types.Move_Right,
+         Direction       => Files.Gui.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -349,8 +349,8 @@ package body Files.Events is
    end Saturating_Negated_Triple;
 
    function Translate_Key
-     (Key       : Files.Types.Key_Code;
-      Modifiers : Files.Types.Modifier_Set)
+     (Key       : Files.Gui.Input.Key_Code;
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Input_Action
    is
       Command : constant Files.Commands.Command_Id := Files.Commands.Find_By_Shortcut (Key, Modifiers);
@@ -359,37 +359,37 @@ package body Files.Events is
          return Command_Action (Command);
       end if;
 
-      if Modifiers = Files.Types.No_Modifiers
+      if Modifiers = Files.Gui.Input.No_Modifiers
         or else
-          (Modifiers (Files.Types.Shift_Key)
-           and then not Modifiers (Files.Types.Control_Key)
-           and then not Modifiers (Files.Types.Alt_Key)
-           and then not Modifiers (Files.Types.Meta_Key))
+          (Modifiers (Files.Gui.Input.Shift_Key)
+           and then not Modifiers (Files.Gui.Input.Control_Key)
+           and then not Modifiers (Files.Gui.Input.Alt_Key)
+           and then not Modifiers (Files.Gui.Input.Meta_Key))
       then
          case Key is
-            when Files.Types.Key_Left =>
+            when Files.Gui.Input.Key_Left =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Types.Move_Left,
-                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  Direction       => Files.Gui.Input.Move_Left,
+                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
                   others          => <>);
-            when Files.Types.Key_Right =>
+            when Files.Gui.Input.Key_Right =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Types.Move_Right,
-                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  Direction       => Files.Gui.Input.Move_Right,
+                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
                   others          => <>);
-            when Files.Types.Key_Up =>
+            when Files.Gui.Input.Key_Up =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Types.Move_Up,
-                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  Direction       => Files.Gui.Input.Move_Up,
+                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
                   others          => <>);
-            when Files.Types.Key_Down =>
+            when Files.Gui.Input.Key_Down =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Types.Move_Down,
-                  Range_Selection => Modifiers (Files.Types.Shift_Key),
+                  Direction       => Files.Gui.Input.Move_Down,
+                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
                   others          => <>);
             when others =>
                null;
@@ -407,7 +407,7 @@ package body Files.Events is
       Width       : Natural;
       Height      : Natural;
       Activate    : Boolean := False;
-      Modifiers   : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Modifiers   : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
       Line_Height : Positive := 20)
       return Input_Action
    is
@@ -573,7 +573,7 @@ package body Files.Events is
          return
            (Kind            => Text_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Types.Move_Right,
+            Direction       => Files.Gui.Input.Move_Right,
             Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
@@ -676,7 +676,7 @@ package body Files.Events is
          return
            (Kind            => Settings_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Types.Move_Right,
+            Direction       => Files.Gui.Input.Move_Right,
             Item_Index      => 0,
             Root_Index      => 0,
             Result_Index    => 0,
@@ -772,7 +772,7 @@ package body Files.Events is
          return
            (Kind             => Tree_Click_Input_Action,
             Command          => Files.Commands.No_Command,
-            Direction        => Files.Types.Move_Right,
+            Direction        => Files.Gui.Input.Move_Right,
             Item_Index       => Node_Index,
             Root_Index       => 0,
             Result_Index     => 0,
@@ -796,7 +796,7 @@ package body Files.Events is
          return
            (Kind             => Breadcrumb_Click_Input_Action,
             Command          => Files.Commands.No_Command,
-            Direction        => Files.Types.Move_Right,
+            Direction        => Files.Gui.Input.Move_Right,
             Item_Index       => Segment_Index,
             Root_Index       => 0,
             Result_Index     => 0,
@@ -971,7 +971,7 @@ package body Files.Events is
          return
            (Kind            => Command_Result_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Types.Move_Right,
+            Direction       => Files.Gui.Input.Move_Right,
             Item_Index      => 0,
             Root_Index      => 0,
             Result_Index    => Result_Index,
@@ -991,7 +991,7 @@ package body Files.Events is
          return
            (Kind            => Root_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Types.Move_Right,
+            Direction       => Files.Gui.Input.Move_Right,
             Item_Index      => 0,
             Root_Index      => Root_Index,
             Result_Index    => 0,
@@ -1244,7 +1244,7 @@ package body Files.Events is
          return
            (Kind            => Item_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Types.Move_Right,
+            Direction       => Files.Gui.Input.Move_Right,
             Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
@@ -1255,8 +1255,10 @@ package body Files.Events is
             Settings_Field  => 0,
             Settings_Option => 0,
             Activate        => Activate,
-            Toggle_Selection => Modifiers (Files.Types.Control_Key) and then not Modifiers (Files.Types.Shift_Key),
-            Range_Selection  => Modifiers (Files.Types.Shift_Key),
+            Toggle_Selection =>
+              Modifiers (Files.Gui.Input.Control_Key)
+                and then not Modifiers (Files.Gui.Input.Shift_Key),
+            Range_Selection  => Modifiers (Files.Gui.Input.Shift_Key),
             Scroll_Drag_Anchor => 0);
       end if;
 
@@ -1276,8 +1278,8 @@ package body Files.Events is
              (Origin_X => X,
               Origin_Y => Y,
               Additive =>
-                Modifiers (Files.Types.Control_Key)
-                or else Modifiers (Files.Types.Shift_Key));
+                Modifiers (Files.Gui.Input.Control_Key)
+                or else Modifiers (Files.Gui.Input.Shift_Key));
       end if;
 
       return No_Action (Activate);

@@ -1,5 +1,6 @@
 with Files.File_System;
 with Files.Model;
+with Files.Gui.Input;
 with Files.Types;
 
 --  Central command registry, shortcuts, enablement, and execution routing.
@@ -92,8 +93,8 @@ package Files.Commands is
 
    type Shortcut is record
       Present   : Boolean := False;
-      Key       : Files.Types.Key_Code := Files.Types.Key_Unknown;
-      Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Key       : Files.Gui.Input.Key_Code := Files.Gui.Input.Key_Unknown;
+      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
    end record;
 
    --  Return the stable string identifier for a command.
@@ -233,8 +234,8 @@ package Files.Commands is
    --  @param Modifiers Active modifiers.
    --  @return Matching command or No_Command.
    function Find_By_Shortcut
-     (Key       : Files.Types.Key_Code;
-      Modifiers : Files.Types.Modifier_Set)
+     (Key       : Files.Gui.Input.Key_Code;
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Command_Id;
 
    --  Execute a pure model command without filesystem access.

@@ -6,27 +6,27 @@ package body Files.Commands is
    use Ada.Strings.Unbounded;
    use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
-   use type Files.Types.Key_Code;
-   use type Files.Types.Modifier_Set;
+   use type Files.Gui.Input.Key_Code;
+   use type Files.Gui.Input.Modifier_Set;
 
-   function Control_Modifier return Files.Types.Modifier_Set is
-      Result : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+   function Control_Modifier return Files.Gui.Input.Modifier_Set is
+      Result : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
    begin
-      Result (Files.Types.Control_Key) := True;
+      Result (Files.Gui.Input.Control_Key) := True;
       return Result;
    end Control_Modifier;
 
-   function Alt_Modifier return Files.Types.Modifier_Set is
-      Result : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+   function Alt_Modifier return Files.Gui.Input.Modifier_Set is
+      Result : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
    begin
-      Result (Files.Types.Alt_Key) := True;
+      Result (Files.Gui.Input.Alt_Key) := True;
       return Result;
    end Alt_Modifier;
 
-   function Control_Shift_Modifier return Files.Types.Modifier_Set is
-      Result : Files.Types.Modifier_Set := Control_Modifier;
+   function Control_Shift_Modifier return Files.Gui.Input.Modifier_Set is
+      Result : Files.Gui.Input.Modifier_Set := Control_Modifier;
    begin
-      Result (Files.Types.Shift_Key) := True;
+      Result (Files.Gui.Input.Shift_Key) := True;
       return Result;
    end Control_Shift_Modifier;
 
@@ -527,96 +527,96 @@ package body Files.Commands is
      (Id : Command_Id)
       return Shortcut
    is
-      Ctrl       : constant Files.Types.Modifier_Set := Control_Modifier;
-      Alt        : constant Files.Types.Modifier_Set := Alt_Modifier;
-      Ctrl_Shift : constant Files.Types.Modifier_Set := Control_Shift_Modifier;
+      Ctrl       : constant Files.Gui.Input.Modifier_Set := Control_Modifier;
+      Alt        : constant Files.Gui.Input.Modifier_Set := Alt_Modifier;
+      Ctrl_Shift : constant Files.Gui.Input.Modifier_Set := Control_Shift_Modifier;
    begin
       case Id is
          when Select_Small_Icons_Command =>
-            return (True, Files.Types.Key_1, Ctrl);
+            return (True, Files.Gui.Input.Key_1, Ctrl);
          when Select_Large_Icons_Command =>
-            return (True, Files.Types.Key_2, Ctrl);
+            return (True, Files.Gui.Input.Key_2, Ctrl);
          when Select_Details_Command =>
-            return (True, Files.Types.Key_3, Ctrl);
+            return (True, Files.Gui.Input.Key_3, Ctrl);
          when Toggle_Info_Pane_Command =>
-            return (True, Files.Types.Key_4, Ctrl);
+            return (True, Files.Gui.Input.Key_4, Ctrl);
          when Toggle_Settings_Pane_Command =>
-            return (True, Files.Types.Key_Comma, Ctrl);
+            return (True, Files.Gui.Input.Key_Comma, Ctrl);
          when Toggle_Sort_Menu_Command
             | Sort_By_Name_Command
             | Sort_By_Size_Command
             | Sort_By_Type_Command
             | Sort_By_Created_Command
             | Sort_By_Changed_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (False, Files.Gui.Input.Key_Unknown, Files.Gui.Input.No_Modifiers);
          when Focus_Path_Input_Command =>
-            return (True, Files.Types.Key_L, Ctrl);
+            return (True, Files.Gui.Input.Key_L, Ctrl);
          when Navigate_Home_Command =>
-            return (True, Files.Types.Key_Home, Alt);
+            return (True, Files.Gui.Input.Key_Home, Alt);
          when Navigate_Back_Command =>
-            return (True, Files.Types.Key_Left, Alt);
+            return (True, Files.Gui.Input.Key_Left, Alt);
          when Navigate_Forward_Command =>
-            return (True, Files.Types.Key_Right, Alt);
+            return (True, Files.Gui.Input.Key_Right, Alt);
          when Navigate_Parent_Command =>
-            return (True, Files.Types.Key_Up, Alt);
+            return (True, Files.Gui.Input.Key_Up, Alt);
          when Create_File_Command =>
-            return (True, Files.Types.Key_N, Ctrl);
+            return (True, Files.Gui.Input.Key_N, Ctrl);
          when New_Folder_Command =>
-            return (True, Files.Types.Key_N, Ctrl_Shift);
+            return (True, Files.Gui.Input.Key_N, Ctrl_Shift);
          when Copy_Path_Command =>
-            return (True, Files.Types.Key_C, Ctrl_Shift);
+            return (True, Files.Gui.Input.Key_C, Ctrl_Shift);
          when Select_All_Command =>
-            return (True, Files.Types.Key_A, Ctrl);
+            return (True, Files.Gui.Input.Key_A, Ctrl);
          when Invert_Selection_Command =>
-            return (True, Files.Types.Key_I, Ctrl);
+            return (True, Files.Gui.Input.Key_I, Ctrl);
          when Deselect_All_Command =>
-            return (True, Files.Types.Key_A, Ctrl_Shift);
+            return (True, Files.Gui.Input.Key_A, Ctrl_Shift);
          when Open_Command_Palette_Command =>
-            return (True, Files.Types.Key_P, Ctrl);
+            return (True, Files.Gui.Input.Key_P, Ctrl);
          when Focus_Filter_Input_Command =>
-            return (True, Files.Types.Key_F, Ctrl);
+            return (True, Files.Gui.Input.Key_F, Ctrl);
          when Select_Drive_Command =>
-            return (True, Files.Types.Key_D, Ctrl);
+            return (True, Files.Gui.Input.Key_D, Ctrl);
          when Clear_Filter_Command =>
-            return (True, Files.Types.Key_F, Ctrl_Shift);
+            return (True, Files.Gui.Input.Key_F, Ctrl_Shift);
          when Search_Recursive_Command =>
-            return (True, Files.Types.Key_S, Ctrl_Shift);
+            return (True, Files.Gui.Input.Key_S, Ctrl_Shift);
          when Refresh_Directory_Command =>
-            return (True, Files.Types.Key_R, Ctrl);
+            return (True, Files.Gui.Input.Key_R, Ctrl);
          when Save_Settings_Command =>
-            return (True, Files.Types.Key_S, Ctrl);
+            return (True, Files.Gui.Input.Key_S, Ctrl);
          when Reset_Settings_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (False, Files.Gui.Input.Key_Unknown, Files.Gui.Input.No_Modifiers);
          when Toggle_Favorite_Command =>
-            return (True, Files.Types.Key_B, Ctrl);
+            return (True, Files.Gui.Input.Key_B, Ctrl);
          when Open_Selected_Root_Command | Eject_Selected_Root_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (False, Files.Gui.Input.Key_Unknown, Files.Gui.Input.No_Modifiers);
          when Delete_Selected_Items_Command =>
-            return (True, Files.Types.Key_Delete, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_Delete, Files.Gui.Input.No_Modifiers);
          when Delete_Selected_Permanently_Command =>
-            return (True, Files.Types.Key_Delete, [Files.Types.Shift_Key => True, others => False]);
+            return (True, Files.Gui.Input.Key_Delete, [Files.Gui.Input.Shift_Key => True, others => False]);
          when Generate_Thumbnails_Command =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (False, Files.Gui.Input.Key_Unknown, Files.Gui.Input.No_Modifiers);
          when Rename_Selected_Items_Command =>
-            return (True, Files.Types.Key_F2, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_F2, Files.Gui.Input.No_Modifiers);
          when Copy_Selected_Items_Command =>
-            return (True, Files.Types.Key_C, Ctrl);
+            return (True, Files.Gui.Input.Key_C, Ctrl);
          when Cut_Selected_Items_Command =>
-            return (True, Files.Types.Key_X, Ctrl);
+            return (True, Files.Gui.Input.Key_X, Ctrl);
          when Paste_Items_Command =>
-            return (True, Files.Types.Key_V, Ctrl);
+            return (True, Files.Gui.Input.Key_V, Ctrl);
          when Close_Command_Palette_Command =>
-            return (True, Files.Types.Key_Escape, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_Escape, Files.Gui.Input.No_Modifiers);
          when Open_Selected_Items_Command =>
-            return (True, Files.Types.Key_Return, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_Return, Files.Gui.Input.No_Modifiers);
          when Undo_Command =>
-            return (True, Files.Types.Key_Z, Ctrl);
+            return (True, Files.Gui.Input.Key_Z, Ctrl);
          when Redo_Command =>
-            return (True, Files.Types.Key_Z, Ctrl_Shift);
+            return (True, Files.Gui.Input.Key_Z, Ctrl_Shift);
          when Toggle_Quick_Look_Command =>
-            return (True, Files.Types.Key_Space, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_Space, Files.Gui.Input.No_Modifiers);
          when others =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (False, Files.Gui.Input.Key_Unknown, Files.Gui.Input.No_Modifiers);
       end case;
    end Shortcut_For;
 
@@ -626,96 +626,96 @@ package body Files.Commands is
    begin
       case Id is
          when Delete_Selected_Items_Command =>
-            return (True, Files.Types.Key_Backspace, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_Backspace, Files.Gui.Input.No_Modifiers);
          when Refresh_Directory_Command =>
             --  F5 is the universal refresh accelerator, offered in addition to
             --  the displayed Control+R primary shortcut.
-            return (True, Files.Types.Key_F5, Files.Types.No_Modifiers);
+            return (True, Files.Gui.Input.Key_F5, Files.Gui.Input.No_Modifiers);
          when others =>
-            return (False, Files.Types.Key_Unknown, Files.Types.No_Modifiers);
+            return (False, Files.Gui.Input.Key_Unknown, Files.Gui.Input.No_Modifiers);
       end case;
    end Secondary_Shortcut_For;
 
    function Key_Text
-     (Key : Files.Types.Key_Code)
+     (Key : Files.Gui.Input.Key_Code)
       return String is
    begin
       case Key is
-         when Files.Types.Key_0 =>
+         when Files.Gui.Input.Key_0 =>
             return "0";
-         when Files.Types.Key_1 =>
+         when Files.Gui.Input.Key_1 =>
             return "1";
-         when Files.Types.Key_2 =>
+         when Files.Gui.Input.Key_2 =>
             return "2";
-         when Files.Types.Key_3 =>
+         when Files.Gui.Input.Key_3 =>
             return "3";
-         when Files.Types.Key_4 =>
+         when Files.Gui.Input.Key_4 =>
             return "4";
-         when Files.Types.Key_A =>
+         when Files.Gui.Input.Key_A =>
             return "a";
-         when Files.Types.Key_B =>
+         when Files.Gui.Input.Key_B =>
             return "b";
-         when Files.Types.Key_C =>
+         when Files.Gui.Input.Key_C =>
             return "c";
-         when Files.Types.Key_D =>
+         when Files.Gui.Input.Key_D =>
             return "d";
-         when Files.Types.Key_F =>
+         when Files.Gui.Input.Key_F =>
             return "f";
-         when Files.Types.Key_I =>
+         when Files.Gui.Input.Key_I =>
             return "i";
-         when Files.Types.Key_L =>
+         when Files.Gui.Input.Key_L =>
             return "l";
-         when Files.Types.Key_N =>
+         when Files.Gui.Input.Key_N =>
             return "n";
-         when Files.Types.Key_P =>
+         when Files.Gui.Input.Key_P =>
             return "p";
-         when Files.Types.Key_R =>
+         when Files.Gui.Input.Key_R =>
             return "r";
-         when Files.Types.Key_S =>
+         when Files.Gui.Input.Key_S =>
             return "s";
-         when Files.Types.Key_V =>
+         when Files.Gui.Input.Key_V =>
             return "v";
-         when Files.Types.Key_X =>
+         when Files.Gui.Input.Key_X =>
             return "x";
-         when Files.Types.Key_Z =>
+         when Files.Gui.Input.Key_Z =>
             return "z";
-         when Files.Types.Key_Comma =>
+         when Files.Gui.Input.Key_Comma =>
             return ",";
-         when Files.Types.Key_Equal =>
+         when Files.Gui.Input.Key_Equal =>
             return "equal";
-         when Files.Types.Key_Minus =>
+         when Files.Gui.Input.Key_Minus =>
             return "minus";
-         when Files.Types.Key_Backspace =>
+         when Files.Gui.Input.Key_Backspace =>
             return "backspace";
-         when Files.Types.Key_Delete =>
+         when Files.Gui.Input.Key_Delete =>
             return "delete";
-         when Files.Types.Key_F2 =>
+         when Files.Gui.Input.Key_F2 =>
             return "f2";
-         when Files.Types.Key_F5 =>
+         when Files.Gui.Input.Key_F5 =>
             return "f5";
-         when Files.Types.Key_Escape =>
+         when Files.Gui.Input.Key_Escape =>
             return "escape";
-         when Files.Types.Key_Return =>
+         when Files.Gui.Input.Key_Return =>
             return "return";
-         when Files.Types.Key_Left =>
+         when Files.Gui.Input.Key_Left =>
             return "left";
-         when Files.Types.Key_Right =>
+         when Files.Gui.Input.Key_Right =>
             return "right";
-         when Files.Types.Key_Up =>
+         when Files.Gui.Input.Key_Up =>
             return "up";
-         when Files.Types.Key_Down =>
+         when Files.Gui.Input.Key_Down =>
             return "down";
-         when Files.Types.Key_Home =>
+         when Files.Gui.Input.Key_Home =>
             return "home";
-         when Files.Types.Key_End =>
+         when Files.Gui.Input.Key_End =>
             return "end";
-         when Files.Types.Key_Page_Up =>
+         when Files.Gui.Input.Key_Page_Up =>
             return "pageup";
-         when Files.Types.Key_Page_Down =>
+         when Files.Gui.Input.Key_Page_Down =>
             return "pagedown";
-         when Files.Types.Key_Space =>
+         when Files.Gui.Input.Key_Space =>
             return "space";
-         when Files.Types.Key_Unknown =>
+         when Files.Gui.Input.Key_Unknown =>
             return "";
       end case;
    end Key_Text;
@@ -731,16 +731,16 @@ package body Files.Commands is
          return "";
       end if;
 
-      if Value.Modifiers (Files.Types.Shift_Key) then
+      if Value.Modifiers (Files.Gui.Input.Shift_Key) then
          Append (Result, "shift+");
       end if;
-      if Value.Modifiers (Files.Types.Control_Key) then
+      if Value.Modifiers (Files.Gui.Input.Control_Key) then
          Append (Result, "control+");
       end if;
-      if Value.Modifiers (Files.Types.Alt_Key) then
+      if Value.Modifiers (Files.Gui.Input.Alt_Key) then
          Append (Result, "alt+");
       end if;
-      if Value.Modifiers (Files.Types.Meta_Key) then
+      if Value.Modifiers (Files.Gui.Input.Meta_Key) then
          Append (Result, "meta+");
       end if;
       Append (Result, Key);
@@ -1178,8 +1178,8 @@ package body Files.Commands is
    end Is_Enabled;
 
    function Find_By_Shortcut
-     (Key       : Files.Types.Key_Code;
-      Modifiers : Files.Types.Modifier_Set)
+     (Key       : Files.Gui.Input.Key_Code;
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Command_Id is
    begin
       for Id in Registered_Command_Id loop

@@ -1,5 +1,6 @@
 with Files.Commands;
 with Files.Rendering;
+with Files.Gui.Input;
 with Files.Types;
 
 --  GLFW-style input translation into internal command and selection events.
@@ -67,7 +68,7 @@ package Files.Events is
    type Input_Action is record
       Kind         : Input_Action_Kind := No_Input_Action;
       Command      : Files.Commands.Command_Id := Files.Commands.No_Command;
-      Direction    : Files.Types.Navigation_Direction := Files.Types.Move_Right;
+      Direction    : Files.Gui.Input.Navigation_Direction := Files.Gui.Input.Move_Right;
       Item_Index   : Natural := 0;
       Root_Index   : Natural := 0;
       Result_Index : Natural := 0;
@@ -89,8 +90,8 @@ package Files.Events is
    --  @param Modifiers Active modifier set.
    --  @return Internal input action.
    function Translate_Key
-     (Key       : Files.Types.Key_Code;
-      Modifiers : Files.Types.Modifier_Set)
+     (Key       : Files.Gui.Input.Key_Code;
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Input_Action;
 
    --  Translate a window click into an internal input action.
@@ -112,7 +113,7 @@ package Files.Events is
       Width       : Natural;
       Height      : Natural;
       Activate    : Boolean := False;
-      Modifiers   : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+      Modifiers   : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
       Line_Height : Positive := 20)
       return Input_Action;
 

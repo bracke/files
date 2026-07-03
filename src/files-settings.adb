@@ -985,20 +985,20 @@ package body Files.Settings is
       declare
          Filetype  : constant String := Trim (Clean (Clean'First .. Plus - 1));
          Position  : Natural := Plus + 1;
-         Modifiers : Files.Types.Modifier_Set := Files.Types.No_Modifiers;
+         Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
          Unknowns  : Unbounded_String := Null_Unbounded_String;
 
          procedure Add_Modifier (Text : String) is
             Name : constant String := Files.Types.To_Lower (Trim (Text));
          begin
             if Name = "shift" then
-               Modifiers (Files.Types.Shift_Key) := True;
+               Modifiers (Files.Gui.Input.Shift_Key) := True;
             elsif Name = "control" then
-               Modifiers (Files.Types.Control_Key) := True;
+               Modifiers (Files.Gui.Input.Control_Key) := True;
             elsif Name = "alt" then
-               Modifiers (Files.Types.Alt_Key) := True;
+               Modifiers (Files.Gui.Input.Alt_Key) := True;
             elsif Name = "meta" then
-               Modifiers (Files.Types.Meta_Key) := True;
+               Modifiers (Files.Gui.Input.Meta_Key) := True;
             elsif Name /= "" then
                Append (Unknowns, "+");
                Append (Unknowns, Name);
@@ -1147,7 +1147,7 @@ package body Files.Settings is
    end Icon_For_Filetype;
 
    function Modifier_Token
-     (Modifiers : Files.Types.Modifier_Set)
+     (Modifiers : Files.Gui.Input.Modifier_Set)
       return String
    is
       Result : Unbounded_String := Null_Unbounded_String;
@@ -1158,16 +1158,16 @@ package body Files.Settings is
          Append (Result, Name);
       end Add;
    begin
-      if Modifiers (Files.Types.Shift_Key) then
+      if Modifiers (Files.Gui.Input.Shift_Key) then
          Add ("shift");
       end if;
-      if Modifiers (Files.Types.Control_Key) then
+      if Modifiers (Files.Gui.Input.Control_Key) then
          Add ("control");
       end if;
-      if Modifiers (Files.Types.Alt_Key) then
+      if Modifiers (Files.Gui.Input.Alt_Key) then
          Add ("alt");
       end if;
-      if Modifiers (Files.Types.Meta_Key) then
+      if Modifiers (Files.Gui.Input.Meta_Key) then
          Add ("meta");
       end if;
 
@@ -1294,7 +1294,7 @@ package body Files.Settings is
    function Lookup_Open_Action
      (Settings  : Settings_Model;
       Filetype  : String;
-      Modifiers : Files.Types.Modifier_Set)
+      Modifiers : Files.Gui.Input.Modifier_Set)
       return Action_Lookup_Result
    is
       Base_Token : constant String := Trim (Filetype);
