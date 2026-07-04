@@ -6730,19 +6730,31 @@ package body Files.Rendering is
       --  toggles Show_Hidden_Files. Give it button hover/press affordances and
       --  expose it as a button so it matches the neighboring bottom-bar
       --  controls.
-      Add_Rect
-        (Bottom.Info_X,
-         Bottom_Content_Y,
-         Bottom.Info_Width,
-         Bottom_Content_H,
-         (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) then Bottom_Bar_Color
-          elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height)
-          then Pressed_Color
-          elsif Has_Hover
-            and then Contains_Point
-              (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
-          then Hover_Color
-          else Bottom_Bar_Color));
+      declare
+         --  Fill the whole button height (matching the neighbouring bottom-bar
+         --  controls and this control's own full-height hit region), not just
+         --  the padding-inset content box, so hover/press has no uncovered
+         --  stripe at the bottom.
+         Info_Btn_Y : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
+         Info_Btn_H : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+            else Layout.Bottom_Bar_Height);
+      begin
+         Add_Rect
+           (Bottom.Info_X,
+            Info_Btn_Y,
+            Bottom.Info_Width,
+            Info_Btn_H,
+            (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) then Bottom_Bar_Color
+             elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height)
+             then Pressed_Color
+             elsif Has_Hover
+               and then Contains_Point
+                 (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
+             then Hover_Color
+             else Bottom_Bar_Color));
+      end;
       Add_Text
         (Saturating_Add (Bottom.Info_X, 4),
          Bottom_Content_Y,
