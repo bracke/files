@@ -5258,19 +5258,23 @@ package body Files.Rendering is
             return Float (Y) + Float (Size * Numerator) / 16.0;
          end SY;
 
-         function SN (Numerator : Natural) return Natural is
-         begin
-            return Natural'Max (1, Bounded_Product_Divide (Value => Size, Factor => Numerator, Denominator => 16));
-         end SN;
-
+         --  Draw an icon rectangle (in 16-grid units) as a pair of triangles at
+         --  sub-pixel Float coordinates, so its edges land precisely and read as
+         --  smoothly as the arrowhead triangles instead of snapping to whole
+         --  pixels (which made the shafts and bodies look blocky).
          procedure Add_Local_Rect
            (Local_X : Natural;
             Local_Y : Natural;
             Local_W : Natural;
             Local_H : Natural)
          is
+            X1 : constant Float := SX (Local_X);
+            Y1 : constant Float := SY (Local_Y);
+            X2 : constant Float := SX (Local_X + Local_W);
+            Y2 : constant Float := SY (Local_Y + Local_H);
          begin
-            Add_Rect (Natural (SX (Local_X)), Natural (SY (Local_Y)), SN (Local_W), SN (Local_H), Color);
+            Add_Triangle (X1, Y1, X2, Y1, X2, Y2, Color);
+            Add_Triangle (X1, Y1, X2, Y2, X1, Y2, Color);
          end Add_Local_Rect;
 
          procedure Draw_Home is
