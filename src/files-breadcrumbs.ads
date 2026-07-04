@@ -31,13 +31,14 @@ package Files.Breadcrumbs is
 
    --  Split an absolute directory path into ordered breadcrumb segments.
    --
-   --  For "/home/user/files" the result is the four segments "/", "home",
-   --  "user", "files" whose ancestor paths are "/", "/home", "/home/user", and
-   --  "/home/user/files". A trailing separator and repeated separators are
-   --  ignored. An empty path yields an empty vector.
+   --  For "/home/user/files" the result is the three segments "home", "user",
+   --  "files" whose ancestor paths are "/home", "/home/user", and
+   --  "/home/user/files". The filesystem root is not emitted as its own
+   --  segment. A trailing separator and repeated separators are ignored. An
+   --  empty path yields an empty vector.
    --
    --  @param Path Absolute directory path to segment.
-   --  @return Ordered breadcrumb segments from the root to the leaf.
+   --  @return Ordered breadcrumb segments from the first component to the leaf.
    function Segments
      (Path : String)
       return Segment_Vectors.Vector;

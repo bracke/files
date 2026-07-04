@@ -48,6 +48,27 @@ package body Files.UI is
            Line_Height         => Line_Height);
    end Calculate_Bottom_Bar_Layout;
 
+   function Filter_Scope_Chip_Width
+     (Line_Height : Positive := 20)
+      return Natural
+   is
+      Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
+
+      function Label_W (Key : String) return Natural is
+      begin
+         return Label_Pixel_Width (Files.Localization.Text (Key), Cell_W);
+      end Label_W;
+
+      Widest : constant Natural :=
+        Natural'Max
+          (Label_W ("search.scope.here"),
+           Natural'Max
+             (Label_W ("search.scope.names"),
+              Label_W ("search.scope.contents")));
+   begin
+      return Widest + 2 * Input_Field_Padding;
+   end Filter_Scope_Chip_Width;
+
    function Calculate_Settings_Entry_Button_Layout
      (Pane_X      : Natural;
       Pane_Width  : Natural;

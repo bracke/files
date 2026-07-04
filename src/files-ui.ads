@@ -22,6 +22,16 @@ package Files.UI is
       Line_Height : Positive := 20)
       return Guikit.Layout.Bottom_Bar_Layout;
 
+   --  Width the filter scope chip needs so its label is never abbreviated:
+   --  the widest of the localized scope words (here/names/contents) plus the
+   --  input-field padding on both sides.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Scope chip width in pixels that fits the longest scope label.
+   function Filter_Scope_Chip_Width
+     (Line_Height : Positive := 20)
+      return Natural;
+
    --  Calculate settings add/remove button rectangles, sizing each button to
    --  its localized label.
    --

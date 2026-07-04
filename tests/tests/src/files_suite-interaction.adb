@@ -3643,14 +3643,15 @@ package body Files_Suite.Interaction is
          Segs : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
            Files.Breadcrumbs.Segments ("/home/user/files");
       begin
-         Assert (Natural (Segs.Length) = 4, "an absolute path yields root plus one segment per component");
-         Assert (To_String (Segs.Element (1).Label) = "/", "the first segment is the filesystem root");
-         Assert (To_String (Segs.Element (1).Ancestor_Path) = "/", "the root segment navigates to /");
-         Assert (To_String (Segs.Element (2).Label) = "home", "the second segment is the first component");
-         Assert (To_String (Segs.Element (2).Ancestor_Path) = "/home", "the second segment navigates to /home");
-         Assert (To_String (Segs.Element (4).Label) = "files", "the last segment is the leaf component");
+         Assert (Natural (Segs.Length) = 3, "an absolute path yields one segment per named component (no root)");
+         Assert (To_String (Segs.Element (1).Label) = "home", "the first segment is the first component");
+         Assert (To_String (Segs.Element (1).Ancestor_Path) = "/home", "the first segment navigates to /home");
+         Assert (To_String (Segs.Element (2).Label) = "user", "the second segment is the next component");
+         Assert (To_String (Segs.Element (2).Ancestor_Path) = "/home/user",
+                 "the second segment navigates to /home/user");
+         Assert (To_String (Segs.Element (3).Label) = "files", "the last segment is the leaf component");
          Assert
-           (To_String (Segs.Element (4).Ancestor_Path) = "/home/user/files",
+           (To_String (Segs.Element (3).Ancestor_Path) = "/home/user/files",
             "the leaf segment navigates to the full path");
       end;
 
@@ -3661,16 +3662,16 @@ package body Files_Suite.Interaction is
            Files.Breadcrumbs.Elide (Long, 4);
          Has_Ellipsis : Boolean := False;
       begin
-         Assert (Natural (Long.Length) = 8, "the long path has eight segments");
+         Assert (Natural (Long.Length) = 7, "the long path has seven segments");
          Assert (Natural (Elided.Length) = 4, "eliding to four keeps four segments");
-         Assert (To_String (Elided.First_Element.Label) = "/", "elision keeps the root segment");
+         Assert (To_String (Elided.First_Element.Label) = "a", "elision keeps the first component");
          Assert (To_String (Elided.Last_Element.Label) = "g", "elision keeps the trailing component");
          for S of Elided loop
             if Files.Breadcrumbs.Is_Ellipsis (S) then
                Has_Ellipsis := True;
             end if;
          end loop;
-         Assert (Has_Ellipsis, "elision inserts a non-navigable marker between root and tail");
+         Assert (Has_Ellipsis, "elision inserts a non-navigable marker between the head and tail");
       end;
    end Test_Breadcrumb_Segments_And_Elide;
 

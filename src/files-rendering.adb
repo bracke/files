@@ -3727,8 +3727,9 @@ package body Files.Rendering is
       if not Star.Visible then
          return 0;
       end if;
-      --  Star cell width plus a small gap so breadcrumbs/edit text clear it.
-      return Saturating_Add (Star.Width, Natural'Max (2, Guikit.Layout.Input_Field_Padding / 2));
+      --  Star cell width plus one full character cell of separation so the
+      --  breadcrumbs/edit text are clearly detached from the star.
+      return Saturating_Add (Star.Width, Guikit.Layout.Caret_Advance_Width (Line_Height));
    end Path_Bar_Content_Offset;
 
    function Calculate_Breadcrumb_Layout
@@ -3755,7 +3756,9 @@ package body Files.Rendering is
         (if Path_W > Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
          then Path_W - Saturating_Add (Saturating_Multiply (Pad, 2), Star_Reserve)
          else 0);
-      Sep_Cells    : constant Natural := 1;
+      --  Separator occupies three cells: one blank cell, the '>' glyph, one
+      --  blank cell -- a full character width of separation on each side.
+      Sep_Cells    : constant Natural := 3;
 
       function Total_Cells
         (Src : Files.Breadcrumbs.Segment_Vectors.Vector)
@@ -5316,9 +5319,18 @@ package body Files.Rendering is
            Natural'Min
              ((if Field_H > 2 then Field_H - 2 else Field_H),
               Positive'Max (1, Saturating_Multiply (Line_Height, 4) / 5));
+         --  Glyph ink sits in the lower part of its cell, so a geometrically
+         --  centered caret reads as floating too high above the text. Nudge it
+         --  down toward the baseline, clamped so it stays inside the field.
+         Descent_Bias : constant Natural := Line_Height / 8;
          Caret_Y : constant Natural :=
-           Saturating_Add
-             (Y, (if Field_H > Caret_H then (Field_H - Caret_H) / 2 else 0));
+           Natural'Min
+             (Saturating_Add
+                (Y,
+                 Saturating_Add
+                   ((if Field_H > Caret_H then (Field_H - Caret_H) / 2 else 0),
+                    Descent_Bias)),
+              (if Field_H > Caret_H then Saturating_Add (Y, Field_H - Caret_H) else Y));
          Caret_W : constant Natural := Natural'Min (2, Field_W);
       begin
          if Field_W > 0 and then Caret_H > 4 then
@@ -6389,7 +6401,8 @@ package body Files.Rendering is
                   Color =>
                     (if Snapshot.Current_Path_Is_Favorite
                      then Favorite_Star_Color
-                     else Muted_Text_Color));
+                     else Muted_Text_Color),
+                  Scale_To_Box => True);
                if Star_Hovered then
                   Add_Border (Star.X, Star.Y, Star.Width, Star.Height, Hover_Color);
                end if;
@@ -6457,8 +6470,10 @@ package body Files.Rendering is
                         Snapshot.Breadcrumb_Segments.Element (Positive (Seg.Segment_Index)).Ancestor_Path);
                   end if;
                   if not Is_Last then
+                     --  Draw '>' in the middle of the three separator cells so
+                     --  it has a full character width of space on each side.
                      Add_Text
-                       (Saturating_Add (Seg.X, Seg.Width),
+                       (Saturating_Add (Saturating_Add (Seg.X, Seg.Width), Advance),
                         Toolbar_Input_Text_Y,
                         Advance,
                         Toolbar_Input_Text_H,
@@ -6515,12 +6530,13 @@ package body Files.Rendering is
          Field_Margin : constant Natural := 6;
          Filter_X : constant Natural :=
            Saturating_Add (Toolbar.Right_X, Field_Margin);
-         --  The filter field is narrowed to end before the scope chip (when the
-         --  chip fits); Files.UI owns the shared geometry the click hit-test uses.
+         --  The chip is sized to its localized label so it never abbreviates;
+         --  the filter field is narrowed to end before it (when it fits).
+         Scope_Chip_W : constant Natural := Files.UI.Filter_Scope_Chip_Width (Line_Height);
          Filter_W : constant Natural :=
-           Guikit.Layout.Filter_Input_Field_Width (Toolbar, Line_Height);
+           Guikit.Layout.Filter_Input_Field_Width (Toolbar, Scope_Chip_W, Line_Height);
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
-           Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+           Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
          Scope_Key : constant String :=
            (case Snapshot.Search_Scope is
               when Files.Types.Filter_Here => "search.scope.here",

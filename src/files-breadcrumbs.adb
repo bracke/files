@@ -18,10 +18,9 @@ package body Files.Breadcrumbs is
       end if;
 
       if Absolute then
-         Result.Append
-           (Segment'
-              (Label         => To_Unbounded_String ("/"),
-               Ancestor_Path => To_Unbounded_String ("/")));
+         --  The filesystem root is not shown as its own breadcrumb (a bare '/'
+         --  next to the '>' separators reads as a stray mark); skip the leading
+         --  slash and start at the first named component.
          Index := Path'First + 1;
       end if;
 

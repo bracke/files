@@ -417,7 +417,8 @@ package body Files.Events is
       Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
       Scope_Chip     : constant Guikit.Layout.Scope_Chip_Region :=
-        Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+        Guikit.Layout.Filter_Scope_Chip_Region_Of
+          (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
       Palette_Rows   : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
