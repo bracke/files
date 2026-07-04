@@ -3702,7 +3702,10 @@ package body Files.Rendering is
       Field_Margin : constant Natural := 6;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Pad          : constant Natural := Guikit.Layout.Input_Field_Padding;
-      Star_W       : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+      --  The star is a glyph scaled to its box; give it a wider box than a text
+      --  cell so it renders closer to the input-field height rather than small.
+      Star_W       : constant Positive :=
+        Positive'Max (1, Saturating_Multiply (Line_Height, 4) / 5);
    begin
       if Toolbar.Middle_Width <= Saturating_Add (Saturating_Multiply (Field_Margin, 2), Saturating_Add (Star_W, Pad))
       then
@@ -6391,9 +6394,9 @@ package body Files.Rendering is
             begin
                Add_Text
                  (Star.X,
-                  Toolbar_Input_Text_Y,
+                  Star.Y,
                   Star.Width,
-                  Toolbar_Input_Text_H,
+                  Star.Height,
                   To_Unbounded_String
                     (if Snapshot.Current_Path_Is_Favorite
                      then Favorite_Star_Filled_Text
