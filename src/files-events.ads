@@ -97,6 +97,7 @@ package Files.Events is
    --  Translate a window click into an internal input action.
    --
    --  @param Snapshot Immutable view snapshot used for overlay and item hit tests.
+   --  @param Frame Frame commands used to resolve overlay hit regions.
    --  @param X Horizontal window coordinate.
    --  @param Y Vertical window coordinate.
    --  @param Width Window width in pixels.
