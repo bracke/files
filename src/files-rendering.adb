@@ -6583,44 +6583,50 @@ package body Files.Rendering is
          end if;
 
          if Scope_Chip.Visible then
-            --  The scope chip shows the active scope's short label; its border is
-            --  accented while recursive search results are on screen so the view
-            --  reads clearly as a search rather than a plain directory listing.
-            Add_Rect
-              (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Input_Color);
-            Add_Border
-              (Scope_Chip.X,
-               Scope_Chip.Y,
-               Scope_Chip.Width,
-               Scope_Chip.Height,
-               (if Snapshot.Search_Results_Active then Pressed_Color else Border_Color));
-            Add_Text
-              (Saturating_Add (Scope_Chip.X, Guikit.Layout.Input_Field_Padding),
-               Toolbar_Input_Text_Y,
-               (if Scope_Chip.Width > 2 * Guikit.Layout.Input_Field_Padding
-                then Scope_Chip.Width - 2 * Guikit.Layout.Input_Field_Padding
-                else 0),
-               Toolbar_Input_Text_H,
-               Localized (Scope_Key),
-               (if Snapshot.Search_Results_Active then Text_Color else Muted_Text_Color),
-               Fit => True);
-            if Has_Hover
-              and then Contains_Point
-                (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Hover_X, Hover_Y)
-            then
+            declare
+               --  The scope chip is a button: clicking it cycles the search
+               --  scope. Give it the raised button look used by the overlay/
+               --  close buttons -- a persistent Pane_Color fill and border that
+               --  lifts to Hover_Color/Pressed_Color on interaction and to
+               --  Selection_Color while recursive search results are on screen --
+               --  rather than the recessed Input_Color look of a text field.
+               Chip_Hovered : constant Boolean :=
+                 Has_Hover
+                 and then Contains_Point
+                   (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Hover_X, Hover_Y);
+               Chip_Pressed : constant Boolean :=
+                 Is_Pressed (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height);
+               Chip_Active  : constant Boolean := Snapshot.Search_Results_Active;
+            begin
+               Add_Rect
+                 (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height,
+                  (if Chip_Active then Selection_Color
+                   elsif Chip_Pressed then Pressed_Color
+                   elsif Chip_Hovered then Hover_Color
+                   else Pane_Color));
                Add_Border
-                 (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Hover_Color);
-            end if;
-            Add_Accessibility_Node
-              (Role_Button,
-               Scope_Chip.X,
-               Scope_Chip.Y,
-               Scope_Chip.Width,
-               Scope_Chip.Height,
-               Localized ("accessibility.search_scope"),
-               Localized (Scope_Key),
-               Enabled => True,
-               Focused => False);
+                 (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Border_Color);
+               Add_Text
+                 (Saturating_Add (Scope_Chip.X, Guikit.Layout.Input_Field_Padding),
+                  Toolbar_Input_Text_Y,
+                  (if Scope_Chip.Width > 2 * Guikit.Layout.Input_Field_Padding
+                   then Scope_Chip.Width - 2 * Guikit.Layout.Input_Field_Padding
+                   else 0),
+                  Toolbar_Input_Text_H,
+                  Localized (Scope_Key),
+                  (if Chip_Active then Text_Color else Muted_Text_Color),
+                  Fit => True);
+               Add_Accessibility_Node
+                 (Role_Button,
+                  Scope_Chip.X,
+                  Scope_Chip.Y,
+                  Scope_Chip.Width,
+                  Scope_Chip.Height,
+                  Localized ("accessibility.search_scope"),
+                  Localized (Scope_Key),
+                  Enabled => True,
+                  Focused => False);
+            end;
          end if;
       end;
       Add_Command_Tooltip
