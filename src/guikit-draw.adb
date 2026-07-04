@@ -2,7 +2,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 
 --  Implementation of the renderer-agnostic draw model helpers.
-package body Files.Gui.Draw is
+package body Guikit.Draw is
 
    use Ada.Strings.Unbounded;
 
@@ -436,4 +436,4 @@ package body Files.Gui.Draw is
          return Result;
    end Parse_Icon_Asset;
 
-end Files.Gui.Draw;
+end Guikit.Draw;

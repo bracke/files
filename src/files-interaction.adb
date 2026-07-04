@@ -12,7 +12,7 @@ package body Files.Interaction is
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
-   use type Files.Gui.Input.Key_Code;
+   use type Guikit.Input.Key_Code;
 
    --  Map the model's runtime sort enum onto the settings enum.
    function Settings_Sort_Of
@@ -106,7 +106,7 @@ package body Files.Interaction is
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
       Current_Font_Size : Positive;
-      Modifiers         : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result)
    is
       Outcome : Files.Controller.Controller_Result;
@@ -305,21 +305,21 @@ package body Files.Interaction is
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
-      Key               : Files.Gui.Input.Key_Code;
-      Modifiers         : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Key               : Guikit.Input.Key_Code;
+      Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Current_Font_Size : Positive;
       Result            : out Interaction_Result)
    is
       --  Ctrl (Shift allowed for '+') without Alt/Meta drives keyboard zoom.
       Zoom_Modifier : constant Boolean :=
-        Modifiers (Files.Gui.Input.Control_Key)
-          and then not Modifiers (Files.Gui.Input.Alt_Key)
-          and then not Modifiers (Files.Gui.Input.Meta_Key);
+        Modifiers (Guikit.Input.Control_Key)
+          and then not Modifiers (Guikit.Input.Alt_Key)
+          and then not Modifiers (Guikit.Input.Meta_Key);
       Zoom_Key      : constant Boolean :=
         Zoom_Modifier
-          and then Key in Files.Gui.Input.Key_Equal
-                        | Files.Gui.Input.Key_Minus
-                        | Files.Gui.Input.Key_0;
+          and then Key in Guikit.Input.Key_Equal
+                        | Guikit.Input.Key_Minus
+                        | Guikit.Input.Key_0;
    begin
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
@@ -334,9 +334,9 @@ package body Files.Interaction is
             Old_Size : constant Positive := Settings.Font_Pixel_Size;
             New_Size : constant Positive :=
               (case Key is
-                  when Files.Gui.Input.Key_Equal =>
+                  when Guikit.Input.Key_Equal =>
                      Files.Settings.Clamp_Font_Pixel_Size (Old_Size + 1),
-                  when Files.Gui.Input.Key_Minus =>
+                  when Guikit.Input.Key_Minus =>
                      Files.Settings.Clamp_Font_Pixel_Size (Old_Size - 1),
                   when others =>
                      Files.Settings.Default_Font_Pixel_Size);
@@ -390,7 +390,7 @@ package body Files.Interaction is
       --  character: when the grid owns the keyboard, drop the parallel space
       --  character event so it never leaks into type-ahead. A space typed into a
       --  focused text field keeps its character event and types a space.
-      if Key = Files.Gui.Input.Key_Space
+      if Key = Guikit.Input.Key_Space
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
       then
          Result.Clear_Pending_Text := True;
@@ -411,7 +411,7 @@ package body Files.Interaction is
       Settings_Path     : String;
       Action            : Files.Events.Input_Action;
       Current_Font_Size : Positive;
-      Modifiers         : Files.Gui.Input.Modifier_Set;
+      Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
       Outcome : Files.Controller.Controller_Result;
@@ -578,7 +578,7 @@ package body Files.Interaction is
             then
                Execute_Command
                  (Model, Settings, Settings_Path, Outcome.Command,
-                  Current_Font_Size, Files.Gui.Input.No_Modifiers, Result);
+                  Current_Font_Size, Guikit.Input.No_Modifiers, Result);
                Result.Clear_Pending_Text := True;
             end if;
          when Files.Events.Permission_Toggle_Input_Action =>
@@ -679,7 +679,7 @@ package body Files.Interaction is
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
       Current_Font_Size : Positive;
-      Modifiers         : Files.Gui.Input.Modifier_Set;
+      Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result) is
    begin
       Files.Model.Close_Context_Menu (Model);
@@ -738,7 +738,7 @@ package body Files.Interaction is
                        Settings      => Settings,
                        Visible_Index => Item_Index,
                        Activate      => False,
-                       Modifiers     => Files.Gui.Input.No_Modifiers);
+                       Modifiers     => Guikit.Input.No_Modifiers);
                   Result.Status := Click_Result.Status;
                end;
             end if;

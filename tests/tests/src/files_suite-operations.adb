@@ -45,11 +45,11 @@ with Files.Model;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
-with Files.Gui.Vulkan;
+with Guikit.Vulkan;
 with Files.Settings;
-with Files.Gui.Input;
+with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
@@ -78,13 +78,13 @@ package body Files_Suite.Operations is
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Files.Gui.Draw.Accessibility_Role;
-   use type Files.Gui.Draw.Icon_Asset_Color_Role;
-   use type Files.Gui.Draw.Render_Color;
+   use type Guikit.Draw.Accessibility_Role;
+   use type Guikit.Draw.Icon_Asset_Color_Role;
+   use type Guikit.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Gui.Vulkan.Atlas_Texture_Format;
-   use type Files.Gui.Vulkan.Texture_Source;
-   use type Files.Gui.Vulkan.Vulkan_Status;
+   use type Guikit.Vulkan.Atlas_Texture_Format;
+   use type Guikit.Vulkan.Texture_Source;
+   use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
@@ -94,9 +94,9 @@ package body Files_Suite.Operations is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Gui.Input.Key_Code;
-   use type Files.Gui.Input.Modifier_Set;
-   use type Files.Gui.Input.Navigation_Direction;
+   use type Guikit.Input.Key_Code;
+   use type Guikit.Input.Modifier_Set;
+   use type Guikit.Input.Navigation_Direction;
    use type Files.Types.Search_Scope;
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
@@ -541,7 +541,7 @@ package body Files_Suite.Operations is
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "doomed.txt");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Delete);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Command = Files.Commands.Delete_Selected_Items_Command, "Delete routes through command registry");
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "available trash moves selected item");
       Assert (To_String (Result.Operation.Path) = Join (Root, "doomed.txt"), "delete operation reports target path");
@@ -566,7 +566,7 @@ package body Files_Suite.Operations is
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads collision target");
       Select_Name (Model, "doomed.txt");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Delete);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second same-name delete succeeds");
       Assert (Ada.Directories.Exists (Join (Trash_File, "doomed.txt.2")), "trash collision chooses suffix");
       Assert
@@ -591,7 +591,7 @@ package body Files_Suite.Operations is
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads second delete target");
       Select_Name (Model, "doomed2.txt");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Backspace);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
       Assert
         (Result.Command = Files.Commands.Delete_Selected_Items_Command,
          "Backspace routes through same delete command");
@@ -602,7 +602,7 @@ package body Files_Suite.Operations is
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads encoded trash target");
       Select_Name (Model, "space % file.txt");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Delete);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "encoded trash target moves to trash");
       Assert
         (Project_Tools.Files.File_Contains
@@ -617,7 +617,7 @@ package body Files_Suite.Operations is
       Files.Model.Set_Filter (Model, "multi-");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Delete);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "multi-selection delete succeeds");
       Assert (Ada.Directories.Exists (Join (Trash_File, "multi-a.txt")), "multi-delete moves first file");
       Assert (Ada.Directories.Exists (Join (Trash_File, "multi-b.txt")), "multi-delete moves second file");
@@ -632,7 +632,7 @@ package body Files_Suite.Operations is
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Ada.Directories.Delete_File (Join (Root, "partial-b.txt"));
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Delete);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "partial multi-delete reports failure");
       Assert
         (To_String (Result.Operation.Error_Key) = "error.trash.failed",
@@ -679,7 +679,7 @@ package body Files_Suite.Operations is
          Files.Model.Select_Visible (Guard_Model, 1);
          Files.Model.Toggle_Visible_Selection (Guard_Model, 2);
 
-         Guard_Result := Files.Controller.Handle_Key (Guard_Model, Guard_Settings, Files.Gui.Input.Key_Delete);
+         Guard_Result := Files.Controller.Handle_Key (Guard_Model, Guard_Settings, Guikit.Input.Key_Delete);
          Assert
            (Guard_Result.Operation.Status = Files.Operations.Operation_Failed,
             "multi-delete preflights nested trash targets");
@@ -1213,7 +1213,7 @@ package body Files_Suite.Operations is
       Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Arguments : Files.Settings.String_Vectors.Vector;
       Shell_Arguments : Files.Settings.String_Vectors.Vector;
-      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Model     : Files.Model.Window_Model := Sample_Model;
       Result    : Files.Operations.Operation_Result;
       Routed    : Files.Controller.Controller_Result;
@@ -1275,7 +1275,7 @@ package body Files_Suite.Operations is
         (Settings,
          "text/plain+control",
          Files.Settings.Make_Action ("/bin/true", Arguments));
-      Modifiers (Files.Gui.Input.Control_Key) := True;
+      Modifiers (Guikit.Input.Control_Key) := True;
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Set_Error (Model, "error.open_action.missing");
 
@@ -1592,7 +1592,7 @@ package body Files_Suite.Operations is
       Assert (Routed.Command = Files.Commands.No_Command, "selection click does not execute a command");
       Assert (Files.Model.Selected_Index (Model) = 1, "click selection updates selected visible index");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "item click clears text input focus");
-      Routed := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+      Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert (Routed.Status = Files.Controller.Controller_Selection_Moved, "arrow key moves after item click");
       Assert (Files.Model.Selected_Index (Model) = 2, "arrow key uses main view after item click");
       Files.Model.Focus_Path_Input (Model);
@@ -1732,7 +1732,7 @@ package body Files_Suite.Operations is
            (Settings,
             "text/unsafe-argument",
             Files.Settings.Make_Action ("/bin/true", Unsafe_Arguments));
-         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-argument", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-argument", Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
             "settings helper rejects embedded placeholders before operation preparation");
@@ -1745,7 +1745,7 @@ package body Files_Suite.Operations is
            (Settings,
             "text/unsafe-executable",
             Files.Settings.Make_Action ("{path}", Files.Types.String_Vectors.Empty_Vector));
-         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-executable", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-executable", Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
             "settings helper rejects executable placeholders before operation preparation");
@@ -1764,7 +1764,7 @@ package body Files_Suite.Operations is
       Assert
         (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
          "prepared modifier-specific action expands path");
-      Routed := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Return, Modifiers);
+      Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Modifiers);
       Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "Return routes file open command");
       Assert
         (Routed.Operation.Status = Files.Operations.Operation_Action_Executed,
@@ -2411,7 +2411,7 @@ package body Files_Suite.Operations is
               Height      => 800,
               Line_Height => 20);
          Empty_Text : Files.Rendering.Text_Render_Result;
-         Thumbnail_Batch : Files.Gui.Vulkan.Submission_Batch;
+         Thumbnail_Batch : Guikit.Vulkan.Submission_Batch;
          Found_Thumbnail_Command : Boolean := False;
          Found_Thumbnail_Icon    : Boolean := False;
          Thumbnail_Tile          : Natural := 0;
@@ -2438,7 +2438,7 @@ package body Files_Suite.Operations is
          Assert
            (Found_Thumbnail_Icon,
             "large-icons item icon command uses a thumbnail-specific icon asset");
-         Thumbnail_Batch := Files.Gui.Vulkan.Build_Submission
+         Thumbnail_Batch := Guikit.Vulkan.Build_Submission
            (Rectangles         => Thumbnail_Frame.Rectangles,
             Triangles          => Thumbnail_Frame.Triangles,
             Icons              => Thumbnail_Frame.Icons,
@@ -3476,7 +3476,7 @@ package body Files_Suite.Operations is
          end loop;
 
          for Node of Frame.Accessibility loop
-            if Node.Role = Files.Gui.Draw.Role_List_Item
+            if Node.Role = Guikit.Draw.Role_List_Item
               and then To_String (Node.Name) = "meta.txt"
               and then Ada.Strings.Fixed.Index
                 (To_String (Node.Description),
@@ -3539,7 +3539,7 @@ package body Files_Suite.Operations is
             end if;
          end loop;
          for Node of Frame.Accessibility loop
-            if Node.Role = Files.Gui.Draw.Role_List_Item
+            if Node.Role = Guikit.Draw.Role_List_Item
               and then To_String (Node.Name) = "broken.txt"
               and then Ada.Strings.Fixed.Index
                 (To_String (Node.Description),
@@ -3674,10 +3674,10 @@ package body Files_Suite.Operations is
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Ctrl     : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
    begin
-      Ctrl (Files.Gui.Input.Control_Key) := True;
+      Ctrl (Guikit.Input.Control_Key) := True;
       Reset_Root;
       Ada.Directories.Create_Path (First);
       Ada.Directories.Create_Path (Second);
@@ -3853,10 +3853,10 @@ package body Files_Suite.Operations is
       Write_File (Join (First, "one.txt"));
       Write_File (Join (First, "fresh.txt"));
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_L, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_L, Ctrl);
       Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "Control+L focuses path for branch");
       Files.Controller.Replace_Focused_Text (Model, Branch);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Return);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "path input navigates to branch");
       Assert
         (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Branch),
@@ -4242,7 +4242,7 @@ package body Files_Suite.Operations is
             Settings_Path     => "",
             Action            => Action,
             Current_Font_Size => 16,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
 
          Assert
@@ -4445,7 +4445,7 @@ package body Files_Suite.Operations is
             Settings_Path     => "",
             Action            => Action,
             Current_Font_Size => 16,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Reduce);
 
          Assert
@@ -4456,7 +4456,7 @@ package body Files_Suite.Operations is
          --  id) and commit with Enter through the controller.
          Files.Controller.Replace_Focused_Text
            (Model, Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both));
-         Routed := Files.Controller.Handle_Key (Model, Settings_Var, Files.Gui.Input.Key_Return);
+         Routed := Files.Controller.Handle_Key (Model, Settings_Var, Guikit.Input.Key_Return);
 
          Assert
            (Routed.Operation.Status = Files.Operations.Operation_Success,
@@ -5638,7 +5638,7 @@ package body Files_Suite.Operations is
          Settings_Path     => "",
          Action            => (Kind => Files.Events.Tree_Pick_Confirm_Input_Action, others => <>),
          Current_Font_Size => 16,
-         Modifiers         => Files.Gui.Input.No_Modifiers,
+         Modifiers         => Guikit.Input.No_Modifiers,
          Result            => IR);
    end Confirm_Pick;
 

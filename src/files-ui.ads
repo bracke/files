@@ -1,11 +1,11 @@
 with Files.Commands;
-with Files.Gui.Layout;
+with Guikit.Layout;
 
---  Domain-coupled UI layer over the generic Files.Gui.Layout geometry.
+--  Domain-coupled UI layer over the generic Guikit.Layout geometry.
 --
 --  This package is the thin application-side seam between the pure geometry in
---  Files.Gui.Layout and the file-manager domain: it looks up localized labels,
---  measures them, and delegates the rectangle math to Files.Gui.Layout, and it
+--  Guikit.Layout and the file-manager domain: it looks up localized labels,
+--  measures them, and delegates the rectangle math to Guikit.Layout, and it
 --  maps toolbar/bottom-bar pixels to the commands they trigger. Everything here
 --  depends on Files.Commands and Files.Localization; the geometry it composes
 --  from does not.
@@ -20,7 +20,7 @@ package Files.UI is
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
       Line_Height : Positive := 20)
-      return Files.Gui.Layout.Bottom_Bar_Layout;
+      return Guikit.Layout.Bottom_Bar_Layout;
 
    --  Calculate settings add/remove button rectangles, sizing each button to
    --  its localized label.
@@ -33,7 +33,7 @@ package Files.UI is
      (Pane_X      : Natural;
       Pane_Width  : Natural;
       Line_Height : Positive := 20)
-      return Files.Gui.Layout.Settings_Entry_Button_Layout;
+      return Guikit.Layout.Settings_Entry_Button_Layout;
 
    --  Return the toolbar command at a window position.
    --

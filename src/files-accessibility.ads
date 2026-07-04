@@ -1,7 +1,7 @@
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
 
 --  Accessibility bridge for exporting render accessibility nodes.
@@ -13,7 +13,7 @@ package Files.Accessibility is
         Files.File_System.Native_API_Binding_Missing;
       Node_Count                : Natural := 0;
       Focused_Node_Count        : Natural := 0;
-      Nodes                     : Files.Gui.Draw.Accessibility_Node_Vectors.Vector;
+      Nodes                     : Guikit.Draw.Accessibility_Node_Vectors.Vector;
       Binding_Unit              : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 

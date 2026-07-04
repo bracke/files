@@ -6,11 +6,11 @@ with Ada.Containers.Vectors;
 with Glfw.Windows;
 with Vk;
 
-with Files.Gui.Draw;
-with Files.Gui.Frame_Analysis;
+with Guikit.Draw;
+with Guikit.Frame_Analysis;
 
 --  Vulkan renderer lifecycle backed by df_vulkan.
-package Files.Gui.Vulkan is
+package Guikit.Vulkan is
    use type Interfaces.Unsigned_8;
 
    type Vulkan_Status is
@@ -55,7 +55,7 @@ package Files.Gui.Vulkan is
       Y       : Float := 0.0;
       U       : Float := 0.0;
       V       : Float := 0.0;
-      Color   : Files.Gui.Draw.Render_Color := Files.Gui.Draw.Canvas_Color;
+      Color   : Guikit.Draw.Render_Color := Guikit.Draw.Canvas_Color;
       Textured : Boolean := False;
       Texture : Texture_Source := Texture_None;
    end record;
@@ -70,7 +70,7 @@ package Files.Gui.Vulkan is
 
    type Submission_Batch is record
       Vertices               : Vertex_Vectors.Vector;
-      Palette_Theme          : Files.Gui.Draw.Theme_Kind := Files.Gui.Draw.Theme_Dark;
+      Palette_Theme          : Guikit.Draw.Theme_Kind := Guikit.Draw.Theme_Dark;
       Rectangle_Vertex_Count : Natural := 0;
       Triangle_Vertex_Count  : Natural := 0;
       Icon_Vertex_Count      : Natural := 0;
@@ -157,7 +157,7 @@ package Files.Gui.Vulkan is
       Framebuffer_Readback_Ready : Boolean := False;
       Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
       Last_Framebuffer_Bytes : Natural := 0;
-      Framebuffer_Analysis  : Files.Gui.Frame_Analysis.Frame_Metrics;
+      Framebuffer_Analysis  : Guikit.Frame_Analysis.Frame_Metrics;
       Framebuffer_Passed    : Boolean := False;
       Frame_Width           : Natural := 0;
       Frame_Height          : Natural := 0;
@@ -440,13 +440,13 @@ package Files.Gui.Vulkan is
    --  @param Text Text render result containing glyph commands.
    --  @return Submission batch containing quad vertices.
    function Build_Submission
-     (Rectangles         : Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
-      Triangles          : Files.Gui.Draw.Triangle_Command_Vectors.Vector;
-      Icons              : Files.Gui.Draw.Icon_Command_Vectors.Vector;
-      Overlay_Rectangles : Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
-      Layout             : Files.Gui.Draw.Layout_Metrics;
-      Theme              : Files.Gui.Draw.Theme_Kind;
-      Text               : Files.Gui.Draw.Text_Render_Result)
+     (Rectangles         : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Triangles          : Guikit.Draw.Triangle_Command_Vectors.Vector;
+      Icons              : Guikit.Draw.Icon_Command_Vectors.Vector;
+      Overlay_Rectangles : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Layout             : Guikit.Draw.Layout_Metrics;
+      Theme              : Guikit.Draw.Theme_Kind;
+      Text               : Guikit.Draw.Text_Render_Result)
       return Submission_Batch;
 
    --  Compare two Vulkan submission batches as deterministic screenshot proxies.
@@ -477,7 +477,7 @@ package Files.Gui.Vulkan is
    --  The renderer retains a copy of the most recent read-back framebuffer;
    --  this indexes that copy with a rectangle expressed in the same framebuffer
    --  pixel coordinates the layout functions produce, delegating to
-   --  Files.Gui.Frame_Analysis.Region_Ink_Fraction. Returns 0.0 when no
+   --  Guikit.Frame_Analysis.Region_Ink_Fraction. Returns 0.0 when no
    --  readback is available or the rectangle is empty/out of range.
    --
    --  @param Renderer Renderer holding the retained framebuffer copy.
@@ -513,7 +513,7 @@ package Files.Gui.Vulkan is
       W            : Natural;
       H            : Natural;
       Min_Fraction : Float :=
-        Files.Gui.Frame_Analysis.Default_Region_Ink_Fraction)
+        Guikit.Frame_Analysis.Default_Region_Ink_Fraction)
       return Boolean;
 
    --  Submit a prepared frame batch to the renderer presentation path.
@@ -539,7 +539,7 @@ private
    type Framebuffer_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Framebuffer_T;
    type Command_Buffer_Array is array (Positive range 1 .. Max_Swapchain_Images) of Vk.Command_Buffer_T;
 
-   type Retained_Frame_Access is access Files.Gui.Frame_Analysis.Byte_Array;
+   type Retained_Frame_Access is access Guikit.Frame_Analysis.Byte_Array;
    --  Heap copy of the last read-back framebuffer, retained so layout-derived
    --  region checks can index it after the mapped Vulkan memory is unmapped.
 
@@ -623,7 +623,7 @@ private
       Readback_Pending     : Boolean := False;
       Readback_Ready       : Boolean := False;
       Last_Readback_Hash   : Interfaces.Unsigned_32 := 0;
-      Last_Frame_Metrics   : Files.Gui.Frame_Analysis.Frame_Metrics;
+      Last_Frame_Metrics   : Guikit.Frame_Analysis.Frame_Metrics;
       Last_Frame_Passed    : Boolean := False;
       Readback_Copy        : Retained_Frame_Access := null;
       Readback_Copy_Length : Natural := 0;
@@ -647,4 +647,4 @@ private
       Surface_Loss_Validated : Boolean := False;
    end record;
 
-end Files.Gui.Vulkan;
+end Guikit.Vulkan;

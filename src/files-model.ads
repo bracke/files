@@ -5,7 +5,7 @@ with Files.Folder_Tree;
 with Files.Paste;
 with Files.Quick_Look;
 with Files.Settings;
-with Files.Gui.Input;
+with Guikit.Input;
 with Files.Types;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
@@ -296,7 +296,7 @@ package Files.Model is
    --  @param Direction Direction requested by user input.
    procedure Move_Selection
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction);
+      Direction : Guikit.Input.Navigation_Direction);
 
    --  Select the first visible item (visible index one).
    --
@@ -649,7 +649,7 @@ package Files.Model is
    --  @param Direction Direction requested by user input.
    procedure Move_Root_Selection
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction);
+      Direction : Guikit.Input.Navigation_Direction);
 
    --  Return a root path from the selector.
    --
@@ -900,7 +900,7 @@ package Files.Model is
    --  @param Direction Left moves before the previous character; right moves after the next character.
    procedure Move_Text_Cursor
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction);
+      Direction : Guikit.Input.Navigation_Direction);
 
    --  Set path input text.
    --
@@ -1024,7 +1024,7 @@ package Files.Model is
    --  @param Direction Navigation direction.
    procedure Move_Settings_Field
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction);
+      Direction : Guikit.Input.Navigation_Direction);
 
    --  Move the selected entry within the current settings mapping group.
    --
@@ -1032,7 +1032,7 @@ package Files.Model is
    --  @param Direction Navigation direction.
    procedure Move_Settings_Entry
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction);
+      Direction : Guikit.Input.Navigation_Direction);
 
    --  Add a blank entry to the current settings mapping group.
    --
@@ -1415,7 +1415,7 @@ package Files.Model is
    --  @return True when any caret moved.
    function Rename_Move_All_Carets
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction)
+      Direction : Guikit.Input.Navigation_Direction)
       return Boolean;
 
    --  Move every rename field's caret one word boundary in Direction.
@@ -1425,7 +1425,7 @@ package Files.Model is
    --  @return True when any caret moved.
    function Rename_Move_All_Carets_Word
      (Model     : in out Window_Model;
-      Direction : Files.Gui.Input.Navigation_Direction)
+      Direction : Guikit.Input.Navigation_Direction)
       return Boolean;
 
    --  Move every rename field's caret to the start of its text.

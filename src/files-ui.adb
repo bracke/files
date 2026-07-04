@@ -1,14 +1,14 @@
 with Files.Localization;
 
-with Files.Gui.Layout;
-use Files.Gui.Layout;
+with Guikit.Layout;
+use Guikit.Layout;
 
 package body Files.UI is
 
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
       Line_Height : Positive := 20)
-      return Files.Gui.Layout.Bottom_Bar_Layout
+      return Guikit.Layout.Bottom_Bar_Layout
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
 
@@ -34,7 +34,7 @@ package body Files.UI is
                     Sort_Label_Needed ("command.sort.changed")))));
    begin
       return
-        Files.Gui.Layout.Calculate_Bottom_Bar_Layout
+        Guikit.Layout.Calculate_Bottom_Bar_Layout
           (Width               => Width,
            Small_Label_Width   =>
              Label_Pixel_Width (Files.Localization.Text ("command.view.small.short"), Cell_W),
@@ -52,12 +52,12 @@ package body Files.UI is
      (Pane_X      : Natural;
       Pane_Width  : Natural;
       Line_Height : Positive := 20)
-      return Files.Gui.Layout.Settings_Entry_Button_Layout
+      return Guikit.Layout.Settings_Entry_Button_Layout
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
    begin
       return
-        Files.Gui.Layout.Calculate_Settings_Entry_Button_Layout
+        Guikit.Layout.Calculate_Settings_Entry_Button_Layout
           (Pane_X             => Pane_X,
            Pane_Width         => Pane_Width,
            Add_Label_Width    =>

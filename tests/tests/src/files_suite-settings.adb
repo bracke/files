@@ -39,11 +39,11 @@ with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Platform;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
-with Files.Gui.Vulkan;
+with Guikit.Vulkan;
 with Files.Settings;
-with Files.Gui.Input;
+with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
@@ -72,13 +72,13 @@ package body Files_Suite.Settings is
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Files.Gui.Draw.Accessibility_Role;
-   use type Files.Gui.Draw.Icon_Asset_Color_Role;
-   use type Files.Gui.Draw.Render_Color;
+   use type Guikit.Draw.Accessibility_Role;
+   use type Guikit.Draw.Icon_Asset_Color_Role;
+   use type Guikit.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Gui.Vulkan.Atlas_Texture_Format;
-   use type Files.Gui.Vulkan.Texture_Source;
-   use type Files.Gui.Vulkan.Vulkan_Status;
+   use type Guikit.Vulkan.Atlas_Texture_Format;
+   use type Guikit.Vulkan.Texture_Source;
+   use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
@@ -87,9 +87,9 @@ package body Files_Suite.Settings is
    use type Files.Settings.Theme_Choice;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Gui.Input.Key_Code;
-   use type Files.Gui.Input.Modifier_Set;
-   use type Files.Gui.Input.Navigation_Direction;
+   use type Guikit.Input.Key_Code;
+   use type Guikit.Input.Modifier_Set;
+   use type Guikit.Input.Navigation_Direction;
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
@@ -175,7 +175,7 @@ package body Files_Suite.Settings is
         "application/ld+json = json-viewer {path}" & ASCII.LF &
         "application/ld+json+control = json-editor {path}" & ASCII.LF;
       Parsed    : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Text);
-      Modifiers : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Lookup    : Files.Settings.Action_Lookup_Result;
       Expanded  : Files.Settings.Open_Action;
       Manual    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -323,7 +323,7 @@ package body Files_Suite.Settings is
         (Files.Settings.Icon_For_Filetype (Parsed.Settings, "   ") = "",
          "blank filetype has no icon mapping");
 
-      Modifiers (Files.Gui.Input.Control_Key) := True;
+      Modifiers (Guikit.Input.Control_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
       Assert (Lookup.Found, "modifier-specific open action is found");
       Assert (To_String (Lookup.Token) = "text/x-ada+control", "modifier token is normalized");
@@ -340,7 +340,7 @@ package body Files_Suite.Settings is
         (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada",
          "path placeholder expands as one argument");
 
-      Modifiers := Files.Gui.Input.No_Modifiers;
+      Modifiers := Guikit.Input.No_Modifiers;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "application/ld+json", Modifiers);
       Assert (Lookup.Found, "structured-suffix open action is found");
       Assert
@@ -349,7 +349,7 @@ package body Files_Suite.Settings is
       Assert
         (To_String (Lookup.Action.Executable) = "json-viewer",
          "structured-suffix open action executable parses");
-      Modifiers (Files.Gui.Input.Control_Key) := True;
+      Modifiers (Guikit.Input.Control_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "application/ld+json", Modifiers);
       Assert (Lookup.Found, "structured-suffix modifier-specific open action is found");
       Assert
@@ -359,7 +359,7 @@ package body Files_Suite.Settings is
         (To_String (Lookup.Action.Executable) = "json-editor",
          "structured-suffix modifier-specific executable parses");
 
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/full", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/full", Guikit.Input.No_Modifiers);
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/archive.tar.gz");
       Assert (Lookup.Found, "full placeholder action is found");
       Assert (To_String (Expanded.Arguments.Element (1)) = "/tmp/example", "parent placeholder expands");
@@ -471,7 +471,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/unknown-placeholder",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "unknown placeholder open action parses");
       Assert
         (not Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action),
@@ -481,8 +481,8 @@ package body Files_Suite.Settings is
         (To_String (Expanded.Arguments.Element (1)) = "{unknown}",
          "unknown placeholder remains literal after expansion");
 
-      Modifiers := Files.Gui.Input.No_Modifiers;
-      Modifiers (Files.Gui.Input.Shift_Key) := True;
+      Modifiers := Guikit.Input.No_Modifiers;
+      Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
       Assert (Lookup.Found, "missing modifier action falls back to unmodified filetype");
       Assert (To_String (Lookup.Token) = "text/x-ada", "fallback token is unmodified filetype");
@@ -493,7 +493,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/quoted",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "quoted open action is found");
       Assert (To_String (Lookup.Action.Executable) = "quoted editor", "quoted executable parses");
       Assert (Natural (Lookup.Action.Arguments.Length) = 2, "quoted arguments parse as separate values");
@@ -512,7 +512,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/quote-char",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "quote-containing open action is found");
       Assert
         (To_String (Lookup.Action.Executable) = "quote""runner",
@@ -524,7 +524,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/equals",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "equals-containing open action is found");
       Assert
         (To_String (Lookup.Action.Arguments.Element (1)) = "--flag=value",
@@ -536,7 +536,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/empty-arg",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "empty quoted argument open action is found");
       Assert (Natural (Lookup.Action.Arguments.Length) = 2, "empty quoted argument does not end parsing");
       Assert (To_String (Lookup.Action.Arguments.Element (1)) = "", "empty quoted argument is preserved");
@@ -547,7 +547,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/shell",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "explicit shell open action is found");
       Assert (Lookup.Action.Use_Shell, "explicit shell prefix is preserved");
       Assert (To_String (Lookup.Action.Executable) = "shell runner", "shell executable can be quoted");
@@ -561,11 +561,11 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/shell-upper",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "uppercase shell open action is found");
       Assert (Lookup.Action.Use_Shell, "uppercase shell prefix is normalized");
       Assert (To_String (Lookup.Action.Executable) = "upper-runner", "uppercase shell executable parses");
-      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "unmodified non-shell open action is found");
       Assert (not Lookup.Action.Use_Shell, "shell execution is opt-in through explicit prefix");
       declare
@@ -573,7 +573,7 @@ package body Files_Suite.Settings is
          Reloaded   : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Serialized);
       begin
          Assert (Reloaded.Success, "serialized settings text parses");
-         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quoted", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quoted", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized quoted action reloads");
          Assert
            (To_String (Lookup.Action.Executable) = "quoted editor",
@@ -584,7 +584,7 @@ package body Files_Suite.Settings is
          Assert
            (To_String (Lookup.Action.Arguments.Element (2)) = "{path}",
             "serialized quoted action preserves placeholder argument");
-         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/equals", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/equals", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized equals-containing action reloads");
          Assert
            (To_String (Lookup.Action.Arguments.Element (1)) = "--flag=value",
@@ -593,7 +593,7 @@ package body Files_Suite.Settings is
            (To_String (Lookup.Action.Arguments.Element (2)) = "arg=two words",
             "serialized open action preserves quoted equals argument");
          Lookup :=
-           Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quote-char", Files.Gui.Input.No_Modifiers);
+           Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quote-char", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized quote-containing action reloads");
          Assert
            (To_String (Lookup.Action.Executable) = "quote""runner",
@@ -603,12 +603,12 @@ package body Files_Suite.Settings is
             "serialized open action preserves argument quote");
          Lookup :=
            Files.Settings.Lookup_Open_Action
-             (Reloaded.Settings, "text/empty-arg", Files.Gui.Input.No_Modifiers);
+             (Reloaded.Settings, "text/empty-arg", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized empty-argument action reloads");
          Assert
            (To_String (Lookup.Action.Arguments.Element (1)) = "",
             "serialized open action preserves empty argument");
-         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/shell", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/shell", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized shell action reloads");
          Assert (Lookup.Action.Use_Shell, "serialized shell action preserves shell opt-in");
          Assert
@@ -640,9 +640,9 @@ package body Files_Suite.Settings is
             "serialized icon theme quotes embedded quote");
       end;
 
-      Modifiers := Files.Gui.Input.No_Modifiers;
-      Modifiers (Files.Gui.Input.Control_Key) := True;
-      Modifiers (Files.Gui.Input.Alt_Key) := True;
+      Modifiers := Guikit.Input.No_Modifiers;
+      Modifiers (Guikit.Input.Control_Key) := True;
+      Modifiers (Guikit.Input.Alt_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/mixed", Modifiers);
       Assert (Lookup.Found, "settings modifier token is normalized on insertion");
       Assert
@@ -692,7 +692,7 @@ package body Files_Suite.Settings is
            Files.Settings.Lookup_Open_Action
              (Normalized_Load.Settings,
               "text/plain",
-              [Files.Gui.Input.Control_Key | Files.Gui.Input.Alt_Key => True, others => False]);
+              [Guikit.Input.Control_Key | Guikit.Input.Alt_Key => True, others => False]);
          Assert (Lookup.Found, "normalized draft action lookup succeeds");
          Assert
            (To_String (Lookup.Action.Executable) = "editor",
@@ -724,7 +724,7 @@ package body Files_Suite.Settings is
            Files.Settings.Lookup_Open_Action
              (Normalized_Load.Settings,
               "application/ld+json",
-              [Files.Gui.Input.Control_Key => True, others => False]);
+              [Guikit.Input.Control_Key => True, others => False]);
          Assert (Lookup.Found, "draft structured-suffix modifier action lookup succeeds");
          Assert
            (To_String (Lookup.Token) = "application/ld+json+control",
@@ -734,9 +734,9 @@ package body Files_Suite.Settings is
             "draft structured-suffix modifier action executable parses");
       end;
 
-      Modifiers := Files.Gui.Input.No_Modifiers;
-      Modifiers (Files.Gui.Input.Meta_Key) := True;
-      Modifiers (Files.Gui.Input.Shift_Key) := True;
+      Modifiers := Guikit.Input.No_Modifiers;
+      Modifiers (Guikit.Input.Meta_Key) := True;
+      Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
       Assert (not Lookup.Found, "missing open action is represented as lookup data");
       Assert
@@ -745,8 +745,8 @@ package body Files_Suite.Settings is
       Assert
         (To_String (Lookup.Error_Key) = "error.open_action.missing",
          "missing open action reports deterministic diagnostic key");
-      Modifiers (Files.Gui.Input.Control_Key) := True;
-      Modifiers (Files.Gui.Input.Alt_Key) := True;
+      Modifiers (Guikit.Input.Control_Key) := True;
+      Modifiers (Guikit.Input.Alt_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
       Assert (not Lookup.Found, "missing full-modifier open action is represented as lookup data");
       Assert
@@ -883,11 +883,11 @@ package body Files_Suite.Settings is
         (Manual,
          " text/spaced-manual + META + shift ",
          Files.Settings.Make_Action (" spaced-manual ", Args));
-      Modifiers := Files.Gui.Input.No_Modifiers;
-      Modifiers (Files.Gui.Input.Meta_Key) := True;
-      Modifiers (Files.Gui.Input.Shift_Key) := True;
-      Modifiers (Files.Gui.Input.Alt_Key) := True;
-      Modifiers (Files.Gui.Input.Control_Key) := True;
+      Modifiers := Guikit.Input.No_Modifiers;
+      Modifiers (Guikit.Input.Meta_Key) := True;
+      Modifiers (Guikit.Input.Shift_Key) := True;
+      Modifiers (Guikit.Input.Alt_Key) := True;
+      Modifiers (Guikit.Input.Control_Key) := True;
       Assert
         (Files.Settings.Modifier_Token (Modifiers) = "+shift+control+alt+meta",
          "modifier tokens are emitted in stable lookup order");
@@ -899,9 +899,9 @@ package body Files_Suite.Settings is
       Assert
         (To_String (Lookup.Action.Executable) = "second",
          "direct open-action insertion replaces normalized duplicate token");
-      Modifiers := Files.Gui.Input.No_Modifiers;
-      Modifiers (Files.Gui.Input.Meta_Key) := True;
-      Modifiers (Files.Gui.Input.Shift_Key) := True;
+      Modifiers := Guikit.Input.No_Modifiers;
+      Modifiers (Guikit.Input.Meta_Key) := True;
+      Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/spaced-manual", Modifiers);
       Assert (Lookup.Found, "direct open-action insertion trims filetype before modifiers");
       Assert
@@ -917,7 +917,7 @@ package body Files_Suite.Settings is
         (Manual,
          "text/bad-direct+",
          Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores dangling modifier separator");
       Files.Settings.Add_Open_Action
         (Manual,
@@ -926,7 +926,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Manual,
          "text/bad-direct",
-         [Files.Gui.Input.Control_Key => True, others => False]);
+         [Guikit.Input.Control_Key => True, others => False]);
       Assert
         (not Lookup.Found,
          "direct open-action insertion ignores trailing modifier separator after a modifier");
@@ -937,7 +937,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Manual,
          "text/bad-direct",
-         [Files.Gui.Input.Control_Key => True, Files.Gui.Input.Alt_Key => True, others => False]);
+         [Guikit.Input.Control_Key => True, Guikit.Input.Alt_Key => True, others => False]);
       Assert
         (not Lookup.Found,
          "direct open-action insertion ignores empty modifier segments");
@@ -945,13 +945,13 @@ package body Files_Suite.Settings is
         (Manual,
          "text/bad-direct+custom",
          Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad-direct", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores unknown modifiers");
       Files.Settings.Add_Open_Action
         (Manual,
          "image/svg+xml",
          Files.Settings.Make_Action ("svg-viewer", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "image/svg+xml", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "image/svg+xml", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "direct open-action insertion accepts structured filetype suffixes");
       Assert
         (To_String (Lookup.Token) = "image/svg+xml",
@@ -960,19 +960,19 @@ package body Files_Suite.Settings is
         (Manual,
          "text/bad=direct",
          Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad=direct", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/bad=direct", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores unrepresentable filetype keys");
       Files.Settings.Add_Open_Action
         (Manual,
          """text/quoted-direct""",
          Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, """text/quoted-direct""", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, """text/quoted-direct""", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores quoted filetype keys");
       Files.Settings.Add_Open_Action
         (Manual,
          "[text/bracketed-direct]",
          Files.Settings.Make_Action ("bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "[text/bracketed-direct]", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "[text/bracketed-direct]", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores bracketed filetype keys");
       Files.Settings.Add_Open_Action
         (Manual,
@@ -984,7 +984,7 @@ package body Files_Suite.Settings is
         (Manual,
          "text/empty-executable",
          Files.Settings.Make_Action ("   ", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/empty-executable", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/empty-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores empty executable");
       declare
          Unsafe_Args : Files.Types.String_Vectors.Vector;
@@ -994,32 +994,32 @@ package body Files_Suite.Settings is
            (Manual,
             "text/unsafe-argument",
             Files.Settings.Make_Action ("unsafe", Unsafe_Args));
-         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/unsafe-argument", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/unsafe-argument", Guikit.Input.No_Modifiers);
          Assert (not Lookup.Found, "direct open-action insertion ignores embedded placeholders");
       end;
       Files.Settings.Add_Open_Action
         (Manual,
          "text/unsafe-executable",
          Files.Settings.Make_Action ("{path}", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/unsafe-executable", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/unsafe-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores executable placeholders");
       Files.Settings.Add_Open_Action
         (Manual,
          "text/linebreak-executable",
          Files.Settings.Make_Action ("viewer" & ASCII.LF & "bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-executable", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores executable line breaks");
       Files.Settings.Add_Open_Action
         (Manual,
          "text/formfeed-executable",
          Files.Settings.Make_Action ("viewer" & ASCII.FF & "bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/formfeed-executable", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/formfeed-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores executable form feeds");
       Files.Settings.Add_Open_Action
         (Manual,
          "text/c1break-executable",
          Files.Settings.Make_Action ("viewer" & C1_Break & "bad", Args));
-      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/c1break-executable", Files.Gui.Input.No_Modifiers);
+      Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/c1break-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores executable C1 line breaks");
       Files.Settings.Add_Open_Action
         (Manual,
@@ -1028,7 +1028,7 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action
         (Manual,
          "text/unicodebreak-executable",
-         Files.Gui.Input.No_Modifiers);
+         Guikit.Input.No_Modifiers);
       Assert
         (not Lookup.Found,
          "direct open-action insertion ignores executable Unicode line separators");
@@ -1040,7 +1040,7 @@ package body Files_Suite.Settings is
            (Manual,
             "text/linebreak-argument",
             Files.Settings.Make_Action ("viewer", Broken_Args));
-         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-argument", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-argument", Guikit.Input.No_Modifiers);
          Assert (not Lookup.Found, "direct open-action insertion ignores argument line breaks");
       end;
       declare
@@ -1051,7 +1051,7 @@ package body Files_Suite.Settings is
            (Manual,
             "text/vtab-argument",
             Files.Settings.Make_Action ("viewer", Broken_Args));
-         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/vtab-argument", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/vtab-argument", Guikit.Input.No_Modifiers);
          Assert (not Lookup.Found, "direct open-action insertion ignores argument vertical tabs");
       end;
       declare
@@ -1062,7 +1062,7 @@ package body Files_Suite.Settings is
            (Manual,
             "text/c1break-argument",
             Files.Settings.Make_Action ("viewer", Broken_Args));
-         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/c1break-argument", Files.Gui.Input.No_Modifiers);
+         Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/c1break-argument", Guikit.Input.No_Modifiers);
          Assert (not Lookup.Found, "direct open-action insertion ignores argument C1 line breaks");
       end;
       declare
@@ -1076,7 +1076,7 @@ package body Files_Suite.Settings is
          Lookup := Files.Settings.Lookup_Open_Action
            (Manual,
             "text/unicodebreak-argument",
-            Files.Gui.Input.No_Modifiers);
+            Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
             "direct open-action insertion ignores argument Unicode line separators");
@@ -1672,9 +1672,9 @@ package body Files_Suite.Settings is
          Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
          Controller_Result : Files.Controller.Controller_Result;
          Lookup : Files.Settings.Action_Lookup_Result;
-         Ctrl : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+         Ctrl : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       begin
-         Ctrl (Files.Gui.Input.Control_Key) := True;
+         Ctrl (Guikit.Input.Control_Key) := True;
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Assert
            (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
@@ -1720,7 +1720,7 @@ package body Files_Suite.Settings is
            Files.Settings.Lookup_Open_Action
              (Draft_Load.Settings,
               "application/ld+json",
-              [Files.Gui.Input.Alt_Key => True, others => False]);
+              [Guikit.Input.Alt_Key => True, others => False]);
          Assert (Lookup.Found, "draft applies modifier-specific open action");
          Assert (To_String (Lookup.Action.Executable) = "json-editor", "draft action executable is parsed");
          Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
@@ -1738,7 +1738,7 @@ package body Files_Suite.Settings is
            Files.Settings.Lookup_Open_Action
              (Draft_Load.Settings,
               "application/ld+json",
-              [Files.Gui.Input.Alt_Key => True, others => False]);
+              [Guikit.Input.Alt_Key => True, others => False]);
          Assert (Lookup.Found, "saved draft persists open action");
          Assert
            (To_String (Lookup.Action.Executable) = "json-editor",
@@ -1793,7 +1793,7 @@ package body Files_Suite.Settings is
               Files.Settings.Lookup_Open_Action
                 (Empty_Load.Settings,
                  "text/x-ghost",
-                 Files.Gui.Input.No_Modifiers);
+                 Guikit.Input.No_Modifiers);
             Assert (not Lookup.Found, "ignored empty-list open-action edit is not saved");
 
             Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
@@ -1841,7 +1841,7 @@ package body Files_Suite.Settings is
               Files.Settings.Lookup_Open_Action
                 (Empty_Load.Settings,
                  "text/x-orphan",
-                 Files.Gui.Input.No_Modifiers);
+                 Guikit.Input.No_Modifiers);
             Assert (not Lookup.Found, "repaired misaligned open-action edit is not saved");
 
             Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
@@ -1881,12 +1881,12 @@ package body Files_Suite.Settings is
          Assert
            (Files.Model.Focus (Draft_Model) = Files.Types.Focus_Settings_Input,
             "controller settings command opens editable settings focus");
-         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Gui.Input.Key_Right);
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Right);
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) = "details",
             "settings scalar row cycles with cursor keys");
          Files.Controller.Replace_Focused_Text (Draft_Model, "details");
-         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Gui.Input.Key_Down);
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Down);
          Files.Controller.Replace_Focused_Text (Draft_Model, "true");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 5);
          Files.Controller.Replace_Focused_Text (Draft_Model, "high_contrast");
@@ -1897,7 +1897,7 @@ package body Files_Suite.Settings is
             First_Extension : constant String := Files.Model.Settings_Field_Text (Draft_Model);
          begin
             Controller_Result :=
-              Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Gui.Input.Key_Page_Down);
+              Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Page_Down);
             Assert
               (Controller_Result.Status = Files.Controller.Controller_Text_Updated,
                "settings mapping entry movement reports update");
@@ -1905,14 +1905,14 @@ package body Files_Suite.Settings is
               (Files.Model.Settings_Field_Text (Draft_Model) /= First_Extension,
                "settings mapping rows cycle through existing entries");
          end;
-         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Gui.Input.Key_N, Ctrl);
+         Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_N, Ctrl);
          Assert (Files.Model.Settings_Field_Text (Draft_Model) = "", "settings add creates a blank mapping entry");
          Files.Controller.Replace_Focused_Text (Draft_Model, "tmpdel");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 16);
          Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
          Files.Model.Set_Settings_Field_Index (Draft_Model, 16);
          Controller_Result :=
-           Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Files.Gui.Input.Key_Delete, Ctrl);
+           Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Delete, Ctrl);
          Assert
            (Files.Model.Settings_Field_Text (Draft_Model) /= "tmpdel",
             "settings remove deletes the selected mapping entry");
@@ -2001,7 +2001,7 @@ package body Files_Suite.Settings is
            Files.Settings.Lookup_Open_Action
              (Draft_Settings,
               "text/markdown",
-              Files.Gui.Input.No_Modifiers);
+              Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "controller save updates live open-action settings");
          Draft_Load := Files.Settings.Load_File (Draft_Path);
          Assert (Draft_Load.Success, "controller-saved settings file reloads");
@@ -2683,9 +2683,9 @@ package body Files_Suite.Settings is
 
       --  The pane now exposes twenty fields; navigation wraps at both ends.
       Files.Model.Set_Settings_Field_Index (Model, 20);
-      Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Down);
+      Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Down);
       Assert (Files.Model.Settings_Field_Index (Model) = 1, "navigation wraps forward past the twentieth field");
-      Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Up);
+      Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Up);
       Assert
         (Files.Model.Settings_Field_Index (Model) = 20,
          "navigation wraps backward from the first field to the last");
@@ -2703,15 +2703,15 @@ package body Files_Suite.Settings is
       --  Field 9: Group_By cycles none -> type -> modified -> size -> label -> none.
       Files.Model.Set_Settings_Field_Index (Model, 9);
       Assert (Files.Model.Settings_Field_Text (Model) = "none", "grouping field starts at none");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (Files.Model.Settings_Field_Text (Model) = "type", "grouping right cycles none to type");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (Files.Model.Settings_Field_Text (Model) = "modified", "grouping right cycles type to modified");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (Files.Model.Settings_Field_Text (Model) = "size", "grouping right cycles modified to size");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (Files.Model.Settings_Field_Text (Model) = "label", "grouping right cycles size to label");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (Files.Model.Settings_Field_Text (Model) = "none", "grouping right wraps label back to none");
       Files.Model.Set_Settings_Field_Text (Model, "modified");
       Applied := Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));

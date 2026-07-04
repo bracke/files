@@ -1,9 +1,9 @@
 --  Renderer-agnostic UTF-8 measurement helpers.
 --
 --  A small, domain-free copy of the UTF-8 display-width logic the GUI layout
---  needs, so Files.Gui stays independent of the application's Files.UTF8
+--  needs, so Guikit stays independent of the application's Files.UTF8
 --  package.
-package Files.Gui.Utf8 is
+package Guikit.Utf8 is
 
    --  Return the display-cell count for a UTF-8 byte string.
    --
@@ -15,4 +15,4 @@ package Files.Gui.Utf8 is
      (Content : String)
       return Natural;
 
-end Files.Gui.Utf8;
+end Guikit.Utf8;

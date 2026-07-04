@@ -39,9 +39,9 @@ with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Platform;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
-with Files.Gui.Vulkan;
+with Guikit.Vulkan;
 with Files.Settings;
 with Files.Types;
 with Files.UTF8;
@@ -70,13 +70,13 @@ package body Files_Suite.Support is
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Files.Gui.Draw.Accessibility_Role;
-   use type Files.Gui.Draw.Icon_Asset_Color_Role;
-   use type Files.Gui.Draw.Render_Color;
+   use type Guikit.Draw.Accessibility_Role;
+   use type Guikit.Draw.Icon_Asset_Color_Role;
+   use type Guikit.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Gui.Vulkan.Atlas_Texture_Format;
-   use type Files.Gui.Vulkan.Texture_Source;
-   use type Files.Gui.Vulkan.Vulkan_Status;
+   use type Guikit.Vulkan.Atlas_Texture_Format;
+   use type Guikit.Vulkan.Texture_Source;
+   use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
@@ -84,9 +84,9 @@ package body Files_Suite.Support is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Gui.Input.Key_Code;
-   use type Files.Gui.Input.Modifier_Set;
-   use type Files.Gui.Input.Navigation_Direction;
+   use type Guikit.Input.Key_Code;
+   use type Guikit.Input.Modifier_Set;
+   use type Guikit.Input.Navigation_Direction;
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
@@ -104,7 +104,7 @@ package body Files_Suite.Support is
       Width       : Natural;
       Height      : Natural;
       Activate    : Boolean := False;
-      Modifiers   : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Line_Height : Positive := 20)
       return Files.Events.Input_Action
    is (Files.Events.Translate_Click

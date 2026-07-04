@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded;
 
-with Files.Gui.Layout;
+with Guikit.Layout;
 with Files.UTF8;
 with Files.UI;
 
@@ -8,8 +8,8 @@ package body Files.Events is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Types.Focus_Target;
-   use type Files.Gui.Input.Key_Code;
-   use type Files.Gui.Input.Modifier_Set;
+   use type Guikit.Input.Key_Code;
+   use type Guikit.Input.Modifier_Set;
 
    function No_Action
      (Activate : Boolean := False)
@@ -18,7 +18,7 @@ package body Files.Events is
       return
         (Kind            => No_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -42,7 +42,7 @@ package body Files.Events is
       return
         (Kind            => Command_Input_Action,
          Command         => Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -66,7 +66,7 @@ package body Files.Events is
       return
         (Kind            => Conflict_Click_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -89,7 +89,7 @@ package body Files.Events is
       return
         (Kind            => Paste_Cancel_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -115,7 +115,7 @@ package body Files.Events is
       return
         (Kind            => Label_Picker_Choice_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => Label_Pos,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -138,7 +138,7 @@ package body Files.Events is
       return
         (Kind            => Tree_Pick_Confirm_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -155,7 +155,7 @@ package body Files.Events is
    end Tree_Pick_Confirm_Action;
 
    function Selection_Action
-     (Direction : Files.Gui.Input.Navigation_Direction)
+     (Direction : Guikit.Input.Navigation_Direction)
       return Input_Action is
    begin
       return
@@ -186,7 +186,7 @@ package body Files.Events is
       return
         (Kind            => Scroll_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => (if Lines < 0 then Files.Gui.Input.Move_Up else Files.Gui.Input.Move_Down),
+         Direction       => (if Lines < 0 then Guikit.Input.Move_Up else Guikit.Input.Move_Down),
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -211,7 +211,7 @@ package body Files.Events is
       return
         (Kind             => Scrollbar_Drag_Begin_Input_Action,
          Command          => Files.Commands.No_Command,
-         Direction        => Files.Gui.Input.Move_Down,
+         Direction        => Guikit.Input.Move_Down,
          Item_Index       => 0,
          Root_Index       => 0,
          Result_Index     => 0,
@@ -246,7 +246,7 @@ package body Files.Events is
       return
         (Kind            => Column_Resize_Begin_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
          Root_Index      => 0,
          Result_Index    => 0,
@@ -281,7 +281,7 @@ package body Files.Events is
       return
         (Kind            => Column_Reorder_Begin_Input_Action,
          Command         => Sort_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
          Root_Index      => 0,
          Result_Index    => 0,
@@ -315,7 +315,7 @@ package body Files.Events is
       return
         (Kind            => Marquee_Begin_Input_Action,
          Command         => Files.Commands.No_Command,
-         Direction       => Files.Gui.Input.Move_Right,
+         Direction       => Guikit.Input.Move_Right,
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
@@ -349,8 +349,8 @@ package body Files.Events is
    end Saturating_Negated_Triple;
 
    function Translate_Key
-     (Key       : Files.Gui.Input.Key_Code;
-      Modifiers : Files.Gui.Input.Modifier_Set)
+     (Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set)
       return Input_Action
    is
       Command : constant Files.Commands.Command_Id := Files.Commands.Find_By_Shortcut (Key, Modifiers);
@@ -359,37 +359,37 @@ package body Files.Events is
          return Command_Action (Command);
       end if;
 
-      if Modifiers = Files.Gui.Input.No_Modifiers
+      if Modifiers = Guikit.Input.No_Modifiers
         or else
-          (Modifiers (Files.Gui.Input.Shift_Key)
-           and then not Modifiers (Files.Gui.Input.Control_Key)
-           and then not Modifiers (Files.Gui.Input.Alt_Key)
-           and then not Modifiers (Files.Gui.Input.Meta_Key))
+          (Modifiers (Guikit.Input.Shift_Key)
+           and then not Modifiers (Guikit.Input.Control_Key)
+           and then not Modifiers (Guikit.Input.Alt_Key)
+           and then not Modifiers (Guikit.Input.Meta_Key))
       then
          case Key is
-            when Files.Gui.Input.Key_Left =>
+            when Guikit.Input.Key_Left =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Gui.Input.Move_Left,
-                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
+                  Direction       => Guikit.Input.Move_Left,
+                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
                   others          => <>);
-            when Files.Gui.Input.Key_Right =>
+            when Guikit.Input.Key_Right =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Gui.Input.Move_Right,
-                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
+                  Direction       => Guikit.Input.Move_Right,
+                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
                   others          => <>);
-            when Files.Gui.Input.Key_Up =>
+            when Guikit.Input.Key_Up =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Gui.Input.Move_Up,
-                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
+                  Direction       => Guikit.Input.Move_Up,
+                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
                   others          => <>);
-            when Files.Gui.Input.Key_Down =>
+            when Guikit.Input.Key_Down =>
                return
                  (Kind            => Selection_Input_Action,
-                  Direction       => Files.Gui.Input.Move_Down,
-                  Range_Selection => Modifiers (Files.Gui.Input.Shift_Key),
+                  Direction       => Guikit.Input.Move_Down,
+                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
                   others          => <>);
             when others =>
                null;
@@ -407,17 +407,17 @@ package body Files.Events is
       Width       : Natural;
       Height      : Natural;
       Activate    : Boolean := False;
-      Modifiers   : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Line_Height : Positive := 20)
       return Input_Action
    is
       Layout         : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Toolbar        : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Width);
-      Toolbar_Input_Y : constant Natural := Files.Gui.Layout.Toolbar_Input_Y (Line_Height);
-      Toolbar_Input_H : constant Natural := Files.Gui.Layout.Toolbar_Input_Height (Line_Height);
-      Scope_Chip     : constant Files.Gui.Layout.Scope_Chip_Region :=
-        Files.Gui.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
+      Toolbar        : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
+      Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
+      Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
+      Scope_Chip     : constant Guikit.Layout.Scope_Chip_Region :=
+        Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
       Palette_Rows   : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
@@ -430,8 +430,8 @@ package body Files.Events is
         Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Rows      : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
-      Settings_Pane  : constant Files.Gui.Layout.Settings_Pane_Layout :=
-        Files.Gui.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+      Settings_Pane  : constant Guikit.Layout.Settings_Pane_Layout :=
+        Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Item_Layout    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
       Breadcrumb_Rows : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
@@ -552,7 +552,7 @@ package body Files.Events is
          Click_X     : Natural)
          return Natural
       is
-         Char_W : constant Positive := Files.Gui.Layout.Caret_Advance_Width (Line_Height);
+         Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
          Click_Column : Natural;
       begin
@@ -573,7 +573,7 @@ package body Files.Events is
          return
            (Kind            => Text_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Gui.Input.Move_Right,
+            Direction       => Guikit.Input.Move_Right,
             Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
@@ -676,7 +676,7 @@ package body Files.Events is
          return
            (Kind            => Settings_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Gui.Input.Move_Right,
+            Direction       => Guikit.Input.Move_Right,
             Item_Index      => 0,
             Root_Index      => 0,
             Result_Index    => 0,
@@ -693,8 +693,8 @@ package body Files.Events is
       end Settings_Click;
 
       function Settings_Click_Hit return Input_Action is
-         Pane : constant Files.Gui.Layout.Settings_Pane_Layout :=
-           Files.Gui.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
+         Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+           Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
          Hit  : constant Files.Rendering.Settings_Hit_Region :=
            Files.Rendering.Settings_Hit_At (Frame, X, Y);
          use type Files.Rendering.Settings_Hit_Kind;
@@ -772,7 +772,7 @@ package body Files.Events is
          return
            (Kind             => Tree_Click_Input_Action,
             Command          => Files.Commands.No_Command,
-            Direction        => Files.Gui.Input.Move_Right,
+            Direction        => Guikit.Input.Move_Right,
             Item_Index       => Node_Index,
             Root_Index       => 0,
             Result_Index     => 0,
@@ -796,7 +796,7 @@ package body Files.Events is
          return
            (Kind             => Breadcrumb_Click_Input_Action,
             Command          => Files.Commands.No_Command,
-            Direction        => Files.Gui.Input.Move_Right,
+            Direction        => Guikit.Input.Move_Right,
             Item_Index       => Segment_Index,
             Root_Index       => 0,
             Result_Index     => 0,
@@ -963,7 +963,7 @@ package body Files.Events is
              (Files.Types.Focus_Command_Palette,
               Cursor_At
                  (Text        => Snapshot.Command_Palette_Query,
-                 Text_X      => Saturating_Add (Palette_Layout.Search_X, Files.Gui.Layout.Input_Field_Padding),
+                 Text_X      => Saturating_Add (Palette_Layout.Search_X, Guikit.Layout.Input_Field_Padding),
                  Click_X     => X));
       end if;
 
@@ -971,7 +971,7 @@ package body Files.Events is
          return
            (Kind            => Command_Result_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Gui.Input.Move_Right,
+            Direction       => Guikit.Input.Move_Right,
             Item_Index      => 0,
             Root_Index      => 0,
             Result_Index    => Result_Index,
@@ -991,7 +991,7 @@ package body Files.Events is
          return
            (Kind            => Root_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Gui.Input.Move_Right,
+            Direction       => Guikit.Input.Move_Right,
             Item_Index      => 0,
             Root_Index      => Root_Index,
             Result_Index    => 0,
@@ -1133,7 +1133,7 @@ package body Files.Events is
                  (Text        => Snapshot.Path_Input_Text,
                  Text_X      =>
                     Saturating_Add
-                      (Saturating_Add (Toolbar.Middle_X, Files.Gui.Layout.Input_Field_Padding),
+                      (Saturating_Add (Toolbar.Middle_X, Guikit.Layout.Input_Field_Padding),
                        Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
                  Click_X     => X));
       elsif Scope_Chip.Visible
@@ -1152,7 +1152,7 @@ package body Files.Events is
              (Files.Types.Focus_Filter_Input,
               Cursor_At
                  (Text        => Snapshot.Filter_Text,
-                  Text_X      => Saturating_Add (Toolbar.Right_X, Files.Gui.Layout.Input_Field_Padding),
+                  Text_X      => Saturating_Add (Toolbar.Right_X, Guikit.Layout.Input_Field_Padding),
                   Click_X     => X));
       end if;
 
@@ -1244,7 +1244,7 @@ package body Files.Events is
          return
            (Kind            => Item_Click_Input_Action,
             Command         => Files.Commands.No_Command,
-            Direction       => Files.Gui.Input.Move_Right,
+            Direction       => Guikit.Input.Move_Right,
             Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
@@ -1256,9 +1256,9 @@ package body Files.Events is
             Settings_Option => 0,
             Activate        => Activate,
             Toggle_Selection =>
-              Modifiers (Files.Gui.Input.Control_Key)
-                and then not Modifiers (Files.Gui.Input.Shift_Key),
-            Range_Selection  => Modifiers (Files.Gui.Input.Shift_Key),
+              Modifiers (Guikit.Input.Control_Key)
+                and then not Modifiers (Guikit.Input.Shift_Key),
+            Range_Selection  => Modifiers (Guikit.Input.Shift_Key),
             Scroll_Drag_Anchor => 0);
       end if;
 
@@ -1278,8 +1278,8 @@ package body Files.Events is
              (Origin_X => X,
               Origin_Y => Y,
               Additive =>
-                Modifiers (Files.Gui.Input.Control_Key)
-                or else Modifiers (Files.Gui.Input.Shift_Key));
+                Modifiers (Guikit.Input.Control_Key)
+                or else Modifiers (Guikit.Input.Shift_Key));
       end if;
 
       return No_Action (Activate);
@@ -1347,8 +1347,8 @@ package body Files.Events is
 
       if Snapshot.Settings_Pane_Open then
          declare
-            Settings_Pane : constant Files.Gui.Layout.Settings_Pane_Layout :=
-              Files.Gui.Layout.Calculate_Settings_Pane_Layout
+            Settings_Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+              Guikit.Layout.Calculate_Settings_Pane_Layout
                 (Width, Height, Layout.Toolbar_Height, Line_Height);
          begin
             if Within (X, Settings_Pane.X, Settings_Pane.Width)

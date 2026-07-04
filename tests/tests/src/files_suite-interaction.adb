@@ -20,12 +20,12 @@ with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;
-with Files.Gui.Input;
+with Guikit.Input;
 with Files.Types;
-with Files.Gui.Layout;
+with Guikit.Layout;
 
 with Files_Suite.Support;
 
@@ -63,7 +63,7 @@ package body Files_Suite.Interaction is
    use type Files.File_System.Path_Status;
    use type Files.Model.Clipboard_Mode;
    use type Files.Model.Palette_Mode;
-   use type Files.Gui.Draw.Accessibility_Role;
+   use type Guikit.Draw.Accessibility_Role;
    use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Types.Color_Label;
    use type Files.Types.Focus_Target;
@@ -75,17 +75,17 @@ package body Files_Suite.Interaction is
    Line       : constant Positive := 20;
    Base_Font  : constant Positive := 16;
 
-   Ctrl : constant Files.Gui.Input.Modifier_Set :=
-     [Files.Gui.Input.Control_Key => True, others => False];
+   Ctrl : constant Guikit.Input.Modifier_Set :=
+     [Guikit.Input.Control_Key => True, others => False];
 
-   Shift : constant Files.Gui.Input.Modifier_Set :=
-     [Files.Gui.Input.Shift_Key => True, others => False];
+   Shift : constant Guikit.Input.Modifier_Set :=
+     [Guikit.Input.Shift_Key => True, others => False];
 
-   Alt : constant Files.Gui.Input.Modifier_Set :=
-     [Files.Gui.Input.Alt_Key => True, others => False];
+   Alt : constant Guikit.Input.Modifier_Set :=
+     [Guikit.Input.Alt_Key => True, others => False];
 
-   Ctrl_Shift : constant Files.Gui.Input.Modifier_Set :=
-     [Files.Gui.Input.Control_Key => True, Files.Gui.Input.Shift_Key => True, others => False];
+   Ctrl_Shift : constant Guikit.Input.Modifier_Set :=
+     [Guikit.Input.Control_Key => True, Guikit.Input.Shift_Key => True, others => False];
 
    type Interaction_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
 
@@ -366,8 +366,8 @@ package body Files_Suite.Interaction is
       Count    : Natural := 0;
    begin
       for Node of Frame.Accessibility loop
-         if (Node.Role = Files.Gui.Draw.Role_List_Item
-             or else Node.Role = Files.Gui.Draw.Role_Table_Row)
+         if (Node.Role = Guikit.Draw.Role_List_Item
+             or else Node.Role = Guikit.Draw.Role_Table_Row)
            and then Node.Selected
          then
             Count := Count + 1;
@@ -383,7 +383,7 @@ package body Files_Suite.Interaction is
       Settings  : in out Files.Settings.Settings_Model;
       X         : Natural;
       Y         : Natural;
-      Modifiers : Files.Gui.Input.Modifier_Set;
+      Modifiers : Guikit.Input.Modifier_Set;
       Result    : out Files.Interaction.Interaction_Result)
    is
       Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -415,7 +415,7 @@ package body Files_Suite.Interaction is
    begin
       Item_Center (Model, 2, X, Y, Found);
       Assert (Found, "a layout cell exists for the target item");
-      Click (Model, Settings, X, Y, Files.Gui.Input.No_Modifiers, Result);
+      Click (Model, Settings, X, Y, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Is_Selected (Model, 2), "the clicked item becomes selected");
       Assert
         (Selected_Item_Nodes (Model) = 1,
@@ -436,7 +436,7 @@ package body Files_Suite.Interaction is
       Item_Center (Model, 3, X2, Y2, Found2);
       Assert (Found1 and then Found2, "layout cells exist for both target items");
 
-      Click (Model, Settings, X1, Y1, Files.Gui.Input.No_Modifiers, Result);
+      Click (Model, Settings, X1, Y1, Guikit.Input.No_Modifiers, Result);
       Assert (Selected_Item_Nodes (Model) = 1, "a plain click starts a single-item selection");
 
       Click (Model, Settings, X2, Y2, Ctrl, Result);
@@ -465,7 +465,7 @@ package body Files_Suite.Interaction is
       Item_Center (Model, 3, X3, Y3, Found3);
       Assert (Found1 and then Found3, "layout cells exist for the range endpoints");
 
-      Click (Model, Settings, X1, Y1, Files.Gui.Input.No_Modifiers, Result);
+      Click (Model, Settings, X1, Y1, Guikit.Input.No_Modifiers, Result);
       Assert (Selected_Item_Nodes (Model) = 1, "a plain click anchors a single-item selection");
 
       Click (Model, Settings, X3, Y3, Shift, Result);
@@ -622,7 +622,7 @@ package body Files_Suite.Interaction is
             Settings_Path     => "",
             Command           => Menu.Commands (Target_Row),
             Current_Font_Size => Base_Font,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
       end;
 
@@ -644,7 +644,7 @@ package body Files_Suite.Interaction is
       Result   : Files.Interaction.Interaction_Result;
       --  Ctrl+3 is the Select_Details shortcut.
       Action   : constant Files.Events.Input_Action :=
-        Files.Events.Translate_Key (Files.Gui.Input.Key_3, Ctrl);
+        Files.Events.Translate_Key (Guikit.Input.Key_3, Ctrl);
    begin
       Assert
         (Action.Kind = Files.Events.Command_Input_Action,
@@ -672,11 +672,11 @@ package body Files_Suite.Interaction is
 
    procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Gui.Input.Navigation_Direction;
+      use type Guikit.Input.Navigation_Direction;
       Parent_Action : constant Files.Events.Input_Action :=
-        Files.Events.Translate_Key (Files.Gui.Input.Key_Up, Alt);
+        Files.Events.Translate_Key (Guikit.Input.Key_Up, Alt);
       Plain_Action  : constant Files.Events.Input_Action :=
-        Files.Events.Translate_Key (Files.Gui.Input.Key_Up, Files.Gui.Input.No_Modifiers);
+        Files.Events.Translate_Key (Guikit.Input.Key_Up, Guikit.Input.No_Modifiers);
    begin
       --  Alt+Up is a modifier-specific shortcut, so it routes to the command.
       Assert
@@ -691,7 +691,7 @@ package body Files_Suite.Interaction is
         (Plain_Action.Kind = Files.Events.Selection_Input_Action,
          "plain up stays a selection movement action");
       Assert
-        (Plain_Action.Direction = Files.Gui.Input.Move_Up,
+        (Plain_Action.Direction = Guikit.Input.Move_Up,
          "plain up still moves the selection up in the grid");
    end Test_Alt_Up_Navigates_Parent;
 
@@ -719,7 +719,7 @@ package body Files_Suite.Interaction is
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",
-            Key               => Files.Gui.Input.Key_3,
+            Key               => Guikit.Input.Key_3,
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
@@ -748,7 +748,7 @@ package body Files_Suite.Interaction is
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => Path,
-            Key               => Files.Gui.Input.Key_Comma,
+            Key               => Guikit.Input.Key_Comma,
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
@@ -759,7 +759,7 @@ package body Files_Suite.Interaction is
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => Path,
-            Key               => Files.Gui.Input.Key_S,
+            Key               => Guikit.Input.Key_S,
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
@@ -793,7 +793,7 @@ package body Files_Suite.Interaction is
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",
-            Key               => Files.Gui.Input.Key_4,
+            Key               => Guikit.Input.Key_4,
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
@@ -821,7 +821,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_End,
+         Key               => Guikit.Input.Key_End,
          Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "End moves the grid selection");
@@ -832,7 +832,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_Home,
+         Key               => Guikit.Input.Key_Home,
          Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Home moves the grid selection");
@@ -843,7 +843,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_Page_Down,
+         Key               => Guikit.Input.Key_Page_Down,
          Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Files.Model.Selected_Index (Model) = Last, "PageDown pages the selection down to the last item");
@@ -852,7 +852,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_Page_Up,
+         Key               => Guikit.Input.Key_Page_Up,
          Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Files.Model.Selected_Index (Model) = 1, "PageUp pages the selection back to the first item");
@@ -866,7 +866,7 @@ package body Files_Suite.Interaction is
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
 
-      procedure Zoom (Key : Files.Gui.Input.Key_Code; Mods : Files.Gui.Input.Modifier_Set) is
+      procedure Zoom (Key : Guikit.Input.Key_Code; Mods : Guikit.Input.Modifier_Set) is
       begin
          Files.Interaction.Handle_Key
            (Model             => Model,
@@ -880,25 +880,25 @@ package body Files_Suite.Interaction is
    begin
       Assert (Settings.Font_Pixel_Size = 16, "the default font size is the starting point");
 
-      Zoom (Files.Gui.Input.Key_Equal, Ctrl);
+      Zoom (Guikit.Input.Key_Equal, Ctrl);
       Assert (Settings.Font_Pixel_Size = 17, "Ctrl+Equal grows the font size by one");
       Assert (Result.Font_Size_Changed, "the growing zoom reports a font-size change");
       Assert (Result.Settings_Changed, "the growing zoom reports a settings change");
 
-      Zoom (Files.Gui.Input.Key_Equal, Ctrl_Shift);
+      Zoom (Guikit.Input.Key_Equal, Ctrl_Shift);
       Assert (Settings.Font_Pixel_Size = 18, "Ctrl+Plus (Shift+Ctrl+Equal) also grows the font size");
 
-      Zoom (Files.Gui.Input.Key_Minus, Ctrl);
+      Zoom (Guikit.Input.Key_Minus, Ctrl);
       Assert (Settings.Font_Pixel_Size = 17, "Ctrl+Minus shrinks the font size by one");
 
       Settings.Font_Pixel_Size := 24;
-      Zoom (Files.Gui.Input.Key_0, Ctrl);
+      Zoom (Guikit.Input.Key_0, Ctrl);
       Assert (Settings.Font_Pixel_Size = Files.Settings.Default_Font_Pixel_Size, "Ctrl+0 resets to the default size");
       Assert (Result.Font_Size_Changed, "the reset reports a font-size change");
 
       --  Clamp at the maximum: growing past the ceiling makes no change.
       Settings.Font_Pixel_Size := Files.Settings.Max_Font_Pixel_Size;
-      Zoom (Files.Gui.Input.Key_Equal, Ctrl);
+      Zoom (Guikit.Input.Key_Equal, Ctrl);
       Assert
         (Settings.Font_Pixel_Size = Files.Settings.Max_Font_Pixel_Size,
          "Ctrl+Equal clamps at the maximum font size");
@@ -906,7 +906,7 @@ package body Files_Suite.Interaction is
 
       --  Clamp at the minimum: shrinking past the floor makes no change.
       Settings.Font_Pixel_Size := Files.Settings.Min_Font_Pixel_Size;
-      Zoom (Files.Gui.Input.Key_Minus, Ctrl);
+      Zoom (Guikit.Input.Key_Minus, Ctrl);
       Assert
         (Settings.Font_Pixel_Size = Files.Settings.Min_Font_Pixel_Size,
          "Ctrl+Minus clamps at the minimum font size");
@@ -933,7 +933,7 @@ package body Files_Suite.Interaction is
             Settings_Path     => "",
             Action            => Action,
             Current_Font_Size => Base_Font,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
       end Scroll_At;
 
@@ -1016,7 +1016,7 @@ package body Files_Suite.Interaction is
    is
       Result : Files.Interaction.Interaction_Result;
       Action : constant Files.Events.Input_Action :=
-        Files.Events.Translate_Key (Files.Gui.Input.Key_Comma, Ctrl);
+        Files.Events.Translate_Key (Guikit.Input.Key_Comma, Ctrl);
    begin
       Files.Interaction.Apply_Input_Action
         (Model             => Model,
@@ -1052,7 +1052,7 @@ package body Files_Suite.Interaction is
             Settings_Path     => Path,
             Action            => Action,
             Current_Font_Size => Base_Font,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
          Assert (Settings.Show_Hidden_Files /= Before, "the straight command flips Show_Hidden_Files");
          Assert (Result.Settings_Changed, "the straight command reports a settings change");
@@ -1095,7 +1095,7 @@ package body Files_Suite.Interaction is
             Settings_Path     => Path,
             Action            => Action,
             Current_Font_Size => Base_Font,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
          Assert (Settings.Show_Hidden_Files /= Before, "the settings-pane hit flips Show_Hidden_Files");
          Assert (Result.Settings_Changed, "the settings-pane save reports a settings change");
@@ -1133,7 +1133,7 @@ package body Files_Suite.Interaction is
             Settings_Path     => Path,
             Action            => Action,
             Current_Font_Size => Base_Font,
-            Modifiers         => Files.Gui.Input.No_Modifiers,
+            Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
          Assert
            (Settings.Font_Pixel_Size /= Base_Font,
@@ -1197,7 +1197,7 @@ package body Files_Suite.Interaction is
 
       --  Derive the click coordinate from the real bottom-bar control node.
       for Node of Frame.Accessibility loop
-         if Node.Role = Files.Gui.Draw.Role_Button
+         if Node.Role = Guikit.Draw.Role_Button
            and then Ada.Strings.Unbounded.To_String (Node.Name) = Toggle_Name
          then
             X := Node.X + Node.Width / 2;
@@ -1222,7 +1222,7 @@ package body Files_Suite.Interaction is
          Settings_Path     => Path,
          Action            => Action,
          Current_Font_Size => Base_Font,
-         Modifiers         => Files.Gui.Input.No_Modifiers,
+         Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
 
       Assert (Settings.Show_Hidden_Files /= Before, "clicking the hidden count flips Show_Hidden_Files");
@@ -1355,7 +1355,7 @@ package body Files_Suite.Interaction is
          Settings_Path     => Settings_Path,
          Command           => Menu.Commands (Target_Row),
          Current_Font_Size => Base_Font,
-         Modifiers         => Files.Gui.Input.No_Modifiers,
+         Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
    end Dispatch_Menu_Command;
 
@@ -1390,7 +1390,7 @@ package body Files_Suite.Interaction is
    is
       Outcome : constant Files.Controller.Controller_Result :=
         Files.Controller.Handle_Key
-          (Model, Settings, Files.Gui.Input.Key_Return, Files.Gui.Input.No_Modifiers);
+          (Model, Settings, Guikit.Input.Key_Return, Guikit.Input.No_Modifiers);
       pragma Unreferenced (Outcome);
    begin
       null;
@@ -1410,7 +1410,7 @@ package body Files_Suite.Interaction is
          others  => <>);
    begin
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
    end Dispatch_Command;
 
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1460,7 +1460,7 @@ package body Files_Suite.Interaction is
             "a root-row coordinate translates to a root click");
          Assert (Action.Root_Index = 2, "the root click carries the second root index");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       Assert (Files.Model.Current_Path (Model) = Root_B, "the root click navigates to the chosen root");
@@ -1517,7 +1517,7 @@ package body Files_Suite.Interaction is
             "a result-row coordinate translates to a command-result click");
          Assert (Action.Result_Index = Target, "the command-result click carries the result index");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       Assert
@@ -1553,7 +1553,7 @@ package body Files_Suite.Interaction is
          Assert (Close.Visible, "the open command palette exposes a close (X) button");
          Click
            (Model, Settings, Close.X + Close.Width / 2, Close.Y + Close.Height / 2,
-            Files.Gui.Input.No_Modifiers, Result);
+            Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (not Files.Model.Command_Palette_Is_Open (Model),
@@ -1588,7 +1588,7 @@ package body Files_Suite.Interaction is
          Assert (Close.Visible, "the open info pane exposes a close (X) button");
          Click
            (Model, Settings, Close.X + Close.Width / 2, Close.Y + Close.Height / 2,
-            Files.Gui.Input.No_Modifiers, Result);
+            Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (not Files.Model.Info_Pane_Is_Open (Model),
@@ -1693,7 +1693,7 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
             "an application-row coordinate translates to a command-result click");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       Assert
@@ -1840,10 +1840,10 @@ package body Files_Suite.Interaction is
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Toolbar  : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Window_W);
+      Toolbar  : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Window_W);
       Center_Y : constant Natural :=
-        Files.Gui.Layout.Toolbar_Input_Y (Line) + Files.Gui.Layout.Toolbar_Input_Height (Line) / 2;
-      Left_X   : constant Natural := Toolbar.Middle_X + Files.Gui.Layout.Input_Field_Padding;
+        Guikit.Layout.Toolbar_Input_Y (Line) + Guikit.Layout.Toolbar_Input_Height (Line) / 2;
+      Left_X   : constant Natural := Toolbar.Middle_X + Guikit.Layout.Input_Field_Padding;
       Right_X  : constant Natural := Toolbar.Middle_X + Toolbar.Middle_Width - 1;
    begin
       Files.Model.Set_Path_Input_Text (Model, "abcdef");
@@ -1864,7 +1864,7 @@ package body Files_Suite.Interaction is
            (Action.Focus_Target = Files.Types.Focus_Path_Input,
             "the text click targets the path input");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       Assert
@@ -1884,7 +1884,7 @@ package body Files_Suite.Interaction is
              (Snapshot, Frame, Right_X, Center_Y, Window_W, Window_H, Line_Height => Line);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       --  Focusing the path input loads the current directory path for editing,
@@ -1945,7 +1945,7 @@ package body Files_Suite.Interaction is
          --  comment). Applying it must therefore leave the model untouched.
          Before := Files.Model.Main_View_Scroll_Lines (Model);
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert
            (Files.Model.Main_View_Scroll_Lines (Model) = Before,
             "applying drag-begin leaves the main-view scroll offset to the shell");
@@ -2022,7 +2022,7 @@ package body Files_Suite.Interaction is
          --  separator suppresses the header cell's sort click behind it.
          Sort_Before := Files.Model.Sort_Field_Of (Model);
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert (Files.Model.Sort_Field_Of (Model) = Sort_Before,
                  "pressing a separator does not change the sort field");
 
@@ -2158,7 +2158,7 @@ package body Files_Suite.Interaction is
             others  => <>);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Fresh, "", Sort_Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Fresh, "", Sort_Action, Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert (Files.Model.Sort_Field_Of (Model) /= Sort_Before,
                  "a click without a drag applies the sort command");
          Assert (Fresh.Column_Order = Order_Before,
@@ -2313,7 +2313,7 @@ package body Files_Suite.Interaction is
                  Line_Height => Line);
          begin
             Files.Interaction.Apply_Input_Action
-              (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+              (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
          end;
          Assert (Files.Model.Is_Selected (Model, 5),
                  "beginning a marquee leaves the prior selection to the shell (no clear)");
@@ -2620,7 +2620,7 @@ package body Files_Suite.Interaction is
             others  => <>);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Undo_Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Undo_Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (Ada.Directories.Exists (Doomed), "undo restores the trashed item to its original path");
       Assert (not Files.Model.Undo_Available (Model), "undo consumes the undoable action");
@@ -3136,7 +3136,7 @@ package body Files_Suite.Interaction is
       --  Confirm Ctrl+Z translates to the undo command through the shortcut table.
       declare
          Action : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Key (Files.Gui.Input.Key_Z, Ctrl);
+           Files.Events.Translate_Key (Guikit.Input.Key_Z, Ctrl);
       begin
          Assert
            (Action.Kind = Files.Events.Command_Input_Action,
@@ -3162,7 +3162,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_Z,
+         Key               => Guikit.Input.Key_Z,
          Modifiers         => Ctrl,
          Current_Font_Size => Base_Font,
          Result            => Result);
@@ -3193,7 +3193,7 @@ package body Files_Suite.Interaction is
       --  Ctrl+Z undo binding (so the two shortcuts do not collide).
       declare
          Action : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Key (Files.Gui.Input.Key_Z, Ctrl_Shift);
+           Files.Events.Translate_Key (Guikit.Input.Key_Z, Ctrl_Shift);
       begin
          Assert
            (Action.Kind = Files.Events.Command_Input_Action,
@@ -3218,7 +3218,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_Z,
+         Key               => Guikit.Input.Key_Z,
          Modifiers         => Ctrl,
          Current_Font_Size => Base_Font,
          Result            => Result);
@@ -3230,7 +3230,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => "",
-         Key               => Files.Gui.Input.Key_Z,
+         Key               => Guikit.Input.Key_Z,
          Modifiers         => Ctrl_Shift,
          Current_Font_Size => Base_Font,
          Result            => Result);
@@ -3347,7 +3347,7 @@ package body Files_Suite.Interaction is
            Files.Events.Translate_Click
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       Assert
@@ -3541,7 +3541,7 @@ package body Files_Suite.Interaction is
             others  => <>);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (not Files.Model.Sort_Is_Ascending (Model), "the sort command toggles to descending order");
 
@@ -3556,14 +3556,14 @@ package body Files_Suite.Interaction is
 
          --  Down must advance to the NEXT displayed item, never the previous one.
          Files.Interaction.Handle_Key
-           (Model, Settings, "", Files.Gui.Input.Key_Down, Files.Gui.Input.No_Modifiers, Base_Font, Result);
+           (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Base_Font, Result);
          Assert
            (Display_Position_Of (Files.Model.Selected_Name (Model)) = Start_Pos + 1,
             "Down moves to the next displayed item under descending sort");
 
          --  Up must return to the anchor (the previous displayed item).
          Files.Interaction.Handle_Key
-           (Model, Settings, "", Files.Gui.Input.Key_Up, Files.Gui.Input.No_Modifiers, Base_Font, Result);
+           (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Base_Font, Result);
          Assert
            (Display_Position_Of (Files.Model.Selected_Name (Model)) = Start_Pos,
             "Up moves to the previous displayed item under descending sort");
@@ -3728,7 +3728,7 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Breadcrumb_Click_Input_Action,
             "a breadcrumb coordinate translates to a breadcrumb click");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
       declare
@@ -3838,7 +3838,7 @@ package body Files_Suite.Interaction is
    begin
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
-         Base_Font, Files.Gui.Input.No_Modifiers, Result);
+         Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Tree_Panel_Is_Open (Model), "the toggle command opens the folder tree");
       Assert (Files.Model.Tree_Node_Count (Model) > 0, "opening the tree seeds it with root nodes");
 
@@ -3874,7 +3874,7 @@ package body Files_Suite.Interaction is
             "a tree label coordinate translates to a tree click");
          Assert (not Action.Toggle_Selection, "clicking the label navigates rather than toggles");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert
            (Expected.Status = Files.File_System.Path_Valid
               and then Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
@@ -3883,7 +3883,7 @@ package body Files_Suite.Interaction is
 
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
-         Base_Font, Files.Gui.Input.No_Modifiers, Result);
+         Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "toggling again closes the folder tree");
    end Test_Tree_Toggle_Command_And_Click;
 
@@ -3915,7 +3915,7 @@ package body Files_Suite.Interaction is
       Result : Files.Interaction.Interaction_Result;
    begin
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
    end Open_Favorites_Selector;
 
    --  Click the open selector's row whose root path equals Target_Path, deriving
@@ -3958,7 +3958,7 @@ package body Files_Suite.Interaction is
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
    end Click_Root_Row;
 
@@ -3980,20 +3980,20 @@ package body Files_Suite.Interaction is
       Files_Suite.Support.Select_Name (Model, "Alpha.txt");
       Assert (Files.Model.Selected_Count (Model) = 1, "the sample file is selected before favoriting");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, Item), "favoriting a selected file stores its path");
       Assert (Result.Settings_Changed, "favoriting reports a settings change");
 
       --  Toggling the same selection again removes the favorite.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (not Has_Favorite (Settings, Item), "toggling the selected file again removes its favorite");
 
       --  No selection: the toggle falls back to the current directory.
       Files.Model.Deselect_All (Model);
       Assert (Files.Model.Selected_Count (Model) = 0, "the selection is cleared for the fallback path");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert
         (Has_Favorite (Settings, Files.Model.Current_Path (Model)),
          "with no selection the toggle favorites the current folder");
@@ -4024,7 +4024,7 @@ package body Files_Suite.Interaction is
       Files.Model.Select_All_Visible (Model);
       Assert (Files.Model.Selected_Count (Model) = 3, "all three files are selected before the group toggle");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, One), "the group toggle stars the first item");
       Assert (Has_Favorite (Settings, Two), "the group toggle stars the second item");
       Assert (Has_Favorite (Settings, Three), "the group toggle stars the third item");
@@ -4032,7 +4032,7 @@ package body Files_Suite.Interaction is
 
       --  All three favorited: the next invocation un-stars the whole group.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (not Has_Favorite (Settings, One), "a second group toggle un-stars the first item");
       Assert (not Has_Favorite (Settings, Two), "a second group toggle un-stars the second item");
       Assert (not Has_Favorite (Settings, Three), "a second group toggle un-stars the third item");
@@ -4042,7 +4042,7 @@ package body Files_Suite.Interaction is
       Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Two));
       Assert (Has_Favorite (Settings, Two), "the second item is pre-favorited for the mixed case");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, One), "a mixed group toggle stars the previously unstarred first item");
       Assert (Has_Favorite (Settings, Two), "a mixed group toggle leaves the already-starred second item starred");
       Assert (Has_Favorite (Settings, Three), "a mixed group toggle stars the previously unstarred third item");
@@ -4081,12 +4081,12 @@ package body Files_Suite.Interaction is
       Files.Model.Select_All_Visible (Model);
       Assert (Files.Model.Selected_Count (Model) = 3, "all three files are selected before labeling");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Open_Cmd, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Open_Cmd, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Label_Picker_Is_Open (Model), "the set-label command opens the picker");
 
       --  Choosing a color labels every selected item and closes the picker.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.Green), Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Choose (Files.Types.Green), Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker_Is_Open (Model), "choosing a swatch closes the picker");
       Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green, "the first item is labeled green");
       Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.Green, "the second item is labeled green");
@@ -4096,7 +4096,7 @@ package body Files_Suite.Interaction is
       --  Choosing None clears every selected item's label.
       Files.Model.Open_Label_Picker (Model);
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.No_Label, "None clears the first label");
       Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.No_Label, "None clears the second label");
       Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.No_Label, "None clears the third label");
@@ -4106,7 +4106,7 @@ package body Files_Suite.Interaction is
       Files.Settings.Set_Label (Settings, Two, Files.Types.Red);
       Files.Model.Open_Label_Picker (Model);
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.Blue), Base_Font, Files.Gui.Input.No_Modifiers, Result);
+        (Model, Settings, "", Choose (Files.Types.Blue), Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Blue, "the first item becomes blue");
       Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.Blue,
               "the previously red item is overwritten to blue");
@@ -4217,7 +4217,7 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Path_Favorite_Toggle_Input_Action,
             "a click on the empty path star translates to the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (Has_Favorite (Settings, Current), "clicking the empty star favorites the current directory");
       Assert (Result.Settings_Changed, "toggling the path star reports a settings change");
@@ -4238,7 +4238,7 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Path_Favorite_Toggle_Input_Action,
             "a second click on the now-filled path star is still the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (not Has_Favorite (Settings, Current), "clicking the filled star unfavorites the current directory");
    end Test_Path_Star_Click_Toggles_Current_Dir;
@@ -4268,7 +4268,7 @@ package body Files_Suite.Interaction is
 
    procedure Test_Quick_Look_Space_Seam (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      No_Mod   : Files.Gui.Input.Modifier_Set renames Files.Gui.Input.No_Modifiers;
+      No_Mod   : Guikit.Input.Modifier_Set renames Guikit.Input.No_Modifiers;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
 
       procedure Press_Space
@@ -4279,7 +4279,7 @@ package body Files_Suite.Interaction is
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",
-            Key               => Files.Gui.Input.Key_Space,
+            Key               => Guikit.Input.Key_Space,
             Modifiers         => No_Mod,
             Current_Font_Size => Base_Font,
             Result            => Result);
@@ -4313,7 +4313,7 @@ package body Files_Suite.Interaction is
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",
-            Key               => Files.Gui.Input.Key_Escape,
+            Key               => Guikit.Input.Key_Escape,
             Modifiers         => No_Mod,
             Current_Font_Size => Base_Font,
             Result            => Result);
@@ -4399,7 +4399,7 @@ package body Files_Suite.Interaction is
          Settings_Path     => Path,
          Action            => Action,
          Current_Font_Size => Base_Font,
-         Modifiers         => Files.Gui.Input.No_Modifiers,
+         Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
 
       declare
@@ -4460,7 +4460,7 @@ package body Files_Suite.Interaction is
          Settings_Path     => "",
          Action            => Action,
          Current_Font_Size => Base_Font,
-         Modifiers         => Files.Gui.Input.No_Modifiers,
+         Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert (Files.Model.In_Recent_View (Model), "the reducer enters the recent view");
       Assert (Files.Model.Item_Count (Model) > 0, "the recent view lists the stored path");
@@ -4485,9 +4485,9 @@ package body Files_Suite.Interaction is
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Result   : Files.Interaction.Interaction_Result;
-      Toolbar  : constant Files.Gui.Layout.Toolbar_Layout := Files.Gui.Layout.Calculate_Toolbar_Layout (Window_W);
-      Chip     : constant Files.Gui.Layout.Scope_Chip_Region :=
-        Files.Gui.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line);
+      Toolbar  : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Window_W);
+      Chip     : constant Guikit.Layout.Scope_Chip_Region :=
+        Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Line);
       Chip_X   : constant Natural := Chip.X + Chip.Width / 2;
       Chip_Y   : constant Natural := Chip.Y + Chip.Height / 2;
       Full_Count : Natural;
@@ -4547,7 +4547,7 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Search_Scope_Toggle_Input_Action,
             "clicking the chip yields the scope-toggle action, not a text click");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Names,
@@ -4564,7 +4564,7 @@ package body Files_Suite.Interaction is
          Action : constant Files.Events.Input_Action := Chip_Action (Model);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
@@ -4579,7 +4579,7 @@ package body Files_Suite.Interaction is
          Action : constant Files.Events.Input_Action := Chip_Action (Model);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Files.Gui.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,

@@ -25,10 +25,10 @@ with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Operations;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;
-with Files.Gui.Input;
+with Guikit.Input;
 with Files.Types;
 
 package body Files.Application.Windows is
@@ -45,7 +45,7 @@ package body Files.Application.Windows is
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Gui.Vulkan.Vulkan_Status;
+   use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
@@ -252,7 +252,7 @@ package body Files.Application.Windows is
       Text_Content_Font_Path : Unbounded_String;
       Text_Glyph_Key  : Unbounded_String;
       Text_Glyphs     : Files.Rendering.Text_Render_Result;
-      Vulkan          : Files.Gui.Vulkan.Vulkan_Renderer;
+      Vulkan          : Guikit.Vulkan.Vulkan_Renderer;
       Vulkan_Tried    : Boolean := False;
       Surface_Tried   : Boolean := False;
       Shown           : Boolean := False;
@@ -281,8 +281,8 @@ package body Files.Application.Windows is
       Cached_Marquee_H     : Natural := 0;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
-      Last_Present_Status : Files.Gui.Vulkan.Vulkan_Status :=
-        Files.Gui.Vulkan.Vulkan_Not_Initialized;
+      Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
+        Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Native_Watch_FD : Interfaces.C.int := -1;
       Native_Watch_ID : Interfaces.C.int := -1;
@@ -691,20 +691,20 @@ package body Files.Application.Windows is
 
    function To_Modifiers
      (Window : not null access Glfw.Windows.Window)
-      return Files.Gui.Input.Modifier_Set
+      return Guikit.Input.Modifier_Set
    is
-      Result : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Result : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
-      Result (Files.Gui.Input.Shift_Key) :=
+      Result (Guikit.Input.Shift_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Shift) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Shift) = Glfw.Input.Pressed;
-      Result (Files.Gui.Input.Control_Key) :=
+      Result (Guikit.Input.Control_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Control) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Control) = Glfw.Input.Pressed;
-      Result (Files.Gui.Input.Alt_Key) :=
+      Result (Guikit.Input.Alt_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Alt) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Alt) = Glfw.Input.Pressed;
-      Result (Files.Gui.Input.Meta_Key) :=
+      Result (Guikit.Input.Meta_Key) :=
         Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Super) = Glfw.Input.Pressed
         or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Super) = Glfw.Input.Pressed;
       return Result;
@@ -804,88 +804,88 @@ package body Files.Application.Windows is
 
    function To_Key_Code
      (Key : Tracked_Key)
-      return Files.Gui.Input.Key_Code is
+      return Guikit.Input.Key_Code is
    begin
       case Key is
          when Tracked_Key_1 =>
-            return Files.Gui.Input.Key_1;
+            return Guikit.Input.Key_1;
          when Tracked_Key_2 =>
-            return Files.Gui.Input.Key_2;
+            return Guikit.Input.Key_2;
          when Tracked_Key_3 =>
-            return Files.Gui.Input.Key_3;
+            return Guikit.Input.Key_3;
          when Tracked_Key_4 =>
-            return Files.Gui.Input.Key_4;
+            return Guikit.Input.Key_4;
          when Tracked_A =>
-            return Files.Gui.Input.Key_A;
+            return Guikit.Input.Key_A;
          when Tracked_B =>
-            return Files.Gui.Input.Key_B;
+            return Guikit.Input.Key_B;
          when Tracked_C =>
-            return Files.Gui.Input.Key_C;
+            return Guikit.Input.Key_C;
          when Tracked_D =>
-            return Files.Gui.Input.Key_D;
+            return Guikit.Input.Key_D;
          when Tracked_F =>
-            return Files.Gui.Input.Key_F;
+            return Guikit.Input.Key_F;
          when Tracked_I =>
-            return Files.Gui.Input.Key_I;
+            return Guikit.Input.Key_I;
          when Tracked_L =>
-            return Files.Gui.Input.Key_L;
+            return Guikit.Input.Key_L;
          when Tracked_N =>
-            return Files.Gui.Input.Key_N;
+            return Guikit.Input.Key_N;
          when Tracked_P =>
-            return Files.Gui.Input.Key_P;
+            return Guikit.Input.Key_P;
          when Tracked_R =>
-            return Files.Gui.Input.Key_R;
+            return Guikit.Input.Key_R;
          when Tracked_S =>
-            return Files.Gui.Input.Key_S;
+            return Guikit.Input.Key_S;
          when Tracked_V =>
-            return Files.Gui.Input.Key_V;
+            return Guikit.Input.Key_V;
          when Tracked_X =>
-            return Files.Gui.Input.Key_X;
+            return Guikit.Input.Key_X;
          when Tracked_Z =>
-            return Files.Gui.Input.Key_Z;
+            return Guikit.Input.Key_Z;
          when Tracked_Comma =>
-            return Files.Gui.Input.Key_Comma;
+            return Guikit.Input.Key_Comma;
          when Tracked_Backspace =>
-            return Files.Gui.Input.Key_Backspace;
+            return Guikit.Input.Key_Backspace;
          when Tracked_Delete =>
-            return Files.Gui.Input.Key_Delete;
+            return Guikit.Input.Key_Delete;
          when Tracked_F2 =>
-            return Files.Gui.Input.Key_F2;
+            return Guikit.Input.Key_F2;
          when Tracked_F5 =>
-            return Files.Gui.Input.Key_F5;
+            return Guikit.Input.Key_F5;
          when Tracked_Escape =>
-            return Files.Gui.Input.Key_Escape;
+            return Guikit.Input.Key_Escape;
          when Tracked_Enter | Tracked_Numpad_Enter =>
-            return Files.Gui.Input.Key_Return;
+            return Guikit.Input.Key_Return;
          when Tracked_Left =>
-            return Files.Gui.Input.Key_Left;
+            return Guikit.Input.Key_Left;
          when Tracked_Right =>
-            return Files.Gui.Input.Key_Right;
+            return Guikit.Input.Key_Right;
          when Tracked_Up =>
-            return Files.Gui.Input.Key_Up;
+            return Guikit.Input.Key_Up;
          when Tracked_Down =>
-            return Files.Gui.Input.Key_Down;
+            return Guikit.Input.Key_Down;
          when Tracked_Home =>
-            return Files.Gui.Input.Key_Home;
+            return Guikit.Input.Key_Home;
          when Tracked_End =>
-            return Files.Gui.Input.Key_End;
+            return Guikit.Input.Key_End;
          when Tracked_Page_Up =>
-            return Files.Gui.Input.Key_Page_Up;
+            return Guikit.Input.Key_Page_Up;
          when Tracked_Page_Down =>
-            return Files.Gui.Input.Key_Page_Down;
+            return Guikit.Input.Key_Page_Down;
          --  The '+' family (physical '=', ']' and numpad '+') maps to Key_Equal
          --  and the '-' family (physical '-', '/' and numpad '-') to Key_Minus
          --  so the shared keyboard-zoom seam handles Ctrl+plus / Ctrl+minus.
          --  The alternate ']' and '/' positions cover layouts (e.g. German)
          --  where '+' and '-' sit on those physical keys.
          when Tracked_Equal | Tracked_Right_Bracket | Tracked_Numpad_Add =>
-            return Files.Gui.Input.Key_Equal;
+            return Guikit.Input.Key_Equal;
          when Tracked_Minus | Tracked_Slash | Tracked_Numpad_Subtract =>
-            return Files.Gui.Input.Key_Minus;
+            return Guikit.Input.Key_Minus;
          when Tracked_Zero =>
-            return Files.Gui.Input.Key_0;
+            return Guikit.Input.Key_0;
          when Tracked_Space =>
-            return Files.Gui.Input.Key_Space;
+            return Guikit.Input.Key_Space;
       end case;
    end To_Key_Code;
 
@@ -1227,10 +1227,10 @@ package body Files.Application.Windows is
 
       --  Ctrl + scroll: live font-size adjustment (zoom in / out).
       declare
-         Modifiers : constant Files.Gui.Input.Modifier_Set :=
+         Modifiers : constant Guikit.Input.Modifier_Set :=
            To_Modifiers (As_Window (Runtime.Handle));
       begin
-         if Modifiers (Files.Gui.Input.Control_Key) then
+         if Modifiers (Guikit.Input.Control_Key) then
             declare
                New_Size : constant Positive :=
                  Files.Settings.Clamp_Font_Pixel_Size
@@ -1319,7 +1319,7 @@ package body Files.Application.Windows is
    procedure Dispatch_Click_Action
      (Runtime  : in out Runtime_Window;
       Action   : Files.Events.Input_Action;
-      Modifiers : Files.Gui.Input.Modifier_Set)
+      Modifiers : Guikit.Input.Modifier_Set)
    is
       Result : Files.Interaction.Interaction_Result;
    begin
@@ -1394,7 +1394,7 @@ package body Files.Application.Windows is
       Frame_H   : Glfw.Size;
       Cursor_X  : Glfw.Input.Mouse.Coordinate;
       Cursor_Y  : Glfw.Input.Mouse.Coordinate;
-      Modifiers : Files.Gui.Input.Modifier_Set)
+      Modifiers : Guikit.Input.Modifier_Set)
       return Files.Events.Input_Action
    is
       X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
@@ -1431,11 +1431,11 @@ package body Files.Application.Windows is
    procedure Handle_Item_Drop
      (Runtime      : in out Runtime_Window;
       Target_Index : Natural;
-      Modifiers    : Files.Gui.Input.Modifier_Set)
+      Modifiers    : Guikit.Input.Modifier_Set)
    is
       Sources : constant Files.Types.String_Vectors.Vector := Selected_File_Paths (Runtime.Model);
       Mode    : constant Files.File_System.Drop_Import_Mode :=
-        (if Modifiers (Files.Gui.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
+        (if Modifiers (Guikit.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
       Result  : Files.Operations.Operation_Result;
    begin
       if Target_Index = 0 or else Sources.Is_Empty then
@@ -1540,7 +1540,7 @@ package body Files.Application.Windows is
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
                     Cell_Height_For (Runtime.Font_Pixel_Size));
                Row      : constant Natural := Files.Rendering.Context_Menu_Row_At (Menu, X, Y);
-               Modifiers : constant Files.Gui.Input.Modifier_Set :=
+               Modifiers : constant Guikit.Input.Modifier_Set :=
                  To_Modifiers (As_Window (Runtime.Handle));
                Command  : constant Files.Commands.Command_Id :=
                  (if Row > 0 and then Row <= Menu.Row_Count then Menu.Commands (Row)
@@ -1562,7 +1562,7 @@ package body Files.Application.Windows is
 
          declare
             Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-            Modifiers : constant Files.Gui.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+            Modifiers : constant Guikit.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
             Action    : constant Files.Events.Input_Action :=
               Current_Click_Action
                 (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
@@ -1601,7 +1601,7 @@ package body Files.Application.Windows is
 
          if Runtime.Handle.Drag_Moved and then Runtime.Drag_Source_Index /= 0 then
             declare
-               Modifiers : constant Files.Gui.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+               Modifiers : constant Guikit.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
                Action    : constant Files.Events.Input_Action :=
                  Current_Click_Action
                    (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
@@ -1634,7 +1634,7 @@ package body Files.Application.Windows is
       Result : Unbounded_String;
 
       procedure Append_Text_Key
-        (Command : Files.Gui.Draw.Text_Command)
+        (Command : Guikit.Draw.Text_Command)
       is
       begin
          Append (Result, Natural'Image (Command.X));
@@ -1645,7 +1645,7 @@ package body Files.Application.Windows is
          Append (Result, ":");
          Append (Result, Natural'Image (Command.Height));
          Append (Result, ":");
-         Append (Result, Files.Gui.Draw.Render_Color'Image (Command.Color));
+         Append (Result, Guikit.Draw.Render_Color'Image (Command.Color));
          Append (Result, ":");
          Append (Result, (if Command.Italic then "i" else "r"));
          Append (Result, ":");
@@ -1687,7 +1687,7 @@ package body Files.Application.Windows is
             end;
          end if;
 
-         Files.Gui.Vulkan.Shutdown (Runtime.Vulkan);
+         Guikit.Vulkan.Shutdown (Runtime.Vulkan);
          Release_Native_Watch (Runtime);
 
          if Runtime.Handle /= null then
@@ -1819,7 +1819,7 @@ package body Files.Application.Windows is
             Cached_Marquee_H     => 0,
             Last_Glyph_Count => 0,
             Last_Missing_Glyph_Count => 0,
-            Last_Present_Status => Files.Gui.Vulkan.Vulkan_Not_Initialized,
+            Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,
             Last_Watch_Poll => Ada.Calendar.Time_Of (1901, 1, 1),
             Native_Watch_FD => -1,
             Native_Watch_ID => -1,
@@ -2045,7 +2045,7 @@ package body Files.Application.Windows is
             (Kind    => Files.Events.Command_Input_Action,
              Command => Runtime.Column_Reorder_Sort,
              others  => <>),
-            Files.Gui.Input.No_Modifiers);
+            Guikit.Input.No_Modifiers);
       end if;
    end Update_Column_Reorder_Drag;
 
@@ -2287,8 +2287,8 @@ package body Files.Application.Windows is
 
          if not Runtime.Vulkan_Tried then
             declare
-               Status : constant Files.Gui.Vulkan.Vulkan_Status :=
-                 Files.Gui.Vulkan.Initialize (Runtime.Vulkan);
+               Status : constant Guikit.Vulkan.Vulkan_Status :=
+                 Guikit.Vulkan.Initialize (Runtime.Vulkan);
             begin
                Runtime.Vulkan_Tried := True;
                pragma Unreferenced (Status);
@@ -2297,11 +2297,11 @@ package body Files.Application.Windows is
 
          if Runtime.Vulkan_Tried
            and then not Runtime.Surface_Tried
-           and then Files.Gui.Vulkan.Ready (Runtime.Vulkan)
+           and then Guikit.Vulkan.Ready (Runtime.Vulkan)
          then
             declare
-               Status : constant Files.Gui.Vulkan.Vulkan_Status :=
-                 Files.Gui.Vulkan.Create_Surface (Runtime.Vulkan, As_Window (Runtime.Handle));
+               Status : constant Guikit.Vulkan.Vulkan_Status :=
+                 Guikit.Vulkan.Create_Surface (Runtime.Vulkan, As_Window (Runtime.Handle));
             begin
                Runtime.Surface_Tried := True;
                pragma Unreferenced (Status);
@@ -2309,18 +2309,18 @@ package body Files.Application.Windows is
          end if;
 
          if Runtime.Surface_Tried
-           and then Files.Gui.Vulkan.Surface_Ready (Runtime.Vulkan)
+           and then Guikit.Vulkan.Surface_Ready (Runtime.Vulkan)
            and then
-             (not Files.Gui.Vulkan.Swapchain_Ready (Runtime.Vulkan)
+             (not Guikit.Vulkan.Swapchain_Ready (Runtime.Vulkan)
               or else Runtime.Last_Frame_Width /= Natural (Width)
               or else Runtime.Last_Frame_Height /= Natural (Height))
          then
-            Files.Gui.Vulkan.Request_Swapchain_Recreate
+            Guikit.Vulkan.Request_Swapchain_Recreate
               (Renderer => Runtime.Vulkan,
                Width    => Natural (Width),
                Height   => Natural (Height));
             Runtime.Last_Present_Status :=
-              Files.Gui.Vulkan.Configure_Swapchain
+              Guikit.Vulkan.Configure_Swapchain
                 (Renderer => Runtime.Vulkan,
                  Width    => Natural (Width),
                  Height   => Natural (Height));
@@ -2391,8 +2391,8 @@ package body Files.Application.Windows is
                   end if;
 
                   declare
-                     Batch : constant Files.Gui.Vulkan.Submission_Batch :=
-                       Files.Gui.Vulkan.Build_Submission
+                     Batch : constant Guikit.Vulkan.Submission_Batch :=
+                       Guikit.Vulkan.Build_Submission
                          (Rectangles         => Frame.Rectangles,
                           Triangles          => Frame.Triangles,
                           Icons              => Frame.Icons,
@@ -2403,27 +2403,27 @@ package body Files.Application.Windows is
                   begin
                      Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
                      Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
-                     Runtime.Last_Present_Status := Files.Gui.Vulkan.Present (Runtime.Vulkan, Batch);
+                     Runtime.Last_Present_Status := Guikit.Vulkan.Present (Runtime.Vulkan, Batch);
 
                      if Runtime.Last_Present_Status =
-                       Files.Gui.Vulkan.Vulkan_Swapchain_Recreate_Needed
+                       Guikit.Vulkan.Vulkan_Swapchain_Recreate_Needed
                      then
                         Runtime.Last_Present_Status :=
-                          Files.Gui.Vulkan.Configure_Swapchain
+                          Guikit.Vulkan.Configure_Swapchain
                             (Renderer => Runtime.Vulkan,
                              Width    => Natural (Width),
                              Height   => Natural (Height));
                         Runtime.Last_Frame_Width := Natural (Width);
                         Runtime.Last_Frame_Height := Natural (Height);
                         if Runtime.Last_Present_Status =
-                          Files.Gui.Vulkan.Vulkan_Swapchain_Ready
+                          Guikit.Vulkan.Vulkan_Swapchain_Ready
                         then
                            Runtime.Last_Present_Status :=
-                             Files.Gui.Vulkan.Present (Runtime.Vulkan, Batch);
+                             Guikit.Vulkan.Present (Runtime.Vulkan, Batch);
                         end if;
                      end if;
 
-                     if Runtime.Last_Present_Status /= Files.Gui.Vulkan.Vulkan_Presented then
+                     if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
                         Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
                      end if;
                   end;
@@ -2450,7 +2450,7 @@ package body Files.Application.Windows is
    begin
       for Runtime of Runtime_Windows loop
          if Runtime.Last_Glyph_Count > 0
-           and then Runtime.Last_Present_Status = Files.Gui.Vulkan.Vulkan_Presented
+           and then Runtime.Last_Present_Status = Guikit.Vulkan.Vulkan_Presented
          then
             return True;
          end if;
@@ -3105,7 +3105,7 @@ package body Files.Application.Windows is
             Input_Polled       => False,
             Closed_Cleanly     => False,
             Skipped_By_Plan    => True,
-            Last_Status        => Files.Gui.Vulkan.Vulkan_Not_Initialized,
+            Last_Status        => Guikit.Vulkan.Vulkan_Not_Initialized,
             Last_Vk_Result     => 0,
             Framebuffer_Readback_Ready => False,
             Last_Framebuffer_Hash => 0,
@@ -3126,7 +3126,7 @@ package body Files.Application.Windows is
          Input_Polled       => False,
          Closed_Cleanly     => False,
          Skipped_By_Plan    => False,
-         Last_Status        => Files.Gui.Vulkan.Vulkan_Not_Initialized,
+         Last_Status        => Guikit.Vulkan.Vulkan_Not_Initialized,
          Last_Vk_Result     => 0,
          Framebuffer_Readback_Ready => False,
          Last_Framebuffer_Hash => 0,
@@ -3170,7 +3170,7 @@ package body Files.Application.Windows is
             Height          => Plan.Height);
       end loop;
       for Runtime of Runtime_Windows loop
-         Files.Gui.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);
+         Guikit.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);
       end loop;
 
       Result.Window_Created := not Runtime_Windows.Is_Empty;
@@ -3218,16 +3218,16 @@ package body Files.Application.Windows is
                   Result.Frame_Rendered :=
                     Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
                   for Runtime of Runtime_Windows loop
-                     if Runtime.Last_Present_Status /= Files.Gui.Vulkan.Vulkan_Not_Initialized then
+                     if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Not_Initialized then
                         declare
-                           Diagnostics : constant Files.Gui.Vulkan.Renderer_Diagnostics :=
-                             Files.Gui.Vulkan.Diagnostics (Runtime.Vulkan);
+                           Diagnostics : constant Guikit.Vulkan.Renderer_Diagnostics :=
+                             Guikit.Vulkan.Diagnostics (Runtime.Vulkan);
                         begin
                            Result.Last_Status := Runtime.Last_Present_Status;
                            Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
                            Result.Vulkan_Device_Ready :=
                              Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
-                           if Runtime.Last_Present_Status = Files.Gui.Vulkan.Vulkan_Presented then
+                           if Runtime.Last_Present_Status = Guikit.Vulkan.Vulkan_Presented then
                               Result.Frames_Presented := Result.Frames_Presented + 1;
                            end if;
                            if Diagnostics.Framebuffer_Readback_Ready then
@@ -3253,10 +3253,10 @@ package body Files.Application.Windows is
                                  if Rect.Valid then
                                     Outcome.Region_Checked := True;
                                     Outcome.Region_Ink_Fraction :=
-                                      Files.Gui.Vulkan.Readback_Region_Ink_Fraction
+                                      Guikit.Vulkan.Readback_Region_Ink_Fraction
                                         (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
                                     Outcome.Region_Ink_Present :=
-                                      Files.Gui.Vulkan.Readback_Region_Has_Ink
+                                      Guikit.Vulkan.Readback_Region_Has_Ink
                                         (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
                                  end if;
                               end;

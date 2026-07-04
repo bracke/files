@@ -5,12 +5,12 @@ with Files.Breadcrumbs;
 with Files.Commands;
 with Files.File_System;
 with Files.Folder_Tree;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Model;
 with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
-use Files.Gui.Draw;
+use Guikit.Draw;
 
 --  Immutable render snapshots and layout calculations.
 package Files.Rendering is
@@ -347,10 +347,10 @@ package Files.Rendering is
       Row  : Positive)
       return Natural;
 
-   --  Window layout geometry. Re-exported from Files.Gui.Draw so backends can
+   --  Window layout geometry. Re-exported from Guikit.Draw so backends can
    --  consume it without depending on this package; existing
    --  Files.Rendering.Layout_Metrics references keep compiling unchanged.
-   subtype Layout_Metrics is Files.Gui.Draw.Layout_Metrics;
+   subtype Layout_Metrics is Guikit.Draw.Layout_Metrics;
 
    type Item_Layout is record
       Visible_Index : Natural := 0;
@@ -893,32 +893,32 @@ package Files.Rendering is
    type Text_Renderer is private;
 
    --  Text rasterization outcome and glyph/atlas result. Re-exported from
-   --  Files.Gui.Draw so backends can consume them without depending on this
+   --  Guikit.Draw so backends can consume them without depending on this
    --  package; the literal renamings keep qualified Files.Rendering references
    --  (e.g. Files.Rendering.Text_Render_Success) compiling unchanged.
-   subtype Text_Render_Status is Files.Gui.Draw.Text_Render_Status;
+   subtype Text_Render_Status is Guikit.Draw.Text_Render_Status;
 
    --  Re-export of the successful text-rasterization status literal.
-   --  @return The Text_Render_Success value from Files.Gui.Draw.
+   --  @return The Text_Render_Success value from Guikit.Draw.
    function Text_Render_Success return Text_Render_Status
-     renames Files.Gui.Draw.Text_Render_Success;
+     renames Guikit.Draw.Text_Render_Success;
 
    --  Re-export of the font-load-failure status literal.
-   --  @return The Text_Render_Font_Load_Failed value from Files.Gui.Draw.
+   --  @return The Text_Render_Font_Load_Failed value from Guikit.Draw.
    function Text_Render_Font_Load_Failed return Text_Render_Status
-     renames Files.Gui.Draw.Text_Render_Font_Load_Failed;
+     renames Guikit.Draw.Text_Render_Font_Load_Failed;
 
    --  Re-export of the font-not-loaded status literal.
-   --  @return The Text_Render_Font_Not_Loaded value from Files.Gui.Draw.
+   --  @return The Text_Render_Font_Not_Loaded value from Guikit.Draw.
    function Text_Render_Font_Not_Loaded return Text_Render_Status
-     renames Files.Gui.Draw.Text_Render_Font_Not_Loaded;
+     renames Guikit.Draw.Text_Render_Font_Not_Loaded;
 
    --  Re-export of the glyph-failure status literal.
-   --  @return The Text_Render_Glyph_Failed value from Files.Gui.Draw.
+   --  @return The Text_Render_Glyph_Failed value from Guikit.Draw.
    function Text_Render_Glyph_Failed return Text_Render_Status
-     renames Files.Gui.Draw.Text_Render_Glyph_Failed;
+     renames Guikit.Draw.Text_Render_Glyph_Failed;
 
-   subtype Text_Render_Result is Files.Gui.Draw.Text_Render_Result;
+   subtype Text_Render_Result is Guikit.Draw.Text_Render_Result;
 
    --  Build an immutable snapshot from the mutable model.
    --

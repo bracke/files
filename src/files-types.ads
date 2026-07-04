@@ -1,7 +1,7 @@
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
-with Files.Gui.Draw;
+with Guikit.Draw;
 
 --  Shared value types used across the files model, commands, and rendering.
 package Files.Types is
@@ -13,9 +13,9 @@ package Files.Types is
       "="          => Ada.Strings.Unbounded."=");
 
    --  Byte buffer type shared with the renderer-agnostic draw model. Re-exported
-   --  from Files.Gui.Draw so the draw model stays domain-free while application
+   --  from Guikit.Draw so the draw model stays domain-free while application
    --  code keeps using Files.Types.Byte_Vectors unchanged.
-   package Byte_Vectors renames Files.Gui.Draw.Byte_Vectors;
+   package Byte_Vectors renames Guikit.Draw.Byte_Vectors;
 
    type View_Mode is
      (Small_Icons,

@@ -1,6 +1,6 @@
-with Files.Gui.Utf8;
+with Guikit.Utf8;
 
-package body Files.Gui.Layout is
+package body Guikit.Layout is
 
    function Within
      (X          : Natural;
@@ -78,7 +78,7 @@ package body Files.Gui.Layout is
       Cell_W : Natural)
       return Natural is
    begin
-      return Saturating_Multiply (Files.Gui.Utf8.Display_Units (Text), Cell_W);
+      return Saturating_Multiply (Guikit.Utf8.Display_Units (Text), Cell_W);
    end Label_Pixel_Width;
 
    --  Horizontal gap between the filter field, the scope chip, and the right
@@ -402,4 +402,4 @@ package body Files.Gui.Layout is
          Text_Width => Text_W);
    end Calculate_Settings_Pane_Layout;
 
-end Files.Gui.Layout;
+end Guikit.Layout;

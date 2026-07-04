@@ -40,12 +40,12 @@ with Files.Model;
 with Files.Operations;
 with Files.Platform;
 with Files.Quick_Look;
-with Files.Gui.Draw;
+with Guikit.Draw;
 with Files.Rendering;
-with Files.Gui.Vulkan;
+with Guikit.Vulkan;
 with Files.Settings;
 with Files.Type_Ahead;
-with Files.Gui.Input;
+with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
@@ -74,13 +74,13 @@ package body Files_Suite.Model is
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Files.Gui.Draw.Accessibility_Role;
-   use type Files.Gui.Draw.Icon_Asset_Color_Role;
-   use type Files.Gui.Draw.Render_Color;
+   use type Guikit.Draw.Accessibility_Role;
+   use type Guikit.Draw.Icon_Asset_Color_Role;
+   use type Guikit.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
-   use type Files.Gui.Vulkan.Atlas_Texture_Format;
-   use type Files.Gui.Vulkan.Texture_Source;
-   use type Files.Gui.Vulkan.Vulkan_Status;
+   use type Guikit.Vulkan.Atlas_Texture_Format;
+   use type Guikit.Vulkan.Texture_Source;
+   use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
@@ -88,9 +88,9 @@ package body Files_Suite.Model is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Files.Gui.Input.Key_Code;
-   use type Files.Gui.Input.Modifier_Set;
-   use type Files.Gui.Input.Navigation_Direction;
+   use type Guikit.Input.Key_Code;
+   use type Guikit.Input.Modifier_Set;
+   use type Guikit.Input.Navigation_Direction;
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
@@ -888,25 +888,25 @@ package body Files_Suite.Model is
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Result     : Files.Controller.Controller_Result;
-      Ctrl       : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
-      Shift      : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
-      Ctrl_Shift : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Ctrl       : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Shift      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
-      Ctrl (Files.Gui.Input.Control_Key) := True;
-      Shift (Files.Gui.Input.Shift_Key) := True;
-      Ctrl_Shift (Files.Gui.Input.Control_Key) := True;
-      Ctrl_Shift (Files.Gui.Input.Shift_Key) := True;
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Right);
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Shift (Guikit.Input.Shift_Key) := True;
+      Ctrl_Shift (Guikit.Input.Control_Key) := True;
+      Ctrl_Shift (Guikit.Input.Shift_Key) := True;
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert (Files.Model.Selected_Index (Model) = 1, "first movement selects first visible item");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Left);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Left);
       Assert (Files.Model.Selected_Index (Model) = 3, "left from first wraps to last");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Right);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Up);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Up);
       Assert (Files.Model.Selected_Index (Model) = 3, "up from first wraps to last");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Right);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first after up wrap");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Down);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Assert (Files.Model.Selected_Index (Model) = 2, "down advances selection");
       declare
          Grid_Items : Files.File_System.Item_Vectors.Vector := Sample_Items;
@@ -925,12 +925,12 @@ package body Files_Suite.Model is
          Files.Model.Set_Selection_Grid_Columns (Grid_Model, 2);
          Assert (Files.Model.Selection_Grid_Columns (Grid_Model) = 2, "model records rendered grid columns");
          Files.Model.Select_Visible (Grid_Model, 1);
-         Files.Model.Move_Selection (Grid_Model, Files.Gui.Input.Move_Down);
+         Files.Model.Move_Selection (Grid_Model, Guikit.Input.Move_Down);
          Assert (Files.Model.Selected_Index (Grid_Model) = 3, "down moves to same column in next grid row");
-         Files.Model.Move_Selection (Grid_Model, Files.Gui.Input.Move_Up);
+         Files.Model.Move_Selection (Grid_Model, Guikit.Input.Move_Up);
          Assert (Files.Model.Selected_Index (Grid_Model) = 1, "up moves to same column in previous grid row");
          Files.Model.Select_Visible (Grid_Model, 5);
-         Files.Model.Move_Selection (Grid_Model, Files.Gui.Input.Move_Down);
+         Files.Model.Move_Selection (Grid_Model, Guikit.Input.Move_Down);
          Assert (Files.Model.Selected_Index (Grid_Model) = 1, "down from last grid item wraps to first");
       end;
       Files.Model.Toggle_Visible_Selection (Model, 1);
@@ -951,17 +951,17 @@ package body Files_Suite.Model is
       Assert (Files.Model.Selected_Count (Model) = 0, "clear selection empties deterministic selection set");
       Files.Model.Select_Visible (Model, 2);
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "controller arrow moves selection");
       Assert (Files.Model.Selected_Index (Model) = 3, "controller down advances selection");
       Files.Model.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down, Shift);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "shift-down expands selection");
       Assert (Files.Model.Selected_Index (Model) = 2, "shift-down moves primary selection to target item");
       Assert (Files.Model.Selected_Count (Model) = 2, "shift-down keeps anchor and target selected");
       Assert (Files.Model.Is_Selected (Model, 1), "shift-down keeps anchor item selected");
       Assert (Files.Model.Is_Selected (Model, 2), "shift-down selects target item");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down, Shift);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "second shift-down expands selection");
       Assert (Files.Model.Selected_Index (Model) = 3, "second shift-down moves primary selection to next item");
       Assert (Files.Model.Selected_Count (Model) = 3, "second shift-down preserves range anchor");
@@ -996,7 +996,7 @@ package body Files_Suite.Model is
       Assert (Files.Model.Selected_Count (Model) = 1, "select-all respects visible filter projection");
       Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "filtered select-all selects visible item");
       Files.Model.Set_Filter (Model, "");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_A, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl);
       Assert (Result.Command = Files.Commands.Select_All_Command, "Control+A routes select-all command");
       Assert (Files.Model.Selected_Count (Model) = 3, "Control+A selects all visible loaded items");
       Files.Model.Clear_Selection (Model);
@@ -1017,21 +1017,21 @@ package body Files_Suite.Model is
       Assert (Files.Model.Selected_Count (Model) = 1, "invert only touches visible filtered items");
       Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "invert selects the visible filtered item");
       Files.Model.Set_Filter (Model, "");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_I, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_I, Ctrl);
       Assert (Result.Command = Files.Commands.Invert_Selection_Command, "Control+I routes invert-selection command");
       Files.Model.Select_All_Visible (Model);
       Assert (Files.Model.Selected_Count (Model) = 3, "deselect test starts from a full selection");
       Files.Model.Deselect_All (Model);
       Assert (Files.Model.Selected_Count (Model) = 0, "deselect all clears the selection");
       Files.Model.Select_All_Visible (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_A, Ctrl_Shift);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl_Shift);
       Assert (Result.Command = Files.Commands.Deselect_All_Command, "Control+Shift+A routes deselect-all command");
       Assert (Files.Model.Selected_Count (Model) = 0, "Control+Shift+A clears the selection");
       Files.Model.Select_Visible (Model, 1);
       declare
-         Shift : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+         Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       begin
-         Shift (Files.Gui.Input.Shift_Key) := True;
+         Shift (Guikit.Input.Shift_Key) := True;
          Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Shift);
       end;
       Assert (Files.Model.Selected_Count (Model) = 3, "shift-click selects a deterministic visible range");
@@ -1041,7 +1041,7 @@ package body Files_Suite.Model is
       declare
          Before_Focused_Key : constant Natural := Files.Model.Selected_Index (Model);
       begin
-         Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
          Assert (Result.Status = Files.Controller.Controller_Ignored, "focused input suppresses arrow selection");
          Assert
            (Files.Model.Selected_Index (Model) = Before_Focused_Key,
@@ -1120,23 +1120,23 @@ package body Files_Suite.Model is
 
       --  Through the real controller key seam: plain Home/End move the grid
       --  selection and never navigate (Alt+Home stays the navigate-home key).
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_End);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "plain End moves the grid selection");
       Assert (Files.Model.Selected_Index (Model) = 25, "plain End selects the last visible item");
       Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain End does not navigate");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Home);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "plain Home moves the grid selection");
       Assert (Files.Model.Selected_Index (Model) = 1, "plain Home selects the first visible item");
       Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain Home does not navigate home (that stays Alt+Home)");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Home);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "plain Home on the first item is ignored");
 
       --  Alt+Home remains the navigate-home shortcut, distinct from plain Home.
       Assert
         (Files.Commands.Find_By_Shortcut
-           (Files.Gui.Input.Key_Home, [Files.Gui.Input.Alt_Key => True, others => False])
+           (Guikit.Input.Key_Home, [Guikit.Input.Alt_Key => True, others => False])
            = Files.Commands.Navigate_Home_Command,
          "Alt+Home is still bound to navigate-home");
    end Test_Grid_Paging_Selection;
@@ -1234,7 +1234,7 @@ package body Files_Suite.Model is
       Feed ("d");
       Feed ("u");
       Assert (Files.Model.Selected_Index (Model) = 3, "du selects dune before the reset");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Down);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Assert (Files.Model.Type_Ahead_Buffer (Model) = "", "an arrow key clears the type-ahead buffer");
       Assert (Files.Model.Selected_Index (Model) = 4, "arrow key moves selection to date");
       Feed ("d");
@@ -1310,7 +1310,7 @@ package body Files_Suite.Model is
            (Files.Model.Selected_Name (Unicode_Model) = Upper_Name,
             "UTF-8 Latin-1 filter selects the matching visible item");
       end;
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "single visible item movement is ignored");
       Assert (Files.Model.Selected_Index (Model) = 1, "single visible item movement keeps selection");
       Files.Model.Clear_Filter (Model);
@@ -1329,9 +1329,9 @@ package body Files_Suite.Model is
       Files.Model.Set_Filter (Model, "zzz");
       Assert (Files.Model.Visible_Count (Model) = 0, "unmatched filter hides all items");
       Assert (Files.Model.Selected_Count (Model) = 0, "selection becomes empty when no items are visible");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Down);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Assert (Files.Model.Selected_Count (Model) = 0, "moving selection with no visible items stays empty");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "empty visible selection movement is ignored");
    end Test_Filtering_Reconciles_Selection;
 
@@ -1557,7 +1557,7 @@ package body Files_Suite.Model is
       Entries  : Files.File_System.Root_Entry_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
       Snapshot : Files.Rendering.View_Snapshot;
-      Ctrl     : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Root_Status : Files.File_System.Root_Discovery_Diagnostics;
       Volume_Caps : constant Files.File_System.Root_Volume_Capabilities :=
         Files.File_System.Root_Volume_Capabilities_Of_Current_Environment;
@@ -1661,7 +1661,7 @@ package body Files_Suite.Model is
          Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
       end if;
 
-      Ctrl (Files.Gui.Input.Control_Key) := True;
+      Ctrl (Guikit.Input.Control_Key) := True;
       Reset_Root;
       Ada.Directories.Create_Path (Target);
       Write_File (Join (Target, "inside.txt"));
@@ -2156,7 +2156,7 @@ package body Files_Suite.Model is
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after toggle close");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes root selector close");
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Success,
@@ -2190,7 +2190,7 @@ package body Files_Suite.Model is
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "same palette search cursor click is ignored");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "palette search focus preserves root selector");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "Escape closes palette after selector handoff");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "Escape leaves root selector open after palette closes");
       Files.Model.Close_Root_Selector (Model);
@@ -2256,11 +2256,11 @@ package body Files_Suite.Model is
       Roots_A.Clear;
       Roots_A.Append (To_Unbounded_String (Root));
       Files.Model.Open_Root_Selector (Model, Roots_A);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "single root selector movement is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Home);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector Home at first row is ignored");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_End);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "single root selector End is ignored");
       Roots_A.Clear;
       Roots_A.Append (To_Unbounded_String (Root));
@@ -2268,25 +2268,25 @@ package body Files_Suite.Model is
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Assert (Files.Model.Root_Selected_Index (Model) = 1, "non-empty root selector selects first row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Down moves root selector row");
       Assert (Files.Model.Root_Selected_Index (Model) = 2, "Down selects next root row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Up);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
       Assert (Files.Model.Root_Selected_Index (Model) = 1, "Up selects previous root row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Up);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
       Assert (Files.Model.Root_Selected_Index (Model) = 3, "Up wraps root selector to last row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Home);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Assert (Files.Model.Root_Selected_Index (Model) = 1, "Home selects first root row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_End);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
       Assert (Files.Model.Root_Selected_Index (Model) = 3, "End selects last root row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Right wraps root selector to first row");
       Assert (Files.Model.Root_Selected_Index (Model) = 1, "Right from last root row wraps to first row");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Left);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Left wraps root selector to last row");
       Assert (Files.Model.Root_Selected_Index (Model) = 3, "Left from first root row wraps to last row");
       Files.Model.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Delete);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background delete key");
       Assert (Files.Model.Selected_Count (Model) = 1, "blocked root selector delete keeps selection");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked root selector delete keeps selector open");
@@ -2309,7 +2309,7 @@ package body Files_Suite.Model is
            Files.Events.Scroll_Main_View,
            Lines => 3);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks targeted main scroll");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_P, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "root selector allows palette shortcut");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over root selector from shortcut");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "palette shortcut keeps root selector available");
@@ -2346,7 +2346,7 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "drive toggle closes root selector");
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Files.Model.Set_Root_Selected_Index (Model, 2);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Return);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert (Result.Command = Files.Commands.Open_Selected_Root_Command, "Return activates selected root row");
       Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "Return root activation navigates");
       Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "Return loads selected root");
@@ -2374,13 +2374,13 @@ package body Files_Suite.Model is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Ctrl     : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
    begin
-      Ctrl (Files.Gui.Input.Control_Key) := True;
+      Ctrl (Guikit.Input.Control_Key) := True;
 
       --  The info pane can always be toggled, even with nothing selected.
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_4, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Assert
         (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
          "Control+4 routes info-pane command with no selection");
@@ -2390,21 +2390,21 @@ package body Files_Suite.Model is
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane opens without a selection");
       --  Close it again, then reopen with a selection so the rest of the
       --  scenario starts from an open, selection-backed info pane.
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_4, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Right);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_4, Ctrl);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
       Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "Control+4 routes info-pane command");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane toggles open");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "info pane opens unscrolled");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Up);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of info pane is ignored");
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, -1);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "negative info scroll at top is ignored");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageDown pages info pane");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 10, "PageDown scrolls info pane by page");
 
@@ -2416,10 +2416,10 @@ package body Files_Suite.Model is
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative info scroll is handled");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "large negative info scroll clamps to top");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 10, "info pane scroll resumes after saturation");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Up);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageUp pages info pane");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "PageUp scrolls info pane back to top");
 
@@ -2453,7 +2453,7 @@ package body Files_Suite.Model is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks targeted info scroll");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked targeted scroll leaves info pane still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background PageDown");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked PageDown leaves info pane still");
       Result :=
@@ -2463,15 +2463,15 @@ package body Files_Suite.Model is
            Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after scroll block checks");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_2, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
       Assert (Result.Command = Files.Commands.Select_Large_Icons_Command, "Control+2 routes large-icons command");
       Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Large_Icons, "large mode shortcut works");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_3, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_3, Ctrl);
       Assert (Result.Command = Files.Commands.Select_Details_Command, "Control+3 routes details command");
       Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details shortcut works");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_1, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_1, Ctrl);
       Assert (Result.Command = Files.Commands.Select_Small_Icons_Command, "Control+1 routes small-icons command");
       Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small mode shortcut works");
 
@@ -2495,26 +2495,26 @@ package body Files_Suite.Model is
       --  page the SELECTION rather than scrolling the main view. The main view
       --  still scrolls through the wheel / targeted-scroll seam below.
       Files.Model.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Up);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageUp on the first item is ignored");
       Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp keeps the first item selected");
 
       Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "negative main scroll at top is ignored");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageDown pages the selection");
       Assert
         (Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
          "grid PageDown moves the selection a full page down to the last item");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageDown on the last item is ignored");
       Assert
         (Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
          "grid PageDown keeps the last item selected");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Up);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageUp pages the selection back");
       Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp returns the selection to the first item");
 
@@ -2542,7 +2542,7 @@ package body Files_Suite.Model is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks targeted main scroll");
       Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked targeted scroll leaves main view still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Page_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks main PageDown");
       Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked PageDown leaves main view still");
       Result :=
@@ -2629,31 +2629,31 @@ package body Files_Suite.Model is
       Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert (not Files.Model.Rename_Is_Active (Model), "F2 while renaming cancels rename mode");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_F2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 routes rename through controller");
       Assert (Files.Model.Rename_Is_Active (Model), "controller F2 enters rename mode");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes context cancel");
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Success,
          "rename Escape reports successful state-only cancel");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels focused rename mode");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_F2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered again");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path focus can move away from rename");
       Assert (Files.Model.Rename_Is_Active (Model), "path focus does not implicitly cancel rename");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Escape clears focused path input");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels rename state after path focus");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_F2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered after path focus Escape");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "focus can move away from rename");
       Assert (Files.Model.Rename_Is_Active (Model), "moving focus does not implicitly cancel rename");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "first Escape clears focused filter input");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels pending rename state after focus moved");
    end Test_Rename_Mode;
@@ -2726,7 +2726,7 @@ package body Files_Suite.Model is
       Assert (RCursor (2) = 4, "a click leaves the other field's caret untouched");
 
       --  A keyboard arrow moves every caret together.
-      Changed := Files.Model.Rename_Move_All_Carets (Model, Files.Gui.Input.Move_Right);
+      Changed := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
       Assert (Changed, "arrow reports a change across the fields");
       Assert (RCursor (1) = 1 and then RCursor (2) = 5, "a keyboard arrow moves every caret together");
    end Test_Multi_Rename_Broadcast;
@@ -2736,11 +2736,11 @@ package body Files_Suite.Model is
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Items    : Files.File_System.Item_Vectors.Vector;
-      Ctrl     : Files.Gui.Input.Modifier_Set := Files.Gui.Input.No_Modifiers;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
       Operation : Files.Operations.Operation_Result;
    begin
-      Ctrl (Files.Gui.Input.Control_Key) := True;
+      Ctrl (Guikit.Input.Control_Key) := True;
       Reset_Root;
       Write_File (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 2.txt"));
@@ -2854,7 +2854,7 @@ package body Files_Suite.Model is
             "mixed temporary delete records disabled state");
       end;
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_F2);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 routes temporary rename cancel");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "F2 cancels pending temporary item");
       Assert (not Files.Model.Rename_Is_Active (Model), "F2 clears temporary rename state");
@@ -2862,24 +2862,24 @@ package body Files_Suite.Model is
       Assert (Files.Model.Visible_Count (Model) = 0, "F2 removes temporary item from projection");
       Assert (not Ada.Directories.Exists (Join (Root, "untitled 2.txt")), "F2 does not create a file");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_N, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Assert (Result.Command = Files.Commands.Create_File_Command, "Control+N routes create-file command");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N adds temporary item");
       Files.Model.Cancel_Create_File (Model);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "direct create cancel clears rename focus");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_N, Ctrl);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N can add temporary item after direct cancel");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path focus can move away from create");
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Escape clears path focus during create");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item after path focus");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape clears create rename after path focus");
       Assert (Files.Model.Visible_Count (Model) = 0, "path-focus Escape removes temporary item from projection");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Files.Model.Move_Selection (Model, Files.Gui.Input.Move_Down);
-      Result := Files.Controller.Handle_Key (Model, Settings, Files.Gui.Input.Key_Escape);
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes context cancel");
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Success,
@@ -3158,18 +3158,18 @@ package body Files_Suite.Model is
       Files.Model.Set_Settings_Field_Index (Model, 1);
       Assert (Files.Model.Settings_Field_Index (Model) = 1, "the first settings field is field 1");
 
-      Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Up);
+      Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Up);
       Assert (Files.Model.Settings_Field_Index (Model) = 20,
               "moving up from field 1 wraps to the last field, 20");
 
-      Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Down);
+      Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Down);
       Assert (Files.Model.Settings_Field_Index (Model) = 1,
               "moving down from field 20 wraps back to field 1");
 
       --  A full downward cycle visits exactly 20 distinct fields and returns to
       --  the start, proving the field count is unchanged by the header rows.
       for Step in 1 .. 20 loop
-         Files.Model.Move_Settings_Field (Model, Files.Gui.Input.Move_Down);
+         Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Down);
       end loop;
       Assert (Files.Model.Settings_Field_Index (Model) = 1,
               "cycling down twenty times returns to field 1 (exactly 20 fields)");

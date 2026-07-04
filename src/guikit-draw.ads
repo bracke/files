@@ -11,7 +11,7 @@ with System;
 --  assets. It has no dependency on any file-manager domain package, so the
 --  renderer and its backends can share these types without coupling to the
 --  application model.
-package Files.Gui.Draw is
+package Guikit.Draw is
    --  Unbounded text used by draw-model records. Defined here so the draw model
    --  stays independent of any application domain package.
    subtype UString is Ada.Strings.Unbounded.Unbounded_String;
@@ -286,4 +286,4 @@ package Files.Gui.Draw is
       Atlas_Dirty  : Boolean := False;
    end record;
 
-end Files.Gui.Draw;
+end Guikit.Draw;

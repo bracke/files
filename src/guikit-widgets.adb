@@ -1,8 +1,8 @@
 with Ada.Strings.Unbounded;
 
-package body Files.Gui.Widgets is
+package body Guikit.Widgets is
 
-   use Files.Gui.Draw;
+   use Guikit.Draw;
 
    --  Saturating sum: never overflows past Natural'Last.
    function Saturating_Add (Left : Natural; Right : Natural) return Natural is
@@ -474,4 +474,4 @@ package body Files.Gui.Widgets is
       Add_Border (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Border_Color);
    end Draw_Marquee;
 
-end Files.Gui.Widgets;
+end Guikit.Widgets;

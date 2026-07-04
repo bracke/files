@@ -1,9 +1,9 @@
-with Files.Gui.Draw;
+with Guikit.Draw;
 
 --  Domain-free drawing of simple, self-contained widgets.
 --
 --  Each procedure draws pixels for one visual widget by appending draw
---  commands to caller-supplied Files.Gui.Draw command vectors. Everything a
+--  commands to caller-supplied Guikit.Draw command vectors. Everything a
 --  widget needs -- geometry (in pixels), clip bounds, and semantic colors --
 --  is passed explicitly, so this package has no dependency on any file-manager
 --  domain package (model, settings, localization, rendering, ...). Callers own
@@ -14,7 +14,7 @@ with Files.Gui.Draw;
 --  Coordinates and sizes are window pixels. Clip_Width and Clip_Height give
 --  the drawable window bounds; each emitted rectangle or text run is clipped to
 --  them and dropped when it would be empty, matching the renderer's primitives.
-package Files.Gui.Widgets is
+package Guikit.Widgets is
 
    --  Draw a focus ring: a one-pixel border around the given box, plus a
    --  second border one pixel outside it when the box is not flush against the
@@ -29,14 +29,14 @@ package Files.Gui.Widgets is
    --  @param Height Ring height in pixels; nothing is drawn when zero.
    --  @param Color Ring color.
    procedure Draw_Focus_Ring
-     (Rectangles  : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles  : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width  : Natural;
       Clip_Height : Natural;
       X           : Natural;
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Color       : Files.Gui.Draw.Render_Color);
+      Color       : Guikit.Draw.Render_Color);
 
    --  Draw a drop shadow along the bottom and right edges of a box: a
    --  horizontal band below it and a vertical band to its right, both offset by
@@ -51,14 +51,14 @@ package Files.Gui.Widgets is
    --  @param Height Box height in pixels; nothing is drawn when zero.
    --  @param Color Shadow color.
    procedure Draw_Drop_Shadow
-     (Rectangles  : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles  : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width  : Natural;
       Clip_Height : Natural;
       X           : Natural;
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Color       : Files.Gui.Draw.Render_Color);
+      Color       : Guikit.Draw.Render_Color);
 
    --  Draw a panel close button: a filled, bordered square with the close
    --  glyph centered inside it. The rectangles and the glyph are appended to
@@ -85,22 +85,22 @@ package Files.Gui.Widgets is
    --  @param Glyph_Color Glyph color.
    --  @param Show_Glyph When False, the glyph is not drawn (the box still is).
    procedure Draw_Close_Button
-     (Rectangles    : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+     (Rectangles    : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : in out Guikit.Draw.Text_Command_Vectors.Vector;
       Clip_Width    : Natural;
       Clip_Height   : Natural;
       Button_X      : Natural;
       Button_Y      : Natural;
       Button_Width  : Natural;
       Button_Height : Natural;
-      Fill_Color    : Files.Gui.Draw.Render_Color;
-      Border_Color  : Files.Gui.Draw.Render_Color;
+      Fill_Color    : Guikit.Draw.Render_Color;
+      Border_Color  : Guikit.Draw.Render_Color;
       Glyph_X       : Natural;
       Glyph_Y       : Natural;
       Glyph_Width   : Natural;
       Glyph_Height  : Natural;
-      Glyph         : Files.Gui.Draw.UString;
-      Glyph_Color   : Files.Gui.Draw.Render_Color;
+      Glyph         : Guikit.Draw.UString;
+      Glyph_Color   : Guikit.Draw.Render_Color;
       Show_Glyph    : Boolean);
 
    --  One cell's label for a segmented selector: the display text (already
@@ -109,7 +109,7 @@ package Files.Gui.Widgets is
    --  fill and border still draw -- letting the caller suppress a label that is
    --  fully clipped or covered by an overlay while keeping the cell box.
    type Segment_Label is record
-      Text      : Files.Gui.Draw.UString;
+      Text      : Guikit.Draw.UString;
       Truncated : Boolean := False;
    end record;
 
@@ -148,8 +148,8 @@ package Files.Gui.Widgets is
    --  @param Label_Color Label text color.
    --  @param Padding Left inset of each label from its cell edge in pixels.
    procedure Draw_Segmented
-     (Rectangles     : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
-      Text           : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+     (Rectangles     : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text           : in out Guikit.Draw.Text_Command_Vectors.Vector;
       Clip_Width     : Natural;
       Clip_Height    : Natural;
       X              : Natural;
@@ -160,10 +160,10 @@ package Files.Gui.Widgets is
       Height         : Natural;
       Labels         : Segment_Label_Array;
       Active_Index   : Natural;
-      Active_Color   : Files.Gui.Draw.Render_Color;
-      Inactive_Color : Files.Gui.Draw.Render_Color;
-      Border_Color   : Files.Gui.Draw.Render_Color;
-      Label_Color    : Files.Gui.Draw.Render_Color;
+      Active_Color   : Guikit.Draw.Render_Color;
+      Inactive_Color : Guikit.Draw.Render_Color;
+      Border_Color   : Guikit.Draw.Render_Color;
+      Label_Color    : Guikit.Draw.Render_Color;
       Padding        : Natural);
 
    --  Draw a vertical scrollbar: a full-height track rectangle with a thumb
@@ -187,7 +187,7 @@ package Files.Gui.Widgets is
    --  @param Thumb_Color Thumb fill color.
    --  @param Grip_Color Color of the three grip lines.
    procedure Draw_Scrollbar
-     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles   : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width   : Natural;
       Clip_Height  : Natural;
       Track_X      : Natural;
@@ -196,9 +196,9 @@ package Files.Gui.Widgets is
       Track_Height : Natural;
       Thumb_Y      : Natural;
       Thumb_Height : Natural;
-      Track_Color  : Files.Gui.Draw.Render_Color;
-      Thumb_Color  : Files.Gui.Draw.Render_Color;
-      Grip_Color   : Files.Gui.Draw.Render_Color);
+      Track_Color  : Guikit.Draw.Render_Color;
+      Thumb_Color  : Guikit.Draw.Render_Color;
+      Grip_Color   : Guikit.Draw.Render_Color);
 
    --  Draw a floating menu panel's chrome: a filled body rectangle with a
    --  one-pixel border, emitted as the fill followed by the top, bottom, left
@@ -219,15 +219,15 @@ package Files.Gui.Widgets is
    --  @param Fill_Color Panel background color.
    --  @param Border_Color Panel border color.
    procedure Draw_Menu_Panel
-     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles   : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width   : Natural;
       Clip_Height  : Natural;
       X            : Natural;
       Y            : Natural;
       Width        : Natural;
       Height       : Natural;
-      Fill_Color   : Files.Gui.Draw.Render_Color;
-      Border_Color : Files.Gui.Draw.Render_Color);
+      Fill_Color   : Guikit.Draw.Render_Color;
+      Border_Color : Guikit.Draw.Render_Color);
 
    --  Draw an editable input field's box chrome: a filled background rectangle
    --  with a one-pixel border, emitted as the fill followed by the top, left,
@@ -249,15 +249,15 @@ package Files.Gui.Widgets is
    --  @param Fill_Color Field background color.
    --  @param Border_Color Field border color.
    procedure Draw_Input_Field
-     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles   : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width   : Natural;
       Clip_Height  : Natural;
       X            : Natural;
       Y            : Natural;
       Width        : Natural;
       Height       : Natural;
-      Fill_Color   : Files.Gui.Draw.Render_Color;
-      Border_Color : Files.Gui.Draw.Render_Color);
+      Fill_Color   : Guikit.Draw.Render_Color;
+      Border_Color : Guikit.Draw.Render_Color);
 
    --  Draw one row of a floating menu panel: either a command row or a group
    --  separator, selected by Is_Separator.
@@ -302,8 +302,8 @@ package Files.Gui.Widgets is
    --  @param Label_Truncated Whether the caller's fitting truncated the label.
    --  @param Label_Color Label text color.
    procedure Draw_Menu_Row
-     (Rectangles      : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
-      Text            : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+     (Rectangles      : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text            : in out Guikit.Draw.Text_Command_Vectors.Vector;
       Clip_Width      : Natural;
       Clip_Height     : Natural;
       Row_X           : Natural;
@@ -314,16 +314,16 @@ package Files.Gui.Widgets is
       Separator_X     : Natural;
       Separator_Y     : Natural;
       Separator_Width : Natural;
-      Separator_Color : Files.Gui.Draw.Render_Color;
+      Separator_Color : Guikit.Draw.Render_Color;
       Highlight       : Boolean;
-      Highlight_Color : Files.Gui.Draw.Render_Color;
+      Highlight_Color : Guikit.Draw.Render_Color;
       Label_X         : Natural;
       Label_Y         : Natural;
       Label_Width     : Natural;
       Label_Height    : Natural;
-      Label_Text      : Files.Gui.Draw.UString;
+      Label_Text      : Guikit.Draw.UString;
       Label_Truncated : Boolean;
-      Label_Color     : Files.Gui.Draw.Render_Color);
+      Label_Color     : Guikit.Draw.Render_Color);
 
    --  Draw a floating hover tooltip: a filled box with a one-pixel border and a
    --  single padded text label. The rectangles are emitted as the fill followed
@@ -357,23 +357,23 @@ package Files.Gui.Widgets is
    --  @param Label_Truncated Whether the caller's fitting truncated the label.
    --  @param Label_Color Label text color.
    procedure Draw_Tooltip
-     (Rectangles      : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
-      Text            : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+     (Rectangles      : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text            : in out Guikit.Draw.Text_Command_Vectors.Vector;
       Clip_Width      : Natural;
       Clip_Height     : Natural;
       Box_X           : Natural;
       Box_Y           : Natural;
       Box_Width       : Natural;
       Box_Height      : Natural;
-      Fill_Color      : Files.Gui.Draw.Render_Color;
-      Border_Color    : Files.Gui.Draw.Render_Color;
+      Fill_Color      : Guikit.Draw.Render_Color;
+      Border_Color    : Guikit.Draw.Render_Color;
       Label_X         : Natural;
       Label_Y         : Natural;
       Label_Width     : Natural;
       Label_Height    : Natural;
-      Label_Text      : Files.Gui.Draw.UString;
+      Label_Text      : Guikit.Draw.UString;
       Label_Truncated : Boolean;
-      Label_Color     : Files.Gui.Draw.Render_Color);
+      Label_Color     : Guikit.Draw.Render_Color);
 
    --  Draw a text insertion caret: a single filled vertical rectangle, clipped
    --  to the window and dropped when it would be empty. The caller owns all
@@ -391,14 +391,14 @@ package Files.Gui.Widgets is
    --  @param Height Caret height in pixels; nothing is drawn when zero.
    --  @param Color Caret color.
    procedure Draw_Caret
-     (Rectangles  : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles  : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width  : Natural;
       Clip_Height : Natural;
       X           : Natural;
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Color       : Files.Gui.Draw.Render_Color);
+      Color       : Guikit.Draw.Render_Color);
 
    --  Draw a rubber-band (marquee) selection rectangle: a translucent fill
    --  followed by a one-pixel border around the same box, in that order. The
@@ -417,14 +417,14 @@ package Files.Gui.Widgets is
    --  @param Fill_Color Translucent fill color.
    --  @param Border_Color Border color.
    procedure Draw_Marquee
-     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+     (Rectangles   : in out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Clip_Width   : Natural;
       Clip_Height  : Natural;
       X            : Natural;
       Y            : Natural;
       Width        : Natural;
       Height       : Natural;
-      Fill_Color   : Files.Gui.Draw.Render_Color;
-      Border_Color : Files.Gui.Draw.Render_Color);
+      Fill_Color   : Guikit.Draw.Render_Color;
+      Border_Color : Guikit.Draw.Render_Color);
 
-end Files.Gui.Widgets;
+end Guikit.Widgets;

@@ -7,7 +7,7 @@
 --  localization; callers that need localized labels measure them (with
 --  Label_Pixel_Width) and pass the resulting pixel widths in, so the geometry
 --  stays domain-free and the compiler can enforce the boundary.
-package Files.Gui.Layout is
+package Guikit.Layout is
 
    Bottom_Bar_Padding : constant Natural := 4;
    Sort_Menu_Padding : constant Natural := 8;
@@ -290,4 +290,4 @@ package Files.Gui.Layout is
       Line_Height    : Positive := 20)
       return Settings_Pane_Layout;
 
-end Files.Gui.Layout;
+end Guikit.Layout;

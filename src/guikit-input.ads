@@ -2,10 +2,10 @@
 --
 --  These generic input value types (key codes, modifier keys, and directional
 --  navigation) describe raw user input independently of any file-manager
---  domain concept. They live under Files.Gui so the presentation and input
+--  domain concept. They live under Guikit so the presentation and input
 --  layer stays free of dependencies on the model, settings, commands, and
 --  other domain packages; the compiler enforces that boundary.
-package Files.Gui.Input is
+package Guikit.Input is
 
    --  A discrete movement direction produced by directional keys, used to
    --  drive selection, caret, and settings-field navigation.
@@ -70,4 +70,4 @@ package Files.Gui.Input is
       Key_Page_Down,
       Key_Space);
 
-end Files.Gui.Input;
+end Guikit.Input;

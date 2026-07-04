@@ -1,4 +1,4 @@
-package body Files.Gui.Utf8 is
+package body Guikit.Utf8 is
 
    function Saturating_Add
      (Left  : Natural;
@@ -157,4 +157,4 @@ package body Files.Gui.Utf8 is
       return Units;
    end Display_Units;
 
-end Files.Gui.Utf8;
+end Guikit.Utf8;
