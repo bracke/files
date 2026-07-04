@@ -10221,19 +10221,15 @@ package body Files.Rendering is
      (Frame : Frame_Commands)
       return String
    is
-      Text : Unbounded_String;
+      pragma Unreferenced (Frame);
    begin
-      for Command of Frame.Text loop
-         Append (Text, Command.Text);
-         Append (Text, " ");
-      end loop;
-
-      for Command of Frame.Overlay_Text loop
-         Append (Text, Command.Text);
-         Append (Text, " ");
-      end loop;
-
-      return Files.Fonts.Font_Path_For_Text (To_String (Text));
+      --  Every frame now renders on the monospace primary with per-glyph font
+      --  fallback (see Initialize_Text), so the whole-frame font is always the
+      --  monospace default. The previous per-frame text-coverage heuristic --
+      --  which could flip the entire proportional face for a single symbol such
+      --  as the favourite star -- is retired; symbols and CJK resolve per glyph
+      --  from the fallback chain instead.
+      return Files.Fonts.Default_Font_Path;
    end Font_Path_For_Frame;
 
    function Initialize_Text
@@ -10270,6 +10266,24 @@ package body Files.Rendering is
       if Status /= Textrender.Success then
          return Text_Render_Font_Load_Failed;
       end if;
+
+      --  Append the curated per-glyph fallback chain into the same renderer
+      --  (and thus the same shared atlas). Each font is consulted, in order,
+      --  only for codepoints the monospace primary does not map. Failures to
+      --  load an individual fallback are non-fatal: the primary already renders
+      --  and remaining fallbacks still apply.
+      declare
+         Fallbacks : constant Files.Types.String_Vectors.Vector :=
+           Files.Fonts.Fallback_Font_Paths;
+         Added     : Textrender.Status_Code;
+      begin
+         --  Best-effort: a missing or unloadable fallback is non-fatal, so the
+         --  per-font status is intentionally discarded.
+         for Path of Fallbacks loop
+            Added := Textrender.Add_Fallback_Font (The_Renderer, To_String (Path));
+         end loop;
+         pragma Unreferenced (Added);
+      end;
 
       Renderer.Loaded := True;
       Renderer.Font_Path := To_Unbounded_String (Font_Path);

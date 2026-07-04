@@ -8,7 +8,6 @@ with Ada.Strings.Unbounded;
 with Textrender.Fonts;
 
 with Files.Fs;
-with Files.UTF8;
 
 package body Files.Fonts is
    use Ada.Strings.Unbounded;
@@ -55,10 +54,6 @@ package body Files.Fonts is
    Cached_Default_Override : Unbounded_String;
    Cached_Default_Path     : Unbounded_String;
    Cached_Default_Ready    : Boolean := False;
-   Cached_Text_Override    : Unbounded_String;
-   Cached_Text_Input       : Unbounded_String;
-   Cached_Text_Path        : Unbounded_String;
-   Cached_Text_Ready       : Boolean := False;
 
    Font_Search_Roots : constant Font_Path_Array :=
      [To_Unbounded_String ("/usr/share/fonts"),
@@ -376,64 +371,6 @@ package body Files.Fonts is
          return -1;
    end Glyph_Coverage_Score;
 
-   function Text_Coverage_Score
-     (Path : String;
-      Text : String)
-      return Integer
-   is
-      Index     : Integer := Text'First;
-      Codepoint : Natural := 0;
-      Score     : Integer := 0;
-      Missing   : Natural := 0;
-      Font      : Textrender.Fonts.Font;
-      Glyph     : Textrender.Fonts.Glyph_Info;
-   begin
-      if not Is_Loadable_Font (Path) then
-         return Integer'First;
-      end if;
-
-      if Textrender.Fonts.Load (Font, Path) /= Textrender.Fonts.Loaded then
-         Textrender.Fonts.Reset (Font);
-         return Integer'First;
-      end if;
-
-      while Index <= Text'Last loop
-         declare
-            Unit_Start : constant Integer := Index;
-         begin
-            Files.UTF8.Decode_Next_Display_Codepoint (Text, Index, Codepoint);
-            if Codepoint > 16#7F#
-              and then Codepoint <= 16#10FFFF#
-              and then
-                (Files.UTF8.Display_Units (Text (Unit_Start .. Index - 1)) > 0
-                 or else Files.UTF8.Is_Required_Zero_Width_Codepoint (Codepoint))
-            then
-               if Textrender.Fonts.Lookup_Glyph
-                    (Font, Textrender.Fonts.Codepoint (Codepoint), Glyph) = Textrender.Fonts.Glyph_Found
-                 and then
-                   (not Glyph.Is_Empty
-                    or else Files.UTF8.Is_Required_Zero_Width_Codepoint (Codepoint))
-               then
-                  Score := Score + 1;
-               else
-                  Missing := Missing + 1;
-               end if;
-            end if;
-         end;
-      end loop;
-
-      Textrender.Fonts.Reset (Font);
-      if Missing > Natural (Integer'Last / 1_000) then
-         return Integer'First;
-      end if;
-
-      return Score - Integer (Missing) * 1_000;
-   exception
-      when others =>
-         Textrender.Fonts.Reset (Font);
-         return Integer'First;
-   end Text_Coverage_Score;
-
    function Default_Font_Path return String is
       Override_Path : constant String := Safe_Environment_Value ("FILES_FONT_PATH");
       Best_Path  : Unbounded_String;
@@ -495,86 +432,52 @@ package body Files.Fonts is
          return "";
    end Default_Font_Path;
 
-   function Font_Path_For_Text
-     (Text : String)
-      return String
-   is
-      Override_Path : constant String := Safe_Environment_Value ("FILES_FONT_PATH");
-      Default_Path  : constant String := Default_Font_Path;
-      Best_Path     : Unbounded_String := To_Unbounded_String (Default_Path);
-      Best_Text     : Integer := Text_Coverage_Score (Default_Path, Text);
+   function Fallback_Font_Paths return Files.Types.String_Vectors.Vector is
+      Primary : constant String := Default_Font_Path;
+      Result  : Files.Types.String_Vectors.Vector;
 
-      procedure Consider_Font (Path : String) is
-         Text_Score   : constant Integer := Text_Coverage_Score (Path, Text);
-         Static_Score : constant Integer := Glyph_Coverage_Score (Path);
+      --  Curated, ordered fallback set consulted per glyph after the monospace
+      --  primary. Kept small so per-frame font loading stays bounded:
+      --    * DejaVuSansMono -- monospace symbols (stars, arrows, box drawing)
+      --    * DejaVuSans     -- broad proportional symbol coverage
+      --    * VL-Gothic      -- CJK ideographs/kana (a TrueType glyf face the
+      --                        renderer can rasterize; the CFF/.ttc Noto CJK
+      --                        fonts are unsupported by textrender)
+      --    * NotoSans       -- broad international Latin/diacritic coverage
+      --  Non-existent or unsupported entries are simply skipped on systems that
+      --  lack them; Is_Loadable_Font also rejects the renderer's known-bad faces.
+      Fallback_Candidate_Paths : constant Font_Path_Array :=
+        [To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
+         To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+         To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf"),
+         To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf"),
+         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf")];
+
+      procedure Consider (Path : String) is
       begin
-         if Text_Score = Integer'First or else Static_Score < 0 then
+         if Path = "" or else Path = Primary then
             return;
          end if;
 
-         --  Honour the candidate order (monospace fonts are listed first) on
-         --  ties: only strictly better text coverage replaces the current best.
-         --  The frame is laid out in fixed monospace cells, so it must resolve
-         --  to a monospace font; letting a bigger proportional font win an equal
-         --  coverage tie (as the former Glyph_Coverage_Score tie-break did) put
-         --  the whole listing on a proportional face when a single symbol such
-         --  as the favourite star (U+2606) was present, spacing every glyph out.
-         if Text_Score > Best_Text then
-            Best_Path := To_Unbounded_String (Path);
-            Best_Text := Text_Score;
-         end if;
-      end Consider_Font;
+         for Existing of Result loop
+            if To_String (Existing) = Path then
+               return;
+            end if;
+         end loop;
 
-      procedure Remember (Path : String) is
-      begin
-         Cached_Text_Override := To_Unbounded_String (Override_Path);
-         Cached_Text_Input := To_Unbounded_String (Text);
-         Cached_Text_Path := To_Unbounded_String (Path);
-         Cached_Text_Ready := True;
-      end Remember;
+         if Is_Loadable_Font (Path) then
+            Result.Append (To_Unbounded_String (Path));
+         end if;
+      end Consider;
    begin
-      if Cached_Text_Ready
-        and then To_String (Cached_Text_Override) = Override_Path
-        and then To_String (Cached_Text_Input) = Text
-      then
-         return To_String (Cached_Text_Path);
-      end if;
-
-      if Text = "" then
-         Remember (Default_Path);
-         return Default_Path;
-      elsif Is_Loadable_Font (Override_Path) then
-         Consider_Font (Override_Path);
-      end if;
-
-      if Best_Text >= 0 then
-         Remember (To_String (Best_Path));
-         return To_String (Best_Path);
-      end if;
-
-      for Path of Candidate_Paths loop
-         if Is_Font_File (To_String (Path))
-           and then not Is_Known_Unsupported_Renderer_Font (To_String (Path))
-         then
-            Consider_Font (To_String (Path));
-         end if;
+      for Path of Fallback_Candidate_Paths loop
+         Consider (To_String (Path));
       end loop;
 
-      if Best_Text < 0 then
-         declare
-            Candidates : constant Font_Path_Vectors.Vector := Candidate_Fonts;
-         begin
-            for Path of Candidates loop
-               Consider_Font (To_String (Path));
-            end loop;
-         end;
-      end if;
-
-      Remember (To_String (Best_Path));
-      return To_String (Best_Path);
+      return Result;
    exception
       when others =>
-         return Default_Path;
-   end Font_Path_For_Text;
+         return Files.Types.String_Vectors.Empty_Vector;
+   end Fallback_Font_Paths;
 
 end Files.Fonts;
