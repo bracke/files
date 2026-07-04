@@ -2,6 +2,7 @@ with Ada.Calendar.Formatting;
 with Ada.Containers;
 with Ada.Characters.Handling;
 with Ada.Strings;
+with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
@@ -47,9 +48,6 @@ package body Files.Rendering is
    --  rather than translatable text.
    Favorite_Star_Filled_Text : constant String :=
      [Character'Val (16#E2#), Character'Val (16#98#), Character'Val (16#85#)];
-   --  U+2606 WHITE STAR: the empty (not-favorited) path-bar toggle glyph.
-   Favorite_Star_Empty_Text : constant String :=
-     [Character'Val (16#E2#), Character'Val (16#98#), Character'Val (16#86#)];
    --  Folder-tree expander glyphs: a plus/minus affordance, not translatable text.
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
@@ -3702,10 +3700,9 @@ package body Files.Rendering is
       Field_Margin : constant Natural := 6;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Pad          : constant Natural := Guikit.Layout.Input_Field_Padding;
-      --  The star is a glyph scaled to its box; give it a wider box than a text
-      --  cell so it renders closer to the input-field height rather than small.
-      Star_W       : constant Positive :=
-        Positive'Max (1, Saturating_Multiply (Line_Height, 4) / 5);
+      --  Box for the drawn favourite star (a filled/outline vector shape); a
+      --  near-line-height square so the star reads clearly at the input height.
+      Star_W       : constant Positive := Line_Height;
    begin
       if Toolbar.Middle_Width <= Saturating_Add (Saturating_Multiply (Field_Margin, 2), Saturating_Add (Star_W, Pad))
       then
@@ -4524,6 +4521,90 @@ package body Files.Rendering is
                Y3    => Y3,
                Color => Color));
       end Add_Triangle;
+
+      --  Unit rim offsets of a five-pointed star, point-up, outer radius 1.0 and
+      --  inner radius ~0.382 (a regular pentagram). Even indices are the outer
+      --  tips, odd indices the inner notches. Screen Y grows downward, so the
+      --  first point (0, -1) is the top tip.
+      type Star_Rim_Offset is record
+         DX : Float;
+         DY : Float;
+      end record;
+      Star_Rim : constant array (0 .. 9) of Star_Rim_Offset :=
+        [(0.0, -1.0),
+         (0.2245, -0.3090),
+         (0.9511, -0.3090),
+         (0.3633, 0.1180),
+         (0.5878, 0.8090),
+         (0.0, 0.3820),
+         (-0.5878, 0.8090),
+         (-0.3633, 0.1180),
+         (-0.9511, -0.3090),
+         (-0.2245, -0.3090)];
+
+      --  Draw a filled five-pointed star as a fan of ten triangles from the
+      --  centre out to each adjacent pair of rim points.
+      procedure Add_Star_Fill
+        (Center_X : Float;
+         Center_Y : Float;
+         Radius   : Float;
+         Color    : Render_Color)
+      is
+      begin
+         for K in Star_Rim'Range loop
+            declare
+               A : constant Star_Rim_Offset := Star_Rim (K);
+               B : constant Star_Rim_Offset := Star_Rim ((K + 1) mod 10);
+            begin
+               Add_Triangle
+                 (Center_X, Center_Y,
+                  Center_X + A.DX * Radius, Center_Y + A.DY * Radius,
+                  Center_X + B.DX * Radius, Center_Y + B.DY * Radius,
+                  Color);
+            end;
+         end loop;
+      end Add_Star_Fill;
+
+      --  Draw a straight segment of a given width as two triangles.
+      procedure Add_Thick_Segment
+        (X1    : Float;
+         Y1    : Float;
+         X2    : Float;
+         Y2    : Float;
+         Width : Float;
+         Color : Render_Color)
+      is
+         DX  : constant Float := X2 - X1;
+         DY  : constant Float := Y2 - Y1;
+         Len : constant Float := Ada.Numerics.Elementary_Functions.Sqrt (DX * DX + DY * DY);
+         NX  : constant Float := (if Len > 0.0 then -DY / Len * (Width / 2.0) else 0.0);
+         NY  : constant Float := (if Len > 0.0 then DX / Len * (Width / 2.0) else 0.0);
+      begin
+         Add_Triangle (X1 + NX, Y1 + NY, X1 - NX, Y1 - NY, X2 - NX, Y2 - NY, Color);
+         Add_Triangle (X1 + NX, Y1 + NY, X2 - NX, Y2 - NY, X2 + NX, Y2 + NY, Color);
+      end Add_Thick_Segment;
+
+      --  Draw the outline of a five-pointed star by stroking its ten edges.
+      procedure Add_Star_Outline
+        (Center_X : Float;
+         Center_Y : Float;
+         Radius   : Float;
+         Width    : Float;
+         Color    : Render_Color)
+      is
+      begin
+         for K in Star_Rim'Range loop
+            declare
+               A : constant Star_Rim_Offset := Star_Rim (K);
+               B : constant Star_Rim_Offset := Star_Rim ((K + 1) mod 10);
+            begin
+               Add_Thick_Segment
+                 (Center_X + A.DX * Radius, Center_Y + A.DY * Radius,
+                  Center_X + B.DX * Radius, Center_Y + B.DY * Radius,
+                  Width, Color);
+            end;
+         end loop;
+      end Add_Star_Outline;
 
       procedure Add_Overlay_Rect
         (X      : Natural;
@@ -6392,20 +6473,24 @@ package body Files.Rendering is
                  Has_Hover
                  and then Contains_Point (Star.X, Star.Y, Star.Width, Star.Height, Hover_X, Hover_Y);
             begin
-               Add_Text
-                 (Star.X,
-                  Star.Y,
-                  Star.Width,
-                  Star.Height,
-                  To_Unbounded_String
-                    (if Snapshot.Current_Path_Is_Favorite
-                     then Favorite_Star_Filled_Text
-                     else Favorite_Star_Empty_Text),
-                  Color =>
-                    (if Snapshot.Current_Path_Is_Favorite
-                     then Favorite_Star_Color
-                     else Muted_Text_Color),
-                  Scale_To_Box => True);
+               declare
+                  Center_X : constant Float := Float (Star.X) + Float (Star.Width) / 2.0;
+                  Center_Y : constant Float := Float (Star.Y) + Float (Star.Height) / 2.0;
+                  --  A five-pointed star spans ~1.9 * Radius across and ~1.81 *
+                  --  Radius tall; size the radius to fill the box with a margin.
+                  Radius   : constant Float :=
+                    0.82 * Float'Min (Float (Star.Width) / 1.9, Float (Star.Height) / 1.81);
+                  Stroke   : constant Float := Float'Max (1.5, Float (Line_Height) / 10.0);
+               begin
+                  --  Draw the favourite indicator as a vector shape (a filled
+                  --  star when favourited, an outline star when not) so it fills
+                  --  its box crisply at any size, unlike the small font glyph.
+                  if Snapshot.Current_Path_Is_Favorite then
+                     Add_Star_Fill (Center_X, Center_Y, Radius, Favorite_Star_Color);
+                  else
+                     Add_Star_Outline (Center_X, Center_Y, Radius, Stroke, Muted_Text_Color);
+                  end if;
+               end;
                if Star_Hovered then
                   Add_Border (Star.X, Star.Y, Star.Width, Star.Height, Hover_Color);
                end if;
