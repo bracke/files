@@ -386,4 +386,49 @@ package body Files.Gui.Widgets is
       end if;
    end Draw_Menu_Row;
 
+   procedure Draw_Tooltip
+     (Rectangles      : in out Rectangle_Command_Vectors.Vector;
+      Text            : in out Text_Command_Vectors.Vector;
+      Clip_Width      : Natural;
+      Clip_Height     : Natural;
+      Box_X           : Natural;
+      Box_Y           : Natural;
+      Box_Width       : Natural;
+      Box_Height      : Natural;
+      Fill_Color      : Render_Color;
+      Border_Color    : Render_Color;
+      Label_X         : Natural;
+      Label_Y         : Natural;
+      Label_Width     : Natural;
+      Label_Height    : Natural;
+      Label_Text      : UString;
+      Label_Truncated : Boolean;
+      Label_Color     : Render_Color)
+   is
+      Draw_W : constant Natural := Clipped_Size (Label_X, Label_Width, Clip_Width);
+      Draw_H : constant Natural := Clipped_Size (Label_Y, Label_Height, Clip_Height);
+   begin
+      Add_Clipped_Rect
+        (Rectangles, Clip_Width, Clip_Height, Box_X, Box_Y, Box_Width, Box_Height, Fill_Color);
+      Add_Border
+        (Rectangles, Clip_Width, Clip_Height, Box_X, Box_Y, Box_Width, Box_Height, Border_Color);
+
+      if Draw_W > 0
+        and then Draw_H > 0
+        and then Ada.Strings.Unbounded.Length (Label_Text) > 0
+      then
+         Text.Append
+           (Text_Command'
+              (X            => Label_X,
+               Y            => Label_Y,
+               Width        => Draw_W,
+               Height       => Draw_H,
+               Text         => Label_Text,
+               Color        => Label_Color,
+               Truncated    => Label_Truncated,
+               Scale_To_Box => False,
+               Italic       => False));
+      end if;
+   end Draw_Tooltip;
+
 end Files.Gui.Widgets;

@@ -5078,19 +5078,35 @@ package body Files.Rendering is
             return;
          end if;
 
-         Add_Overlay_Rect (Tip_X, Tip_Y, Tip_W, Tip_H, Overlay_Color);
-         Add_Overlay_Rect (Tip_X, Tip_Y, Tip_W, 1, Border_Color);
-         Add_Overlay_Rect (Tip_X, Tip_Y, 1, Tip_H, Border_Color);
-         Add_Overlay_Rect (Tip_X, Saturating_Add (Tip_Y, Tip_H - 1), Tip_W, 1, Border_Color);
-         Add_Overlay_Rect (Saturating_Add (Tip_X, Tip_W - 1), Tip_Y, 1, Tip_H, Border_Color);
-         Add_Overlay_Text
-           (Tip_X + Padding,
-            Tip_Y + Padding_V,
-            Text_W,
-            Line_Height,
-            Text,
-            Text_Color,
-            Fit => True);
+         --  Fit the label exactly as the former Add_Overlay_Text (Fit => True)
+         --  did: capacity is derived from the label box clipped to the window,
+         --  so the widget's re-clip reproduces the identical text command.
+         declare
+            Label_X    : constant Natural := Tip_X + Padding;
+            Label_Y    : constant Natural := Tip_Y + Padding_V;
+            Draw_W     : constant Natural := Clipped_Size (Label_X, Text_W, Layout.Width);
+            Capacity   : constant Natural := Draw_W / Cell_W;
+            Fitted     : constant UString := Fitted_Text_For (Text, Capacity);
+         begin
+            Files.Gui.Widgets.Draw_Tooltip
+              (Rectangles      => Result.Overlay_Rectangles,
+               Text            => Result.Overlay_Text,
+               Clip_Width      => Layout.Width,
+               Clip_Height     => Layout.Height,
+               Box_X           => Tip_X,
+               Box_Y           => Tip_Y,
+               Box_Width       => Tip_W,
+               Box_Height      => Tip_H,
+               Fill_Color      => Overlay_Color,
+               Border_Color    => Border_Color,
+               Label_X         => Label_X,
+               Label_Y         => Label_Y,
+               Label_Width     => Text_W,
+               Label_Height    => Line_Height,
+               Label_Text      => Fitted,
+               Label_Truncated => To_String (Fitted) /= Text_Raw,
+               Label_Color     => Text_Color);
+         end;
       end Add_Hover_Tooltip;
 
       function Icon_Theme_Name return String is

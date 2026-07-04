@@ -295,4 +295,54 @@ package Files.Gui.Widgets is
       Label_Truncated : Boolean;
       Label_Color     : Files.Gui.Draw.Render_Color);
 
+   --  Draw a floating hover tooltip: a filled box with a one-pixel border and a
+   --  single padded text label. The rectangles are emitted as the fill followed
+   --  by the top, left, bottom and right border edges in that order, then the
+   --  label. Label_Text is the already localized and fitted label (empty draws
+   --  no label, e.g. when it clips to nothing); Label_Truncated flags whether
+   --  the caller's fitting shortened it. The label box (Label_X, Label_Y,
+   --  Label_Width, Label_Height) is clipped to the window and the label dropped
+   --  when it would be empty. A drop shadow, if any, is a separate
+   --  Draw_Drop_Shadow call in the caller. The caller owns all policy: hover
+   --  detection, the tooltip text and which element it is for, the box geometry
+   --  and placement, the colors, the label localization and fitting, and any
+   --  hit-region or accessibility bookkeeping; the widget only emits the box and
+   --  label.
+   --
+   --  @param Rectangles Rectangle command vector for the fill and border.
+   --  @param Text Text command vector for the label.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param Box_X Tooltip box left edge in pixels.
+   --  @param Box_Y Tooltip box top edge in pixels.
+   --  @param Box_Width Tooltip box width in pixels.
+   --  @param Box_Height Tooltip box height in pixels.
+   --  @param Fill_Color Tooltip background color.
+   --  @param Border_Color Tooltip border color.
+   --  @param Label_X Label box left edge in pixels.
+   --  @param Label_Y Label box top edge in pixels.
+   --  @param Label_Width Label box width in pixels.
+   --  @param Label_Height Label box height in pixels.
+   --  @param Label_Text Fitted label text; empty draws no label.
+   --  @param Label_Truncated Whether the caller's fitting truncated the label.
+   --  @param Label_Color Label text color.
+   procedure Draw_Tooltip
+     (Rectangles      : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Text            : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+      Clip_Width      : Natural;
+      Clip_Height     : Natural;
+      Box_X           : Natural;
+      Box_Y           : Natural;
+      Box_Width       : Natural;
+      Box_Height      : Natural;
+      Fill_Color      : Files.Gui.Draw.Render_Color;
+      Border_Color    : Files.Gui.Draw.Render_Color;
+      Label_X         : Natural;
+      Label_Y         : Natural;
+      Label_Width     : Natural;
+      Label_Height    : Natural;
+      Label_Text      : Files.Gui.Draw.UString;
+      Label_Truncated : Boolean;
+      Label_Color     : Files.Gui.Draw.Render_Color);
+
 end Files.Gui.Widgets;
