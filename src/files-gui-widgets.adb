@@ -330,6 +330,21 @@ package body Files.Gui.Widgets is
       end if;
    end Draw_Menu_Panel;
 
+   procedure Draw_Input_Field
+     (Rectangles   : in out Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      X            : Natural;
+      Y            : Natural;
+      Width        : Natural;
+      Height       : Natural;
+      Fill_Color   : Render_Color;
+      Border_Color : Render_Color) is
+   begin
+      Add_Clipped_Rect (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Fill_Color);
+      Add_Border (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Border_Color);
+   end Draw_Input_Field;
+
    procedure Draw_Menu_Row
      (Rectangles      : in out Rectangle_Command_Vectors.Vector;
       Text            : in out Text_Command_Vectors.Vector;

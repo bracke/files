@@ -229,6 +229,36 @@ package Files.Gui.Widgets is
       Fill_Color   : Files.Gui.Draw.Render_Color;
       Border_Color : Files.Gui.Draw.Render_Color);
 
+   --  Draw an editable input field's box chrome: a filled background rectangle
+   --  with a one-pixel border, emitted as the fill followed by the top, left,
+   --  bottom and right border edges in that order. Nothing is drawn when Width
+   --  or Height is zero. This differs from Draw_Menu_Panel: the border edges are
+   --  emitted top/left/bottom/right (not top/bottom/left/right) and a degenerate
+   --  box paints nothing, matching the renderer's inline field boxes. The
+   --  field's text, placeholder, caret, focus ring, and any adornments (favorite
+   --  star, filter scope chip) are separate caller draws; the widget only emits
+   --  the background fill and the border.
+   --
+   --  @param Rectangles Rectangle command vector for the fill and border.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param X Field left edge in pixels.
+   --  @param Y Field top edge in pixels.
+   --  @param Width Field width in pixels; nothing is drawn when zero.
+   --  @param Height Field height in pixels; nothing is drawn when zero.
+   --  @param Fill_Color Field background color.
+   --  @param Border_Color Field border color.
+   procedure Draw_Input_Field
+     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      X            : Natural;
+      Y            : Natural;
+      Width        : Natural;
+      Height       : Natural;
+      Fill_Color   : Files.Gui.Draw.Render_Color;
+      Border_Color : Files.Gui.Draw.Render_Color);
+
    --  Draw one row of a floating menu panel: either a command row or a group
    --  separator, selected by Is_Separator.
    --

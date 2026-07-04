@@ -4876,6 +4876,30 @@ package body Files.Rendering is
             Color       => Snapshot.Theme_Focus_Ring);
       end Add_Focus_Ring;
 
+      --  Draw an editable input field's box chrome (background fill plus a
+      --  one-pixel border) into the base rectangle layer, byte-identical to the
+      --  former inline Add_Rect + Add_Border pair. The field text, caret, focus
+      --  ring and any adornments stay with the caller.
+      procedure Add_Input_Field
+        (X            : Natural;
+         Y            : Natural;
+         Field_W      : Natural;
+         Field_H      : Natural;
+         Fill_Color   : Render_Color;
+         Border_Color : Render_Color) is
+      begin
+         Files.Gui.Widgets.Draw_Input_Field
+           (Rectangles   => Result.Rectangles,
+            Clip_Width   => Layout.Width,
+            Clip_Height  => Layout.Height,
+            X            => X,
+            Y            => Y,
+            Width        => Field_W,
+            Height       => Field_H,
+            Fill_Color   => Fill_Color,
+            Border_Color => Border_Color);
+      end Add_Input_Field;
+
       procedure Add_Drop_Shadow
         (X        : Natural;
          Y        : Natural;
@@ -6337,17 +6361,12 @@ package body Files.Rendering is
          Text_Start   : constant Natural :=
            Saturating_Add (Saturating_Add (Path_X, Files.Gui.Layout.Input_Field_Padding), Star_Reserve);
       begin
-         Add_Rect
+         Add_Input_Field
            (Path_X,
             Toolbar_Input_Y,
             Path_W,
             Toolbar_Input_H,
-            (if Snapshot.Path_Input_Valid then Input_Color else Input_Error_Color));
-         Add_Border
-           (Path_X,
-            Toolbar_Input_Y,
-            Path_W,
-            Toolbar_Input_H,
+            (if Snapshot.Path_Input_Valid then Input_Color else Input_Error_Color),
             Border_Color);
          --  Favorite toggle: a filled star when the current directory is a
          --  favorite, an empty star when not, drawn at the left of the path bar
@@ -6508,17 +6527,12 @@ package body Files.Rendering is
               when Files.Types.Search_Names => "search.scope.names",
               when Files.Types.Search_Contents => "search.scope.contents");
       begin
-         Add_Rect
+         Add_Input_Field
            (Filter_X,
             Toolbar_Input_Y,
             Filter_W,
             Toolbar_Input_H,
-            Input_Color);
-         Add_Border
-           (Filter_X,
-            Toolbar_Input_Y,
-            Filter_W,
-            Toolbar_Input_H,
+            Input_Color,
             Border_Color);
          Add_Text
            (Saturating_Add (Filter_X, Files.Gui.Layout.Input_Field_Padding),
@@ -8405,8 +8419,8 @@ package body Files.Rendering is
                   end loop;
 
                   if not Y_Hidden (Y_Cursor, Line_Height) then
-                     Add_Rect (Value_X, Sel_Y (Start_Visible_Y), Value_W, Line_Height, Input_Color);
-                     Add_Border (Value_X, Sel_Y (Start_Visible_Y), Value_W, Line_Height, Border_Color);
+                     Add_Input_Field
+                       (Value_X, Sel_Y (Start_Visible_Y), Value_W, Line_Height, Input_Color, Border_Color);
                      Add_Text
                        (Saturating_Add (Value_X, Pad),
                         Text_Y_In_Row (Start_Visible_Y),
