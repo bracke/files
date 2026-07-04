@@ -5298,12 +5298,15 @@ package body Files.Rendering is
          Caret_W : constant Natural := Natural'Min (2, Field_W);
       begin
          if Field_W > 0 and then Caret_H > 4 then
-            Add_Rect
-              (Natural'Min (Raw_X, Max_X),
-               Caret_Y,
-               Caret_W,
-               Caret_H,
-               Text_Color);
+            Files.Gui.Widgets.Draw_Caret
+              (Rectangles  => Result.Rectangles,
+               Clip_Width  => Layout.Width,
+               Clip_Height => Layout.Height,
+               X           => Natural'Min (Raw_X, Max_X),
+               Y           => Caret_Y,
+               Width       => Caret_W,
+               Height      => Caret_H,
+               Color       => Text_Color);
          end if;
       end Add_Caret;
 
@@ -7328,8 +7331,16 @@ package body Files.Rendering is
         and then Width > 0
         and then Height > 0
       then
-         Add_Rect (Marquee_X, Marquee_Y, Marquee_W, Marquee_H, Marquee_Color);
-         Add_Border (Marquee_X, Marquee_Y, Marquee_W, Marquee_H, Selection_Color);
+         Files.Gui.Widgets.Draw_Marquee
+           (Rectangles   => Result.Rectangles,
+            Clip_Width   => Layout.Width,
+            Clip_Height  => Layout.Height,
+            X            => Marquee_X,
+            Y            => Marquee_Y,
+            Width        => Marquee_W,
+            Height       => Marquee_H,
+            Fill_Color   => Marquee_Color,
+            Border_Color => Selection_Color);
       end if;
 
       if Has_Drag

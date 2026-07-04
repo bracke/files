@@ -345,4 +345,56 @@ package Files.Gui.Widgets is
       Label_Truncated : Boolean;
       Label_Color     : Files.Gui.Draw.Render_Color);
 
+   --  Draw a text insertion caret: a single filled vertical rectangle, clipped
+   --  to the window and dropped when it would be empty. The caller owns all
+   --  policy -- it computes the caret's x from the cursor position and the
+   --  glyph advance, its height and vertical centering from the font, decides
+   --  which input field is active, and whether the caret is currently visible
+   --  (blink phase); the widget only emits the one rectangle.
+   --
+   --  @param Rectangles Rectangle command vector to append the caret to.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param X Caret left edge in pixels.
+   --  @param Y Caret top edge in pixels.
+   --  @param Width Caret width in pixels; nothing is drawn when zero.
+   --  @param Height Caret height in pixels; nothing is drawn when zero.
+   --  @param Color Caret color.
+   procedure Draw_Caret
+     (Rectangles  : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Clip_Width  : Natural;
+      Clip_Height : Natural;
+      X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Color       : Files.Gui.Draw.Render_Color);
+
+   --  Draw a rubber-band (marquee) selection rectangle: a translucent fill
+   --  followed by a one-pixel border around the same box, in that order. The
+   --  caller owns all policy -- it computes the drag-region geometry from the
+   --  drag anchor and the pointer, resolves the fill and border colors, and
+   --  decides when a drag is in progress; the widget only emits the fill and
+   --  border rectangles.
+   --
+   --  @param Rectangles Rectangle command vector for the fill and border.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param X Marquee left edge in pixels.
+   --  @param Y Marquee top edge in pixels.
+   --  @param Width Marquee width in pixels; nothing is drawn when zero.
+   --  @param Height Marquee height in pixels; nothing is drawn when zero.
+   --  @param Fill_Color Translucent fill color.
+   --  @param Border_Color Border color.
+   procedure Draw_Marquee
+     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      X            : Natural;
+      Y            : Natural;
+      Width        : Natural;
+      Height       : Natural;
+      Fill_Color   : Files.Gui.Draw.Render_Color;
+      Border_Color : Files.Gui.Draw.Render_Color);
+
 end Files.Gui.Widgets;

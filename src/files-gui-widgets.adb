@@ -431,4 +431,32 @@ package body Files.Gui.Widgets is
       end if;
    end Draw_Tooltip;
 
+   procedure Draw_Caret
+     (Rectangles  : in out Rectangle_Command_Vectors.Vector;
+      Clip_Width  : Natural;
+      Clip_Height : Natural;
+      X           : Natural;
+      Y           : Natural;
+      Width       : Natural;
+      Height      : Natural;
+      Color       : Render_Color) is
+   begin
+      Add_Clipped_Rect (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Color);
+   end Draw_Caret;
+
+   procedure Draw_Marquee
+     (Rectangles   : in out Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      X            : Natural;
+      Y            : Natural;
+      Width        : Natural;
+      Height       : Natural;
+      Fill_Color   : Render_Color;
+      Border_Color : Render_Color) is
+   begin
+      Add_Clipped_Rect (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Fill_Color);
+      Add_Border (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Border_Color);
+   end Draw_Marquee;
+
 end Files.Gui.Widgets;
