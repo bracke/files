@@ -6,6 +6,7 @@ with Files.Commands;
 with Files.File_System;
 with Files.Folder_Tree;
 with Guikit.Draw;
+with Guikit.Layout;
 with Files.Model;
 with Files.Quick_Look;
 with Files.Settings;
@@ -403,21 +404,9 @@ package Files.Rendering is
       Scrollbar_Track_Height : Natural := 0;
    end record;
 
-   type Command_Palette_Layout is record
-      X              : Natural := 0;
-      Y              : Natural := 0;
-      Width          : Natural := 0;
-      Height         : Natural := 0;
-      Search_X       : Natural := 0;
-      Search_Y       : Natural := 0;
-      Search_Width   : Natural := 0;
-      Search_Height  : Natural := 0;
-      Results_X      : Natural := 0;
-      Results_Y      : Natural := 0;
-      Results_Width  : Natural := 0;
-      Results_Height : Natural := 0;
-      Row_Height     : Natural := 0;
-   end record;
+   --  Palette overlay geometry lives in Guikit.Layout; kept under the local
+   --  name so the renderer and event code read unchanged.
+   subtype Command_Palette_Layout is Guikit.Layout.Palette_Layout;
 
    --  Geometry of the centered Quick Look overlay panel and its inner content
    --  region (inside the padding, below the title band).
@@ -469,19 +458,9 @@ package Files.Rendering is
      (Index : Positive)
       return Files.Types.Color_Label;
 
-   type Command_Result_Layout is record
-      Result_Index : Natural := 0;
-      X            : Natural := 0;
-      Y            : Natural := 0;
-      Width        : Natural := 0;
-      Height       : Natural := 0;
-      Selected     : Boolean := False;
-      Enabled      : Boolean := False;
-   end record;
+   subtype Command_Result_Layout is Guikit.Layout.Palette_Result_Row;
 
-   package Command_Result_Layout_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Command_Result_Layout);
+   package Command_Result_Layout_Vectors renames Guikit.Layout.Palette_Result_Row_Vectors;
 
    type Root_Selector_Layout is record
       X          : Natural := 0;

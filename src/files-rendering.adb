@@ -63,8 +63,8 @@ package body Files.Rendering is
    Details_Row_Padding : constant Natural := 4;
    Details_Row_Gap : constant Natural := 0;
    Details_Column_Padding : constant Natural := 6;
-   Command_Palette_Padding : constant Natural := 8;
-   Command_Result_Row_Padding : constant Natural := 4;
+   Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
+   Command_Result_Row_Padding : constant Natural := Guikit.Layout.Palette_Result_Row_Padding;
    Command_Palette_Scrollbar_Gap : constant Natural := 8;
    Scrollbar_Width : constant Natural := 12;
    Root_Selector_Padding : constant Natural := 8;
@@ -3388,45 +3388,14 @@ package body Files.Rendering is
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
-      return Command_Palette_Layout
-   is
-      Search_H  : constant Natural :=
-        Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)),
-           (if Layout.Command_Height > Saturating_Multiply (Command_Palette_Padding, 2)
-            then Layout.Command_Height - Saturating_Multiply (Command_Palette_Padding, 2)
-            else Layout.Command_Height));
-      Content_X : constant Natural := Saturating_Add (Layout.Command_X, Command_Palette_Padding);
-      Content_Y : constant Natural := Saturating_Add (Layout.Command_Y, Command_Palette_Padding);
-      Content_W : constant Natural :=
-        (if Layout.Command_Width > Saturating_Multiply (Command_Palette_Padding, 2)
-         then Layout.Command_Width - Saturating_Multiply (Command_Palette_Padding, 2)
-         else Layout.Command_Width);
-      Content_H : constant Natural :=
-        (if Layout.Command_Height > Saturating_Multiply (Command_Palette_Padding, 2)
-         then Layout.Command_Height - Saturating_Multiply (Command_Palette_Padding, 2)
-         else Layout.Command_Height);
-      Results_Y : constant Natural :=
-        Saturating_Add (Content_Y, Saturating_Add (Search_H, Command_Palette_Padding));
-      Used_H    : constant Natural := Saturating_Add (Search_H, Command_Palette_Padding);
+      return Command_Palette_Layout is
    begin
-      return
-        (X              => Layout.Command_X,
-         Y              => Layout.Command_Y,
-         Width          => Layout.Command_Width,
-         Height         => Layout.Command_Height,
-         Search_X       => Content_X,
-         Search_Y       => Content_Y,
-         Search_Width   => Content_W,
-         Search_Height  => Search_H,
-         Results_X      => Content_X,
-         Results_Y      => Results_Y,
-         Results_Width  => Content_W,
-         Results_Height => (if Content_H > Used_H then Content_H - Used_H else 0),
-         Row_Height     =>
-           Saturating_Add
-             (Saturating_Multiply (Line_Height, 2),
-              Saturating_Multiply (Command_Result_Row_Padding, 2)));
+      return Guikit.Layout.Calculate_Palette_Layout
+        (Command_X      => Layout.Command_X,
+         Command_Y      => Layout.Command_Y,
+         Command_Width  => Layout.Command_Width,
+         Command_Height => Layout.Command_Height,
+         Line_Height    => Line_Height);
    end Calculate_Command_Palette_Layout;
 
    function Calculate_Quick_Look_Layout
@@ -3518,44 +3487,21 @@ package body Files.Rendering is
       Layout   : Command_Palette_Layout)
       return Command_Result_Layout_Vectors.Vector
    is
-      Result : Command_Result_Layout_Vectors.Vector;
-      Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
-      Visible_Rows : constant Natural := Complete_Visible_Row_Count (Layout.Results_Height, Layout.Row_Height);
-      Max_Offset   : constant Natural :=
-        (if Visible_Rows = 0 or else Result_Count <= Visible_Rows then 0 else Result_Count - Visible_Rows);
-      Offset       : constant Natural := Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset);
+      Enabled : Guikit.Layout.Palette_Enabled_Vectors.Vector;
    begin
-      if not Snapshot.Command_Palette_Open or else Layout.Row_Height = 0 then
-         return Result;
+      if not Snapshot.Command_Palette_Open then
+         return Command_Result_Layout_Vectors.Empty_Vector;
       end if;
 
-      for Index in Offset + 1 .. Result_Count loop
-         declare
-            Result_Y : constant Natural :=
-              Saturating_Add
-                (Layout.Results_Y, Saturating_Multiply (Natural (Index - Offset - 1), Layout.Row_Height));
-            Results_End_Y : constant Natural := Saturating_Add (Layout.Results_Y, Layout.Results_Height);
-         begin
-            exit when Result_Y >= Results_End_Y;
-            declare
-               Remaining : constant Natural := Results_End_Y - Result_Y;
-            begin
-               exit when Remaining < Layout.Row_Height;
-
-               Result.Append
-                 (Command_Result_Layout'
-                    (Result_Index => Index,
-                     X            => Layout.Results_X,
-                     Y            => Result_Y,
-                     Width        => Layout.Results_Width,
-                     Height       => Layout.Row_Height,
-                     Selected     => Snapshot.Command_Palette_Results.Element (Positive (Index)).Selected,
-                     Enabled      => Snapshot.Command_Palette_Results.Element (Positive (Index)).Enabled));
-            end;
-         end;
+      for Result of Snapshot.Command_Palette_Results loop
+         Enabled.Append (Result.Enabled);
       end loop;
 
-      return Result;
+      return Guikit.Layout.Calculate_Palette_Result_Rows
+        (Layout   => Layout,
+         Enabled  => Enabled,
+         Selected => Snapshot.Command_Palette_Selected_Index,
+         Offset   => Snapshot.Command_Palette_Result_Offset);
    end Calculate_Command_Result_Layout;
 
    function Command_Result_At
@@ -3564,15 +3510,7 @@ package body Files.Rendering is
       Y    : Natural)
       return Natural is
    begin
-      for Row of Rows loop
-         if Contains_Rectangle_Point
-              (Row.X, Row.Y, Row.Width, Row.Height, X, Y)
-         then
-            return Row.Result_Index;
-         end if;
-      end loop;
-
-      return 0;
+      return Guikit.Layout.Palette_Result_At (Rows, X, Y);
    end Command_Result_At;
 
    function Calculate_Root_Selector_Layout
