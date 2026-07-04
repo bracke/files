@@ -450,7 +450,14 @@ package body Files.Application is
             Glyphs        : constant Files.Rendering.Text_Render_Result :=
               Files.Rendering.Build_Text_Glyphs (Text_Renderer, Frame);
             Batch         : constant Files.Gui.Vulkan.Submission_Batch :=
-              Files.Gui.Vulkan.Build_Submission (Frame, Glyphs);
+              Files.Gui.Vulkan.Build_Submission
+                (Rectangles         => Frame.Rectangles,
+                 Triangles          => Frame.Triangles,
+                 Icons              => Frame.Icons,
+                 Overlay_Rectangles => Frame.Overlay_Rectangles,
+                 Layout             => Frame.Layout,
+                 Theme              => Frame.Theme_Palette,
+                 Text               => Glyphs);
          begin
             Append_Line
               (Files.Localization.Text ("runtime.smoke.window", Locale)

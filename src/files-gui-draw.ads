@@ -1,6 +1,7 @@
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 with Interfaces;
+with System;
 
 --  Renderer-agnostic draw model.
 --
@@ -239,5 +240,50 @@ package Files.Gui.Draw is
    package Glyph_Command_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Glyph_Command);
+
+   --  Stable window layout geometry shared by the renderer and its backends.
+   --
+   --  Pure pixel measurements (widths, heights, and pane origins) with no
+   --  dependency on any application domain type, so a rendering backend can
+   --  normalize frame coordinates without coupling to Files.Rendering.
+   type Layout_Metrics is record
+      Width             : Natural := 0;
+      Height            : Natural := 0;
+      Toolbar_Height    : Natural := 0;
+      Bottom_Bar_Height : Natural := 0;
+      Main_X            : Natural := 0;
+      Main_Y            : Natural := 0;
+      Main_Width        : Natural := 0;
+      Main_Height       : Natural := 0;
+      Info_Pane_Width   : Natural := 0;
+      Command_X         : Natural := 0;
+      Command_Y         : Natural := 0;
+      Command_Width     : Natural := 0;
+      Command_Height    : Natural := 0;
+   end record;
+
+   --  Outcome of rasterizing a frame's text through the textrender backend.
+   type Text_Render_Status is
+     (Text_Render_Success,
+      Text_Render_Font_Load_Failed,
+      Text_Render_Font_Not_Loaded,
+      Text_Render_Glyph_Failed);
+
+   --  Glyph geometry and atlas upload data produced for a frame's text.
+   --
+   --  Carries the primary and overlay glyph quads together with the shared
+   --  text-atlas pixels a backend uploads. Defined here so a rendering backend
+   --  can consume the result without depending on Files.Rendering.
+   type Text_Render_Result is record
+      Status       : Text_Render_Status := Text_Render_Font_Not_Loaded;
+      Glyphs       : Glyph_Command_Vectors.Vector;
+      Overlay_Glyphs : Glyph_Command_Vectors.Vector;
+      Missing_Glyph_Count : Natural := 0;
+      Atlas_Width  : Natural := 0;
+      Atlas_Height : Natural := 0;
+      Atlas_Pixels : System.Address := System.Null_Address;
+      Atlas_Bytes  : Natural := 0;
+      Atlas_Dirty  : Boolean := False;
+   end record;
 
 end Files.Gui.Draw;

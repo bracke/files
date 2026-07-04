@@ -13,7 +13,7 @@ package body Files.Gui.Vulkan is
    use type Interfaces.Unsigned_64;
    use type Interfaces.Integer_32;
    use type System.Address;
-   use type Files.Rendering.Text_Render_Status;
+   use type Files.Gui.Draw.Text_Render_Status;
    use type Vk.Result_T;
    use type Vk.Format_T;
    use type Vk.Color_Space_KHR_T;
@@ -3774,27 +3774,32 @@ package body Files.Gui.Vulkan is
    end Diagnostics;
 
    function Build_Submission
-     (Frame : Files.Rendering.Frame_Commands;
-      Text  : Files.Rendering.Text_Render_Result)
+     (Rectangles         : Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Triangles          : Files.Gui.Draw.Triangle_Command_Vectors.Vector;
+      Icons              : Files.Gui.Draw.Icon_Command_Vectors.Vector;
+      Overlay_Rectangles : Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Layout             : Files.Gui.Draw.Layout_Metrics;
+      Theme              : Files.Gui.Draw.Theme_Kind;
+      Text               : Files.Gui.Draw.Text_Render_Result)
       return Submission_Batch
    is
       Result : Submission_Batch;
 
       function Clip_X (Pixel_X : Float) return Float is
       begin
-         if Frame.Layout.Width = 0 then
+         if Layout.Width = 0 then
             return -1.0;
          else
-            return (Pixel_X / Float (Frame.Layout.Width)) * 2.0 - 1.0;
+            return (Pixel_X / Float (Layout.Width)) * 2.0 - 1.0;
          end if;
       end Clip_X;
 
       function Clip_Y (Pixel_Y : Float) return Float is
       begin
-         if Frame.Layout.Height = 0 then
+         if Layout.Height = 0 then
             return 1.0;
          else
-            return 1.0 - (Pixel_Y / Float (Frame.Layout.Height)) * 2.0;
+            return 1.0 - (Pixel_Y / Float (Layout.Height)) * 2.0;
          end if;
       end Clip_Y;
 
@@ -4057,7 +4062,7 @@ package body Files.Gui.Vulkan is
 
          Tile_Index : Natural := 0;
       begin
-         for Icon of Frame.Icons loop
+         for Icon of Icons loop
             if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
                Icon_Count := Icon_Count + 1;
             end if;
@@ -4077,7 +4082,7 @@ package body Files.Gui.Vulkan is
          Result.Icon_Atlas_Dirty := True;
          Append_Clear_Pixels (Result.Icon_Atlas_Bytes);
 
-         for Icon of Frame.Icons loop
+         for Icon of Icons loop
             if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
                Rasterize_Asset (Tile_Index, Icon);
                Tile_Index := Tile_Index + 1;
@@ -4085,16 +4090,16 @@ package body Files.Gui.Vulkan is
          end loop;
       end Build_Icon_Atlas;
    begin
-      Result.Width := Frame.Layout.Width;
-      Result.Height := Frame.Layout.Height;
-      Result.Palette_Theme := Frame.Theme_Palette;
+      Result.Width := Layout.Width;
+      Result.Height := Layout.Height;
+      Result.Palette_Theme := Theme;
       Result.Atlas_Width := Text.Atlas_Width;
       Result.Atlas_Height := Text.Atlas_Height;
       Result.Atlas_Pixels := Text.Atlas_Pixels;
       Result.Atlas_Bytes := Text.Atlas_Bytes;
       Result.Atlas_Dirty := Text.Atlas_Dirty;
       Result.Text_Atlas_Used :=
-        Text.Status = Files.Rendering.Text_Render_Success
+        Text.Status = Files.Gui.Draw.Text_Render_Success
         and then
           (not Text.Glyphs.Is_Empty
            or else not Text.Overlay_Glyphs.Is_Empty);
@@ -4107,7 +4112,7 @@ package body Files.Gui.Vulkan is
       Result.Uses_Separate_Text_And_Icon_Textures :=
         Result.Text_Atlas_Used and then Result.Icon_Atlas_Dirty;
 
-      for Rectangle of Frame.Rectangles loop
+      for Rectangle of Rectangles loop
          declare
             Before : constant Natural := Natural (Result.Vertices.Length);
          begin
@@ -4128,7 +4133,7 @@ package body Files.Gui.Vulkan is
          end;
       end loop;
 
-      for Triangle of Frame.Triangles loop
+      for Triangle of Triangles loop
          declare
             Before : constant Natural := Natural (Result.Vertices.Length);
          begin
@@ -4150,13 +4155,13 @@ package body Files.Gui.Vulkan is
             Source_Icon_Index : Natural := 0;
             Icon_Count : Natural := 0;
          begin
-            for Icon of Frame.Icons loop
+            for Icon of Icons loop
                if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
                   Icon_Count := Icon_Count + 1;
                end if;
             end loop;
 
-            for Icon of Frame.Icons loop
+            for Icon of Icons loop
                if not Is_Toolbar_Icon (To_String (Icon.Icon_Id)) then
                   declare
                      Before : constant Natural := Natural (Result.Vertices.Length);
@@ -4193,7 +4198,7 @@ package body Files.Gui.Vulkan is
          end;
       end if;
 
-      if Text.Status = Files.Rendering.Text_Render_Success then
+      if Text.Status = Files.Gui.Draw.Text_Render_Success then
          for Glyph of Text.Glyphs loop
             declare
                Before : constant Natural := Natural (Result.Vertices.Length);
@@ -4215,7 +4220,7 @@ package body Files.Gui.Vulkan is
             end;
          end loop;
 
-         for Rectangle of Frame.Overlay_Rectangles loop
+         for Rectangle of Overlay_Rectangles loop
             declare
                Before : constant Natural := Natural (Result.Vertices.Length);
             begin

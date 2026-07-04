@@ -1,6 +1,5 @@
 with Ada.Strings;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
 
 --  Implementation of the renderer-agnostic draw model helpers.
 package body Files.Gui.Draw is

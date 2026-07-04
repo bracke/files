@@ -8,7 +8,6 @@ with Vk;
 
 with Files.Gui.Draw;
 with Files.Gui.Frame_Analysis;
-with Files.Rendering;
 
 --  Vulkan renderer lifecycle backed by df_vulkan.
 package Files.Gui.Vulkan is
@@ -429,14 +428,25 @@ package Files.Gui.Vulkan is
    --
    --  Rectangles and glyphs are expanded into two triangles each. Coordinates
    --  are normalized to Vulkan clip space, with the top-left frame pixel at
-   --  (-1, 1) and the bottom-right pixel at (1, -1).
+   --  (-1, 1) and the bottom-right pixel at (1, -1). The frame is passed as its
+   --  generic draw pieces so the backend stays independent of Files.Rendering.
    --
-   --  @param Frame Frame command list containing rectangle commands.
+   --  @param Rectangles Opaque rectangle commands for the frame body.
+   --  @param Triangles Triangle commands for the frame body.
+   --  @param Icons Icon commands rasterized into the icon atlas.
+   --  @param Overlay_Rectangles Rectangle commands drawn over the frame body.
+   --  @param Layout Frame layout geometry used to normalize coordinates.
+   --  @param Theme Palette theme recorded on the batch for downstream color.
    --  @param Text Text render result containing glyph commands.
    --  @return Submission batch containing quad vertices.
    function Build_Submission
-     (Frame : Files.Rendering.Frame_Commands;
-      Text  : Files.Rendering.Text_Render_Result)
+     (Rectangles         : Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Triangles          : Files.Gui.Draw.Triangle_Command_Vectors.Vector;
+      Icons              : Files.Gui.Draw.Icon_Command_Vectors.Vector;
+      Overlay_Rectangles : Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Layout             : Files.Gui.Draw.Layout_Metrics;
+      Theme              : Files.Gui.Draw.Theme_Kind;
+      Text               : Files.Gui.Draw.Text_Render_Result)
       return Submission_Batch;
 
    --  Compare two Vulkan submission batches as deterministic screenshot proxies.

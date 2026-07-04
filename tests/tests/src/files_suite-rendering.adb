@@ -240,7 +240,7 @@ package body Files_Suite.Rendering is
       for Mode of Modes loop
          declare
             Snapshot : constant View_Snapshot := Sample_Snapshot (6, Mode);
-            Layout   : constant Layout_Metrics :=
+            Layout   : constant Files.Gui.Draw.Layout_Metrics :=
               Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
             Items    : constant Item_Layout_Vectors.Vector :=
               Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
@@ -280,14 +280,14 @@ package body Files_Suite.Rendering is
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Few    : constant View_Snapshot := Sample_Snapshot (2, Files.Types.Details);
-      Few_L  : constant Layout_Metrics := Calculate_Layout (Few, 1000, 800, 20);
+      Few_L  : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Few, 1000, 800, 20);
       Few_MV : constant Main_View_Layout := Calculate_Main_View_Layout (Few, Few_L, 20);
    begin
       Assert (not Few_MV.Scrollbar_Visible, "no scrollbar is shown when content fits the viewport");
 
       declare
          Many   : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
-         Layout : constant Layout_Metrics := Calculate_Layout (Many, 400, 160, 20);
+         Layout : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Many, 400, 160, 20);
          MV     : constant Main_View_Layout := Calculate_Main_View_Layout (Many, Layout, 20);
       begin
          Assert (MV.Scrollbar_Visible, "a scrollbar appears when content overflows the viewport");
@@ -328,7 +328,7 @@ package body Files_Suite.Rendering is
       --  content gives a near-full thumb, huge content gives the minimum.
       declare
          Mid    : constant View_Snapshot := Sample_Snapshot (26, Files.Types.Details);
-         Layout : constant Layout_Metrics := Calculate_Layout (Mid, 900, 400, 20);
+         Layout : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Mid, 900, 400, 20);
          MV     : constant Main_View_Layout := Calculate_Main_View_Layout (Mid, Layout, 20);
          Track  : constant Natural := MV.Scrollbar_Track_Height;
          Content : constant Natural := MV.Content_Height;
@@ -349,7 +349,7 @@ package body Files_Suite.Rendering is
          Top.Main_View_Scroll_Lines    := 0;
          Bottom.Main_View_Scroll_Lines := 1000;
          declare
-            Layout : constant Layout_Metrics := Calculate_Layout (Top, 400, 160, 20);
+            Layout : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Top, 400, 160, 20);
             MV_Top : constant Main_View_Layout := Calculate_Main_View_Layout (Top, Layout, 20);
             MV_Bot : constant Main_View_Layout := Calculate_Main_View_Layout (Bottom, Layout, 20);
          begin
@@ -374,7 +374,7 @@ package body Files_Suite.Rendering is
       declare
          D_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
          I_Snap : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Large_Icons);
-         L      : constant Layout_Metrics := Calculate_Layout (D_Snap, 400, 300, 20);
+         L      : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (D_Snap, 400, 300, 20);
          D_MV   : constant Main_View_Layout := Calculate_Main_View_Layout (D_Snap, L, 20);
          I_MV   : constant Main_View_Layout := Calculate_Main_View_Layout (I_Snap, L, 20);
       begin
@@ -393,7 +393,7 @@ package body Files_Suite.Rendering is
       for Mode in Files.Types.View_Mode loop
          declare
             Full  : View_Snapshot := Sample_Snapshot (60, Mode);
-            L     : constant Layout_Metrics := Calculate_Layout (Full, 400, 300, 20);
+            L     : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Full, 400, 300, 20);
             Cells : Item_Layout_Vectors.Vector;
          begin
             Full.Main_View_Scroll_Lines := 100_000;
@@ -409,7 +409,7 @@ package body Files_Suite.Rendering is
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
-      Layout   : constant Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
+      Layout   : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
       Palette  : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, 20);
    begin
       Assert (Palette.Width > 0 and then Palette.Height > 0, "the palette has a positive size");
@@ -464,7 +464,7 @@ package body Files_Suite.Rendering is
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : View_Snapshot := Sample_Snapshot (8, Files.Types.Details);
-      Layout   : Layout_Metrics;
+      Layout   : Files.Gui.Draw.Layout_Metrics;
       Items    : Item_Layout_Vectors.Vector;
       Main     : Main_View_Layout;
    begin
@@ -537,7 +537,7 @@ package body Files_Suite.Rendering is
       Snapshot.Focus := Files.Types.Focus_Rename_Input;
 
       declare
-         Layout : constant Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
+         Layout : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
          Cells  : constant Item_Layout_Vectors.Vector := Calculate_Item_Layout (Snapshot, Layout, 20);
       begin
          for C of Cells loop
@@ -738,7 +738,7 @@ package body Files_Suite.Rendering is
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
-      Layout   : constant Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
+      Layout   : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
       Items    : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Snapshot, Layout, 20);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
@@ -815,7 +815,7 @@ package body Files_Suite.Rendering is
       Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Renderer : Text_Renderer;
-      Result   : Text_Render_Result;
+      Result   : Files.Gui.Draw.Text_Render_Result;
    begin
       Assert (Files.Fonts.Default_Font_Path /= "", "a default text font is available");
       Assert
@@ -824,10 +824,10 @@ package body Files_Suite.Rendering is
             Font_Path   => Files.Fonts.Default_Font_Path,
             Pixel_Size  => 16,
             Cell_Width  => 10,
-            Cell_Height => 20) = Text_Render_Success,
+            Cell_Height => 20) = Files.Gui.Draw.Text_Render_Success,
          "the text renderer loads the default font");
       Result := Build_Text_Glyphs (Renderer, Frame);
-      Assert (Result.Status = Text_Render_Success, "frame text rasterizes through textrender");
+      Assert (Result.Status = Files.Gui.Draw.Text_Render_Success, "frame text rasterizes through textrender");
       Assert (Natural (Result.Glyphs.Length) > 0, "the text renderer emits glyph draw commands");
       Assert (Result.Atlas_Pixels /= System.Null_Address, "the text renderer exposes an atlas");
    end Test_Text_Glyph_Rasterization;
@@ -837,14 +837,21 @@ package body Files_Suite.Rendering is
       Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Renderer : Text_Renderer;
-      Text     : Text_Render_Result;
+      Text     : Files.Gui.Draw.Text_Render_Result;
       Batch    : Files.Gui.Vulkan.Submission_Batch;
    begin
       Assert
-        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20) = Text_Render_Success,
+        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20) = Files.Gui.Draw.Text_Render_Success,
          "the text renderer initialises for submission");
       Text  := Build_Text_Glyphs (Renderer, Frame);
-      Batch := Files.Gui.Vulkan.Build_Submission (Frame, Text);
+      Batch := Files.Gui.Vulkan.Build_Submission
+        (Rectangles         => Frame.Rectangles,
+         Triangles          => Frame.Triangles,
+         Icons              => Frame.Icons,
+         Overlay_Rectangles => Frame.Overlay_Rectangles,
+         Layout             => Frame.Layout,
+         Theme              => Frame.Theme_Palette,
+         Text               => Text);
       Assert (Batch.Width = Frame.Layout.Width, "the vulkan batch preserves the frame width");
       Assert (Batch.Height = Frame.Layout.Height, "the vulkan batch preserves the frame height");
       Assert
@@ -1244,7 +1251,7 @@ package body Files_Suite.Rendering is
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Base   : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
-      Layout : constant Layout_Metrics := Calculate_Layout (Base, 1000, 800, 20);
+      Layout : constant Files.Gui.Draw.Layout_Metrics := Calculate_Layout (Base, 1000, 800, 20);
       Items  : constant Item_Layout_Vectors.Vector := Calculate_Item_Layout (Base, Layout, 20);
       Cell   : Item_Layout;
       Found  : Boolean := False;
@@ -1387,7 +1394,7 @@ package body Files_Suite.Rendering is
       --  Command palette.
       declare
          Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout  : Layout_Metrics;
+         Layout  : Files.Gui.Draw.Layout_Metrics;
          Palette : Command_Palette_Layout;
          Close   : Close_Button_Layout;
          Frame   : Frame_Commands;
@@ -1406,7 +1413,7 @@ package body Files_Suite.Rendering is
       --  Settings pane.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          Pane   : Files.Gui.Layout.Settings_Pane_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
@@ -1425,7 +1432,7 @@ package body Files_Suite.Rendering is
       --  Info pane.
       declare
          Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout  : Layout_Metrics;
+         Layout  : Files.Gui.Draw.Layout_Metrics;
          Info    : Info_Pane_Layout;
          Panel_W : Natural;
          Close   : Close_Button_Layout;
@@ -1449,7 +1456,7 @@ package body Files_Suite.Rendering is
       --  Root selector.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          Root   : Root_Selector_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
@@ -1472,7 +1479,7 @@ package body Files_Suite.Rendering is
       --  Folder-tree sidebar.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          Panel  : Tree_Panel_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
@@ -1491,7 +1498,7 @@ package body Files_Suite.Rendering is
       --  Quick Look overlay.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          QL     : Quick_Look_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
@@ -1512,7 +1519,7 @@ package body Files_Suite.Rendering is
       --  Color-label picker overlay.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          Picker : Label_Picker_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
@@ -1531,7 +1538,7 @@ package body Files_Suite.Rendering is
       --  Paste-conflict dialog.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          Dialog : Conflict_Dialog_Layout;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
@@ -1556,7 +1563,7 @@ package body Files_Suite.Rendering is
       --  progress bar while a long copy/move is in flight.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Layout_Metrics;
+         Layout : Files.Gui.Draw.Layout_Metrics;
          Panel  : Paste_Progress_Layout;
          Frame  : Frame_Commands;
          Expected_Fill : Natural;
@@ -1691,7 +1698,7 @@ package body Files_Suite.Rendering is
       end Size_Width_Of;
 
       Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
-      Layout : constant Layout_Metrics :=
+      Layout : constant Files.Gui.Draw.Layout_Metrics :=
         Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
       Base_Items : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Base, Layout, Line_Height => 20);
@@ -1749,7 +1756,7 @@ package body Files_Suite.Rendering is
       end Locate_Row;
 
       Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
-      Layout : constant Layout_Metrics :=
+      Layout : constant Files.Gui.Draw.Layout_Metrics :=
         Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
    begin
       --  Baseline (enum order): modified precedes size left to right.
@@ -1794,7 +1801,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : View_Snapshot;
-      Layout   : Layout_Metrics;
+      Layout   : Files.Gui.Draw.Layout_Metrics;
       Items    : Item_Layout_Vectors.Vector;
       Header_Center_X : Natural := 0;
       Header_Center_Y : Natural := 0;
@@ -1854,7 +1861,7 @@ package body Files_Suite.Rendering is
       use type Files.Types.Detail_Column;
 
       Base   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
-      Layout : constant Layout_Metrics :=
+      Layout : constant Files.Gui.Draw.Layout_Metrics :=
         Calculate_Layout (Base, Width => 1000, Height => 800, Line_Height => 20);
       Items  : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Base, Layout, Line_Height => 20);
@@ -2061,7 +2068,7 @@ package body Files_Suite.Rendering is
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
-      Layout   : constant Layout_Metrics :=
+      Layout   : constant Files.Gui.Draw.Layout_Metrics :=
         Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       Items    : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);

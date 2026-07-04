@@ -2392,7 +2392,14 @@ package body Files.Application.Windows is
 
                   declare
                      Batch : constant Files.Gui.Vulkan.Submission_Batch :=
-                       Files.Gui.Vulkan.Build_Submission (Frame, Glyphs);
+                       Files.Gui.Vulkan.Build_Submission
+                         (Rectangles         => Frame.Rectangles,
+                          Triangles          => Frame.Triangles,
+                          Icons              => Frame.Icons,
+                          Overlay_Rectangles => Frame.Overlay_Rectangles,
+                          Layout             => Frame.Layout,
+                          Theme              => Frame.Theme_Palette,
+                          Text               => Glyphs);
                   begin
                      Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
                      Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;

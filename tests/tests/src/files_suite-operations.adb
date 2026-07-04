@@ -2438,7 +2438,14 @@ package body Files_Suite.Operations is
          Assert
            (Found_Thumbnail_Icon,
             "large-icons item icon command uses a thumbnail-specific icon asset");
-         Thumbnail_Batch := Files.Gui.Vulkan.Build_Submission (Thumbnail_Frame, Empty_Text);
+         Thumbnail_Batch := Files.Gui.Vulkan.Build_Submission
+           (Rectangles         => Thumbnail_Frame.Rectangles,
+            Triangles          => Thumbnail_Frame.Triangles,
+            Icons              => Thumbnail_Frame.Icons,
+            Overlay_Rectangles => Thumbnail_Frame.Overlay_Rectangles,
+            Layout             => Thumbnail_Frame.Layout,
+            Theme              => Thumbnail_Frame.Theme_Palette,
+            Text               => Empty_Text);
          declare
             Pixel_Offset : constant Positive := Positive (Thumbnail_Tile * 64 * 4 + 1);
          begin

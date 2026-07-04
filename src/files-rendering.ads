@@ -1,6 +1,5 @@
 with Ada.Calendar;
 with Ada.Containers.Vectors;
-with System;
 
 with Files.Breadcrumbs;
 with Files.Commands;
@@ -348,21 +347,10 @@ package Files.Rendering is
       Row  : Positive)
       return Natural;
 
-   type Layout_Metrics is record
-      Width             : Natural := 0;
-      Height            : Natural := 0;
-      Toolbar_Height    : Natural := 0;
-      Bottom_Bar_Height : Natural := 0;
-      Main_X            : Natural := 0;
-      Main_Y            : Natural := 0;
-      Main_Width        : Natural := 0;
-      Main_Height       : Natural := 0;
-      Info_Pane_Width   : Natural := 0;
-      Command_X         : Natural := 0;
-      Command_Y         : Natural := 0;
-      Command_Width     : Natural := 0;
-      Command_Height    : Natural := 0;
-   end record;
+   --  Window layout geometry. Re-exported from Files.Gui.Draw so backends can
+   --  consume it without depending on this package; existing
+   --  Files.Rendering.Layout_Metrics references keep compiling unchanged.
+   subtype Layout_Metrics is Files.Gui.Draw.Layout_Metrics;
 
    type Item_Layout is record
       Visible_Index : Natural := 0;
@@ -904,23 +892,33 @@ package Files.Rendering is
 
    type Text_Renderer is private;
 
-   type Text_Render_Status is
-     (Text_Render_Success,
-      Text_Render_Font_Load_Failed,
-      Text_Render_Font_Not_Loaded,
-      Text_Render_Glyph_Failed);
+   --  Text rasterization outcome and glyph/atlas result. Re-exported from
+   --  Files.Gui.Draw so backends can consume them without depending on this
+   --  package; the literal renamings keep qualified Files.Rendering references
+   --  (e.g. Files.Rendering.Text_Render_Success) compiling unchanged.
+   subtype Text_Render_Status is Files.Gui.Draw.Text_Render_Status;
 
-   type Text_Render_Result is record
-      Status       : Text_Render_Status := Text_Render_Font_Not_Loaded;
-      Glyphs       : Glyph_Command_Vectors.Vector;
-      Overlay_Glyphs : Glyph_Command_Vectors.Vector;
-      Missing_Glyph_Count : Natural := 0;
-      Atlas_Width  : Natural := 0;
-      Atlas_Height : Natural := 0;
-      Atlas_Pixels : System.Address := System.Null_Address;
-      Atlas_Bytes  : Natural := 0;
-      Atlas_Dirty  : Boolean := False;
-   end record;
+   --  Re-export of the successful text-rasterization status literal.
+   --  @return The Text_Render_Success value from Files.Gui.Draw.
+   function Text_Render_Success return Text_Render_Status
+     renames Files.Gui.Draw.Text_Render_Success;
+
+   --  Re-export of the font-load-failure status literal.
+   --  @return The Text_Render_Font_Load_Failed value from Files.Gui.Draw.
+   function Text_Render_Font_Load_Failed return Text_Render_Status
+     renames Files.Gui.Draw.Text_Render_Font_Load_Failed;
+
+   --  Re-export of the font-not-loaded status literal.
+   --  @return The Text_Render_Font_Not_Loaded value from Files.Gui.Draw.
+   function Text_Render_Font_Not_Loaded return Text_Render_Status
+     renames Files.Gui.Draw.Text_Render_Font_Not_Loaded;
+
+   --  Re-export of the glyph-failure status literal.
+   --  @return The Text_Render_Glyph_Failed value from Files.Gui.Draw.
+   function Text_Render_Glyph_Failed return Text_Render_Status
+     renames Files.Gui.Draw.Text_Render_Glyph_Failed;
+
+   subtype Text_Render_Result is Files.Gui.Draw.Text_Render_Result;
 
    --  Build an immutable snapshot from the mutable model.
    --
