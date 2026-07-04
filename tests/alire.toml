@@ -24,4 +24,10 @@ project_tools = "*"
 project_tools = { path = "../../project_tools" }
 
 [[depends-on]]
+guikit = "*"
+
+[[pins]]
+guikit = { path = "../../guikit" }
+
+[[depends-on]]
 aunit = "^26.0.0"

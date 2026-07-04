@@ -36,6 +36,12 @@ zlib = "*"
 zlib = { path = "../zlib" }
 
 [[depends-on]]
+guikit = "*"
+
+[[pins]]
+guikit = { path = "../guikit" }
+
+[[depends-on]]
 df_vulkan = "~0.1.0"
 
 [[depends-on]]
