@@ -306,4 +306,84 @@ package body Files.Gui.Widgets is
       end if;
    end Draw_Scrollbar;
 
+   procedure Draw_Menu_Panel
+     (Rectangles   : in out Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      X            : Natural;
+      Y            : Natural;
+      Width        : Natural;
+      Height       : Natural;
+      Fill_Color   : Render_Color;
+      Border_Color : Render_Color) is
+   begin
+      Add_Clipped_Rect (Rectangles, Clip_Width, Clip_Height, X, Y, Width, Height, Fill_Color);
+      Add_Clipped_Rect (Rectangles, Clip_Width, Clip_Height, X, Y, Width, 1, Border_Color);
+      if Height > 0 then
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, X, Saturating_Add (Y, Height - 1), Width, 1, Border_Color);
+      end if;
+      Add_Clipped_Rect (Rectangles, Clip_Width, Clip_Height, X, Y, 1, Height, Border_Color);
+      if Width > 0 then
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, Saturating_Add (X, Width - 1), Y, 1, Height, Border_Color);
+      end if;
+   end Draw_Menu_Panel;
+
+   procedure Draw_Menu_Row
+     (Rectangles      : in out Rectangle_Command_Vectors.Vector;
+      Text            : in out Text_Command_Vectors.Vector;
+      Clip_Width      : Natural;
+      Clip_Height     : Natural;
+      Row_X           : Natural;
+      Row_Y           : Natural;
+      Row_Width       : Natural;
+      Row_Height      : Natural;
+      Is_Separator    : Boolean;
+      Separator_X     : Natural;
+      Separator_Y     : Natural;
+      Separator_Width : Natural;
+      Separator_Color : Render_Color;
+      Highlight       : Boolean;
+      Highlight_Color : Render_Color;
+      Label_X         : Natural;
+      Label_Y         : Natural;
+      Label_Width     : Natural;
+      Label_Height    : Natural;
+      Label_Text      : UString;
+      Label_Truncated : Boolean;
+      Label_Color     : Render_Color)
+   is
+      Draw_W : constant Natural := Clipped_Size (Label_X, Label_Width, Clip_Width);
+      Draw_H : constant Natural := Clipped_Size (Label_Y, Label_Height, Clip_Height);
+   begin
+      if Is_Separator then
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, Separator_X, Separator_Y, Separator_Width, 1, Separator_Color);
+         return;
+      end if;
+
+      if Highlight then
+         Add_Clipped_Rect
+           (Rectangles, Clip_Width, Clip_Height, Row_X, Row_Y, Row_Width, Row_Height, Highlight_Color);
+      end if;
+
+      if Draw_W > 0
+        and then Draw_H > 0
+        and then Ada.Strings.Unbounded.Length (Label_Text) > 0
+      then
+         Text.Append
+           (Text_Command'
+              (X            => Label_X,
+               Y            => Label_Y,
+               Width        => Draw_W,
+               Height       => Draw_H,
+               Text         => Label_Text,
+               Color        => Label_Color,
+               Truncated    => Label_Truncated,
+               Scale_To_Box => False,
+               Italic       => False));
+      end if;
+   end Draw_Menu_Row;
+
 end Files.Gui.Widgets;

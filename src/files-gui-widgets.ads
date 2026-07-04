@@ -200,4 +200,99 @@ package Files.Gui.Widgets is
       Thumb_Color  : Files.Gui.Draw.Render_Color;
       Grip_Color   : Files.Gui.Draw.Render_Color);
 
+   --  Draw a floating menu panel's chrome: a filled body rectangle with a
+   --  one-pixel border, emitted as the fill followed by the top, bottom, left
+   --  and right border edges in that order. The bottom edge is skipped when
+   --  Height is zero and the right edge when Width is zero, so a degenerate
+   --  panel still paints its fill and the top/left edges. A drop shadow, if
+   --  any, is a separate Draw_Drop_Shadow call in the caller. The caller
+   --  computes the geometry, resolves the theme colors and registers the
+   --  panel's accessibility node; the widget only emits the rectangles.
+   --
+   --  @param Rectangles Rectangle command vector for the fill and border.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param X Panel left edge in pixels.
+   --  @param Y Panel top edge in pixels.
+   --  @param Width Panel width in pixels.
+   --  @param Height Panel height in pixels.
+   --  @param Fill_Color Panel background color.
+   --  @param Border_Color Panel border color.
+   procedure Draw_Menu_Panel
+     (Rectangles   : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Clip_Width   : Natural;
+      Clip_Height  : Natural;
+      X            : Natural;
+      Y            : Natural;
+      Width        : Natural;
+      Height       : Natural;
+      Fill_Color   : Files.Gui.Draw.Render_Color;
+      Border_Color : Files.Gui.Draw.Render_Color);
+
+   --  Draw one row of a floating menu panel: either a command row or a group
+   --  separator, selected by Is_Separator.
+   --
+   --  For a command row (Is_Separator = False): when Highlight is set, a
+   --  full-row highlight rectangle at (Row_X, Row_Y, Row_Width, Row_Height) is
+   --  painted first, then the label. Label_Text is the already localized and
+   --  fitted label (empty draws no label, e.g. when it clips to nothing);
+   --  Label_Truncated flags whether the caller's fitting shortened it. The
+   --  label box (Label_X, Label_Y, Label_Width, Label_Height) is clipped to the
+   --  window and the label dropped when it would be empty.
+   --
+   --  For a separator row (Is_Separator = True): a single one-pixel-tall
+   --  divider rectangle at (Separator_X, Separator_Y, Separator_Width) is drawn
+   --  and every command-row parameter is ignored.
+   --
+   --  The caller owns all policy: which command a row holds, its enabled/hover
+   --  state, the highlight color choice, label localization and fitting, the
+   --  row geometry, and the per-row hit and accessibility registration; the
+   --  widget only emits the rectangle and text.
+   --
+   --  @param Rectangles Rectangle command vector for the highlight or divider.
+   --  @param Text Text command vector for the label.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param Row_X Command-row highlight left edge in pixels.
+   --  @param Row_Y Command-row highlight top edge in pixels.
+   --  @param Row_Width Command-row highlight width in pixels.
+   --  @param Row_Height Command-row highlight height in pixels.
+   --  @param Is_Separator When True, draw the divider instead of a command row.
+   --  @param Separator_X Divider left edge in pixels.
+   --  @param Separator_Y Divider top edge in pixels.
+   --  @param Separator_Width Divider width in pixels.
+   --  @param Separator_Color Divider color.
+   --  @param Highlight When True, paint the row highlight rectangle.
+   --  @param Highlight_Color Row highlight color.
+   --  @param Label_X Label box left edge in pixels.
+   --  @param Label_Y Label box top edge in pixels.
+   --  @param Label_Width Label box width in pixels.
+   --  @param Label_Height Label box height in pixels.
+   --  @param Label_Text Fitted label text; empty draws no label.
+   --  @param Label_Truncated Whether the caller's fitting truncated the label.
+   --  @param Label_Color Label text color.
+   procedure Draw_Menu_Row
+     (Rectangles      : in out Files.Gui.Draw.Rectangle_Command_Vectors.Vector;
+      Text            : in out Files.Gui.Draw.Text_Command_Vectors.Vector;
+      Clip_Width      : Natural;
+      Clip_Height     : Natural;
+      Row_X           : Natural;
+      Row_Y           : Natural;
+      Row_Width       : Natural;
+      Row_Height      : Natural;
+      Is_Separator    : Boolean;
+      Separator_X     : Natural;
+      Separator_Y     : Natural;
+      Separator_Width : Natural;
+      Separator_Color : Files.Gui.Draw.Render_Color;
+      Highlight       : Boolean;
+      Highlight_Color : Files.Gui.Draw.Render_Color;
+      Label_X         : Natural;
+      Label_Y         : Natural;
+      Label_Width     : Natural;
+      Label_Height    : Natural;
+      Label_Text      : Files.Gui.Draw.UString;
+      Label_Truncated : Boolean;
+      Label_Color     : Files.Gui.Draw.Render_Color);
+
 end Files.Gui.Widgets;
