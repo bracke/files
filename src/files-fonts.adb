@@ -503,7 +503,6 @@ package body Files.Fonts is
       Default_Path  : constant String := Default_Font_Path;
       Best_Path     : Unbounded_String := To_Unbounded_String (Default_Path);
       Best_Text     : Integer := Text_Coverage_Score (Default_Path, Text);
-      Best_Static   : Integer := Glyph_Coverage_Score (Default_Path);
 
       procedure Consider_Font (Path : String) is
          Text_Score   : constant Integer := Text_Coverage_Score (Path, Text);
@@ -513,12 +512,16 @@ package body Files.Fonts is
             return;
          end if;
 
-         if Text_Score > Best_Text
-           or else (Text_Score = Best_Text and then Static_Score > Best_Static)
-         then
+         --  Honour the candidate order (monospace fonts are listed first) on
+         --  ties: only strictly better text coverage replaces the current best.
+         --  The frame is laid out in fixed monospace cells, so it must resolve
+         --  to a monospace font; letting a bigger proportional font win an equal
+         --  coverage tie (as the former Glyph_Coverage_Score tie-break did) put
+         --  the whole listing on a proportional face when a single symbol such
+         --  as the favourite star (U+2606) was present, spacing every glyph out.
+         if Text_Score > Best_Text then
             Best_Path := To_Unbounded_String (Path);
             Best_Text := Text_Score;
-            Best_Static := Static_Score;
          end if;
       end Consider_Font;
 
