@@ -5277,29 +5277,31 @@ package body Files.Rendering is
             Add_Triangle (X1, Y1, X2, Y2, X1, Y2, Color);
          end Add_Local_Rect;
 
+         --  Bolder shapes (larger heads, thicker shafts) so the nav icons read
+         --  with the same weight as the drawn favourite star.
          procedure Draw_Home is
          begin
-            Add_Triangle (SX (2), SY (7), SX (8), SY (2), SX (14), SY (7), Color);
-            Add_Local_Rect (4, 7, 8, 6);
-            Add_Local_Rect (7, 9, 2, 4);
+            Add_Triangle (SX (1), SY (8), SX (8), SY (1), SX (15), SY (8), Color);
+            Add_Local_Rect (3, 8, 10, 6);
+            Add_Local_Rect (7, 10, 2, 4);
          end Draw_Home;
 
          procedure Draw_Back is
          begin
-            Add_Triangle (SX (4), SY (8), SX (9), SY (3), SX (9), SY (13), Color);
-            Add_Local_Rect (8, 7, 5, 2);
+            Add_Triangle (SX (2), SY (8), SX (9), SY (2), SX (9), SY (14), Color);
+            Add_Local_Rect (8, 6, 6, 4);
          end Draw_Back;
 
          procedure Draw_Forward is
          begin
-            Add_Triangle (SX (12), SY (8), SX (7), SY (3), SX (7), SY (13), Color);
-            Add_Local_Rect (3, 7, 5, 2);
+            Add_Triangle (SX (14), SY (8), SX (7), SY (2), SX (7), SY (14), Color);
+            Add_Local_Rect (2, 6, 6, 4);
          end Draw_Forward;
 
          procedure Draw_Parent is
          begin
-            Add_Triangle (SX (8), SY (3), SX (3), SY (8), SX (13), SY (8), Color);
-            Add_Local_Rect (7, 7, 2, 6);
+            Add_Triangle (SX (8), SY (2), SX (2), SY (9), SX (14), SY (9), Color);
+            Add_Local_Rect (6, 8, 4, 6);
          end Draw_Parent;
 
          procedure Draw_Create is
