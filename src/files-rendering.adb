@@ -5281,9 +5281,9 @@ package body Files.Rendering is
          --  with the same weight as the drawn favourite star.
          procedure Draw_Home is
          begin
-            Add_Triangle (SX (1), SY (8), SX (8), SY (1), SX (15), SY (8), Color);
-            Add_Local_Rect (3, 8, 10, 6);
-            Add_Local_Rect (7, 10, 2, 4);
+            Add_Triangle (SX (2), SY (8), SX (8), SY (2), SX (14), SY (8), Color);
+            Add_Local_Rect (4, 8, 8, 5);
+            Add_Local_Rect (7, 10, 2, 3);
          end Draw_Home;
 
          procedure Draw_Back is
