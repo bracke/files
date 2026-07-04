@@ -1,4 +1,4 @@
-with Files.UTF8;
+with Files.Gui.Utf8;
 
 package body Files.Gui.Layout is
 
@@ -78,7 +78,7 @@ package body Files.Gui.Layout is
       Cell_W : Natural)
       return Natural is
    begin
-      return Saturating_Multiply (Files.UTF8.Display_Units (Text), Cell_W);
+      return Saturating_Multiply (Files.Gui.Utf8.Display_Units (Text), Cell_W);
    end Label_Pixel_Width;
 
    --  Horizontal gap between the filter field, the scope chip, and the right

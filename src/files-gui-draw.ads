@@ -1,6 +1,6 @@
 with Ada.Containers.Vectors;
-
-with Files.Types;
+with Ada.Strings.Unbounded;
+with Interfaces;
 
 --  Renderer-agnostic draw model.
 --
@@ -11,7 +11,17 @@ with Files.Types;
 --  renderer and its backends can share these types without coupling to the
 --  application model.
 package Files.Gui.Draw is
-   subtype UString is Files.Types.UString;
+   --  Unbounded text used by draw-model records. Defined here so the draw model
+   --  stays independent of any application domain package.
+   subtype UString is Ada.Strings.Unbounded.Unbounded_String;
+
+   --  Raw pixel/byte buffer for thumbnails carried in draw commands. Defined
+   --  here to keep the draw model self-contained; the application re-exports
+   --  this instance as Files.Types.Byte_Vectors.
+   package Byte_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Interfaces.Unsigned_8,
+      "="          => Interfaces."=");
 
    type Render_Color is
      (Canvas_Color,
@@ -175,7 +185,7 @@ package Files.Gui.Draw is
       Asset_Path : UString;
       Thumbnail_Width  : Natural := 0;
       Thumbnail_Height : Natural := 0;
-      Thumbnail_Pixels : Files.Types.Byte_Vectors.Vector;
+      Thumbnail_Pixels : Byte_Vectors.Vector;
    end record;
 
    package Icon_Command_Vectors is new Ada.Containers.Vectors
