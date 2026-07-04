@@ -2191,12 +2191,12 @@ procedure Check_All is
          "files crate must build the files executable");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
-         "project_tools = ""*""",
-         "files must depend on the project_tools crate");
+         "guikit = ""*""",
+         "files must depend on the guikit crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
-         "project_tools = { path = ""../project_tools"" }",
-         "files must pin project_tools to the local relative crate");
+         "guikit = { path = ""../guikit"" }",
+         "files must pin guikit to the local relative crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
          "i18n = ""*""",

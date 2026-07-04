@@ -12,12 +12,6 @@ tags = ["filemanager"]
 executables = ["files"]
 
 [[depends-on]]
-project_tools = "*"
-
-[[pins]]
-project_tools = { path = "../project_tools" }
-
-[[depends-on]]
 i18n = "*"
 
 [[pins]]

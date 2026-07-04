@@ -1762,9 +1762,9 @@ package body Files_Suite.Startup is
         (Repository_File_Exists ("share/files/icons/markdown.icon"),
          "desktop packaging includes the complete bundled icon set");
       Assert
-        (Repository_File_Contains ("alire.toml", "project_tools = ""*""")
-         and then Repository_File_Contains ("alire.toml", "project_tools = { path = ""../project_tools"" }"),
-         "files crate pins project_tools to the local relative path");
+        (Repository_File_Contains ("alire.toml", "guikit = ""*""")
+         and then Repository_File_Contains ("alire.toml", "guikit = { path = ""../guikit"" }"),
+         "files crate pins guikit to the local relative path");
       Assert
         (Repository_File_Contains ("alire.toml", "i18n = ""*""")
          and then Repository_File_Contains ("alire.toml", "i18n = { path = ""../i18n"" }"),

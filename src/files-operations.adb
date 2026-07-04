@@ -8,11 +8,10 @@ with GNAT.OS_Lib;
 
 with Files_Config;
 
+with Files.Fs;
 with Files.Paste;
 
 with Zlib;
-
-with Project_Tools.Files;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
@@ -36,7 +35,7 @@ package body Files.Operations is
    --  escape an operation as an unhandled exception.
    function Exists_Safely (Path : String) return Boolean is
    begin
-      return Project_Tools.Files.Exists (Path);
+      return Files.Fs.Exists (Path);
    exception
       when others =>
          return False;
