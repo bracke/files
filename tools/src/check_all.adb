@@ -14,6 +14,7 @@ with Project_Tools.Ada_Source;
 with Project_Tools.Files;
 with Project_Tools.Processes;
 with Project_Tools.Text;
+with Project_Tools.Tree_Checks;
 use Project_Tools.Ada_Source;
 use Project_Tools.Text;
 
@@ -1101,9 +1102,11 @@ procedure Check_All is
    function Has_Non_Ada_Tooling_Extension (Name : String) return Boolean is
       Lower_Name : constant String := Ada.Characters.Handling.To_Lower (Name);
    begin
+      --  Python artifacts (.py/.pyc/__pycache__) are detected separately by
+      --  Project_Tools.Tree_Checks.Check_No_Generated_Python; this scan covers
+      --  the remaining non-Ada shell/script tooling extensions.
       return
-        Ends_With (Lower_Name, ".py")
-        or else Ends_With (Lower_Name, ".sh")
+        Ends_With (Lower_Name, ".sh")
         or else Ends_With (Lower_Name, ".bash")
         or else Ends_With (Lower_Name, ".zsh")
         or else Ends_With (Lower_Name, ".fish")
@@ -1255,6 +1258,14 @@ procedure Check_All is
    end Check_Ada_Only_Tooling_At_Project_Root;
 
    procedure Check_Ada_Only_Tooling is
+      Python_Errors : Natural := 0;
+
+      procedure Scan_Python (Path : String) is
+      begin
+         if Project_Tools.Files.Directory_Exists (Path) then
+            Project_Tools.Tree_Checks.Check_No_Generated_Python (Python_Errors, Path);
+         end if;
+      end Scan_Python;
    begin
       Check_Ada_Only_Tooling_At_Project_Root;
       Check_Ada_Only_Tooling_In_Tree (Root & "/config");
@@ -1263,6 +1274,20 @@ procedure Check_All is
       Check_Ada_Only_Tooling_In_Tree (Root & "/tests");
       Check_Ada_Only_Tooling_In_Tree (Root & "/tools");
       Check_Ada_Only_Tooling_In_Tree (Root & "/share");
+
+      --  Delegate Python-artifact detection to the shared tree check across the
+      --  same source trees the inline scan covers.
+      Scan_Python (Root & "/config");
+      Scan_Python (Root & "/scripts");
+      Scan_Python (Root & "/src");
+      Scan_Python (Root & "/tests");
+      Scan_Python (Root & "/tools");
+      Scan_Python (Root & "/share");
+
+      if Python_Errors > 0 then
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
    end Check_Ada_Only_Tooling;
 
    function Is_Source_String_Delimiter
@@ -2476,18 +2501,14 @@ procedure Check_All is
         (Events_Body,
          "with GNAT.OS_Lib;",
          "event translation must not import process execution APIs");
-      Require_Not_Contains
+      --  Lock the Files.* import boundary through the shared helper: event
+      --  translation may only import Files.UTF8 and Files.UI, which forbids the
+      --  mutable model, filesystem-operation, and filesystem-inspection units.
+      Require_Only_Allowed_With_Clauses
         (Events_Body,
-         "with Files.Model;",
-         "event translation must not import mutable model state");
-      Require_Not_Contains
-        (Events_Body,
-         "with Files.Operations;",
-         "event translation must not import filesystem operations");
-      Require_Not_Contains
-        (Events_Body,
-         "with Files.File_System;",
-         "event translation must not import filesystem inspection or mutation APIs");
+         "Files.",
+         [To_Unbounded_String ("Files.UTF8"),
+          To_Unbounded_String ("Files.UI")]);
       Require_Not_Contains
         (Events_Body,
          "Files.Commands.Execute",
@@ -2818,24 +2839,12 @@ procedure Check_All is
             Label & " must not execute operations");
          Require_Not_Contains
            (Path,
-            "with Files.Operations;",
-            Label & " must not import operations");
-         Require_Not_Contains
-           (Path,
             "Files.Controller.",
             Label & " must not route controller actions");
          Require_Not_Contains
            (Path,
-            "with Files.Controller;",
-            Label & " must not import the controller");
-         Require_Not_Contains
-           (Path,
             "Files.Application.",
             Label & " must not call application startup logic");
-         Require_Not_Contains
-           (Path,
-            "with Files.Application;",
-            Label & " must not import application startup logic");
          Require_Not_Contains
            (Path,
             "Files.Commands.Execute",
@@ -3002,6 +3011,34 @@ procedure Check_All is
       Check_Rendering_Unit (Rendering_Body, "rendering body");
       Check_Rendering_Unit (Vulkan_Spec, "Vulkan rendering spec");
       Check_Rendering_Unit (Vulkan_Body, "Vulkan rendering body");
+
+      --  Lock the Files.* import boundary of the rendering layer through the
+      --  shared helper. The allow-lists are the units each source actually
+      --  imports today, so the operations, controller, and application-startup
+      --  units (and any other new Files.* dependency) are rejected.
+      Require_Only_Allowed_With_Clauses
+        (Rendering_Spec,
+         "Files.",
+         [To_Unbounded_String ("Files.Breadcrumbs"),
+          To_Unbounded_String ("Files.Commands"),
+          To_Unbounded_String ("Files.File_System"),
+          To_Unbounded_String ("Files.Folder_Tree"),
+          To_Unbounded_String ("Files.Model"),
+          To_Unbounded_String ("Files.Quick_Look"),
+          To_Unbounded_String ("Files.Settings"),
+          To_Unbounded_String ("Files.Types")]);
+      Require_Only_Allowed_With_Clauses
+        (Rendering_Body,
+         "Files.",
+         [To_Unbounded_String ("Files.Accessibility"),
+          To_Unbounded_String ("Files.Command_Palette"),
+          To_Unbounded_String ("Files.File_Types"),
+          To_Unbounded_String ("Files.Fonts"),
+          To_Unbounded_String ("Files.Localization"),
+          To_Unbounded_String ("Files.Platform.Metadata"),
+          To_Unbounded_String ("Files.UTF8"),
+          To_Unbounded_String ("Files.UI")]);
+
       Require_Not_Contains
         (Fonts_Body,
          "or else Has_Suffix (Lower, "".ttc"")",
