@@ -253,11 +253,7 @@ package body Files.Application.Windows is
       Text_Glyph_Key  : Unbounded_String;
       Text_Glyphs     : Files.Rendering.Text_Render_Result;
       Vulkan          : Guikit.Vulkan.Vulkan_Renderer;
-      Vulkan_Tried    : Boolean := False;
-      Surface_Tried   : Boolean := False;
       Shown           : Boolean := False;
-      Last_Frame_Width  : Natural := 0;
-      Last_Frame_Height : Natural := 0;
       Fallback_Frames : Natural := 0;
       --  Frame command caching: when none of the rendering inputs change
       --  between two Render_Window calls, skip the expensive layout and
@@ -1770,11 +1766,7 @@ package body Files.Application.Windows is
             Text_Glyph_Key => Null_Unbounded_String,
             Text_Glyphs => <>,
             Vulkan          => <>,
-            Vulkan_Tried    => False,
-            Surface_Tried   => False,
             Shown           => True,
-            Last_Frame_Width  => 0,
-            Last_Frame_Height => 0,
             Fallback_Frames => 0,
             Frame_Cache_Valid    => False,
             Cached_Snapshot      => <>,
@@ -2261,48 +2253,11 @@ package body Files.Application.Windows is
       begin
          Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
 
-         if not Runtime.Vulkan_Tried then
-            declare
-               Status : constant Guikit.Vulkan.Vulkan_Status :=
-                 Guikit.Vulkan.Initialize (Runtime.Vulkan);
-            begin
-               Runtime.Vulkan_Tried := True;
-               pragma Unreferenced (Status);
-            end;
-         end if;
-
-         if Runtime.Vulkan_Tried
-           and then not Runtime.Surface_Tried
-           and then Guikit.Vulkan.Ready (Runtime.Vulkan)
-         then
-            declare
-               Status : constant Guikit.Vulkan.Vulkan_Status :=
-                 Guikit.Vulkan.Create_Surface (Runtime.Vulkan, As_Window (Runtime.Handle));
-            begin
-               Runtime.Surface_Tried := True;
-               pragma Unreferenced (Status);
-            end;
-         end if;
-
-         if Runtime.Surface_Tried
-           and then Guikit.Vulkan.Surface_Ready (Runtime.Vulkan)
-           and then
-             (not Guikit.Vulkan.Swapchain_Ready (Runtime.Vulkan)
-              or else Runtime.Last_Frame_Width /= Natural (Width)
-              or else Runtime.Last_Frame_Height /= Natural (Height))
-         then
-            Guikit.Vulkan.Request_Swapchain_Recreate
-              (Renderer => Runtime.Vulkan,
-               Width    => Natural (Width),
-               Height   => Natural (Height));
-            Runtime.Last_Present_Status :=
-              Guikit.Vulkan.Configure_Swapchain
-                (Renderer => Runtime.Vulkan,
-                 Width    => Natural (Width),
-                 Height   => Natural (Height));
-            Runtime.Last_Frame_Width := Natural (Width);
-            Runtime.Last_Frame_Height := Natural (Height);
-         end if;
+         Guikit.Vulkan.Ensure_Ready
+           (Renderer => Runtime.Vulkan,
+            Window   => As_Window (Runtime.Handle),
+            Width    => Natural (Width),
+            Height   => Natural (Height));
 
          declare
             Current_Text_Key : constant Unbounded_String := Frame_Text_Key (Frame);
@@ -2379,25 +2334,12 @@ package body Files.Application.Windows is
                   begin
                      Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
                      Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
-                     Runtime.Last_Present_Status := Guikit.Vulkan.Present (Runtime.Vulkan, Batch);
-
-                     if Runtime.Last_Present_Status =
-                       Guikit.Vulkan.Vulkan_Swapchain_Recreate_Needed
-                     then
-                        Runtime.Last_Present_Status :=
-                          Guikit.Vulkan.Configure_Swapchain
-                            (Renderer => Runtime.Vulkan,
-                             Width    => Natural (Width),
-                             Height   => Natural (Height));
-                        Runtime.Last_Frame_Width := Natural (Width);
-                        Runtime.Last_Frame_Height := Natural (Height);
-                        if Runtime.Last_Present_Status =
-                          Guikit.Vulkan.Vulkan_Swapchain_Ready
-                        then
-                           Runtime.Last_Present_Status :=
-                             Guikit.Vulkan.Present (Runtime.Vulkan, Batch);
-                        end if;
-                     end if;
+                     Runtime.Last_Present_Status :=
+                       Guikit.Vulkan.Present_Frame
+                         (Renderer => Runtime.Vulkan,
+                          Batch    => Batch,
+                          Width    => Natural (Width),
+                          Height   => Natural (Height));
 
                      if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
                         Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
