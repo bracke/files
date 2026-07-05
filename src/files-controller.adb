@@ -2,6 +2,8 @@ with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Guikit.Layout;
+
 with Files.Applications;
 with Files.Breadcrumbs;
 with Files.Command_Palette;
@@ -200,28 +202,16 @@ package body Files.Controller is
       Count : Natural)
    is
       Visible_Rows : constant Natural := 4;
-      Offset       : Natural := Files.Model.Command_Palette_Result_Offset (Model);
    begin
-      if Count = 0 or else Index = 0 then
-         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
-         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
-         return;
-      end if;
-
-      if Count <= Visible_Rows then
-         Offset := 0;
-      elsif Offset > Count - Visible_Rows then
-         Offset := Count - Visible_Rows;
-      end if;
-
-      if Index <= Offset then
-         Offset := Index - 1;
-      elsif Index > Offset + Visible_Rows then
-         Offset := Index - Visible_Rows;
-      end if;
-
-      Files.Model.Set_Command_Palette_Selected_Index (Model, Index);
-      Files.Model.Set_Command_Palette_Result_Offset (Model, Offset);
+      Files.Model.Set_Command_Palette_Selected_Index
+        (Model, (if Count = 0 or else Index = 0 then 0 else Index));
+      Files.Model.Set_Command_Palette_Result_Offset
+        (Model,
+         Guikit.Layout.Scroll_Offset_For_Selection
+           (Selected       => Index,
+            Result_Count   => Count,
+            Visible_Rows   => Visible_Rows,
+            Current_Offset => Files.Model.Command_Palette_Result_Offset (Model)));
    end Set_Palette_Selection;
 
    procedure Move_Palette_Selection
