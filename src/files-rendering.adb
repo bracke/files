@@ -8170,16 +8170,6 @@ package body Files.Rendering is
                Begin_Row (Y_Cursor);
                declare
                   Start_Visible_Y : constant Natural := Visible_Y (Y_Cursor);
-                  Knob_Pad : constant Natural :=
-                    Natural'Max (1, Line_Height / 8);
-                  Knob_Sz  : constant Natural :=
-                    (if Line_Height > 2 * Knob_Pad
-                     then Line_Height - 2 * Knob_Pad
-                     else Line_Height);
-                  Knob_X   : constant Natural :=
-                    (if Is_On
-                     then Saturating_Add (Toggle_X, Toggle_W - Knob_Pad - Knob_Sz)
-                     else Saturating_Add (Toggle_X, Knob_Pad));
                begin
                   if Index /= 0 and then not Y_Hidden (Y_Cursor, Selection_H) then
                      Result.Settings_Hits.Append
@@ -8234,14 +8224,19 @@ package body Files.Rendering is
                            Y      => Start_Visible_Y,
                            Width  => Toggle_W,
                            Height => Line_Height));
-                     Add_Rect
-                       (Toggle_X, Sel_Y (Start_Visible_Y), Toggle_W, Line_Height,
-                        (if Is_On then Selection_Color else Input_Color));
-                     Add_Border (Toggle_X, Sel_Y (Start_Visible_Y), Toggle_W, Line_Height, Border_Color);
-                     Add_Rect
-                       (Knob_X,
-                        Saturating_Add (Sel_Y (Start_Visible_Y), Knob_Pad),
-                        Knob_Sz, Knob_Sz, Text_Color);
+                     Guikit.Widgets.Draw_Toggle
+                       (Rectangles   => Result.Rectangles,
+                        Clip_Width   => Layout.Width,
+                        Clip_Height  => Layout.Height,
+                        X            => Toggle_X,
+                        Y            => Sel_Y (Start_Visible_Y),
+                        Width        => Toggle_W,
+                        Height       => Line_Height,
+                        Is_On        => Is_On,
+                        On_Color     => Selection_Color,
+                        Off_Color    => Input_Color,
+                        Border_Color => Border_Color,
+                        Knob_Color   => Text_Color);
                   end if;
                end;
                Y_Cursor := Saturating_Add (Y_Cursor, Selection_H);
