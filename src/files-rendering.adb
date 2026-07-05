@@ -10055,31 +10055,24 @@ package body Files.Rendering is
                              Hover_X, Hover_Y);
                Pressed : constant Boolean :=
                  Is_Pressed (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height);
-               Inset   : constant Natural :=
-                 (if Dialog.Button_Height > Line_Height then (Dialog.Button_Height - Line_Height) / 2 else 0);
             begin
-               Add_Overlay_Rect
-                 (Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
-                  (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Overlay_Color));
-               Add_Overlay_Rect (Button_X, Dialog.Button_Y, Dialog.Button_Width, 1, Border_Color);
-               Add_Overlay_Rect (Button_X, Dialog.Button_Y, 1, Dialog.Button_Height, Border_Color);
-               if Dialog.Button_Height > 0 then
-                  Add_Overlay_Rect
-                    (Button_X, Saturating_Add (Dialog.Button_Y, Dialog.Button_Height - 1),
-                     Dialog.Button_Width, 1, Border_Color);
-               end if;
-               if Dialog.Button_Width > 0 then
-                  Add_Overlay_Rect
-                    (Saturating_Add (Button_X, Dialog.Button_Width - 1), Dialog.Button_Y, 1,
-                     Dialog.Button_Height, Border_Color);
-               end if;
-               Add_Overlay_Text
-                 (Saturating_Add (Button_X, Guikit.Layout.Input_Field_Padding),
-                  Saturating_Add (Dialog.Button_Y, Inset),
-                  (if Dialog.Button_Width > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-                   then Dialog.Button_Width - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-                   else Dialog.Button_Width),
-                  Line_Height, Localized (Label_Key), Text_Color, Fit => True);
+               Guikit.Widgets.Draw_Button
+                 (Rectangles      => Result.Overlay_Rectangles,
+                  Text            => Result.Overlay_Text,
+                  Clip_Width      => Layout.Width,
+                  Clip_Height     => Layout.Height,
+                  X               => Button_X,
+                  Y               => Dialog.Button_Y,
+                  Width           => Dialog.Button_Width,
+                  Height          => Dialog.Button_Height,
+                  Fill_Color      =>
+                    (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Overlay_Color),
+                  Border_Color    => Border_Color,
+                  Padding         => Guikit.Layout.Input_Field_Padding,
+                  Label_Text      => Localized (Label_Key),
+                  Label_Truncated => False,
+                  Label_Height    => Line_Height,
+                  Label_Color     => Text_Color);
                Add_Accessibility_Node
                  (Role_Button, Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
                   Localized (Label_Key));
@@ -10194,8 +10187,6 @@ package body Files.Rendering is
                           Hover_X, Hover_Y);
             Cancel_Pressed : constant Boolean :=
               Is_Pressed (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height);
-            Cancel_Inset : constant Natural :=
-              (if Panel.Cancel_Height > Line_Height then (Panel.Cancel_Height - Line_Height) / 2 else 0);
          begin
             --  Modal-lite panel body and border.
             Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, Panel.Height, Overlay_Color);
@@ -10230,29 +10221,24 @@ package body Files.Rendering is
             Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, 1, Border_Color);
 
             --  Cancel button.
-            Add_Overlay_Rect
-              (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
-               (if Cancel_Pressed then Pressed_Color
-                elsif Cancel_Hovered then Hover_Color else Overlay_Color));
-            Add_Overlay_Rect (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, 1, Border_Color);
-            Add_Overlay_Rect (Panel.Cancel_X, Panel.Cancel_Y, 1, Panel.Cancel_Height, Border_Color);
-            if Panel.Cancel_Height > 0 then
-               Add_Overlay_Rect
-                 (Panel.Cancel_X, Saturating_Add (Panel.Cancel_Y, Panel.Cancel_Height - 1),
-                  Panel.Cancel_Width, 1, Border_Color);
-            end if;
-            if Panel.Cancel_Width > 0 then
-               Add_Overlay_Rect
-                 (Saturating_Add (Panel.Cancel_X, Panel.Cancel_Width - 1), Panel.Cancel_Y, 1,
-                  Panel.Cancel_Height, Border_Color);
-            end if;
-            Add_Overlay_Text
-              (Saturating_Add (Panel.Cancel_X, Guikit.Layout.Input_Field_Padding),
-               Saturating_Add (Panel.Cancel_Y, Cancel_Inset),
-               (if Panel.Cancel_Width > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-                then Panel.Cancel_Width - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-                else Panel.Cancel_Width),
-               Line_Height, Localized ("dialog.paste_progress.button.cancel"), Text_Color, Fit => True);
+            Guikit.Widgets.Draw_Button
+              (Rectangles      => Result.Overlay_Rectangles,
+               Text            => Result.Overlay_Text,
+               Clip_Width      => Layout.Width,
+               Clip_Height     => Layout.Height,
+               X               => Panel.Cancel_X,
+               Y               => Panel.Cancel_Y,
+               Width           => Panel.Cancel_Width,
+               Height          => Panel.Cancel_Height,
+               Fill_Color      =>
+                 (if Cancel_Pressed then Pressed_Color
+                  elsif Cancel_Hovered then Hover_Color else Overlay_Color),
+               Border_Color    => Border_Color,
+               Padding         => Guikit.Layout.Input_Field_Padding,
+               Label_Text      => Localized ("dialog.paste_progress.button.cancel"),
+               Label_Truncated => False,
+               Label_Height    => Line_Height,
+               Label_Color     => Text_Color);
             Add_Accessibility_Node
               (Role_Button, Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
                Localized ("dialog.paste_progress.button.cancel"));
