@@ -29,6 +29,7 @@ with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
+with Guikit.Utf8;
 with Files.Types;
 
 package body Files.Application.Windows is
@@ -542,32 +543,13 @@ package body Files.Application.Windows is
       return String
    is
       Code : constant Natural := Wide_Wide_Character'Pos (Char);
-
-      function Byte (Value : Natural) return Character is
-      begin
-         return Character'Val (Value);
-      end Byte;
    begin
-      if Code < Character'Pos (' ')
-        or else (Code >= 16#D800# and then Code <= 16#DFFF#)
-        or else Code > 16#10FFFF#
-      then
+      --  Drop control characters (text-input policy); Guikit.Utf8.Encode returns
+      --  "" for surrogates and out-of-range values.
+      if Code < Character'Pos (' ') then
          return "";
-      elsif Code <= 16#7F# then
-         return String'(1 => Byte (Code));
-      elsif Code <= 16#7FF# then
-         return Byte (16#C0# + Code / 16#40#) &
-           Byte (16#80# + Code mod 16#40#);
-      elsif Code <= 16#FFFF# then
-         return Byte (16#E0# + Code / 16#1000#) &
-           Byte (16#80# + (Code / 16#40#) mod 16#40#) &
-           Byte (16#80# + Code mod 16#40#);
-      else
-         return Byte (16#F0# + Code / 16#40000#) &
-           Byte (16#80# + (Code / 16#1000#) mod 16#40#) &
-           Byte (16#80# + (Code / 16#40#) mod 16#40#) &
-           Byte (16#80# + Code mod 16#40#);
       end if;
+      return Guikit.Utf8.Encode (Code);
    end Text_Input_Bytes;
 
    overriding procedure Character_Entered
