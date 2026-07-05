@@ -9114,8 +9114,9 @@ package body Files.Rendering is
                else Palette.Search_Height);
          begin
             Add_Drop_Shadow (Palette.X, Palette.Y, Palette.Width, Palette.Height);
-            Add_Rect (Palette.X, Palette.Y, Palette.Width, Palette.Height, Pane_Color);
-            Add_Border (Palette.X, Palette.Y, Palette.Width, Palette.Height, Border_Color);
+            Guikit.Widgets.Draw_Menu_Panel
+              (Result.Rectangles, Layout.Width, Layout.Height,
+               Palette.X, Palette.Y, Palette.Width, Palette.Height, Pane_Color, Border_Color);
             Add_Rect (Palette.X, Palette.Y, Palette.Width, Natural'Min (3, Palette.Height), Selection_Color);
             Add_Accessibility_Node
               (Role_Dialog,
@@ -9124,7 +9125,17 @@ package body Files.Rendering is
                Palette.Width,
                Palette.Height,
                Localized ("command.palette.open"));
-            Add_Rect (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height, Input_Color);
+            --  The search box is a filled input; it gains a border (via
+            --  Draw_Input_Field) only when focused, otherwise just its fill.
+            if Snapshot.Focus = Files.Types.Focus_Command_Palette then
+               Guikit.Widgets.Draw_Input_Field
+                 (Result.Rectangles, Layout.Width, Layout.Height,
+                  Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height,
+                  Input_Color, Border_Color);
+            else
+               Add_Rect
+                 (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height, Input_Color);
+            end if;
             Add_Text
               (Saturating_Add (Palette.Search_X, Guikit.Layout.Input_Field_Padding),
                Search_Text_Y,
@@ -9135,12 +9146,6 @@ package body Files.Rendering is
                Snapshot.Command_Palette_Query,
                Fit => True);
             if Snapshot.Focus = Files.Types.Focus_Command_Palette then
-               Add_Border
-                 (Palette.Search_X,
-                  Palette.Search_Y,
-                  Palette.Search_Width,
-                  Palette.Search_Height,
-                  Border_Color);
                Add_Focus_Ring
                  (Palette.Search_X,
                   Palette.Search_Y,
@@ -9166,18 +9171,13 @@ package body Files.Rendering is
          end;
 
          if Snapshot.Command_Palette_Results.Is_Empty and then Palette.Results_Height > 0 then
-            Add_Rect
-              (Palette.Results_X,
+            Guikit.Widgets.Draw_Menu_Panel
+              (Result.Rectangles, Layout.Width, Layout.Height,
+               Palette.Results_X,
                Palette.Results_Y,
                Palette.Results_Width,
                Natural'Min (Saturating_Multiply (Line_Height, 2), Palette.Results_Height),
-               Pane_Color);
-            Add_Border
-              (Palette.Results_X,
-               Palette.Results_Y,
-               Palette.Results_Width,
-               Natural'Min (Saturating_Multiply (Line_Height, 2), Palette.Results_Height),
-               Border_Color);
+               Pane_Color, Border_Color);
             Add_Text
               (Saturating_Add (Palette.Results_X, 8),
                Palette.Results_Y,
