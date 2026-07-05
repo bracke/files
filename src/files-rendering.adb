@@ -14,6 +14,7 @@ with Files.Accessibility;
 with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
+with Guikit.Text;
 with Guikit.Widgets;
 with Files.Localization;
 with Files.Platform.Metadata;
@@ -22,7 +23,9 @@ with Files.UI;
 
 package body Files.Rendering is
 
-   The_Renderer : Textrender.Renderer;
+   --  Text rendering is provided by the guikit toolkit; this process-wide
+   --  renderer holds the shared font/atlas the whole app draws through.
+   The_Renderer : Guikit.Text.Renderer;
 
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
@@ -10287,56 +10290,30 @@ package body Files.Rendering is
       Atlas_Height : Positive := 1024)
       return Text_Render_Status
    is
-      use type Textrender.Status_Code;
-      Status : Textrender.Status_Code;
+      Fallbacks : Guikit.Text.Font_Path_Vectors.Vector;
+      Status    : Text_Render_Status;
    begin
-      Renderer.Loaded := False;
-      Renderer.Font_Path := To_Unbounded_String ("");
-
-      if Font_Path = "" then
-         Textrender.Reset (The_Renderer);
-         return Text_Render_Font_Load_Failed;
-      end if;
-
+      --  Delegate to the guikit text layer; the app owns the font paths.
+      for Path of Files.Fonts.Fallback_Font_Paths loop
+         Fallbacks.Append (To_String (Path));
+      end loop;
       Status :=
-        Textrender.Load_Font
-          (R            => The_Renderer,
-           Path         => Font_Path,
-           Pixel_Size   => Pixel_Size,
-           Cell_Width   => Cell_Width,
-           Cell_Height  => Cell_Height,
-           Atlas_Width  => Atlas_Width,
-           Atlas_Height => Atlas_Height);
-
-      if Status /= Textrender.Success then
-         return Text_Render_Font_Load_Failed;
-      end if;
-
-      --  Append the curated per-glyph fallback chain into the same renderer
-      --  (and thus the same shared atlas). Each font is consulted, in order,
-      --  only for codepoints the monospace primary does not map. Failures to
-      --  load an individual fallback are non-fatal: the primary already renders
-      --  and remaining fallbacks still apply.
-      declare
-         Fallbacks : constant Files.Types.String_Vectors.Vector :=
-           Files.Fonts.Fallback_Font_Paths;
-         Added     : Textrender.Status_Code;
-      begin
-         --  Best-effort: a missing or unloadable fallback is non-fatal, so the
-         --  per-font status is intentionally discarded.
-         for Path of Fallbacks loop
-            Added := Textrender.Add_Fallback_Font (The_Renderer, To_String (Path));
-         end loop;
-         pragma Unreferenced (Added);
-      end;
-
-      Renderer.Loaded := True;
-      Renderer.Font_Path := To_Unbounded_String (Font_Path);
-      Renderer.Cell_Width := Cell_Width;
-      Renderer.Cell_Height := Cell_Height;
-      Renderer.Atlas_Width := Atlas_Width;
+        Guikit.Text.Initialize
+          (R              => The_Renderer,
+           Font_Path      => Font_Path,
+           Fallback_Paths => Fallbacks,
+           Pixel_Size     => Pixel_Size,
+           Cell_Width     => Cell_Width,
+           Cell_Height    => Cell_Height,
+           Atlas_Width    => Atlas_Width,
+           Atlas_Height   => Atlas_Height);
+      Renderer.Loaded       := Status = Text_Render_Success;
+      Renderer.Font_Path    := To_Unbounded_String ((if Renderer.Loaded then Font_Path else ""));
+      Renderer.Cell_Width   := Cell_Width;
+      Renderer.Cell_Height  := Cell_Height;
+      Renderer.Atlas_Width  := Atlas_Width;
       Renderer.Atlas_Height := Atlas_Height;
-      return Text_Render_Success;
+      return Status;
    end Initialize_Text;
 
    function Build_Text_Glyphs
@@ -10344,189 +10321,12 @@ package body Files.Rendering is
       Frame    : Frame_Commands)
       return Text_Render_Result
    is
-      use type Textrender.Status_Code;
-      Result : Text_Render_Result;
-
-      function Pixel_Snapped
-        (Value : Float)
-         return Float is
-      begin
-         if Value <= 0.0 then
-            return 0.0;
-         elsif Value >= Float (Integer'Last - 1) then
-            return Float (Integer'Last - 1);
-         else
-            return Float (Integer (Value + 0.5));
-         end if;
-      end Pixel_Snapped;
+      Empty : Text_Render_Result;
    begin
       if not Renderer.Loaded then
-         return Result;
+         return Empty;
       end if;
-
-      Result.Status := Text_Render_Success;
-      Result.Atlas_Width := Renderer.Atlas_Width;
-      Result.Atlas_Height := Renderer.Atlas_Height;
-      Result.Atlas_Bytes := Saturating_Multiply (Renderer.Atlas_Width, Renderer.Atlas_Height);
-
-      declare
-         procedure Append_Glyphs
-           (Commands : Text_Command_Vectors.Vector;
-            Glyphs   : in out Glyph_Command_Vectors.Vector)
-         is
-         begin
-            for Text of Commands loop
-               declare
-                  Content : constant String := To_String (Text.Text);
-                  Cell_X  : Float := Float (Text.X);
-                  Cell_Y  : constant Float := Float (Text.Y);
-                  Limit_X : constant Float := Float (Saturating_Add (Text.X, Text.Width));
-                  Base_X  : Float := Float (Text.X);
-                  Index   : Integer := Content'First;
-               begin
-                  while Index <= Content'Last loop
-                     declare
-                        Unit_Start : constant Integer := Index;
-                        Decoded_Codepoint : Natural;
-                        Codepoint : Textrender.Codepoint;
-                        Metrics   : Textrender.Glyph_Metric;
-                        Placement : Textrender.Glyph_Placement;
-                        Status    : Textrender.Status_Code;
-                        Unit_Width : Natural;
-                     begin
-                        Files.UTF8.Decode_Next_Display_Codepoint
-                          (Content,
-                           Index,
-                           Decoded_Codepoint);
-                        Unit_Width := Files.UTF8.Display_Units (Content (Unit_Start .. Index - 1));
-                        if Unit_Width > 0
-                          and then Cell_X + Float (Saturating_Multiply (Unit_Width, Renderer.Cell_Width)) > Limit_X
-                        then
-                           exit;
-                        end if;
-
-                        Codepoint := Textrender.Codepoint (Decoded_Codepoint);
-                        Status := Textrender.Get_Glyph
-                          (The_Renderer, Codepoint, Metrics,
-                           Style => (if Text.Italic then Textrender.Italic else Textrender.Regular));
-
-                        if Status /= Textrender.Success then
-                           if Unit_Width > 0 then
-                              Result.Missing_Glyph_Count :=
-                                Saturating_Add (Result.Missing_Glyph_Count, 1);
-                              Codepoint := Textrender.Codepoint (Character'Pos ('?'));
-                              Status :=
-                                Textrender.Get_Glyph
-                                  (The_Renderer, Codepoint, Metrics,
-                                   Style => (if Text.Italic then Textrender.Italic else Textrender.Regular));
-                              if Status /= Textrender.Success then
-                                 Metrics :=
-                                   (X         => 0,
-                                    Y         => 0,
-                                    W         => 0,
-                                    H         => 0,
-                                    U0        => 0.0,
-                                    V0        => 0.0,
-                                    U1        => 0.0,
-                                    V1        => 0.0,
-                                    Advance_X => 0.0,
-                                    Bearing_X => 0.0,
-                                    Bearing_Y => 0.0);
-                              end if;
-                           else
-                              if Files.UTF8.Is_Required_Zero_Width_Codepoint (Decoded_Codepoint) then
-                                 Result.Missing_Glyph_Count :=
-                                   Saturating_Add (Result.Missing_Glyph_Count, 1);
-                              end if;
-                              Metrics :=
-                                (X         => 0,
-                                 Y         => 0,
-                                 W         => 0,
-                                 H         => 0,
-                                 U0        => 0.0,
-                                 V0        => 0.0,
-                                 U1        => 0.0,
-                                 V1        => 0.0,
-                                 Advance_X => 0.0,
-                                 Bearing_X => 0.0,
-                                 Bearing_Y => 0.0);
-                           end if;
-                        end if;
-
-                        if Metrics.W > 0 and then Metrics.H > 0 then
-                           declare
-                              Origin_X : constant Float := (if Unit_Width = 0 then Base_X else Cell_X);
-                              Scale    : constant Float :=
-                                (if Text.Scale_To_Box
-                                 then Float'Max
-                                   (1.0,
-                                    0.86
-                                    * Float'Min
-                                      (Float (Text.Width) / Float (Metrics.W),
-                                       Float (Text.Height) / Float (Metrics.H)))
-                                 else 1.0);
-                              Scaled_W : constant Float := Float (Metrics.W) * Scale;
-                              Scaled_H : constant Float := Float (Metrics.H) * Scale;
-                              Draw_X   : Float;
-                              Draw_Y   : Float;
-                           begin
-                              Placement :=
-                                Textrender.Place_Glyph_In_Cell
-                                  (The_Renderer,
-                                   Metrics,
-                                   Origin_X,
-                                   Cell_Y);
-                              if Text.Scale_To_Box then
-                                 Draw_X := Float (Text.X) + (Float (Text.Width) - Scaled_W) / 2.0;
-                                 Draw_Y := Float (Text.Y) + (Float (Text.Height) - Scaled_H) / 2.0;
-                              elsif Decoded_Codepoint = 16#2026# then
-                                 --  Snap the ellipsis glyph to the left edge of
-                                 --  its cell so it hugs the preceding character
-                                 --  instead of sitting centered with visible
-                                 --  padding on its left.
-                                 Draw_X := Origin_X;
-                                 Draw_Y := Placement.Y;
-                              else
-                                 Draw_X := Placement.X;
-                                 Draw_Y := Placement.Y;
-                              end if;
-                              Glyphs.Append
-                                (Glyph_Command'
-                                   (X         => Pixel_Snapped (Draw_X),
-                                    Y         => Pixel_Snapped (Draw_Y),
-                                    Width     => Pixel_Snapped (Scaled_W),
-                                    Height    => Pixel_Snapped (Scaled_H),
-                                    U0        => Metrics.U0,
-                                    V0        => Metrics.V0,
-                                    U1        => Metrics.U1,
-                                    V1        => Metrics.V1,
-                                    Color     => Text.Color,
-                                    Codepoint => Natural (Codepoint)));
-                           end;
-                        end if;
-
-                        if Unit_Width > 0 then
-                           Base_X := Cell_X;
-                           Cell_X :=
-                             Cell_X + Float (Saturating_Multiply (Unit_Width, Renderer.Cell_Width));
-                        end if;
-                     end;
-                  end loop;
-               end;
-            end loop;
-         end Append_Glyphs;
-      begin
-         Append_Glyphs (Frame.Text, Result.Glyphs);
-         if Result.Status = Text_Render_Success then
-            Append_Glyphs (Frame.Overlay_Text, Result.Overlay_Glyphs);
-         end if;
-      end;
-
-      Result.Atlas_Dirty := Textrender.Atlas_Dirty (The_Renderer);
-      if Textrender.Atlas_Pixels (The_Renderer) /= null then
-         Result.Atlas_Pixels := Textrender.Atlas_Pixels (The_Renderer).all'Address;
-      end if;
-      return Result;
+      return Guikit.Text.Build_Glyphs (The_Renderer, Frame.Text, Frame.Overlay_Text);
    end Build_Text_Glyphs;
 
 end Files.Rendering;
