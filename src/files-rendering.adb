@@ -8421,19 +8421,6 @@ package body Files.Rendering is
                   Down_X   : constant Natural := Saturating_Add (Value_X, Value_W);
                   Up_X     : constant Natural := Saturating_Add (Down_X, Button_W);
 
-                  procedure Draw_Button (X : Natural; Glyph : String) is
-                  begin
-                     Add_Rect (X, Sel_Y (Start_Visible_Y), Button_W, Line_Height, Input_Color);
-                     Add_Border (X, Sel_Y (Start_Visible_Y), Button_W, Line_Height, Border_Color);
-                     Add_Text
-                       (Saturating_Add (X, Pad),
-                        Text_Y_In_Row (Start_Visible_Y),
-                        (if Button_W > 2 * Pad then Button_W - 2 * Pad else 0),
-                        Line_Height,
-                        To_Unbounded_String (Glyph),
-                        Text_Color,
-                        Fit => True);
-                  end Draw_Button;
                begin
                   if Index /= 0 and then not Y_Hidden (Y_Cursor, Selection_H) then
                      Result.Settings_Hits.Append
@@ -8479,16 +8466,6 @@ package body Files.Rendering is
                   end loop;
 
                   if not Y_Hidden (Y_Cursor, Line_Height) then
-                     Add_Input_Field
-                       (Value_X, Sel_Y (Start_Visible_Y), Value_W, Line_Height, Input_Color, Border_Color);
-                     Add_Text
-                       (Saturating_Add (Value_X, Pad),
-                        Text_Y_In_Row (Start_Visible_Y),
-                        (if Value_W > 2 * Pad then Value_W - 2 * Pad else 0),
-                        Line_Height,
-                        Value,
-                        Text_Color,
-                        Fit => True);
                      Result.Settings_Hits.Append
                        (Settings_Hit_Region'
                           (Kind   => Settings_Hit_Stepper_Down,
@@ -8507,8 +8484,27 @@ package body Files.Rendering is
                            Y      => Start_Visible_Y,
                            Width  => Button_W,
                            Height => Line_Height));
-                     Draw_Button (Down_X, "-");
-                     Draw_Button (Up_X, "+");
+                     Guikit.Widgets.Draw_Number_Stepper
+                       (Rectangles      => Result.Rectangles,
+                        Text            => Result.Text,
+                        Clip_Width      => Layout.Width,
+                        Clip_Height     => Layout.Height,
+                        Box_Y           => Sel_Y (Start_Visible_Y),
+                        Box_Height      => Line_Height,
+                        Text_Y          => Text_Y_In_Row (Start_Visible_Y),
+                        Text_Height     => Line_Height,
+                        Padding         => Pad,
+                        Value_X         => Value_X,
+                        Value_Width     => Value_W,
+                        Value_Text      => Value,
+                        Down_X          => Down_X,
+                        Up_X            => Up_X,
+                        Button_Width    => Button_W,
+                        Decrement_Label => To_Unbounded_String ("-"),
+                        Increment_Label => To_Unbounded_String ("+"),
+                        Fill_Color      => Input_Color,
+                        Border_Color    => Border_Color,
+                        Text_Color      => Text_Color);
                   end if;
                end;
                Y_Cursor := Saturating_Add (Y_Cursor, Selection_H);
