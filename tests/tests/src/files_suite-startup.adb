@@ -1680,7 +1680,7 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("src/files-application-windows.adb", "Glfw.Windows.Icon.Set_Files_Icon"),
          "native desktop windows receive the packaged application icon");
       Assert
-        (Repository_File_Contains ("src/files-application-windows.adb", "glfwWaitEventsTimeout")
+        (Repository_File_Contains ("src/files-application-windows.adb", "Guikit.Vulkan.Wait_For_Events")
          and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
       Assert

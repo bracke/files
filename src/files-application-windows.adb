@@ -311,20 +311,13 @@ package body Files.Application.Windows is
    Process_Text_Font_Path  : Unbounded_String;
    File_Watch_Poll_Interval : constant Duration := 1.0;
    Type_Ahead_Timeout : constant Duration := 1.0;
-   Event_Wait_Timeout : constant Interfaces.C.double := 0.016;
+   Event_Wait_Timeout : constant Duration := 0.016;
    Inotify_Nonblock : constant Interfaces.C.int := 2_048;
    Inotify_Cloexec : constant Interfaces.C.int := 524_288;
    Inotify_Event_Mask : constant Interfaces.C.unsigned :=
      16#00000004# or 16#00000008# or 16#00000040# or 16#00000080#
      or 16#00000100# or 16#00000200# or 16#00000400# or 16#00000800#
      or 16#00002000# or 16#00004000# or 16#01000000#;
-
-   procedure Poll_Events
-     with Import, Convention => C, External_Name => "glfwPollEvents";
-
-   procedure Wait_For_Events_Timeout
-     (Timeout : Interfaces.C.double)
-   with Import, Convention => C, External_Name => "glfwWaitEventsTimeout";
 
    function Inotify_Init1
      (Flags : Interfaces.C.int)
@@ -356,11 +349,6 @@ package body Files.Application.Windows is
       return Interfaces.C.int
    with Import, Convention => C, External_Name => "close";
 
-   procedure Set_Raw_Window_Hint
-     (Target : Interfaces.C.int;
-      Hint   : Interfaces.C.int)
-     with Import, Convention => C, External_Name => "glfwWindowHint";
-
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -368,21 +356,9 @@ package body Files.Application.Windows is
       Text   : Interfaces.C.Strings.chars_ptr)
      with Import, Convention => C, External_Name => "glfwSetClipboardString";
 
-   procedure Configure_Vulkan_Window_Hints;
-
    procedure Free_Window is new Ada.Unchecked_Deallocation
      (Object => Desktop_Window,
       Name   => Window_Access);
-
-   procedure Configure_Vulkan_Window_Hints is
-      GLFW_Client_API : constant Interfaces.C.int := 16#00022001#;
-      GLFW_No_API     : constant Interfaces.C.int := 0;
-   begin
-      Glfw.Windows.Hints.Reset_To_Defaults;
-      Set_Raw_Window_Hint (GLFW_Client_API, GLFW_No_API);
-      Glfw.Windows.Hints.Set_Resizable (True);
-      Glfw.Windows.Hints.Set_Visible (False);
-   end Configure_Vulkan_Window_Hints;
 
    function Safe_Environment_Value (Name : String) return String is
    begin
@@ -3158,7 +3134,7 @@ package body Files.Application.Windows is
       Result.Skipped_By_Plan := False;
       Glfw.Init;
       Initialized := True;
-      Configure_Vulkan_Window_Hints;
+      Guikit.Vulkan.Configure_Window_Hints;
 
       for Startup_Window of Startup.Windows loop
          Append_Runtime_Window
@@ -3175,7 +3151,7 @@ package body Files.Application.Windows is
 
       Result.Window_Created := not Runtime_Windows.Is_Empty;
       for Poll_Index in 1 .. Plan.Input_Poll_Count loop
-         Poll_Events;
+         Guikit.Vulkan.Poll_Events;
          Handle_All_Keyboard (Runtime_Windows);
          Handle_All_Text_Input (Runtime_Windows);
          Handle_All_Mouse (Runtime_Windows);
@@ -3373,7 +3349,7 @@ package body Files.Application.Windows is
 
       Glfw.Init;
       Initialized := True;
-      Configure_Vulkan_Window_Hints;
+      Guikit.Vulkan.Configure_Window_Hints;
 
       for Startup_Window of Startup.Windows loop
          Append_Runtime_Window
@@ -3392,21 +3368,21 @@ package body Files.Application.Windows is
       end loop;
 
       for Frame_Index in 1 .. 3 loop
-         Poll_Events;
+         Guikit.Vulkan.Poll_Events;
          Render_All (Runtime_Windows);
          exit when All_Runtime_Windows_Shown (Runtime_Windows);
       end loop;
 
       if not All_Runtime_Windows_Shown (Runtime_Windows) then
          Show_Unshown_Runtime_Windows (Runtime_Windows);
-         Poll_Events;
+         Guikit.Vulkan.Poll_Events;
          Render_All (Runtime_Windows);
       end if;
-      Poll_Events;
+      Guikit.Vulkan.Poll_Events;
 
       while Any_Window_Open (Runtime_Windows) loop
          begin
-            Wait_For_Events_Timeout (Event_Wait_Timeout);
+            Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Text_Input (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
