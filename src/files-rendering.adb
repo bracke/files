@@ -14,7 +14,6 @@ with Files.Accessibility;
 with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
-with Guikit.Layout;
 with Guikit.Widgets;
 with Files.Localization;
 with Files.Platform.Metadata;
@@ -9237,60 +9236,63 @@ package body Files.Rendering is
                   elsif Row_Text_W > Shortcut_Width + Command_Palette_Padding
                   then Row_Text_W - Shortcut_Width - Command_Palette_Padding
                   else 0);
+               --  Pre-fit the row's text to its boxes so Guikit.Widgets.Draw_
+               --  Palette_Row (which only emits) receives fitted strings, the
+               --  same as the inline Add_Text (Fit => True) did.
+               Cell_W          : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+               Desc_Capacity   : constant Natural := (if Row.Height > Line_Height then Row_Text_W / Cell_W else 0);
+               Fitted_Label    : constant UString := Fitted_Text_For (Command.Label, Label_Width / Cell_W);
+               Fitted_Shortcut : constant UString := Fitted_Text_For (Command.Shortcut_Text, Shortcut_Width / Cell_W);
+               Fitted_Desc     : constant UString := Fitted_Text_For (Command.Description, Desc_Capacity);
+               Label_Trunc     : constant Boolean := To_String (Fitted_Label) /= To_String (Command.Label);
+               Shortcut_Trunc  : constant Boolean :=
+                 To_String (Fitted_Shortcut) /= To_String (Command.Shortcut_Text);
+               Desc_Trunc      : constant Boolean := To_String (Fitted_Desc) /= To_String (Command.Description);
                Hovered : constant Boolean :=
                  Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
                Pressed : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
             begin
-               Add_Rect
-                 (Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  (if Row.Selected and then Row.Enabled then Selection_Color
-                   elsif Pressed then Pressed_Color
-                   elsif Hovered then Hover_Color
-                   elsif not Row.Enabled then Pane_Color
-                   else Pane_Color));
-               if Row.Selected then
-                  Add_Rect
-                    (Row.X,
-                     Row.Y,
-                     Natural'Min (3, Row.Width),
-                     Row.Height,
-                     Border_Color);
-               end if;
-               Add_Text
-                 (Row_Text_X,
-                  Row_Text_Y,
-                  Label_Width,
-                  Natural'Min (Line_Height, Row.Height),
-                  Command.Label,
-                  (if Row.Enabled then Text_Color else Disabled_Text_Color),
-                  Fit => True);
-               if Shortcut_Width > 0 then
-                  Add_Text
-                    (Saturating_Add (Row_Text_X, Row_Text_W - Shortcut_Width),
-                     Row_Text_Y,
-                     Shortcut_Width,
-                     Natural'Min (Line_Height, Row.Height),
-                     Command.Shortcut_Text,
-                     (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color),
-                     Fit => True);
-               end if;
-               if Row.Height > Line_Height then
-                  Add_Text
-                    (Row_Text_X,
-                     Saturating_Add (Row_Text_Y, Line_Height),
-                     Row_Text_W,
-                     Natural'Min
-                       (Line_Height,
-                        (if Row.Height > Saturating_Add (Command_Result_Row_Padding, Line_Height)
-                         then Row.Height - Command_Result_Row_Padding - Line_Height
-                         else 0)),
-                     Command.Description,
-                     (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color),
-                  Fit => True);
-               end if;
+               Guikit.Widgets.Draw_Palette_Row
+                 (Rectangles       => Result.Rectangles,
+                  Text             => Result.Text,
+                  Clip_Width       => Layout.Width,
+                  Clip_Height      => Layout.Height,
+                  Row_X            => Row.X,
+                  Row_Y            => Row.Y,
+                  Row_Width        => Row.Width,
+                  Row_Height       => Row.Height,
+                  Background_Color =>
+                    (if Row.Selected and then Row.Enabled then Selection_Color
+                     elsif Pressed then Pressed_Color
+                     elsif Hovered then Hover_Color
+                     else Pane_Color),
+                  Selected         => Row.Selected,
+                  Accent_Color     => Border_Color,
+                  Label_X          => Row_Text_X,
+                  Label_Y          => Row_Text_Y,
+                  Label_Width      => Label_Width,
+                  Label_Height     => Natural'Min (Line_Height, Row.Height),
+                  Label_Text       => Fitted_Label,
+                  Label_Truncated  => Label_Trunc,
+                  Label_Color      => (if Row.Enabled then Text_Color else Disabled_Text_Color),
+                  Shortcut_X       =>
+                    Saturating_Add
+                      (Row_Text_X, (if Row_Text_W > Shortcut_Width then Row_Text_W - Shortcut_Width else 0)),
+                  Shortcut_Width   => Shortcut_Width,
+                  Shortcut_Text    => Fitted_Shortcut,
+                  Shortcut_Truncated => Shortcut_Trunc,
+                  Shortcut_Color   => (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color),
+                  Description_Y    => Saturating_Add (Row_Text_Y, Line_Height),
+                  Description_Width  => (if Row.Height > Line_Height then Row_Text_W else 0),
+                  Description_Height =>
+                    Natural'Min
+                      (Line_Height,
+                       (if Row.Height > Saturating_Add (Command_Result_Row_Padding, Line_Height)
+                        then Row.Height - Command_Result_Row_Padding - Line_Height
+                        else 0)),
+                  Description_Text => Fitted_Desc,
+                  Description_Truncated => Desc_Trunc,
+                  Description_Color => (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color));
                Add_Accessibility_Node
                  (Role_List_Item,
                   Row.X,
