@@ -576,11 +576,7 @@ package body Files.Rendering is
       Row_Height       : Natural)
       return Natural is
    begin
-      if Available_Height = 0 or else Row_Height = 0 then
-         return 0;
-      end if;
-
-      return Available_Height / Row_Height;
+      return Guikit.Layout.Visible_Row_Count (Available_Height, Row_Height);
    end Complete_Visible_Row_Count;
 
    function Saturating_Integer_Add
