@@ -5358,48 +5358,6 @@ package body Files.Rendering is
          end if;
       end Add_Caret;
 
-      procedure Add_Palette_Scrollbar is
-         Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
-         Visible_Rows : constant Natural := Complete_Visible_Row_Count (Palette.Results_Height, Palette.Row_Height);
-         Bar_W       : constant Natural := Natural'Min (Scrollbar_Width, Palette.Results_Width);
-         Track_H     : constant Natural := Palette.Results_Height;
-         Thumb_H     : Natural := 0;
-         Thumb_Y     : Natural := Palette.Results_Y;
-         Max_Offset  : Natural := 0;
-      begin
-         if not Snapshot.Command_Palette_Open
-           or else Result_Count = 0
-           or else Visible_Rows = 0
-           or else Result_Count <= Visible_Rows
-           or else Track_H = 0
-         then
-            return;
-         end if;
-
-         Max_Offset := Result_Count - Visible_Rows;
-         declare
-            Thumb : constant Guikit.Layout.Scrollbar_Thumb :=
-              Guikit.Layout.Calculate_Scrollbar_Thumb
-                (Track_Length    => Track_H,
-                 Visible_Amount  => Visible_Rows,
-                 Total_Amount    => Result_Count,
-                 Scroll_Position => Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset),
-                 Max_Scroll      => Max_Offset,
-                 Min_Length      => Palette.Row_Height);
-         begin
-            Thumb_H := Thumb.Length;
-            Thumb_Y := Saturating_Add (Palette.Results_Y, Thumb.Offset);
-         end;
-
-         Add_Scrollbar
-           (Saturating_Add (Palette.Results_X, Palette.Results_Width - Bar_W),
-            Palette.Results_Y,
-            Bar_W,
-            Track_H,
-            Thumb_Y,
-            Thumb_H);
-      end Add_Palette_Scrollbar;
-
       function Icon_Color (Kind : Files.Types.Item_Kind) return Render_Color is
       begin
          case Kind is
