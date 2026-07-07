@@ -14,6 +14,7 @@ with Files.Accessibility;
 with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
+with Guikit.Command_Palette;
 with Guikit.Text;
 with Guikit.Widgets;
 with Files.Localization;
@@ -9077,211 +9078,74 @@ package body Files.Rendering is
       if Snapshot.Command_Palette_Open then
          Drawing_Command_Palette := True;
          declare
-            Search_Text_Y : constant Natural :=
-              (if Palette.Search_Height > 2 * Guikit.Layout.Input_Field_Padding
-               then Saturating_Add (Palette.Search_Y, Guikit.Layout.Input_Field_Padding)
-               else Palette.Search_Y);
-            Search_Text_H : constant Natural :=
-              (if Palette.Search_Height > 2 * Guikit.Layout.Input_Field_Padding
-               then Natural'Min (Line_Height, Palette.Search_Height - 2 * Guikit.Layout.Input_Field_Padding)
-               else Palette.Search_Height);
+            Cmds  : Guikit.Command_Palette.Command_Vectors.Vector;
+            Pal   : Guikit.Command_Palette.Palette;
+            Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+            Texts : Guikit.Draw.Text_Command_Vectors.Vector;
+            Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
+            Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
          begin
-            Add_Drop_Shadow (Palette.X, Palette.Y, Palette.Width, Palette.Height);
-            Guikit.Widgets.Draw_Menu_Panel
-              (Result.Rectangles, Layout.Width, Layout.Height,
-               Palette.X, Palette.Y, Palette.Width, Palette.Height, Pane_Color, Border_Color);
-            Add_Rect (Palette.X, Palette.Y, Palette.Width, Natural'Min (3, Palette.Height), Selection_Color);
-            Add_Accessibility_Node
-              (Role_Dialog,
-               Palette.X,
-               Palette.Y,
-               Palette.Width,
-               Palette.Height,
-               Localized ("command.palette.open"));
-            --  The search box is a filled input; it gains a border (via
-            --  Draw_Input_Field) only when focused, otherwise just its fill.
-            if Snapshot.Focus = Files.Types.Focus_Command_Palette then
-               Guikit.Widgets.Draw_Input_Field
-                 (Result.Rectangles, Layout.Width, Layout.Height,
-                  Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height,
-                  Input_Color, Border_Color);
-            else
-               Add_Rect
-                 (Palette.Search_X, Palette.Search_Y, Palette.Search_Width, Palette.Search_Height, Input_Color);
-            end if;
-            Add_Text
-              (Saturating_Add (Palette.Search_X, Guikit.Layout.Input_Field_Padding),
-               Search_Text_Y,
-               (if Palette.Search_Width > 2 * Guikit.Layout.Input_Field_Padding
-                then Palette.Search_Width - 2 * Guikit.Layout.Input_Field_Padding
-                else 0),
-               Search_Text_H,
-               Snapshot.Command_Palette_Query,
-               Fit => True);
-            if Snapshot.Focus = Files.Types.Focus_Command_Palette then
-               Add_Focus_Ring
-                 (Palette.Search_X,
-                  Palette.Search_Y,
-                  Palette.Search_Width,
-                  Palette.Search_Height);
-               Add_Caret
-                 (Palette.Search_X,
-                  Palette.Search_Y,
-                  Palette.Search_Width,
-                  Palette.Search_Height,
-                  Snapshot.Command_Palette_Query,
-                  Snapshot.Text_Cursor_Position);
-            end if;
-            Add_Accessibility_Node
-              (Role_Text_Input,
-               Palette.Search_X,
-               Palette.Search_Y,
-               Palette.Search_Width,
-               Palette.Search_Height,
-               Localized ("accessibility.command_palette_search"),
-               Snapshot.Command_Palette_Query,
-               Focused => Snapshot.Focus = Files.Types.Focus_Command_Palette);
+            for I in 1 .. Natural (Snapshot.Command_Palette_Results.Length) loop
+               declare
+                  R : constant Command_Result_Snapshot :=
+                    Snapshot.Command_Palette_Results.Element (I);
+               begin
+                  Cmds.Append
+                    (Guikit.Command_Palette.Command'
+                       (Id          => I,
+                        Identifier  => R.Identifier,
+                        Label       => R.Label,
+                        Description => R.Description,
+                        Shortcut    => R.Shortcut_Text,
+                        Enabled     => R.Enabled,
+                        Icon        => Guikit.Command_Palette.No_Icon));
+               end;
+            end loop;
+
+            Guikit.Command_Palette.Set_Configuration
+              (Pal,
+               (Line_Height    => Line_Height,
+                Show_Icons     => False,
+                Show_Shortcuts => True,
+                Overlay        => True,
+                Wrap_Selection => False,
+                Pre_Filtered   => True,
+                Placeholder    => Null_Unbounded_String,
+                Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty"))));
+            Guikit.Command_Palette.Set_Commands (Pal, Cmds);
+            Guikit.Command_Palette.Set_Query (Pal, To_String (Snapshot.Command_Palette_Query));
+            Guikit.Command_Palette.Set_Selection (Pal, Snapshot.Command_Palette_Selected_Index);
+            Guikit.Command_Palette.Set_Offset (Pal, Snapshot.Command_Palette_Result_Offset);
+
+            Guikit.Command_Palette.Build_Frame
+              (P             => Pal,
+               Region_X      => Layout.Command_X,
+               Region_Y      => Layout.Command_Y,
+               Region_Width  => Layout.Command_Width,
+               Region_Height => Layout.Command_Height,
+               Clip_Width    => Layout.Width,
+               Clip_Height   => Layout.Height,
+               Focused       => Snapshot.Focus = Files.Types.Focus_Command_Palette,
+               Hover_X       => -1,
+               Hover_Y       => -1,
+               Rectangles    => Rects,
+               Text          => Texts,
+               Icons         => Icons,
+               Accessibility => Nodes);
+
+            for C of Rects loop
+               Result.Rectangles.Append (C);
+            end loop;
+            for C of Texts loop
+               Result.Text.Append (C);
+            end loop;
+            for C of Icons loop
+               Result.Icons.Append (C);
+            end loop;
+            for N of Nodes loop
+               Result.Accessibility.Append (N);
+            end loop;
          end;
-
-         if Snapshot.Command_Palette_Results.Is_Empty and then Palette.Results_Height > 0 then
-            Guikit.Widgets.Draw_Menu_Panel
-              (Result.Rectangles, Layout.Width, Layout.Height,
-               Palette.Results_X,
-               Palette.Results_Y,
-               Palette.Results_Width,
-               Natural'Min (Saturating_Multiply (Line_Height, 2), Palette.Results_Height),
-               Pane_Color, Border_Color);
-            Add_Text
-              (Saturating_Add (Palette.Results_X, 8),
-               Palette.Results_Y,
-               (if Palette.Results_Width >
-                   Saturating_Add (16, Saturating_Add (Scrollbar_Width, Command_Palette_Scrollbar_Gap))
-                then Palette.Results_Width - 16 - Scrollbar_Width - Command_Palette_Scrollbar_Gap
-                else 0),
-               Natural'Min (Line_Height, Palette.Results_Height),
-               Localized ("command.palette.empty"),
-               Muted_Text_Color,
-               Fit => True);
-            Add_Accessibility_Node
-              (Role_Status,
-               Palette.Results_X,
-               Palette.Results_Y,
-               Palette.Results_Width,
-               Natural'Min (Saturating_Multiply (Line_Height, 2), Palette.Results_Height),
-               Localized ("command.palette.empty"));
-         end if;
-
-         for Index in 1 .. Natural (Palette_Rows.Length) loop
-            declare
-               Row     : constant Command_Result_Layout := Palette_Rows.Element (Positive (Index));
-               Command : constant Command_Result_Snapshot :=
-                 Snapshot.Command_Palette_Results.Element (Positive (Row.Result_Index));
-               Accessible_Description : constant UString :=
-                 Command_Result_Accessible_Description (Command);
-               Row_Text_X : constant Natural := Saturating_Add (Row.X, Command_Palette_Padding);
-               Row_Text_Y : constant Natural := Saturating_Add (Row.Y, Command_Result_Row_Padding);
-               Reserved_Scrollbar_W : constant Natural :=
-                 (if Palette.Results_Width > 0
-                  then Saturating_Add
-                    (Natural'Min (Scrollbar_Width, Palette.Results_Width),
-                     Command_Palette_Scrollbar_Gap)
-                  else 0);
-               Row_Text_End_X : constant Natural :=
-                 (if Row.Width > Saturating_Add (Command_Palette_Padding, Reserved_Scrollbar_W)
-                  then Saturating_Add (Row.X, Row.Width - Reserved_Scrollbar_W)
-                  else Row_Text_X);
-               Row_Text_W : constant Natural :=
-                 (if Row_Text_End_X > Saturating_Add (Row_Text_X, Command_Palette_Padding)
-                  then Row_Text_End_X - Row_Text_X - Command_Palette_Padding
-                  else 0);
-               Shortcut_Width : constant Natural :=
-                 (if Length (Command.Shortcut_Text) = 0 then 0
-                  else Natural'Min
-                    (Natural'Min
-                      (Saturating_Multiply
-                          (Files.UTF8.Display_Units (To_String (Command.Shortcut_Text)),
-                           Saturating_Multiply (Line_Height, 12) / 20),
-                        160),
-                     (if Row_Text_W > 0 then Natural'Min (Row_Text_W, Row_Text_W / 3) else 0)));
-               Label_Width : constant Natural :=
-                 (if Row_Text_W = 0 then 0
-                  elsif Shortcut_Width = 0 then Row_Text_W
-                  elsif Row_Text_W > Shortcut_Width + Command_Palette_Padding
-                  then Row_Text_W - Shortcut_Width - Command_Palette_Padding
-                  else 0);
-               --  Pre-fit the row's text to its boxes so Guikit.Widgets.Draw_
-               --  Palette_Row (which only emits) receives fitted strings, the
-               --  same as the inline Add_Text (Fit => True) did.
-               Cell_W          : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-               Desc_Capacity   : constant Natural := (if Row.Height > Line_Height then Row_Text_W / Cell_W else 0);
-               Fitted_Label    : constant UString := Fitted_Text_For (Command.Label, Label_Width / Cell_W);
-               Fitted_Shortcut : constant UString := Fitted_Text_For (Command.Shortcut_Text, Shortcut_Width / Cell_W);
-               Fitted_Desc     : constant UString := Fitted_Text_For (Command.Description, Desc_Capacity);
-               Label_Trunc     : constant Boolean := To_String (Fitted_Label) /= To_String (Command.Label);
-               Shortcut_Trunc  : constant Boolean :=
-                 To_String (Fitted_Shortcut) /= To_String (Command.Shortcut_Text);
-               Desc_Trunc      : constant Boolean := To_String (Fitted_Desc) /= To_String (Command.Description);
-               Hovered : constant Boolean :=
-                 Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
-               Pressed : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
-            begin
-               Guikit.Widgets.Draw_Palette_Row
-                 (Rectangles       => Result.Rectangles,
-                  Text             => Result.Text,
-                  Clip_Width       => Layout.Width,
-                  Clip_Height      => Layout.Height,
-                  Row_X            => Row.X,
-                  Row_Y            => Row.Y,
-                  Row_Width        => Row.Width,
-                  Row_Height       => Row.Height,
-                  Background_Color =>
-                    (if Row.Selected and then Row.Enabled then Selection_Color
-                     elsif Pressed then Pressed_Color
-                     elsif Hovered then Hover_Color
-                     else Pane_Color),
-                  Selected         => Row.Selected,
-                  Accent_Color     => Border_Color,
-                  Label_X          => Row_Text_X,
-                  Label_Y          => Row_Text_Y,
-                  Label_Width      => Label_Width,
-                  Label_Height     => Natural'Min (Line_Height, Row.Height),
-                  Label_Text       => Fitted_Label,
-                  Label_Truncated  => Label_Trunc,
-                  Label_Color      => (if Row.Enabled then Text_Color else Disabled_Text_Color),
-                  Shortcut_X       =>
-                    Saturating_Add
-                      (Row_Text_X, (if Row_Text_W > Shortcut_Width then Row_Text_W - Shortcut_Width else 0)),
-                  Shortcut_Width   => Shortcut_Width,
-                  Shortcut_Text    => Fitted_Shortcut,
-                  Shortcut_Truncated => Shortcut_Trunc,
-                  Shortcut_Color   => (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color),
-                  Description_Y    => Saturating_Add (Row_Text_Y, Line_Height),
-                  Description_Width  => (if Row.Height > Line_Height then Row_Text_W else 0),
-                  Description_Height =>
-                    Natural'Min
-                      (Line_Height,
-                       (if Row.Height > Saturating_Add (Command_Result_Row_Padding, Line_Height)
-                        then Row.Height - Command_Result_Row_Padding - Line_Height
-                        else 0)),
-                  Description_Text => Fitted_Desc,
-                  Description_Truncated => Desc_Trunc,
-                  Description_Color => (if Row.Enabled then Muted_Text_Color else Disabled_Text_Color));
-               Add_Accessibility_Node
-                 (Role_List_Item,
-                  Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  Command.Label,
-                  Accessible_Description,
-                  Enabled  => Row.Enabled,
-                  Selected => Row.Selected,
-                  Focused  => Row.Selected);
-            end;
-         end loop;
-
-         Add_Palette_Scrollbar;
-         Draw_Close_Button (Palette.X, Palette.Y, Palette.Width, Palette.Height, Overlay => False);
          Drawing_Command_Palette := False;
       end if;
 
