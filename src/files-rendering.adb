@@ -2521,29 +2521,19 @@ package body Files.Rendering is
          else Bounded_Px);
       Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
       Bar_W        : constant Natural := Natural'Min (Scrollbar_Width, Layout.Main_Width);
-      Visible      : constant Boolean :=
-        Viewport_H > 0
-        and then Bar_W > 0
-        and then Content_Total_H > Viewport_H;
-      Thumb_H      : constant Natural :=
-        (if Visible
-         then Natural'Min
-           (Viewport_H,
-            Natural'Max
-              (Line_Height,
-               Bounded_Product_Divide
-                 (Value => Viewport_H, Factor => Viewport_H, Denominator => Content_Total_H)))
-         else 0);
-      Track_H      : constant Natural :=
-        (if Viewport_H > Thumb_H then Viewport_H - Thumb_H else 0);
+      Thumb        : constant Guikit.Layout.Scrollbar_Thumb :=
+        Guikit.Layout.Calculate_Scrollbar_Thumb
+          (Track_Length    => Viewport_H,
+           Visible_Amount  => Viewport_H,
+           Total_Amount    => Content_Total_H,
+           Scroll_Position => Scroll_Px,
+           Max_Scroll      => Max_Scroll,
+           Min_Length      => Line_Height);
+      Visible      : constant Boolean := Bar_W > 0 and then Thumb.Length > 0;
+      Thumb_H      : constant Natural := Thumb.Length;
       Track_Top    : constant Natural :=
         Saturating_Add (Saturating_Add (Layout.Main_Y, Padding), Header_H);
-      Thumb_Y      : constant Natural :=
-        (if Visible and then Max_Scroll > 0
-         then Saturating_Add
-           (Track_Top,
-            Bounded_Product_Divide (Value => Track_H, Factor => Scroll_Px, Denominator => Max_Scroll))
-         else Track_Top);
+      Thumb_Y      : constant Natural := Saturating_Add (Track_Top, Thumb.Offset);
    begin
       return
         (Columns           => Positive'Max (1, Positive (Columns)),
@@ -4187,31 +4177,26 @@ package body Files.Rendering is
         (if Raw_Content_H > 0
          then Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding, 2))
          else 0);
-      Visible       : constant Boolean :=
-        Snapshot.Info_Pane_Open
-        and then Layout.Info_Pane_Width > 0
-        and then Bar_W > 0
-        and then Layout.Main_Height > 0
-        and then Content_H > Layout.Main_Height;
-      Thumb_H       : constant Natural :=
-        (if Visible
-         then Natural'Max
-           (Line_Height,
-            Bounded_Product_Divide
-              (Value => Layout.Main_Height, Factor => Layout.Main_Height, Denominator => Content_H))
-         else 0);
       Max_Scroll_Px : constant Natural :=
         (if Content_H > Layout.Main_Height then Content_H - Layout.Main_Height else 0);
       Requested_Px  : constant Natural := Saturating_Multiply (Snapshot.Info_Pane_Scroll_Lines, Line_Height);
       Scroll_Px     : constant Natural := Natural'Min (Requested_Px, Max_Scroll_Px);
       Scroll_Lines  : constant Natural := Scroll_Px / Line_Height;
-      Track_H       : constant Natural := (if Layout.Main_Height > Thumb_H then Layout.Main_Height - Thumb_H else 0);
-      Thumb_Y       : constant Natural :=
-        (if Visible and then Max_Scroll_Px > 0
-         then Saturating_Add
-           (Layout.Main_Y,
-            Bounded_Product_Divide (Value => Track_H, Factor => Scroll_Px, Denominator => Max_Scroll_Px))
-         else Layout.Main_Y);
+      Thumb         : constant Guikit.Layout.Scrollbar_Thumb :=
+        Guikit.Layout.Calculate_Scrollbar_Thumb
+          (Track_Length    => Layout.Main_Height,
+           Visible_Amount  => Layout.Main_Height,
+           Total_Amount    => Content_H,
+           Scroll_Position => Scroll_Px,
+           Max_Scroll      => Max_Scroll_Px,
+           Min_Length      => Line_Height);
+      Visible       : constant Boolean :=
+        Snapshot.Info_Pane_Open
+        and then Layout.Info_Pane_Width > 0
+        and then Bar_W > 0
+        and then Thumb.Length > 0;
+      Thumb_H       : constant Natural := Thumb.Length;
+      Thumb_Y       : constant Natural := Saturating_Add (Layout.Main_Y, Thumb.Offset);
    begin
       if not Snapshot.Info_Pane_Open or else Layout.Info_Pane_Width = 0 then
          return (others => <>);
@@ -5395,21 +5380,19 @@ package body Files.Rendering is
          end if;
 
          Max_Offset := Result_Count - Visible_Rows;
-         Thumb_H :=
-           Natural'Max
-             (Palette.Row_Height,
-              Bounded_Product_Divide (Value => Track_H, Factor => Visible_Rows, Denominator => Result_Count));
-         Thumb_H := Natural'Min (Thumb_H, Track_H);
-
-         if Max_Offset > 0 and then Track_H > Thumb_H then
-            Thumb_Y :=
-              Saturating_Add
-                (Palette.Results_Y,
-                 Bounded_Product_Divide
-                   (Value       => Track_H - Thumb_H,
-                    Factor      => Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset),
-                    Denominator => Max_Offset));
-         end if;
+         declare
+            Thumb : constant Guikit.Layout.Scrollbar_Thumb :=
+              Guikit.Layout.Calculate_Scrollbar_Thumb
+                (Track_Length    => Track_H,
+                 Visible_Amount  => Visible_Rows,
+                 Total_Amount    => Result_Count,
+                 Scroll_Position => Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset),
+                 Max_Scroll      => Max_Offset,
+                 Min_Length      => Palette.Row_Height);
+         begin
+            Thumb_H := Thumb.Length;
+            Thumb_Y := Saturating_Add (Palette.Results_Y, Thumb.Offset);
+         end;
 
          Add_Scrollbar
            (Saturating_Add (Palette.Results_X, Palette.Results_Width - Bar_W),
