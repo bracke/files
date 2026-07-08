@@ -13,7 +13,6 @@ with Util.Properties;
 with Files.Accessibility;
 with Files.File_Types;
 with Files.Fonts;
-with Guikit.Command_Palette;
 with Guikit.Text;
 with Guikit.Widgets;
 with Files.Localization;
