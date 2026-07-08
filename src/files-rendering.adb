@@ -734,12 +734,9 @@ package body Files.Rendering is
       return Names;
    end Bundled_Icon_Asset_Names;
 
-   type Item_Cell_Metrics is record
-      Width     : Natural := 0;
-      Height    : Natural := 0;
-      Icon_Size : Natural := 0;
-      Large     : Boolean := False;
-   end record;
+   --  Cell sizing lives in Guikit.Item_Grid now; this alias keeps existing
+   --  Item_Cell_Metrics references (Width/Height/Icon_Size/Large) compiling.
+   subtype Item_Cell_Metrics is Guikit.Item_Grid.Cell_Metrics;
 
    function Metrics_For
      (Mode        : Files.Types.View_Mode;
@@ -747,30 +744,13 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Item_Cell_Metrics
    is
+      View : constant Guikit.Item_Grid.View_Kind :=
+        (case Mode is
+            when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
+            when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
+            when Files.Types.Details     => Guikit.Item_Grid.Details);
    begin
-      case Mode is
-         when Files.Types.Small_Icons =>
-            return
-              (Width     => 216,
-               Height    => Saturating_Add (Line_Height, Saturating_Multiply (Item_Content_Padding, 2)),
-               Icon_Size => Line_Height,
-               Large     => False);
-         when Files.Types.Large_Icons =>
-            return
-              (Width     => Saturating_Multiply (Line_Height, 7),
-               Height    => Saturating_Multiply (Line_Height, 5),
-               Icon_Size => Saturating_Multiply (Line_Height, 3),
-               Large     => True);
-         when Files.Types.Details =>
-            return
-              (Width     => Main_Width,
-               Height    =>
-                 Saturating_Add
-                   (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)),
-                    Details_Row_Gap),
-               Icon_Size => Line_Height,
-               Large     => False);
-      end case;
+      return Guikit.Item_Grid.Cell_Metrics_For (View, Main_Width, Line_Height);
    end Metrics_For;
 
    function Build_Snapshot
