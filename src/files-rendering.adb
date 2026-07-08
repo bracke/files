@@ -797,125 +797,6 @@ package body Files.Rendering is
          return Image;
       end Natural_Text;
 
-      function View_Mode_Text (Mode : Files.Types.View_Mode) return String is
-      begin
-         case Mode is
-            when Files.Types.Small_Icons =>
-               return Files.Localization.Text ("command.view.small");
-            when Files.Types.Large_Icons =>
-               return Files.Localization.Text ("command.view.large");
-            when Files.Types.Details =>
-               return Files.Localization.Text ("command.view.details");
-         end case;
-      end View_Mode_Text;
-
-      function View_Mode_Token (Mode : Files.Types.View_Mode) return String is
-      begin
-         case Mode is
-            when Files.Types.Small_Icons =>
-               return "small_icons";
-            when Files.Types.Large_Icons =>
-               return "large_icons";
-            when Files.Types.Details =>
-               return "details";
-         end case;
-      end View_Mode_Token;
-
-      function Boolean_Text (Value : Boolean) return String is
-      begin
-         return Files.Localization.Text ((if Value then "settings.value.true" else "settings.value.false"));
-      end Boolean_Text;
-
-      function Boolean_Token (Value : Boolean) return String is
-      begin
-         return (if Value then "true" else "false");
-      end Boolean_Token;
-
-      function Sort_Field_Text (Field : Files.Settings.Sort_Field) return String is
-      begin
-         case Field is
-            when Files.Settings.Sort_By_Name =>
-               return Files.Localization.Text ("settings.sort.name");
-            when Files.Settings.Sort_By_Filetype =>
-               return Files.Localization.Text ("settings.sort.filetype");
-            when Files.Settings.Sort_By_Size =>
-               return Files.Localization.Text ("settings.sort.size");
-            when Files.Settings.Sort_By_Created =>
-               return Files.Localization.Text ("settings.sort.created");
-            when Files.Settings.Sort_By_Modified =>
-               return Files.Localization.Text ("settings.sort.modified");
-         end case;
-      end Sort_Field_Text;
-
-      function Sort_Field_Token (Field : Files.Settings.Sort_Field) return String is
-      begin
-         case Field is
-            when Files.Settings.Sort_By_Name =>
-               return "name";
-            when Files.Settings.Sort_By_Filetype =>
-               return "filetype";
-            when Files.Settings.Sort_By_Size =>
-               return "size";
-            when Files.Settings.Sort_By_Created =>
-               return "created";
-            when Files.Settings.Sort_By_Modified =>
-               return "modified";
-         end case;
-      end Sort_Field_Token;
-
-      function Theme_Token (Choice : Files.Settings.Theme_Choice) return String is
-      begin
-         case Choice is
-            when Files.Settings.Theme_Dark =>
-               return "dark";
-            when Files.Settings.Theme_Light =>
-               return "light";
-            when Files.Settings.Theme_High_Contrast =>
-               return "high_contrast";
-         end case;
-      end Theme_Token;
-
-      function Theme_Display (Token : String) return String is
-      begin
-         if Token = "light" then
-            return Files.Localization.Text ("settings.theme.light");
-         elsif Token = "high_contrast" then
-            return Files.Localization.Text ("settings.theme.high_contrast");
-         else
-            return Files.Localization.Text ("settings.theme.dark");
-         end if;
-      end Theme_Display;
-
-      function Group_By_Token (Mode : Files.Types.Group_Mode) return String is
-      begin
-         case Mode is
-            when Files.Types.No_Grouping =>
-               return "none";
-            when Files.Types.Group_By_Type =>
-               return "type";
-            when Files.Types.Group_By_Modified =>
-               return "modified";
-            when Files.Types.Group_By_Size =>
-               return "size";
-            when Files.Types.Group_By_Label =>
-               return "label";
-         end case;
-      end Group_By_Token;
-
-      function Group_By_Display (Token : String) return String is
-      begin
-         if Token = "type" then
-            return Files.Localization.Text ("settings.group.type");
-         elsif Token = "modified" then
-            return Files.Localization.Text ("settings.group.modified");
-         elsif Token = "size" then
-            return Files.Localization.Text ("settings.group.size");
-         elsif Token = "label" then
-            return Files.Localization.Text ("settings.group.label");
-         else
-            return Files.Localization.Text ("settings.group.none");
-         end if;
-      end Group_By_Display;
 
       Theme : constant Render_Theme :=
         (case Settings.Theme is
@@ -1368,6 +1249,7 @@ package body Files.Rendering is
       Snapshot.Temporary_Item_Name := To_Unbounded_String (Files.Model.Temporary_Item_Name (Model));
       Snapshot.Info_Pane_Open := Files.Model.Info_Pane_Is_Open (Model);
       Snapshot.Settings_Pane_Open := Files.Model.Settings_Pane_Is_Open (Model);
+      Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
       Snapshot.Context_Menu_Open := Files.Model.Context_Menu_Is_Open (Model);
@@ -1389,8 +1271,6 @@ package body Files.Rendering is
          Snapshot.Paste_Progress_Moving :=
            Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move;
       end;
-      Snapshot.Settings_Can_Save := Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model);
-      Snapshot.Settings_Can_Reset := Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model);
       Snapshot.Theme_Name := Theme.Name;
       Snapshot.Theme_High_Contrast := Theme.High_Contrast;
       Snapshot.Theme_Palette :=
@@ -2457,35 +2337,6 @@ package body Files.Rendering is
 
       return (others => <>);
    end Conflict_Hit_At;
-
-   function Settings_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Settings_Hit_Region is
-   begin
-      --  Iterate in reverse so that the most-recently appended (i.e. the most
-      --  specific inline) region takes precedence over the catch-all field
-      --  row that wraps the entire row above it.
-      for Index in reverse 1 .. Natural (Frame.Settings_Hits.Length) loop
-         declare
-            Region : constant Settings_Hit_Region :=
-              Frame.Settings_Hits.Element (Positive (Index));
-         begin
-            if Region.Width > 0
-              and then Region.Height > 0
-              and then X >= Region.X
-              and then X < Region.X + Region.Width
-              and then Y >= Region.Y
-              and then Y < Region.Y + Region.Height
-            then
-               return Region;
-            end if;
-         end;
-      end loop;
-
-      return (others => <>);
-   end Settings_Hit_At;
 
    function Permission_Hit_At
      (Frame : Frame_Commands;
@@ -4058,7 +3909,6 @@ package body Files.Rendering is
         (if Layout.Bottom_Bar_Height > Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)
          then Layout.Bottom_Bar_Height - Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)
          else Layout.Bottom_Bar_Height);
-      Drawing_Settings_Pane : Boolean := False;
 
       function Intersects
         (Left_X   : Natural;
@@ -4105,7 +3955,6 @@ package body Files.Rendering is
       is
       begin
          return Snapshot.Settings_Pane_Open
-           and then not Drawing_Settings_Pane
            and then Intersects
              (X,
               Y,

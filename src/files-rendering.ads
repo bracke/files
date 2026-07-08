@@ -152,42 +152,7 @@ package Files.Rendering is
       --  read, and the platform supports chown.
       Ownership_Editable    : Boolean := False;
       Settings_Pane_Open    : Boolean := False;
-      Settings_Default_View       : UString;
-      Settings_Default_View_Token : UString;
-      Settings_Hidden_Files       : UString;
-      Settings_Hidden_Files_Token : UString;
-      Settings_Sort               : UString;
-      Settings_Sort_Field_Token   : UString;
-      Settings_Sort_Ascending       : UString;
-      Settings_Sort_Ascending_Token : UString;
-      Settings_Theme                : UString;
-      Settings_Theme_Token          : UString;
-      Settings_Icon_Theme           : UString;
-      Settings_Font_Pixel_Size      : UString;
-      Settings_Opener_Token         : UString;
-      Settings_Group_By             : UString;
-      Settings_Group_By_Token       : UString;
-      Settings_Column_Modified_Token    : UString;
-      Settings_Column_Size_Token        : UString;
-      Settings_Column_Filetype_Token    : UString;
-      Settings_Column_Created_Token     : UString;
-      Settings_Column_Permissions_Token : UString;
-      Settings_Filetypes            : UString;
-      Settings_Icons                : UString;
-      Settings_Open_Actions         : UString;
-      Settings_Filetype_Extension : UString;
-      Settings_Filetype_Value : UString;
-      Settings_Icon_Filetype : UString;
-      Settings_Icon_Value    : UString;
-      Settings_Open_Action_Token : UString;
-      Settings_Open_Action_Command : UString;
-      Settings_Control_Options : UString;
-      Settings_Field_Help  : UString;
-      Settings_Field_Index  : Natural := 0;
-      Settings_Draft_Valid  : Boolean := True;
-      Settings_Draft_Error  : UString;
-      Settings_Can_Save     : Boolean := False;
-      Settings_Can_Reset    : Boolean := False;
+      Settings_Icon_Theme   : UString;  --  the saved icon theme, for icon rendering
       Theme_Name            : UString;
       Theme_High_Contrast   : Boolean := False;
       Theme_Palette         : Theme_Kind := Theme_Dark;
@@ -684,31 +649,6 @@ package Files.Rendering is
    --  @return Vector containing one icon identifier for each bundled icon asset.
    function Bundled_Icon_Asset_Names return Files.Types.String_Vectors.Vector;
 
-   type Settings_Hit_Kind is
-     (Settings_Hit_None,
-      Settings_Hit_Field,
-      Settings_Hit_Reset,
-      Settings_Hit_Add,
-      Settings_Hit_Remove,
-      Settings_Hit_Segment,
-      Settings_Hit_Toggle,
-      Settings_Hit_Stepper_Down,
-      Settings_Hit_Stepper_Up);
-
-   type Settings_Hit_Region is record
-      Kind   : Settings_Hit_Kind := Settings_Hit_None;
-      Field  : Natural := 0;
-      Option : Natural := 0;
-      X      : Natural := 0;
-      Y      : Natural := 0;
-      Width  : Natural := 0;
-      Height : Natural := 0;
-   end record;
-
-   package Settings_Hit_Region_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Settings_Hit_Region);
-
    --  Clickable controls of the paste-conflict dialog.
    type Conflict_Hit_Kind is
      (Conflict_Hit_None,
@@ -773,23 +713,10 @@ package Files.Rendering is
       Overlay_Text       : Text_Command_Vectors.Vector;
       Tooltips      : Tooltip_Command_Vectors.Vector;
       Accessibility : Accessibility_Node_Vectors.Vector;
-      Settings_Hits : Settings_Hit_Region_Vectors.Vector;
       Permission_Hits : Permission_Hit_Region_Vectors.Vector;
       Ownership_Hits : Ownership_Hit_Region_Vectors.Vector;
       Conflict_Hits : Conflict_Hit_Region_Vectors.Vector;
    end record;
-
-   --  Return the settings-pane hit region containing a point, if any.
-   --
-   --  @param Frame Frame whose settings hit regions are tested.
-   --  @param X Point X coordinate in pixels.
-   --  @param Y Point Y coordinate in pixels.
-   --  @return The hit region at the point, or an empty region when none match.
-   function Settings_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Settings_Hit_Region;
 
    --  Compute the centered paste-conflict dialog geometry for a window.
    --

@@ -64,7 +64,6 @@ package body Files_Suite.Interaction is
    use type Files.Model.Clipboard_Mode;
    use type Files.Model.Palette_Mode;
    use type Guikit.Draw.Accessibility_Role;
-   use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Types.Color_Label;
    use type Files.Types.Focus_Target;
    use type Files.Types.Search_Scope;
@@ -959,34 +958,6 @@ package body Files_Suite.Interaction is
             "scrolling over the main view leaves the info-pane offset unchanged");
       end;
    end Test_Targeted_Scroll;
-
-   --  Find the first settings hit region of the given Kind and Field.
-   procedure Find_Settings_Hit
-     (Model     : Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Kind      : Files.Rendering.Settings_Hit_Kind;
-      Field     : Natural;
-      X         : out Natural;
-      Y         : out Natural;
-      Found     : out Boolean)
-   is
-      Snapshot : constant Files.Rendering.View_Snapshot :=
-        Files.Rendering.Build_Snapshot (Model, Settings);
-      Frame    : constant Files.Rendering.Frame_Commands :=
-        Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-   begin
-      X := 0;
-      Y := 0;
-      Found := False;
-      for Region of Frame.Settings_Hits loop
-         if Region.Kind = Kind and then Region.Field = Field then
-            X := Region.X + Region.Width / 2;
-            Y := Region.Y + Region.Height / 2;
-            Found := True;
-            return;
-         end if;
-      end loop;
-   end Find_Settings_Hit;
 
    --  Open the settings pane through the real Ctrl+, shortcut so its draft is
    --  initialised exactly as the live app does.

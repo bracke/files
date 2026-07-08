@@ -32,7 +32,6 @@ package body Files_Suite.Rendering is
    use type Files.Commands.Command_Id;
    use type Files.Rendering.Context_Menu_Row_Kind;
    use type Guikit.Draw.Render_Color;
-   use type Files.Rendering.Settings_Hit_Kind;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
    use type Files.Types.Focus_Target;
@@ -53,7 +52,6 @@ package body Files_Suite.Rendering is
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -104,8 +102,6 @@ package body Files_Suite.Rendering is
         (T, Test_Caret_Scales_With_Line_Height'Access, "the text-input caret height grows with the line height");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Click_Translation_Behavior'Access, "click translation behaviour");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Hit_Testing'Access, "settings-pane click hit-testing");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Glyph_Rasterization'Access, "frame text rasterizes through textrender");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -757,43 +753,6 @@ package body Files_Suite.Rendering is
         (Outside.Kind /= Files.Events.Marquee_Begin_Input_Action,
          "pressing the chrome outside the grid never begins a marquee");
    end Test_Click_Translation_Behavior;
-
-   procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Frame : Frame_Commands;
-   begin
-      --  A full-width field row, a more-specific inline option segment appended
-      --  after it (reverse precedence must prefer the segment), and a reset
-      --  button. These mirror how Build_Frame_Commands layers settings hits.
-      Frame.Settings_Hits.Append
-        (Settings_Hit_Region'
-           (Kind => Settings_Hit_Field, Field => 1, Option => 0,
-            X => 100, Y => 100, Width => 300, Height => 40));
-      Frame.Settings_Hits.Append
-        (Settings_Hit_Region'
-           (Kind => Settings_Hit_Segment, Field => 1, Option => 2,
-            X => 320, Y => 100, Width => 60, Height => 40));
-      Frame.Settings_Hits.Append
-        (Settings_Hit_Region'
-           (Kind => Settings_Hit_Reset, Field => 0, Option => 0,
-            X => 100, Y => 160, Width => 120, Height => 30));
-
-      Assert
-        (Settings_Hit_At (Frame, 110, 110).Kind = Settings_Hit_Field
-         and then Settings_Hit_At (Frame, 110, 110).Field = 1,
-         "a click on a settings field row resolves to that field");
-      Assert
-        (Settings_Hit_At (Frame, 340, 110).Kind = Settings_Hit_Segment
-         and then Settings_Hit_At (Frame, 340, 110).Option = 2,
-         "a click on an inline option segment resolves to the segment, not the row beneath it");
-      Assert
-        (Settings_Hit_At (Frame, 150, 170).Kind = Settings_Hit_Reset,
-         "a click on the reset region resolves to reset");
-      Assert
-        (Settings_Hit_At (Frame, 5, 5).Kind = Settings_Hit_None,
-         "a click outside every settings region resolves to none");
-   end Test_Settings_Hit_Testing;
-
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : constant View_Snapshot := Sample_Snapshot (4, Files.Types.Details);
