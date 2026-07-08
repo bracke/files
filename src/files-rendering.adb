@@ -13,6 +13,7 @@ with Util.Properties;
 with Files.Accessibility;
 with Files.File_Types;
 with Files.Fonts;
+with Guikit.Segmented;
 with Guikit.Text;
 with Guikit.Widgets;
 with Files.Localization;
@@ -5429,42 +5430,6 @@ package body Files.Rendering is
          return (if Snapshot.Command_Enabled (Id) then Text_Color else Disabled_Text_Color);
       end Command_Color;
 
-      procedure Add_Bottom_Command_Button
-        (X        : Natural;
-         Button_W : Natural;
-         Command  : Files.Commands.Registered_Command_Id;
-         Selected : Boolean)
-      is
-         Hovered : constant Boolean :=
-           Has_Hover and then Contains_Point (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y);
-         Pressed : constant Boolean := Is_Pressed (X, Bottom_Y, Button_W, Layout.Bottom_Bar_Height);
-      begin
-         Add_Button (X, Button_W, Selected, Hovered, Pressed);
-         Add_Text
-           (Saturating_Add (X, 4),
-            Bottom_Content_Y,
-            (if Button_W > 8 then Button_W - 8 else 0),
-            Bottom_Content_H,
-            Bottom_Command_Label (Command),
-            Command_Color (Command),
-            Fit => True);
-         Add_Command_Tooltip
-           (X,
-            Bottom_Content_Y,
-            Button_W,
-            Bottom_Content_H,
-            Command);
-         Add_Accessibility_Node
-           (Role_Button,
-            X,
-            Bottom_Content_Y,
-            Button_W,
-            Bottom_Content_H,
-            Command_Label (Command),
-            Localized (Files.Commands.Description_Key (Command)),
-            Enabled  => Snapshot.Command_Enabled (Command),
-            Selected => Selected);
-      end Add_Bottom_Command_Button;
 
       function Natural_Text (Value : Natural) return String is
          Image : constant String := Natural'Image (Value);
@@ -6189,21 +6154,60 @@ package body Files.Rendering is
          Enabled => True,
          Focused => Snapshot.Focus = Files.Types.Focus_Filter_Input);
 
-      Add_Bottom_Command_Button
-        (Bottom.Small_Button_X,
-         Bottom.Small_Button_Width,
-         Files.Commands.Select_Small_Icons_Command,
-         Snapshot.View_Mode = Files.Types.Small_Icons);
-      Add_Bottom_Command_Button
-        (Bottom.Large_Button_X,
-         Bottom.Large_Button_Width,
-         Files.Commands.Select_Large_Icons_Command,
-         Snapshot.View_Mode = Files.Types.Large_Icons);
-      Add_Bottom_Command_Button
-        (Bottom.Details_Button_X,
-         Bottom.Details_Button_Width,
-         Files.Commands.Select_Details_Command,
-         Snapshot.View_Mode = Files.Types.Details);
+      --  The view-mode switcher is a segmented control over the view-mode region.
+      declare
+         View_Segments : Guikit.Segmented.Segment_Vectors.Vector;
+         Seg_Rects     : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+         Seg_Text      : Guikit.Draw.Text_Command_Vectors.Vector;
+         Seg_Tips      : Guikit.Draw.Tooltip_Command_Vectors.Vector;
+         Seg_Nodes     : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+         Active        : constant Natural :=
+           (case Snapshot.View_Mode is
+               when Files.Types.Small_Icons => 1,
+               when Files.Types.Large_Icons => 2,
+               when Files.Types.Details     => 3);
+
+         procedure Add_View (Command : Files.Commands.Registered_Command_Id) is
+         begin
+            View_Segments.Append
+              (Guikit.Segmented.Segment'
+                 (Label   => Bottom_Command_Label (Command),
+                  Tooltip => Command_Label (Command),
+                  Enabled => Snapshot.Command_Enabled (Command)));
+         end Add_View;
+      begin
+         Add_View (Files.Commands.Select_Small_Icons_Command);
+         Add_View (Files.Commands.Select_Large_Icons_Command);
+         Add_View (Files.Commands.Select_Details_Command);
+         Guikit.Segmented.Build_Frame
+           (Segments      => View_Segments,
+            Active        => Active,
+            Region_X      => Bottom.View_Mode_X,
+            Region_Y      => Bottom_Y,
+            Region_Width  => Bottom.View_Mode_Width,
+            Region_Height => Layout.Bottom_Bar_Height,
+            Clip_Width    => Width,
+            Clip_Height   => Height,
+            Line_Height   => Line_Height,
+            Hover_X       => (if Has_Hover then Hover_X else -1),
+            Hover_Y       => (if Has_Hover then Hover_Y else -1),
+            Rectangles    => Seg_Rects,
+            Text          => Seg_Text,
+            Tooltips      => Seg_Tips,
+            Accessibility => Seg_Nodes);
+         for C of Seg_Rects loop
+            Result.Rectangles.Append (C);
+         end loop;
+         for C of Seg_Text loop
+            Result.Text.Append (C);
+         end loop;
+         for C of Seg_Tips loop
+            Result.Tooltips.Append (C);
+         end loop;
+         for N of Seg_Nodes loop
+            Result.Accessibility.Append (N);
+         end loop;
+      end;
       declare
          Hovered : constant Boolean :=
            Has_Hover

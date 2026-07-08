@@ -2,6 +2,7 @@ with Files.Localization;
 
 with Guikit.Layout;
 use Guikit.Layout;
+with Guikit.Segmented;
 
 package body Files.UI is
 
@@ -159,12 +160,13 @@ package body Files.UI is
         or else Y >= Saturating_Add (Content_Y, Line_Height)
       then
          return Files.Commands.No_Command;
-      elsif Within (X, Bottom.Small_Button_X, Bottom.Small_Button_Width) then
-         return Files.Commands.Select_Small_Icons_Command;
-      elsif Within (X, Bottom.Large_Button_X, Bottom.Large_Button_Width) then
-         return Files.Commands.Select_Large_Icons_Command;
-      elsif Within (X, Bottom.Details_Button_X, Bottom.Details_Button_Width) then
-         return Files.Commands.Select_Details_Command;
+      elsif Within (X, Bottom.View_Mode_X, Bottom.View_Mode_Width) then
+         case Guikit.Segmented.Cell_At (Bottom.View_Mode_X, Bottom.View_Mode_Width, 3, X) is
+            when 1      => return Files.Commands.Select_Small_Icons_Command;
+            when 2      => return Files.Commands.Select_Large_Icons_Command;
+            when 3      => return Files.Commands.Select_Details_Command;
+            when others => return Files.Commands.No_Command;
+         end case;
       elsif Within (X, Bottom.Sort_Button_X, Bottom.Sort_Button_Width) then
          return Files.Commands.Toggle_Sort_Menu_Command;
       elsif Within (X, Bottom.Info_X, Bottom.Info_Width) then
