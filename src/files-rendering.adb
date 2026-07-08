@@ -1823,7 +1823,6 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Item_Layout_Vectors.Vector
    is
-      Result : Item_Layout_Vectors.Vector;
       Padding : constant Natural :=
         (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
            and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
@@ -1841,243 +1840,56 @@ package body Files.Rendering is
          else Layout.Main_Height);
       Main_View : constant Main_View_Layout :=
         Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
-      Scroll_Pixels : constant Natural := Main_View.Scroll_Pixels;
 
-      function Saturating_Subtract (Left : Natural; Right : Natural) return Natural is
-      begin
-         if Left > Right then
-            return Left - Right;
-         else
-            return 0;
-         end if;
-      end Saturating_Subtract;
+      --  Snapshot-derived inputs the component cannot compute itself: the detail
+      --  column geometry (with the drawn-row padding) and the neutral item list.
+      Geometry : constant Detail_Column_Geometry_Array :=
+        Compute_Detail_Columns
+          (Snapshot.Detail_Columns_Visible,
+           Snapshot.Detail_Column_Widths,
+           Snapshot.Detail_Column_Order,
+           Content_X,
+           Content_W,
+           Line_Height,
+           Details_Row_Padding);
+      View : constant Guikit.Item_Grid.View_Kind :=
+        (case Snapshot.View_Mode is
+            when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
+            when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
+            when Files.Types.Details     => Guikit.Item_Grid.Details);
+      Columns : Guikit.Item_Grid.Detail_Column_Bounds;
+      Items   : Guikit.Item_Grid.Layout_Item_Vectors.Vector;
 
-      function Columns_For (Main_Width : Natural; Cell_Width : Positive) return Positive is
-         Stride : constant Positive := Positive (Saturating_Add (Cell_Width, Main_Grid_Gap));
-      begin
-         if Main_Width < Cell_Width then
-            return 1;
-         else
-            return Positive'Max (1, Positive ((Saturating_Add (Main_Width, Main_Grid_Gap)) / Stride));
-         end if;
-      end Columns_For;
-
-      procedure Append_Grid_Item
-        (Index     : Positive;
-         Cell_W    : Positive;
-         Cell_H    : Positive;
-         Icon_Size : Positive;
-         Large     : Boolean)
-      is
-         Columns     : constant Positive := Columns_For (Content_W, Cell_W);
-         Offset      : constant Natural := Natural (Index - 1);
-         Column      : constant Natural := Offset mod Columns;
-         Row         : constant Natural := Offset / Columns;
-         Cell_Stride : constant Natural := Saturating_Add (Cell_W, Main_Grid_Gap);
-         Row_Stride  : constant Natural := Saturating_Add (Cell_H, Main_Grid_Gap);
-         Cell_Offset : constant Natural := Saturating_Multiply (Column, Cell_Stride);
-         Row_Offset  : constant Natural := Saturating_Multiply (Row, Row_Stride);
-         Hidden_Px   : constant Natural :=
-           (if Row_Offset < Scroll_Pixels then Natural'Min (Cell_H, Scroll_Pixels - Row_Offset) else 0);
-         Visible_Row : constant Natural := Saturating_Subtract (Row_Offset, Scroll_Pixels);
-         Cell_X      : constant Natural := Saturating_Add (Content_X, Cell_Offset);
-         Cell_Y      : constant Natural := Saturating_Add (Content_Y, Visible_Row);
-         Cell_Width  : constant Natural :=
-           (if Content_W > Cell_Offset
-            then Natural'Min (Cell_W, Content_W - Cell_Offset)
-            else 0);
-         Cell_Height : constant Natural :=
-           (if Hidden_Px = 0 and then Content_H >= Saturating_Add (Visible_Row, Cell_H)
-            then Cell_H
-            else 0);
-         Draw_Icon   : constant Natural := Natural'Min (Icon_Size, Natural'Min (Cell_Width, Cell_Height));
-         Content_Pad : constant Natural := Natural'Min (Item_Content_Padding, Natural'Min (Cell_Width, Cell_Height));
-         Inner_X     : constant Natural := Saturating_Add (Cell_X, Content_Pad);
-         Inner_Y     : constant Natural := Saturating_Add (Cell_Y, Content_Pad);
-         Inner_W     : constant Natural :=
-           (if Cell_Width > Saturating_Multiply (Content_Pad, 2)
-            then Cell_Width - Saturating_Multiply (Content_Pad, 2)
-            else Cell_Width);
-         Inner_H     : constant Natural :=
-           (if Cell_Height > Saturating_Multiply (Content_Pad, 2)
-            then Cell_Height - Saturating_Multiply (Content_Pad, 2)
-            else Cell_Height);
-         Padded_Icon : constant Natural := Natural'Min (Draw_Icon, Natural'Min (Inner_W, Inner_H));
-         Used_X      : constant Natural :=
-           (if Large then 0 else Natural'Min (Inner_W, Saturating_Add (Padded_Icon, Item_Icon_Text_Gap)));
-         Icon_X      : constant Natural :=
-           (if Large then Saturating_Add (Inner_X, (if Inner_W > Padded_Icon then (Inner_W - Padded_Icon) / 2 else 0))
-            else Inner_X);
-         Icon_Y      : constant Natural := Inner_Y;
-         Name_Units  : constant Natural :=
-           Files.UTF8.Display_Units (To_String (Snapshot.Items.Element (Index).Name));
-         Name_Pixels : constant Natural := Saturating_Multiply (Name_Units, Saturating_Multiply (Line_Height, 12) / 20);
-         Large_Text_W : constant Natural := Natural'Min (Inner_W, Name_Pixels);
-         Text_X      : constant Natural :=
-           (if Large
-            then Saturating_Add (Inner_X, (if Inner_W > Large_Text_W then (Inner_W - Large_Text_W) / 2 else 0))
-            else Saturating_Add (Inner_X, Used_X));
-         Text_Y      : constant Natural :=
-           (if Large then Saturating_Add (Saturating_Add (Inner_Y, Padded_Icon), Item_Content_Padding)
-            else Inner_Y);
-         Text_W      : constant Natural :=
-           (if Large then Large_Text_W else Saturating_Subtract (Inner_W, Used_X));
-      begin
-         Result.Append
-           (Item_Layout'
-              (Visible_Index => Snapshot.Items.Element (Index).Visible_Index,
-               X             => Cell_X,
-               Y             => Cell_Y,
-               Width         => Cell_Width,
-               Height        => Cell_Height,
-               Icon_X        => Icon_X,
-               Icon_Y         => Icon_Y,
-               Icon_Size      => Padded_Icon,
-               Text_X         => Text_X,
-               Text_Y         => Text_Y,
-               Text_Width     => Text_W,
-               Name_X         => Text_X,
-               Name_Width     => Text_W,
-               Modified_X     => 0,
-               Modified_Width => 0,
-               Size_X         => 0,
-               Size_Width     => 0,
-               Filetype_X     => 0,
-               Filetype_Width => 0,
-               Created_X         => 0,
-               Created_Width     => 0,
-               Permissions_X     => 0,
-               Permissions_Width => 0));
-      end Append_Grid_Item;
+      --  The two enums are identical (same six columns, same order).
+      function As_Grid_Column (C : Files.Types.Detail_Column) return Guikit.Item_Grid.Detail_Column is
+        (Guikit.Item_Grid.Detail_Column'Val (Files.Types.Detail_Column'Pos (C)));
    begin
-      for Index in 1 .. Natural (Snapshot.Items.Length) loop
-         case Snapshot.View_Mode is
-            when Files.Types.Small_Icons | Files.Types.Large_Icons =>
-               declare
-                  Metrics : constant Item_Cell_Metrics :=
-                    Metrics_For (Snapshot.View_Mode, Content_W, Line_Height);
-               begin
-                  Append_Grid_Item
-                    (Positive (Index),
-                     Cell_W    => Positive (Metrics.Width),
-                     Cell_H    => Positive (Metrics.Height),
-                     Icon_Size => Positive (Metrics.Icon_Size),
-                     Large     => Metrics.Large);
-               end;
-            when Files.Types.Details =>
-               declare
-                  Item       : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
-                  Metrics    : constant Item_Cell_Metrics :=
-                    Metrics_For (Snapshot.View_Mode, Content_W, Line_Height);
-                  Row_Step   : constant Natural := Metrics.Height;
-                  Header_H   : constant Natural :=
-                    Natural'Min
-                      (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-                  Rows_Y     : constant Natural := Saturating_Add (Content_Y, Header_H);
-                  Rows_H     : constant Natural := Saturating_Subtract (Content_H, Header_H);
-                  Row_Offset : constant Natural := Saturating_Multiply (Natural (Index - 1), Row_Step);
-                  Hidden_Px  : constant Natural :=
-                    (if Row_Offset < Scroll_Pixels
-                     then Natural'Min (Row_Step, Scroll_Pixels - Row_Offset)
-                     else 0);
-                  Visible_Row : constant Natural := Saturating_Subtract (Row_Offset, Scroll_Pixels);
-                  Row_Y      : constant Natural := Saturating_Add (Rows_Y, Visible_Row);
-                  Row_H      : constant Natural :=
-                    (if Hidden_Px = 0 and then Rows_H >= Saturating_Add (Visible_Row, Row_Step)
-                     then Row_Step
-                     else 0);
-                  Row_Draw_H : constant Natural :=
-                    (if Row_H > Details_Row_Gap then Row_H - Details_Row_Gap else Row_H);
-                  Row_Pad    : constant Natural := Natural'Min (Details_Row_Padding, Row_Draw_H);
-                  Inner_H    : constant Natural :=
-                    (if Row_Draw_H > Saturating_Multiply (Row_Pad, 2)
-                     then Row_Draw_H - Saturating_Multiply (Row_Pad, 2)
-                     else Row_Draw_H);
-                  Row_Inner_X : constant Natural := Saturating_Add (Content_X, Row_Pad);
-                  Text_Pad   : constant Natural := Natural'Min (Details_Column_Padding, Row_Draw_H);
-                  Columns    : constant Detail_Column_Geometry_Array :=
-                    Compute_Detail_Columns
-                      (Snapshot.Detail_Columns_Visible,
-                       Snapshot.Detail_Column_Widths,
-                       Snapshot.Detail_Column_Order,
-                       Content_X,
-                       Content_W,
-                       Line_Height,
-                       Row_Pad);
-                  Name_X     : constant Natural := Columns (Files.Types.Name_Column).X;
-                  Name_W     : constant Natural := Columns (Files.Types.Name_Column).Width;
-                  Header_Name_W : constant Natural :=
-                    (if Saturating_Add (Content_X, Content_W) > Name_X
-                     then Saturating_Add (Content_X, Content_W) - Name_X
-                     else 0);
-
-                  function Col_X (Column : Files.Types.Optional_Detail_Column) return Natural is
-                    (Columns (Column).X);
-
-                  function Col_W (Column : Files.Types.Optional_Detail_Column) return Natural is
-                    (Columns (Column).Width);
-               begin
-                  if Item.Is_Group_Header then
-                     Result.Append
-                       (Item_Layout'
-                          (Visible_Index  => 0,
-                           X              => Content_X,
-                           Y              => Row_Y,
-                           Width          => Content_W,
-                           Height         => Row_Draw_H,
-                           Icon_X         => 0,
-                           Icon_Y         => 0,
-                           Icon_Size      => 0,
-                           Text_X         => Saturating_Add (Name_X, Text_Pad),
-                           Text_Y         =>
-                             Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
-                           Text_Width     => Saturating_Subtract (Header_Name_W, Text_Pad),
-                           Name_X         => Name_X,
-                           Name_Width     => Header_Name_W,
-                           Modified_X     => 0,
-                           Modified_Width => 0,
-                           Size_X         => 0,
-                           Size_Width     => 0,
-                           Filetype_X     => 0,
-                           Filetype_Width => 0,
-                           Created_X         => 0,
-                           Created_Width     => 0,
-                           Permissions_X     => 0,
-                           Permissions_Width => 0));
-                  else
-                     Result.Append
-                       (Item_Layout'
-                          (Visible_Index  => Item.Visible_Index,
-                           X              => Content_X,
-                           Y              => Row_Y,
-                           Width          => Content_W,
-                           Height         => Row_Draw_H,
-                           Icon_X         => Row_Inner_X,
-                           Icon_Y         =>
-                             Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
-                           Icon_Size      => Natural'Min (Line_Height, Inner_H),
-                           Text_X         => Saturating_Add (Name_X, Text_Pad),
-                           Text_Y         =>
-                             Saturating_Add (Row_Y, Saturating_Subtract (Row_Pad, 2)),
-                           Text_Width     => Saturating_Subtract (Name_W, Text_Pad),
-                           Name_X         => Saturating_Add (Name_X, Text_Pad),
-                           Name_Width     => Saturating_Subtract (Name_W, Text_Pad),
-                           Modified_X     => Col_X (Files.Types.Modified_Column),
-                           Modified_Width => Col_W (Files.Types.Modified_Column),
-                           Size_X         => Col_X (Files.Types.Size_Column),
-                           Size_Width     => Col_W (Files.Types.Size_Column),
-                           Filetype_X     => Col_X (Files.Types.Filetype_Column),
-                           Filetype_Width => Col_W (Files.Types.Filetype_Column),
-                           Created_X         => Col_X (Files.Types.Created_Column),
-                           Created_Width     => Col_W (Files.Types.Created_Column),
-                           Permissions_X     => Col_X (Files.Types.Permissions_Column),
-                           Permissions_Width => Col_W (Files.Types.Permissions_Column)));
-                  end if;
-               end;
-         end case;
+      for C in Files.Types.Detail_Column loop
+         Columns (As_Grid_Column (C)) := (X => Geometry (C).X, Width => Geometry (C).Width);
       end loop;
 
-      return Result;
+      for Index in 1 .. Natural (Snapshot.Items.Length) loop
+         declare
+            It : Item_Snapshot renames Snapshot.Items.Element (Positive (Index));
+         begin
+            Items.Append
+              (Guikit.Item_Grid.Layout_Item'
+                 (Visible_Index => It.Visible_Index,
+                  Group_Header  => It.Is_Group_Header,
+                  Label         => It.Name));
+         end;
+      end loop;
+
+      return Guikit.Item_Grid.Calculate_Layout
+        (Items         => Items,
+         View          => View,
+         Content_X     => Content_X,
+         Content_Y     => Content_Y,
+         Content_W     => Content_W,
+         Content_H     => Content_H,
+         Columns       => Columns,
+         Scroll_Pixels => Main_View.Scroll_Pixels,
+         Line_Height   => Line_Height);
    end Calculate_Item_Layout;
 
    function Calculate_Main_View_Layout
