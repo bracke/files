@@ -8,9 +8,6 @@ with Files.Settings_Form;
 with Files.Type_Ahead;
 with Files.UTF8;
 
-with Guikit.Command_Palette;
-with Guikit.Settings_Panel;
-
 package body Files.Model is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
@@ -2385,11 +2382,6 @@ package body Files.Model is
       Guikit.Settings_Panel.Cycle_Choice (Model.Settings_Panel_View, Forward);
    end Settings_Cycle_Choice;
 
-   procedure Settings_Step_Number (Model : in out Window_Model; Up : Boolean) is
-   begin
-      Guikit.Settings_Panel.Step_Number (Model.Settings_Panel_View, Up);
-   end Settings_Step_Number;
-
    procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String) is
    begin
       Guikit.Settings_Panel.Set_Focused_Value (Model.Settings_Panel_View, Text);
@@ -2409,16 +2401,6 @@ package body Files.Model is
    begin
       return Guikit.Settings_Panel.Take_Change (Model.Settings_Panel_View);
    end Settings_Take_Change;
-
-   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind is
-   begin
-      return Guikit.Settings_Panel.Focused_Kind (Model.Settings_Panel_View);
-   end Settings_Focused_Kind;
-
-   function Settings_Focused_Key (Model : Window_Model) return String is
-   begin
-      return Guikit.Settings_Panel.Focused_Key (Model.Settings_Panel_View);
-   end Settings_Focused_Key;
 
    function Settings_Focused_Value (Model : Window_Model) return String is
    begin

@@ -1021,12 +1021,6 @@ package Files.Model is
    --  @param Forward True to advance, False to retreat.
    procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean);
 
-   --  Step the focused number field.
-   --
-   --  @param Model Model to update.
-   --  @param Up True to increment, False to decrement.
-   procedure Settings_Step_Number (Model : in out Window_Model; Up : Boolean);
-
    --  Replace the whole value of the focused text field.
    --
    --  @param Model Model to update.
@@ -1053,12 +1047,10 @@ package Files.Model is
    --  @return The pending change.
    function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change;
 
-   --  The focused field's kind / key / value (Section and "" when none).
+   --  The focused field's current value ("" when none).
    --
    --  @param Model Model to inspect.
-   --  @return The focused field's kind / key / value.
-   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind;
-   function Settings_Focused_Key (Model : Window_Model) return String;
+   --  @return The focused field's value.
    function Settings_Focused_Value (Model : Window_Model) return String;
 
    --  Render the settings panel within a region, rebuilding its field list from
