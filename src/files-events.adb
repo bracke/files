@@ -483,38 +483,6 @@ package body Files.Events is
            and then Value - Start < Extent;
       end Within;
 
-      function Scaled_Down
-        (Value       : Natural;
-         Numerator   : Positive;
-         Denominator : Positive)
-         return Natural is
-      begin
-         declare
-            Whole : constant Natural := Value / Denominator;
-            Part  : constant Natural := Value mod Denominator;
-            Whole_Product : Natural;
-            Part_Product  : Natural;
-         begin
-            if Whole > Natural'Last / Numerator then
-               Whole_Product := Natural'Last;
-            else
-               Whole_Product := Whole * Numerator;
-            end if;
-
-            if Part > Natural'Last / Numerator then
-               Part_Product := Natural'Last;
-            else
-               Part_Product := Part * Numerator;
-            end if;
-
-            if Whole_Product > Natural'Last - (Part_Product / Denominator) then
-               return Natural'Last;
-            end if;
-
-            return Whole_Product + Part_Product / Denominator;
-         end;
-      end Scaled_Down;
-
       function Saturating_Add
         (Left  : Natural;
          Right : Natural)
@@ -540,33 +508,6 @@ package body Files.Events is
             return Value * Factor;
          end if;
       end Saturating_Multiply;
-
-      function Bounded_Product_Divide
-        (Value       : Natural;
-         Factor      : Natural;
-         Denominator : Positive)
-         return Natural is
-      begin
-         if Factor = 0 or else Value = 0 then
-            return 0;
-         elsif Value > Natural'Last / Factor then
-            return Scaled_Down (Value, Factor, Denominator);
-         else
-            return (Value * Factor) / Denominator;
-         end if;
-      end Bounded_Product_Divide;
-
-      function Visible_Row_Count
-        (Available_Height : Natural;
-         Row_Height       : Natural)
-         return Natural is
-      begin
-         if Available_Height = 0 or else Row_Height = 0 then
-            return 0;
-         end if;
-
-         return Available_Height / Row_Height;
-      end Visible_Row_Count;
 
       function Cursor_At
         (Text        : Unbounded_String;

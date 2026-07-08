@@ -2902,7 +2902,6 @@ package body Files.Model is
          Show_Shortcuts => True,
          Overlay        => True,
          Wrap_Selection => True,
-         Pre_Filtered   => False,
          Placeholder    => Null_Unbounded_String,
          Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty")));
    end Palette_Config;
