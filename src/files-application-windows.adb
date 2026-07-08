@@ -26,6 +26,7 @@ with Files.File_System;
 with Files.Interaction;
 with Files.Operations;
 with Guikit.Draw;
+with Guikit.Layout;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
@@ -2272,6 +2273,45 @@ package body Files.Application.Windows is
                   Frame.Icons.Append (C);
                end loop;
                for N of P_Nodes loop
+                  Frame.Accessibility.Append (N);
+               end loop;
+            end;
+         end if;
+
+         if Files.Model.Settings_Pane_Is_Open (Runtime.Model) then
+            declare
+               Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+               Layout : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout
+                   (Snapshot, Natural (Width), Natural (Height), Line_Height);
+               Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+                 Guikit.Layout.Calculate_Settings_Pane_Layout
+                   (Natural (Width), Natural (Height), Layout.Toolbar_Height, Line_Height);
+               S_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+               S_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
+               S_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+            begin
+               Files.Model.Settings_Build_Frame
+                 (Model         => Runtime.Model,
+                  Region_X      => Pane.X,
+                  Region_Y      => Pane.Y,
+                  Region_Width  => Pane.Width,
+                  Region_Height => Pane.Height,
+                  Clip_Width    => Natural (Width),
+                  Clip_Height   => Natural (Height),
+                  Line_Height   => Line_Height,
+                  Focused       =>
+                    Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
+                  Rectangles    => S_Rects,
+                  Text          => S_Text,
+                  Accessibility => S_Nodes);
+               for C of S_Rects loop
+                  Frame.Rectangles.Append (C);
+               end loop;
+               for C of S_Text loop
+                  Frame.Text.Append (C);
+               end loop;
+               for N of S_Nodes loop
                   Frame.Accessibility.Append (N);
                end loop;
             end;

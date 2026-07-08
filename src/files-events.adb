@@ -576,38 +576,12 @@ package body Files.Events is
          return Scroll_Action (Target, Lines, Activate);
       end Scroll_Click;
 
-      function Settings_Click
-        (Field  : Natural;
-         Option : Natural := 0)
-         return Input_Action is
-      begin
-         return
-           (Kind            => Settings_Click_Input_Action,
-            Command         => Files.Commands.No_Command,
-            Direction       => Guikit.Input.Move_Right,
-            Item_Index      => 0,
-            Root_Index      => 0,
-            Result_Index    => 0,
-            Click_X          => 0,
-            Click_Y          => 0,
-            Scroll_Lines    => 0,
-            Scroll_Area     => Scroll_Auto,
-            Focus_Target    => Files.Types.Focus_Settings_Input,
-            Cursor_Position => 0,
-            Settings_Field  => Field,
-            Settings_Option => Option,
-            Activate        => Activate,
-            Toggle_Selection => False,
-            Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
-      end Settings_Click;
-
+      --  Any click inside the open settings pane becomes a settings click
+      --  carrying the coordinates; Guikit.Settings_Panel hit-tests it (focusing /
+      --  toggling / choosing / stepping / pressing a button).
       function Settings_Click_Hit return Input_Action is
          Pane : constant Guikit.Layout.Settings_Pane_Layout :=
            Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
-         Hit  : constant Files.Rendering.Settings_Hit_Region :=
-           Files.Rendering.Settings_Hit_At (Frame, X, Y);
-         use type Files.Rendering.Settings_Hit_Kind;
       begin
          if not Snapshot.Settings_Pane_Open
            or else not Within (X, Pane.X, Pane.Width)
@@ -615,43 +589,13 @@ package body Files.Events is
          then
             return No_Action (Activate);
          end if;
-
-         case Hit.Kind is
-            when Files.Rendering.Settings_Hit_Field =>
-               return Settings_Click (Hit.Field);
-            when Files.Rendering.Settings_Hit_Reset =>
-               if Snapshot.Settings_Can_Reset then
-                  return Command_Action (Files.Commands.Reset_Settings_Command, Activate);
-               end if;
-            when Files.Rendering.Settings_Hit_Segment =>
-               if Hit.Field /= 0 and then Hit.Option /= 0 then
-                  return Settings_Click (Hit.Field, Hit.Option);
-               end if;
-            when Files.Rendering.Settings_Hit_Toggle =>
-               if Hit.Field /= 0 and then Hit.Option /= 0 then
-                  return Settings_Click (Hit.Field, Hit.Option);
-               end if;
-            when Files.Rendering.Settings_Hit_Stepper_Down =>
-               if Hit.Field /= 0 then
-                  return Settings_Click (Hit.Field, 150);
-               end if;
-            when Files.Rendering.Settings_Hit_Stepper_Up =>
-               if Hit.Field /= 0 then
-                  return Settings_Click (Hit.Field, 151);
-               end if;
-            when Files.Rendering.Settings_Hit_Add =>
-               if Hit.Field /= 0 then
-                  return Settings_Click (Hit.Field, 100);
-               end if;
-            when Files.Rendering.Settings_Hit_Remove =>
-               if Hit.Field /= 0 then
-                  return Settings_Click (Hit.Field, 101);
-               end if;
-            when Files.Rendering.Settings_Hit_None =>
-               null;
-         end case;
-
-         return No_Action (Activate);
+         return
+           (Kind         => Settings_Click_Input_Action,
+            Click_X      => X,
+            Click_Y      => Y,
+            Focus_Target => Files.Types.Focus_Settings_Input,
+            Activate     => Activate,
+            others       => <>);
       end Settings_Click_Hit;
 
       --  A click on an overlay panel's top-right close (X) button. The button

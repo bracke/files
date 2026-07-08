@@ -288,16 +288,18 @@ package Files.Controller is
       Item_Index      : Natural := 0)
       return Controller_Result;
 
-   --  Handle a click inside the settings pane.
+   --  Handle a click inside the settings pane at a window coordinate: the panel
+   --  hit-tests it (focusing/toggling/choosing/stepping/pressing), then the
+   --  emitted change is applied to the draft.
    --
    --  @param Model Window model to update.
-   --  @param Field Settings field selected by the click.
-   --  @param Option Optional clicked option or action code.
+   --  @param X Pointer x coordinate in pixels.
+   --  @param Y Pointer y coordinate in pixels.
    --  @return Controller result describing whether settings state changed.
    function Handle_Settings_Click
-     (Model  : in out Files.Model.Window_Model;
-      Field  : Natural;
-      Option : Natural := 0)
+     (Model : in out Files.Model.Window_Model;
+      X     : Integer;
+      Y     : Integer)
       return Controller_Result;
 
    --  Handle one key press using focus-aware command routing.

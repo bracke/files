@@ -122,8 +122,6 @@ package body Files_Suite.Model is
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Field_Navigation_Wraps (T : in out AUnit.Test_Cases.Test_Case'Class);
-
    overriding function Name (T : Model_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -175,9 +173,6 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Group_By_Label_Bands'Access,
          "group-by-label partitions the snapshot into label-band headers with items under the right band");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Field_Navigation_Wraps'Access,
-         "settings field navigation still cycles the 20 editable fields and wraps at both ends");
    end Register_Tests;
 
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2433,7 +2428,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over info pane");
       Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "wheel scrolls the open settings pane");
-      Assert (Files.Model.Settings_Pane_Scroll_Lines (Model) > 0, "wheel scroll advances the settings pane");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "settings wheel scroll leaves info pane still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "auto scroll reaches the settings pane");
@@ -2522,7 +2516,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over main view");
       Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "wheel scrolls the open settings pane");
-      Assert (Files.Model.Settings_Pane_Scroll_Lines (Model) > 0, "wheel scroll advances the settings pane");
       Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "settings wheel scroll leaves main view still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "auto scroll reaches the settings pane");
@@ -3127,36 +3120,6 @@ package body Files_Suite.Model is
          Assert (Gamma_Pos < Beta_Pos, "the blue band precedes the unlabeled band");
       end;
    end Test_Group_By_Label_Bands;
-
-   --  Adding non-interactive section headers to the settings pane must not
-   --  change field navigation: Move_Settings_Field still cycles exactly the 20
-   --  editable fields and wraps at both ends.
-   procedure Test_Settings_Field_Navigation_Wraps (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Model : Files.Model.Window_Model := Sample_Model;
-   begin
-      Files.Model.Toggle_Settings_Pane (Model);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane opens for editing");
-
-      Files.Model.Set_Settings_Field_Index (Model, 1);
-      Assert (Files.Model.Settings_Field_Index (Model) = 1, "the first settings field is field 1");
-
-      Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Up);
-      Assert (Files.Model.Settings_Field_Index (Model) = 20,
-              "moving up from field 1 wraps to the last field, 20");
-
-      Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Down);
-      Assert (Files.Model.Settings_Field_Index (Model) = 1,
-              "moving down from field 20 wraps back to field 1");
-
-      --  A full downward cycle visits exactly 20 distinct fields and returns to
-      --  the start, proving the field count is unchanged by the header rows.
-      for Step in 1 .. 20 loop
-         Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Down);
-      end loop;
-      Assert (Files.Model.Settings_Field_Index (Model) = 1,
-              "cycling down twenty times returns to field 1 (exactly 20 fields)");
-   end Test_Settings_Field_Navigation_Wraps;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

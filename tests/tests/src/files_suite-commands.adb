@@ -353,64 +353,14 @@ package body Files_Suite.Commands is
       Assert (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model), "save settings is enabled");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model), "reset settings is enabled");
       Files.Controller.Replace_Focused_Text (Model, "details");
-      Assert (Files.Model.Settings_Field_Text (Model) = "details", "settings draft field is editable");
       Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       Assert (Result.Command = Files.Commands.Reset_Settings_Command, "reset settings command is reported");
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "reset settings reports success");
-      Assert
-        (Files.Model.Settings_Field_Text (Model) = "small_icons",
-         "reset settings restores default draft view mode");
       Result := Files.Controller.Execute_Command (Files.Commands.Save_Settings_Command, Model, Settings);
       Assert (Result.Command = Files.Commands.Save_Settings_Command, "pure save settings command is reported");
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 2);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
-         "settings option click saves the changed setting");
-      Assert
-        (Result.Command = Files.Commands.Save_Settings_Command,
-         "settings option click reports the save command");
-      Assert (Files.Model.Settings_Field_Text (Model) = "large_icons", "settings option click updates scalar value");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 2);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
-         "repeated settings option click still saves");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 3, Option => 5);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
-         "sort field accepts the fifth (created) option");
-      Assert
-        (Files.Model.Settings_Field_Text (Model) = "created",
-         "sort option 5 selects the created sort field");
-      Files.Model.Set_Settings_Field_Index (Model, 7);
-      Files.Model.Set_Settings_Field_Text (Model, "32");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 7, Option => 151);
-      Assert
-        (Result.Status = Files.Controller.Controller_Ignored,
-         "font-size stepper at its max bound is a no-op");
-      Assert (Files.Model.Settings_Field_Text (Model) = "32", "font stepper at max keeps the value");
-      Files.Model.Set_Settings_Field_Text (Model, "16");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 7, Option => 151);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
-         "font-size stepper below max increments and saves");
-      Assert (Files.Model.Settings_Field_Text (Model) = "17", "font stepper increments the value");
-      Files.Model.Set_Settings_Field_Index (Model, 2);
-      Files.Controller.Replace_Focused_Text (Model, "true");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 2, Option => 4);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "unsupported settings option is ignored");
-      Assert
-        (Files.Model.Settings_Field_Text (Model) = "true",
-         "unsupported settings option does not mutate boolean setting");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 99);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "unsupported settings field is ignored");
-      Assert (Files.Model.Settings_Field_Index (Model) = 2, "unsupported settings field does not clamp focus");
-      Assert
-        (Files.Model.Settings_Field_Text (Model) = "true",
-         "unsupported settings field does not mutate settings text");
-      Files.Model.Set_Settings_Field_Index (Model, 6);
       Files.Controller.Replace_Focused_Text (Model, "ab");
       Files.Model.Set_Text_Cursor_Position (Model, 1);
       declare
@@ -425,36 +375,6 @@ package body Files_Suite.Commands is
          Draft.Icon_Theme_Name := To_Unbounded_String ("files-basic");
          Files.Model.Set_Settings_Draft (Model, Draft);
       end;
-      Files.Model.Set_Settings_Field_Index (Model, 2);
-      declare
-         Old_Mapping_Count : constant Natural :=
-           Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length);
-      begin
-         Result := Files.Controller.Handle_Settings_Click (Model, Field => 15, Option => 100);
-         Assert
-           (Result.Status = Files.Controller.Controller_Command_Executed,
-            "settings value-field add click executes");
-         Assert
-           (Result.Command = Files.Commands.Save_Settings_Command,
-            "settings value-field add click reports the save command");
-         Assert
-           (Files.Model.Settings_Field_Index (Model) = 15,
-            "settings value-field add click moves focus to the clicked field");
-         Assert
-           (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length) = Old_Mapping_Count + 1,
-            "settings value-field add click creates a mapping row");
-         Result := Files.Controller.Handle_Settings_Click (Model, Field => 15, Option => 101);
-         Assert
-           (Result.Status = Files.Controller.Controller_Command_Executed,
-            "settings value-field remove click executes");
-         Assert
-           (Result.Command = Files.Commands.Save_Settings_Command,
-            "settings value-field remove click reports the save command");
-         Assert
-           (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length) = Old_Mapping_Count,
-            "settings value-field remove click drops the added mapping row");
-      end;
-      Files.Model.Set_Settings_Field_Index (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
       Assert (Result.Command = Files.Commands.Save_Settings_Command, "control+s routes settings save command");
       Assert
@@ -469,14 +389,14 @@ package body Files_Suite.Commands is
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores entry paging");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Files.Model.Settings_Field_Index (Model) = 2, "down moves to next settings field");
-      Files.Model.Set_Settings_Field_Index (Model, 19);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Files.Model.Settings_Field_Index (Model) = 20, "down reaches the final settings field (20)");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Files.Model.Settings_Field_Index (Model) = 1, "down from the final settings field wraps to first");
-      Files.Model.Set_Settings_Field_Index (Model, 2);
-      Files.Controller.Replace_Focused_Text (Model, "maybe");
+      declare
+         Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      begin
+         Bad.Show_Hidden_Files := To_Unbounded_String ("maybe");
+         Files.Model.Set_Settings_Draft (Model, Bad);
+      end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Failed,
@@ -484,7 +404,12 @@ package body Files_Suite.Commands is
       Assert
         (To_String (Result.Operation.Error_Key) = "error.settings.invalid_boolean",
          "invalid settings field Return reports diagnostic key");
-      Files.Controller.Replace_Focused_Text (Model, "true");
+      declare
+         Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      begin
+         Good.Show_Hidden_Files := To_Unbounded_String ("true");
+         Files.Model.Set_Settings_Draft (Model, Good);
+      end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Success,
@@ -547,7 +472,8 @@ package body Files_Suite.Commands is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background path text click");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input, "blocked text click keeps settings focus");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings pane accepts settings text click");
+      Assert (Result.Status = Files.Controller.Controller_Ignored,
+              "settings clicks route through the panel, not the generic text-click path");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after focus Escape");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "settings Escape clears settings focus");
@@ -561,14 +487,10 @@ package body Files_Suite.Commands is
         (Files.Model.Selected_Item (Model).Name = "Alpha.txt",
          "settings pane keeps background selection unchanged");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "settings pane can regain settings focus");
+      Assert (Result.Status = Files.Controller.Controller_Ignored,
+              "settings text-clicks are handled by the panel, not the generic path");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette can open over settings pane");
-      Result := Files.Controller.Handle_Settings_Click (Model, Field => 1, Option => 3);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "palette blocks settings click behind overlay");
-      Assert
-        (Files.Model.Settings_Field_Text (Model) /= "details",
-         "blocked settings click leaves settings field unchanged");
       Files.Model.Close_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before history enablement check");

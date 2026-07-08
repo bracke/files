@@ -8,6 +8,7 @@ with Files.Settings;
 with Guikit.Command_Palette;
 with Guikit.Draw;
 with Guikit.Input;
+with Guikit.Settings_Panel;
 with Files.Types;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
@@ -1004,65 +1005,90 @@ package Files.Model is
      (Model : in out Window_Model;
       Draft : Files.Settings.Settings_Draft);
 
-   --  Return the active settings field index.
+   --  Feed input to the settings panel. Guikit.Settings_Panel owns the focus,
+   --  scroll, hit-testing and rendering; these forward events, and the caller
+   --  drains the emitted change with Settings_Take_Change to apply it.
+
+   --  Move keyboard focus over the panel's fields (sections are skipped).
+   --
+   --  @param Model Model to update.
+   --  @param Delta_Rows Signed number of fields to move focus.
+   procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer);
+
+   --  Advance/retreat the focused toggle or choice, or step a focused number.
+   --
+   --  @param Model Model to update.
+   --  @param Forward True to advance, False to retreat.
+   procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean);
+
+   --  Step the focused number field.
+   --
+   --  @param Model Model to update.
+   --  @param Up True to increment, False to decrement.
+   procedure Settings_Step_Number (Model : in out Window_Model; Up : Boolean);
+
+   --  Replace the whole value of the focused text field.
+   --
+   --  @param Model Model to update.
+   --  @param Text New text value.
+   procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String);
+
+   --  Scroll the panel content by whole rows (positive scrolls down).
+   --
+   --  @param Model Model to update.
+   --  @param Lines Rows to scroll.
+   procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer);
+
+   --  Hit-test a window coordinate, focusing/editing the field under it.
+   --
+   --  @param Model Model to update.
+   --  @param X Pointer x coordinate in pixels.
+   --  @param Y Pointer y coordinate in pixels.
+   --  @return True when a field was hit.
+   function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
+
+   --  The change emitted by the panel's most recent input (clears on read).
+   --
+   --  @param Model Model to update.
+   --  @return The pending change.
+   function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change;
+
+   --  The focused field's kind / key / value (Section and "" when none).
    --
    --  @param Model Model to inspect.
-   --  @return One-based settings field index.
-   function Settings_Field_Index
-     (Model : Window_Model)
-      return Natural;
+   --  @return The focused field's kind / key / value.
+   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind;
+   function Settings_Focused_Key (Model : Window_Model) return String;
+   function Settings_Focused_Value (Model : Window_Model) return String;
 
-   --  Select a settings field for editing.
+   --  Render the settings panel within a region, rebuilding its field list from
+   --  the current draft first. Emits draw commands and accessibility nodes.
    --
-   --  @param Model Model to update.
-   --  @param Index One-based settings field index.
-   procedure Set_Settings_Field_Index
-     (Model : in out Window_Model;
-      Index : Natural);
-
-   --  Move the selected settings field.
-   --
-   --  @param Model Model to update.
-   --  @param Direction Navigation direction.
-   procedure Move_Settings_Field
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction);
-
-   --  Move the selected entry within the current settings mapping group.
-   --
-   --  @param Model Model to update.
-   --  @param Direction Navigation direction.
-   procedure Move_Settings_Entry
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction);
-
-   --  Add a blank entry to the current settings mapping group.
-   --
-   --  @param Model Model to update.
-   procedure Add_Settings_Entry
-     (Model : in out Window_Model);
-
-   --  Remove the selected entry from the current settings mapping group.
-   --
-   --  @param Model Model to update.
-   procedure Remove_Settings_Entry
-     (Model : in out Window_Model);
-
-   --  Return the text in the selected settings field.
-   --
-   --  @param Model Model to inspect.
-   --  @return Selected settings field text.
-   function Settings_Field_Text
-     (Model : Window_Model)
-      return String;
-
-   --  Set the selected settings field text.
-   --
-   --  @param Model Model to update.
-   --  @param Text New field text.
-   procedure Set_Settings_Field_Text
-     (Model : in out Window_Model;
-      Text  : String);
+   --  @param Model Model to render from (updates the panel's cached layout).
+   --  @param Region_X Left edge of the panel region in pixels.
+   --  @param Region_Y Top edge of the panel region in pixels.
+   --  @param Region_Width Panel region width in pixels.
+   --  @param Region_Height Panel region height in pixels.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param Line_Height Row height in pixels.
+   --  @param Focused Whether the panel has keyboard focus.
+   --  @param Rectangles Out: rectangle commands.
+   --  @param Text Out: text commands.
+   --  @param Accessibility Out: accessibility nodes.
+   procedure Settings_Build_Frame
+     (Model         : in out Window_Model;
+      Region_X      : Natural;
+      Region_Y      : Natural;
+      Region_Width  : Natural;
+      Region_Height : Natural;
+      Clip_Width    : Natural;
+      Clip_Height   : Natural;
+      Line_Height   : Positive;
+      Focused       : Boolean;
+      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
    --  Scroll the info pane by logical text lines.
    --
@@ -1080,21 +1106,6 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
-   --  Scroll the settings pane by logical text lines.
-   --
-   --  @param Model Model to update.
-   --  @param Lines Positive values scroll down; negative values scroll up.
-   procedure Scroll_Settings_Pane
-     (Model : in out Window_Model;
-      Lines : Integer);
-
-   --  Return the current settings-pane scroll offset in logical text lines.
-   --
-   --  @param Model Model to inspect.
-   --  @return Non-negative settings-pane scroll offset.
-   function Settings_Pane_Scroll_Lines
-     (Model : Window_Model)
-      return Natural;
 
    --  Scroll the main item view by logical text lines.
    --
@@ -2303,13 +2314,11 @@ private
       Info_Pane_Open       : Boolean := False;
       Settings_Pane_Open   : Boolean := False;
       Settings_Draft_Value : Files.Settings.Settings_Draft;
-      Settings_Field       : Natural := 1;
-      Settings_Field_Cursor : Natural := 0;
+      Settings_Panel_View  : Guikit.Settings_Panel.Panel;
       Ownership_Input_Value   : UString;
       Ownership_Input_Cursor  : Natural := 0;
       Ownership_Editing_Group_Value : Boolean := False;
       Info_Pane_Scroll     : Natural := 0;
-      Settings_Pane_Scroll : Natural := 0;
       Main_View_Scroll     : Natural := 0;
       Root_Selector_Open   : Boolean := False;
       Root_Entries         : Files.File_System.Root_Entry_Vectors.Vector;

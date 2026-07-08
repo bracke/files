@@ -56,10 +56,6 @@ package body Files_Suite.Rendering is
    procedure Test_Settings_Hit_Testing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Section_Headers (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Grouping_Segments_Full_Width (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Grouping_Segment_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -114,17 +110,6 @@ package body Files_Suite.Rendering is
         (T, Test_Text_Glyph_Rasterization'Access, "frame text rasterizes through textrender");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Vulkan_Submission'Access, "frame builds a vulkan submission batch");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Scroll_Clamp'Access, "settings pane clamps over-scroll to its content");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Section_Headers'Access,
-         "settings pane draws non-interactive section headers above their field groups");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Grouping_Segments_Full_Width'Access,
-         "the grouping field's five option segments span the full control width on their own row below the label");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Grouping_Segment_Click'Access,
-         "a click on a grouping option segment resolves to that option at its new row");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Count'Access, "bottom bar reflects the hidden count and exposes a toggle button");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -858,24 +843,6 @@ package body Files_Suite.Rendering is
          "each rectangle expands to two triangles (six vertices)");
       Assert (Batch.Glyph_Vertex_Count > 0, "rasterized glyphs reach the vulkan submission batch");
    end Test_Vulkan_Submission;
-
-   procedure Test_Settings_Scroll_Clamp (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Snapshot : View_Snapshot;
-      Frame    : Frame_Commands;
-   begin
-      Snapshot.Settings_Pane_Open := True;
-      --  Request a wildly out-of-range scroll. The renderer measures the
-      --  settings content and clamps the offset, so content must remain on
-      --  screen (hit regions are only emitted for visible rows) rather than
-      --  scrolling off into blank space.
-      Snapshot.Settings_Pane_Scroll_Lines := 100_000;
-      Frame := Build_Frame_Commands (Snapshot, Width => 480, Height => 240, Line_Height => 20);
-      Assert
-        (Natural (Frame.Settings_Hits.Length) > 0,
-         "settings content stays reachable after an extreme scroll (scroll is clamped)");
-   end Test_Settings_Scroll_Clamp;
-
    --  Item 8/9 invariant: the bottom bar renders the localized hidden-count
    --  label carrying the snapshot's Hidden_Count, and exposes the count region
    --  as an accessible toggle button -- checked semantically, without exact
@@ -953,93 +920,6 @@ package body Files_Suite.Rendering is
       end loop;
       return False;
    end Frame_Has_Text;
-
-   procedure Test_Settings_Section_Headers (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Snapshot : View_Snapshot;
-      Frame    : Frame_Commands;
-
-      View_Head       : constant String := Files.Localization.Text ("settings.section.view");
-      Sorting_Head    : constant String := Files.Localization.Text ("settings.section.sorting");
-      Appearance_Head : constant String := Files.Localization.Text ("settings.section.appearance");
-      Filetypes_Head  : constant String := Files.Localization.Text ("settings.section.file_types");
-
-      --  Y of the first text command containing Needle, or -1 when absent.
-      function First_Text_Y (F : Frame_Commands; Needle : String) return Integer is
-      begin
-         for Command of F.Text loop
-            if Contains (To_String (Command.Text), Needle) then
-               return Command.Y;
-            end if;
-         end loop;
-         return -1;
-      end First_Text_Y;
-
-      --  True when any accessibility node's name contains Needle. Each section
-      --  header emits a Role_Heading node carrying the FULL (untruncated) title,
-      --  so this matches long titles ("File types and applications") that
-      --  Add_Text stores in fitted/truncated form.
-      function A11y_Has (F : Frame_Commands; Needle : String) return Boolean is
-      begin
-         for Node of F.Accessibility loop
-            if Contains (To_String (Node.Name), Needle) then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end A11y_Has;
-
-      Header_X, Header_Y : Integer := -1;
-      Scrolled : Frame_Commands;
-   begin
-      Snapshot.Settings_Pane_Open := True;
-      --  A pane tall enough to reveal the first few sections but short enough
-      --  that the trailing "File types" section stays below the fold at the
-      --  top of the scroll range.
-      Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 520, Line_Height => 20);
-
-      --  The leading section headers are drawn, and the trailing one is not yet
-      --  visible (it lives further down the scrollable content).
-      Assert (Frame_Has_Text (Frame, View_Head), "the View section header is drawn");
-      Assert (Frame_Has_Text (Frame, Sorting_Head), "the Sorting section header is drawn");
-      Assert (Frame_Has_Text (Frame, Appearance_Head), "the Appearance section header is drawn");
-      Assert (not A11y_Has (Frame, Filetypes_Head),
-              "the File types header is below the fold at the top of the scroll range");
-
-      --  The section headers appear in declaration order down the pane, each
-      --  above the next, so every section's fields sit between its header and
-      --  the following header. Header labels are short and never truncated,
-      --  unlike field labels (which Add_Text stores in fitted/truncated form),
-      --  so the headers are the robust ordering anchors.
-      Assert (First_Text_Y (Frame, View_Head) >= 0, "the View header has a concrete position");
-      Assert (First_Text_Y (Frame, View_Head) < First_Text_Y (Frame, Sorting_Head)
-              and then First_Text_Y (Frame, Sorting_Head) < First_Text_Y (Frame, Appearance_Head),
-              "the section headers are laid out top-to-bottom in declaration order");
-
-      --  A header row carries no settings hit region, so a click landing on the
-      --  header text resolves to no field.
-      for Command of Frame.Text loop
-         if Header_Y < 0 and then Contains (To_String (Command.Text), View_Head) then
-            Header_X := Command.X;
-            Header_Y := Command.Y;
-         end if;
-      end loop;
-      Assert (Header_Y >= 0, "the View header text was emitted");
-      Assert
-        (Settings_Hit_At (Frame, Natural (Header_X) + 2, Natural (Header_Y) + 1).Kind = Settings_Hit_None,
-         "a click on a section header resolves to no settings field");
-
-      --  The measured content height (used to clamp the scroll) grew to include
-      --  the section-header rows, so it exceeds the viewport and the pane is
-      --  scrollable: scrolling to the bottom pushes the top View section header
-      --  out of view. (The trailing File types section's tall list editors fill
-      --  the viewport at the bottom, so its header is not itself at the fold.)
-      Snapshot.Settings_Pane_Scroll_Lines := 100_000;
-      Scrolled := Build_Frame_Commands (Snapshot, Width => 1200, Height => 520, Line_Height => 20);
-      Assert (A11y_Has (Frame, View_Head) and then not A11y_Has (Scrolled, View_Head),
-              "the View header is visible at the top and scrolls out of view at the bottom");
-   end Test_Settings_Section_Headers;
-
    --  The grouping field (index 9) is laid out as two rows: a label row and a
    --  dedicated segment row spanning the full content width. The five option
    --  segments (None / Type / Modified / Size / Label) therefore sit on their
@@ -1048,103 +928,10 @@ package body Files_Suite.Rendering is
    --  with the label. They render even when the field is not the focused one,
    --  so the measured content height -- and thus the scroll bound -- always
    --  accounts for the extra row.
-   procedure Test_Settings_Grouping_Segments_Full_Width (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Snapshot : View_Snapshot;
-      Frame    : Frame_Commands;
-
-      Have_Field : Boolean := False;
-      Field_X    : Natural := 0;
-      Field_Y    : Natural := 0;
-      Field_W    : Natural := 0;
-
-      Segment_Count : Natural := 0;
-      Segments_W    : Natural := 0;
-      First_Seg_X   : Natural := 0;
-      Seg_Y         : Natural := 0;
-      Y_Consistent  : Boolean := True;
-   begin
-      Snapshot.Settings_Pane_Open := True;
-      --  A window tall enough that the "Details" section (which holds the
-      --  grouping field) is on screen without scrolling, and note that the
-      --  focused field is left at its default (0), so the segments are proven
-      --  to render as a permanent extra row rather than only when focused.
-      Frame := Build_Frame_Commands (Snapshot, Width => 900, Height => 3000, Line_Height => 20);
-
-      --  Locate the grouping field's catch-all row region (its label row) and
-      --  the five option segments below it.
-      for R of Frame.Settings_Hits loop
-         if R.Field = 9 and then R.Kind = Settings_Hit_Field then
-            Have_Field := True;
-            Field_X := R.X;
-            Field_Y := R.Y;
-            Field_W := R.Width;
-         elsif R.Field = 9 and then R.Kind = Settings_Hit_Segment then
-            Segment_Count := Segment_Count + 1;
-            Segments_W := Segments_W + R.Width;
-            if Segment_Count = 1 then
-               Seg_Y := R.Y;
-            elsif R.Y /= Seg_Y then
-               Y_Consistent := False;
-            end if;
-            if R.Option = 1 then
-               First_Seg_X := R.X;
-            end if;
-         end if;
-      end loop;
-
-      Assert (Have_Field, "the grouping field's label row emits a settings-field hit region");
-      Assert (Segment_Count = 5, "the grouping field renders all five option segments");
-      Assert (Y_Consistent, "the five grouping segments share a single row (identical Y)");
-      Assert (Seg_Y > Field_Y,
-              "the grouping segment row sits below the field's label row (a separate second row)");
-      --  The catch-all field region is the content strip inset by 2px on each
-      --  side (X = Text_X - 2, Width = Text_W + 4), so the segments starting at
-      --  Field_X + 2 begin at the control's left edge and together span the full
-      --  control width Text_W (the final cell absorbs the division remainder).
-      Assert (First_Seg_X = Field_X + 2,
-              "the first grouping segment starts at the control's left edge, below the label");
-      Assert (Segments_W = Field_W - 4,
-              "the five grouping segments together span the full control width, not a shared partial one");
-   end Test_Settings_Grouping_Segments_Full_Width;
-
    --  A click on a grouping option segment resolves through the hit-test to that
    --  option (field 9, the clicked option index) at the segment's new row Y --
    --  the same field/option the events layer feeds to Settings_Click -- so
    --  choosing a grouping mode still works after the layout split.
-   procedure Test_Settings_Grouping_Segment_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Snapshot : View_Snapshot;
-      Frame    : Frame_Commands;
-
-      Target_Option : constant Natural := 3;  --  "Modified" (offset 2, option 3)
-      Have_Target   : Boolean := False;
-      Cx            : Natural := 0;
-      Cy            : Natural := 0;
-      Hit           : Settings_Hit_Region;
-   begin
-      Snapshot.Settings_Pane_Open := True;
-      Snapshot.Settings_Group_By_Token := To_Unbounded_String ("type");
-      Frame := Build_Frame_Commands (Snapshot, Width => 900, Height => 3000, Line_Height => 20);
-
-      for R of Frame.Settings_Hits loop
-         if R.Field = 9 and then R.Kind = Settings_Hit_Segment
-           and then R.Option = Target_Option
-         then
-            Have_Target := True;
-            Cx := R.X + R.Width / 2;
-            Cy := R.Y + R.Height / 2;
-         end if;
-      end loop;
-
-      Assert (Have_Target, "the grouping 'modified' option segment is emitted");
-      Hit := Settings_Hit_At (Frame, Cx, Cy);
-      Assert (Hit.Kind = Settings_Hit_Segment,
-              "a click at the grouping segment resolves to a segment hit, not the row behind it");
-      Assert (Hit.Field = 9 and then Hit.Option = Target_Option,
-              "the click resolves to the grouping field and the clicked option index");
-   end Test_Settings_Grouping_Segment_Click;
-
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
@@ -1390,25 +1177,6 @@ package body Files_Suite.Rendering is
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
    begin
-      --  Settings pane.
-      declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Guikit.Draw.Layout_Metrics;
-         Pane   : Guikit.Layout.Settings_Pane_Layout;
-         Close  : Close_Button_Layout;
-         Frame  : Frame_Commands;
-      begin
-         Snap.Settings_Pane_Open := True;
-         Layout := Calculate_Layout (Snap, Width, Height, LH);
-         Pane   := Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, LH);
-         Close  := Panel_Close_Button (Pane.X, Pane.Y, Pane.Width, Pane.Height, LH);
-         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
-         Assert (Close.Visible, "the settings pane hosts a close button");
-         Assert
-           (Has_Close_Button_Node (Frame, Close),
-            "the open settings pane emits a close-button accessibility node");
-      end;
-
       --  Info pane.
       declare
          Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);

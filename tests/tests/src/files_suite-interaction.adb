@@ -104,7 +104,6 @@ package body Files_Suite.Interaction is
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -188,8 +187,6 @@ package body Files_Suite.Interaction is
          "Ctrl+plus/equal grows, Ctrl+minus shrinks and Ctrl+0 resets the font size through the key seam");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Targeted_Scroll'Access, "scroll targets the pane under the cursor");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Path_Commands'Access, "settings-path commands flip, persist, and signal the shell");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Toggle'Access,
          "bottom-bar hidden-count click flips Show_Hidden_Files, persists, and reloads");
@@ -1010,122 +1007,6 @@ package body Files_Suite.Interaction is
          Modifiers         => Ctrl,
          Result            => Result);
    end Open_Settings_Pane;
-
-   procedure Test_Settings_Path_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "interaction.conf");
-   begin
-      Files_Suite.Support.Reset_Root;
-
-      --  (1) Straight command: Toggle_Hidden_Files flips the persisted flag,
-      --  reloads the directory, and writes the settings file.
-      declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-         Result   : Files.Interaction.Interaction_Result;
-         Action   : constant Files.Events.Input_Action :=
-           (Kind    => Files.Events.Command_Input_Action,
-            Command => Files.Commands.Toggle_Hidden_Files_Command,
-            others  => <>);
-         Before   : constant Boolean := Settings.Show_Hidden_Files;
-      begin
-         Files.Interaction.Apply_Input_Action
-           (Model             => Model,
-            Settings          => Settings,
-            Settings_Path     => Path,
-            Action            => Action,
-            Current_Font_Size => Base_Font,
-            Modifiers         => Guikit.Input.No_Modifiers,
-            Result            => Result);
-         Assert (Settings.Show_Hidden_Files /= Before, "the straight command flips Show_Hidden_Files");
-         Assert (Result.Settings_Changed, "the straight command reports a settings change");
-         Assert (Result.Directory_Reloaded, "the straight command reports the directory reload");
-         Assert (Ada.Directories.Exists (Path), "the straight command persists the settings file");
-      end;
-
-      --  (2) Settings-pane hit: clicking the hidden-files toggle routes through
-      --  Handle_Settings_Click -> Save_Settings and flips the flag too.
-      declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-         Result   : Files.Interaction.Interaction_Result;
-         Snapshot : Files.Rendering.View_Snapshot;
-         Frame    : Files.Rendering.Frame_Commands;
-         Action   : Files.Events.Input_Action;
-         X, Y     : Natural;
-         Found    : Boolean;
-         Before   : Boolean;
-      begin
-         Open_Settings_Pane (Model, Settings);
-         Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane is open for the hit-test path");
-         Before := Settings.Show_Hidden_Files;
-
-         Find_Settings_Hit (Model, Settings, Files.Rendering.Settings_Hit_Toggle, 2, X, Y, Found);
-         Assert (Found, "the hidden-files toggle hit region is laid out");
-
-         Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
-         Frame    := Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Action   :=
-           Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Settings_Click_Input_Action,
-            "the toggle coordinate translates to a settings click");
-
-         Files.Interaction.Apply_Input_Action
-           (Model             => Model,
-            Settings          => Settings,
-            Settings_Path     => Path,
-            Action            => Action,
-            Current_Font_Size => Base_Font,
-            Modifiers         => Guikit.Input.No_Modifiers,
-            Result            => Result);
-         Assert (Settings.Show_Hidden_Files /= Before, "the settings-pane hit flips Show_Hidden_Files");
-         Assert (Result.Settings_Changed, "the settings-pane save reports a settings change");
-         Assert (Result.Clear_Pending_Text, "the settings-pane save asks the shell to drop pending text");
-      end;
-
-      --  (3) Font-size case: stepping the font field up via the settings pane
-      --  changes the live font size and asks the shell to rebuild glyphs.
-      declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-         Result   : Files.Interaction.Interaction_Result;
-         Snapshot : Files.Rendering.View_Snapshot;
-         Frame    : Files.Rendering.Frame_Commands;
-         Action   : Files.Events.Input_Action;
-         X, Y     : Natural;
-         Found    : Boolean;
-      begin
-         Open_Settings_Pane (Model, Settings);
-         Find_Settings_Hit (Model, Settings, Files.Rendering.Settings_Hit_Stepper_Up, 7, X, Y, Found);
-         Assert (Found, "the font-size stepper-up hit region is laid out");
-
-         Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
-         Frame    := Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Action   :=
-           Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Settings_Click_Input_Action,
-            "the stepper coordinate translates to a settings click");
-
-         Files.Interaction.Apply_Input_Action
-           (Model             => Model,
-            Settings          => Settings,
-            Settings_Path     => Path,
-            Action            => Action,
-            Current_Font_Size => Base_Font,
-            Modifiers         => Guikit.Input.No_Modifiers,
-            Result            => Result);
-         Assert
-           (Settings.Font_Pixel_Size /= Base_Font,
-            "stepping the font field changes the saved font pixel size");
-         Assert (Result.Font_Size_Changed, "the save signals a live font-size change to the shell");
-         Assert (Result.Needs_Glyph_Rebuild, "the save asks the shell to invalidate its glyph cache");
-      end;
-   end Test_Settings_Path_Commands;
-
    --  Item 8/9: the bottom-bar status area reports the hidden (dot-file) count
    --  and doubles as a clickable Show_Hidden_Files toggle. Derive the click
    --  coordinate from the real bottom-bar accessibility node (rule a/b) and

@@ -8,6 +8,7 @@ with Files.Applications;
 with Files.Breadcrumbs;
 with Files.Command_Palette;
 with Files.Folder_Tree;
+with Files.Settings_Form;
 with Files.UTF8;
 
 package body Files.Controller is
@@ -181,64 +182,6 @@ package body Files.Controller is
       Files.Model.Palette_Move_Selection (Model, Lines);
    end Scroll_Palette_Selection;
 
-   function Settings_Drafts_Equal
-     (Left  : Files.Settings.Settings_Draft;
-      Right : Files.Settings.Settings_Draft)
-      return Boolean is
-   begin
-      return Left.Default_View_Mode = Right.Default_View_Mode
-        and then Left.Show_Hidden_Files = Right.Show_Hidden_Files
-        and then Left.Sort_Field_Value = Right.Sort_Field_Value
-        and then Left.Sort_Ascending = Right.Sort_Ascending
-        and then Left.Theme = Right.Theme
-        and then Left.Icon_Theme_Name = Right.Icon_Theme_Name
-        and then Left.Use_System_Default_Opener = Right.Use_System_Default_Opener
-        and then Left.Group_By = Right.Group_By
-        and then Left.Column_Modified = Right.Column_Modified
-        and then Left.Column_Size = Right.Column_Size
-        and then Left.Column_Filetype = Right.Column_Filetype
-        and then Left.Column_Created = Right.Column_Created
-        and then Left.Column_Permissions = Right.Column_Permissions
-        and then Left.Filetype_Extension = Right.Filetype_Extension
-        and then Left.Filetype_Value = Right.Filetype_Value
-        and then Left.Filetype_Keys = Right.Filetype_Keys
-        and then Left.Filetype_Values = Right.Filetype_Values
-        and then Left.Filetype_Index = Right.Filetype_Index
-        and then Left.Icon_Filetype = Right.Icon_Filetype
-        and then Left.Icon_Value = Right.Icon_Value
-        and then Left.Icon_Keys = Right.Icon_Keys
-        and then Left.Icon_Values = Right.Icon_Values
-        and then Left.Icon_Index = Right.Icon_Index
-        and then Left.Open_Action_Token = Right.Open_Action_Token
-        and then Left.Open_Action_Command = Right.Open_Action_Command
-        and then Left.Open_Action_Keys = Right.Open_Action_Keys
-        and then Left.Open_Action_Commands = Right.Open_Action_Commands
-        and then Left.Open_Action_Index = Right.Open_Action_Index
-        and then Left.Error_Key = Right.Error_Key
-        and then Left.Valid = Right.Valid;
-   end Settings_Drafts_Equal;
-
-   function Settings_Update_Result
-     (Model      : Files.Model.Window_Model;
-      Old_Draft  : Files.Settings.Settings_Draft;
-      Old_Field  : Natural;
-      Old_Text   : String;
-      Old_Cursor : Natural)
-      return Controller_Result
-   is
-      Draft : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-   begin
-      return
-        Make_Result
-          ((if Files.Model.Settings_Field_Index (Model) = Old_Field
-              and then Files.Model.Settings_Field_Text (Model) = Old_Text
-              and then Files.Model.Text_Cursor_Position (Model) = Old_Cursor
-              and then Settings_Drafts_Equal (Draft, Old_Draft)
-            then Controller_Ignored
-            else Controller_Text_Updated),
-           Files.Commands.Toggle_Settings_Pane_Command);
-   end Settings_Update_Result;
-
    procedure Replace_Focused_Text
      (Model : in out Files.Model.Window_Model;
       Text  : String) is
@@ -253,7 +196,14 @@ package body Files.Controller is
          when Files.Types.Focus_Command_Palette =>
             Files.Model.Palette_Set_Query (Model, Text);
          when Files.Types.Focus_Settings_Input =>
-            Files.Model.Set_Settings_Field_Text (Model, Text);
+            Files.Model.Settings_Set_Focused_Value (Model, Text);
+            declare
+               Saved : constant Boolean :=
+                 Files.Settings_Form.Apply (Model, Files.Model.Settings_Take_Change (Model));
+               pragma Unreferenced (Saved);
+            begin
+               null;  --  text edits update the draft but persist on commit
+            end;
          when Files.Types.Focus_Ownership_Input =>
             Files.Model.Set_Ownership_Input_Text (Model, Text);
          when Files.Types.Focus_None =>
@@ -275,7 +225,7 @@ package body Files.Controller is
          when Files.Types.Focus_Command_Palette =>
             return Files.Model.Palette_Query (Model);
          when Files.Types.Focus_Settings_Input =>
-            return Files.Model.Settings_Field_Text (Model);
+            return Files.Model.Settings_Focused_Value (Model);
          when Files.Types.Focus_Ownership_Input =>
             return Files.Model.Ownership_Input_Text (Model);
          when Files.Types.Focus_None =>
@@ -730,7 +680,6 @@ package body Files.Controller is
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Reset_Settings_Command =>
             Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
-            Files.Model.Set_Settings_Field_Index (Model, 1);
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Close_Command_Palette_Command =>
@@ -1331,16 +1280,10 @@ package body Files.Controller is
    function Scroll_Settings_Result
      (Model : in out Files.Model.Window_Model;
       Lines : Integer)
-      return Controller_Result
-   is
-      Old_Lines : constant Natural := Files.Model.Settings_Pane_Scroll_Lines (Model);
+      return Controller_Result is
    begin
-      Files.Model.Scroll_Settings_Pane (Model, Lines);
-      return
-        Make_Result
-          (if Files.Model.Settings_Pane_Scroll_Lines (Model) = Old_Lines
-           then Controller_Ignored
-           else Controller_Command_Executed);
+      Files.Model.Settings_Scroll (Model, Lines);
+      return Make_Result (Controller_Command_Executed);
    end Scroll_Settings_Result;
 
    function Scroll_Main_Result
@@ -1492,7 +1435,9 @@ package body Files.Controller is
          when Files.Types.Focus_Command_Palette =>
             Files.Model.Focus_Command_Palette_Input (Model);
          when Files.Types.Focus_Settings_Input =>
-            Files.Model.Set_Settings_Field_Index (Model, Files.Model.Settings_Field_Index (Model));
+            --  Settings clicks route through Handle_Settings_Click (the panel
+            --  hit-tests them), not the generic text-click path.
+            null;
          when Files.Types.Focus_Ownership_Input =>
             --  The ownership editor is opened through its own click action, not
             --  the generic text-click path.
@@ -1517,140 +1462,33 @@ package body Files.Controller is
            else Controller_Text_Updated);
    end Handle_Text_Click;
 
-   function Handle_Settings_Click
-     (Model  : in out Files.Model.Window_Model;
-      Field  : Natural;
-      Option : Natural := 0)
-      return Controller_Result
-   is
-      function Valid_Option return Boolean is
-      begin
-         if Option = 0 then
-            return True;
-         elsif Option = 100 or else Option = 101 then
-            return Field in 15 | 17 | 19;
-         elsif Option = 150 or else Option = 151 then
-            return Field = 7;
-         end if;
+   --  Drain the settings panel's emitted change into the draft. A value change to
+   --  a toggle/choice/number or an add/remove auto-saves (persist + refresh);
+   --  text edits are applied but saved on commit.
+   function Applied_Settings_Change
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result is
+   begin
+      if Files.Settings_Form.Apply (Model, Files.Model.Settings_Take_Change (Model)) then
+         return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
+      else
+         return Make_Result (Controller_Text_Updated);
+      end if;
+   end Applied_Settings_Change;
 
-         case Field is
-            when 1 =>
-               return Option in 1 .. 3;
-            when 2 | 4 | 5 | 6 | 8 | 10 | 11 | 12 | 13 | 14 =>
-               return Option in 1 .. 2;
-            when 3 | 9 =>
-               return Option in 1 .. 5;
-            when others =>
-               return False;
-         end case;
-      end Valid_Option;
+   function Handle_Settings_Click
+     (Model : in out Files.Model.Window_Model;
+      X     : Integer;
+      Y     : Integer)
+      return Controller_Result is
    begin
       if Files.Model.Command_Palette_Is_Open (Model)
         or else not Files.Model.Settings_Pane_Is_Open (Model)
-        or else Field = 0
-        or else Field > 20
-        or else not Valid_Option
+        or else not Files.Model.Settings_Click (Model, X, Y)
       then
          return Make_Result (Controller_Ignored);
       end if;
-
-      declare
-         Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-         Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
-         Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
-         Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-         Stepper_No_Op : Boolean := False;
-      begin
-         Files.Model.Set_Settings_Field_Index (Model, Field);
-         if Option = 100 then
-            Files.Model.Add_Settings_Entry (Model);
-         elsif Option = 101 then
-            Files.Model.Remove_Settings_Entry (Model);
-         elsif Option = 150 or else Option = 151 then
-            declare
-               Min_Px : constant := 10;
-               Max_Px : constant := 32;
-               Step   : constant Integer := (if Option = 151 then 1 else -1);
-               Current_N : Integer := 16;
-               Next_N    : Integer;
-            begin
-               begin
-                  Current_N := Integer'Value (Files.Model.Settings_Field_Text (Model));
-               exception
-                  when Constraint_Error =>
-                     Current_N := 16;
-               end;
-               Next_N := Current_N + Step;
-               if Next_N < Min_Px then
-                  Next_N := Min_Px;
-               elsif Next_N > Max_Px then
-                  Next_N := Max_Px;
-               end if;
-               if Next_N /= Current_N then
-                  Files.Model.Set_Settings_Field_Text
-                    (Model,
-                     Ada.Strings.Fixed.Trim
-                       (Integer'Image (Next_N), Ada.Strings.Both));
-               else
-                  Stepper_No_Op := True;
-               end if;
-            end;
-         elsif Option > 0 then
-            case Field is
-               when 1 =>
-                  case Option is
-                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "small_icons");
-                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "large_icons");
-                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "details");
-                     when others => null;
-                  end case;
-               when 2 | 4 | 8 | 10 | 11 | 12 | 13 | 14 =>
-                  Files.Model.Set_Settings_Field_Text (Model, (if Option = 1 then "true" else "false"));
-               when 5 =>
-                  case Option is
-                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "dark");
-                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "light");
-                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "high_contrast");
-                     when others => null;
-                  end case;
-               when 6 =>
-                  Files.Model.Set_Settings_Field_Text
-                    (Model, (if Option = 1 then "files-basic" else "files-high-contrast"));
-               when 3 =>
-                  case Option is
-                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "name");
-                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "filetype");
-                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "size");
-                     when 4 => Files.Model.Set_Settings_Field_Text (Model, "modified");
-                     when 5 => Files.Model.Set_Settings_Field_Text (Model, "created");
-                     when others => null;
-                  end case;
-               when 9 =>
-                  case Option is
-                     when 1 => Files.Model.Set_Settings_Field_Text (Model, "none");
-                     when 2 => Files.Model.Set_Settings_Field_Text (Model, "type");
-                     when 3 => Files.Model.Set_Settings_Field_Text (Model, "modified");
-                     when 4 => Files.Model.Set_Settings_Field_Text (Model, "size");
-                     when 5 => Files.Model.Set_Settings_Field_Text (Model, "label");
-                     when others => null;
-                  end case;
-               when others =>
-                  null;
-            end case;
-         end if;
-
-         if Stepper_No_Op then
-            --  Font-size stepper already at its min/max bound: nothing changed,
-            --  so do not report a redundant save.
-            return Make_Result (Controller_Ignored);
-         elsif Option > 0 then
-            return
-              Make_Result
-                (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
-         end if;
-
-         return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
-      end;
+      return Applied_Settings_Change (Model);
    end Handle_Settings_Click;
 
    function Commit_Focused_Text
@@ -1970,175 +1808,18 @@ package body Files.Controller is
             Files.Model.Toggle_Settings_Pane (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
          elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
-            Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Up);
+            Files.Model.Settings_Move_Focus (Model, -1);
             return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
          elsif Key = Guikit.Input.Key_Down and then Modifiers = Guikit.Input.No_Modifiers then
-            Files.Model.Move_Settings_Field (Model, Guikit.Input.Move_Down);
+            Files.Model.Settings_Move_Focus (Model, 1);
             return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
-         elsif Key = Guikit.Input.Key_N and then Modifiers (Guikit.Input.Control_Key) then
-            declare
-               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
-               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
-               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-            begin
-               Files.Model.Add_Settings_Entry (Model);
-               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
-            end;
-         elsif Key = Guikit.Input.Key_Delete and then Modifiers (Guikit.Input.Control_Key) then
-            declare
-               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
-               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
-               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-            begin
-               Files.Model.Remove_Settings_Entry (Model);
-               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
-            end;
-         elsif Key = Guikit.Input.Key_Page_Up and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
-               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
-               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-            begin
-               Files.Model.Move_Settings_Entry (Model, Guikit.Input.Move_Up);
-               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
-            end;
-         elsif Key = Guikit.Input.Key_Page_Down and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-               Old_Field  : constant Natural := Files.Model.Settings_Field_Index (Model);
-               Old_Text   : constant String := Files.Model.Settings_Field_Text (Model);
-               Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-            begin
-               Files.Model.Move_Settings_Entry (Model, Guikit.Input.Move_Down);
-               return Settings_Update_Result (Model, Old_Draft, Old_Field, Old_Text, Old_Cursor);
-            end;
-         elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Right
-                or else Key = Guikit.Input.Key_Space)
+         elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Right)
            and then Modifiers = Guikit.Input.No_Modifiers
-           and then Files.Model.Settings_Field_Index (Model) <= 14
          then
-            declare
-               Min_Font_Pixel_Size : constant := 10;
-               Max_Font_Pixel_Size : constant := 32;
-
-               Field   : constant Natural := Files.Model.Settings_Field_Index (Model);
-               Current : constant String := Files.Types.To_Lower (Files.Model.Settings_Field_Text (Model));
-               Forward : constant Boolean := Key /= Guikit.Input.Key_Left;
-               Touched : Boolean := False;
-            begin
-               --  Space cycles fields that have inline toggle/segmented
-               --  controls (default_view, boolean toggles, theme, grouping,
-               --  system opener, and the column-visibility toggles). On other
-               --  multi-choice fields it falls through to text input.
-               if Key = Guikit.Input.Key_Space
-                 and then Field not in 1 | 2 | 4 | 5 | 8 | 9 | 10 | 11 | 12 | 13 | 14
-               then
-                  return Make_Result (Controller_Ignored);
-               end if;
-
-               case Field is
-                  when 1 =>
-                     if Current = "small_icons" or else Current = "small" then
-                        Files.Model.Set_Settings_Field_Text
-                          (Model, (if Forward then "large_icons" else "details"));
-                     elsif Current = "large_icons" or else Current = "large" then
-                        Files.Model.Set_Settings_Field_Text
-                          (Model, (if Forward then "details" else "small_icons"));
-                     else
-                        Files.Model.Set_Settings_Field_Text
-                          (Model, (if Forward then "small_icons" else "large_icons"));
-                     end if;
-                     Touched := True;
-                  when 2 | 4 | 8 | 10 | 11 | 12 | 13 | 14 =>
-                     Files.Model.Set_Settings_Field_Text
-                       (Model, (if Current = "true" then "false" else "true"));
-                     Touched := True;
-                  when 9 =>
-                     if Current = "none" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "type" else "label"));
-                     elsif Current = "type" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "modified" else "none"));
-                     elsif Current = "modified" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "size" else "type"));
-                     elsif Current = "size" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "label" else "modified"));
-                     else
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "none" else "size"));
-                     end if;
-                     Touched := True;
-                  when 5 =>
-                     if Current = "dark" then
-                        Files.Model.Set_Settings_Field_Text
-                          (Model, (if Forward then "light" else "high_contrast"));
-                     elsif Current = "light" then
-                        Files.Model.Set_Settings_Field_Text
-                          (Model, (if Forward then "high_contrast" else "dark"));
-                     else
-                        Files.Model.Set_Settings_Field_Text
-                          (Model, (if Forward then "dark" else "light"));
-                     end if;
-                     Touched := True;
-                  when 6 =>
-                     Files.Model.Set_Settings_Field_Text
-                       (Model,
-                        (if Current = "files-basic" then "files-high-contrast" else "files-basic"));
-                     Touched := True;
-                  when 3 =>
-                     if Current = "name" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "filetype" else "modified"));
-                     elsif Current = "filetype" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "size" else "name"));
-                     elsif Current = "size" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "created" else "filetype"));
-                     elsif Current = "created" then
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "modified" else "size"));
-                     else
-                        Files.Model.Set_Settings_Field_Text (Model, (if Forward then "name" else "created"));
-                     end if;
-                     Touched := True;
-                  when 7 =>
-                     declare
-                        Step    : constant Integer := (if Forward then 1 else -1);
-                        Current_N : Integer := 0;
-                        Next_N    : Integer;
-                     begin
-                        begin
-                           Current_N := Integer'Value (Files.Model.Settings_Field_Text (Model));
-                        exception
-                           when Constraint_Error =>
-                              Current_N := 16;
-                        end;
-                        Next_N := Current_N + Step;
-                        if Next_N < Min_Font_Pixel_Size then
-                           Next_N := Min_Font_Pixel_Size;
-                        elsif Next_N > Max_Font_Pixel_Size then
-                           Next_N := Max_Font_Pixel_Size;
-                        end if;
-                        if Next_N /= Current_N then
-                           Files.Model.Set_Settings_Field_Text
-                             (Model, Ada.Strings.Fixed.Trim
-                                (Integer'Image (Next_N), Ada.Strings.Both));
-                           Touched := True;
-                        else
-                           --  Font-size stepper at its min/max bound: nothing
-                           --  changed, so report nothing rather than a spurious
-                           --  update.
-                           return Make_Result (Controller_Ignored);
-                        end if;
-                     end;
-                  when others =>
-                     null;
-               end case;
-
-               if Touched then
-                  return Make_Result
-                    (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
-               end if;
-            end;
-            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+            --  Left/Right cycle the focused toggle/choice or step a number (a
+            --  no-op on text fields); the emitted change is applied to the draft.
+            Files.Model.Settings_Cycle_Choice (Model, Forward => Key = Guikit.Input.Key_Right);
+            return Applied_Settings_Change (Model);
          end if;
       end if;
 

@@ -563,9 +563,9 @@ package body Files.Interaction is
          when Files.Events.Settings_Click_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Settings_Click
-                (Model  => Model,
-                 Field  => Action.Settings_Field,
-                 Option => Action.Settings_Option);
+                (Model => Model,
+                 X     => Action.Click_X,
+                 Y     => Action.Click_Y);
             Result.Status := Outcome.Status;
             if Outcome.Command = Files.Commands.Save_Settings_Command
               or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command

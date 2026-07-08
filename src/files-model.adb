@@ -4,10 +4,12 @@ with Ada.Strings.Unbounded;
 
 with Files.Command_Palette;
 with Files.Localization;
+with Files.Settings_Form;
 with Files.Type_Ahead;
 with Files.UTF8;
 
 with Guikit.Command_Palette;
+with Guikit.Settings_Panel;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -1966,7 +1968,7 @@ package body Files.Model is
          when Files.Types.Focus_Command_Palette =>
             return Guikit.Command_Palette.Query (Model.Command_Palette_View)'Length;
          when Files.Types.Focus_Settings_Input =>
-            return Settings_Field_Text (Model)'Length;
+            return Settings_Focused_Value (Model)'Length;
          when Files.Types.Focus_Ownership_Input =>
             return Length (Model.Ownership_Input_Value);
          when Files.Types.Focus_None =>
@@ -1988,7 +1990,7 @@ package body Files.Model is
          when Files.Types.Focus_Command_Palette =>
             return Guikit.Command_Palette.Query (Model.Command_Palette_View);
          when Files.Types.Focus_Settings_Input =>
-            return Settings_Field_Text (Model);
+            return Settings_Focused_Value (Model);
          when Files.Types.Focus_Ownership_Input =>
             return To_String (Model.Ownership_Input_Value);
          when Files.Types.Focus_None =>
@@ -2011,7 +2013,8 @@ package body Files.Model is
             --  The palette query has no separate caret; it sits at the end.
             return Guikit.Command_Palette.Query (Model.Command_Palette_View)'Length;
          when Files.Types.Focus_Settings_Input =>
-            return Text_Boundary_At_Or_Before (Settings_Field_Text (Model), Model.Settings_Field_Cursor);
+            --  The panel edits whole values; the caret sits at the end.
+            return Settings_Focused_Value (Model)'Length;
          when Files.Types.Focus_Ownership_Input =>
             return Text_Boundary_At_Or_Before
                      (To_String (Model.Ownership_Input_Value), Model.Ownership_Input_Cursor);
@@ -2045,7 +2048,8 @@ package body Files.Model is
             --  The palette query is append-only; it has no movable caret.
             null;
          when Files.Types.Focus_Settings_Input =>
-            Model.Settings_Field_Cursor := Clamped;
+            --  The panel edits whole values; there is no movable caret.
+            null;
          when Files.Types.Focus_Ownership_Input =>
             Model.Ownership_Input_Cursor := Clamped;
          when Files.Types.Focus_None =>
@@ -2307,18 +2311,23 @@ package body Files.Model is
       return Model.Info_Pane_Open;
    end Info_Pane_Is_Open;
 
+   --  Reset the panel component and rebuild its field list from the draft.
+   procedure Reset_Settings_Panel (Model : in out Window_Model) is
+   begin
+      Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
+   end Reset_Settings_Panel;
+
    procedure Toggle_Settings_Pane
      (Model : in out Window_Model) is
    begin
       Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
-      Model.Settings_Pane_Scroll := 0;
       if Model.Settings_Pane_Open then
          Clear_Edit_State (Model);
          Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
          Guikit.Command_Palette.Reset (Model.Command_Palette_View);
-         Model.Settings_Field := 1;
-         Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
+         Reset_Settings_Panel (Model);
          Model.Focus_Value := Files.Types.Focus_Settings_Input;
       elsif Model.Focus_Value = Files.Types.Focus_Settings_Input then
          Model.Focus_Value := Files.Types.Focus_None;
@@ -2334,19 +2343,18 @@ package body Files.Model is
 
    procedure Begin_Settings_Edit
      (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft) is
+      Draft : Files.Settings.Settings_Draft)
+   is
       Normalized_Draft : Files.Settings.Settings_Draft := Draft;
    begin
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
       Model.Settings_Pane_Open := True;
-      Model.Settings_Pane_Scroll := 0;
       Clear_Edit_State (Model);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
-      Model.Settings_Field := 1;
-      Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
+      Reset_Settings_Panel (Model);
       Model.Focus_Value := Files.Types.Focus_Settings_Input;
    end Begin_Settings_Edit;
 
@@ -2359,439 +2367,106 @@ package body Files.Model is
 
    procedure Set_Settings_Draft
      (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft) is
+      Draft : Files.Settings.Settings_Draft)
+   is
       Normalized_Draft : Files.Settings.Settings_Draft := Draft;
    begin
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
-      Model.Settings_Field_Cursor := Natural'Min (Model.Settings_Field_Cursor, Settings_Field_Text (Model)'Length);
    end Set_Settings_Draft;
 
-   function Settings_Field_Index
-     (Model : Window_Model)
-      return Natural is
+   procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
-      return Model.Settings_Field;
-   end Settings_Field_Index;
+      Guikit.Settings_Panel.Move_Focus (Model.Settings_Panel_View, Delta_Rows);
+   end Settings_Move_Focus;
 
-   procedure Set_Settings_Field_Index
-     (Model : in out Window_Model;
-      Index : Natural) is
+   procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean) is
    begin
-      if Index = 0 then
-         Model.Settings_Field := 1;
-      elsif Index > 20 then
-         Model.Settings_Field := 20;
-      else
-         Model.Settings_Field := Index;
-      end if;
-      Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
-      Model.Focus_Value := Files.Types.Focus_Settings_Input;
-   end Set_Settings_Field_Index;
+      Guikit.Settings_Panel.Cycle_Choice (Model.Settings_Panel_View, Forward);
+   end Settings_Cycle_Choice;
 
-   procedure Move_Settings_Field
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction) is
+   procedure Settings_Step_Number (Model : in out Window_Model; Up : Boolean) is
    begin
-      case Direction is
-         when Guikit.Input.Move_Left | Guikit.Input.Move_Up =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field <= 1 then 20 else Model.Settings_Field - 1));
-         when Guikit.Input.Move_Right | Guikit.Input.Move_Down =>
-            Set_Settings_Field_Index (Model, (if Model.Settings_Field >= 20 then 1 else Model.Settings_Field + 1));
-      end case;
-   end Move_Settings_Field;
+      Guikit.Settings_Panel.Step_Number (Model.Settings_Panel_View, Up);
+   end Settings_Step_Number;
 
-   procedure Move_Settings_Entry
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+   procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String) is
+   begin
+      Guikit.Settings_Panel.Set_Focused_Value (Model.Settings_Panel_View, Text);
+   end Settings_Set_Focused_Value;
+
+   procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer) is
+   begin
+      Guikit.Settings_Panel.Scroll (Model.Settings_Panel_View, Lines);
+   end Settings_Scroll;
+
+   function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
+   begin
+      return Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);
+   end Settings_Click;
+
+   function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change is
+   begin
+      return Guikit.Settings_Panel.Take_Change (Model.Settings_Panel_View);
+   end Settings_Take_Change;
+
+   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind is
+   begin
+      return Guikit.Settings_Panel.Focused_Kind (Model.Settings_Panel_View);
+   end Settings_Focused_Kind;
+
+   function Settings_Focused_Key (Model : Window_Model) return String is
+   begin
+      return Guikit.Settings_Panel.Focused_Key (Model.Settings_Panel_View);
+   end Settings_Focused_Key;
+
+   function Settings_Focused_Value (Model : Window_Model) return String is
+   begin
+      return Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View);
+   end Settings_Focused_Value;
+
+   procedure Settings_Build_Frame
+     (Model         : in out Window_Model;
+      Region_X      : Natural;
+      Region_Y      : Natural;
+      Region_Width  : Natural;
+      Region_Height : Natural;
+      Clip_Width    : Natural;
+      Clip_Height   : Natural;
+      Line_Height   : Positive;
+      Focused       : Boolean;
+      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
    is
-      Draft : Files.Settings.Settings_Draft := Model.Settings_Draft_Value;
-
-      procedure Select_Filetype (Index : Natural) is
-      begin
-         Draft.Filetype_Index := Index;
-         if Index > 0
-           and then Index <= Pair_Count (Draft.Filetype_Keys, Draft.Filetype_Values)
-         then
-            Draft.Filetype_Extension := Draft.Filetype_Keys.Element (Index);
-            Draft.Filetype_Value := Draft.Filetype_Values.Element (Index);
-         end if;
-      end Select_Filetype;
-
-      procedure Select_Icon (Index : Natural) is
-      begin
-         Draft.Icon_Index := Index;
-         if Index > 0
-           and then Index <= Pair_Count (Draft.Icon_Keys, Draft.Icon_Values)
-         then
-            Draft.Icon_Filetype := Draft.Icon_Keys.Element (Index);
-            Draft.Icon_Value := Draft.Icon_Values.Element (Index);
-         end if;
-      end Select_Icon;
-
-      procedure Select_Action (Index : Natural) is
-      begin
-         Draft.Open_Action_Index := Index;
-         if Index > 0
-           and then Index <= Pair_Count (Draft.Open_Action_Keys, Draft.Open_Action_Commands)
-         then
-            Draft.Open_Action_Token := Draft.Open_Action_Keys.Element (Index);
-            Draft.Open_Action_Command := Draft.Open_Action_Commands.Element (Index);
-         end if;
-      end Select_Action;
-
-      function Next_Index
-        (Current : Natural;
-         Count   : Natural)
-         return Natural is
-      begin
-         if Count = 0 then
-            return 0;
-         elsif Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up then
-            return (if Current <= 1 then Count else Current - 1);
-         else
-            return (if Current >= Count then 1 else Current + 1);
-         end if;
-      end Next_Index;
+      Config : Guikit.Settings_Panel.Configuration;
    begin
-      case Model.Settings_Field is
-         when 15 | 16 =>
-            Select_Filetype
-              (Next_Index
-                 (Draft.Filetype_Index,
-                  Pair_Count (Draft.Filetype_Keys, Draft.Filetype_Values)));
-         when 17 | 18 =>
-            Select_Icon (Next_Index (Draft.Icon_Index, Pair_Count (Draft.Icon_Keys, Draft.Icon_Values)));
-         when 19 | 20 =>
-            Select_Action
-              (Next_Index
-                 (Draft.Open_Action_Index,
-                  Pair_Count (Draft.Open_Action_Keys, Draft.Open_Action_Commands)));
-         when others =>
-            return;
-      end case;
-
-      Model.Settings_Draft_Value := Draft;
-      Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
-      Model.Focus_Value := Files.Types.Focus_Settings_Input;
-   end Move_Settings_Entry;
-
-   procedure Add_Settings_Entry
-     (Model : in out Window_Model)
-   is
-      Draft : Files.Settings.Settings_Draft := Model.Settings_Draft_Value;
-      Edited : Boolean := True;
-   begin
-      case Model.Settings_Field is
-         when 15 | 16 =>
-            Draft.Filetype_Keys.Append (Null_Unbounded_String);
-            Draft.Filetype_Values.Append (Null_Unbounded_String);
-            Draft.Filetype_Index := Natural (Draft.Filetype_Keys.Length);
-            Draft.Filetype_Extension := Null_Unbounded_String;
-            Draft.Filetype_Value := Null_Unbounded_String;
-            Model.Settings_Field := 15;
-         when 17 | 18 =>
-            Draft.Icon_Keys.Append (Null_Unbounded_String);
-            Draft.Icon_Values.Append (Null_Unbounded_String);
-            Draft.Icon_Index := Natural (Draft.Icon_Keys.Length);
-            Draft.Icon_Filetype := Null_Unbounded_String;
-            Draft.Icon_Value := Null_Unbounded_String;
-            Model.Settings_Field := 17;
-         when 19 | 20 =>
-            Draft.Open_Action_Keys.Append (Null_Unbounded_String);
-            Draft.Open_Action_Commands.Append (Null_Unbounded_String);
-            Draft.Open_Action_Index := Natural (Draft.Open_Action_Keys.Length);
-            Draft.Open_Action_Token := Null_Unbounded_String;
-            Draft.Open_Action_Command := Null_Unbounded_String;
-            Model.Settings_Field := 19;
-         when others =>
-            Edited := False;
-      end case;
-
-      if Edited then
-         Model.Settings_Draft_Value := Draft;
-         Mark_Settings_Draft_Edited (Model);
-         Model.Settings_Field_Cursor := 0;
-         Model.Focus_Value := Files.Types.Focus_Settings_Input;
+      Config.Line_Height := Line_Height;
+      Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
+      if not Model.Settings_Draft_Value.Valid
+        and then Length (Model.Settings_Draft_Value.Error_Key) > 0
+      then
+         Config.Status :=
+           To_Unbounded_String (Files.Localization.Text (To_String (Model.Settings_Draft_Value.Error_Key)));
+         Config.Status_Is_Error := True;
       end if;
-   end Add_Settings_Entry;
-
-   procedure Remove_Settings_Entry
-     (Model : in out Window_Model)
-   is
-      Draft : Files.Settings.Settings_Draft := Model.Settings_Draft_Value;
-      Edited : Boolean := True;
-
-      function Clamped_After_Remove
-        (Index : Natural;
-         Count : Natural)
-         return Natural is
-      begin
-         if Count = 0 then
-            return 0;
-         elsif Index = 0 then
-            return 1;
-         else
-            return Natural'Min (Index, Count);
-         end if;
-      end Clamped_After_Remove;
-
-      procedure Delete_If_Present
-        (Values : in out Files.Types.String_Vectors.Vector;
-         Index  : Natural) is
-      begin
-         if Index > 0 and then Index <= Natural (Values.Length) then
-            Values.Delete (Index);
-         end if;
-      end Delete_If_Present;
-
-   begin
-      case Model.Settings_Field is
-         when 15 | 16 =>
-            if Draft.Filetype_Index = 0
-              or else
-                (Draft.Filetype_Index > Natural (Draft.Filetype_Keys.Length)
-                 and then Draft.Filetype_Index > Natural (Draft.Filetype_Values.Length))
-            then
-               return;
-            end if;
-            Delete_If_Present (Draft.Filetype_Keys, Draft.Filetype_Index);
-            Delete_If_Present (Draft.Filetype_Values, Draft.Filetype_Index);
-            Draft.Filetype_Index :=
-              Clamped_After_Remove
-                (Draft.Filetype_Index,
-                 Pair_Count (Draft.Filetype_Keys, Draft.Filetype_Values));
-            if Draft.Filetype_Index = 0 then
-               Draft.Filetype_Extension := Null_Unbounded_String;
-               Draft.Filetype_Value := Null_Unbounded_String;
-            else
-               Draft.Filetype_Extension := Draft.Filetype_Keys.Element (Draft.Filetype_Index);
-               Draft.Filetype_Value := Draft.Filetype_Values.Element (Draft.Filetype_Index);
-            end if;
-            Model.Settings_Field := 15;
-         when 17 | 18 =>
-            if Draft.Icon_Index = 0
-              or else
-                (Draft.Icon_Index > Natural (Draft.Icon_Keys.Length)
-                 and then Draft.Icon_Index > Natural (Draft.Icon_Values.Length))
-            then
-               return;
-            end if;
-            Delete_If_Present (Draft.Icon_Keys, Draft.Icon_Index);
-            Delete_If_Present (Draft.Icon_Values, Draft.Icon_Index);
-            Draft.Icon_Index :=
-              Clamped_After_Remove
-                (Draft.Icon_Index,
-                 Pair_Count (Draft.Icon_Keys, Draft.Icon_Values));
-            if Draft.Icon_Index = 0 then
-               Draft.Icon_Filetype := Null_Unbounded_String;
-               Draft.Icon_Value := Null_Unbounded_String;
-            else
-               Draft.Icon_Filetype := Draft.Icon_Keys.Element (Draft.Icon_Index);
-               Draft.Icon_Value := Draft.Icon_Values.Element (Draft.Icon_Index);
-            end if;
-            Model.Settings_Field := 17;
-         when 19 | 20 =>
-            if Draft.Open_Action_Index = 0
-              or else
-                (Draft.Open_Action_Index > Natural (Draft.Open_Action_Keys.Length)
-                 and then Draft.Open_Action_Index > Natural (Draft.Open_Action_Commands.Length))
-            then
-               return;
-            end if;
-            Delete_If_Present (Draft.Open_Action_Keys, Draft.Open_Action_Index);
-            Delete_If_Present (Draft.Open_Action_Commands, Draft.Open_Action_Index);
-            Draft.Open_Action_Index :=
-              Clamped_After_Remove
-                (Draft.Open_Action_Index,
-                 Pair_Count (Draft.Open_Action_Keys, Draft.Open_Action_Commands));
-            if Draft.Open_Action_Index = 0 then
-               Draft.Open_Action_Token := Null_Unbounded_String;
-               Draft.Open_Action_Command := Null_Unbounded_String;
-            else
-               Draft.Open_Action_Token := Draft.Open_Action_Keys.Element (Draft.Open_Action_Index);
-               Draft.Open_Action_Command := Draft.Open_Action_Commands.Element (Draft.Open_Action_Index);
-            end if;
-            Model.Settings_Field := 19;
-         when others =>
-            Edited := False;
-      end case;
-
-      if Edited then
-         Model.Settings_Draft_Value := Draft;
-         Mark_Settings_Draft_Edited (Model);
-         Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
-         Model.Focus_Value := Files.Types.Focus_Settings_Input;
-      end if;
-   end Remove_Settings_Entry;
-
-   function Settings_Field_Text
-     (Model : Window_Model)
-      return String is
-   begin
-      case Model.Settings_Field is
-         when 1 =>
-            return To_String (Model.Settings_Draft_Value.Default_View_Mode);
-         when 2 =>
-            return To_String (Model.Settings_Draft_Value.Show_Hidden_Files);
-         when 3 =>
-            return To_String (Model.Settings_Draft_Value.Sort_Field_Value);
-         when 4 =>
-            return To_String (Model.Settings_Draft_Value.Sort_Ascending);
-         when 5 =>
-            return To_String (Model.Settings_Draft_Value.Theme);
-         when 6 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Theme_Name);
-         when 7 =>
-            return To_String (Model.Settings_Draft_Value.Font_Pixel_Size);
-         when 8 =>
-            return To_String (Model.Settings_Draft_Value.Use_System_Default_Opener);
-         when 9 =>
-            return To_String (Model.Settings_Draft_Value.Group_By);
-         when 10 =>
-            return To_String (Model.Settings_Draft_Value.Column_Modified);
-         when 11 =>
-            return To_String (Model.Settings_Draft_Value.Column_Size);
-         when 12 =>
-            return To_String (Model.Settings_Draft_Value.Column_Filetype);
-         when 13 =>
-            return To_String (Model.Settings_Draft_Value.Column_Created);
-         when 14 =>
-            return To_String (Model.Settings_Draft_Value.Column_Permissions);
-         when 15 =>
-            return To_String (Model.Settings_Draft_Value.Filetype_Extension);
-         when 16 =>
-            return To_String (Model.Settings_Draft_Value.Filetype_Value);
-         when 17 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Filetype);
-         when 18 =>
-            return To_String (Model.Settings_Draft_Value.Icon_Value);
-         when 19 =>
-            return To_String (Model.Settings_Draft_Value.Open_Action_Token);
-         when 20 =>
-            return To_String (Model.Settings_Draft_Value.Open_Action_Command);
-         when others =>
-            return "";
-      end case;
-   end Settings_Field_Text;
-
-   procedure Set_Settings_Field_Text
-     (Model : in out Window_Model;
-      Text  : String)
-   is
-      Edited : Boolean := True;
-
-      function Replace_List_Value
-        (Values : in out Files.Types.String_Vectors.Vector;
-         Index  : Natural;
-         Value  : String)
-         return Boolean is
-      begin
-         if Index > 0 and then Index <= Natural (Values.Length) then
-            Values.Replace_Element (Index, To_Unbounded_String (Value));
-            return True;
-         end if;
-
-         return False;
-      end Replace_List_Value;
-   begin
-      case Model.Settings_Field is
-         when 1 =>
-            Model.Settings_Draft_Value.Default_View_Mode := To_Unbounded_String (Text);
-         when 2 =>
-            Model.Settings_Draft_Value.Show_Hidden_Files := To_Unbounded_String (Text);
-         when 3 =>
-            Model.Settings_Draft_Value.Sort_Field_Value := To_Unbounded_String (Text);
-         when 4 =>
-            Model.Settings_Draft_Value.Sort_Ascending := To_Unbounded_String (Text);
-         when 5 =>
-            Model.Settings_Draft_Value.Theme := To_Unbounded_String (Text);
-         when 6 =>
-            Model.Settings_Draft_Value.Icon_Theme_Name := To_Unbounded_String (Text);
-         when 7 =>
-            Model.Settings_Draft_Value.Font_Pixel_Size := To_Unbounded_String (Text);
-         when 8 =>
-            Model.Settings_Draft_Value.Use_System_Default_Opener := To_Unbounded_String (Text);
-         when 9 =>
-            Model.Settings_Draft_Value.Group_By := To_Unbounded_String (Text);
-         when 10 =>
-            Model.Settings_Draft_Value.Column_Modified := To_Unbounded_String (Text);
-         when 11 =>
-            Model.Settings_Draft_Value.Column_Size := To_Unbounded_String (Text);
-         when 12 =>
-            Model.Settings_Draft_Value.Column_Filetype := To_Unbounded_String (Text);
-         when 13 =>
-            Model.Settings_Draft_Value.Column_Created := To_Unbounded_String (Text);
-         when 14 =>
-            Model.Settings_Draft_Value.Column_Permissions := To_Unbounded_String (Text);
-         when 15 =>
-            if Replace_List_Value
-                 (Model.Settings_Draft_Value.Filetype_Keys,
-                  Model.Settings_Draft_Value.Filetype_Index,
-                  Text)
-            then
-               Model.Settings_Draft_Value.Filetype_Extension := To_Unbounded_String (Text);
-            else
-               Edited := False;
-            end if;
-         when 16 =>
-            if Replace_List_Value
-                 (Model.Settings_Draft_Value.Filetype_Values,
-                  Model.Settings_Draft_Value.Filetype_Index,
-                  Text)
-            then
-               Model.Settings_Draft_Value.Filetype_Value := To_Unbounded_String (Text);
-            else
-               Edited := False;
-            end if;
-         when 17 =>
-            if Replace_List_Value
-                 (Model.Settings_Draft_Value.Icon_Keys,
-                  Model.Settings_Draft_Value.Icon_Index,
-                  Text)
-            then
-               Model.Settings_Draft_Value.Icon_Filetype := To_Unbounded_String (Text);
-            else
-               Edited := False;
-            end if;
-         when 18 =>
-            if Replace_List_Value
-                 (Model.Settings_Draft_Value.Icon_Values,
-                  Model.Settings_Draft_Value.Icon_Index,
-                  Text)
-            then
-               Model.Settings_Draft_Value.Icon_Value := To_Unbounded_String (Text);
-            else
-               Edited := False;
-            end if;
-         when 19 =>
-            if Replace_List_Value
-                 (Model.Settings_Draft_Value.Open_Action_Keys,
-                  Model.Settings_Draft_Value.Open_Action_Index,
-                  Text)
-            then
-               Model.Settings_Draft_Value.Open_Action_Token := To_Unbounded_String (Text);
-            else
-               Edited := False;
-            end if;
-         when 20 =>
-            if Replace_List_Value
-                 (Model.Settings_Draft_Value.Open_Action_Commands,
-                  Model.Settings_Draft_Value.Open_Action_Index,
-                  Text)
-            then
-               Model.Settings_Draft_Value.Open_Action_Command := To_Unbounded_String (Text);
-            else
-               Edited := False;
-            end if;
-         when others =>
-            Edited := False;
-      end case;
-      if Edited then
-         Mark_Settings_Draft_Edited (Model);
-      end if;
-      Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
-   end Set_Settings_Field_Text;
+      Guikit.Settings_Panel.Set_Configuration (Model.Settings_Panel_View, Config);
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
+      Guikit.Settings_Panel.Build_Frame
+        (P             => Model.Settings_Panel_View,
+         Region_X      => Region_X,
+         Region_Y      => Region_Y,
+         Region_Width  => Region_Width,
+         Region_Height => Region_Height,
+         Clip_Width    => Clip_Width,
+         Clip_Height   => Clip_Height,
+         Focused       => Focused,
+         Hover_X       => -1,
+         Hover_Y       => -1,
+         Rectangles    => Rectangles,
+         Text          => Text,
+         Accessibility => Accessibility);
+   end Settings_Build_Frame;
 
    procedure Scroll_Info_Pane
      (Model : in out Window_Model;
@@ -2834,35 +2509,6 @@ package body Files.Model is
    begin
       Model.Main_View_Scroll := Lines;
    end Set_Main_View_Scroll_Lines;
-
-   procedure Scroll_Settings_Pane
-     (Model : in out Window_Model;
-      Lines : Integer) is
-   begin
-      if not Model.Settings_Pane_Open or else Lines = 0 then
-         return;
-      elsif Lines < 0 then
-         declare
-            Step : constant Natural := Scroll_Step (Lines);
-         begin
-            if Step >= Model.Settings_Pane_Scroll then
-               Model.Settings_Pane_Scroll := 0;
-            else
-               Model.Settings_Pane_Scroll := Model.Settings_Pane_Scroll - Step;
-            end if;
-         end;
-      else
-         Model.Settings_Pane_Scroll :=
-           Saturating_Add (Model.Settings_Pane_Scroll, Scroll_Step (Lines));
-      end if;
-   end Scroll_Settings_Pane;
-
-   function Settings_Pane_Scroll_Lines
-     (Model : Window_Model)
-      return Natural is
-   begin
-      return Model.Settings_Pane_Scroll;
-   end Settings_Pane_Scroll_Lines;
 
    procedure Scroll_Main_View
      (Model : in out Window_Model;
