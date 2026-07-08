@@ -6,6 +6,7 @@ with Files.Commands;
 with Files.File_System;
 with Files.Folder_Tree;
 with Guikit.Draw;
+with Guikit.Item_Grid;
 with Guikit.Layout;
 with Files.Model;
 with Files.Quick_Look;
@@ -301,42 +302,15 @@ package Files.Rendering is
    --  Files.Rendering.Layout_Metrics references keep compiling unchanged.
    subtype Layout_Metrics is Guikit.Draw.Layout_Metrics;
 
-   type Item_Layout is record
-      Visible_Index : Natural := 0;
-      X             : Natural := 0;
-      Y             : Natural := 0;
-      Width         : Natural := 0;
-      Height        : Natural := 0;
-      Icon_X        : Natural := 0;
-      Icon_Y        : Natural := 0;
-      Icon_Size     : Natural := 0;
-      Text_X         : Natural := 0;
-      Text_Y         : Natural := 0;
-      Text_Width     : Natural := 0;
-      Name_X         : Natural := 0;
-      Name_Width     : Natural := 0;
-      Modified_X     : Natural := 0;
-      Modified_Width : Natural := 0;
-      Size_X         : Natural := 0;
-      Size_Width     : Natural := 0;
-      Filetype_X     : Natural := 0;
-      Filetype_Width : Natural := 0;
-      Created_X         : Natural := 0;
-      Created_Width     : Natural := 0;
-      Permissions_X     : Natural := 0;
-      Permissions_Width : Natural := 0;
-   end record;
+   --  Per-item geometry lives in Guikit.Item_Grid now; these aliases keep the
+   --  existing Files.Rendering.Item_Layout / *_Vectors references compiling.
+   subtype Item_Layout is Guikit.Item_Grid.Item_Layout;
+   package Item_Layout_Vectors renames Guikit.Item_Grid.Item_Layout_Vectors;
 
-   package Item_Layout_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Item_Layout);
-
-   --  Deterministic set of one-based visible item indices, ascending. Used to
-   --  carry the items a marquee (rubber-band) rectangle touches from the pure
-   --  hit-test to the selection reducer.
-   package Visible_Index_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Positive);
+   --  Deterministic set of one-based visible item indices. Used to carry the
+   --  items a marquee (rubber-band) rectangle touches from the pure hit-test to
+   --  the selection reducer.
+   package Visible_Index_Vectors renames Guikit.Item_Grid.Visible_Index_Vectors;
 
    type Main_View_Layout is record
       Columns           : Positive := 1;

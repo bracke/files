@@ -2625,18 +2625,8 @@ package body Files.Rendering is
      (Items : Item_Layout_Vectors.Vector;
       X     : Natural;
       Y     : Natural)
-      return Natural is
-   begin
-      for Item of Items loop
-         if Contains_Rectangle_Point
-              (Item.X, Item.Y, Item.Width, Item.Height, X, Y)
-         then
-            return Item.Visible_Index;
-         end if;
-      end loop;
-
-      return 0;
-   end Item_At;
+      return Natural
+      renames Guikit.Item_Grid.Item_At;
 
    procedure Marquee_Rect
      (Start_X   : Natural;
@@ -2646,13 +2636,8 @@ package body Files.Rendering is
       X         : out Natural;
       Y         : out Natural;
       Width     : out Natural;
-      Height    : out Natural) is
-   begin
-      X := Natural'Min (Start_X, Current_X);
-      Y := Natural'Min (Start_Y, Current_Y);
-      Width := Natural'Max (Start_X, Current_X) - X;
-      Height := Natural'Max (Start_Y, Current_Y) - Y;
-   end Marquee_Rect;
+      Height    : out Natural)
+      renames Guikit.Item_Grid.Marquee_Rect;
 
    function Items_In_Rect
      (Items  : Item_Layout_Vectors.Vector;
@@ -2661,32 +2646,7 @@ package body Files.Rendering is
       Width  : Natural;
       Height : Natural)
       return Visible_Index_Vectors.Vector
-   is
-      Hits : Visible_Index_Vectors.Vector;
-
-      --  Half-open rectangle overlap: two rectangles intersect when each axis'
-      --  intervals overlap. A zero-width or zero-height marquee touches nothing,
-      --  so a plain click (no drag) never selects via this path.
-      function Overlaps (Item : Item_Layout) return Boolean is
-      begin
-         return Width > 0
-           and then Height > 0
-           and then Item.Width > 0
-           and then Item.Height > 0
-           and then Item.X < Saturating_Add (X, Width)
-           and then X < Saturating_Add (Item.X, Item.Width)
-           and then Item.Y < Saturating_Add (Y, Height)
-           and then Y < Saturating_Add (Item.Y, Item.Height);
-      end Overlaps;
-   begin
-      for Item of Items loop
-         if Item.Visible_Index > 0 and then Overlaps (Item) then
-            Hits.Append (Item.Visible_Index);
-         end if;
-      end loop;
-
-      return Hits;
-   end Items_In_Rect;
+      renames Guikit.Item_Grid.Items_In_Rect;
 
    procedure Rename_Field_Extent
      (Item      : Item_Layout;
