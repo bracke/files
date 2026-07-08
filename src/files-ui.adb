@@ -1,8 +1,9 @@
 with Files.Localization;
 
+with Ada.Strings.Unbounded;
+
 with Guikit.Layout;
 use Guikit.Layout;
-with Guikit.Segmented;
 
 package body Files.UI is
 
@@ -48,6 +49,23 @@ package body Files.UI is
              Label_Pixel_Width (Files.Localization.Text ("command.info.toggle.short"), Cell_W),
            Line_Height         => Line_Height);
    end Calculate_Bottom_Bar_Layout;
+
+   function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector is
+      Result : Guikit.Segmented.Segment_Vectors.Vector;
+
+      procedure Add (Key : String) is
+      begin
+         Result.Append
+           (Guikit.Segmented.Segment'
+              (Label   => Ada.Strings.Unbounded.To_Unbounded_String (Files.Localization.Text (Key)),
+               others  => <>));
+      end Add;
+   begin
+      Add ("command.view.small.short");
+      Add ("command.view.large.short");
+      Add ("command.view.details.short");
+      return Result;
+   end View_Mode_Segments;
 
    function Filter_Scope_Chip_Width
      (Line_Height : Positive := 20)
@@ -161,7 +179,9 @@ package body Files.UI is
       then
          return Files.Commands.No_Command;
       elsif Within (X, Bottom.View_Mode_X, Bottom.View_Mode_Width) then
-         case Guikit.Segmented.Cell_At (Bottom.View_Mode_X, Bottom.View_Mode_Width, 3, X) is
+         case Guikit.Segmented.Cell_At
+                (View_Mode_Segments, Bottom.View_Mode_X, Bottom.View_Mode_Width, Line_Height, X)
+         is
             when 1      => return Files.Commands.Select_Small_Icons_Command;
             when 2      => return Files.Commands.Select_Large_Icons_Command;
             when 3      => return Files.Commands.Select_Details_Command;

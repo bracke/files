@@ -6156,7 +6156,10 @@ package body Files.Rendering is
 
       --  The view-mode switcher is a segmented control over the view-mode region.
       declare
-         View_Segments : Guikit.Segmented.Segment_Vectors.Vector;
+         --  Labels come from Files.UI.View_Mode_Segments so the widths drawn
+         --  here match the widths the click hit-test measures; the renderer only
+         --  adds the per-cell tooltip and enabled state.
+         View_Segments : Guikit.Segmented.Segment_Vectors.Vector := Files.UI.View_Mode_Segments;
          Seg_Rects     : Guikit.Draw.Rectangle_Command_Vectors.Vector;
          Seg_Text      : Guikit.Draw.Text_Command_Vectors.Vector;
          Seg_Tips      : Guikit.Draw.Tooltip_Command_Vectors.Vector;
@@ -6167,18 +6170,17 @@ package body Files.Rendering is
                when Files.Types.Large_Icons => 2,
                when Files.Types.Details     => 3);
 
-         procedure Add_View (Command : Files.Commands.Registered_Command_Id) is
+         procedure Enrich (Cell : Positive; Command : Files.Commands.Registered_Command_Id) is
+            S : Guikit.Segmented.Segment := View_Segments.Element (Cell);
          begin
-            View_Segments.Append
-              (Guikit.Segmented.Segment'
-                 (Label   => Bottom_Command_Label (Command),
-                  Tooltip => Command_Label (Command),
-                  Enabled => Snapshot.Command_Enabled (Command)));
-         end Add_View;
+            S.Tooltip := Command_Label (Command);
+            S.Enabled := Snapshot.Command_Enabled (Command);
+            View_Segments.Replace_Element (Cell, S);
+         end Enrich;
       begin
-         Add_View (Files.Commands.Select_Small_Icons_Command);
-         Add_View (Files.Commands.Select_Large_Icons_Command);
-         Add_View (Files.Commands.Select_Details_Command);
+         Enrich (1, Files.Commands.Select_Small_Icons_Command);
+         Enrich (2, Files.Commands.Select_Large_Icons_Command);
+         Enrich (3, Files.Commands.Select_Details_Command);
          Guikit.Segmented.Build_Frame
            (Segments      => View_Segments,
             Active        => Active,

@@ -1,5 +1,6 @@
 with Files.Commands;
 with Guikit.Layout;
+with Guikit.Segmented;
 
 --  Domain-coupled UI layer over the generic Guikit.Layout geometry.
 --
@@ -21,6 +22,15 @@ package Files.UI is
      (Width       : Natural;
       Line_Height : Positive := 20)
       return Guikit.Layout.Bottom_Bar_Layout;
+
+   --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
+   --  right, labelled with their short localized names. The renderer and the
+   --  click hit-test share this single definition so the variable-width cells
+   --  they compute agree; the renderer enriches each cell with a tooltip and
+   --  enabled state.
+   --
+   --  @return The three view-mode segments.
+   function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector;
 
    --  Width the filter scope chip needs so its label is never abbreviated:
    --  the widest of the localized scope words (here/names/contents) plus the
