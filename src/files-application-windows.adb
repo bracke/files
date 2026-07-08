@@ -2230,9 +2230,52 @@ package body Files.Application.Windows is
       end;
 
       declare
-         Frame : Files.Rendering.Frame_Commands renames Runtime.Cached_Frame;
+         --  A working copy of the cached frame so the palette overlay (whose
+         --  state lives in the component and changes every frame) can be merged
+         --  in fresh without polluting the cache.
+         Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.Cached_Snapshot;
       begin
+         if Files.Model.Command_Palette_Is_Open (Runtime.Model) then
+            declare
+               Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+               Layout : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout
+                   (Snapshot, Natural (Width), Natural (Height), Line_Height);
+               P_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+               P_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
+               P_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
+               P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+            begin
+               Files.Model.Palette_Build_Frame
+                 (Model         => Runtime.Model,
+                  Region_X      => Layout.Command_X,
+                  Region_Y      => Layout.Command_Y,
+                  Region_Width  => Layout.Command_Width,
+                  Region_Height => Layout.Command_Height,
+                  Clip_Width    => Natural (Width),
+                  Clip_Height   => Natural (Height),
+                  Line_Height   => Line_Height,
+                  Focused       =>
+                    Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
+                  Rectangles    => P_Rects,
+                  Text          => P_Text,
+                  Icons         => P_Icons,
+                  Accessibility => P_Nodes);
+               for C of P_Rects loop
+                  Frame.Rectangles.Append (C);
+               end loop;
+               for C of P_Text loop
+                  Frame.Text.Append (C);
+               end loop;
+               for C of P_Icons loop
+                  Frame.Icons.Append (C);
+               end loop;
+               for N of P_Nodes loop
+                  Frame.Accessibility.Append (N);
+               end loop;
+            end;
+         end if;
          Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
 
          Guikit.Vulkan.Ensure_Ready

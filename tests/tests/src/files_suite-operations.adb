@@ -3689,7 +3689,6 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
       Files.Model.Begin_Create_File (Model, "failed-home-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "navigate.home");
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed home load is reported");
       Assert (To_String (Result.Operation.Path) = Missing_Home, "failed home reports attempted home path");
@@ -3702,12 +3701,10 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
       Assert (Files.Model.Rename_Is_Active (Model), "failed home preserves rename state");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "failed home preserves command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "navigate.home", "failed home preserves palette query");
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Initialize (Model, First, Load.Items, First);
       Files.Model.Begin_Create_File (Model, "home-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "navigate.home");
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "home load succeeds");
       Assert
@@ -3717,13 +3714,11 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Rename_Is_Active (Model), "home clears rename state");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "home clears rename focus");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "home clears command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "home clears palette query");
       Write_File (Join (First, "fresh.txt"));
       Files.Model.Begin_Create_File (Model, "pending.txt");
       Files.Model.Select_Visible (Model, 3);
       Files.Model.Scroll_Info_Pane (Model, Lines => 4);
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "directory.refresh");
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh operation succeeds");
       Assert
@@ -3739,7 +3734,6 @@ package body Files_Suite.Operations is
       Files.Model.Select_Visible (Model, 1);
       Write_File (Join (First, "later.txt"));
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "directory.refresh");
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second refresh operation succeeds");
       Assert (Files.Model.Item_Count (Model) = 3, "second refresh loads later item");
@@ -3747,7 +3741,6 @@ package body Files_Suite.Operations is
 
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "directory.refresh");
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "failed refresh is reported");
       Assert
@@ -3757,9 +3750,6 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Item_Count (Model) = 3, "failed refresh preserves loaded items");
       Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load", "failed refresh records load error");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "failed refresh preserves command palette");
-      Assert
-        (Files.Model.Command_Palette_Query (Model) = "directory.refresh",
-         "failed refresh preserves palette query");
       Ada.Directories.Create_Path (First);
       Write_File (Join (First, "one.txt"));
       Write_File (Join (First, "fresh.txt"));

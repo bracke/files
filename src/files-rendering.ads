@@ -105,19 +105,6 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Info_Snapshot);
 
-   type Command_Result_Snapshot is record
-      Identifier : UString;
-      Label      : UString;
-      Description : UString;
-      Shortcut_Text : UString;
-      Enabled    : Boolean := False;
-      Selected   : Boolean := False;
-   end record;
-
-   package Command_Result_Snapshot_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Command_Result_Snapshot);
-
    type Command_Enablement_Array is array (Files.Commands.Registered_Command_Id) of Boolean;
 
    type View_Snapshot is record
@@ -222,11 +209,7 @@ package Files.Rendering is
       Tree_Pick_Target      : UString;
       Breadcrumb_Segments   : Files.Breadcrumbs.Segment_Vectors.Vector;
       Command_Palette_Open           : Boolean := False;
-      Command_Palette_Query          : UString;
-      Command_Palette_Selected_Index : Natural := 0;
-      Command_Palette_Result_Offset  : Natural := 0;
       Command_Enabled                : Command_Enablement_Array := [others => False];
-      Command_Palette_Results        : Command_Result_Snapshot_Vectors.Vector;
       Items                          : Item_Snapshot_Vectors.Vector;
       Selected_Info                  : Info_Snapshot_Vectors.Vector;
       Context_Menu_Open              : Boolean := False;
@@ -460,7 +443,6 @@ package Files.Rendering is
 
    subtype Command_Result_Layout is Guikit.Layout.Palette_Result_Row;
 
-   package Command_Result_Layout_Vectors renames Guikit.Layout.Palette_Result_Row_Vectors;
 
    type Root_Selector_Layout is record
       X          : Natural := 0;
@@ -1162,28 +1144,6 @@ package Files.Rendering is
      (Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Label_Picker_Layout;
-
-   --  Calculate command-palette result row rectangles.
-   --
-   --  @param Snapshot View snapshot containing command-palette results.
-   --  @param Layout Command-palette layout metrics.
-   --  @return Result row rectangles in palette result order.
-   function Calculate_Command_Result_Layout
-     (Snapshot : View_Snapshot;
-      Layout   : Command_Palette_Layout)
-      return Command_Result_Layout_Vectors.Vector;
-
-   --  Return the command-palette result index at a position.
-   --
-   --  @param Rows Command-palette result row layouts.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @return Result index, or zero when no result row is hit.
-   function Command_Result_At
-     (Rows : Command_Result_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
 
    --  Calculate root-selector dropdown rectangle.
    --

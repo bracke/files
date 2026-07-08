@@ -5,6 +5,8 @@ with Files.Folder_Tree;
 with Files.Paste;
 with Files.Quick_Look;
 with Files.Settings;
+with Guikit.Command_Palette;
+with Guikit.Draw;
 with Guikit.Input;
 with Files.Types;
 
@@ -1154,53 +1156,91 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Set command-palette search text.
-   --
-   --  @param Model Model to update.
-   --  @param Text New command-palette query text.
-   procedure Set_Command_Palette_Query
-     (Model : in out Window_Model;
-      Text  : String);
-
-   --  Return command-palette search text.
+   --  The palette's current query text. Guikit.Command_Palette owns the query,
+   --  selection and scroll; these only forward to it.
    --
    --  @param Model Model to inspect.
-   --  @return Current command-palette query text.
-   function Command_Palette_Query
-     (Model : Window_Model)
-      return String;
+   --  @return The current query text.
+   function Palette_Query (Model : Window_Model) return String;
 
-   --  Set command-palette selected result index.
+   --  Replace the palette's query text (resets its selection).
    --
    --  @param Model Model to update.
-   --  @param Index One-based selected result index, or zero for none.
-   procedure Set_Command_Palette_Selected_Index
-     (Model : in out Window_Model;
-      Index : Natural);
+   --  @param Text New query text.
+   procedure Palette_Set_Query (Model : in out Window_Model; Text : String);
 
-   --  Return command-palette selected result index.
-   --
-   --  @param Model Model to inspect.
-   --  @return One-based selected result index, or zero for none.
-   function Command_Palette_Selected_Index
-     (Model : Window_Model)
-      return Natural;
-
-   --  Set command-palette result scroll offset.
+   --  Move the highlighted result by Delta_Rows (clamped/wrapped by the palette).
    --
    --  @param Model Model to update.
-   --  @param Offset Zero-based first visible result offset.
-   procedure Set_Command_Palette_Result_Offset
-     (Model  : in out Window_Model;
-      Offset : Natural);
+   --  @param Delta_Rows Signed number of rows to move the selection.
+   procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer);
 
-   --  Return command-palette result scroll offset.
+   --  Highlight the first / last result.
+   --
+   --  @param Model Model to update.
+   procedure Palette_Select_First (Model : in out Window_Model);
+   procedure Palette_Select_Last (Model : in out Window_Model);
+
+   --  Move the selection by one page.
+   --
+   --  @param Model Model to update.
+   --  @param Down True to page down, False to page up.
+   procedure Palette_Page (Model : in out Window_Model; Down : Boolean);
+
+   --  Select the palette result at a window coordinate, using the last render.
+   --
+   --  @param Model Model to update.
+   --  @param X Pointer x coordinate in pixels.
+   --  @param Y Pointer y coordinate in pixels.
+   --  @return True when a result row was hit (and is now selected).
+   function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
+
+   --  The Id of the highlighted command, or 0 when none. In Palette_Commands
+   --  mode this is Files.Commands.Command_Id'Pos of the command; in
+   --  Palette_Open_With mode the one-based application index.
    --
    --  @param Model Model to inspect.
-   --  @return Zero-based first visible result offset.
-   function Command_Palette_Result_Offset
-     (Model : Window_Model)
-      return Natural;
+   --  @return The chosen command Id, or 0.
+   function Palette_Selected_Id (Model : Window_Model) return Natural;
+
+   --  Number of results matching the current query (from the last render's
+   --  command list).
+   --
+   --  @param Model Model to inspect.
+   --  @return The result count.
+   function Palette_Result_Count (Model : Window_Model) return Natural;
+
+   --  Render the command palette within a region, refreshing its command list
+   --  (fresh enablement) and line height first. Emits draw commands and
+   --  accessibility nodes for the caller to submit.
+   --
+   --  @param Model Model to render from (updates the palette's cached layout).
+   --  @param Region_X Left edge of the palette region in pixels.
+   --  @param Region_Y Top edge of the palette region in pixels.
+   --  @param Region_Width Palette region width in pixels.
+   --  @param Region_Height Palette region height in pixels.
+   --  @param Clip_Width Drawable window width in pixels.
+   --  @param Clip_Height Drawable window height in pixels.
+   --  @param Line_Height Row height in pixels.
+   --  @param Focused Whether the search box has keyboard focus.
+   --  @param Rectangles Out: rectangle commands.
+   --  @param Text Out: text commands.
+   --  @param Icons Out: icon commands.
+   --  @param Accessibility Out: accessibility nodes.
+   procedure Palette_Build_Frame
+     (Model         : in out Window_Model;
+      Region_X      : Natural;
+      Region_Y      : Natural;
+      Region_Width  : Natural;
+      Region_Height : Natural;
+      Clip_Width    : Natural;
+      Clip_Height   : Natural;
+      Line_Height   : Positive;
+      Focused       : Boolean;
+      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+      Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
+      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
    type Palette_Mode is (Palette_Commands, Palette_Open_With);
 
@@ -2280,11 +2320,8 @@ private
       Tree_Pick_Sources_Value : Files.Types.String_Vectors.Vector;
       Tree_Pick_Target_Value  : UString;
       Command_Palette_Open     : Boolean := False;
-      Command_Palette_Query    : UString;
-      Command_Palette_Cursor   : Natural := 0;
-      Command_Palette_Selected : Natural := 0;
-      Command_Palette_Offset   : Natural := 0;
       Command_Palette_Mode     : Palette_Mode := Palette_Commands;
+      Command_Palette_View     : Guikit.Command_Palette.Palette;
       Quick_Look_Active        : Boolean := False;
       Quick_Look_Path_Value    : UString;
       Quick_Look_Content_Value : Files.Quick_Look.Quick_Look_Content;

@@ -22,6 +22,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -46,6 +48,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -70,6 +74,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -93,6 +99,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -119,6 +127,8 @@ package body Files.Events is
          Item_Index      => Label_Pos,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -142,6 +152,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -165,6 +177,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -190,6 +204,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => Lines,
          Scroll_Area     => Target,
          Focus_Target    => Files.Types.Focus_None,
@@ -215,6 +231,8 @@ package body Files.Events is
          Item_Index       => 0,
          Root_Index       => 0,
          Result_Index     => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines     => 0,
          Scroll_Area      => Target,
          Focus_Target     => Files.Types.Focus_None,
@@ -250,6 +268,8 @@ package body Files.Events is
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -285,6 +305,8 @@ package body Files.Events is
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -319,6 +341,8 @@ package body Files.Events is
          Item_Index      => 0,
          Root_Index      => 0,
          Result_Index    => 0,
+         Click_X          => 0,
+         Click_Y          => 0,
          Scroll_Lines    => 0,
          Scroll_Area     => Scroll_Auto,
          Focus_Target    => Files.Types.Focus_None,
@@ -421,8 +445,6 @@ package body Files.Events is
           (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Palette_Rows   : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette_Layout);
       Main_View      : constant Files.Rendering.Main_View_Layout :=
         Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
       Info_Pane      : constant Files.Rendering.Info_Pane_Layout :=
@@ -443,7 +465,6 @@ package body Files.Events is
         Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
       Tree_Rows_L    : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
-      Result_Index   : constant Natural := Files.Rendering.Command_Result_At (Palette_Rows, X, Y);
       Root_Index     : constant Natural := Files.Rendering.Root_Path_At (Root_Rows, X, Y);
       Breadcrumb_Index    : constant Natural := Files.Rendering.Breadcrumb_At (Breadcrumb_Rows, X, Y);
       Tree_Triangle_Index : constant Natural := Files.Rendering.Tree_Triangle_At (Tree_Rows_L, X, Y);
@@ -578,6 +599,8 @@ package body Files.Events is
             Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
+            Click_X          => 0,
+            Click_Y          => 0,
             Scroll_Lines    => 0,
             Scroll_Area     => Scroll_Auto,
             Focus_Target    => Target,
@@ -612,63 +635,6 @@ package body Files.Events is
          return Scroll_Action (Target, Lines, Activate);
       end Scroll_Click;
 
-      function Palette_Scrollbar_Click return Input_Action is
-         Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
-         Visible_Rows : constant Natural :=
-           Visible_Row_Count (Palette_Layout.Results_Height, Palette_Layout.Row_Height);
-         Bar_W       : constant Natural := Natural'Min (6, Palette_Layout.Results_Width);
-         Track_X     : constant Natural :=
-           Saturating_Add (Palette_Layout.Results_X, Palette_Layout.Results_Width - Bar_W);
-         Track_H     : constant Natural := Palette_Layout.Results_Height;
-         Thumb_H     : Natural := 0;
-         Thumb_Y     : Natural := Palette_Layout.Results_Y;
-         Max_Offset  : Natural := 0;
-      begin
-         if not Snapshot.Command_Palette_Open
-           or else Result_Count = 0
-           or else Visible_Rows = 0
-           or else Result_Count <= Visible_Rows
-           or else Track_H = 0
-           or else not Within (X, Track_X, Bar_W)
-           or else not Within (Y, Palette_Layout.Results_Y, Track_H)
-         then
-            return No_Action (Activate);
-         end if;
-
-         Max_Offset := Result_Count - Visible_Rows;
-         Thumb_H :=
-           Natural'Max
-             (Palette_Layout.Row_Height,
-              Bounded_Product_Divide (Value => Track_H, Factor => Visible_Rows, Denominator => Result_Count));
-         Thumb_H := Natural'Min (Thumb_H, Track_H);
-         if Max_Offset > 0 and then Track_H > Thumb_H then
-            Thumb_Y :=
-              Saturating_Add
-                (Palette_Layout.Results_Y,
-                 Bounded_Product_Divide
-                   (Value       => Track_H - Thumb_H,
-                    Factor      => Natural'Min (Snapshot.Command_Palette_Result_Offset, Max_Offset),
-                    Denominator => Max_Offset));
-         end if;
-
-         return Scroll_Click (Scroll_Command_Palette, Thumb_Y, Thumb_H, Y, 5);
-      end Palette_Scrollbar_Click;
-
-      function Palette_Scrollbar_Hit return Boolean is
-         Result_Count : constant Natural := Natural (Snapshot.Command_Palette_Results.Length);
-         Visible_Rows : constant Natural :=
-           Visible_Row_Count (Palette_Layout.Results_Height, Palette_Layout.Row_Height);
-         Bar_W        : constant Natural := Natural'Min (6, Palette_Layout.Results_Width);
-         Track_X      : constant Natural :=
-           Saturating_Add (Palette_Layout.Results_X, Palette_Layout.Results_Width - Bar_W);
-      begin
-         return Snapshot.Command_Palette_Open
-           and then Result_Count > Visible_Rows
-           and then Visible_Rows > 0
-           and then Within (X, Track_X, Bar_W)
-           and then Within (Y, Palette_Layout.Results_Y, Palette_Layout.Results_Height);
-      end Palette_Scrollbar_Hit;
-
       function Settings_Click
         (Field  : Natural;
          Option : Natural := 0)
@@ -681,6 +647,8 @@ package body Files.Events is
             Item_Index      => 0,
             Root_Index      => 0,
             Result_Index    => 0,
+            Click_X          => 0,
+            Click_Y          => 0,
             Scroll_Lines    => 0,
             Scroll_Area     => Scroll_Auto,
             Focus_Target    => Files.Types.Focus_Settings_Input,
@@ -777,6 +745,8 @@ package body Files.Events is
             Item_Index       => Node_Index,
             Root_Index       => 0,
             Result_Index     => 0,
+            Click_X          => 0,
+            Click_Y          => 0,
             Scroll_Lines     => 0,
             Scroll_Area      => Scroll_Auto,
             Focus_Target     => Files.Types.Focus_None,
@@ -801,6 +771,8 @@ package body Files.Events is
             Item_Index       => Segment_Index,
             Root_Index       => 0,
             Result_Index     => 0,
+            Click_X          => 0,
+            Click_Y          => 0,
             Scroll_Lines     => 0,
             Scroll_Area      => Scroll_Auto,
             Focus_Target     => Files.Types.Focus_None,
@@ -945,50 +917,25 @@ package body Files.Events is
          return Command_Action (Files.Commands.Toggle_Info_Pane_Command, Activate);
       end if;
 
-      declare
-         Palette_Scroll : constant Input_Action := Palette_Scrollbar_Click;
-      begin
-         if Palette_Scroll.Kind /= No_Input_Action then
-            return Palette_Scroll;
-         elsif Palette_Scrollbar_Hit then
+      --  Any click inside the open palette becomes a palette click carrying the
+      --  coordinates; Guikit.Command_Palette hit-tests it (a search-box or gap
+      --  click resolves to no row). Clicks outside dismiss nothing here.
+      if Snapshot.Command_Palette_Open then
+         if Within (X, Palette_Layout.X, Palette_Layout.Width)
+           and then Within (Y, Palette_Layout.Y, Palette_Layout.Height)
+         then
+            return
+              (Kind     => Command_Result_Click_Input_Action,
+               Click_X  => X,
+               Click_Y  => Y,
+               Activate => Activate,
+               others   => <>);
+         else
             return No_Action (Activate);
          end if;
-      end;
-
-      if Snapshot.Command_Palette_Open
-        and then Within (X, Palette_Layout.Search_X, Palette_Layout.Search_Width)
-        and then Within (Y, Palette_Layout.Search_Y, Palette_Layout.Search_Height)
-      then
-         return
-           Text_Click
-             (Files.Types.Focus_Command_Palette,
-              Cursor_At
-                 (Text        => Snapshot.Command_Palette_Query,
-                 Text_X      => Saturating_Add (Palette_Layout.Search_X, Guikit.Layout.Input_Field_Padding),
-                 Click_X     => X));
       end if;
 
-      if Result_Index /= 0 then
-         return
-           (Kind            => Command_Result_Click_Input_Action,
-            Command         => Files.Commands.No_Command,
-            Direction       => Guikit.Input.Move_Right,
-            Item_Index      => 0,
-            Root_Index      => 0,
-            Result_Index    => Result_Index,
-            Scroll_Lines    => 0,
-            Scroll_Area     => Scroll_Auto,
-            Focus_Target    => Files.Types.Focus_None,
-            Cursor_Position => 0,
-            Settings_Field  => 0,
-            Settings_Option => 0,
-            Activate        => Activate,
-            Toggle_Selection => False,
-            Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
-      elsif Snapshot.Command_Palette_Open then
-         return No_Action (Activate);
-      elsif Root_Index /= 0 then
+      if Root_Index /= 0 then
          return
            (Kind            => Root_Click_Input_Action,
             Command         => Files.Commands.No_Command,
@@ -996,6 +943,8 @@ package body Files.Events is
             Item_Index      => 0,
             Root_Index      => Root_Index,
             Result_Index    => 0,
+            Click_X          => 0,
+            Click_Y          => 0,
             Scroll_Lines    => 0,
             Scroll_Area     => Scroll_Auto,
             Focus_Target    => Files.Types.Focus_None,
@@ -1249,6 +1198,8 @@ package body Files.Events is
             Item_Index      => Item_Index,
             Root_Index      => 0,
             Result_Index    => 0,
+            Click_X          => 0,
+            Click_Y          => 0,
             Scroll_Lines    => 0,
             Scroll_Area     => Scroll_Auto,
             Focus_Target    => Files.Types.Focus_None,

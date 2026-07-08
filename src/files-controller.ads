@@ -205,18 +205,18 @@ package Files.Controller is
       Toggle     : Boolean)
       return Controller_Result;
 
-   --  Execute a command-palette result by index.
+   --  Act on the command palette's highlighted command (from Palette_Selected_Id):
+   --  launch the chosen application in Open-With mode, otherwise execute the
+   --  command, closing the palette on success (except Open_With).
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.
-   --  @param Result_Index One-based command-palette result index, or zero for no row.
    --  @param Modifiers Active modifier keys for open actions.
    --  @return Controller result with command or operation details.
-   function Handle_Command_Result_Click
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Result_Index : Natural;
-      Modifiers    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+   function Activate_Palette_Command
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
    --  Select or activate a visible item.

@@ -11,7 +11,6 @@ with Util.Dates.Formats;
 with Util.Properties;
 
 with Files.Accessibility;
-with Files.Command_Palette;
 with Files.File_Types;
 with Files.Fonts;
 with Guikit.Command_Palette;
@@ -1582,8 +1581,10 @@ package body Files.Rendering is
       Snapshot.Theme_Focus_Ring := Theme.Focus_Ring;
       Snapshot.Root_Selector_Open := Files.Model.Root_Selector_Is_Open (Model);
       Snapshot.Root_Selected_Index := Files.Model.Root_Selected_Index (Model);
+      --  The command palette owns its query/selection/results and renders itself
+      --  (Guikit.Command_Palette, merged at the window layer); the snapshot only
+      --  records that it is open, for overlay hit-testing.
       Snapshot.Command_Palette_Open := Files.Model.Command_Palette_Is_Open (Model);
-      Snapshot.Command_Palette_Query := To_Unbounded_String (Files.Model.Command_Palette_Query (Model));
 
       Snapshot.Label_Picker_Open := Files.Model.Label_Picker_Is_Open (Model);
       Snapshot.Quick_Look_Open := Files.Model.Quick_Look_Is_Open (Model);
@@ -1636,53 +1637,6 @@ package body Files.Rendering is
       Snapshot.Tree_Pick_Target := To_Unbounded_String (Files.Model.Tree_Pick_Target (Model));
       Snapshot.Breadcrumb_Segments :=
         Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
-
-      if Snapshot.Command_Palette_Open then
-         declare
-            Palette_Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-              Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-            Selected_Index  : Natural := Files.Model.Command_Palette_Selected_Index (Model);
-            Result_Offset   : Natural := Files.Model.Command_Palette_Result_Offset (Model);
-         begin
-            if Selected_Index = 0 and then not Palette_Results.Is_Empty then
-               Selected_Index := 1;
-            elsif Selected_Index > Natural (Palette_Results.Length) then
-               Selected_Index := (if Palette_Results.Is_Empty then 0 else 1);
-            end if;
-
-            Snapshot.Command_Palette_Selected_Index := Selected_Index;
-            if Palette_Results.Is_Empty then
-               Result_Offset := 0;
-            elsif Result_Offset >= Natural (Palette_Results.Length) then
-               Result_Offset := Natural (Palette_Results.Length) - 1;
-            end if;
-            Snapshot.Command_Palette_Result_Offset := Result_Offset;
-
-            for Index in 1 .. Natural (Palette_Results.Length) loop
-               declare
-                  Item : constant Files.Command_Palette.Result_Entry :=
-                    Palette_Results.Element (Positive (Index));
-                  Primary_Shortcut : constant String :=
-                    Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Item.Command));
-                  Secondary_Shortcut : constant String :=
-                    Files.Commands.Shortcut_Text (Files.Commands.Secondary_Shortcut_For (Item.Command));
-                  Display_Shortcut : constant String :=
-                    (if Primary_Shortcut = "" then Secondary_Shortcut
-                     elsif Secondary_Shortcut = "" then Primary_Shortcut
-                     else Primary_Shortcut & " / " & Secondary_Shortcut);
-               begin
-                  Snapshot.Command_Palette_Results.Append
-                    (Command_Result_Snapshot'
-                       (Identifier => Item.Identifier,
-                        Label      => Item.Label,
-                        Description => Item.Description,
-                        Shortcut_Text => To_Unbounded_String (Display_Shortcut),
-                        Enabled    => Item.Enabled,
-                        Selected   => Index = Selected_Index));
-               end;
-            end loop;
-         end;
-      end if;
 
       declare
          use type Files.Model.Clipboard_Mode;
@@ -3471,37 +3425,6 @@ package body Files.Rendering is
       return Result;
    end Calculate_Label_Picker_Layout;
 
-   function Calculate_Command_Result_Layout
-     (Snapshot : View_Snapshot;
-      Layout   : Command_Palette_Layout)
-      return Command_Result_Layout_Vectors.Vector
-   is
-      Enabled : Guikit.Layout.Palette_Enabled_Vectors.Vector;
-   begin
-      if not Snapshot.Command_Palette_Open then
-         return Command_Result_Layout_Vectors.Empty_Vector;
-      end if;
-
-      for Result of Snapshot.Command_Palette_Results loop
-         Enabled.Append (Result.Enabled);
-      end loop;
-
-      return Guikit.Layout.Calculate_Palette_Result_Rows
-        (Layout   => Layout,
-         Enabled  => Enabled,
-         Selected => Snapshot.Command_Palette_Selected_Index,
-         Offset   => Snapshot.Command_Palette_Result_Offset);
-   end Calculate_Command_Result_Layout;
-
-   function Command_Result_At
-     (Rows : Command_Result_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural is
-   begin
-      return Guikit.Layout.Palette_Result_At (Rows, X, Y);
-   end Command_Result_At;
-
    function Calculate_Root_Selector_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
@@ -4292,8 +4215,6 @@ package body Files.Rendering is
          else Toolbar_Input_Y);
       Toolbar_Input_Text_H : constant Natural :=
         Natural'Min (Line_Height, Toolbar_Input_H);
-      Palette_Rows  : constant Command_Result_Layout_Vectors.Vector :=
-        Calculate_Command_Result_Layout (Snapshot, Palette);
       Root_Selector : constant Root_Selector_Layout :=
         Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Rows     : constant Root_Path_Layout_Vectors.Vector :=
@@ -4318,7 +4239,6 @@ package body Files.Rendering is
          then Layout.Bottom_Bar_Height - Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)
          else Layout.Bottom_Bar_Height);
       Drawing_Settings_Pane : Boolean := False;
-      Drawing_Command_Palette : Boolean := False;
 
       function Intersects
         (Left_X   : Natural;
@@ -4386,7 +4306,6 @@ package body Files.Rendering is
       is
       begin
          return Snapshot.Command_Palette_Open
-           and then not Drawing_Command_Palette
            and then Intersects
              (X,
               Y,
@@ -4794,23 +4713,6 @@ package body Files.Rendering is
            & To_Unbounded_String (" ")
            & Localized (To_String (Snapshot.Path_Input_Error_Key));
       end Path_Input_Accessible_Description;
-
-      function Command_Result_Accessible_Description
-        (Command : Command_Result_Snapshot)
-         return UString
-      is
-         Result : UString := Command.Description;
-      begin
-         if Length (Command.Shortcut_Text) > 0 then
-            Result := Result & To_Unbounded_String (" ") & Command.Shortcut_Text;
-         end if;
-
-         if not Command.Enabled then
-            Result := Result & To_Unbounded_String (" ") & Localized ("accessibility.command_disabled");
-         end if;
-
-         return Result;
-      end Command_Result_Accessible_Description;
 
       function Contains_Point
         (X        : Natural;
@@ -9033,79 +8935,6 @@ package body Files.Rendering is
          Drawing_Settings_Pane := False;
       end if;
 
-      if Snapshot.Command_Palette_Open then
-         Drawing_Command_Palette := True;
-         declare
-            Cmds  : Guikit.Command_Palette.Command_Vectors.Vector;
-            Pal   : Guikit.Command_Palette.Palette;
-            Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
-            Texts : Guikit.Draw.Text_Command_Vectors.Vector;
-            Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
-            Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-         begin
-            for I in 1 .. Natural (Snapshot.Command_Palette_Results.Length) loop
-               declare
-                  R : constant Command_Result_Snapshot :=
-                    Snapshot.Command_Palette_Results.Element (I);
-               begin
-                  Cmds.Append
-                    (Guikit.Command_Palette.Command'
-                       (Id          => I,
-                        Identifier  => R.Identifier,
-                        Label       => R.Label,
-                        Description => R.Description,
-                        Shortcut    => R.Shortcut_Text,
-                        Enabled     => R.Enabled,
-                        Icon        => Guikit.Command_Palette.No_Icon));
-               end;
-            end loop;
-
-            Guikit.Command_Palette.Set_Configuration
-              (Pal,
-               (Line_Height    => Line_Height,
-                Show_Icons     => False,
-                Show_Shortcuts => True,
-                Overlay        => True,
-                Wrap_Selection => False,
-                Pre_Filtered   => True,
-                Placeholder    => Null_Unbounded_String,
-                Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty"))));
-            Guikit.Command_Palette.Set_Commands (Pal, Cmds);
-            Guikit.Command_Palette.Set_Query (Pal, To_String (Snapshot.Command_Palette_Query));
-            Guikit.Command_Palette.Set_Selection (Pal, Snapshot.Command_Palette_Selected_Index);
-            Guikit.Command_Palette.Set_Offset (Pal, Snapshot.Command_Palette_Result_Offset);
-
-            Guikit.Command_Palette.Build_Frame
-              (P             => Pal,
-               Region_X      => Layout.Command_X,
-               Region_Y      => Layout.Command_Y,
-               Region_Width  => Layout.Command_Width,
-               Region_Height => Layout.Command_Height,
-               Clip_Width    => Layout.Width,
-               Clip_Height   => Layout.Height,
-               Focused       => Snapshot.Focus = Files.Types.Focus_Command_Palette,
-               Hover_X       => -1,
-               Hover_Y       => -1,
-               Rectangles    => Rects,
-               Text          => Texts,
-               Icons         => Icons,
-               Accessibility => Nodes);
-
-            for C of Rects loop
-               Result.Rectangles.Append (C);
-            end loop;
-            for C of Texts loop
-               Result.Text.Append (C);
-            end loop;
-            for C of Icons loop
-               Result.Icons.Append (C);
-            end loop;
-            for N of Nodes loop
-               Result.Accessibility.Append (N);
-            end loop;
-         end;
-         Drawing_Command_Palette := False;
-      end if;
 
       if Snapshot.Quick_Look_Open then
          declare

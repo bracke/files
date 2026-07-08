@@ -1,6 +1,5 @@
 with Ada.Strings.Unbounded;
 
-with Files.Command_Palette;
 with Files.File_System;
 with Files.Operations;
 
@@ -10,6 +9,7 @@ package body Files.Interaction is
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
    use type Files.Model.Tree_Pick_Mode;
+   use type Files.Model.Palette_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
@@ -520,44 +520,38 @@ package body Files.Interaction is
                end if;
             end;
          when Files.Events.Command_Result_Click_Input_Action =>
-            declare
-               Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-                 Files.Command_Palette.Search
-                   (Files.Model.Command_Palette_Query (Model), Model);
-            begin
-               if Action.Result_Index > 0
-                 and then Action.Result_Index <= Natural (Results.Length)
-                 and then Files.Commands.Requires_Settings_Path
-                   (Results.Element (Positive (Action.Result_Index)).Command)
-               then
-                  Files.Model.Set_Command_Palette_Selected_Index (Model, Action.Result_Index);
-                  if Results.Element (Positive (Action.Result_Index)).Enabled then
+            --  The palette hit-tests the click and selects the row; a command
+            --  that needs the settings path is executed here (the controller's
+            --  generic Execute_Command has no path), otherwise the controller
+            --  activates the highlighted command.
+            if Files.Model.Command_Palette_Is_Open (Model)
+              and then Files.Model.Palette_Click (Model, Action.Click_X, Action.Click_Y)
+            then
+               declare
+                  Id      : constant Natural := Files.Model.Palette_Selected_Id (Model);
+                  Command : constant Files.Commands.Command_Id :=
+                    (if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Commands
+                       and then Id > 0
+                     then Files.Commands.Command_Id'Val (Id)
+                     else Files.Commands.No_Command);
+               begin
+                  if Command /= Files.Commands.No_Command
+                    and then Files.Commands.Requires_Settings_Path (Command)
+                    and then Files.Commands.Is_Enabled (Command, Model)
+                  then
                      Execute_Command
-                       (Model, Settings, Settings_Path,
-                        Results.Element (Positive (Action.Result_Index)).Command,
+                       (Model, Settings, Settings_Path, Command,
                         Current_Font_Size, Modifiers, Result);
                      if Result.Status /= Files.Controller.Controller_Ignored then
                         Files.Model.Close_Command_Palette (Model);
                      end if;
                   else
                      Outcome :=
-                       Files.Controller.Handle_Command_Result_Click
-                         (Model        => Model,
-                          Settings     => Settings,
-                          Result_Index => Action.Result_Index,
-                          Modifiers    => Modifiers);
+                       Files.Controller.Activate_Palette_Command (Model, Settings, Modifiers);
                      Result.Status := Outcome.Status;
                   end if;
-               else
-                  Outcome :=
-                    Files.Controller.Handle_Command_Result_Click
-                      (Model        => Model,
-                       Settings     => Settings,
-                       Result_Index => Action.Result_Index,
-                       Modifiers    => Modifiers);
-                  Result.Status := Outcome.Status;
-               end if;
-            end;
+               end;
+            end if;
          when Files.Events.Text_Click_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Text_Click

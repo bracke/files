@@ -3,7 +3,6 @@ with Ada.Strings.Unbounded;
 with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
-with AUnit.Test_Suites;
 
 with System;
 
@@ -1391,25 +1390,6 @@ package body Files_Suite.Rendering is
       Height : constant Natural  := 800;
       LH     : constant Positive := 20;
    begin
-      --  Command palette.
-      declare
-         Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout  : Guikit.Draw.Layout_Metrics;
-         Palette : Command_Palette_Layout;
-         Close   : Close_Button_Layout;
-         Frame   : Frame_Commands;
-      begin
-         Snap.Command_Palette_Open := True;
-         Layout  := Calculate_Layout (Snap, Width, Height, LH);
-         Palette := Calculate_Command_Palette_Layout (Layout, LH);
-         Close   := Panel_Close_Button (Palette.X, Palette.Y, Palette.Width, Palette.Height, LH);
-         Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
-         Assert (Close.Visible, "the command palette hosts a close button");
-         Assert
-           (Has_Close_Button_Node (Frame, Close),
-            "the open command palette emits a close-button accessibility node");
-      end;
-
       --  Settings pane.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);

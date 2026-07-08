@@ -1364,7 +1364,6 @@ package body Files_Suite.Model is
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Begin_Create_File (Model, "history-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
       Files.Model.Set_Path_Input_Text (Model, "/tmp/bad-history-path");
       Files.Model.Go_Back (Model);
       Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/second", "back restores previous path");
@@ -1374,7 +1373,6 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "back clears rename state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "back closes command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "back clears command palette query");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "back clears focus");
       Assert (Files.Model.Can_Go_Forward (Model), "forward is enabled after back");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/branch", Items);
@@ -1383,7 +1381,6 @@ package body Files_Suite.Model is
       Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/second", "back reaches branch origin");
       Files.Model.Begin_Create_File (Model, "forward-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "navigate.forward");
       Files.Model.Go_Forward (Model);
       Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/branch", "forward reaches branch path");
       Assert (Files.Model.Selected_Count (Model) = 0, "forward clears multi-selection state");
@@ -1391,7 +1388,6 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "forward clears rename state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "forward closes command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "forward clears command palette query");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "forward clears focus");
       Files.Model.Go_Forward (Model);
       Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/branch", "forward is exhausted after branch path");
@@ -1435,14 +1431,8 @@ package body Files_Suite.Model is
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "escape clears path input focus");
 
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "navigate.back");
-      Files.Model.Set_Command_Palette_Selected_Index (Model, 4);
       Files.Model.Focus_Path_Input (Model);
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "path input focus closes command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "path input focus clears palette query");
-      Assert
-        (Files.Model.Command_Palette_Selected_Index (Model) = 0,
-         "path input focus clears palette selected index");
       Files.Model.Set_Path_Input_Text (Model, "/tmp/files_aunit/valid");
       Files.Model.Commit_Path_Input (Model, Valid, Empty);
       Assert (Files.Model.Path_Input_Is_Valid (Model), "valid input clears validation state");
@@ -2200,7 +2190,6 @@ package body Files_Suite.Model is
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens from palette state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "drive selector closes command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "drive selector clears palette query");
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "drive selector clears palette focus");
       Files.Model.Close_Root_Selector (Model);
 
@@ -2576,23 +2565,19 @@ package body Files_Suite.Model is
       Files.Model.Select_Visible (Model, 2);
       Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "file.rename");
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "direct rename enters rename mode");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct rename closes stale root selector");
       Assert (Files.Model.Root_Count (Model) = 0, "direct rename clears stale root selector entries");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct rename closes stale command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "direct rename clears stale palette query");
       Files.Model.Toggle_Rename (Model);
       Assert (not Files.Model.Rename_Is_Active (Model), "direct rename can be cancelled after overlay cleanup");
       Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "file.rename");
       Files.Model.Resume_Rename (Model, "renamed.txt");
       Assert (Files.Model.Rename_Is_Active (Model), "resume rename enters rename mode");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "resume rename closes stale root selector");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "resume rename closes stale command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "resume rename clears stale palette query");
       Files.Model.Toggle_Rename (Model);
       Assert (not Files.Model.Rename_Is_Active (Model), "resume rename state can be cancelled");
       Files.Model.Select_Visible (Model, 1);
@@ -2747,13 +2732,11 @@ package body Files_Suite.Model is
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
       Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "file.create");
       Files.Model.Begin_Create_File (Model, "draft.txt");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct create closes stale root selector");
       Assert (Files.Model.Root_Count (Model) = 0, "direct create clears stale root selector entries");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct create closes stale command palette");
-      Assert (Files.Model.Command_Palette_Query (Model) = "", "direct create clears stale palette query");
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Set_Filter (Model, "does-not-match-untitled");
       Files.Model.Set_Error (Model, "error.path.missing");

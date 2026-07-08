@@ -16,6 +16,7 @@ package body Files.Controller is
    use type Files.Events.Input_Action_Kind;
    use type Files.Events.Scroll_Target;
    use type Files.File_System.Root_Kind;
+   use type Files.Model.Palette_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
@@ -172,174 +173,13 @@ package body Files.Controller is
       end case;
    end Disabled_Command_Result;
 
-   procedure Set_Palette_Selection
-     (Model : in out Files.Model.Window_Model;
-      Index : Natural;
-      Count : Natural);
-
-   procedure Reconcile_Palette_Selection (Model : in out Files.Model.Window_Model) is
-      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-      Count   : constant Natural := Natural (Results.Length);
-      Index   : Natural := Files.Model.Command_Palette_Selected_Index (Model);
-   begin
-      if Results.Is_Empty then
-         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
-         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
-         return;
-      end if;
-
-      if Index = 0 or else Index > Count then
-         Index := 1;
-      end if;
-
-      Set_Palette_Selection (Model, Index, Count);
-   end Reconcile_Palette_Selection;
-
-   procedure Set_Palette_Selection
-     (Model : in out Files.Model.Window_Model;
-      Index : Natural;
-      Count : Natural)
-   is
-      Visible_Rows : constant Natural := 4;
-   begin
-      Files.Model.Set_Command_Palette_Selected_Index
-        (Model, (if Count = 0 or else Index = 0 then 0 else Index));
-      Files.Model.Set_Command_Palette_Result_Offset
-        (Model,
-         Guikit.Layout.Scroll_Offset_For_Selection
-           (Selected       => Index,
-            Result_Count   => Count,
-            Visible_Rows   => Visible_Rows,
-            Current_Offset => Files.Model.Command_Palette_Result_Offset (Model)));
-   end Set_Palette_Selection;
-
-   procedure Move_Palette_Selection
-     (Model     : in out Files.Model.Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-   is
-      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-      Count   : constant Natural := Natural (Results.Length);
-      Current : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-      Next    : Natural := 0;
-   begin
-      if Count = 0 then
-         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
-         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
-         return;
-      elsif Current = 0 or else Current > Count then
-         Next := 1;
-      elsif Direction = Guikit.Input.Move_Up or else Direction = Guikit.Input.Move_Left then
-         Next := (if Current = 1 then Count else Current - 1);
-      else
-         Next := (if Current = Count then 1 else Current + 1);
-      end if;
-
-      Set_Palette_Selection (Model, Next, Count);
-   end Move_Palette_Selection;
-
-   function Palette_Scroll_Steps
-     (Lines : Integer;
-      Count : Natural)
-      return Natural
-   is
-      Magnitude : constant Natural :=
-        (if Lines = Integer'First then Natural'Last else Natural (abs Lines));
-      Remainder : constant Natural := (if Count = 0 then 0 else Magnitude mod Count);
-   begin
-      if Count = 0 or else Magnitude = 0 then
-         return 0;
-      elsif Remainder = 0 then
-         return 1;
-      end if;
-
-      return Remainder;
-   end Palette_Scroll_Steps;
-
    procedure Scroll_Palette_Selection
      (Model : in out Files.Model.Window_Model;
-      Lines : Integer)
-   is
-      Results   : constant Files.Command_Palette.Result_Vectors.Vector :=
-        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-      Count     : constant Natural := Natural (Results.Length);
-      Steps     : constant Natural := Palette_Scroll_Steps (Lines, Count);
+      Lines : Integer) is
    begin
-      if Count = 0 then
-         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
-         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
-         return;
-      end if;
-
-      for Step in 1 .. Steps loop
-         Move_Palette_Selection
-           (Model,
-            (if Lines > 0 then Guikit.Input.Move_Down else Guikit.Input.Move_Up));
-      end loop;
+      --  Wheel: a positive Lines advances (scrolls down) the selection.
+      Files.Model.Palette_Move_Selection (Model, Lines);
    end Scroll_Palette_Selection;
-
-   procedure Jump_Palette_Selection
-     (Model : in out Files.Model.Window_Model;
-      Last  : Boolean)
-   is
-      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-      Count   : constant Natural := Natural (Results.Length);
-      Index   : Natural := 0;
-   begin
-      if Count = 0 then
-         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
-         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
-         return;
-      end if;
-
-      Index := (if Last then Count else 1);
-      Set_Palette_Selection (Model, Index, Count);
-   end Jump_Palette_Selection;
-
-   procedure Page_Palette_Selection
-     (Model : in out Files.Model.Window_Model;
-      Down  : Boolean)
-   is
-      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-      Count   : constant Natural := Natural (Results.Length);
-      Current : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-      Step    : constant Natural := 4;
-      Next    : Natural := 0;
-   begin
-      if Count = 0 then
-         Files.Model.Set_Command_Palette_Selected_Index (Model, 0);
-         Files.Model.Set_Command_Palette_Result_Offset (Model, 0);
-         return;
-      elsif Current = 0 or else Current > Count then
-         Next := 1;
-      elsif Down then
-         Next := (if Current > Count - Natural'Min (Step, Count) then Count else Current + Step);
-      elsif Current <= Step then
-         Next := 1;
-      else
-         Next := Current - Step;
-      end if;
-
-      Set_Palette_Selection (Model, Next, Count);
-   end Page_Palette_Selection;
-
-   function Palette_Selection_Result
-     (Model      : Files.Model.Window_Model;
-      Old_Index  : Natural;
-      Old_Offset : Natural)
-      return Controller_Result
-   is
-   begin
-      return
-        Make_Result
-          (if Files.Model.Command_Palette_Selected_Index (Model) = Old_Index
-             and then Files.Model.Command_Palette_Result_Offset (Model) = Old_Offset
-           then Controller_Ignored
-           else Controller_Palette_Updated);
-   end Palette_Selection_Result;
 
    function Settings_Drafts_Equal
      (Left  : Files.Settings.Settings_Draft;
@@ -411,8 +251,7 @@ package body Files.Controller is
          when Files.Types.Focus_Rename_Input =>
             Files.Model.Set_Rename_Text (Model, Text);
          when Files.Types.Focus_Command_Palette =>
-            Files.Model.Set_Command_Palette_Query (Model, Text);
-            Reconcile_Palette_Selection (Model);
+            Files.Model.Palette_Set_Query (Model, Text);
          when Files.Types.Focus_Settings_Input =>
             Files.Model.Set_Settings_Field_Text (Model, Text);
          when Files.Types.Focus_Ownership_Input =>
@@ -434,7 +273,7 @@ package body Files.Controller is
          when Files.Types.Focus_Rename_Input =>
             return Files.Model.Rename_Text (Model);
          when Files.Types.Focus_Command_Palette =>
-            return Files.Model.Command_Palette_Query (Model);
+            return Files.Model.Palette_Query (Model);
          when Files.Types.Focus_Settings_Input =>
             return Files.Model.Settings_Field_Text (Model);
          when Files.Types.Focus_Ownership_Input =>
@@ -722,7 +561,6 @@ package body Files.Controller is
                Files.Model.Open_Command_Palette (Model);
                Files.Model.Set_Open_With_Targets (Model, Targets);
                Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
-               Files.Model.Set_Command_Palette_Query (Model, "");
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
             end;
@@ -1345,17 +1183,15 @@ package body Files.Controller is
       end;
    end Handle_Tree_Click;
 
-   --  Launch the application carried by an "Open With" palette result on the
-   --  stored target paths, then close the palette. The detached spawn status is
-   --  advisory only (the wrapper shell, not the real handler), mirroring
-   --  Open_Selected's detached-launch policy.
+   --  Launch the chosen "Open With" application on the stored target paths, then
+   --  close the palette. The detached spawn status is advisory only (the wrapper
+   --  shell, not the real handler), mirroring Open_Selected's detached-launch
+   --  policy.
    function Launch_Application_Result
      (Model : in out Files.Model.Window_Model;
-      Item  : Files.Command_Palette.Result_Entry)
+      App   : Files.Applications.Application)
       return Controller_Result
    is
-      App : constant Files.Applications.Application :=
-        (Name => Item.Application_Name, Exec => Item.Application_Exec);
       Action : constant Files.Settings.Open_Action :=
         Files.Applications.Build_Open_Action (App, Files.Model.Open_With_Targets (Model));
       Operation   : Files.Operations.Operation_Result := Empty_Operation;
@@ -1370,41 +1206,38 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
    end Launch_Application_Result;
 
-   function Handle_Command_Result_Click
-     (Model        : in out Files.Model.Window_Model;
-      Settings     : Files.Settings.Settings_Model;
-      Result_Index : Natural;
-      Modifiers    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+   --  Act on the palette's highlighted command (from Palette_Selected_Id):
+   --  launch the application in Open-With mode, otherwise execute the command,
+   --  closing the palette on success (except Open_With, which re-opens the
+   --  palette in application-picker mode).
+   function Activate_Palette_Command
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result
    is
-      Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-        Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
+      Id : constant Natural := Files.Model.Palette_Selected_Id (Model);
    begin
-      if not Files.Model.Command_Palette_Is_Open (Model)
-        or else Result_Index = 0
-        or else Result_Index > Natural (Results.Length)
-      then
+      if Id = 0 then
          return Make_Result (Controller_Ignored);
       end if;
 
-      Files.Model.Set_Command_Palette_Selected_Index (Model, Result_Index);
-
-      if Results.Element (Positive (Result_Index)).Is_Application then
-         return Launch_Application_Result (Model, Results.Element (Positive (Result_Index)));
-      end if;
-
-      if not Results.Element (Positive (Result_Index)).Enabled then
-         return Execute_Command (Results.Element (Positive (Result_Index)).Command, Model, Settings, Modifiers);
+      if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
+         declare
+            Apps : constant Files.Applications.Application_Vectors.Vector :=
+              Files.Applications.Available_Applications;
+         begin
+            if Id in 1 .. Natural (Apps.Length) then
+               return Launch_Application_Result (Model, Apps.Element (Id));
+            end if;
+            return Make_Result (Controller_Ignored);
+         end;
       end if;
 
       declare
-         Command : constant Files.Commands.Command_Id :=
-           Results.Element (Positive (Result_Index)).Command;
-         Result : constant Controller_Result :=
-           Execute_Command (Command, Model, Settings, Modifiers);
+         Command : constant Files.Commands.Command_Id := Files.Commands.Command_Id'Val (Id);
+         Result  : constant Controller_Result := Execute_Command (Command, Model, Settings, Modifiers);
       begin
-         --  Open_With re-opens the palette in application-picker mode, so leave
-         --  it open instead of closing it immediately after execution.
          if Result.Status /= Controller_Ignored
            and then Command /= Files.Commands.Open_With_Command
          then
@@ -1412,7 +1245,8 @@ package body Files.Controller is
          end if;
          return Result;
       end;
-   end Handle_Command_Result_Click;
+   end Activate_Palette_Command;
+
 
    function Handle_Item_Click
      (Model         : in out Files.Model.Window_Model;
@@ -1536,16 +1370,11 @@ package body Files.Controller is
       then
          return Make_Result (Controller_Ignored);
       elsif Files.Model.Command_Palette_Is_Open (Model) then
-         if Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model).Is_Empty then
+         if Files.Model.Palette_Result_Count (Model) = 0 then
             return Make_Result (Controller_Ignored);
          else
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Scroll_Palette_Selection (Model, Lines);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Scroll_Palette_Selection (Model, Lines);
+            return Make_Result (Controller_Palette_Updated);
          end if;
       elsif Files.Model.Settings_Pane_Is_Open (Model) then
          return Scroll_Settings_Result (Model, Lines);
@@ -1588,16 +1417,11 @@ package body Files.Controller is
             return Handle_Scroll (Model, Lines);
          when Files.Events.Scroll_Command_Palette =>
             if Files.Model.Command_Palette_Is_Open (Model) then
-               if Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model).Is_Empty then
+               if Files.Model.Palette_Result_Count (Model) = 0 then
                   return Make_Result (Controller_Ignored);
                else
-                  declare
-                     Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-                     Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-                  begin
-                     Scroll_Palette_Selection (Model, Lines);
-                     return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-                  end;
+                  Scroll_Palette_Selection (Model, Lines);
+                  return Make_Result (Controller_Palette_Updated);
                end if;
             end if;
          when Files.Events.Scroll_Info_Pane =>
@@ -1853,43 +1677,7 @@ package body Files.Controller is
             end if;
             return Make_Result (Controller_Command_Executed, Files.Commands.Rename_Selected_Items_Command, Operation);
          when Files.Types.Focus_Command_Palette =>
-            declare
-               Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-                 Files.Command_Palette.Search (Files.Model.Command_Palette_Query (Model), Model);
-               Index   : Natural := Files.Model.Command_Palette_Selected_Index (Model);
-            begin
-               if Results.Is_Empty then
-                  return Make_Result (Controller_Ignored);
-               elsif Index = 0 or else Index > Natural (Results.Length) then
-                  Index := 1;
-                  Files.Model.Set_Command_Palette_Selected_Index (Model, Index);
-               end if;
-
-               if Index <= Natural (Results.Length)
-                 and then Results.Element (Positive (Index)).Is_Application
-               then
-                  return Launch_Application_Result (Model, Results.Element (Positive (Index)));
-               elsif Index <= Natural (Results.Length) and then Results.Element (Positive (Index)).Enabled then
-                  declare
-                     Command : constant Files.Commands.Command_Id :=
-                       Results.Element (Positive (Index)).Command;
-                     Command_Result : constant Controller_Result :=
-                       Execute_Command (Command, Model, Settings, Modifiers);
-                  begin
-                     --  Open_With re-opens the palette in application-picker
-                     --  mode, so leave it open instead of closing it.
-                     if Command_Result.Status /= Controller_Ignored
-                       and then Command /= Files.Commands.Open_With_Command
-                     then
-                        Files.Model.Close_Command_Palette (Model);
-                     end if;
-                     return Command_Result;
-                  end;
-               elsif Index <= Natural (Results.Length) then
-                  return Execute_Command (Results.Element (Positive (Index)).Command, Model, Settings, Modifiers);
-               end if;
-            end;
-            return Make_Result (Controller_Ignored);
+            return Activate_Palette_Command (Model, Settings, Modifiers);
          when Files.Types.Focus_Settings_Input =>
             declare
                Parsed : constant Files.Settings.Settings_Parse_Result :=
@@ -2124,69 +1912,29 @@ package body Files.Controller is
          elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
             return Commit_Focused_Text (Model, Settings, Modifiers);
          elsif Key = Guikit.Input.Key_Left and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Move_Palette_Selection (Model, Guikit.Input.Move_Left);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Move_Selection (Model, -1);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_Right and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Move_Palette_Selection (Model, Guikit.Input.Move_Right);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Move_Selection (Model, 1);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Move_Palette_Selection (Model, Guikit.Input.Move_Up);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Move_Selection (Model, -1);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_Down and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Move_Palette_Selection (Model, Guikit.Input.Move_Down);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Move_Selection (Model, 1);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_Home and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Jump_Palette_Selection (Model, Last => False);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Select_First (Model);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_End and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Jump_Palette_Selection (Model, Last => True);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Select_Last (Model);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_Page_Up and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Page_Palette_Selection (Model, Down => False);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Page (Model, Down => False);
+            return Make_Result (Controller_Palette_Updated);
          elsif Key = Guikit.Input.Key_Page_Down and then Modifiers = Guikit.Input.No_Modifiers then
-            declare
-               Old_Index  : constant Natural := Files.Model.Command_Palette_Selected_Index (Model);
-               Old_Offset : constant Natural := Files.Model.Command_Palette_Result_Offset (Model);
-            begin
-               Page_Palette_Selection (Model, Down => True);
-               return Palette_Selection_Result (Model, Old_Index, Old_Offset);
-            end;
+            Files.Model.Palette_Page (Model, Down => True);
+            return Make_Result (Controller_Palette_Updated);
          end if;
       end if;
 

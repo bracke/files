@@ -2,8 +2,12 @@ with Ada.Calendar;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Files.Command_Palette;
+with Files.Localization;
 with Files.Type_Ahead;
 with Files.UTF8;
+
+with Guikit.Command_Palette;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -556,10 +560,7 @@ package body Files.Model is
       Clear_Root_Selector_State (Model);
       Reset_Quick_Look (Model);
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Cursor := 0;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
@@ -1051,10 +1052,7 @@ package body Files.Model is
    begin
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
    end Clear_Overlay_State_For_Edit;
 
    procedure Clear_Selection
@@ -1543,10 +1541,7 @@ package body Files.Model is
       Model.Filter_Value := Null_Unbounded_String;
       Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Model.Focus_Value := Files.Types.Focus_None;
       Reset_Quick_Look (Model);
    end Navigate_To;
@@ -1582,10 +1577,7 @@ package body Files.Model is
       Model.Filter_Value := Null_Unbounded_String;
       Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Model.Focus_Value := Files.Types.Focus_None;
       Reset_Quick_Look (Model);
    end Navigate_Recent;
@@ -1662,10 +1654,7 @@ package body Files.Model is
       Model.Filter_Value := Null_Unbounded_String;
       Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Model.Focus_Value := Files.Types.Focus_None;
    end Go_Back;
 
@@ -1701,10 +1690,7 @@ package body Files.Model is
       Model.Filter_Value := Null_Unbounded_String;
       Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Model.Focus_Value := Files.Types.Focus_None;
    end Go_Forward;
 
@@ -1727,10 +1713,7 @@ package body Files.Model is
       Model.Path_Input_Error := Null_Unbounded_String;
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
    end Focus_Path_Input;
 
    procedure Focus_Filter_Input
@@ -1741,10 +1724,7 @@ package body Files.Model is
       Model.Filter_Cursor := Length (Model.Filter_Value);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
    end Focus_Filter_Input;
 
    procedure Focus_Command_Palette_Input
@@ -1764,10 +1744,7 @@ package body Files.Model is
          Model.Focus_Value := Files.Types.Focus_Rename_Input;
          Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
-         Model.Command_Palette_Query := Null_Unbounded_String;
-         Model.Command_Palette_Selected := 0;
-         Model.Command_Palette_Offset := 0;
-         Model.Command_Palette_Cursor := 0;
+         Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       end if;
    end Focus_Rename_Input;
 
@@ -1797,10 +1774,7 @@ package body Files.Model is
       Model.Ownership_Input_Cursor := Length (Model.Ownership_Input_Value);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
    end Focus_Ownership_Input;
 
    function Ownership_Input_Text
@@ -1854,10 +1828,7 @@ package body Files.Model is
       Model.Root_Selected := (if Model.Root_Selector_Open then 1 else 0);
       Model.Settings_Pane_Open := False;
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Model.Focus_Value := Files.Types.Focus_None;
    end Open_Root_Selector;
 
@@ -1993,7 +1964,7 @@ package body Files.Model is
          when Files.Types.Focus_Rename_Input =>
             return First_Rename_Value (Model)'Length;
          when Files.Types.Focus_Command_Palette =>
-            return Length (Model.Command_Palette_Query);
+            return Guikit.Command_Palette.Query (Model.Command_Palette_View)'Length;
          when Files.Types.Focus_Settings_Input =>
             return Settings_Field_Text (Model)'Length;
          when Files.Types.Focus_Ownership_Input =>
@@ -2015,7 +1986,7 @@ package body Files.Model is
          when Files.Types.Focus_Rename_Input =>
             return First_Rename_Value (Model);
          when Files.Types.Focus_Command_Palette =>
-            return To_String (Model.Command_Palette_Query);
+            return Guikit.Command_Palette.Query (Model.Command_Palette_View);
          when Files.Types.Focus_Settings_Input =>
             return Settings_Field_Text (Model);
          when Files.Types.Focus_Ownership_Input =>
@@ -2037,7 +2008,8 @@ package body Files.Model is
          when Files.Types.Focus_Rename_Input =>
             return Text_Boundary_At_Or_Before (First_Rename_Value (Model), First_Rename_Cursor (Model));
          when Files.Types.Focus_Command_Palette =>
-            return Text_Boundary_At_Or_Before (To_String (Model.Command_Palette_Query), Model.Command_Palette_Cursor);
+            --  The palette query has no separate caret; it sits at the end.
+            return Guikit.Command_Palette.Query (Model.Command_Palette_View)'Length;
          when Files.Types.Focus_Settings_Input =>
             return Text_Boundary_At_Or_Before (Settings_Field_Text (Model), Model.Settings_Field_Cursor);
          when Files.Types.Focus_Ownership_Input =>
@@ -2070,7 +2042,8 @@ package body Files.Model is
                end;
             end if;
          when Files.Types.Focus_Command_Palette =>
-            Model.Command_Palette_Cursor := Clamped;
+            --  The palette query is append-only; it has no movable caret.
+            null;
          when Files.Types.Focus_Settings_Input =>
             Model.Settings_Field_Cursor := Clamped;
          when Files.Types.Focus_Ownership_Input =>
@@ -2343,10 +2316,7 @@ package body Files.Model is
          Clear_Edit_State (Model);
          Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
-         Model.Command_Palette_Query := Null_Unbounded_String;
-         Model.Command_Palette_Selected := 0;
-         Model.Command_Palette_Offset := 0;
-         Model.Command_Palette_Cursor := 0;
+         Guikit.Command_Palette.Reset (Model.Command_Palette_View);
          Model.Settings_Field := 1;
          Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
          Model.Focus_Value := Files.Types.Focus_Settings_Input;
@@ -2374,10 +2344,7 @@ package body Files.Model is
       Clear_Edit_State (Model);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Model.Settings_Field := 1;
       Model.Settings_Field_Cursor := Settings_Field_Text (Model)'Length;
       Model.Focus_Value := Files.Types.Focus_Settings_Input;
@@ -2925,16 +2892,31 @@ package body Files.Model is
       return Model.Main_View_Scroll;
    end Main_View_Scroll_Lines;
 
+   --  The presentation config for the command palette (overlay with shortcuts,
+   --  the component owns the filtering).
+   function Palette_Config (Line_Height : Positive) return Guikit.Command_Palette.Configuration is
+   begin
+      return
+        (Line_Height    => Line_Height,
+         Show_Icons     => False,
+         Show_Shortcuts => True,
+         Overlay        => True,
+         Wrap_Selection => True,
+         Pre_Filtered   => False,
+         Placeholder    => Null_Unbounded_String,
+         Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty")));
+   end Palette_Config;
+
    procedure Open_Command_Palette
      (Model : in out Window_Model) is
    begin
       Model.Command_Palette_Open := True;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
       Model.Command_Palette_Mode := Palette_Commands;
       Model.Open_With_Targets_Value.Clear;
+      Guikit.Command_Palette.Set_Configuration (Model.Command_Palette_View, Palette_Config (20));
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Guikit.Command_Palette.Set_Commands
+        (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
       Model.Focus_Value := Files.Types.Focus_Command_Palette;
    end Open_Command_Palette;
 
@@ -2942,12 +2924,9 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
       Model.Command_Palette_Mode := Palette_Commands;
       Model.Open_With_Targets_Value.Clear;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
@@ -2970,50 +2949,87 @@ package body Files.Model is
       return Model.Command_Palette_Open;
    end Command_Palette_Is_Open;
 
-   procedure Set_Command_Palette_Query
-     (Model : in out Window_Model;
-      Text  : String) is
+   function Palette_Query (Model : Window_Model) return String is
    begin
-      Model.Command_Palette_Query := To_Unbounded_String (Text);
-      Model.Command_Palette_Cursor := Text'Length;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-   end Set_Command_Palette_Query;
+      return Guikit.Command_Palette.Query (Model.Command_Palette_View);
+   end Palette_Query;
 
-   function Command_Palette_Query
-     (Model : Window_Model)
-      return String is
+   procedure Palette_Set_Query (Model : in out Window_Model; Text : String) is
    begin
-      return To_String (Model.Command_Palette_Query);
-   end Command_Palette_Query;
+      Guikit.Command_Palette.Set_Query (Model.Command_Palette_View, Text);
+   end Palette_Set_Query;
 
-   procedure Set_Command_Palette_Selected_Index
-     (Model : in out Window_Model;
-      Index : Natural) is
+   procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
-      Model.Command_Palette_Selected := Index;
-   end Set_Command_Palette_Selected_Index;
+      Guikit.Command_Palette.Move_Selection (Model.Command_Palette_View, Delta_Rows);
+   end Palette_Move_Selection;
 
-   function Command_Palette_Selected_Index
-     (Model : Window_Model)
-      return Natural is
+   procedure Palette_Select_First (Model : in out Window_Model) is
    begin
-      return Model.Command_Palette_Selected;
-   end Command_Palette_Selected_Index;
+      Guikit.Command_Palette.Select_First (Model.Command_Palette_View);
+   end Palette_Select_First;
 
-   procedure Set_Command_Palette_Result_Offset
-     (Model  : in out Window_Model;
-      Offset : Natural) is
+   procedure Palette_Select_Last (Model : in out Window_Model) is
    begin
-      Model.Command_Palette_Offset := Offset;
-   end Set_Command_Palette_Result_Offset;
+      Guikit.Command_Palette.Select_Last (Model.Command_Palette_View);
+   end Palette_Select_Last;
 
-   function Command_Palette_Result_Offset
-     (Model : Window_Model)
-      return Natural is
+   procedure Palette_Page (Model : in out Window_Model; Down : Boolean) is
    begin
-      return Model.Command_Palette_Offset;
-   end Command_Palette_Result_Offset;
+      Guikit.Command_Palette.Page (Model.Command_Palette_View, Down);
+   end Palette_Page;
+
+   function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
+   begin
+      return Guikit.Command_Palette.Click (Model.Command_Palette_View, X, Y);
+   end Palette_Click;
+
+   function Palette_Selected_Id (Model : Window_Model) return Natural is
+   begin
+      return Guikit.Command_Palette.Selected_Id (Model.Command_Palette_View);
+   end Palette_Selected_Id;
+
+   function Palette_Result_Count (Model : Window_Model) return Natural is
+   begin
+      return Guikit.Command_Palette.Result_Count (Model.Command_Palette_View);
+   end Palette_Result_Count;
+
+   procedure Palette_Build_Frame
+     (Model         : in out Window_Model;
+      Region_X      : Natural;
+      Region_Y      : Natural;
+      Region_Width  : Natural;
+      Region_Height : Natural;
+      Clip_Width    : Natural;
+      Clip_Height   : Natural;
+      Line_Height   : Positive;
+      Focused       : Boolean;
+      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+      Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
+      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector) is
+   begin
+      --  Refresh the config (line height) and the command list (fresh enablement)
+      --  each frame; the component preserves the query and selection.
+      Guikit.Command_Palette.Set_Configuration (Model.Command_Palette_View, Palette_Config (Line_Height));
+      Guikit.Command_Palette.Set_Commands
+        (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
+      Guikit.Command_Palette.Build_Frame
+        (P             => Model.Command_Palette_View,
+         Region_X      => Region_X,
+         Region_Y      => Region_Y,
+         Region_Width  => Region_Width,
+         Region_Height => Region_Height,
+         Clip_Width    => Clip_Width,
+         Clip_Height   => Clip_Height,
+         Focused       => Focused,
+         Hover_X       => -1,
+         Hover_Y       => -1,
+         Rectangles    => Rectangles,
+         Text          => Text,
+         Icons         => Icons,
+         Accessibility => Accessibility);
+   end Palette_Build_Frame;
 
    function Command_Palette_Mode_Of
      (Model : Window_Model)
@@ -3027,6 +3043,10 @@ package body Files.Model is
       Mode  : Palette_Mode) is
    begin
       Model.Command_Palette_Mode := Mode;
+      --  The command list is mode-specific; reload it and reset the query.
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Guikit.Command_Palette.Set_Commands
+        (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
    end Set_Command_Palette_Mode;
 
    procedure Set_Open_With_Targets
@@ -3707,10 +3727,7 @@ package body Files.Model is
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
       Model.Command_Palette_Open := False;
-      Model.Command_Palette_Query := Null_Unbounded_String;
-      Model.Command_Palette_Selected := 0;
-      Model.Command_Palette_Offset := 0;
-      Model.Command_Palette_Cursor := 0;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;

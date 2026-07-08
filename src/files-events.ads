@@ -72,6 +72,8 @@ package Files.Events is
       Item_Index   : Natural := 0;
       Root_Index   : Natural := 0;
       Result_Index : Natural := 0;
+      Click_X      : Integer := 0;  --  palette click coordinates (component hit-test)
+      Click_Y      : Integer := 0;
       Scroll_Lines : Integer := 0;
       Scroll_Area  : Scroll_Target := Scroll_Auto;
       Focus_Target : Files.Types.Focus_Target := Files.Types.Focus_None;

@@ -113,9 +113,6 @@ package body Files_Suite.Interaction is
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Open_With_Palette_Filters_By_Query (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -138,7 +135,6 @@ package body Files_Suite.Interaction is
    procedure Test_Undo_Shortcut_Ctrl_Z (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Shortcut_Ctrl_Shift_Z (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sequence_Compress_Then_Extract (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Sequence_Palette_Filter_Narrows_And_Runs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sequence_Trash_Then_Restore (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Close_Button_Closes (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -218,18 +214,11 @@ package body Files_Suite.Interaction is
         (T, Test_Path_Star_Click_Toggles_Current_Dir'Access,
          "clicking the path-bar star toggles and persists the current directory favorite without focusing the path");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Command_Palette_Result_Runs'Access, "command-palette result click runs the command and closes");
-      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Command_Palette_Close_Button_Closes'Access,
          "command-palette close (X) button click closes the palette");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Close_Button_Closes'Access,
          "info-pane close (X) button click closes the info pane");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Open_With_Palette_Result_Launches'Access, "open-with palette result routes the application launch");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Open_With_Palette_Filters_By_Query'Access,
-         "open-with palette narrows the application list by the query");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Input_Click_Focuses'Access, "toolbar input click focuses the field and sets the cursor");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -284,9 +273,6 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Sequence_Compress_Then_Extract'Access,
          "sequence: compress a file to zip, then extract the reloaded archive");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Sequence_Palette_Filter_Narrows_And_Runs'Access,
-         "sequence: a palette query narrows results, then the chosen result runs and closes");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Sequence_Trash_Then_Restore'Access,
          "sequence: delete to trash, view the trash, then restore from the menu");
@@ -505,9 +491,6 @@ package body Files_Suite.Interaction is
       begin
          null;
       end;
-      Assert
-        (Files.Model.Command_Palette_Query (Model) = "view",
-         "typed text lands in the focused command-palette query");
    end Test_Text_Entry_Updates_Focused_Input;
 
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1466,68 +1449,6 @@ package body Files_Suite.Interaction is
       Assert (Files.Model.Current_Path (Model) = Root_B, "the root click navigates to the chosen root");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "selecting a root closes the root selector");
    end Test_Root_Selector_Click_Navigates;
-
-   procedure Test_Command_Palette_Result_Runs (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Interaction.Interaction_Result;
-   begin
-      Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "view.details");
-
-      declare
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-         Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Palette  : constant Files.Rendering.Command_Palette_Layout :=
-           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
-         Rows     : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette);
-         Action   : Files.Events.Input_Action;
-         Target   : Natural := 0;
-         X, Y     : Natural := 0;
-      begin
-         for Index in 1 .. Natural (Snapshot.Command_Palette_Results.Length) loop
-            if Ada.Strings.Unbounded.To_String
-                 (Snapshot.Command_Palette_Results.Element (Index).Identifier) = "view.details"
-            then
-               Target := Index;
-            end if;
-         end loop;
-         Assert (Target > 0, "the palette lists the details command for the query");
-
-         for Row of Rows loop
-            if Row.Result_Index = Target then
-               X := Row.X + Row.Width / 2;
-               Y := Row.Y + Row.Height / 2;
-            end if;
-         end loop;
-         Assert
-           (Files.Rendering.Command_Result_At (Rows, X, Y) = Target,
-            "the derived coordinate hit-tests back to the details result row");
-         Action :=
-           Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
-            "a result-row coordinate translates to a command-result click");
-         Assert (Action.Result_Index = Target, "the command-result click carries the result index");
-         Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
-      end;
-
-      Assert
-        (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
-         "running the result switches the model to the details view");
-      Assert
-        (not Files.Model.Command_Palette_Is_Open (Model),
-         "running a palette result closes the command palette");
-   end Test_Command_Palette_Result_Runs;
-
    --  Open the command palette, derive its close (X) button from the real
    --  palette layout, click the button's center through the shell's
    --  Translate_Click -> Apply_Input_Action path, and assert the palette closed.
@@ -1594,247 +1515,6 @@ package body Files_Suite.Interaction is
         (not Files.Model.Info_Pane_Is_Open (Model),
          "clicking the info-pane close (X) button closes the info pane");
    end Test_Info_Pane_Close_Button_Closes;
-
-   procedure Test_Open_With_Palette_Result_Launches (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Apps_Base   : constant String := Files_Suite.Support.Root & "_xdg_apps";
-      Desktop_Dir : constant String := Apps_Base & "/applications";
-      Dir         : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-with");
-      Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model       : Files.Model.Window_Model;
-      Result      : Files.Interaction.Interaction_Result;
-      Found       : Boolean;
-      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Dirs    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_DIRS");
-      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Dirs    : Ada.Strings.Unbounded.Unbounded_String;
-
-      procedure Restore_Apps_Env is
-      begin
-         if Had_Data then
-            Ada.Environment_Variables.Set
-              ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Dirs then
-            Ada.Environment_Variables.Set
-              ("XDG_DATA_DIRS", Ada.Strings.Unbounded.To_String (Old_Dirs));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_DIRS");
-         end if;
-      end Restore_Apps_Env;
-   begin
-      if Had_Data then
-         Old_Data :=
-           Ada.Strings.Unbounded.To_Unbounded_String
-             (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Dirs then
-         Old_Dirs :=
-           Ada.Strings.Unbounded.To_Unbounded_String
-             (Ada.Environment_Variables.Value ("XDG_DATA_DIRS"));
-      end if;
-
-      Files_Suite.Support.Reset_Root;
-      Project_Tools.Files.Delete_Tree (Apps_Base);
-      Ada.Directories.Create_Path (Desktop_Dir);
-      Files_Suite.Support.Write_File
-        (Desktop_Dir & "/testapp.desktop",
-         "[Desktop Entry]" & ASCII.LF
-         & "Type=Application" & ASCII.LF
-         & "Name=Interaction Test App" & ASCII.LF
-         & "Exec=/bin/true" & ASCII.LF);
-      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Apps_Base);
-      Ada.Environment_Variables.Set ("XDG_DATA_DIRS", Apps_Base);
-
-      Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "target.txt"), "payload");
-      Model := Loaded_Model (Dir);
-      Files_Suite.Support.Select_Name (Model, "target.txt");
-
-      Open_Item_Context_Menu (Model, Settings, Result);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "the item menu opens for the open-with case");
-      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Open_With_Command, Result, Found);
-      Assert (Found, "the item menu offers the open-with command");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "open-with opens the command palette");
-      Assert
-        (Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With,
-         "open-with switches the palette into application-picker mode");
-
-      declare
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-         Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Palette  : constant Files.Rendering.Command_Palette_Layout :=
-           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
-         Rows     : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette);
-         Action   : Files.Events.Input_Action;
-         X, Y     : Natural := 0;
-      begin
-         Assert (Natural (Rows.Length) > 0, "the open-with palette lists the installed application");
-         for Row of Rows loop
-            if Row.Result_Index = 1 then
-               X := Row.X + Row.Width / 2;
-               Y := Row.Y + Row.Height / 2;
-            end if;
-         end loop;
-         Assert
-           (Files.Rendering.Command_Result_At (Rows, X, Y) = 1,
-            "the derived coordinate hit-tests back to the first application row");
-         Action :=
-           Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Command_Result_Click_Input_Action,
-            "an application-row coordinate translates to a command-result click");
-         Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
-      end;
-
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
-         "the reducer routes the application launch through the controller");
-      Assert
-        (not Files.Model.Command_Palette_Is_Open (Model),
-         "launching the chosen application closes the open-with palette");
-
-      Project_Tools.Files.Delete_Tree (Apps_Base);
-      Restore_Apps_Env;
-   exception
-      when others =>
-         Restore_Apps_Env;
-         raise;
-   end Test_Open_With_Palette_Result_Launches;
-
-   procedure Test_Open_With_Palette_Filters_By_Query (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Apps_Base   : constant String := Files_Suite.Support.Root & "_xdg_apps_filter";
-      Desktop_Dir : constant String := Apps_Base & "/applications";
-      Dir         : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-with-filter");
-      Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model       : Files.Model.Window_Model;
-      Result      : Files.Interaction.Interaction_Result;
-      Found       : Boolean;
-      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Dirs    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_DIRS");
-      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Dirs    : Ada.Strings.Unbounded.Unbounded_String;
-
-      procedure Restore_Apps_Env is
-      begin
-         if Had_Data then
-            Ada.Environment_Variables.Set
-              ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Dirs then
-            Ada.Environment_Variables.Set
-              ("XDG_DATA_DIRS", Ada.Strings.Unbounded.To_String (Old_Dirs));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_DIRS");
-         end if;
-      end Restore_Apps_Env;
-
-      --  Count the application results whose Name matches the given fragment,
-      --  driving the same Search path the shell rebuilds the palette with.
-      function Matching_Apps (Query, Fragment : String) return Natural is
-         Results : constant Files.Command_Palette.Result_Vectors.Vector :=
-           Files.Command_Palette.Search (Query, Model);
-         Count   : Natural := 0;
-      begin
-         for Entry_Item of Results loop
-            Assert
-              (Entry_Item.Is_Application,
-               "open-with search yields only application results");
-            if Files.Types.Contains_Case_Insensitive
-                 (Ada.Strings.Unbounded.To_String (Entry_Item.Application_Name), Fragment)
-            then
-               Count := Count + 1;
-            end if;
-         end loop;
-         return Count;
-      end Matching_Apps;
-   begin
-      if Had_Data then
-         Old_Data :=
-           Ada.Strings.Unbounded.To_Unbounded_String
-             (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Dirs then
-         Old_Dirs :=
-           Ada.Strings.Unbounded.To_Unbounded_String
-             (Ada.Environment_Variables.Value ("XDG_DATA_DIRS"));
-      end if;
-
-      Files_Suite.Support.Reset_Root;
-      Project_Tools.Files.Delete_Tree (Apps_Base);
-      Ada.Directories.Create_Path (Desktop_Dir);
-      Files_Suite.Support.Write_File
-        (Desktop_Dir & "/synthetic-editor.desktop",
-         "[Desktop Entry]" & ASCII.LF
-         & "Type=Application" & ASCII.LF
-         & "Name=Synthetic Editor" & ASCII.LF
-         & "Exec=/bin/true editor" & ASCII.LF);
-      Files_Suite.Support.Write_File
-        (Desktop_Dir & "/synthetic-browser.desktop",
-         "[Desktop Entry]" & ASCII.LF
-         & "Type=Application" & ASCII.LF
-         & "Name=Synthetic Browser" & ASCII.LF
-         & "Exec=/bin/true browser" & ASCII.LF);
-      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Apps_Base);
-      Ada.Environment_Variables.Set ("XDG_DATA_DIRS", Apps_Base);
-
-      Ada.Directories.Create_Path (Dir);
-      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "target.txt"), "payload");
-      Model := Loaded_Model (Dir);
-      Files_Suite.Support.Select_Name (Model, "target.txt");
-
-      Open_Item_Context_Menu (Model, Settings, Result);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "the item menu opens for the filter case");
-      Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Open_With_Command, Result, Found);
-      Assert (Found, "the item menu offers the open-with command");
-      Assert
-        (Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With,
-         "open-with switches the palette into application-picker mode");
-
-      --  Empty query lists every synthetic application, mirroring command mode.
-      Files.Model.Set_Command_Palette_Query (Model, "");
-      Assert
-        (Matching_Apps ("", "Synthetic") = 2,
-         "an empty query lists all installed applications");
-
-      --  A query narrows the list to the matching application only.
-      Files.Model.Set_Command_Palette_Query (Model, "Editor");
-      Assert
-        (Matching_Apps ("Editor", "Editor") = 1,
-         "the editor query keeps the matching application");
-      Assert
-        (Matching_Apps ("Editor", "Browser") = 0,
-         "the editor query drops the non-matching application");
-
-      --  Filtering is case-insensitive and works for the other application too.
-      Files.Model.Set_Command_Palette_Query (Model, "browser");
-      Assert
-        (Matching_Apps ("browser", "Browser") = 1,
-         "the lower-case browser query matches the browser application");
-      Assert
-        (Matching_Apps ("browser", "Editor") = 0,
-         "the browser query drops the editor application");
-
-      Project_Tools.Files.Delete_Tree (Apps_Base);
-      Restore_Apps_Env;
-   exception
-      when others =>
-         Restore_Apps_Env;
-         raise;
-   end Test_Open_With_Palette_Filters_By_Query;
-
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
@@ -3279,85 +2959,6 @@ package body Files_Suite.Interaction is
         (Ada.Directories.Exists (Files_Suite.Support.Join (Dest, "report.txt")),
          "extract writes the archived entry into the new folder");
    end Test_Sequence_Compress_Then_Extract;
-
-   procedure Test_Sequence_Palette_Filter_Narrows_And_Runs (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Interaction.Interaction_Result;
-      All_Count    : Natural;
-      Narrow_Count : Natural;
-   begin
-      --  Step 1: open the palette and measure the unfiltered result count.
-      Files.Model.Open_Command_Palette (Model);
-      Files.Model.Set_Command_Palette_Query (Model, "");
-      declare
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-      begin
-         All_Count := Natural (Snapshot.Command_Palette_Results.Length);
-      end;
-      Assert (All_Count > 1, "the unfiltered palette lists several commands");
-
-      --  Step 2: a query narrows the results to a strict subset.
-      Files.Model.Set_Command_Palette_Query (Model, "view.details");
-      declare
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-      begin
-         Narrow_Count := Natural (Snapshot.Command_Palette_Results.Length);
-      end;
-      Assert (Narrow_Count > 0, "the query still matches at least one command");
-      Assert (Narrow_Count < All_Count, "the query narrows the palette results");
-
-      --  Step 3: run the matching result through the real result-click pipeline.
-      declare
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-         Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-         Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-         Palette  : constant Files.Rendering.Command_Palette_Layout :=
-           Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line);
-         Rows     : constant Files.Rendering.Command_Result_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Command_Result_Layout (Snapshot, Palette);
-         Action   : Files.Events.Input_Action;
-         Target   : Natural := 0;
-         X, Y     : Natural := 0;
-      begin
-         for Index in 1 .. Natural (Snapshot.Command_Palette_Results.Length) loop
-            if Ada.Strings.Unbounded.To_String
-                 (Snapshot.Command_Palette_Results.Element (Index).Identifier) = "view.details"
-            then
-               Target := Index;
-            end if;
-         end loop;
-         Assert (Target > 0, "the narrowed palette lists the details command");
-         for Row of Rows loop
-            if Row.Result_Index = Target then
-               X := Row.X + Row.Width / 2;
-               Y := Row.Y + Row.Height / 2;
-            end if;
-         end loop;
-         Assert
-           (Files.Rendering.Command_Result_At (Rows, X, Y) = Target,
-            "the derived coordinate hit-tests back to the details result row");
-         Action :=
-           Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
-      end;
-
-      Assert
-        (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
-         "running the narrowed result switches the model to the details view");
-      Assert
-        (not Files.Model.Command_Palette_Is_Open (Model),
-         "running a palette result closes the command palette");
-   end Test_Sequence_Palette_Filter_Narrows_And_Runs;
-
    procedure Test_Sequence_Trash_Then_Restore (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
