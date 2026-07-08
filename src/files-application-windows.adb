@@ -2800,6 +2800,8 @@ package body Files.Application.Windows is
             return "context_menu";
          when Scenario_Palette =>
             return "palette";
+         when Scenario_Settings =>
+            return "settings";
          when Scenario_Large_Font =>
             return "large_font";
          when Scenario_Light_Theme =>
@@ -2916,6 +2918,10 @@ package body Files.Application.Windows is
 
          when Scenario_Palette =>
             Files.Model.Open_Command_Palette (Runtime.Model);
+
+         when Scenario_Settings =>
+            Files.Model.Begin_Settings_Edit
+              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
          when Scenario_Large_Font =>
             --  Jump to a size the baseline is not already using so the scaling
