@@ -43,6 +43,8 @@ with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
 with Files.Settings;
+with Files.Settings_Form;
+with Guikit.Settings_Panel;
 with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
@@ -107,6 +109,7 @@ package body Files_Suite.Settings is
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -129,6 +132,9 @@ package body Files_Suite.Settings is
         (T, Test_Color_Labels'Access, "color label set/clear, round-trip, and invalid-color skip");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recent_Items'Access, "recent items note/dedup/cap/clear and round-trip");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Form_Mapping_Navigation'Access,
+         "settings-form maps a draft to typed fields and pages/edits mapping entries");
    end Register_Tests;
 
    procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2485,6 +2491,72 @@ package body Files_Suite.Settings is
          end;
       end;
    end Test_Recent_Items;
+
+   --  Files.Settings_Form maps the draft to typed panel fields and applies the
+   --  panel's emitted changes: paging (Prev/Next) moves the selected mapping
+   --  entry without saving, Add/Remove edit the list and save, and the key
+   --  field's label carries the "i/n" entry counter.
+   procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      package SP renames Guikit.Settings_Panel;
+
+      Base  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Base);
+      Model : Files.Model.Window_Model;
+      Saved : Boolean;
+
+      function Button (Value : String) return SP.Change is
+        ((Kind  => SP.Button_Pressed,
+          Key   => To_Unbounded_String ("settings.filetype.buttons"),
+          Value => To_Unbounded_String (Value)));
+
+      function Ext return String is
+        (To_String (Files.Model.Settings_Draft_Of (Model).Filetype_Extension));
+
+      function Count return Natural is
+        (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length));
+
+      function Ext_Label return String is
+         Fields : constant SP.Field_Vectors.Vector := Files.Settings_Form.Fields (Model);
+      begin
+         for F of Fields loop
+            if To_String (F.Key) = "settings.filetype_extension" then
+               return To_String (F.Label);
+            end if;
+         end loop;
+         return "";
+      end Ext_Label;
+   begin
+      Draft.Filetype_Keys.Clear;
+      Draft.Filetype_Values.Clear;
+      Draft.Filetype_Keys.Append (To_Unbounded_String ("txt"));
+      Draft.Filetype_Values.Append (To_Unbounded_String ("text/plain"));
+      Draft.Filetype_Keys.Append (To_Unbounded_String ("md"));
+      Draft.Filetype_Values.Append (To_Unbounded_String ("text/markdown"));
+      Draft.Filetype_Index := 1;
+      Files.Model.Begin_Settings_Edit (Model, Draft);
+
+      Assert (Ext = "txt", "the first mapping entry is selected");
+      Assert (Ada.Strings.Fixed.Index (Ext_Label, "(1/2)") > 0, "the key field label shows the entry counter");
+
+      Saved := Files.Settings_Form.Apply (Model, Button ("next"));
+      Assert (not Saved, "paging to the next entry does not save");
+      Assert (Ext = "md", "Next selects the second entry");
+      Assert (Ada.Strings.Fixed.Index (Ext_Label, "(2/2)") > 0, "the counter follows the selection");
+
+      Saved := Files.Settings_Form.Apply (Model, Button ("next"));
+      Assert (Ext = "txt", "Next wraps to the first entry");
+      Saved := Files.Settings_Form.Apply (Model, Button ("prev"));
+      Assert (Ext = "md", "Prev wraps back to the last entry");
+
+      Saved := Files.Settings_Form.Apply (Model, Button ("add"));
+      Assert (Saved, "adding an entry saves");
+      Assert (Count = 3, "Add appends a mapping entry");
+
+      Saved := Files.Settings_Form.Apply (Model, Button ("remove"));
+      Assert (Saved, "removing an entry saves");
+      Assert (Count = 2, "Remove drops the mapping entry");
+   end Test_Settings_Form_Mapping_Navigation;
 
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
