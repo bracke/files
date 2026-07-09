@@ -738,19 +738,21 @@ package body Files.Rendering is
    --  Item_Cell_Metrics references (Width/Height/Icon_Size/Large) compiling.
    subtype Item_Cell_Metrics is Guikit.Item_Grid.Cell_Metrics;
 
+   --  Map the file-manager view mode to the grid component's neutral view kind.
+   function Grid_View (Mode : Files.Types.View_Mode) return Guikit.Item_Grid.View_Kind is
+     (case Mode is
+         when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
+         when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
+         when Files.Types.Details     => Guikit.Item_Grid.Details);
+
    function Metrics_For
      (Mode        : Files.Types.View_Mode;
       Main_Width  : Natural;
       Line_Height : Positive)
       return Item_Cell_Metrics
    is
-      View : constant Guikit.Item_Grid.View_Kind :=
-        (case Mode is
-            when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
-            when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
-            when Files.Types.Details     => Guikit.Item_Grid.Details);
    begin
-      return Guikit.Item_Grid.Cell_Metrics_For (View, Main_Width, Line_Height);
+      return Guikit.Item_Grid.Cell_Metrics_For (Grid_View (Mode), Main_Width, Line_Height);
    end Metrics_For;
 
    function Build_Snapshot
@@ -1852,11 +1854,7 @@ package body Files.Rendering is
            Content_W,
            Line_Height,
            Details_Row_Padding);
-      View : constant Guikit.Item_Grid.View_Kind :=
-        (case Snapshot.View_Mode is
-            when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
-            when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
-            when Files.Types.Details     => Guikit.Item_Grid.Details);
+      View : constant Guikit.Item_Grid.View_Kind := Grid_View (Snapshot.View_Mode);
       Columns : Guikit.Item_Grid.Detail_Column_Bounds;
       Items   : Guikit.Item_Grid.Layout_Item_Vectors.Vector;
 
@@ -2445,22 +2443,9 @@ package body Files.Rendering is
       View_Mode : Files.Types.View_Mode;
       Renaming  : Boolean;
       Field_X   : out Natural;
-      Field_W   : out Natural)
-   is
-      --  Large-icons cells stack a narrow, name-width label centered under the
-      --  icon. That region cannot hold an edited (often longer) name, so while
-      --  renaming a large-icons cell we edit across the full inner cell width,
-      --  mirroring how the wide small-icons/details rows already behave.
-      Wide : constant Boolean := Renaming and then View_Mode = Files.Types.Large_Icons;
-      Pad  : constant Natural := Natural'Min (Item_Content_Padding, Item.Width / 2);
+      Field_W   : out Natural) is
    begin
-      Field_X := (if Wide then Saturating_Add (Item.X, Pad) else Item.Text_X);
-      Field_W :=
-        (if Wide
-         then (if Item.Width > Saturating_Multiply (Pad, 2)
-               then Item.Width - Saturating_Multiply (Pad, 2)
-               else Item.Width)
-         else Item.Text_Width);
+      Guikit.Item_Grid.Rename_Field_Extent (Item, Grid_View (View_Mode), Renaming, Field_X, Field_W);
    end Rename_Field_Extent;
 
    function Details_Header_Command_At
@@ -6420,11 +6405,7 @@ package body Files.Rendering is
                   Clip_Width       => Layout.Width,
                   Clip_Height      => Layout.Height,
                   Cell             => Item_Rect,
-                  View             =>
-                    (case Snapshot.View_Mode is
-                        when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
-                        when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
-                        when Files.Types.Details     => Guikit.Item_Grid.Details),
+                  View             => Grid_View (Snapshot.View_Mode),
                   Renaming         => Renaming,
                   Focused          => Snapshot.Focus = Files.Types.Focus_Rename_Input,
                   Dim              => Item.Cut_Pending,
