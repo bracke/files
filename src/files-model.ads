@@ -1053,6 +1053,43 @@ package Files.Model is
    --  @return The focused field's value.
    function Settings_Focused_Value (Model : Window_Model) return String;
 
+   --  Press-to-capture routing for the settings panel's Shortcut fields. Arming
+   --  a focused Shortcut row (by click, or Begin_Capture on a keyboard
+   --  activation) makes Settings_Is_Capturing true; the controller then routes
+   --  the next physical chord here instead of acting on it, formats it to text,
+   --  and commits it with Settings_Set_Captured_Shortcut (empty text unbinds) or
+   --  cancels with Settings_Cancel_Capture.
+
+   --  Arm the focused field for capture when it is an enabled Shortcut field.
+   --
+   --  @param Model Model to update.
+   procedure Settings_Begin_Capture (Model : in out Window_Model);
+
+   --  Whether a Shortcut field is armed for capture.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while a chord is being captured.
+   function Settings_Is_Capturing (Model : Window_Model) return Boolean;
+
+   --  The command identifier of the armed Shortcut field ("" when none). The
+   --  field Key is "shortcut.<identifier>"; this returns that whole Key.
+   --
+   --  @param Model Model to inspect.
+   --  @return The armed field's Key, or "".
+   function Settings_Capturing_Key (Model : Window_Model) return String;
+
+   --  Commit a captured chord (empty Text unbinds) to the armed field, disarm,
+   --  and emit the panel's Value_Changed.
+   --
+   --  @param Model Model to update.
+   --  @param Text The formatted chord text, or "" to unbind.
+   procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String);
+
+   --  Disarm capture without changing any field.
+   --
+   --  @param Model Model to update.
+   procedure Settings_Cancel_Capture (Model : in out Window_Model);
+
    --  Render the settings panel within a region, rebuilding its field list from
    --  the current draft first. Emits draw commands and accessibility nodes.
    --
@@ -1097,7 +1134,6 @@ package Files.Model is
    function Info_Pane_Scroll_Lines
      (Model : Window_Model)
       return Natural;
-
 
    --  Scroll the main item view by logical text lines.
    --
@@ -1178,10 +1214,14 @@ package Files.Model is
    --  @param Delta_Rows Signed number of rows to move the selection.
    procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer);
 
-   --  Highlight the first / last result.
+   --  Highlight the first result.
    --
    --  @param Model Model to update.
    procedure Palette_Select_First (Model : in out Window_Model);
+
+   --  Highlight the last result.
+   --
+   --  @param Model Model to update.
    procedure Palette_Select_Last (Model : in out Window_Model);
 
    --  Move the selection by one page.

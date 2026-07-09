@@ -724,6 +724,28 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Id, Operation);
    end Execute_Command;
 
+   --  Capture the live Files.Commands override table into the settings model so a
+   --  save persists the current keymap. The [shortcuts] section is thus always a
+   --  mirror of the effective overrides; an explicit unbind persists as an empty
+   --  combo (Shortcut_Text of an absent shortcut is "").
+   procedure Store_Shortcut_Overrides (Settings : in out Files.Settings.Settings_Model) is
+   begin
+      Settings.Shortcut_Overrides.Clear;
+      for Id in Files.Commands.Registered_Command_Id loop
+         declare
+            Is_Set : Boolean;
+            Value  : constant Files.Commands.Shortcut := Files.Commands.Shortcut_Override (Id, Is_Set);
+         begin
+            if Is_Set then
+               Settings.Shortcut_Overrides.Append
+                 (Files.Settings.Shortcut_Override'
+                    (Command => To_Unbounded_String (Files.Commands.Identifier (Id)),
+                     Combo   => To_Unbounded_String (Files.Commands.Shortcut_Text (Value))));
+            end if;
+         end;
+      end loop;
+   end Store_Shortcut_Overrides;
+
    function Save_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -732,7 +754,8 @@ package body Files.Controller is
    is
       Applied : constant Files.Settings.Settings_Parse_Result :=
         Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
-      Saved   : Files.Settings.Settings_Write_Result;
+      Final     : Files.Settings.Settings_Model;
+      Saved     : Files.Settings.Settings_Write_Result;
       Operation : Files.Operations.Operation_Result := Empty_Operation;
    begin
       if not Files.Model.Settings_Pane_Is_Open (Model) then
@@ -752,7 +775,9 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;
 
-      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Applied.Settings));
+      Final := Applied.Settings;
+      Store_Shortcut_Overrides (Final);
+      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Final));
       if not Saved.Success then
          Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
          Operation.Status := Files.Operations.Operation_Failed;
@@ -761,7 +786,7 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;
 
-      Settings := Applied.Settings;
+      Settings := Final;
       Operation := Files.Operations.Refresh (Model, Settings);
       if Operation.Status = Files.Operations.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
@@ -1229,7 +1254,6 @@ package body Files.Controller is
       end;
    end Activate_Palette_Command;
 
-
    function Handle_Item_Click
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;
@@ -1508,6 +1532,36 @@ package body Files.Controller is
          return Make_Result (Controller_Text_Updated);
       end if;
    end Applied_Settings_Change;
+
+   --  Consume a key while a settings Shortcut field is armed for capture: Escape
+   --  cancels, an unmodified Backspace/Delete unbinds, any other representable
+   --  chord is committed. The committed change flows through Applied_Settings_Change
+   --  (which rebinds the live keymap and auto-saves).
+   function Capture_Settings_Shortcut
+     (Model     : in out Files.Model.Window_Model;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set)
+      return Controller_Result is
+   begin
+      if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+         Files.Model.Settings_Cancel_Capture (Model);
+         return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+      elsif (Key = Guikit.Input.Key_Backspace or else Key = Guikit.Input.Key_Delete)
+        and then Modifiers = Guikit.Input.No_Modifiers
+      then
+         Files.Model.Settings_Set_Captured_Shortcut (Model, "");
+         return Applied_Settings_Change (Model);
+      elsif Key = Guikit.Input.Key_Unknown then
+         --  A key with no chord representation: ignore it and stay armed.
+         return Make_Result (Controller_Ignored);
+      else
+         Files.Model.Settings_Set_Captured_Shortcut
+           (Model,
+            Files.Commands.Shortcut_Text
+              (Files.Commands.Shortcut'(Present => True, Key => Key, Modifiers => Modifiers)));
+         return Applied_Settings_Change (Model);
+      end if;
+   end Capture_Settings_Shortcut;
 
    function Handle_Settings_Click
      (Model : in out Files.Model.Window_Model;
@@ -1837,7 +1891,11 @@ package body Files.Controller is
       end if;
 
       if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
-         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+         if Files.Model.Settings_Is_Capturing (Model) then
+            --  A Shortcut row is armed: every key is a chord to capture, not a
+            --  navigation or shortcut, until the capture ends.
+            return Capture_Settings_Shortcut (Model, Key, Modifiers);
+         elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
             Files.Model.Toggle_Settings_Pane (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
          elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
@@ -1853,6 +1911,14 @@ package body Files.Controller is
             --  no-op on text fields); the emitted change is applied to the draft.
             Files.Model.Settings_Cycle_Choice (Model, Forward => Key = Guikit.Input.Key_Right);
             return Applied_Settings_Change (Model);
+         elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
+            --  Enter on a focused Shortcut row arms press-to-capture (the
+            --  keyboard equivalent of clicking it); otherwise fall through to the
+            --  general Return handling below.
+            Files.Model.Settings_Begin_Capture (Model);
+            if Files.Model.Settings_Is_Capturing (Model) then
+               return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+            end if;
          end if;
       end if;
 

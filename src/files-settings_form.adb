@@ -2,6 +2,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
+with Files.Commands;
 with Files.Localization;
 with Files.Settings;
 with Files.Types;
@@ -12,6 +13,10 @@ package body Files.Settings_Form is
    subtype UString is Ada.Strings.Unbounded.Unbounded_String;
    package SP renames Guikit.Settings_Panel;
    use type SP.Change_Kind;
+   use type Files.Commands.Command_Id;
+   use type Files.Commands.Shortcut;
+
+   Shortcut_Key_Prefix : constant String := "shortcut.";
 
    function U (S : String) return Unbounded_String renames To_Unbounded_String;
    function L (Key : String) return Unbounded_String is (U (Files.Localization.Text (Key)));
@@ -151,6 +156,23 @@ package body Files.Settings_Form is
            (SP.Field'(Key => U ("settings.actions"), Label => Null_Unbounded_String,
                       Kind => SP.Buttons, Option_Values => Toks, Option_Labels => Labels, others => <>));
       end Action_Buttons;
+
+      --  One press-to-capture row per registered command. The field Key carries
+      --  the stable command identifier so Apply can route the captured chord, and
+      --  the Value shows the command's current effective shortcut.
+      procedure Shortcut_Rows is
+      begin
+         for Cmd in Files.Commands.Registered_Command_Id loop
+            Result.Append
+              (SP.Field'
+                 (Key   => U (Shortcut_Key_Prefix & Files.Commands.Identifier (Cmd)),
+                  Label => L (Files.Commands.Name_Key (Cmd)),
+                  Kind  => SP.Shortcut,
+                  Value => U (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Cmd))),
+                  Help  => L (Files.Commands.Description_Key (Cmd)),
+                  others => <>));
+         end loop;
+      end Shortcut_Rows;
    begin
       Action_Buttons;
       Section ("settings.section.view");
@@ -203,6 +225,9 @@ package body Files.Settings_Form is
                      "settings.open_action_token", D.Open_Action_Token,
                      "settings.open_action_command", D.Open_Action_Command,
                      D.Open_Action_Index, Natural (D.Open_Action_Keys.Length));
+
+      Section ("settings.section.shortcuts");
+      Shortcut_Rows;
 
       return Result;
    end Fields;
@@ -311,15 +336,67 @@ package body Files.Settings_Form is
       end if;
    end Group_Button;
 
+   --  Route a captured chord (Combo, empty to unbind) to the command named by a
+   --  "shortcut.<identifier>" field Key, updating the live Files.Commands override
+   --  table. Applied is set when the binding changed; Conflict is set instead when
+   --  a different command already owns the chord (the binding is left untouched).
+   --  A binding equal to the built-in default clears the override so an untouched
+   --  keymap leaves no persisted [shortcuts] entry.
+   procedure Apply_Shortcut
+     (Field_Key : String;
+      Combo     : String;
+      Applied   : out Boolean;
+      Conflict  : out Boolean)
+   is
+      Id : Files.Commands.Command_Id := Files.Commands.No_Command;
+   begin
+      Applied  := False;
+      Conflict := False;
+      if Field_Key'Length > Shortcut_Key_Prefix'Length
+        and then Field_Key (Field_Key'First .. Field_Key'First + Shortcut_Key_Prefix'Length - 1)
+                 = Shortcut_Key_Prefix
+      then
+         Id := Files.Commands.Id_For_Identifier
+                 (Field_Key (Field_Key'First + Shortcut_Key_Prefix'Length .. Field_Key'Last));
+      end if;
+      if Id = Files.Commands.No_Command then
+         return;
+      end if;
+
+      declare
+         Parsed : constant Files.Commands.Shortcut := Files.Commands.Parse_Shortcut (Combo);
+      begin
+         if Parsed.Present then
+            declare
+               Owner : constant Files.Commands.Command_Id :=
+                 Files.Commands.Find_By_Shortcut (Parsed.Key, Parsed.Modifiers);
+            begin
+               if Owner /= Files.Commands.No_Command and then Owner /= Id then
+                  Conflict := True;
+                  return;
+               end if;
+            end;
+         end if;
+
+         if Parsed = Files.Commands.Default_Shortcut_For (Id) then
+            Files.Commands.Clear_Shortcut_Override (Id);
+         else
+            Files.Commands.Set_Shortcut_Override (Id, Parsed);
+         end if;
+         Applied := True;
+      end;
+   end Apply_Shortcut;
+
    function Apply
      (Model  : in out Files.Model.Window_Model;
       Change : Guikit.Settings_Panel.Change)
       return Boolean
    is
-      D    : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-      Key  : constant String  := To_String (Change.Key);
-      Val  : constant UString := Change.Value;
-      Save : Boolean := False;
+      D        : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      Key      : constant String  := To_String (Change.Key);
+      Val      : constant UString := Change.Value;
+      Save     : Boolean := False;
+      Conflict : Boolean := False;
    begin
       case Change.Kind is
          when SP.No_Change =>
@@ -389,9 +466,19 @@ package body Files.Settings_Form is
             elsif Key = "settings.open_action_command" then
                Set_Entry (D.Open_Action_Keys, D.Open_Action_Commands, D.Open_Action_Index,
                           D.Open_Action_Token, D.Open_Action_Command, Editing_Key => False, New_Value => Val);
+            elsif Key'Length > Shortcut_Key_Prefix'Length
+              and then Key (Key'First .. Key'First + Shortcut_Key_Prefix'Length - 1) = Shortcut_Key_Prefix
+            then
+               Apply_Shortcut (Key, To_String (Val), Applied => Save, Conflict => Conflict);
             end if;
             D.Valid     := True;
             D.Error_Key := Null_Unbounded_String;
+            if Conflict then
+               --  Report the clash in the footer; the row visually reverts on the
+               --  next rebuild because the live binding was left unchanged.
+               D.Valid     := False;
+               D.Error_Key := U ("settings.shortcut.conflict");
+            end if;
 
          when SP.Button_Pressed =>
             declare

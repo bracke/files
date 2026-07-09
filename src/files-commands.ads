@@ -161,12 +161,20 @@ package Files.Commands is
    --  @return The parsed shortcut.
    function Parse_Shortcut (Text : String) return Shortcut;
 
-   --  Override a command's primary shortcut (Value.Present False unbinds it),
-   --  clear an override so the command reverts to its built-in default, or reset
-   --  every override. Shortcut_For / Find_By_Shortcut then resolve to the
-   --  effective (override-or-default) shortcut. Overrides are process-global.
+   --  Override a command's primary shortcut (Value.Present False unbinds it).
+   --  Shortcut_For / Find_By_Shortcut then resolve to the effective
+   --  (override-or-default) shortcut. Overrides are process-global.
+   --
+   --  @param Id Command identifier.
+   --  @param Value Shortcut to bind (Present False records an explicit unbind).
    procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut);
+
+   --  Clear a command's override so it reverts to its built-in default shortcut.
+   --
+   --  @param Id Command identifier.
    procedure Clear_Shortcut_Override (Id : Command_Id);
+
+   --  Clear every shortcut override, reverting all commands to their defaults.
    procedure Reset_Shortcut_Overrides;
 
    --  The override in effect for a command, if any.

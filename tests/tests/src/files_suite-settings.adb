@@ -110,6 +110,7 @@ package body Files_Suite.Settings is
    procedure Test_Color_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Overrides_Persist (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -136,6 +137,9 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Overrides_Persist'Access,
          "shortcut overrides round-trip through settings text, including an explicit unbind");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shortcut_Editing'Access,
+         "the settings form emits a shortcut row per command; Apply rebinds, rejects conflicts, and unbinds");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Form_Mapping_Navigation'Access,
          "settings-form maps a draft to typed fields and pages/edits mapping entries");
@@ -2557,6 +2561,100 @@ package body Files_Suite.Settings is
    --  panel's emitted changes: paging (Prev/Next) moves the selected mapping
    --  entry without saving, Add/Remove edit the list and save, and the key
    --  field's label carries the "i/n" entry counter.
+   --  The Shortcuts tab: the form emits one press-to-capture row per command
+   --  carrying its current binding, and Apply routes a captured chord to the live
+   --  Files.Commands keymap -- rebinding, rejecting a clash with another command,
+   --  unbinding on an empty chord, and clearing the override when set to default.
+   procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      package SP renames Guikit.Settings_Panel;
+      use type SP.Field_Kind;
+
+      Base  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Draft : constant Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Base);
+      Model : Files.Model.Window_Model;
+      Saved : Boolean;
+
+      --  The capture flow always feeds Apply the canonical Shortcut_Text form
+      --  (modifiers normalised to shift+control+alt+meta), so the test uses it too.
+      New_Chord : constant String :=
+        Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut ("control+shift+5"));
+
+      function Change (Key, Value : String) return SP.Change is
+        ((Kind => SP.Value_Changed, Key => To_Unbounded_String (Key), Value => To_Unbounded_String (Value)));
+
+      function Row_Value (Key : String) return String is
+         Fields : constant SP.Field_Vectors.Vector := Files.Settings_Form.Fields (Model);
+      begin
+         for F of Fields loop
+            if To_String (F.Key) = Key then
+               return (if F.Kind = SP.Shortcut then To_String (F.Value) else "<not-a-shortcut>");
+            end if;
+         end loop;
+         return "<absent>";
+      end Row_Value;
+
+      Small_Text : constant String :=
+        Files.Commands.Shortcut_Text
+          (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
+   begin
+      Files.Commands.Reset_Shortcut_Overrides;
+      Files.Model.Begin_Settings_Edit (Model, Draft);
+
+      --  The form emits a row per command, keyed by "shortcut.<identifier>",
+      --  showing the command's current shortcut.
+      Assert (Row_Value ("shortcut.view.small") = Small_Text,
+              "the shortcut row shows the command's current binding");
+
+      --  Rebind Small Icons to a fresh chord (a key added by the expansion).
+      Saved := Files.Settings_Form.Apply (Model, Change ("shortcut.view.small", New_Chord));
+      Assert (Saved, "rebinding a shortcut saves");
+      declare
+         SC : constant Files.Commands.Shortcut :=
+           Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command);
+         Is_Set : Boolean;
+         Ignore : constant Files.Commands.Shortcut :=
+           Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
+      begin
+         pragma Unreferenced (Ignore);
+         Assert (SC.Present and then SC.Key = Guikit.Input.Key_5
+                 and then SC.Modifiers (Guikit.Input.Control_Key)
+                 and then SC.Modifiers (Guikit.Input.Shift_Key),
+                 "the live keymap reflects the rebind");
+         Assert (Is_Set, "the rebind is recorded as an override");
+         Assert (Row_Value ("shortcut.view.small") = New_Chord, "the row now shows the new chord");
+      end;
+
+      --  Binding the same chord to a different command is rejected as a conflict.
+      Saved := Files.Settings_Form.Apply (Model, Change ("shortcut.view.large", New_Chord));
+      Assert (not Saved, "a conflicting rebind does not save");
+      Assert (Files.Commands.Find_By_Shortcut
+                (Guikit.Input.Key_5,
+                 [Guikit.Input.Control_Key => True, Guikit.Input.Shift_Key => True, others => False])
+              = Files.Commands.Select_Small_Icons_Command,
+              "the chord still resolves to its original command after a rejected clash");
+
+      --  An empty chord unbinds the command.
+      Saved := Files.Settings_Form.Apply (Model, Change ("shortcut.view.small", ""));
+      Assert (Saved, "unbinding saves");
+      Assert (not Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command).Present,
+              "the command has no shortcut after an empty-chord unbind");
+
+      --  Setting a command back to its built-in default clears the override.
+      Saved := Files.Settings_Form.Apply (Model, Change ("shortcut.view.small", Small_Text));
+      Assert (Saved, "restoring the default saves");
+      declare
+         Is_Set : Boolean;
+         Ignore : constant Files.Commands.Shortcut :=
+           Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
+      begin
+         pragma Unreferenced (Ignore);
+         Assert (not Is_Set, "binding a command to its default clears the override");
+      end;
+
+      Files.Commands.Reset_Shortcut_Overrides;
+   end Test_Shortcut_Editing;
+
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       package SP renames Guikit.Settings_Panel;

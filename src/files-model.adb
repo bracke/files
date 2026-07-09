@@ -2407,6 +2407,31 @@ package body Files.Model is
       return Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View);
    end Settings_Focused_Value;
 
+   procedure Settings_Begin_Capture (Model : in out Window_Model) is
+   begin
+      Guikit.Settings_Panel.Begin_Capture (Model.Settings_Panel_View);
+   end Settings_Begin_Capture;
+
+   function Settings_Is_Capturing (Model : Window_Model) return Boolean is
+   begin
+      return Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View);
+   end Settings_Is_Capturing;
+
+   function Settings_Capturing_Key (Model : Window_Model) return String is
+   begin
+      return Guikit.Settings_Panel.Capturing_Key (Model.Settings_Panel_View);
+   end Settings_Capturing_Key;
+
+   procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String) is
+   begin
+      Guikit.Settings_Panel.Set_Captured_Shortcut (Model.Settings_Panel_View, Text);
+   end Settings_Set_Captured_Shortcut;
+
+   procedure Settings_Cancel_Capture (Model : in out Window_Model) is
+   begin
+      Guikit.Settings_Panel.Cancel_Capture (Model.Settings_Panel_View);
+   end Settings_Cancel_Capture;
+
    procedure Settings_Build_Frame
      (Model         : in out Window_Model;
       Region_X      : Natural;
@@ -2425,7 +2450,11 @@ package body Files.Model is
    begin
       Config.Line_Height := Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
-      if not Model.Settings_Draft_Value.Valid
+      if Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View) then
+         --  While a chord is being captured, the footer prompts for input
+         --  instead of showing any pending validation error.
+         Config.Status := To_Unbounded_String (Files.Localization.Text ("settings.shortcut.capturing"));
+      elsif not Model.Settings_Draft_Value.Valid
         and then Length (Model.Settings_Draft_Value.Error_Key) > 0
       then
          Config.Status :=
