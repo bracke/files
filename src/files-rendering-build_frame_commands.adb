@@ -1613,7 +1613,6 @@ separate (Files.Rendering)
          return (if Snapshot.Command_Enabled (Id) then Text_Color else Disabled_Text_Color);
       end Command_Color;
 
-
       function Natural_Text (Value : Natural) return String is
          Image : constant String := Natural'Image (Value);
       begin
@@ -3460,8 +3459,6 @@ separate (Files.Rendering)
             Info_Pane.Height,
             Overlay => False);
       end if;
-
-
 
       if Snapshot.Quick_Look_Open then
          declare

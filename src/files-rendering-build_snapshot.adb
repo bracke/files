@@ -16,7 +16,6 @@ separate (Files.Rendering)
          return Image;
       end Natural_Text;
 
-
       Theme : constant Render_Theme :=
         (case Settings.Theme is
             when Files.Settings.Theme_High_Contrast => High_Contrast_Theme,

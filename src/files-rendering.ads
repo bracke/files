@@ -382,7 +382,6 @@ package Files.Rendering is
 
    subtype Command_Result_Layout is Guikit.Layout.Palette_Result_Row;
 
-
    type Root_Selector_Layout is record
       X          : Natural := 0;
       Y          : Natural := 0;
