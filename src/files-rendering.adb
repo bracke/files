@@ -728,6 +728,35 @@ package body Files.Rendering is
          when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
          when Files.Types.Details     => Guikit.Item_Grid.Details);
 
+   --  The main content rectangle: the main-view region inset on all sides by the
+   --  content padding, dropping the inset when the region is too small to hold
+   --  it. Shared by the item layout, the details header/rows, and their click
+   --  hit-tests so they agree on the drawable content area.
+   type Content_Rectangle is record
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle is
+      Padding : constant Natural :=
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
+         then Main_Content_Padding
+         else 0);
+   begin
+      return
+        (X      => Saturating_Add (Layout.Main_X, Padding),
+         Y      => Saturating_Add (Layout.Main_Y, Padding),
+         Width  => (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
+                    then Layout.Main_Width - Saturating_Multiply (Padding, 2)
+                    else Layout.Main_Width),
+         Height => (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
+                    then Layout.Main_Height - Saturating_Multiply (Padding, 2)
+                    else Layout.Main_Height));
+   end Main_Content_Rect;
+
    function Metrics_For
      (Mode        : Files.Types.View_Mode;
       Main_Width  : Natural;
@@ -1808,21 +1837,11 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Item_Layout_Vectors.Vector
    is
-      Padding : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
-         else 0);
-      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-      Content_W : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Width);
-      Content_H : constant Natural :=
-        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Height);
+      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
+      Content_X : constant Natural := Content.X;
+      Content_Y : constant Natural := Content.Y;
+      Content_W : constant Natural := Content.Width;
+      Content_H : constant Natural := Content.Height;
       Main_View : constant Main_View_Layout :=
         Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
 
@@ -2439,21 +2458,11 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id
    is
-      Padding   : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
-         else 0);
-      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-      Content_W : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Width);
-      Content_H : constant Natural :=
-        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Height);
+      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
+      Content_X : constant Natural := Content.X;
+      Content_Y : constant Natural := Content.Y;
+      Content_W : constant Natural := Content.Width;
+      Content_H : constant Natural := Content.Height;
       Header_H  : constant Natural :=
         Natural'Min
           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
@@ -2526,21 +2535,11 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Detail_Header_Cell
    is
-      Padding   : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
-         else 0);
-      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-      Content_W : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Width);
-      Content_H : constant Natural :=
-        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Height);
+      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
+      Content_X : constant Natural := Content.X;
+      Content_Y : constant Natural := Content.Y;
+      Content_W : constant Natural := Content.Width;
+      Content_H : constant Natural := Content.Height;
       Header_H  : constant Natural :=
         Natural'Min
           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
@@ -2590,21 +2589,11 @@ package body Files.Rendering is
       return Natural
    is
       use type Files.Types.Detail_Column;
-      Padding   : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
-         else 0);
-      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-      Content_W : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Width);
-      Content_H : constant Natural :=
-        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Height);
+      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
+      Content_X : constant Natural := Content.X;
+      Content_Y : constant Natural := Content.Y;
+      Content_W : constant Natural := Content.Width;
+      Content_H : constant Natural := Content.Height;
       Header_H  : constant Natural :=
         Natural'Min
           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
@@ -2664,21 +2653,11 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Detail_Column_Separator
    is
-      Padding   : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
-         else 0);
-      Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-      Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-      Content_W : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Width);
-      Content_H : constant Natural :=
-        (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-         then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-         else Layout.Main_Height);
+      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
+      Content_X : constant Natural := Content.X;
+      Content_Y : constant Natural := Content.Y;
+      Content_W : constant Natural := Content.Width;
+      Content_H : constant Natural := Content.Height;
       Header_H  : constant Natural :=
         Natural'Min
           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
@@ -6124,21 +6103,11 @@ package body Files.Rendering is
 
       if Snapshot.View_Mode = Files.Types.Details then
          declare
-            Padding   : constant Natural :=
-              (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-                 and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-               then Main_Content_Padding
-               else 0);
-            Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-            Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
-            Content_W : constant Natural :=
-              (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-               then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-               else Layout.Main_Width);
-            Content_H : constant Natural :=
-              (if Layout.Main_Height > Saturating_Multiply (Padding, 2)
-               then Layout.Main_Height - Saturating_Multiply (Padding, 2)
-               else Layout.Main_Height);
+            Content : constant Content_Rectangle := Main_Content_Rect (Layout);
+            Content_X : constant Natural := Content.X;
+            Content_Y : constant Natural := Content.Y;
+            Content_W : constant Natural := Content.Width;
+            Content_H : constant Natural := Content.Height;
             Header_H  : constant Natural :=
               Natural'Min
                 (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
@@ -6462,17 +6431,10 @@ package body Files.Rendering is
 
       if Snapshot.View_Mode = Files.Types.Details and then not Items.Is_Empty then
          declare
-            Padding   : constant Natural :=
-              (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-                 and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-               then Main_Content_Padding
-               else 0);
-            Content_X : constant Natural := Saturating_Add (Layout.Main_X, Padding);
-            Content_W : constant Natural :=
-              (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
-               then Layout.Main_Width - Saturating_Multiply (Padding, 2)
-               else Layout.Main_Width);
-            Content_Y : constant Natural := Saturating_Add (Layout.Main_Y, Padding);
+            Content   : constant Content_Rectangle := Main_Content_Rect (Layout);
+            Content_X : constant Natural := Content.X;
+            Content_W : constant Natural := Content.Width;
+            Content_Y : constant Natural := Content.Y;
             Last_Row  : constant Item_Layout := Items.Element (Positive (Items.Length));
             Separator_Y : constant Natural := Content_Y;
             Separator_H : constant Natural :=
