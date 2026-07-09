@@ -1048,6 +1048,19 @@ package body Files.Commands is
       return False;
    end Contains;
 
+   function Id_For_Identifier
+     (Identifier_Text : String)
+      return Command_Id is
+   begin
+      for Id in Registered_Command_Id loop
+         if Identifier (Id) = Identifier_Text then
+            return Id;
+         end if;
+      end loop;
+
+      return No_Command;
+   end Id_For_Identifier;
+
    --  Normalize a path for trash-location comparison, falling back to the raw
    --  text when the path cannot be validated.
    function Normalized_Path (Path : String) return String is

@@ -1106,6 +1106,14 @@ package body Files_Suite.Commands is
       Assert (not Files.Commands.Shortcut_For (Files.Commands.Toggle_Show_Extensions_Command).Present,
               "the command has no default shortcut after clearing");
 
+      --  Id_For_Identifier maps a stable identifier back to its command, and
+      --  reports No_Command for an unknown identifier (the seam the persisted
+      --  [shortcuts] section uses to reapply overrides at startup).
+      Assert (Files.Commands.Id_For_Identifier ("view.small") = Files.Commands.Select_Small_Icons_Command,
+              "Id_For_Identifier resolves a known identifier");
+      Assert (Files.Commands.Id_For_Identifier ("no.such.command") = Files.Commands.No_Command,
+              "Id_For_Identifier reports No_Command for an unknown identifier");
+
       Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Overrides;
 

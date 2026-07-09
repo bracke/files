@@ -239,6 +239,14 @@ package Files.Commands is
      (Identifier_Text : String)
       return Boolean;
 
+   --  Return the command whose stable identifier is Identifier_Text.
+   --
+   --  @param Identifier_Text Stable identifier string to find.
+   --  @return The matching command, or No_Command when none matches.
+   function Id_For_Identifier
+     (Identifier_Text : String)
+      return Command_Id;
+
    --  Return whether a command is executable in the current model state.
    --
    --  @param Id Command identifier.

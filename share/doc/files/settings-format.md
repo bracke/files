@@ -15,6 +15,13 @@ Core sections:
 Open actions are argument vectors, not shell command strings. Shell execution
 is used only when the action explicitly opts in.
 
+An optional `[shortcuts]` section persists keyboard-shortcut overrides. Each
+entry is written as `shortcut = "<command>|<combo>"`, where `<command>` is a
+stable command identifier and `<combo>` is the shortcut text (modifiers then
+key, joined by `+`, e.g. `control+shift+1`). An empty `<combo>` records an
+explicit unbind that suppresses the command's built-in default. Overrides for
+unknown command identifiers are ignored, so a stale file never blocks startup.
+
 Supported placeholders:
 
 1. `{path}` expands to the full selected file path.

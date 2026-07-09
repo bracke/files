@@ -21,6 +21,19 @@ package Files.Settings is
      (Index_Type   => Positive,
       Element_Type => Path_Label);
 
+   --  One persisted keyboard-shortcut override. Command is a stable command
+   --  identifier (as produced by Files.Commands.Identifier). Combo is the
+   --  shortcut text (as produced by Files.Commands.Shortcut_Text), or an empty
+   --  string to record an explicit unbind that suppresses the built-in default.
+   type Shortcut_Override is record
+      Command : UString;
+      Combo   : UString;
+   end record;
+
+   package Shortcut_Override_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Shortcut_Override);
+
    --  Maximum number of recently-opened paths retained. The recent list is a
    --  most-recent-first, deduplicated, capped ring: opening a new item drops the
    --  oldest entry once this bound is reached.
@@ -103,6 +116,11 @@ package Files.Settings is
       Column_Order           : Files.Types.Detail_Column_Order :=
         Files.Types.Default_Detail_Column_Order;
       Group_By               : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      --  Persisted keyboard-shortcut overrides, one entry per rebound or
+      --  explicitly-unbound command. Empty by default so an untouched keymap
+      --  leaves every built-in shortcut in force. Serialized as the
+      --  [shortcuts] section and applied to Files.Commands at startup.
+      Shortcut_Overrides     : Shortcut_Override_Vectors.Vector;
    end record;
 
    type Settings_Parse_Result is record

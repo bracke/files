@@ -110,6 +110,16 @@ package Files.Application is
       Settings_Path : String := "")
       return Startup_Result;
 
+   --  Replace the process-global keyboard-shortcut override table in
+   --  Files.Commands with the overrides persisted in Settings. Every unknown
+   --  command identifier is ignored, so a stale settings file never blocks
+   --  startup. Called during startup resolution and after the shortcut editor
+   --  rebinds a key.
+   --
+   --  @param Settings Settings model carrying the persisted overrides.
+   procedure Apply_Shortcut_Overrides
+     (Settings : Files.Settings.Settings_Model);
+
    --  Resolve command-line paths into one window model per valid directory.
    --
    --  @param Arguments Command-line arguments as paths.

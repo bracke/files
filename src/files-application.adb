@@ -6,6 +6,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Interfaces;
 
+with Files.Commands;
 with Files.File_System;
 with Files.Fs;
 with Files.Application.Windows;
@@ -168,6 +169,27 @@ package body Files.Application is
       end if;
    end Configured_Settings_Path;
 
+   procedure Apply_Shortcut_Overrides
+     (Settings : Files.Settings.Settings_Model)
+   is
+      use type Files.Commands.Command_Id;
+   begin
+      Files.Commands.Reset_Shortcut_Overrides;
+      for Entry_Value of Settings.Shortcut_Overrides loop
+         declare
+            Id : constant Files.Commands.Command_Id :=
+              Files.Commands.Id_For_Identifier (To_String (Entry_Value.Command));
+         begin
+            --  Parse_Shortcut of an empty combo yields an absent shortcut, which
+            --  Set_Shortcut_Override records as an explicit unbind.
+            if Id /= Files.Commands.No_Command then
+               Files.Commands.Set_Shortcut_Override
+                 (Id, Files.Commands.Parse_Shortcut (To_String (Entry_Value.Combo)));
+            end if;
+         end;
+      end loop;
+   end Apply_Shortcut_Overrides;
+
    function Resolve_Startup
      (Arguments     : String_Vectors.Vector;
       Settings_Path : String := "")
@@ -205,6 +227,7 @@ package body Files.Application is
 
       Result.Settings := Settings;
       Result.Settings_Path := To_Unbounded_String (Effective_Path);
+      Apply_Shortcut_Overrides (Settings);
       Resolved := Resolve_Startup_Paths (Arguments, Settings);
       Result.Windows := Resolved.Windows;
       for Error of Resolved.Errors loop

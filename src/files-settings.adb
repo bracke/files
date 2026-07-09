@@ -22,6 +22,7 @@ package body Files.Settings is
       Bookmarks_Section,
       Labels_Section,
       Recent_Section,
+      Shortcuts_Section,
       Settings_Section_Name);
 
    --  Return the stable on-disk token for a color label.
@@ -1431,6 +1432,8 @@ package body Files.Settings is
                      Section := Labels_Section;
                   elsif Name = "recent" then
                      Section := Recent_Section;
+                  elsif Name = "shortcuts" then
+                     Section := Shortcuts_Section;
                   elsif Name = "settings" then
                      Section := Settings_Section_Name;
                   else
@@ -1555,6 +1558,26 @@ package body Files.Settings is
                           and then Natural (Settings.Recent_Paths_Value.Length) < Max_Recent_Items
                         then
                            Settings.Recent_Paths_Value.Append (To_Unbounded_String (Value));
+                        end if;
+                     when Shortcuts_Section =>
+                        --  Each entry is written as shortcut = "<command>|<combo>".
+                        --  Split on the first '|': the prefix is a stable command
+                        --  identifier and the remainder is the shortcut text, which
+                        --  may be empty to record an explicit unbind. An entry whose
+                        --  identifier is empty is skipped so a hand-edited file never
+                        --  fails to load over one malformed line.
+                        if Setting_Key = "shortcut" and then Value /= "" then
+                           declare
+                              Bar : constant Natural :=
+                                Ada.Strings.Fixed.Index (Value, "|");
+                           begin
+                              if Bar > Value'First and then Bar <= Value'Last then
+                                 Settings.Shortcut_Overrides.Append
+                                   (Shortcut_Override'
+                                      (Command => To_Unbounded_String (Value (Value'First .. Bar - 1)),
+                                       Combo   => To_Unbounded_String (Value (Bar + 1 .. Value'Last))));
+                              end if;
+                           end;
                         end if;
                      when Settings_Section_Name =>
                         if Setting_Key = "default_view_mode" then
@@ -2169,6 +2192,22 @@ package body Files.Settings is
             --  '=' or starting with '#' (and trailing whitespace) round-trip.
             --  The format key is split so the no-user-text-literal rule holds.
             Append_Line ("recent" & " = " & Action_Token_Text (To_String (Path)));
+         end loop;
+      end if;
+
+      if not Settings.Shortcut_Overrides.Is_Empty then
+         Append_Line;
+         Append_Line ("[shortcuts]");
+         for Entry_Value of Settings.Shortcut_Overrides loop
+            --  Encode as "<command>|<combo>" in a quoted value position. The
+            --  command identifier and shortcut text are both space-free; the
+            --  combo may be empty to persist an explicit unbind. The format key
+            --  is split so the no-user-text-literal rule holds.
+            Append_Line
+              ("shortcut" & " = "
+               & Action_Token_Text
+                   (To_String (Entry_Value.Command)
+                    & "|" & To_String (Entry_Value.Combo)));
          end loop;
       end if;
 
