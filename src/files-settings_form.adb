@@ -158,6 +158,7 @@ package body Files.Settings_Form is
               V3 ("small_icons", "large_icons", "details"),
               LV3 ("command.view.small", "command.view.large", "command.view.details"));
       Toggle ("settings.hidden_files", D.Show_Hidden_Files);
+      Toggle ("settings.show_extensions", D.Show_File_Extensions);
 
       Section ("settings.section.sorting");
       Choice ("settings.sort", D.Sort_Field_Value,
@@ -330,6 +331,9 @@ package body Files.Settings_Form is
                Save := True;
             elsif Key = "settings.hidden_files" then
                D.Show_Hidden_Files := Val;
+               Save := True;
+            elsif Key = "settings.show_extensions" then
+               D.Show_File_Extensions := Val;
                Save := True;
             elsif Key = "settings.sort" then
                D.Sort_Field_Value := Val;

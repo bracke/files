@@ -302,6 +302,25 @@ separate (Files.Rendering)
          end if;
       end Add_Overlay_Rect;
 
+      --  The item name as displayed in the grid. With Show_Extensions off, a
+      --  file's trailing extension is dropped for display only (rename, search
+      --  and accessibility keep the real name). Directories are never changed,
+      --  and a name that is only a leading-dot extension -- e.g. ".bashrc" --
+      --  keeps its full name, since the dot is not a separator there.
+      function Displayed_Name (Item : Item_Snapshot) return UString is
+         Name : constant String := To_String (Item.Name);
+      begin
+         if Snapshot.Show_Extensions or else Item.Kind = Files.Types.Directory_Item then
+            return Item.Name;
+         end if;
+         for I in reverse Name'First + 1 .. Name'Last loop
+            if Name (I) = '.' then
+               return To_Unbounded_String (Name (Name'First .. I - 1));
+            end if;
+         end loop;
+         return Item.Name;
+      end Displayed_Name;
+
       function Fitted_Text_For
         (Text     : UString;
          Capacity : Natural)
@@ -2826,7 +2845,7 @@ separate (Files.Rendering)
                   Renaming         => Renaming,
                   Focused          => Snapshot.Focus = Files.Types.Focus_Rename_Input,
                   Dim              => Item.Cut_Pending,
-                  Text             => (if Renaming then Item.Rename_Value else Item.Name),
+                  Text             => (if Renaming then Item.Rename_Value else Displayed_Name (Item)),
                   Cursor           => Item.Rename_Cursor,
                   Line_Height      => Line_Height,
                   Text_Color       => Text_Color,

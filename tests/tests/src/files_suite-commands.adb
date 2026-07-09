@@ -527,7 +527,7 @@ package body Files_Suite.Commands is
       Shift (Guikit.Input.Shift_Key) := True;
       Ctrl_Shift (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 71, "all expected commands are registered");
+      Assert (Files.Commands.Command_Count = 72, "all expected commands are registered");
       Assert (Files.Commands.Contains ("navigate.recent"), "recent-view command identifier is registered");
       Assert (Files.Commands.Contains ("search.contents"), "content-search command identifier is registered");
       Assert (Files.Commands.Contains ("recent.clear"), "clear-recent command identifier is registered");

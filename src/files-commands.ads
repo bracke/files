@@ -13,6 +13,7 @@ package Files.Commands is
       Select_Details_Command,
       Toggle_Info_Pane_Command,
       Toggle_Hidden_Files_Command,
+      Toggle_Show_Extensions_Command,
       Toggle_Settings_Pane_Command,
       Toggle_Sort_Menu_Command,
       Sort_By_Name_Command,

@@ -51,6 +51,7 @@ package body Files.Commands is
             | Save_Settings_Command
             | Reset_Settings_Command
             | Toggle_Hidden_Files_Command
+            | Toggle_Show_Extensions_Command
             | Open_Command_Palette_Command
             | Close_Command_Palette_Command
             | Toggle_Column_Modified_Command
@@ -84,6 +85,8 @@ package body Files.Commands is
             return "info.toggle";
          when Toggle_Hidden_Files_Command =>
             return "view.toggle_hidden";
+         when Toggle_Show_Extensions_Command =>
+            return "view.toggle_extensions";
          when Toggle_Settings_Pane_Command =>
             return "settings.toggle";
          when Toggle_Sort_Menu_Command =>
@@ -236,6 +239,8 @@ package body Files.Commands is
             return "command.info.toggle";
          when Toggle_Hidden_Files_Command =>
             return "command.view.toggle_hidden";
+         when Toggle_Show_Extensions_Command =>
+            return "command.view.toggle_extensions";
          when Toggle_Settings_Pane_Command =>
             return "command.settings.toggle";
          when Toggle_Sort_Menu_Command =>
@@ -388,6 +393,8 @@ package body Files.Commands is
             return "command.info.toggle.description";
          when Toggle_Hidden_Files_Command =>
             return "command.view.toggle_hidden.description";
+         when Toggle_Show_Extensions_Command =>
+            return "command.view.toggle_extensions.description";
          when Toggle_Settings_Pane_Command =>
             return "command.settings.toggle.description";
          when Toggle_Sort_Menu_Command =>
@@ -895,6 +902,7 @@ package body Files.Commands is
       case Id is
          when Save_Settings_Command
             | Toggle_Hidden_Files_Command
+            | Toggle_Show_Extensions_Command
             | Toggle_Column_Modified_Command
             | Toggle_Column_Size_Command
             | Toggle_Column_Type_Command
@@ -1224,6 +1232,8 @@ package body Files.Commands is
          when Toggle_Info_Pane_Command =>
             Files.Model.Toggle_Info_Pane (Model);
          when Toggle_Hidden_Files_Command =>
+            null;
+         when Toggle_Show_Extensions_Command =>
             null;
          when Toggle_Settings_Pane_Command =>
             if Files.Model.Settings_Pane_Is_Open (Model) then

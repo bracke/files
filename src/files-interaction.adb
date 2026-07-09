@@ -138,6 +138,11 @@ package body Files.Interaction is
               Files.Controller.Toggle_Hidden_Files (Model, Settings, Settings_Path);
             Result.Settings_Changed := True;
             Result.Directory_Reloaded := True;
+         when Files.Commands.Toggle_Show_Extensions_Command =>
+            Outcome :=
+              Files.Controller.Toggle_Show_Extensions (Model, Settings, Settings_Path);
+            Result.Settings_Changed := True;
+            Result.Directory_Reloaded := True;
          when Files.Commands.Toggle_Favorite_Command =>
             declare
                Selected : constant Files.File_System.Item_Vectors.Vector :=
@@ -365,6 +370,7 @@ package body Files.Interaction is
       begin
          if Outcome.Command = Files.Commands.Save_Settings_Command
            or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
+           or else Outcome.Command = Files.Commands.Toggle_Show_Extensions_Command
          then
             --  Re-route settings-path commands through Execute_Command for the
             --  in-out settings handling, exactly as the shell did inline. The
@@ -569,6 +575,7 @@ package body Files.Interaction is
             Result.Status := Outcome.Status;
             if Outcome.Command = Files.Commands.Save_Settings_Command
               or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
+           or else Outcome.Command = Files.Commands.Toggle_Show_Extensions_Command
             then
                Execute_Command
                  (Model, Settings, Settings_Path, Outcome.Command,

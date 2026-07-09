@@ -117,6 +117,7 @@ package Files.Rendering is
       --  message reads as an empty recent list rather than an empty directory.
       In_Recent_View       : Boolean := False;
       View_Mode            : Files.Types.View_Mode := Files.Types.Small_Icons;
+      Show_Extensions      : Boolean := True;
       Sort_Field           : Files.Model.Sort_Field := Files.Model.Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu_Open       : Boolean := False;

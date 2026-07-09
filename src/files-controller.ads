@@ -116,6 +116,19 @@ package Files.Controller is
       Settings_Path : String)
       return Controller_Result;
 
+   --  Flip the Show_File_Extensions setting, persist it, and refresh the view so
+   --  item names redraw with or without their trailing extension.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model whose extension flag is flipped.
+   --  @param Settings_Path Central settings file path.
+   --  @return Controller result with persistence operation details.
+   function Toggle_Show_Extensions
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result;
+
    --  Execute a command produced by a toolbar or bottom-bar hit test.
    --
    --  @param Id Command identifier from the clicked UI control.

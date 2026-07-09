@@ -61,6 +61,7 @@ package Files.Settings is
       Open_Actions           : Action_Maps.Map;
       Default_View           : Files.Types.View_Mode := Files.Types.Small_Icons;
       Show_Hidden_Files      : Boolean := False;
+      Show_File_Extensions   : Boolean := True;
       Sort_Field_Value       : Sort_Field := Sort_By_Name;
       Sort_Ascending         : Boolean := True;
       --  Selected color theme applied to the rendering palette.
@@ -127,6 +128,7 @@ package Files.Settings is
    type Settings_Draft is record
       Default_View_Mode      : UString;
       Show_Hidden_Files      : UString;
+      Show_File_Extensions   : UString;
       Sort_Field_Value       : UString;
       Sort_Ascending         : UString;
       Theme                  : UString;

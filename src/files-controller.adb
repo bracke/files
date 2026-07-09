@@ -811,6 +811,41 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Hidden_Files_Command, Operation);
    end Toggle_Hidden_Files;
 
+   function Toggle_Show_Extensions
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result
+   is
+      Updated   : Files.Settings.Settings_Model := Settings;
+      Saved     : Files.Settings.Settings_Write_Result;
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+   begin
+      Updated.Show_File_Extensions := not Updated.Show_File_Extensions;
+
+      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Updated));
+      if not Saved.Success then
+         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Error_Key := Saved.Error_Key;
+         Operation.Path := To_Unbounded_String (Settings_Path);
+         return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
+      end if;
+
+      Settings := Updated;
+      Operation := Files.Operations.Refresh (Model, Settings);
+      if Operation.Status = Files.Operations.Operation_Failed then
+         return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
+      end if;
+
+      Files.Model.Set_Error (Model, "");
+      Operation.Status := Files.Operations.Operation_Success;
+      Operation.Path := To_Unbounded_String (Settings_Path);
+      Operation.Error_Key := Null_Unbounded_String;
+
+      return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
+   end Toggle_Show_Extensions;
+
    function Handle_Command_Click
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
