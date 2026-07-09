@@ -6387,30 +6387,26 @@ package body Files.Rendering is
                goto Continue_Item_Loop;
             end if;
 
-            if Drop_Target then
-               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
-               Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
-               Add_Rect
-                 (Item_Rect.X,
-                  Item_Rect.Y,
-                  Natural'Min (4, Item_Rect.Width),
-                  Item_Rect.Height,
-                  Selection_Color);
-            elsif Item.Selected then
-               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
-               Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Selection_Color);
-               Add_Rect
-                 (Item_Rect.X,
-                  Item_Rect.Y,
-                  Natural'Min (3, Item_Rect.Width),
-                  Item_Rect.Height,
-                  Border_Color);
-            elsif Hovered then
-               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
-               Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Hover_Color);
-            elsif Snapshot.View_Mode = Files.Types.Details and then Index mod 2 = 0 then
-               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Detail_Alternate_Color);
-            end if;
+            declare
+               Kind : constant Guikit.Item_Grid.Background_Kind :=
+                 (if Drop_Target then Guikit.Item_Grid.Drop_Target
+                  elsif Item.Selected then Guikit.Item_Grid.Selected
+                  elsif Hovered then Guikit.Item_Grid.Hovered
+                  elsif Snapshot.View_Mode = Files.Types.Details and then Index mod 2 = 0
+                  then Guikit.Item_Grid.Alternate
+                  else Guikit.Item_Grid.No_Background);
+            begin
+               Guikit.Item_Grid.Draw_Item_Background
+                 (Rectangles      => Result.Rectangles,
+                  Clip_Width      => Layout.Width,
+                  Clip_Height     => Layout.Height,
+                  Cell            => Item_Rect,
+                  Kind            => Kind,
+                  Selection_Color => Selection_Color,
+                  Hover_Color     => Hover_Color,
+                  Border_Color    => Border_Color,
+                  Alternate_Color => Detail_Alternate_Color);
+            end;
 
             if Snapshot.View_Mode = Files.Types.Details then
                Add_Details_Icon (Item, Item_Rect.Icon_X, Item_Rect.Icon_Y, Item_Rect.Icon_Size);
