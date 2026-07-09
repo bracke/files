@@ -146,6 +146,42 @@ package Files.Commands is
      (Value : Shortcut)
       return String;
 
+   --  Parse the key name produced by Key_Text back into a key code, or
+   --  Key_Unknown when the text names no key.
+   --
+   --  @param Text A lowercase key name (e.g. "a", "f5", "backspace").
+   --  @return The matching key code, or Key_Unknown.
+   function Text_To_Key (Text : String) return Guikit.Input.Key_Code;
+
+   --  Parse the text produced by Shortcut_Text (e.g. "control+shift+k") back into
+   --  a shortcut. Accepts common modifier aliases (ctrl, cmd, option). Present is
+   --  False when no key was recognised.
+   --
+   --  @param Text A shortcut string, modifiers then key, joined by '+'.
+   --  @return The parsed shortcut.
+   function Parse_Shortcut (Text : String) return Shortcut;
+
+   --  Override a command's primary shortcut (Value.Present False unbinds it),
+   --  clear an override so the command reverts to its built-in default, or reset
+   --  every override. Shortcut_For / Find_By_Shortcut then resolve to the
+   --  effective (override-or-default) shortcut. Overrides are process-global.
+   procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut);
+   procedure Clear_Shortcut_Override (Id : Command_Id);
+   procedure Reset_Shortcut_Overrides;
+
+   --  The override in effect for a command, if any.
+   --
+   --  @param Id Command identifier.
+   --  @param Is_Set Out: whether Id has an override at all.
+   --  @return The override shortcut (meaningful only when Is_Set).
+   function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut;
+
+   --  The built-in default primary shortcut for a command, ignoring any override.
+   --
+   --  @param Id Command identifier.
+   --  @return The default shortcut.
+   function Default_Shortcut_For (Id : Command_Id) return Shortcut;
+
    --  Return stable searchable text for all command shortcuts.
    --
    --  @param Id Command identifier.
