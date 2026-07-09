@@ -142,7 +142,6 @@ package body Files.Interaction is
             Outcome :=
               Files.Controller.Toggle_Show_Extensions (Model, Settings, Settings_Path);
             Result.Settings_Changed := True;
-            Result.Directory_Reloaded := True;
          when Files.Commands.Toggle_Favorite_Command =>
             declare
                Selected : constant Files.File_System.Item_Vectors.Vector :=

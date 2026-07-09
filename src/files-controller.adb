@@ -832,12 +832,10 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
       end if;
 
+      --  Display-only setting: the item list is unchanged, so there is no
+      --  directory reload. The next Build_Snapshot carries the new flag, which
+      --  differs from the cached snapshot and rebuilds the frame on its own.
       Settings := Updated;
-      Operation := Files.Operations.Refresh (Model, Settings);
-      if Operation.Status = Files.Operations.Operation_Failed then
-         return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
-      end if;
-
       Files.Model.Set_Error (Model, "");
       Operation.Status := Files.Operations.Operation_Success;
       Operation.Path := To_Unbounded_String (Settings_Path);
