@@ -6397,42 +6397,20 @@ package body Files.Rendering is
             --  Favorite indicator: a small filled star tucked into the
             --  top-left corner of the item's icon in every view mode. Drawn
             --  only for favorited items, so a bare icon means "not favorited".
-            if Item.Is_Favorite and then Item_Rect.Icon_Size > 0 then
-               declare
-                  Star_Box : constant Natural :=
-                    Natural'Max
-                      (Guikit.Layout.Caret_Advance_Width (Line_Height),
-                       Item_Rect.Icon_Size / 2);
-               begin
-                  Add_Text
-                    (Item_Rect.Icon_X,
-                     Item_Rect.Icon_Y,
-                     Star_Box,
-                     Star_Box,
-                     To_Unbounded_String (Favorite_Star_Filled_Text),
-                     Color => Favorite_Star_Color);
-               end;
-            end if;
-
-            --  Color-label indicator: a small filled square dot tucked into the
-            --  bottom-right corner of the item's icon (opposite the favorite
-            --  star), drawn in the label's color. No_Label draws nothing.
-            if Item.Label /= Files.Types.No_Label and then Item_Rect.Icon_Size > 0 then
-               declare
-                  Dot   : constant Natural :=
-                    Natural'Max (4, Item_Rect.Icon_Size / 4);
-                  Dot_X : constant Natural :=
-                    (if Saturating_Add (Item_Rect.Icon_X, Item_Rect.Icon_Size) > Dot
-                     then Saturating_Add (Item_Rect.Icon_X, Item_Rect.Icon_Size) - Dot
-                     else Item_Rect.Icon_X);
-                  Dot_Y : constant Natural :=
-                    (if Saturating_Add (Item_Rect.Icon_Y, Item_Rect.Icon_Size) > Dot
-                     then Saturating_Add (Item_Rect.Icon_Y, Item_Rect.Icon_Size) - Dot
-                     else Item_Rect.Icon_Y);
-               begin
-                  Add_Rect (Dot_X, Dot_Y, Dot, Dot, Label_Render_Color (Item.Label));
-               end;
-            end if;
+            --  Favorite star (top-left) and color-label dot (bottom-right) over
+            --  the icon; each draws only when set.
+            Guikit.Item_Grid.Draw_Item_Indicators
+              (Rectangles    => Result.Rectangles,
+               Text_Commands => Result.Text,
+               Clip_Width    => Layout.Width,
+               Clip_Height   => Layout.Height,
+               Cell          => Item_Rect,
+               Line_Height   => Line_Height,
+               Favorite      => Item.Is_Favorite,
+               Star_Glyph    => To_Unbounded_String (Favorite_Star_Filled_Text),
+               Star_Color    => Favorite_Star_Color,
+               Has_Label     => Item.Label /= Files.Types.No_Label,
+               Label_Color   => Label_Render_Color (Item.Label));
             declare
                Renaming : constant Boolean := Item.Renaming;
             begin
