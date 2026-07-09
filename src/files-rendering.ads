@@ -159,7 +159,6 @@ package Files.Rendering is
       Theme_Palette         : Theme_Kind := Theme_Dark;
       Theme_Focus_Ring      : Render_Color := Border_Color;
       Info_Pane_Scroll_Lines : Natural := 0;
-      Settings_Pane_Scroll_Lines : Natural := 0;
       Main_View_Scroll_Lines : Natural := 0;
       Root_Selector_Open    : Boolean := False;
       Root_Selected_Index   : Natural := 0;

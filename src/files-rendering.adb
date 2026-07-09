@@ -63,7 +63,6 @@ package body Files.Rendering is
    Item_Content_Padding : constant Natural := 4;
    Item_Icon_Text_Gap : constant Natural := 12;
    Details_Row_Padding : constant Natural := 4;
-   Details_Row_Gap : constant Natural := 0;
    Details_Column_Padding : constant Natural := 6;
    Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
    Command_Result_Row_Padding : constant Natural := Guikit.Layout.Palette_Result_Row_Padding;
@@ -369,14 +368,6 @@ package body Files.Rendering is
            Saturating_Multiply (Value mod Denominator, Numerator) / Denominator);
    end Scaled_Down;
 
-   function Paired_Row_Count
-     (Keys   : Files.Types.String_Vectors.Vector;
-      Values : Files.Types.String_Vectors.Vector)
-      return Natural is
-   begin
-      return Natural'Min (Natural (Keys.Length), Natural (Values.Length));
-   end Paired_Row_Count;
-
    function Integer_Text (Value : Long_Long_Integer) return String is
       Image : constant String := Long_Long_Integer'Image (Value);
    begin
@@ -570,14 +561,6 @@ package body Files.Rendering is
       return Available_Height / Row_Height
         + (if Available_Height mod Row_Height = 0 then 0 else 1);
    end Visible_Row_Count;
-
-   function Complete_Visible_Row_Count
-     (Available_Height : Natural;
-      Row_Height       : Natural)
-      return Natural is
-   begin
-      return Guikit.Layout.Visible_Row_Count (Available_Height, Row_Height);
-   end Complete_Visible_Row_Count;
 
    function Saturating_Integer_Add
      (Left  : Integer;
