@@ -760,6 +760,35 @@ package body Files.Commands is
             return "pagedown";
          when Guikit.Input.Key_Space =>
             return "space";
+         when Guikit.Input.Key_5 => return "5";
+         when Guikit.Input.Key_6 => return "6";
+         when Guikit.Input.Key_7 => return "7";
+         when Guikit.Input.Key_8 => return "8";
+         when Guikit.Input.Key_9 => return "9";
+         when Guikit.Input.Key_E => return "e";
+         when Guikit.Input.Key_G => return "g";
+         when Guikit.Input.Key_H => return "h";
+         when Guikit.Input.Key_J => return "j";
+         when Guikit.Input.Key_K => return "k";
+         when Guikit.Input.Key_M => return "m";
+         when Guikit.Input.Key_O => return "o";
+         when Guikit.Input.Key_Q => return "q";
+         when Guikit.Input.Key_T => return "t";
+         when Guikit.Input.Key_U => return "u";
+         when Guikit.Input.Key_W => return "w";
+         when Guikit.Input.Key_Y => return "y";
+         when Guikit.Input.Key_F1 => return "f1";
+         when Guikit.Input.Key_F3 => return "f3";
+         when Guikit.Input.Key_F4 => return "f4";
+         when Guikit.Input.Key_F6 => return "f6";
+         when Guikit.Input.Key_F7 => return "f7";
+         when Guikit.Input.Key_F8 => return "f8";
+         when Guikit.Input.Key_F9 => return "f9";
+         when Guikit.Input.Key_F10 => return "f10";
+         when Guikit.Input.Key_F11 => return "f11";
+         when Guikit.Input.Key_F12 => return "f12";
+         when Guikit.Input.Key_Tab => return "tab";
+         when Guikit.Input.Key_Insert => return "insert";
          when Guikit.Input.Key_Unknown =>
             return "";
       end case;

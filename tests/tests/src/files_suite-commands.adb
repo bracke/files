@@ -1070,6 +1070,16 @@ package body Files_Suite.Commands is
       Assert (Files.Commands.Text_To_Key ("f5") = Guikit.Input.Key_F5, "text-to-key maps a function key");
       Assert (Files.Commands.Text_To_Key ("nope") = Guikit.Input.Key_Unknown,
               "unrecognised text yields Key_Unknown");
+      --  Keys added by the keycode expansion round-trip too.
+      Assert (Files.Commands.Text_To_Key ("e") = Guikit.Input.Key_E, "a newly-added letter key parses");
+      declare
+         S : constant Files.Commands.Shortcut := Files.Commands.Parse_Shortcut ("control+shift+f7");
+      begin
+         Assert (S.Present and then S.Key = Guikit.Input.Key_F7
+                 and then S.Modifiers (Guikit.Input.Control_Key)
+                 and then S.Modifiers (Guikit.Input.Shift_Key),
+                 "control+shift+f7 parses the expanded function key with both modifiers");
+      end;
 
       --  Defaults still resolve, and an override rebinds a chord to a command.
       Assert (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_1, Ctrl)

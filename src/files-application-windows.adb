@@ -97,7 +97,13 @@ package body Files.Application.Windows is
       Tracked_Numpad_Add,
       Tracked_Numpad_Subtract,
       Tracked_Zero,
-      Tracked_Space);
+      Tracked_Space,
+      Tracked_Key_5, Tracked_Key_6, Tracked_Key_7, Tracked_Key_8, Tracked_Key_9,
+      Tracked_E, Tracked_G, Tracked_H, Tracked_J, Tracked_K, Tracked_M, Tracked_O,
+      Tracked_Q, Tracked_T, Tracked_U, Tracked_W, Tracked_Y,
+      Tracked_F1, Tracked_F3, Tracked_F4, Tracked_F6, Tracked_F7, Tracked_F8, Tracked_F9,
+      Tracked_F10, Tracked_F11, Tracked_F12,
+      Tracked_Tab, Tracked_Insert);
 
    type Tracked_Key_Counts is array (Tracked_Key) of Natural;
 
@@ -754,6 +760,64 @@ package body Files.Application.Windows is
             return Glfw.Input.Keys.Key_0;
          when Tracked_Space =>
             return Glfw.Input.Keys.Space;
+         when Tracked_Key_5 =>
+            return Glfw.Input.Keys.Key_5;
+         when Tracked_Key_6 =>
+            return Glfw.Input.Keys.Key_6;
+         when Tracked_Key_7 =>
+            return Glfw.Input.Keys.Key_7;
+         when Tracked_Key_8 =>
+            return Glfw.Input.Keys.Key_8;
+         when Tracked_Key_9 =>
+            return Glfw.Input.Keys.Key_9;
+         when Tracked_E =>
+            return Glfw.Input.Keys.E;
+         when Tracked_G =>
+            return Glfw.Input.Keys.G;
+         when Tracked_H =>
+            return Glfw.Input.Keys.H;
+         when Tracked_J =>
+            return Glfw.Input.Keys.J;
+         when Tracked_K =>
+            return Glfw.Input.Keys.K;
+         when Tracked_M =>
+            return Glfw.Input.Keys.M;
+         when Tracked_O =>
+            return Glfw.Input.Keys.O;
+         when Tracked_Q =>
+            return Glfw.Input.Keys.Q;
+         when Tracked_T =>
+            return Glfw.Input.Keys.T;
+         when Tracked_U =>
+            return Glfw.Input.Keys.U;
+         when Tracked_W =>
+            return Glfw.Input.Keys.W;
+         when Tracked_Y =>
+            return Glfw.Input.Keys.Y;
+         when Tracked_F1 =>
+            return Glfw.Input.Keys.F1;
+         when Tracked_F3 =>
+            return Glfw.Input.Keys.F3;
+         when Tracked_F4 =>
+            return Glfw.Input.Keys.F4;
+         when Tracked_F6 =>
+            return Glfw.Input.Keys.F6;
+         when Tracked_F7 =>
+            return Glfw.Input.Keys.F7;
+         when Tracked_F8 =>
+            return Glfw.Input.Keys.F8;
+         when Tracked_F9 =>
+            return Glfw.Input.Keys.F9;
+         when Tracked_F10 =>
+            return Glfw.Input.Keys.F10;
+         when Tracked_F11 =>
+            return Glfw.Input.Keys.F11;
+         when Tracked_F12 =>
+            return Glfw.Input.Keys.F12;
+         when Tracked_Tab =>
+            return Glfw.Input.Keys.Tab;
+         when Tracked_Insert =>
+            return Glfw.Input.Keys.Insert;
       end case;
    end To_Glfw_Key;
 
@@ -841,6 +905,64 @@ package body Files.Application.Windows is
             return Guikit.Input.Key_0;
          when Tracked_Space =>
             return Guikit.Input.Key_Space;
+         when Tracked_Key_5 =>
+            return Guikit.Input.Key_5;
+         when Tracked_Key_6 =>
+            return Guikit.Input.Key_6;
+         when Tracked_Key_7 =>
+            return Guikit.Input.Key_7;
+         when Tracked_Key_8 =>
+            return Guikit.Input.Key_8;
+         when Tracked_Key_9 =>
+            return Guikit.Input.Key_9;
+         when Tracked_E =>
+            return Guikit.Input.Key_E;
+         when Tracked_G =>
+            return Guikit.Input.Key_G;
+         when Tracked_H =>
+            return Guikit.Input.Key_H;
+         when Tracked_J =>
+            return Guikit.Input.Key_J;
+         when Tracked_K =>
+            return Guikit.Input.Key_K;
+         when Tracked_M =>
+            return Guikit.Input.Key_M;
+         when Tracked_O =>
+            return Guikit.Input.Key_O;
+         when Tracked_Q =>
+            return Guikit.Input.Key_Q;
+         when Tracked_T =>
+            return Guikit.Input.Key_T;
+         when Tracked_U =>
+            return Guikit.Input.Key_U;
+         when Tracked_W =>
+            return Guikit.Input.Key_W;
+         when Tracked_Y =>
+            return Guikit.Input.Key_Y;
+         when Tracked_F1 =>
+            return Guikit.Input.Key_F1;
+         when Tracked_F3 =>
+            return Guikit.Input.Key_F3;
+         when Tracked_F4 =>
+            return Guikit.Input.Key_F4;
+         when Tracked_F6 =>
+            return Guikit.Input.Key_F6;
+         when Tracked_F7 =>
+            return Guikit.Input.Key_F7;
+         when Tracked_F8 =>
+            return Guikit.Input.Key_F8;
+         when Tracked_F9 =>
+            return Guikit.Input.Key_F9;
+         when Tracked_F10 =>
+            return Guikit.Input.Key_F10;
+         when Tracked_F11 =>
+            return Guikit.Input.Key_F11;
+         when Tracked_F12 =>
+            return Guikit.Input.Key_F12;
+         when Tracked_Tab =>
+            return Guikit.Input.Key_Tab;
+         when Tracked_Insert =>
+            return Guikit.Input.Key_Insert;
       end case;
    end To_Key_Code;
 
