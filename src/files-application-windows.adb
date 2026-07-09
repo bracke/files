@@ -2085,6 +2085,30 @@ package body Files.Application.Windows is
       end;
    end Update_Marquee_Drag;
 
+   --  Append a component overlay's draw commands (its rectangles, text, icons and
+   --  accessibility nodes) onto the window frame.
+   procedure Append_Overlay
+     (Frame         : in out Files.Rendering.Frame_Commands;
+      Rectangles    : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text          : Guikit.Draw.Text_Command_Vectors.Vector;
+      Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+      Icons         : Guikit.Draw.Icon_Command_Vectors.Vector :=
+        Guikit.Draw.Icon_Command_Vectors.Empty_Vector) is
+   begin
+      for C of Rectangles loop
+         Frame.Rectangles.Append (C);
+      end loop;
+      for C of Text loop
+         Frame.Text.Append (C);
+      end loop;
+      for C of Icons loop
+         Frame.Icons.Append (C);
+      end loop;
+      for N of Accessibility loop
+         Frame.Accessibility.Append (N);
+      end loop;
+   end Append_Overlay;
+
    procedure Render_Window
      (Runtime : in out Runtime_Window)
    is
@@ -2263,18 +2287,7 @@ package body Files.Application.Windows is
                   Text          => P_Text,
                   Icons         => P_Icons,
                   Accessibility => P_Nodes);
-               for C of P_Rects loop
-                  Frame.Rectangles.Append (C);
-               end loop;
-               for C of P_Text loop
-                  Frame.Text.Append (C);
-               end loop;
-               for C of P_Icons loop
-                  Frame.Icons.Append (C);
-               end loop;
-               for N of P_Nodes loop
-                  Frame.Accessibility.Append (N);
-               end loop;
+               Append_Overlay (Frame, P_Rects, P_Text, P_Nodes, P_Icons);
             end;
          end if;
 
@@ -2305,15 +2318,7 @@ package body Files.Application.Windows is
                   Rectangles    => S_Rects,
                   Text          => S_Text,
                   Accessibility => S_Nodes);
-               for C of S_Rects loop
-                  Frame.Rectangles.Append (C);
-               end loop;
-               for C of S_Text loop
-                  Frame.Text.Append (C);
-               end loop;
-               for N of S_Nodes loop
-                  Frame.Accessibility.Append (N);
-               end loop;
+               Append_Overlay (Frame, S_Rects, S_Text, S_Nodes);
             end;
          end if;
          Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
