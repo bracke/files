@@ -6356,34 +6356,18 @@ package body Files.Rendering is
             --  own subdued background and label and then skips all per-item
             --  drawing (icon, columns, selection, hover).
             if Item.Is_Group_Header then
-               Add_Rect (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Pane_Color);
-               Add_Text
-                 (Item_Rect.Text_X,
-                  Item_Rect.Text_Y,
-                  Item_Rect.Text_Width,
-                  Natural'Min (Line_Height, Item_Rect.Height),
-                  Item.Group_Label,
-                  Muted_Text_Color,
-                  Fit => True);
-               if Item_Rect.Height > 0 then
-                  Add_Rect
-                    (Item_Rect.X,
-                     Item_Rect.Y + Item_Rect.Height - 1,
-                     Item_Rect.Width,
-                     1,
-                     Border_Color);
-               end if;
-               Add_Accessibility_Node
-                 (Role_Table_Row,
-                  Item_Rect.X,
-                  Item_Rect.Y,
-                  Item_Rect.Width,
-                  Item_Rect.Height,
-                  Item.Group_Label,
-                  Item.Group_Label,
-                  Enabled  => False,
-                  Selected => False,
-                  Focused  => False);
+               Guikit.Item_Grid.Draw_Group_Header
+                 (Rectangles       => Result.Rectangles,
+                  Text_Commands    => Result.Text,
+                  Accessibility    => Result.Accessibility,
+                  Clip_Width       => Layout.Width,
+                  Clip_Height      => Layout.Height,
+                  Cell             => Item_Rect,
+                  Label            => Item.Group_Label,
+                  Line_Height      => Line_Height,
+                  Background_Color => Pane_Color,
+                  Label_Color      => Muted_Text_Color,
+                  Border_Color     => Border_Color);
                goto Continue_Item_Loop;
             end if;
 
