@@ -6342,15 +6342,6 @@ package body Files.Rendering is
               and then Item.Kind = Files.Types.Directory_Item
               and then Hovered;
 
-            function Detail_Cell_X (Column_X : Natural) return Natural is
-            begin
-               return Saturating_Add (Column_X, Details_Column_Padding);
-            end Detail_Cell_X;
-
-            function Detail_Cell_W (Column_W : Natural) return Natural is
-            begin
-               return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
-            end Detail_Cell_W;
          begin
             --  Grouping band header: a non-selectable caption row. It draws its
             --  own subdued background and label and then skips all per-item
@@ -6500,82 +6491,31 @@ package body Files.Rendering is
             end;
 
             if Snapshot.View_Mode = Files.Types.Details and then Item_Rect.Height > 0 then
-               Add_Rect
-                 (Item_Rect.X,
-                  Item_Rect.Y + Item_Rect.Height - 1,
-                  Item_Rect.Width,
-                  1,
-                  Border_Color);
-               if Item_Rect.Modified_Width > 0 then
-                  Add_Text
-                    (Detail_Cell_X (Item_Rect.Modified_X),
-                     Item_Rect.Text_Y,
-                     Detail_Cell_W (Item_Rect.Modified_Width),
-                     Natural'Min (Line_Height, Item_Rect.Height),
-                     Detail_Time_Text (Item),
-                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                     Italic => Item.Cut_Pending);
-                  if Item.Modified_Available then
-                     Add_Tooltip_Text
-                       (Detail_Cell_X (Item_Rect.Modified_X),
-                        Item_Rect.Text_Y,
-                        Detail_Cell_W (Item_Rect.Modified_Width),
-                        Natural'Min (Line_Height, Item_Rect.Height),
-                        To_Unbounded_String (Full_Time_Text (Item.Modified_Time)));
-                  end if;
-               end if;
-               if Item_Rect.Size_Width > 0 then
-                  Add_Text
-                    (Detail_Cell_X (Item_Rect.Size_X),
-                     Item_Rect.Text_Y,
-                     Detail_Cell_W (Item_Rect.Size_Width),
-                     Natural'Min (Line_Height, Item_Rect.Height),
-                     Detail_Size_Text (Item),
-                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                     Italic => Item.Cut_Pending,
-                     Fit    => True);
-               end if;
-               if Item_Rect.Filetype_Width > 0 then
-                  Add_Text
-                    (Detail_Cell_X (Item_Rect.Filetype_X),
-                     Item_Rect.Text_Y,
-                     Detail_Cell_W (Item_Rect.Filetype_Width),
-                     Natural'Min (Line_Height, Item_Rect.Height),
-                     Item.Filetype_Detail,
-                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                     Italic => Item.Cut_Pending,
-                     Fit    => True);
-               end if;
-               if Item_Rect.Created_Width > 0 then
-                  Add_Text
-                    (Detail_Cell_X (Item_Rect.Created_X),
-                     Item_Rect.Text_Y,
-                     Detail_Cell_W (Item_Rect.Created_Width),
-                     Natural'Min (Line_Height, Item_Rect.Height),
-                     Detail_Created_Text (Item),
-                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                     Italic => Item.Cut_Pending,
-                     Fit    => True);
-                  if Item.Creation_Available then
-                     Add_Tooltip_Text
-                       (Detail_Cell_X (Item_Rect.Created_X),
-                        Item_Rect.Text_Y,
-                        Detail_Cell_W (Item_Rect.Created_Width),
-                        Natural'Min (Line_Height, Item_Rect.Height),
-                        To_Unbounded_String (Full_Time_Text (Item.Creation_Time)));
-                  end if;
-               end if;
-               if Item_Rect.Permissions_Width > 0 then
-                  Add_Text
-                    (Detail_Cell_X (Item_Rect.Permissions_X),
-                     Item_Rect.Text_Y,
-                     Detail_Cell_W (Item_Rect.Permissions_Width),
-                     Natural'Min (Line_Height, Item_Rect.Height),
-                     Item.Permissions,
-                     (if Item.Cut_Pending then Disabled_Text_Color else Muted_Text_Color),
-                     Italic => Item.Cut_Pending,
-                     Fit    => True);
-               end if;
+               Guikit.Item_Grid.Draw_Details_Row
+                 (Rectangles       => Result.Rectangles,
+                  Text_Commands    => Result.Text,
+                  Tooltips         => Result.Tooltips,
+                  Clip_Width       => Layout.Width,
+                  Clip_Height      => Layout.Height,
+                  Cell             => Item_Rect,
+                  Line_Height      => Line_Height,
+                  Modified         => Detail_Time_Text (Item),
+                  Size             => Detail_Size_Text (Item),
+                  Filetype         => Item.Filetype_Detail,
+                  Created          => Detail_Created_Text (Item),
+                  Permissions      => Item.Permissions,
+                  Modified_Tooltip =>
+                    (if Item.Modified_Available
+                     then To_Unbounded_String (Full_Time_Text (Item.Modified_Time))
+                     else Null_Unbounded_String),
+                  Created_Tooltip  =>
+                    (if Item.Creation_Available
+                     then To_Unbounded_String (Full_Time_Text (Item.Creation_Time))
+                     else Null_Unbounded_String),
+                  Dim              => Item.Cut_Pending,
+                  Value_Color      => Muted_Text_Color,
+                  Dim_Color        => Disabled_Text_Color,
+                  Border_Color     => Border_Color);
             end if;
 
             declare
