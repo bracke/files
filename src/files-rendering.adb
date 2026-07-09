@@ -6435,59 +6435,29 @@ package body Files.Rendering is
             end if;
             declare
                Renaming : constant Boolean := Item.Renaming;
-               --  While renaming a large-icons cell we edit across the full
-               --  inner cell width (see Rename_Field_Extent), so the caret sits
-               --  on the single label line rather than the tall cell.
-               Wide     : constant Boolean :=
-                 Renaming and then Snapshot.View_Mode = Files.Types.Large_Icons;
-               Field_X  : Natural;
-               Field_W  : Natural;
-               Field_Y  : constant Natural := Item_Rect.Text_Y;
-               Label_H  : constant Natural :=
-                 (if Saturating_Add (Item_Rect.Y, Item_Rect.Height) > Field_Y
-                  then Saturating_Add (Item_Rect.Y, Item_Rect.Height) - Field_Y
-                  else 0);
-               --  The caret sits on the single label line, not the whole cell,
-               --  so its height tracks the line height rather than the tall
-               --  large-icons cell.
-               Field_H  : constant Natural :=
-                 (if Wide
-                  then Natural'Min
-                    (Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)),
-                     Label_H)
-                  else Item_Rect.Height);
             begin
-               Rename_Field_Extent
-                 (Item_Rect, Snapshot.View_Mode, Renaming, Field_X, Field_W);
-               Add_Text
-                 (Field_X,
-                  Field_Y,
-                  Field_W,
-                  Natural'Min (Line_Height, Item_Rect.Height),
-                  (if Renaming then Item.Rename_Value else Item.Name),
-                  (if Item.Cut_Pending then Disabled_Text_Color else Text_Color),
-                  Italic => Item.Cut_Pending,
-                  Fit    => True);
-
-               if Renaming and then Snapshot.Focus = Files.Types.Focus_Rename_Input then
-                  Add_Border (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height, Border_Color);
-                  Add_Focus_Ring (Item_Rect.X, Item_Rect.Y, Item_Rect.Width, Item_Rect.Height);
-                  declare
-                     Caret_X     : constant Natural :=
-                       (if Field_X > Guikit.Layout.Input_Field_Padding
-                        then Field_X - Guikit.Layout.Input_Field_Padding
-                        else 0);
-                     Caret_Inset : constant Natural := Field_X - Caret_X;
-                  begin
-                     Add_Caret
-                       (Caret_X,
-                        Field_Y,
-                        Saturating_Add (Field_W, Caret_Inset),
-                        Field_H,
-                        Item.Rename_Value,
-                        Item.Rename_Cursor);
-                  end;
-               end if;
+               Guikit.Item_Grid.Draw_Name_Field
+                 (Rectangles       => Result.Rectangles,
+                  Text_Commands    => Result.Text,
+                  Clip_Width       => Layout.Width,
+                  Clip_Height      => Layout.Height,
+                  Cell             => Item_Rect,
+                  View             =>
+                    (case Snapshot.View_Mode is
+                        when Files.Types.Small_Icons => Guikit.Item_Grid.Icons_Small,
+                        when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
+                        when Files.Types.Details     => Guikit.Item_Grid.Details),
+                  Renaming         => Renaming,
+                  Focused          => Snapshot.Focus = Files.Types.Focus_Rename_Input,
+                  Dim              => Item.Cut_Pending,
+                  Text             => (if Renaming then Item.Rename_Value else Item.Name),
+                  Cursor           => Item.Rename_Cursor,
+                  Line_Height      => Line_Height,
+                  Text_Color       => Text_Color,
+                  Dim_Color        => Disabled_Text_Color,
+                  Border_Color     => Border_Color,
+                  Focus_Ring_Color => Snapshot.Theme_Focus_Ring,
+                  Caret_Color      => Text_Color);
             end;
 
             if Snapshot.View_Mode = Files.Types.Details and then Item_Rect.Height > 0 then
