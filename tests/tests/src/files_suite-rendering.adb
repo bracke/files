@@ -1,3 +1,4 @@
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with AUnit;
@@ -71,6 +72,7 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -160,6 +162,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Sort_Label_Centered'Access,
          "the sort field label and its arrow are horizontally centred in the sort button");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Free_Space_Separate_Field'Access,
+         "free space is its own field, divided from the counts by a divider");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Reorder_Layout'Access,
          "a reordered column order lays columns out left-to-right in that order with widths following the column");
@@ -1651,6 +1656,53 @@ package body Files_Suite.Rendering is
                  "the sort field label and arrow are centred (equal gaps each side)");
       end;
    end Test_Sort_Label_Centered;
+
+   --  Free space is drawn as its own field (separate from the hidden/visible
+   --  counts) with a vertical divider between them in the info region.
+   procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");
+      Vis_Lbl  : constant String := Files.Localization.Text ("status.visible");
+   begin
+      Snap.Free_Space_Known := True;
+      Snap.Free_Space_Bytes := 12_000_000_000;
+      declare
+         Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
+         Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
+         Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
+           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+         Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+         Free_Cmd : Boolean := False;
+         Counts_Has_Free : Boolean := False;
+         Divider  : Boolean := False;
+      begin
+         for C of Frame.Text loop
+            if C.Y >= Bottom_Y then
+               if Ada.Strings.Fixed.Index (To_String (C.Text), Free_Sfx) > 0 then
+                  Free_Cmd := True;
+                  --  The free-space command must not also carry the counts text.
+                  if Ada.Strings.Fixed.Index (To_String (C.Text), Vis_Lbl) > 0 then
+                     Counts_Has_Free := True;
+                  end if;
+               end if;
+            end if;
+         end loop;
+         --  A 1px vertical divider inside the info region (excludes the view
+         --  switcher's own cell dividers, which sit further left).
+         for R of Frame.Rectangles loop
+            if R.Width = 1 and then R.Color = Border_Color
+              and then R.Y >= Bottom_Y and then R.X >= Bar.Info_X
+              and then R.X < Bar.Info_X + Bar.Info_Width
+            then
+               Divider := True;
+            end if;
+         end loop;
+         Assert (Free_Cmd, "free space is drawn in the bottom bar");
+         Assert (not Counts_Has_Free, "free space is a separate field, not folded into the counts");
+         Assert (Divider, "a vertical divider separates the free-space field from the counts");
+      end;
+   end Test_Free_Space_Separate_Field;
 
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

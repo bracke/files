@@ -1683,14 +1683,14 @@ separate (Files.Rendering)
       begin
          --  Omitted entirely when the filesystem cannot report free space so no
          --  bogus "0 B free" appears. "X free" is assembled from the shared size
-         --  formatter plus a localized suffix word.
+         --  formatter plus a localized suffix word. Shown as its own field,
+         --  divided from the counts, so no leading spacing here.
          if not Snapshot.Free_Space_Known then
             return "";
          end if;
 
          return
-           "  "
-           & Size_Text (Snapshot.Free_Space_Bytes)
+           Size_Text (Snapshot.Free_Space_Bytes)
            & " "
            & Files.Localization.Text ("status.free_space.suffix");
       end Free_Space_Status_Text;
@@ -1705,8 +1705,7 @@ separate (Files.Rendering)
               & ": "
               & Natural_Text (Snapshot.Visible_Count)
               & "  "
-              & Selected_Status_Text
-              & Free_Space_Status_Text);
+              & Selected_Status_Text);
       end Count_Status_Text;
 
       function Bottom_Info_Text return UString is
@@ -2506,14 +2505,48 @@ separate (Files.Rendering)
              then Hover_Color
              else Bottom_Bar_Color));
       end;
-      Add_Text
-        (Saturating_Add (Bottom.Info_X, 4),
-         Bottom_Content_Y,
-         (if Bottom.Info_Width > 8 then Bottom.Info_Width - 8 else 0),
-         Bottom_Content_H,
-         Bottom_Info_Text,
-         Bottom_Info_Color,
-         Fit => True);
+      declare
+         Pad       : constant Natural := 4;
+         Div_Gap   : constant Natural := 8;
+         Cell_W    : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+         Free_Text : constant String := Free_Space_Status_Text;
+         Free_W    : constant Natural := Saturating_Multiply (Files.UTF8.Display_Units (Free_Text), Cell_W);
+         --  Show free space as its own right-aligned field, divided from the
+         --  counts, when it is known, no error line is showing, and the bar has
+         --  room for the divider plus some counts.
+         Show_Free : constant Boolean :=
+           Free_Text /= ""
+           and then Length (Snapshot.Last_Error_Key) = 0
+           and then Bottom.Info_Width > Saturating_Add (Free_W, 2 * Div_Gap + 3 * Pad);
+         Free_X    : constant Natural :=
+           (if Show_Free
+            then Bottom.Info_X + Bottom.Info_Width - Free_W - Pad else 0);
+         Divider_X : constant Natural := (if Free_X > Div_Gap then Free_X - Div_Gap else 0);
+         Counts_W  : constant Natural :=
+           (if Show_Free then
+              (if Divider_X > Bottom.Info_X + 2 * Pad then Divider_X - Bottom.Info_X - 2 * Pad else 0)
+            elsif Bottom.Info_Width > 8 then Bottom.Info_Width - 8 else 0);
+      begin
+         Add_Text
+           (Saturating_Add (Bottom.Info_X, Pad),
+            Bottom_Content_Y,
+            Counts_W,
+            Bottom_Content_H,
+            Bottom_Info_Text,
+            Bottom_Info_Color,
+            Fit => True);
+         if Show_Free then
+            Add_Rect (Divider_X, Bottom_Content_Y, 1, Bottom_Content_H, Border_Color);
+            Add_Text
+              (Free_X,
+               Bottom_Content_Y,
+               Saturating_Add (Free_W, Pad),
+               Bottom_Content_H,
+               To_Unbounded_String (Free_Text),
+               Bottom_Info_Color,
+               Fit => True);
+         end if;
+      end;
       Add_Command_Tooltip
         (Bottom.Info_X,
          Bottom_Content_Y,
