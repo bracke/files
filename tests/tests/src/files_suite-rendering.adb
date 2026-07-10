@@ -1154,6 +1154,47 @@ package body Files_Suite.Rendering is
          return Count;
       end Tooltip_Rows;
 
+      --  The wrapped rows (in draw order) rejoined with single spaces.
+      function Rows_Joined (Frame : Frame_Commands; Full : String) return String is
+         Joined : Ada.Strings.Unbounded.Unbounded_String;
+         First  : Boolean := True;
+      begin
+         for C of Frame.Overlay_Text loop
+            if Length (C.Text) > 0 and then Ada.Strings.Fixed.Index (Full, To_String (C.Text)) > 0 then
+               if not First then
+                  Ada.Strings.Unbounded.Append (Joined, ' ');
+               end if;
+               Ada.Strings.Unbounded.Append (Joined, C.Text);
+               First := False;
+            end if;
+         end loop;
+         return Ada.Strings.Unbounded.To_String (Joined);
+      end Rows_Joined;
+
+      --  Collapse whitespace runs to single spaces and trim.
+      function Squeeze (S : String) return String is
+         R          : Ada.Strings.Unbounded.Unbounded_String;
+         Prev_Space : Boolean := True;
+      begin
+         for Ch of S loop
+            if Ch = ' ' or else Ch = ASCII.LF or else Ch = ASCII.CR or else Ch = ASCII.HT then
+               if not Prev_Space then
+                  Ada.Strings.Unbounded.Append (R, ' ');
+                  Prev_Space := True;
+               end if;
+            else
+               Ada.Strings.Unbounded.Append (R, Ch);
+               Prev_Space := False;
+            end if;
+         end loop;
+         declare
+            Str : constant String := Ada.Strings.Unbounded.To_String (R);
+         begin
+            return (if Str'Length > 0 and then Str (Str'Last) = ' '
+                    then Str (Str'First .. Str'Last - 1) else Str);
+         end;
+      end Squeeze;
+
       HX, HY : Natural;
       Tip    : Ada.Strings.Unbounded.Unbounded_String;
       Found  : Boolean;
@@ -1170,6 +1211,8 @@ package body Files_Suite.Rendering is
          begin
             Assert (Tooltip_Rows (Frame, To_String (Tip)) >= 2,
                     "a narrow window wraps the tooltip onto multiple rows");
+            Assert (Squeeze (Rows_Joined (Frame, To_String (Tip))) = Squeeze (To_String (Tip)),
+                    "wrapped rows rejoin to the original text (no mid-word breaks)");
          end;
       end;
 

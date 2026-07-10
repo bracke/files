@@ -818,11 +818,141 @@ separate (Files.Rendering)
            (if Max_Tip_W > 2 * Padding
             then Natural'Min (Raw_Text_W, Max_Tip_W - 2 * Padding)
             else 0);
-         --  When the text is wider than the window-clamped line width it wraps
-         --  onto several rows; the box grows to hold every row.
-         Row_Count   : constant Positive :=
-           Positive'Max (1, Wrapped_Line_Count (Text, Text_W, Line_Height));
-         Tip_W       : constant Natural := Saturating_Add (Text_W, 2 * Padding);
+
+         --  Greedily wrap Raw at whitespace so each row fits in Cap cells; a
+         --  token wider than Cap is hard-split. Rows are joined with LF and
+         --  whitespace runs collapse — tooltip text is a single logical line.
+         function Wrap_Words (Raw : String; Cap : Positive) return String is
+            Out_Str   : UString := Null_Unbounded_String;
+            Have_Line : Boolean := False;
+            Cur       : UString := Null_Unbounded_String;
+            Cur_Units : Natural := 0;
+
+            procedure Flush is
+            begin
+               if Have_Line then
+                  Append (Out_Str, ASCII.LF);
+               end if;
+               Append (Out_Str, Cur);
+               Have_Line := True;
+               Cur := Null_Unbounded_String;
+               Cur_Units := 0;
+            end Flush;
+
+            procedure Add_Word (Word : String) is
+               Word_Units : constant Natural := Files.UTF8.Display_Units (Word);
+            begin
+               if Word_Units = 0 then
+                  return;
+               elsif Word_Units > Cap then
+                  --  Longer than a whole row: flush, then hard-split the token.
+                  if Cur_Units > 0 then
+                     Flush;
+                  end if;
+                  declare
+                     Pos : Integer := Word'First;
+                  begin
+                     while Pos <= Word'Last loop
+                        declare
+                           Piece : constant String :=
+                             Files.UTF8.Prefix_By_Units (Word (Pos .. Word'Last), Cap);
+                           Stop  : constant Integer :=
+                             (if Piece'Length = 0 then Word'Last else Pos + Piece'Length - 1);
+                        begin
+                           Cur := To_Unbounded_String (Word (Pos .. Stop));
+                           Cur_Units := Files.UTF8.Display_Units (Word (Pos .. Stop));
+                           exit when Stop >= Word'Last;
+                           Flush;
+                           Pos := Stop + 1;
+                        end;
+                     end loop;
+                  end;
+               elsif Cur_Units = 0 then
+                  Cur := To_Unbounded_String (Word);
+                  Cur_Units := Word_Units;
+               elsif Cur_Units + 1 + Word_Units <= Cap then
+                  Append (Cur, ' ');
+                  Append (Cur, Word);
+                  Cur_Units := Cur_Units + 1 + Word_Units;
+               else
+                  Flush;
+                  Cur := To_Unbounded_String (Word);
+                  Cur_Units := Word_Units;
+               end if;
+            end Add_Word;
+
+            Word_First : Integer := Raw'First;
+            In_Word    : Boolean := False;
+         begin
+            for Pos in Raw'Range loop
+               if Raw (Pos) = ' ' or else Raw (Pos) = ASCII.LF
+                 or else Raw (Pos) = ASCII.CR or else Raw (Pos) = ASCII.HT
+               then
+                  if In_Word then
+                     Add_Word (Raw (Word_First .. Pos - 1));
+                     In_Word := False;
+                  end if;
+               elsif not In_Word then
+                  Word_First := Pos;
+                  In_Word := True;
+               end if;
+            end loop;
+            if In_Word then
+               Add_Word (Raw (Word_First .. Raw'Last));
+            end if;
+            if Cur_Units > 0 or else not Have_Line then
+               Flush;
+            end if;
+            return To_String (Out_Str);
+         end Wrap_Words;
+
+         --  Row count of an LF-joined block.
+         function Line_Count (Block : String) return Positive is
+            Count : Positive := 1;
+         begin
+            for Ch of Block loop
+               if Ch = ASCII.LF then
+                  Count := Count + 1;
+               end if;
+            end loop;
+            return Count;
+         end Line_Count;
+
+         --  Display width of the widest row in an LF-joined block.
+         function Longest_Line_Units (Block : String) return Natural is
+            Best  : Natural := 0;
+            First : Integer := Block'First;
+
+            procedure Consider (A, B : Integer) is
+               Units : constant Natural :=
+                 (if B < A then 0 else Files.UTF8.Display_Units (Block (A .. B)));
+            begin
+               if Units > Best then
+                  Best := Units;
+               end if;
+            end Consider;
+         begin
+            for Pos in Block'Range loop
+               if Block (Pos) = ASCII.LF then
+                  Consider (First, Pos - 1);
+                  First := Pos + 1;
+               end if;
+            end loop;
+            Consider (First, Block'Last);
+            return Best;
+         end Longest_Line_Units;
+
+         --  Wrap once; the box height and width and the drawn rows all derive
+         --  from this single wrapped block so they cannot disagree.
+         Capacity    : constant Natural := Text_W / Cell_W;
+         Wrapped     : constant String :=
+           (if Capacity = 0 then Text_Raw else Wrap_Words (Text_Raw, Capacity));
+         Row_Count   : constant Positive := Line_Count (Wrapped);
+         Line_Units  : constant Natural := Longest_Line_Units (Wrapped);
+         Draw_Text_W : constant Natural :=
+           (if Capacity > 0 and then Line_Units > 0
+            then Saturating_Multiply (Line_Units, Cell_W) else Text_W);
+         Tip_W       : constant Natural := Saturating_Add (Draw_Text_W, 2 * Padding);
          Tip_H       : constant Natural :=
            Saturating_Add (Saturating_Multiply (Row_Count, Line_Height), 2 * Padding_V);
 
@@ -891,65 +1021,37 @@ separate (Files.Rendering)
             Label_Truncated => False,
             Label_Color     => Text_Color);
 
-         --  Wrap the text across rows using the same capacity and segmentation
-         --  as Wrapped_Line_Count, so the drawn rows match the box height.
+         --  Draw each already-wrapped row of the block, one line height apart.
          declare
-            Capacity   : constant Natural := Text_W / Cell_W;
             Row        : Natural := 0;
+            Line_First : Integer := Wrapped'First;
 
-            --  Append one clipped text row at the given wrapped-row offset.
-            procedure Emit_Line (Line_Text : UString; Row_Index : Natural) is
+            procedure Emit_Line (First, Last : Integer) is
                Label_X : constant Natural := Saturating_Add (Tip_X, Padding);
                Label_Y : constant Natural :=
                  Saturating_Add
-                   (Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Row_Index, Line_Height));
-               Draw_W  : constant Natural := Clipped_Size (Label_X, Text_W, Layout.Width);
+                   (Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Row, Line_Height));
+               Draw_W  : constant Natural := Clipped_Size (Label_X, Draw_Text_W, Layout.Width);
                Draw_H  : constant Natural := Clipped_Size (Label_Y, Line_Height, Layout.Height);
             begin
-               if Draw_W > 0 and then Draw_H > 0 and then Length (Line_Text) > 0 then
+               if Last >= First and then Draw_W > 0 and then Draw_H > 0 then
                   Result.Overlay_Text.Append
                     (Guikit.Draw.Text_Command'
                        (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
-                        Text => Line_Text, Color => Text_Color, Truncated => False,
+                        Text => To_Unbounded_String (Wrapped (First .. Last)),
+                        Color => Text_Color, Truncated => False,
                         Scale_To_Box => False, Italic => False));
                end if;
             end Emit_Line;
-
-            --  Break one explicit line [First, Last] into wrapped rows.
-            procedure Emit_Segment (First, Last : Integer) is
-               Start : Integer := First;
-            begin
-               if Capacity = 0 or else Last < First then
-                  Row := Saturating_Add (Row, 1);
-                  return;
-               end if;
-               while Start <= Last loop
-                  declare
-                     Prefix : constant String :=
-                       Files.UTF8.Prefix_By_Units (Text_Raw (Start .. Last), Capacity);
-                     Stop   : constant Integer :=
-                       (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
-                  begin
-                     Emit_Line (To_Unbounded_String (Text_Raw (Start .. Stop)), Row);
-                     exit when Stop >= Last;
-                     Start := Stop + 1;
-                     Row := Saturating_Add (Row, 1);
-                  end;
-               end loop;
-               Row := Saturating_Add (Row, 1);
-            end Emit_Segment;
-
-            Line_First : Integer := Text_Raw'First;
          begin
-            for Position in Text_Raw'Range loop
-               if Text_Raw (Position) = ASCII.LF then
-                  Emit_Segment (Line_First, Position - 1);
+            for Position in Wrapped'Range loop
+               if Wrapped (Position) = ASCII.LF then
+                  Emit_Line (Line_First, Position - 1);
                   Line_First := Position + 1;
+                  Row := Saturating_Add (Row, 1);
                end if;
             end loop;
-            if Line_First <= Text_Raw'Last then
-               Emit_Segment (Line_First, Text_Raw'Last);
-            end if;
+            Emit_Line (Line_First, Wrapped'Last);
          end;
       end Add_Hover_Tooltip;
 
