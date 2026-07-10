@@ -12,6 +12,7 @@ with Files.Fonts;
 with Files.Localization;
 with Files.Model;
 with Files.UI;
+with Files.UTF8;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Files.Rendering;
@@ -69,6 +70,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -155,6 +157,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Sort_Button_Fits_Field'Access,
          "the sort button is sized to the active field while the sort menu fits the widest");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sort_Label_Centered'Access,
+         "the sort field label and its arrow are horizontally centred in the sort button");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Reorder_Layout'Access,
          "a reordered column order lays columns out left-to-right in that order with widths following the column");
@@ -1609,6 +1614,43 @@ package body Files_Suite.Rendering is
       Assert (Menu_W > Name_Bar.Sort_Button_Width,
               "the sort menu is wider than the snug button for a short field");
    end Test_Sort_Button_Fits_Field;
+
+   --  The sort button's content (the field label plus its direction arrow) sits
+   --  horizontally centred in the button, not left-aligned against the padding.
+   procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
+      Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Name, 20);
+      Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+      Cell_W   : constant Natural := Natural'Max (1, 20 * 12 / 20);
+      Field    : constant String := Files.Localization.Text ("command.sort.name");
+      Arrow    : constant String := Files.Localization.Text ("sort.direction.ascending");
+      Arrow_W  : constant Natural := Files.UTF8.Display_Units (Arrow) * Cell_W;
+      Field_X  : Integer := -1;
+      Arrow_X  : Integer := -1;
+   begin
+      for C of Frame.Text loop
+         if C.Y >= Bottom_Y then
+            if To_String (C.Text) = Field then
+               Field_X := C.X;
+            elsif To_String (C.Text) = Arrow then
+               Arrow_X := C.X;
+            end if;
+         end if;
+      end loop;
+      Assert (Field_X >= 0 and then Arrow_X >= 0, "the sort field label and its arrow are drawn");
+      declare
+         Left_Gap  : constant Integer := Field_X - Integer (Bar.Sort_Button_X);
+         Right_Gap : constant Integer :=
+           Integer (Bar.Sort_Button_X + Bar.Sort_Button_Width) - (Arrow_X + Integer (Arrow_W));
+      begin
+         Assert (abs (Left_Gap - Right_Gap) <= 1,
+                 "the sort field label and arrow are centred (equal gaps each side)");
+      end;
+   end Test_Sort_Label_Centered;
 
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

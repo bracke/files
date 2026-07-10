@@ -2414,17 +2414,28 @@ separate (Files.Rendering)
             Arrow_Text  : constant String := Direction_Text;
             Cell_W      : constant Positive :=
               Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-            Text_X0     : constant Natural :=
-              Saturating_Add (Bottom.Sort_Button_X, Guikit.Layout.Input_Field_Padding);
-            Content_W   : constant Natural :=
-              (if Bottom.Sort_Button_Width > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-               then Bottom.Sort_Button_Width - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-               else 0);
             Label_W     : constant Natural :=
               Saturating_Multiply (Files.UTF8.Display_Units (Field_Label), Cell_W);
             --  Tighter than a full monospace space so the direction arrow sits
             --  close to the sort field it belongs to.
             Arrow_Gap   : constant Natural := Cell_W / 2;
+            Arrow_W     : constant Natural :=
+              Saturating_Multiply (Files.UTF8.Display_Units (Arrow_Text), Cell_W);
+            --  Actual field + gap + arrow width drawn. The button is sized assuming
+            --  a full space before the arrow, so it is a touch wider; centre the
+            --  drawn content within the button rather than left-aligning it.
+            Rendered_W  : constant Natural :=
+              Saturating_Add (Label_W, Saturating_Add (Arrow_Gap, Arrow_W));
+            Text_X0     : constant Natural :=
+              Saturating_Add
+                (Bottom.Sort_Button_X,
+                 (if Bottom.Sort_Button_Width > Rendered_W
+                  then (Bottom.Sort_Button_Width - Rendered_W) / 2
+                  else Guikit.Layout.Input_Field_Padding));
+            Content_W   : constant Natural :=
+              (if Bottom.Sort_Button_Width > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
+               then Bottom.Sort_Button_Width - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
+               else 0);
             Arrow_X     : constant Natural :=
               Saturating_Add (Text_X0, Saturating_Add (Label_W, Arrow_Gap));
             Sort_Color  : constant Render_Color :=
