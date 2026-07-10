@@ -2217,12 +2217,20 @@ package body Files.Application.Windows is
       Icons         : Guikit.Draw.Icon_Command_Vectors.Vector :=
         Guikit.Draw.Icon_Command_Vectors.Empty_Vector) is
    begin
+      --  Panels (command palette, settings) draw into the overlay layer, which
+      --  is composited after the main grid's rectangles, icons and text. Drawing
+      --  them into the main layers instead let the grid's icons and text (later
+      --  passes) paint over the opaque panel, so the grid showed through.
       for C of Rectangles loop
-         Frame.Rectangles.Append (C);
+         Frame.Overlay_Rectangles.Append (C);
       end loop;
       for C of Text loop
-         Frame.Text.Append (C);
+         Frame.Overlay_Text.Append (C);
       end loop;
+      --  These panels emit no icons today; keep them in the main icon layer so
+      --  the (unchanged) atlas path handles any that appear. If a panel ever
+      --  needs icons above its own background, route them through the overlay
+      --  icon pass instead.
       for C of Icons loop
          Frame.Icons.Append (C);
       end loop;
