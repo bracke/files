@@ -75,6 +75,7 @@ package body Files_Suite.Rendering is
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Counts_Text_Uses_Active_Color (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Counts_Tooltip_Explains_Numbers (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Has_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Outside_Toggle_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Split_Status_Region (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -178,6 +179,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Counts_Text_Uses_Active_Color'Access,
          "the counts text uses the active control colour, not the muted info colour");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Counts_Tooltip_Explains_Numbers'Access,
+         "the counts tooltip explains the meaning of the three numbers");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Free_Space_Has_Tooltip'Access,
          "the free-space field has its own tooltip");
@@ -1898,6 +1902,31 @@ package body Files_Suite.Rendering is
                  "the counts text is brighter than the muted free-space field");
       end;
    end Test_Counts_Text_Uses_Active_Color;
+
+   --  The counts tooltip spells out what the three numbers mean, so the compact
+   --  "N/N/N" form (which drops the labels) stays understandable.
+   procedure Test_Counts_Tooltip_Explains_Numbers (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap   : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Legend : constant String :=
+        Files.Localization.Text ("status.hidden") & " / "
+        & Files.Localization.Text ("status.visible") & " / "
+        & Files.Localization.Text ("status.selected");
+   begin
+      declare
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
+         Bar   : constant Guikit.Layout.Bottom_Bar_Layout :=
+           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+         Found : Boolean := False;
+      begin
+         for C of Frame.Tooltips loop
+            if C.X = Bar.Info_X and then Ada.Strings.Fixed.Index (To_String (C.Text), Legend) > 0 then
+               Found := True;
+            end if;
+         end loop;
+         Assert (Found, "the counts tooltip names the numbers hidden / visible / selected");
+      end;
+   end Test_Counts_Tooltip_Explains_Numbers;
 
    --  The free-space field carries its own tooltip, positioned over the field
    --  (right side of the info region), distinct from the toggle's tooltip.

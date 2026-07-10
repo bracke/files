@@ -2666,6 +2666,19 @@ separate (Files.Rendering)
             Counts_Color : constant Render_Color :=
               (if Length (Snapshot.Last_Error_Key) > 0 then Error_Text_Color
                else Command_Color (Files.Commands.Toggle_Hidden_Files_Command));
+            --  The counts tooltip carries the toggle action plus a legend of the
+            --  three numbers (hidden / visible / selected, in display order), so
+            --  their meaning is clear even when the small-window form drops the
+            --  labels down to "N/N/N". The legend reuses the status labels, so it
+            --  is localized and matches the compact separator.
+            Counts_Tip : constant UString :=
+              Command_Tooltip_Text (Files.Commands.Toggle_Hidden_Files_Command)
+              & To_Unbounded_String
+                  (" ("
+                   & Files.Localization.Text ("status.hidden") & " / "
+                   & Files.Localization.Text ("status.visible") & " / "
+                   & Files.Localization.Text ("status.selected")
+                   & ")");
          begin
             Add_Rect
               (Bottom.Info_X,
@@ -2716,12 +2729,12 @@ separate (Files.Rendering)
                   Bottom_Content_H,
                   "status.free_space.tooltip");
             end if;
-            Add_Command_Tooltip
+            Add_Tooltip_Text
               (Bottom.Info_X,
                Bottom_Content_Y,
                Toggle_W,
                Bottom_Content_H,
-               Files.Commands.Toggle_Hidden_Files_Command);
+               Counts_Tip);
             Add_Accessibility_Node
               (Role_Button,
                Bottom.Info_X,
