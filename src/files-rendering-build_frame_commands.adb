@@ -2526,13 +2526,26 @@ separate (Files.Rendering)
            (if Show_Free then
               (if Divider_X > Bottom.Info_X + 2 * Pad then Divider_X - Bottom.Info_X - 2 * Pad else 0)
             elsif Bottom.Info_Width > 8 then Bottom.Info_Width - 8 else 0);
+         Info_Text : constant UString := Bottom_Info_Text;
+         --  When the labelled counts do not fit the available width, collapse to
+         --  just the three numbers (hidden / visible / selected), slash-separated
+         --  and label-less. The error line is never collapsed.
+         Compact   : constant String :=
+           Natural_Text (Snapshot.Hidden_Count) & "/"
+           & Natural_Text (Snapshot.Visible_Count) & "/"
+           & Natural_Text (Snapshot.Selected_Count);
+         Use_Compact : constant Boolean :=
+           Length (Snapshot.Last_Error_Key) = 0
+           and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
+         Status_Text : constant UString :=
+           (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
       begin
          Add_Text
            (Saturating_Add (Bottom.Info_X, Pad),
             Bottom_Content_Y,
             Counts_W,
             Bottom_Content_H,
-            Bottom_Info_Text,
+            Status_Text,
             Bottom_Info_Color,
             Fit => True);
          if Show_Free then
