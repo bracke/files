@@ -1837,22 +1837,6 @@ separate (Files.Rendering)
          end if;
       end Selected_Status_Text;
 
-      function Free_Space_Status_Text return String is
-      begin
-         --  Omitted entirely when the filesystem cannot report free space so no
-         --  bogus "0 B free" appears. "X free" is assembled from the shared size
-         --  formatter plus a localized suffix word. Shown as its own field,
-         --  divided from the counts, so no leading spacing here.
-         if not Snapshot.Free_Space_Known then
-            return "";
-         end if;
-
-         return
-           Size_Text (Snapshot.Free_Space_Bytes)
-           & " "
-           & Files.Localization.Text ("status.free_space.suffix");
-      end Free_Space_Status_Text;
-
       function Count_Status_Text return UString is
       begin
          return
@@ -2640,43 +2624,12 @@ separate (Files.Rendering)
       --  affordances stop at the divider rather than spanning the whole region.
       declare
          Pad       : constant Natural := 4;
-         Div_Gap   : constant Natural := 8;
          Cell_W    : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-         Free_Text : constant String := Free_Space_Status_Text;
-         Free_W    : constant Natural := Saturating_Multiply (Files.UTF8.Display_Units (Free_Text), Cell_W);
-         --  Show free space as its own right-aligned field, divided from the
-         --  counts, when it is known, no error line is showing, and the bar has
-         --  room for the divider plus some counts.
-         Show_Free : constant Boolean :=
-           Free_Text /= ""
-           and then Length (Snapshot.Last_Error_Key) = 0
-           and then Bottom.Info_Width > Saturating_Add (Free_W, 2 * Div_Gap + 3 * Pad);
-         Free_X    : constant Natural :=
-           (if Show_Free
-            then Bottom.Info_X + Bottom.Info_Width - Free_W - Pad else 0);
-         Divider_X : constant Natural := (if Free_X > Div_Gap then Free_X - Div_Gap else 0);
-         --  The interactive toggle region: the whole info area, or just the part
-         --  left of the divider when the free-space field is split off.
-         Toggle_W  : constant Natural :=
-           (if Show_Free and then Divider_X > Bottom.Info_X then Divider_X - Bottom.Info_X
-            else Bottom.Info_Width);
-         Counts_W  : constant Natural :=
-           (if Show_Free then
-              (if Divider_X > Bottom.Info_X + 2 * Pad then Divider_X - Bottom.Info_X - 2 * Pad else 0)
-            elsif Bottom.Info_Width > 8 then Bottom.Info_Width - 8 else 0);
-         Info_Text : constant UString := Bottom_Info_Text;
-         --  When the labelled counts do not fit the available width, collapse to
-         --  just the three numbers (hidden / visible / selected), slash-separated
-         --  and label-less. The error line is never collapsed.
-         Compact   : constant String :=
-           Natural_Text (Snapshot.Hidden_Count) & "/"
-           & Natural_Text (Snapshot.Visible_Count) & "/"
-           & Natural_Text (Snapshot.Selected_Count);
-         Use_Compact : constant Boolean :=
-           Length (Snapshot.Last_Error_Key) = 0
-           and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
-         Status_Text : constant UString :=
-           (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
+         Free_Text : constant String := Free_Space_Label (Snapshot);
+         Free_W    : constant Natural := Free_Space_Label_Width (Snapshot, Line_Height);
+         --  The counts/free split, shared with the click hit-test so the toggle's
+         --  hover/press/tooltip area and the separate free-space field agree.
+         Toggle_W, Divider_X, Free_X, Free_Field_W : Natural;
          --  Fill the whole button height (matching the neighbouring bottom-bar
          --  controls and this control's own full-height hit region), not just
          --  the padding-inset content box, so hover/press has no uncovered
@@ -2687,61 +2640,82 @@ separate (Files.Rendering)
            (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
             else Layout.Bottom_Bar_Height);
       begin
-         Add_Rect
-           (Bottom.Info_X,
-            Info_Btn_Y,
-            Toggle_W,
-            Info_Btn_H,
-            (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) then Bottom_Bar_Color
-             elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height)
-             then Pressed_Color
-             elsif Has_Hover
-               and then Contains_Point
-                 (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
-             then Hover_Color
-             else Bottom_Bar_Color));
-         Add_Text
-           (Saturating_Add (Bottom.Info_X, Pad),
-            Bottom_Content_Y,
-            Counts_W,
-            Bottom_Content_H,
-            Status_Text,
-            Bottom_Info_Color,
-            Fit => True);
-         if Show_Free then
-            --  Span the full bar height (matching the button fills), not just the
-            --  inset content band, so the divider reaches top to bottom.
+         Files.UI.Split_Status_Region
+           (Bottom.Info_X, Bottom.Info_Width, Free_W, Toggle_W, Divider_X, Free_X, Free_Field_W);
+         declare
+            Show_Free : constant Boolean := Free_Field_W > 0;
+            Counts_W  : constant Natural := (if Toggle_W > 2 * Pad then Toggle_W - 2 * Pad else 0);
+            Info_Text : constant UString := Bottom_Info_Text;
+            --  When the labelled counts do not fit the available width, collapse
+            --  to just the three numbers (hidden / visible / selected),
+            --  slash-separated and label-less. The error line is never collapsed.
+            Compact   : constant String :=
+              Natural_Text (Snapshot.Hidden_Count) & "/"
+              & Natural_Text (Snapshot.Visible_Count) & "/"
+              & Natural_Text (Snapshot.Selected_Count);
+            Use_Compact : constant Boolean :=
+              Length (Snapshot.Last_Error_Key) = 0
+              and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
+            Status_Text : constant UString :=
+              (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
+         begin
             Add_Rect
-              (Divider_X,
-               Saturating_Add (Bottom_Y, 1),
-               1,
-               (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
-                else Layout.Bottom_Bar_Height),
-               Border_Color);
+              (Bottom.Info_X,
+               Info_Btn_Y,
+               Toggle_W,
+               Info_Btn_H,
+               (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command)
+                then Bottom_Bar_Color
+                elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height)
+                then Pressed_Color
+                elsif Has_Hover
+                  and then Contains_Point
+                    (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
+                then Hover_Color
+                else Bottom_Bar_Color));
             Add_Text
-              (Free_X,
+              (Saturating_Add (Bottom.Info_X, Pad),
                Bottom_Content_Y,
-               Saturating_Add (Free_W, Pad),
+               Counts_W,
                Bottom_Content_H,
-               To_Unbounded_String (Free_Text),
+               Status_Text,
                Bottom_Info_Color,
                Fit => True);
-         end if;
-         Add_Command_Tooltip
-           (Bottom.Info_X,
-            Bottom_Content_Y,
-            Toggle_W,
-            Bottom_Content_H,
-            Files.Commands.Toggle_Hidden_Files_Command);
-         Add_Accessibility_Node
-           (Role_Button,
-            Bottom.Info_X,
-            Bottom_Content_Y,
-            Toggle_W,
-            Bottom_Content_H,
-            Command_Label (Files.Commands.Toggle_Hidden_Files_Command),
-            Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Hidden_Files_Command)),
-            Enabled => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
+            if Show_Free then
+               --  Span the full bar height (matching the button fills), not just
+               --  the inset content band, so the divider reaches top to bottom.
+               Add_Rect
+                 (Divider_X,
+                  Saturating_Add (Bottom_Y, 1),
+                  1,
+                  (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+                   else Layout.Bottom_Bar_Height),
+                  Border_Color);
+               Add_Text
+                 (Free_X,
+                  Bottom_Content_Y,
+                  Free_Field_W,
+                  Bottom_Content_H,
+                  To_Unbounded_String (Free_Text),
+                  Bottom_Info_Color,
+                  Fit => True);
+            end if;
+            Add_Command_Tooltip
+              (Bottom.Info_X,
+               Bottom_Content_Y,
+               Toggle_W,
+               Bottom_Content_H,
+               Files.Commands.Toggle_Hidden_Files_Command);
+            Add_Accessibility_Node
+              (Role_Button,
+               Bottom.Info_X,
+               Bottom_Content_Y,
+               Toggle_W,
+               Bottom_Content_H,
+               Command_Label (Files.Commands.Toggle_Hidden_Files_Command),
+               Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Hidden_Files_Command)),
+               Enabled => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
+         end;
       end;
       declare
          Info_Btn_Y : constant Natural :=

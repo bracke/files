@@ -75,6 +75,8 @@ package body Files_Suite.Rendering is
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Outside_Toggle_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Split_Status_Region (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Free_Space_Not_Clickable (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Counts_Compact_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -174,6 +176,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Free_Space_Outside_Toggle_Hover'Access,
          "the free-space field is outside the hidden-files toggle hover region");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Split_Status_Region'Access,
+         "Split_Status_Region carves the free-space field off the toggle area");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Free_Space_Not_Clickable'Access,
+         "clicking the free-space field does nothing, the counts area still toggles");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Counts_Compact_When_Narrow'Access,
          "a narrow bar drops the count labels and slash-separates the numbers");
@@ -1878,6 +1886,62 @@ package body Files_Suite.Rendering is
                  "hovering the free-space field does not highlight the toggle");
       end;
    end Test_Free_Space_Outside_Toggle_Hover;
+
+   --  The counts/free geometry split used by both the renderer and the
+   --  click hit-test.
+   procedure Test_Split_Status_Region (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      TW, DX, FX, FW : Natural;
+   begin
+      --  No free field: the toggle spans the whole status region.
+      Files.UI.Split_Status_Region (200, 300, 0, TW, DX, FX, FW);
+      Assert (TW = 300 and then DX = 0 and then FX = 0 and then FW = 0,
+              "with no free field the toggle spans the whole info region");
+
+      --  Too narrow for the free field plus divider gaps: no split.
+      Files.UI.Split_Status_Region (200, 80, 60, TW, DX, FX, FW);
+      Assert (TW = 80 and then FW = 0,
+              "a too-narrow region keeps the toggle spanning the whole width");
+
+      --  Room for the free field: carved off on the right, divider one gap left.
+      Files.UI.Split_Status_Region (200, 300, 60, TW, DX, FX, FW);
+      Assert (FX = 436, "the free field sits right-aligned within the region");
+      Assert (DX = 428, "the divider sits one gap left of the free field");
+      Assert (TW = 228, "the toggle covers only up to the divider");
+      Assert (FW = 64, "the free field box is the label width plus padding");
+      Assert (200 + TW = DX and then FX + FW = 200 + 300,
+              "toggle, divider gap and free field partition the region");
+   end Test_Split_Status_Region;
+
+   --  Clicking the counts area toggles hidden files; clicking the separate
+   --  free-space field to its right does nothing.
+   procedure Test_Free_Space_Not_Clickable (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+   begin
+      Snap.Free_Space_Known := True;
+      Snap.Free_Space_Bytes := 12_000_000_000;
+      declare
+         Free_W   : constant Natural := Files.Rendering.Free_Space_Label_Width (Snap, 20);
+         Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
+           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+         BBP      : constant Natural := Guikit.Layout.Bottom_Bar_Padding;
+         Bottom_Y : constant Natural := 800 - (20 + 2 * BBP);
+         Y        : constant Natural := Bottom_Y + BBP + 5;
+         Counts_X : constant Natural := Bar.Info_X + 5;
+         Free_X   : constant Natural := Bar.Info_X + Bar.Info_Width - 5;
+      begin
+         Assert (Free_W > 0, "the free-space field is present in a wide window");
+         Assert
+           (Files.UI.Bottom_Bar_Command_At (Counts_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20)
+              = Files.Commands.Toggle_Hidden_Files_Command,
+            "clicking the counts area toggles hidden files");
+         Assert
+           (Files.UI.Bottom_Bar_Command_At (Free_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20)
+              = Files.Commands.No_Command,
+            "clicking the free-space field does nothing");
+      end;
+   end Test_Free_Space_Not_Clickable;
 
    --  A wide bar shows the labelled counts; a narrow one drops the labels and
    --  slash-separates the three numbers.

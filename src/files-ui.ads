@@ -83,6 +83,30 @@ package Files.UI is
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
 
+   --  Partition the bottom-bar status region into the interactive hidden-files
+   --  toggle area on the left and, when a free-space field is present and there
+   --  is room, a separate free-space field on the right divided by a one-pixel
+   --  rule. When Free_Label_Width is zero (no free field) the toggle spans the
+   --  whole region. The renderer and the click hit-test both call this so the
+   --  toggle's hover/click area and the free-space field agree.
+   --
+   --  @param Info_X Left edge of the status region.
+   --  @param Info_Width Width of the status region.
+   --  @param Free_Label_Width Rendered pixel width of the free-space text, or
+   --    zero when there is no free-space field.
+   --  @param Toggle_Width Width of the interactive toggle area from Info_X.
+   --  @param Divider_X X of the dividing rule, or zero when there is no field.
+   --  @param Free_Field_X Left edge of the free-space text box, or zero.
+   --  @param Free_Field_Width Width of the free-space text box, or zero.
+   procedure Split_Status_Region
+     (Info_X           : Natural;
+      Info_Width       : Natural;
+      Free_Label_Width : Natural;
+      Toggle_Width     : out Natural;
+      Divider_X        : out Natural;
+      Free_Field_X     : out Natural;
+      Free_Field_Width : out Natural);
+
    --  Return the bottom-bar command at a window position.
    --
    --  @param X Horizontal window coordinate.
@@ -90,15 +114,19 @@ package Files.UI is
    --  @param Width Window width in pixels.
    --  @param Height Window height in pixels.
    --  @param Sort_Field Active sort field (sizes the sort button).
+   --  @param Free_Label_Width Rendered pixel width of the free-space field, or
+   --    zero when there is none; the hidden-files toggle stops at the divider so
+   --    the separate free-space field is not part of the toggle.
    --  @param Line_Height Text line height in pixels.
    --  @return Matching command or No_Command.
    function Bottom_Bar_Command_At
-     (X           : Natural;
-      Y           : Natural;
-      Width       : Natural;
-      Height      : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
-      Line_Height : Positive := 20)
+     (X                : Natural;
+      Y                : Natural;
+      Width            : Natural;
+      Height           : Natural;
+      Sort_Field       : Files.Model.Sort_Field;
+      Free_Label_Width : Natural := 0;
+      Line_Height      : Positive := 20)
       return Files.Commands.Command_Id;
 
    --  Return the command for a bottom-bar sort menu row.

@@ -192,20 +192,59 @@ package body Files.UI is
       return Files.Commands.No_Command;
    end Toolbar_Command_At;
 
+   procedure Split_Status_Region
+     (Info_X           : Natural;
+      Info_Width       : Natural;
+      Free_Label_Width : Natural;
+      Toggle_Width     : out Natural;
+      Divider_X        : out Natural;
+      Free_Field_X     : out Natural;
+      Free_Field_Width : out Natural)
+   is
+      Pad     : constant Natural := 4;
+      Div_Gap : constant Natural := 8;
+      --  Only split when there is a free label and room for it plus the divider
+      --  gaps and some counts (matching the renderer's threshold).
+      Show    : constant Boolean :=
+        Free_Label_Width > 0
+        and then Info_Width > Saturating_Add (Free_Label_Width, 2 * Div_Gap + 3 * Pad);
+   begin
+      if not Show then
+         Toggle_Width     := Info_Width;
+         Divider_X        := 0;
+         Free_Field_X     := 0;
+         Free_Field_Width := 0;
+         return;
+      end if;
+
+      Free_Field_X     := Saturating_Add (Info_X, Info_Width - Free_Label_Width - Pad);
+      Divider_X        := (if Free_Field_X > Div_Gap then Free_Field_X - Div_Gap else 0);
+      Toggle_Width     := (if Divider_X > Info_X then Divider_X - Info_X else 0);
+      Free_Field_Width := Saturating_Add (Free_Label_Width, Pad);
+   end Split_Status_Region;
+
    function Bottom_Bar_Command_At
-     (X           : Natural;
-      Y           : Natural;
-      Width       : Natural;
-      Height      : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
-      Line_Height : Positive := 20)
+     (X                : Natural;
+      Y                : Natural;
+      Width            : Natural;
+      Height           : Natural;
+      Sort_Field       : Files.Model.Sort_Field;
+      Free_Label_Width : Natural := 0;
+      Line_Height      : Positive := 20)
       return Files.Commands.Command_Id
    is
       Bottom   : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Bottom_H : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       Content_Y : constant Natural := Saturating_Add (Bottom_Y, Bottom_Bar_Padding);
+      --  The hidden-files toggle occupies only the counts area; when a free-space
+      --  field is split off, the toggle stops at the divider and the free field
+      --  is its own, non-interactive region.
+      Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width : Natural;
    begin
+      Split_Status_Region
+        (Bottom.Info_X, Bottom.Info_Width, Free_Label_Width,
+         Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width);
       if Width = 0
         or else Height = 0
         or else Y < Content_Y
@@ -223,13 +262,15 @@ package body Files.UI is
          end case;
       elsif Within (X, Bottom.Sort_Button_X, Bottom.Sort_Button_Width) then
          return Files.Commands.Toggle_Sort_Menu_Command;
-      elsif Within (X, Bottom.Info_X, Bottom.Info_Width) then
-         --  The status area doubles as the hidden-count control: clicking it
+      elsif Within (X, Bottom.Info_X, Toggle_Width) then
+         --  The counts area doubles as the hidden-count control: clicking it
          --  toggles Show_Hidden_Files through the settings-path command routing.
          return Files.Commands.Toggle_Hidden_Files_Command;
       elsif Within (X, Bottom.Info_Pane_X, Bottom.Info_Pane_Width) then
          return Files.Commands.Toggle_Info_Pane_Command;
       else
+         --  The free-space field (between the divider and the info-pane toggle)
+         --  falls through here: it is its own field with no command.
          return Files.Commands.No_Command;
       end if;
    end Bottom_Bar_Command_At;

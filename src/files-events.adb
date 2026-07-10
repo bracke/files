@@ -1006,7 +1006,10 @@ package body Files.Events is
 
       Command := Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);
       if Command = Files.Commands.No_Command then
-         Command := Files.UI.Bottom_Bar_Command_At (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
+         Command :=
+           Files.UI.Bottom_Bar_Command_At
+             (X, Y, Width, Height, Snapshot.Sort_Field,
+              Files.Rendering.Free_Space_Label_Width (Snapshot, Line_Height), Line_Height);
       end if;
 
       if Command /= Files.Commands.No_Command then

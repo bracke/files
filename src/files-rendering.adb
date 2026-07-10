@@ -484,6 +484,31 @@ package body Files.Rendering is
       return Scaled_Number & " " & Files.Localization.Text (Unit_Key, Locale);
    end Size_Text;
 
+   function Free_Space_Label (Snapshot : View_Snapshot) return String is
+   begin
+      --  Omitted when free space is unknown or an error line is showing, so the
+      --  status area shows no bogus free-space field in those cases.
+      if not Snapshot.Free_Space_Known
+        or else Length (Snapshot.Last_Error_Key) > 0
+      then
+         return "";
+      end if;
+
+      return
+        Size_Text (Snapshot.Free_Space_Bytes)
+        & " "
+        & Files.Localization.Text ("status.free_space.suffix");
+   end Free_Space_Label;
+
+   function Free_Space_Label_Width
+     (Snapshot : View_Snapshot; Line_Height : Positive) return Natural
+   is
+      Label  : constant String := Free_Space_Label (Snapshot);
+      Cell_W : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+   begin
+      return Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
+   end Free_Space_Label_Width;
+
    function Permission_Text (Permissions : String) return String is
       Result : Unbounded_String;
 

@@ -849,6 +849,24 @@ package Files.Rendering is
       Y     : Natural)
       return Natural;
 
+   --  The bottom-bar free-space field's text, e.g. "12 GB free", or the empty
+   --  string when free space is unknown or an error line is showing. Shared by
+   --  the renderer (to draw) and the hit-test (to locate the field), so both
+   --  agree on where the free-space field begins.
+   --
+   --  @param Snapshot The immutable view snapshot.
+   --  @return The free-space label text, or "" when there is no free field.
+   function Free_Space_Label (Snapshot : View_Snapshot) return String;
+
+   --  The rendered pixel width of Free_Space_Label, or zero when there is no
+   --  free field.
+   --
+   --  @param Snapshot The immutable view snapshot.
+   --  @param Line_Height Row height in pixels, sizing the monospace cell.
+   --  @return The free-space label width in pixels, or zero.
+   function Free_Space_Label_Width
+     (Snapshot : View_Snapshot; Line_Height : Positive) return Natural;
+
    --  Normalize the two corner points of a marquee (rubber-band) drag into an
    --  origin-plus-extent rectangle so a drag in any direction (including up or
    --  left) yields a well-formed rectangle. Start is the press point, Current
