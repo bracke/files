@@ -153,7 +153,7 @@ package body Files.Settings_Form is
          Toks.Append (U ("reset"));
          Labels.Append (L ("settings.reset"));
          Result.Append
-           (SP.Field'(Key => U ("settings.actions"), Label => Null_Unbounded_String,
+           (SP.Field'(Key => U ("form.actions"), Label => Null_Unbounded_String,
                       Kind => SP.Buttons, Option_Values => Toks, Option_Labels => Labels, others => <>));
       end Action_Buttons;
 
@@ -163,14 +163,31 @@ package body Files.Settings_Form is
       procedure Shortcut_Rows is
       begin
          for Cmd in Files.Commands.Registered_Command_Id loop
-            Result.Append
-              (SP.Field'
-                 (Key   => U (Shortcut_Key_Prefix & Files.Commands.Identifier (Cmd)),
-                  Label => L (Files.Commands.Name_Key (Cmd)),
-                  Kind  => SP.Shortcut,
-                  Value => U (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Cmd))),
-                  Help  => L (Files.Commands.Description_Key (Cmd)),
-                  others => <>));
+            declare
+               Secondary : constant Files.Commands.Shortcut :=
+                 Files.Commands.Secondary_Shortcut_For (Cmd);
+               Help      : UString := L (Files.Commands.Description_Key (Cmd));
+            begin
+               --  Built-in secondary shortcuts are not editable, but they still
+               --  block conflicting rebinds, so surface them read-only in the
+               --  help line to explain a "already used" rejection.
+               if Secondary.Present then
+                  if Length (Help) > 0 then
+                     Append (Help, U (" - "));
+                  end if;
+                  Append (Help, L ("settings.shortcut.secondary"));
+                  Append (Help, U (" "));
+                  Append (Help, U (Files.Commands.Shortcut_Text (Secondary)));
+               end if;
+               Result.Append
+                 (SP.Field'
+                    (Key   => U (Shortcut_Key_Prefix & Files.Commands.Identifier (Cmd)),
+                     Label => L (Files.Commands.Name_Key (Cmd)),
+                     Kind  => SP.Shortcut,
+                     Value => U (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Cmd))),
+                     Help  => Help,
+                     others => <>));
+            end;
          end loop;
       end Shortcut_Rows;
    begin
@@ -213,15 +230,15 @@ package body Files.Settings_Form is
       Toggle ("settings.column.permissions", D.Column_Permissions);
 
       Section ("settings.section.file_types");
-      Mapping_Group ("settings.filetype.buttons",
+      Mapping_Group ("form.filetype.buttons",
                      "settings.filetype_extension", D.Filetype_Extension,
                      "settings.filetype_value", D.Filetype_Value,
                      D.Filetype_Index, Natural (D.Filetype_Keys.Length));
-      Mapping_Group ("settings.icon.buttons",
+      Mapping_Group ("form.icon.buttons",
                      "settings.icon_filetype", D.Icon_Filetype,
                      "settings.icon_value", D.Icon_Value,
                      D.Icon_Index, Natural (D.Icon_Keys.Length));
-      Mapping_Group ("settings.open_action.buttons",
+      Mapping_Group ("form.open_action.buttons",
                      "settings.open_action_token", D.Open_Action_Token,
                      "settings.open_action_command", D.Open_Action_Command,
                      D.Open_Action_Index, Natural (D.Open_Action_Keys.Length));
@@ -484,17 +501,21 @@ package body Files.Settings_Form is
             declare
                Button : constant String := To_String (Val);
             begin
-               if Key = "settings.actions" then
+               if Key = "form.actions" then
                   if Button = "reset" then
                      D := Files.Settings.Reset_Draft_To_Defaults;
+                     --  Reset is a full return to defaults, so drop the keyboard
+                     --  shortcut overrides too; the save that follows persists the
+                     --  now-default keymap (no [shortcuts] section).
+                     Files.Commands.Reset_Shortcut_Overrides;
                   end if;
-               elsif Key = "settings.filetype.buttons" then
+               elsif Key = "form.filetype.buttons" then
                   Group_Button (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,
                                 D.Filetype_Extension, D.Filetype_Value, Button);
-               elsif Key = "settings.icon.buttons" then
+               elsif Key = "form.icon.buttons" then
                   Group_Button (D.Icon_Keys, D.Icon_Values, D.Icon_Index,
                                 D.Icon_Filetype, D.Icon_Value, Button);
-               elsif Key = "settings.open_action.buttons" then
+               elsif Key = "form.open_action.buttons" then
                   Group_Button (D.Open_Action_Keys, D.Open_Action_Commands, D.Open_Action_Index,
                                 D.Open_Action_Token, D.Open_Action_Command, Button);
                end if;

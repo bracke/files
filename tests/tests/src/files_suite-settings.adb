@@ -2652,6 +2652,46 @@ package body Files_Suite.Settings is
          Assert (not Is_Set, "binding a command to its default clears the override");
       end;
 
+      --  The pane's Reset button is a full reset: it clears shortcut overrides
+      --  too, not just the draft values.
+      Files.Commands.Set_Shortcut_Override
+        (Files.Commands.Select_Small_Icons_Command, Files.Commands.Parse_Shortcut ("control+shift+5"));
+      Saved := Files.Settings_Form.Apply
+        (Model,
+         (Kind  => SP.Button_Pressed,
+          Key   => To_Unbounded_String ("form.actions"),
+          Value => To_Unbounded_String ("reset")));
+      Assert (Saved, "the reset button saves");
+      declare
+         Is_Set : Boolean;
+         Ignore : constant Files.Commands.Shortcut :=
+           Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
+      begin
+         pragma Unreferenced (Ignore);
+         Assert (not Is_Set, "Reset clears shortcut overrides, returning the keymap to defaults");
+      end;
+
+      --  A command with a built-in secondary shortcut surfaces it (read-only) in
+      --  its row help, so an "already used" rejection is explicable.
+      declare
+         Fields   : constant SP.Field_Vectors.Vector := Files.Settings_Form.Fields (Model);
+         Sec_Cmd  : constant Files.Commands.Command_Id := Files.Commands.Refresh_Directory_Command;
+         Sec_Key  : constant String := "shortcut." & Files.Commands.Identifier (Sec_Cmd);
+         Sec_Text : constant String :=
+           Files.Commands.Shortcut_Text (Files.Commands.Secondary_Shortcut_For (Sec_Cmd));
+         Found    : Boolean := False;
+      begin
+         Assert (Sec_Text /= "", "the sample command has a secondary shortcut");
+         for F of Fields loop
+            if To_String (F.Key) = Sec_Key then
+               Found := True;
+               Assert (Ada.Strings.Fixed.Index (To_String (F.Help), Sec_Text) > 0,
+                       "the row help surfaces the built-in secondary shortcut");
+            end if;
+         end loop;
+         Assert (Found, "the command with a secondary has a shortcut row");
+      end;
+
       Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Editing;
 
@@ -2666,7 +2706,7 @@ package body Files_Suite.Settings is
 
       function Button (Value : String) return SP.Change is
         ((Kind  => SP.Button_Pressed,
-          Key   => To_Unbounded_String ("settings.filetype.buttons"),
+          Key   => To_Unbounded_String ("form.filetype.buttons"),
           Value => To_Unbounded_String (Value)));
 
       function Ext return String is

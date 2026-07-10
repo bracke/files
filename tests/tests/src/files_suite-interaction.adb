@@ -100,6 +100,7 @@ package body Files_Suite.Interaction is
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -178,6 +179,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Keyboard_Dispatch_Path'Access,
          "live key dispatch flows through Files.Interaction.Handle_Key for view, settings-path, and toggle keys");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shortcut_Capture_Routing'Access,
+         "an armed shortcut row captures the next chord via the key seam; Esc/Backspace/Delete cancel/unbind/reset");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Grid_Nav_Keys'Access,
          "Home/End/PageUp/PageDown page the grid selection through the key seam");
@@ -784,6 +788,127 @@ package body Files_Suite.Interaction is
             "the key seam toggles the info pane open in the model");
       end;
    end Test_Keyboard_Dispatch_Path;
+
+   --  With a settings Shortcut row armed, the key seam routes the next physical
+   --  chord to capture (rebinding the live keymap) rather than acting on it, and
+   --  Escape cancels, Backspace unbinds, and Delete resets to the built-in
+   --  default -- exercising Files.Controller.Capture_Settings_Shortcut end to end.
+   procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Guikit.Input.Key_Code;
+      use type Files.Commands.Shortcut;
+      Path : constant String :=
+        Files_Suite.Support.Join (Files_Suite.Support.Root, "capture.conf");
+      Cmd  : constant Files.Commands.Command_Id := Files.Commands.Select_Small_Icons_Command;
+
+      --  Open the pane, jump to the last (Shortcuts) section, and arm its first
+      --  row (Select_Small_Icons). Leaves the model capturing.
+      procedure Open_And_Arm
+        (Model    : in out Files.Model.Window_Model;
+         Settings : in out Files.Settings.Settings_Model)
+      is
+         Result : Files.Interaction.Interaction_Result;
+         Rects  : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+         Text   : Guikit.Draw.Text_Command_Vectors.Vector;
+         Nodes  : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+      begin
+         Files.Interaction.Handle_Key
+           (Model => Model, Settings => Settings, Settings_Path => Path,
+            Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
+            Current_Font_Size => Base_Font, Result => Result);
+         Files.Model.Settings_Build_Frame
+           (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
+            Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
+            Rectangles => Rects, Text => Text, Accessibility => Nodes);
+         Files.Model.Settings_Set_Active_Section (Model, Natural'Last);
+         Files.Model.Settings_Begin_Capture (Model);
+      end Open_And_Arm;
+
+      procedure Press
+        (Model    : in out Files.Model.Window_Model;
+         Settings : in out Files.Settings.Settings_Model;
+         Key      : Guikit.Input.Key_Code;
+         Mods     : Guikit.Input.Modifier_Set)
+      is
+         Result : Files.Interaction.Interaction_Result;
+      begin
+         Files.Interaction.Handle_Key
+           (Model => Model, Settings => Settings, Settings_Path => Path,
+            Key => Key, Modifiers => Mods, Current_Font_Size => Base_Font, Result => Result);
+      end Press;
+   begin
+      Files_Suite.Support.Reset_Root;
+
+      --  (1) A chord captured while armed rebinds the live keymap.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Files.Commands.Reset_Shortcut_Overrides;
+         Open_And_Arm (Model, Settings);
+         Assert (Files.Model.Settings_Is_Capturing (Model), "the first shortcut row is armed");
+         Assert (Files.Model.Settings_Capturing_Key (Model) = "shortcut.view.small",
+                 "the armed row is the first command's shortcut field");
+         Press (Model, Settings, Guikit.Input.Key_5, Ctrl_Shift);
+         Assert (not Files.Model.Settings_Is_Capturing (Model), "capturing a chord disarms the row");
+         declare
+            SC : constant Files.Commands.Shortcut := Files.Commands.Shortcut_For (Cmd);
+         begin
+            Assert (SC.Present and then SC.Key = Guikit.Input.Key_5
+                    and then SC.Modifiers (Guikit.Input.Control_Key)
+                    and then SC.Modifiers (Guikit.Input.Shift_Key),
+                    "the captured chord rebinds the command in the live keymap");
+         end;
+      end;
+
+      --  (2) Escape cancels capture and leaves the binding untouched.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Files.Commands.Reset_Shortcut_Overrides;
+         Open_And_Arm (Model, Settings);
+         Press (Model, Settings, Guikit.Input.Key_Escape, Guikit.Input.No_Modifiers);
+         Assert (not Files.Model.Settings_Is_Capturing (Model), "Escape disarms the row");
+         Assert (Files.Commands.Shortcut_For (Cmd) = Files.Commands.Default_Shortcut_For (Cmd),
+                 "Escape leaves the binding at its default");
+      end;
+
+      --  (3) Backspace unbinds the command.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Files.Commands.Reset_Shortcut_Overrides;
+         Open_And_Arm (Model, Settings);
+         Press (Model, Settings, Guikit.Input.Key_Backspace, Guikit.Input.No_Modifiers);
+         Assert (not Files.Commands.Shortcut_For (Cmd).Present,
+                 "Backspace unbinds the command");
+      end;
+
+      --  (4) Delete resets a rebound command to its built-in default.
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Is_Set   : Boolean;
+      begin
+         Files.Commands.Reset_Shortcut_Overrides;
+         Files.Commands.Set_Shortcut_Override
+           (Cmd, Files.Commands.Parse_Shortcut ("control+shift+5"));
+         Open_And_Arm (Model, Settings);
+         Press (Model, Settings, Guikit.Input.Key_Delete, Guikit.Input.No_Modifiers);
+         declare
+            Ignore : constant Files.Commands.Shortcut := Files.Commands.Shortcut_Override (Cmd, Is_Set);
+         begin
+            pragma Unreferenced (Ignore);
+            Assert (not Is_Set, "Delete clears the override, resetting to the built-in default");
+         end;
+         Assert (Files.Commands.Shortcut_For (Cmd) = Files.Commands.Default_Shortcut_For (Cmd),
+                 "the command resolves to its default binding after a reset");
+      end;
+
+      Files.Commands.Reset_Shortcut_Overrides;
+   end Test_Shortcut_Capture_Routing;
 
    --  Home/End/PageUp/PageDown page the file-grid selection through the genuine
    --  key seam (Files.Interaction.Handle_Key) and never navigate: plain Home is

@@ -1060,6 +1060,14 @@ package Files.Model is
    --  and commits it with Settings_Set_Captured_Shortcut (empty text unbinds) or
    --  cancels with Settings_Cancel_Capture.
 
+   --  Show the Ordinal-th settings section (clamped to the available range),
+   --  moving focus to its first field. Used to drive the tab switcher
+   --  programmatically (e.g. tests, and any future keyboard tab navigation).
+   --
+   --  @param Model Model to update.
+   --  @param Ordinal One-based section ordinal.
+   procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural);
+
    --  Arm the focused field for capture when it is an enabled Shortcut field.
    --
    --  @param Model Model to update.

@@ -2407,6 +2407,11 @@ package body Files.Model is
       return Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View);
    end Settings_Focused_Value;
 
+   procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural) is
+   begin
+      Guikit.Settings_Panel.Set_Active_Section (Model.Settings_Panel_View, Ordinal);
+   end Settings_Set_Active_Section;
+
    procedure Settings_Begin_Capture (Model : in out Window_Model) is
    begin
       Guikit.Settings_Panel.Begin_Capture (Model.Settings_Panel_View);
