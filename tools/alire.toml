@@ -12,6 +12,9 @@ tags = ["tools", "checks"]
 executables = ["check_all", "cldr_to_catalog"]
 
 [[depends-on]]
+gnat_native = "=15.2.1"
+
+[[depends-on]]
 project_tools = "*"
 
 [[pins]]

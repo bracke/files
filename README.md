@@ -12,7 +12,7 @@ On Debian/Ubuntu (Linux; see below for macOS/Windows deps):
 # 2. System libraries
 sudo apt-get install -y libvulkan-dev libgdk-pixbuf-2.0-dev libglib2.0-dev \
   libgtk-3-dev fonts-dejavu-core
-# 3. Build and run (Alire provides the GNAT toolchain)
+# 3. Build and run (Alire provides the GNAT 15 toolchain)
 alr build
 bin/files [PATH ...]        # defaults to your home directory
 ```
@@ -34,8 +34,17 @@ fully runtime-validated on those operating systems.
 
 ## Building
 
-The project is built with [Alire](https://alire.ada.dev/) (`alr`), which provides
-the GNAT (Ada 2022) toolchain.
+The project is built with [Alire](https://alire.ada.dev/) (`alr`) and must use
+Alire GNAT 15. The development, release, tests, nested tests, and tools manifests
+pin `gnat_native = "=15.2.1"`. Confirm with:
+
+```sh
+alr exec -- gnatls --version
+```
+
+Do not run plain system `gnat*`, `gnatmake`, `gnatls`, `gnatprove`, or
+`gprbuild` in this workspace. Use `alr exec -- ...` for compiler and builder
+commands so PATH cannot select a different GNAT installation.
 
 ### Sibling crate dependencies
 
@@ -160,6 +169,7 @@ checker, which is built on `project_tools` (`Release_Checks` / `Alire_Manifests`
 ```sh
 cd tools && alr build && cd ..
 tools/bin/release_check
+tools/bin/check_all
 ```
 
 To cut a release, run the `/release <version>` workflow (e.g. `/release 0.1.0`).

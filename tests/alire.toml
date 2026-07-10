@@ -12,6 +12,9 @@ tags = ["tests"]
 executables = ["tests"]
 
 [[depends-on]]
+gnat_native = "=15.2.1"
+
+[[depends-on]]
 files = "*"
 
 [[pins]]

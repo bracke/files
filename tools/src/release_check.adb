@@ -57,6 +57,28 @@ procedure Release_Check is
      Project_Tools.Release_Checks.Create (Root);
    Dev_Manifest : constant String := Root & "/alire.toml";
    Rel_Manifest : constant String := Root & "/alire.release.toml";
+
+   procedure Require_Text (Path : String; Text : String) is
+   begin
+      Project_Tools.Files.Require_Contains
+        (Path,
+         Text,
+         "missing required text in " & Path & ": " & Text,
+         Quiet => False);
+   end Require_Text;
+
+   procedure Require_Alire_GNAT_15 is
+   begin
+      Require_Text (Root & "/alire.toml", "gnat_native = ""=15.2.1""");
+      Require_Text (Root & "/alire.release.toml", "gnat_native = ""=15.2.1""");
+      Require_Text (Root & "/tests/alire.toml", "gnat_native = ""=15.2.1""");
+      Require_Text (Root & "/tests/tests/alire.toml", "gnat_native = ""=15.2.1""");
+      Require_Text (Root & "/tools/alire.toml", "gnat_native = ""=15.2.1""");
+      Require_Text (Root & "/alire/alire.lock", "gnat=15.2.1");
+      Require_Text (Root & "/alire/alire.lock", "version = ""15.2.1""");
+      Require_Text (Root & "/tools/alire/alire.lock", "gnat=15.2.1");
+      Require_Text (Root & "/tools/alire/alire.lock", "version = ""15.2.1""");
+   end Require_Alire_GNAT_15;
 begin
    if not Project_Tools.Files.File_Exists (Root & "/files.gpr") then
       Put_Line
@@ -71,26 +93,27 @@ begin
    Project_Tools.Release_Checks.Require_File (Checker, "alire.release.toml");
    Project_Tools.Release_Checks.Require_File (Checker, "README.md");
    Project_Tools.Release_Checks.Require_File (Checker, "share/doc/files/release-notes.md");
+   Require_Alire_GNAT_15;
 
    --  The release manifest must be publishable: pin-free, named "files",
-   --  declaring a license, and depending on the formerly-pinned crates by
-   --  wildcard version.
+   --  declaring a license, and depending on the formerly-pinned runtime crates
+   --  by wildcard version.
    Project_Tools.Alire_Manifests.Require_Pin_Free_Crate_Manifest (Rel_Manifest, "files");
    Project_Tools.Alire_Manifests.Require_No_Local_Pins (Rel_Manifest);
    Project_Tools.Alire_Manifests.Require_Release_Dependencies
      (Rel_Manifest,
-      [To_Unbounded_String ("project_tools"),
-       To_Unbounded_String ("i18n"),
+      [To_Unbounded_String ("i18n"),
        To_Unbounded_String ("textrender"),
-       To_Unbounded_String ("zlib")]);
+       To_Unbounded_String ("zlib"),
+       To_Unbounded_String ("guikit")]);
    Project_Tools.Release_Checks.Require_Text (Checker, "alire.release.toml", "licenses =");
 
-   --  The development manifest must keep the local workspace pins so that local
-   --  builds resolve the sibling checkouts.
-   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "project_tools", "../project_tools");
+   --  The development manifest must keep the local runtime workspace pins so
+   --  that local builds resolve the sibling checkouts.
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "i18n", "../i18n");
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "textrender", "../textrender");
    Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "zlib", "../zlib");
+   Project_Tools.Alire_Manifests.Require_Workspace_Pin (Dev_Manifest, "guikit", "../guikit");
 
    --  The two manifests must declare the same version.
    declare

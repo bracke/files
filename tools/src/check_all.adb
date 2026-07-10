@@ -73,6 +73,39 @@ procedure Check_All is
          Name & " is required for the files project check tool");
    end Require_Command;
 
+   procedure Require_Alire_GNAT_15 is
+      Output : Unbounded_String;
+      Status : Integer;
+   begin
+      Status :=
+        Project_Tools.Processes.Run_Status
+          (Label   => "GNAT 15 version check",
+           Dir     => Root,
+           Program => Alr,
+           Args    =>
+             [1 => new String'("exec"),
+              2 => new String'("--"),
+              3 => new String'("gnatls"),
+              4 => new String'("--version")],
+           Output  => Output,
+           Quiet   => True);
+
+      if Status /= 0 then
+         Put_Line
+           (Standard_Error,
+            "could not run `alr exec -- gnatls --version`");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      elsif Ada.Strings.Fixed.Index (To_String (Output), "GNATLS 15.") = 0 then
+         Put_Line
+           (Standard_Error,
+            "wrong Ada compiler: files validation must use Alire GNAT 15; got: "
+            & To_String (Output));
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
+   end Require_Alire_GNAT_15;
+
    procedure Run
      (Label   : String;
       Dir     : String;
@@ -3606,6 +3639,7 @@ begin
    end if;
 
    Require_Command ("alr");
+   Require_Alire_GNAT_15;
 
    Project_Tools.Files.Write_Text_File (Combined_Suite, Suite_Sources);
 

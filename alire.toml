@@ -12,6 +12,9 @@ tags = ["filemanager"]
 executables = ["files"]
 
 [[depends-on]]
+gnat_native = "=15.2.1"
+
+[[depends-on]]
 i18n = "*"
 
 [[pins]]
