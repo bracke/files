@@ -566,3 +566,4 @@ de.settings.shortcut.conflict = Dieses Tastenkürzel wird bereits von einem ande
 de.settings.shortcut.secondary = Auch belegt:
 de.settings.view = Standardansicht
 de.settings.tabs.hint = Strg+Tab wechselt Abschnitte
+de.settings.help.shortcut = Eingabe oder Klick zum Neubelegen; Entf setzt zurück, Rücktaste löscht.

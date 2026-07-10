@@ -567,3 +567,4 @@ fr.settings.shortcut.conflict = Ce raccourci est déjà utilisé par une autre c
 fr.settings.shortcut.secondary = Aussi associé :
 fr.settings.view = Mode d'affichage par défaut
 fr.settings.tabs.hint = Ctrl+Tab change de section
+fr.settings.help.shortcut = Entrée ou clic pour réattribuer ; Suppr réinitialise, Retour arrière efface.

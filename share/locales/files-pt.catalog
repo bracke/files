@@ -567,3 +567,4 @@ pt.settings.shortcut.conflict = Esse atalho já é usado por outro comando.
 pt.settings.shortcut.secondary = Também associado:
 pt.settings.view = Vista predefinida
 pt.settings.tabs.hint = Ctrl+Tab muda de secção
+pt.settings.help.shortcut = Enter ou clique para reatribuir; Delete redefine, Backspace limpa.

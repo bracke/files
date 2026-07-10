@@ -567,3 +567,4 @@ nb.settings.shortcut.conflict = Denne snarveien brukes allerede av en annen komm
 nb.settings.shortcut.secondary = Også tildelt:
 nb.settings.view = Standardvisning
 nb.settings.tabs.hint = Ctrl+Tab bytter seksjoner
+nb.settings.help.shortcut = Enter eller klikk for å binde på nytt; Delete tilbakestiller, Tilbake sletter.

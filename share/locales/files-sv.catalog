@@ -567,3 +567,4 @@ sv.settings.shortcut.conflict = Det kortkommandot används redan av ett annat ko
 sv.settings.shortcut.secondary = Även bunden:
 sv.settings.view = Standardvy
 sv.settings.tabs.hint = Ctrl+Tab växlar avsnitt
+sv.settings.help.shortcut = Enter eller klick för att binda om; Delete återställer, Backsteg rensar.

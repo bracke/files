@@ -567,3 +567,4 @@ fi.settings.shortcut.conflict = Tämä pikanäppäin on jo toisen komennon käyt
 fi.settings.shortcut.secondary = Myös sidottu:
 fi.settings.view = Oletusnäkymä
 fi.settings.tabs.hint = Ctrl+Tab vaihtaa osioita
+fi.settings.help.shortcut = Enter tai napsautus sitoo uudelleen; Delete palauttaa, askelpalautin tyhjentää.

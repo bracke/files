@@ -567,3 +567,4 @@ nl.settings.shortcut.conflict = Die sneltoets is al in gebruik door een andere o
 nl.settings.shortcut.secondary = Ook toegewezen:
 nl.settings.view = Standaardweergave
 nl.settings.tabs.hint = Ctrl+Tab wisselt secties
+nl.settings.help.shortcut = Enter of klik om opnieuw te binden; Delete herstelt, Backspace wist.

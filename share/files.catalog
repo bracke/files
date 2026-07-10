@@ -513,6 +513,7 @@ en.settings.help.open_action_command = Enter executable arguments; placeholders 
 en.settings.help.system_opener = Left and right toggle opening unmatched files with the system default application.
 en.settings.help.grouping = Left and right cycle none, type, modified, size, and label.
 en.settings.help.column = Left and right toggle whether this detail column is shown.
+en.settings.help.shortcut = Enter or click to rebind; Delete resets, Backspace clears.
 en.settings.options.default_view = Options: small_icons | large_icons | details
 en.settings.options.boolean = Options: true | false
 en.settings.options.theme = Options: dark | light | high_contrast

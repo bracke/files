@@ -567,3 +567,4 @@ da.settings.shortcut.conflict = Denne genvej bruges allerede af en anden kommand
 da.settings.shortcut.secondary = Også tildelt:
 da.settings.view = Standardvisning
 da.settings.tabs.hint = Ctrl+Tab skifter sektioner
+da.settings.help.shortcut = Enter eller klik for at ombinde; Delete nulstiller, Backspace rydder.

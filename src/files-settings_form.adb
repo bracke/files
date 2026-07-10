@@ -91,24 +91,28 @@ package body Files.Settings_Form is
          Result.Append (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Section, others => <>));
       end Section;
 
-      procedure Toggle (Key : String; Value : UString) is
+      --  Help_Key names a settings.help.* catalog entry shown in the pane footer
+      --  while the field is focused; the empty default leaves the field help-less.
+      procedure Toggle (Key : String; Value : UString; Help_Key : String := "") is
       begin
          Result.Append
-           (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Toggle, Value => Value, others => <>));
+           (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Toggle, Value => Value,
+                      Help => L (Help_Key), others => <>));
       end Toggle;
 
-      procedure Choice (Key : String; Value : UString; Toks, Labels : SP.UString_Vectors.Vector) is
+      procedure Choice
+        (Key : String; Value : UString; Toks, Labels : SP.UString_Vectors.Vector; Help_Key : String := "") is
       begin
          Result.Append
            (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Choice, Value => Value,
-                      Option_Values => Toks, Option_Labels => Labels, others => <>));
+                      Option_Values => Toks, Option_Labels => Labels, Help => L (Help_Key), others => <>));
       end Choice;
 
-      procedure Number_Field (Key : String; Value : UString; Min, Max : Integer) is
+      procedure Number_Field (Key : String; Value : UString; Min, Max : Integer; Help_Key : String := "") is
       begin
          Result.Append
            (SP.Field'(Key => U (Key), Label => L (Key), Kind => SP.Number, Value => Value,
-                      Min => Min, Max => Max, others => <>));
+                      Min => Min, Max => Max, Help => L (Help_Key), others => <>));
       end Number_Field;
 
       --  A key/value mapping group: a Prev/Add/Remove/Next button row followed by
@@ -122,7 +126,9 @@ package body Files.Settings_Form is
          Val_Key     : String;
          Val_Value   : UString;
          Index       : Natural;
-         Count       : Natural)
+         Count       : Natural;
+         Key_Help    : String := "";
+         Val_Help    : String := "")
       is
          Nav_Toks, Nav_Labels : SP.UString_Vectors.Vector;
          Key_Label : constant UString :=
@@ -142,9 +148,11 @@ package body Files.Settings_Form is
            (SP.Field'(Key => U (Buttons_Key), Label => Null_Unbounded_String, Kind => SP.Buttons,
                       Option_Values => Nav_Toks, Option_Labels => Nav_Labels, others => <>));
          Result.Append
-           (SP.Field'(Key => U (Key_Key), Label => Key_Label, Kind => SP.Text, Value => Key_Value, others => <>));
+           (SP.Field'(Key => U (Key_Key), Label => Key_Label, Kind => SP.Text, Value => Key_Value,
+                      Help => L (Key_Help), others => <>));
          Result.Append
-           (SP.Field'(Key => U (Val_Key), Label => L (Val_Key), Kind => SP.Text, Value => Val_Value, others => <>));
+           (SP.Field'(Key => U (Val_Key), Label => L (Val_Key), Kind => SP.Text, Value => Val_Value,
+                      Help => L (Val_Help), others => <>));
       end Mapping_Group;
 
       procedure Action_Buttons is
@@ -166,7 +174,9 @@ package body Files.Settings_Form is
             declare
                Secondary : constant Files.Commands.Shortcut :=
                  Files.Commands.Secondary_Shortcut_For (Cmd);
-               Help      : UString := L (Files.Commands.Description_Key (Cmd));
+               --  Lead with how to edit the binding (the footer's action hint),
+               --  then append the built-in secondary.
+               Help      : UString := L ("settings.help.shortcut");
             begin
                --  Built-in secondary shortcuts are not editable, but they still
                --  block conflicting rebinds, so surface them read-only in the
@@ -195,53 +205,61 @@ package body Files.Settings_Form is
       Section ("settings.section.view");
       Choice ("settings.view", D.Default_View_Mode,
               V3 ("small_icons", "large_icons", "details"),
-              LV3 ("command.view.small", "command.view.large", "command.view.details"));
-      Toggle ("settings.hidden_files", D.Show_Hidden_Files);
-      Toggle ("settings.show_extensions", D.Show_File_Extensions);
+              LV3 ("command.view.small", "command.view.large", "command.view.details"),
+              "settings.help.default_view");
+      Toggle ("settings.hidden_files", D.Show_Hidden_Files, "settings.help.boolean");
+      Toggle ("settings.show_extensions", D.Show_File_Extensions, "settings.help.boolean");
 
       Section ("settings.section.sorting");
       Choice ("settings.sort", D.Sort_Field_Value,
               V5 ("name", "filetype", "size", "created", "modified"),
               LV5 ("settings.sort.name", "settings.sort.filetype", "settings.sort.size",
-                   "settings.sort.created", "settings.sort.modified"));
-      Toggle ("settings.sort_ascending", D.Sort_Ascending);
+                   "settings.sort.created", "settings.sort.modified"),
+              "settings.help.sort");
+      Toggle ("settings.sort_ascending", D.Sort_Ascending, "settings.help.boolean");
 
       Section ("settings.section.appearance");
       Choice ("settings.theme", D.Theme,
               V3 ("dark", "light", "high_contrast"),
-              LV3 ("settings.theme.dark", "settings.theme.light", "settings.theme.high_contrast"));
+              LV3 ("settings.theme.dark", "settings.theme.light", "settings.theme.high_contrast"),
+              "settings.help.theme");
       Choice ("settings.icon_theme", D.Icon_Theme_Name,
               V2 ("files-basic", "files-high-contrast"),
-              LV2 ("settings.icon_theme.basic", "settings.icon_theme.high_contrast"));
-      Number_Field ("settings.font_pixel_size", D.Font_Pixel_Size, 10, 32);
+              LV2 ("settings.icon_theme.basic", "settings.icon_theme.high_contrast"),
+              "settings.help.icon_theme");
+      Number_Field ("settings.font_pixel_size", D.Font_Pixel_Size, 10, 32, "settings.help.font_pixel_size");
 
       Section ("settings.section.behavior");
-      Toggle ("settings.system_opener", D.Use_System_Default_Opener);
+      Toggle ("settings.system_opener", D.Use_System_Default_Opener, "settings.help.system_opener");
 
       Section ("settings.section.details");
       Choice ("settings.grouping", D.Group_By,
               V5 ("none", "type", "modified", "size", "label"),
               LV5 ("settings.group.none", "settings.group.type", "settings.group.modified",
-                   "settings.group.size", "settings.group.label"));
-      Toggle ("settings.column.modified", D.Column_Modified);
-      Toggle ("settings.column.size", D.Column_Size);
-      Toggle ("settings.column.type", D.Column_Filetype);
-      Toggle ("settings.column.created", D.Column_Created);
-      Toggle ("settings.column.permissions", D.Column_Permissions);
+                   "settings.group.size", "settings.group.label"),
+              "settings.help.grouping");
+      Toggle ("settings.column.modified", D.Column_Modified, "settings.help.column");
+      Toggle ("settings.column.size", D.Column_Size, "settings.help.column");
+      Toggle ("settings.column.type", D.Column_Filetype, "settings.help.column");
+      Toggle ("settings.column.created", D.Column_Created, "settings.help.column");
+      Toggle ("settings.column.permissions", D.Column_Permissions, "settings.help.column");
 
       Section ("settings.section.file_types");
       Mapping_Group ("form.filetype.buttons",
                      "settings.filetype_extension", D.Filetype_Extension,
                      "settings.filetype_value", D.Filetype_Value,
-                     D.Filetype_Index, Natural (D.Filetype_Keys.Length));
+                     D.Filetype_Index, Natural (D.Filetype_Keys.Length),
+                     "settings.help.filetype_extension", "settings.help.filetype_value");
       Mapping_Group ("form.icon.buttons",
                      "settings.icon_filetype", D.Icon_Filetype,
                      "settings.icon_value", D.Icon_Value,
-                     D.Icon_Index, Natural (D.Icon_Keys.Length));
+                     D.Icon_Index, Natural (D.Icon_Keys.Length),
+                     "settings.help.icon_filetype", "settings.help.icon_value");
       Mapping_Group ("form.open_action.buttons",
                      "settings.open_action_token", D.Open_Action_Token,
                      "settings.open_action_command", D.Open_Action_Command,
-                     D.Open_Action_Index, Natural (D.Open_Action_Keys.Length));
+                     D.Open_Action_Index, Natural (D.Open_Action_Keys.Length),
+                     "settings.help.open_action_token", "settings.help.open_action_command");
 
       Section ("settings.section.shortcuts");
       Shortcut_Rows;

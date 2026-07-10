@@ -567,3 +567,4 @@ it.settings.shortcut.conflict = Questa scorciatoia è già usata da un altro com
 it.settings.shortcut.secondary = Anche associata:
 it.settings.view = Vista predefinita
 it.settings.tabs.hint = Ctrl+Tab cambia sezione
+it.settings.help.shortcut = Invio o clic per riassegnare; Canc reimposta, Backspace cancella.
