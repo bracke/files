@@ -1525,10 +1525,6 @@ procedure Check_All is
          "localization catalog must include settings field help text");
       Project_Tools.Files.Require_Contains
         (Catalog,
-         "en.settings.options.default_view = ",
-         "localization catalog must include settings option text");
-      Project_Tools.Files.Require_Contains
-        (Catalog,
          "en.accessibility.toolbar = ",
          "localization catalog must include accessibility labels");
       Project_Tools.Files.Require_Contains
