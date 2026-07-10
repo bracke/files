@@ -2536,7 +2536,15 @@ separate (Files.Rendering)
             Bottom_Info_Color,
             Fit => True);
          if Show_Free then
-            Add_Rect (Divider_X, Bottom_Content_Y, 1, Bottom_Content_H, Border_Color);
+            --  Span the full bar height (matching the button fills), not just the
+            --  inset content band, so the divider reaches top to bottom.
+            Add_Rect
+              (Divider_X,
+               Saturating_Add (Bottom_Y, 1),
+               1,
+               (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+                else Layout.Bottom_Bar_Height),
+               Border_Color);
             Add_Text
               (Free_X,
                Bottom_Content_Y,

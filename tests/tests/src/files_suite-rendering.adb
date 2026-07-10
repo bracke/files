@@ -1689,13 +1689,16 @@ package body Files_Suite.Rendering is
             end if;
          end loop;
          --  A 1px vertical divider inside the info region (excludes the view
-         --  switcher's own cell dividers, which sit further left).
+         --  switcher's own cell dividers, which sit further left), spanning close
+         --  to the full bar height.
          for R of Frame.Rectangles loop
             if R.Width = 1 and then R.Color = Border_Color
               and then R.Y >= Bottom_Y and then R.X >= Bar.Info_X
               and then R.X < Bar.Info_X + Bar.Info_Width
             then
                Divider := True;
+               Assert (R.Height >= Layout.Bottom_Bar_Height - 2,
+                       "the divider spans nearly the full bottom-bar height");
             end if;
          end loop;
          Assert (Free_Cmd, "free space is drawn in the bottom bar");
