@@ -2367,9 +2367,11 @@ separate (Files.Rendering)
            (Segments      => View_Segments,
             Active        => Active,
             Region_X      => Bottom.View_Mode_X,
-            Region_Y      => Bottom_Y,
+            --  Use the shared bottom-bar content band (not the full bar height) so
+            --  the segment labels sit on the same baseline as the rest of the bar.
+            Region_Y      => Bottom_Content_Y,
             Region_Width  => Bottom.View_Mode_Width,
-            Region_Height => Layout.Bottom_Bar_Height,
+            Region_Height => Bottom_Content_H,
             Clip_Width    => Width,
             Clip_Height   => Height,
             Line_Height   => Line_Height,

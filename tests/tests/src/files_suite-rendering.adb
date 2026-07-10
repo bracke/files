@@ -66,6 +66,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -146,6 +147,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Separators_Within_Content'Access,
          "an overflowing details view keeps its column dividers inside the content, out of the bottom bar");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Bottom_Bar_Text_Baseline'Access,
+         "the view-mode chooser labels share the bottom bar's text baseline");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Reorder_Layout'Access,
          "a reordered column order lays columns out left-to-right in that order with widths following the column");
@@ -1550,6 +1554,36 @@ package body Files_Suite.Rendering is
                  "a short list leaves the dividers well above the content bottom");
       end;
    end Test_Detail_Separators_Within_Content;
+
+   --  Every text element in the bottom bar -- including the view-mode chooser's
+   --  segment labels -- sits on a single shared baseline, so nothing looks
+   --  vertically off-centre relative to the rest of the bar.
+   procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
+      Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+      Baseline : Integer := -1;
+      Labels   : Natural := 0;
+   begin
+      for C of Frame.Text loop
+         if C.Y >= Bottom_Y then
+            if Baseline < 0 then
+               Baseline := C.Y;
+            else
+               Assert (C.Y = Baseline, "all bottom-bar text shares a single vertical baseline");
+            end if;
+            if To_String (C.Text) = "Small" or else To_String (C.Text) = "Large"
+              or else To_String (C.Text) = "Details"
+            then
+               Labels := Labels + 1;
+            end if;
+         end if;
+      end loop;
+      Assert (Baseline >= 0, "the bottom bar draws text");
+      Assert (Labels >= 3, "the three view-mode chooser labels are drawn in the bottom bar");
+   end Test_Bottom_Bar_Text_Baseline;
 
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
