@@ -2918,20 +2918,30 @@ separate (Files.Rendering)
             Content_X : constant Natural := Content.X;
             Content_W : constant Natural := Content.Width;
             Content_Y : constant Natural := Content.Y;
-            Last_Row  : constant Item_Layout := Items.Element (Positive (Items.Length));
             Separator_Y : constant Natural := Content_Y;
-            --  Span the rows, but never past the content area's bottom edge: when
-            --  the list overflows the viewport the last row sits below it, and an
-            --  unclamped divider would run down into (and show through) the bottom
-            --  bar.
-            Separator_H : constant Natural :=
-              Natural'Min
-                (Content.Height,
-                 (if Last_Row.Y >= Content_Y
-                  then Saturating_Add
-                         (Last_Row.Y - Content_Y, (if Last_Row.Height > 0 then Last_Row.Height - 1 else 0))
-                  else Saturating_Add
-                         ((if Last_Row.Height > 0 then Last_Row.Height - 1 else 0), Content_Y - Last_Row.Y)));
+            --  Bottom edge of the content viewport (excludes the bottom bar).
+            Content_Bottom : constant Natural := Saturating_Add (Content_Y, Content.Height);
+
+            --  The dividers span the visible rows only: down to the bottom edge of
+            --  the last row that is actually on screen, clamped to the viewport.
+            --  They must not descend past the last visible line into empty space
+            --  below the list (nor through the bottom bar).
+            function Last_Visible_Bottom return Natural is
+               Result : Natural := Content_Y;
+            begin
+               for Row of Items loop
+                  declare
+                     Row_Bottom : constant Natural := Saturating_Add (Row.Y, Row.Height);
+                  begin
+                     if Row.Y < Content_Bottom and then Row_Bottom > Content_Y then
+                        Result := Natural'Max (Result, Natural'Min (Row_Bottom, Content_Bottom));
+                     end if;
+                  end;
+               end loop;
+               return Result;
+            end Last_Visible_Bottom;
+
+            Separator_H : constant Natural := Last_Visible_Bottom - Separator_Y;
             Columns   : constant Detail_Column_Geometry_Array :=
               Compute_Detail_Columns
                 (Snapshot.Detail_Columns_Visible,
