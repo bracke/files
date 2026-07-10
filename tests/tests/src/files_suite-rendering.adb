@@ -86,6 +86,7 @@ package body Files_Suite.Rendering is
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
@@ -212,6 +213,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Marquee_Frame_Draws_Rectangle'Access,
          "an active marquee draws a translucent selection rectangle over the grid");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Details_Header_Text_Centered'Access,
+         "details header labels are optically centred like the bottom-bar text");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -236,6 +240,43 @@ package body Files_Suite.Rendering is
       Snapshot.Visible_Count := Count;
       return Snapshot;
    end Sample_Snapshot;
+
+   --  The details-view header labels are optically centred in the header field
+   --  using the same vertical offset as the (accepted) bottom-bar text, rather
+   --  than sitting low at the full geometric inset.
+   procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap     : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Mod_Lbl  : constant String := Files.Localization.Text ("details.modified");
+      Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
+      Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
+      Bottom_Top : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+
+      Header_Field_Top : Integer := -1;   --  top of the header background band
+      Header_Text_Y    : Integer := -1;
+      Bottom_Text_Y    : Integer := -1;
+   begin
+      --  Header background: the topmost content-width band (not a hairline).
+      for R of Frame.Rectangles loop
+         if R.Width in 900 .. 999 and then R.Height > 10 and then R.Y < Bottom_Top
+           and then (Header_Field_Top < 0 or else R.Y < Header_Field_Top)
+         then
+            Header_Field_Top := R.Y;
+         end if;
+      end loop;
+      for C of Frame.Text loop
+         if To_String (C.Text) = Mod_Lbl then
+            Header_Text_Y := C.Y;
+         elsif C.Y >= Bottom_Top and then (Bottom_Text_Y < 0 or else C.Y < Bottom_Text_Y) then
+            Bottom_Text_Y := C.Y;
+         end if;
+      end loop;
+      Assert (Header_Field_Top >= 0 and then Header_Text_Y >= 0 and then Bottom_Text_Y >= 0,
+              "the header field, header label and a bottom-bar label are all present");
+      --  Same offset within their fields: both optically centred alike.
+      Assert (Header_Text_Y - Header_Field_Top = Bottom_Text_Y - Bottom_Top,
+              "the header label sits at the same vertical offset as the bottom-bar text");
+   end Test_Details_Header_Text_Centered;
 
    --  True when the frame contains at least one filled rectangle of Color.
    function Has_Rectangle_Colored

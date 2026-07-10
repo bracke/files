@@ -2828,7 +2828,11 @@ separate (Files.Rendering)
             Header_Y  : constant Natural := Content_Y;
             Header_W  : constant Natural := Content_W;
             Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-            Text_Y    : constant Natural := Saturating_Add (Header_Y, Header_Pad);
+            --  Optically centre the label in the header field: sit it two pixels
+            --  above the geometric inset, matching the bottom bar's text baseline
+            --  (Bottom_Content_Y), so the glyphs read as centred rather than low.
+            Text_Y    : constant Natural :=
+              Saturating_Add (Header_Y, (if Header_Pad >= 2 then Header_Pad - 2 else 0));
             Columns   : constant Detail_Column_Geometry_Array :=
               Compute_Detail_Columns
                 (Snapshot.Detail_Columns_Visible,
