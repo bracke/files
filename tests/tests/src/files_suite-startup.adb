@@ -1182,8 +1182,8 @@ package body Files_Suite.Startup is
         (Files.Localization.Text ("info.contents.total") = "total",
          "info pane folder-size total label is localized");
       Assert (Files.Localization.Text ("status.items") = "Items", "item-count label is localized");
-      Assert (Files.Localization.Text ("status.visible") = "Visible", "visible-count label is localized");
-      Assert (Files.Localization.Text ("status.selected") = "Selected", "selected-count label is localized");
+      Assert (Files.Localization.Text ("status.visible") = "visible", "visible-count label is localized");
+      Assert (Files.Localization.Text ("status.selected") = "selected", "selected-count label is localized");
       Assert
         (Files.Localization.Text ("status.missing_metadata") = "Unavailable",
          "missing metadata fallback is localized");

@@ -1665,9 +1665,9 @@ separate (Files.Rendering)
 
       function Selected_Status_Text return String is
          Count : constant String :=
-           Files.Localization.Text ("status.selected")
-           & ": "
-           & Natural_Text (Snapshot.Selected_Count);
+           Natural_Text (Snapshot.Selected_Count)
+           & " "
+           & Files.Localization.Text ("status.selected");
       begin
          --  When something is selected, append the summed size in parentheses,
          --  e.g. "Selected: 3 (4.5 MB)". Only spaces and punctuation are inline
@@ -1701,9 +1701,9 @@ separate (Files.Rendering)
            To_Unbounded_String
              (Hidden_Status_Text
               & "  "
-              & Files.Localization.Text ("status.visible")
-              & ": "
               & Natural_Text (Snapshot.Visible_Count)
+              & " "
+              & Files.Localization.Text ("status.visible")
               & "  "
               & Selected_Status_Text);
       end Count_Status_Text;
