@@ -1,4 +1,5 @@
 with Files.Commands;
+with Files.Model;
 with Guikit.Layout;
 with Guikit.Segmented;
 
@@ -18,10 +19,23 @@ package Files.UI is
    --  @param Width Window width in pixels.
    --  @param Line_Height Text line height in pixels.
    --  @return Three-section bottom-bar layout.
+   --  @param Sort_Field The active sort field; the sort button is sized to fit
+   --    only this field's label (plus the direction indicator), not the widest.
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Guikit.Layout.Bottom_Bar_Layout;
+
+   --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
+   --  the direction indicator and padding), so every row fits even though the sort
+   --  button itself is only as wide as the active field's label.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Sort-menu width in pixels.
+   function Sort_Menu_Width
+     (Line_Height : Positive := 20)
+      return Natural;
 
    --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
    --  right, labelled with their short localized names. The renderer and the
@@ -75,6 +89,7 @@ package Files.UI is
    --  @param Y Vertical window coordinate.
    --  @param Width Window width in pixels.
    --  @param Height Window height in pixels.
+   --  @param Sort_Field Active sort field (sizes the sort button).
    --  @param Line_Height Text line height in pixels.
    --  @return Matching command or No_Command.
    function Bottom_Bar_Command_At
@@ -82,6 +97,7 @@ package Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
 
@@ -91,6 +107,7 @@ package Files.UI is
    --  @param Y Mouse Y coordinate.
    --  @param Width Window width.
    --  @param Height Window height.
+   --  @param Sort_Field Active sort field (sizes the sort button).
    --  @param Line_Height Text line height in pixels.
    --  @return Sort command for the row, or No_Command outside the menu.
    function Bottom_Bar_Sort_Menu_Command_At
@@ -98,6 +115,7 @@ package Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
 
@@ -108,6 +126,7 @@ package Files.UI is
    --  @param Y Mouse Y coordinate.
    --  @param Width Window width.
    --  @param Height Window height.
+   --  @param Sort_Field Active sort field (sizes the sort button).
    --  @param Line_Height Text line height in pixels.
    --  @return True when the point is inside the sort-menu rectangle.
    function Bottom_Bar_Sort_Menu_Contains
@@ -115,6 +134,7 @@ package Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Boolean;
 

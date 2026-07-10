@@ -9,31 +9,32 @@ package body Files.UI is
 
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Guikit.Layout.Bottom_Bar_Layout
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
 
-      function Sort_Label_Needed (Key : String) return Natural is
+      function Sort_Field_Key return String is
       begin
-         return
-           Label_Pixel_Width
-             (Files.Localization.Text (Key)
-              & " "
-              & Files.Localization.Text ("sort.direction.ascending"),
-              Cell_W);
-      end Sort_Label_Needed;
+         case Sort_Field is
+            when Files.Model.Sort_Name    => return "command.sort.name";
+            when Files.Model.Sort_Size    => return "command.sort.size";
+            when Files.Model.Sort_Type    => return "command.sort.type";
+            when Files.Model.Sort_Created => return "command.sort.created";
+            when Files.Model.Sort_Changed => return "command.sort.changed";
+         end case;
+      end Sort_Field_Key;
 
+      --  Size the sort button to the active field's label only (plus the
+      --  direction indicator), not the widest field, so it is never wider than
+      --  the text it shows.
       Sort_Label_W : constant Natural :=
-        Natural'Max
-          (Sort_Label_Needed ("command.sort.name"),
-           Natural'Max
-             (Sort_Label_Needed ("command.sort.size"),
-              Natural'Max
-                (Sort_Label_Needed ("command.sort.type"),
-                 Natural'Max
-                   (Sort_Label_Needed ("command.sort.created"),
-                    Sort_Label_Needed ("command.sort.changed")))));
+        Label_Pixel_Width
+          (Files.Localization.Text (Sort_Field_Key)
+           & " "
+           & Files.Localization.Text ("sort.direction.ascending"),
+           Cell_W);
    begin
       return
         Guikit.Layout.Calculate_Bottom_Bar_Layout
@@ -49,6 +50,38 @@ package body Files.UI is
              Label_Pixel_Width (Files.Localization.Text ("command.info.toggle.short"), Cell_W),
            Line_Height         => Line_Height);
    end Calculate_Bottom_Bar_Layout;
+
+   function Sort_Menu_Width
+     (Line_Height : Positive := 20)
+      return Natural
+   is
+      Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
+
+      function Label_W (Key : String) return Natural is
+        (Label_Pixel_Width
+           (Files.Localization.Text (Key)
+            & " "
+            & Files.Localization.Text ("sort.direction.ascending"),
+            Cell_W));
+
+      Widest : constant Natural :=
+        Natural'Max
+          (Label_W ("command.sort.name"),
+           Natural'Max
+             (Label_W ("command.sort.size"),
+              Natural'Max
+                (Label_W ("command.sort.type"),
+                 Natural'Max
+                   (Label_W ("command.sort.created"),
+                    Label_W ("command.sort.changed")))));
+   begin
+      --  Mirror the sort button's sizing (guikit Calculate_Bottom_Bar_Layout) but
+      --  for the widest field, so the dropdown never clips a row.
+      return
+        Natural'Max
+          (Saturating_Multiply (Line_Height, 2),
+           Saturating_Add (Widest, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)));
+   end Sort_Menu_Width;
 
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector is
       Result : Guikit.Segmented.Segment_Vectors.Vector;
@@ -164,10 +197,11 @@ package body Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id
    is
-      Bottom   : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Line_Height);
+      Bottom   : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Bottom_H : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       Content_Y : constant Natural := Saturating_Add (Bottom_Y, Bottom_Bar_Padding);
@@ -205,10 +239,11 @@ package body Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id
    is
-      Bottom       : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Line_Height);
+      Bottom       : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Row_Count    : constant Natural := 5;
       Row_H        : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Menu_H       : constant Natural :=
@@ -218,11 +253,13 @@ package body Files.UI is
       Bottom_Y     : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       Menu_Y       : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
       Rows_Y       : constant Natural := Saturating_Add (Menu_Y, Sort_Menu_Padding);
+      --  The dropdown is as wide as the widest field, not the (snug) sort button.
+      Menu_W       : constant Natural := Sort_Menu_Width (Line_Height);
       Relative_Row : Natural := 0;
    begin
       if Bottom.Sort_Button_Width = 0
         or else X < Bottom.Sort_Button_X
-        or else X >= Saturating_Add (Bottom.Sort_Button_X, Bottom.Sort_Button_Width)
+        or else X >= Saturating_Add (Bottom.Sort_Button_X, Menu_W)
         or else Y < Rows_Y
         or else Y >= Saturating_Add (Rows_Y, Saturating_Multiply (Row_H, Row_Count))
         or else Row_H = 0
@@ -252,10 +289,11 @@ package body Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
       Line_Height : Positive := 20)
       return Boolean
    is
-      Bottom    : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Line_Height);
+      Bottom    : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Row_Count : constant Natural := 5;
       Row_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Menu_H    : constant Natural :=
@@ -264,10 +302,11 @@ package body Files.UI is
       Bottom_H  : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
+      Menu_W    : constant Natural := Sort_Menu_Width (Line_Height);
    begin
       return Bottom.Sort_Button_Width > 0
         and then X >= Bottom.Sort_Button_X
-        and then X < Saturating_Add (Bottom.Sort_Button_X, Bottom.Sort_Button_Width)
+        and then X < Saturating_Add (Bottom.Sort_Button_X, Menu_W)
         and then Y >= Menu_Y
         and then Y < Bottom_Y;
    end Bottom_Bar_Sort_Menu_Contains;

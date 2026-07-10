@@ -29,7 +29,7 @@ separate (Files.Rendering)
       Main_View     : constant Main_View_Layout := Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
       Toolbar       : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
       Bottom        : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (Width, Line_Height);
+        Files.UI.Calculate_Bottom_Bar_Layout (Width, Snapshot.Sort_Field, Line_Height);
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
       Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
@@ -3668,7 +3668,8 @@ separate (Files.Rendering)
               Saturating_Add (Rows_H, Saturating_Multiply (Guikit.Layout.Sort_Menu_Padding, 2));
             Menu_X    : constant Natural := Bottom.Sort_Button_X;
             Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
-            Menu_W    : constant Natural := Bottom.Sort_Button_Width;
+            --  The dropdown fits the widest field, not the (snug) sort button.
+            Menu_W    : constant Natural := Files.UI.Sort_Menu_Width (Line_Height);
             Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Guikit.Layout.Sort_Menu_Padding);
             Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);

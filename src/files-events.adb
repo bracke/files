@@ -992,10 +992,11 @@ package body Files.Events is
       end if;
 
       if Snapshot.Sort_Menu_Open then
-         Command := Files.UI.Bottom_Bar_Sort_Menu_Command_At (X, Y, Width, Height, Line_Height);
+         Command :=
+           Files.UI.Bottom_Bar_Sort_Menu_Command_At (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
          if Command /= Files.Commands.No_Command then
             return Command_Action (Command, Activate);
-         elsif Files.UI.Bottom_Bar_Sort_Menu_Contains (X, Y, Width, Height, Line_Height) then
+         elsif Files.UI.Bottom_Bar_Sort_Menu_Contains (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height) then
             --  Click inside the open menu's rectangle but not on a row (its
             --  padding bands): consume it so it cannot fall through and select
             --  the item drawn underneath the menu.
@@ -1005,7 +1006,7 @@ package body Files.Events is
 
       Command := Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);
       if Command = Files.Commands.No_Command then
-         Command := Files.UI.Bottom_Bar_Command_At (X, Y, Width, Height, Line_Height);
+         Command := Files.UI.Bottom_Bar_Command_At (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
       end if;
 
       if Command /= Files.Commands.No_Command then

@@ -11,6 +11,7 @@ with Files.Events;
 with Files.Fonts;
 with Files.Localization;
 with Files.Model;
+with Files.UI;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Files.Rendering;
@@ -67,6 +68,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -150,6 +152,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Text_Baseline'Access,
          "the view-mode chooser labels share the bottom bar's text baseline");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sort_Button_Fits_Field'Access,
+         "the sort button is sized to the active field while the sort menu fits the widest");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Reorder_Layout'Access,
          "a reordered column order lays columns out left-to-right in that order with widths following the column");
@@ -1584,6 +1589,26 @@ package body Files_Suite.Rendering is
       Assert (Baseline >= 0, "the bottom bar draws text");
       Assert (Labels >= 3, "the three view-mode chooser labels are drawn in the bottom bar");
    end Test_Bottom_Bar_Text_Baseline;
+
+   --  The sort button tracks the active field's label width (narrower for a short
+   --  field), while the sort dropdown is sized to the widest field so no row clips.
+   procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Name_Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Name, 20);
+      Chg_Bar  : constant Guikit.Layout.Bottom_Bar_Layout :=
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Changed, 20);
+      Menu_W   : constant Natural := Files.UI.Sort_Menu_Width (20);
+   begin
+      Assert (Name_Bar.Sort_Button_Width > 0 and then Chg_Bar.Sort_Button_Width > 0,
+              "the sort button is laid out for both fields");
+      Assert (Name_Bar.Sort_Button_Width < Chg_Bar.Sort_Button_Width,
+              "the sort button is narrower for a shorter field label");
+      Assert (Menu_W >= Chg_Bar.Sort_Button_Width,
+              "the sort menu is at least as wide as the widest field's button");
+      Assert (Menu_W > Name_Bar.Sort_Button_Width,
+              "the sort menu is wider than the snug button for a short field");
+   end Test_Sort_Button_Fits_Field;
 
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
