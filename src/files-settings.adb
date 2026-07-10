@@ -1627,6 +1627,21 @@ package body Files.Settings is
                                     Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                               end if;
                            end;
+                        elsif Setting_Key = "show_used_space" then
+                           declare
+                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                           begin
+                              if Boolean_Value = "true" then
+                                 Settings.Show_Used_Space := True;
+                              elsif Boolean_Value = "false" then
+                                 Settings.Show_Used_Space := False;
+                              else
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                              end if;
+                           end;
                         elsif Setting_Key = "sort_field" then
                            declare
                               Field : constant String := Files.Types.To_Lower (Value);
@@ -2076,6 +2091,7 @@ package body Files.Settings is
       Append_Line ("default_view_mode = " & View_Mode_Name (Settings.Default_View));
       Append_Line ("show_hidden_files = " & Boolean_Name (Settings.Show_Hidden_Files));
       Append_Line ("show_file_extensions" & " = " & Boolean_Name (Settings.Show_File_Extensions));
+      Append_Line ("show_used_space" & " = " & Boolean_Name (Settings.Show_Used_Space));
       Append_Line ("sort_field = " & Sort_Field_Name (Settings.Sort_Field_Value));
       Append_Line ("sort_ascending = " & Boolean_Name (Settings.Sort_Ascending));
       --  Assembled from fragments so no single string literal mixes letters and
@@ -2286,6 +2302,7 @@ package body Files.Settings is
         (Default_View_Mode      => To_Unbounded_String (View_Mode_Name (Settings.Default_View)),
          Show_Hidden_Files      => To_Unbounded_String (Boolean_Name (Settings.Show_Hidden_Files)),
          Show_File_Extensions   => To_Unbounded_String (Boolean_Name (Settings.Show_File_Extensions)),
+         Show_Used_Space        => To_Unbounded_String (Boolean_Name (Settings.Show_Used_Space)),
          Sort_Field_Value       => To_Unbounded_String (Sort_Field_Name (Settings.Sort_Field_Value)),
          Sort_Ascending         => To_Unbounded_String (Boolean_Name (Settings.Sort_Ascending)),
          Theme                  => To_Unbounded_String (Theme_Name (Settings.Theme)),
@@ -2519,6 +2536,7 @@ package body Files.Settings is
       Append_Line ("default_view_mode = " & To_String (Draft.Default_View_Mode));
       Append_Line ("show_hidden_files = " & To_String (Draft.Show_Hidden_Files));
       Append_Line ("show_file_extensions" & " = " & To_String (Draft.Show_File_Extensions));
+      Append_Line ("show_used_space" & " = " & To_String (Draft.Show_Used_Space));
       Append_Line ("sort_field = " & To_String (Draft.Sort_Field_Value));
       Append_Line ("sort_ascending = " & To_String (Draft.Sort_Ascending));
       Append_Line ("theme" & " = " & To_String (Draft.Theme));
@@ -2777,6 +2795,7 @@ package body Files.Settings is
       Result.Default_View := Parsed.Settings.Default_View;
       Result.Show_Hidden_Files := Parsed.Settings.Show_Hidden_Files;
       Result.Show_File_Extensions := Parsed.Settings.Show_File_Extensions;
+      Result.Show_Used_Space := Parsed.Settings.Show_Used_Space;
       Result.Sort_Field_Value := Parsed.Settings.Sort_Field_Value;
       Result.Sort_Ascending := Parsed.Settings.Sort_Ascending;
       Result.Theme := Parsed.Settings.Theme;

@@ -268,9 +268,16 @@ package body Files.UI is
          return Files.Commands.Toggle_Hidden_Files_Command;
       elsif Within (X, Bottom.Info_Pane_X, Bottom.Info_Pane_Width) then
          return Files.Commands.Toggle_Info_Pane_Command;
+      elsif Free_Field_Width > 0
+        and then Within
+          (X, Divider_X,
+           (if Saturating_Add (Bottom.Info_X, Bottom.Info_Width) > Divider_X
+            then Saturating_Add (Bottom.Info_X, Bottom.Info_Width) - Divider_X else 0))
+      then
+         --  The free-space field (right of the divider) toggles between showing
+         --  free and used disk space.
+         return Files.Commands.Toggle_Free_Space_Display_Command;
       else
-         --  The free-space field (between the divider and the info-pane toggle)
-         --  falls through here: it is its own field with no command.
          return Files.Commands.No_Command;
       end if;
    end Bottom_Bar_Command_At;

@@ -75,6 +75,7 @@ package Files.Settings is
       Default_View           : Files.Types.View_Mode := Files.Types.Small_Icons;
       Show_Hidden_Files      : Boolean := False;
       Show_File_Extensions   : Boolean := True;
+      Show_Used_Space        : Boolean := False;
       Sort_Field_Value       : Sort_Field := Sort_By_Name;
       Sort_Ascending         : Boolean := True;
       --  Selected color theme applied to the rendering palette.
@@ -147,6 +148,7 @@ package Files.Settings is
       Default_View_Mode      : UString;
       Show_Hidden_Files      : UString;
       Show_File_Extensions   : UString;
+      Show_Used_Space        : UString;
       Sort_Field_Value       : UString;
       Sort_Ascending         : UString;
       Theme                  : UString;

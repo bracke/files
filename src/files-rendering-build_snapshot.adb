@@ -433,6 +433,7 @@ separate (Files.Rendering)
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
       Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
       Snapshot.Show_Extensions := Settings.Show_File_Extensions;
+      Snapshot.Show_Used_Space := Settings.Show_Used_Space;
       Snapshot.Detail_Columns_Visible := Settings.Column_Visible;
       Snapshot.Detail_Column_Widths := Settings.Column_Widths;
       Snapshot.Detail_Column_Order := Settings.Column_Order;

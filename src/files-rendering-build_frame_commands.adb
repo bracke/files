@@ -1870,11 +1870,6 @@ separate (Files.Rendering)
            & Count_Status_Text;
       end Main_View_Accessible_Description;
 
-      function Bottom_Info_Color return Render_Color is
-      begin
-         return (if Length (Snapshot.Last_Error_Key) > 0 then Error_Text_Color else Muted_Text_Color);
-      end Bottom_Info_Color;
-
       function Empty_State_Key return String is
       begin
          if Snapshot.Item_Count = 0 and then Snapshot.In_Recent_View then
@@ -2703,31 +2698,67 @@ separate (Files.Rendering)
                Counts_Color,
                Fit => True);
             if Show_Free then
-               --  Span the full bar height (matching the button fills), not just
-               --  the inset content band, so the divider reaches top to bottom.
-               Add_Rect
-                 (Divider_X,
-                  Saturating_Add (Bottom_Y, 1),
-                  1,
-                  (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
-                   else Layout.Bottom_Bar_Height),
-                  Border_Color);
-               Add_Text
-                 (Free_X,
-                  Bottom_Content_Y,
-                  Free_Field_W,
-                  Bottom_Content_H,
-                  To_Unbounded_String (Free_Text),
-                  Bottom_Info_Color,
-                  Fit => True);
-               --  The free-space field is its own thing, so it carries its own
-               --  tooltip explaining the number rather than the toggle's.
-               Add_Tooltip
-                 (Free_X,
-                  Bottom_Content_Y,
-                  Free_Field_W,
-                  Bottom_Content_H,
-                  "status.free_space.tooltip");
+               declare
+                  --  The free field's interactive region: from the divider to the
+                  --  right edge of the info area, mirroring the click hit-test.
+                  Free_Region_X : constant Natural := Divider_X;
+                  Free_Region_W : constant Natural :=
+                    (if Saturating_Add (Bottom.Info_X, Bottom.Info_Width) > Divider_X
+                     then Saturating_Add (Bottom.Info_X, Bottom.Info_Width) - Divider_X
+                     else Free_Field_W);
+               begin
+                  --  Clicking the field toggles free/used space, so it gets the
+                  --  same hover/press affordance as the neighbouring toggles.
+                  Add_Rect
+                    (Free_Region_X,
+                     Info_Btn_Y,
+                     Free_Region_W,
+                     Info_Btn_H,
+                     (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command)
+                      then Bottom_Bar_Color
+                      elsif Is_Pressed (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height)
+                      then Pressed_Color
+                      elsif Has_Hover
+                        and then Contains_Point
+                          (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
+                      then Hover_Color
+                      else Bottom_Bar_Color));
+                  --  Span the full bar height (matching the button fills), not
+                  --  just the inset content band, so the divider reaches top to
+                  --  bottom.
+                  Add_Rect
+                    (Divider_X,
+                     Saturating_Add (Bottom_Y, 1),
+                     1,
+                     (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+                      else Layout.Bottom_Bar_Height),
+                     Border_Color);
+                  Add_Text
+                    (Free_X,
+                     Bottom_Content_Y,
+                     Free_Field_W,
+                     Bottom_Content_H,
+                     To_Unbounded_String (Free_Text),
+                     Command_Color (Files.Commands.Toggle_Free_Space_Display_Command),
+                     Fit => True);
+                  --  Tooltip describes the current mode and flips after a toggle.
+                  Add_Tooltip
+                    (Free_Region_X,
+                     Bottom_Content_Y,
+                     Free_Region_W,
+                     Bottom_Content_H,
+                     (if Snapshot.Show_Used_Space then "status.used_space.tooltip"
+                      else "status.free_space.tooltip"));
+                  Add_Accessibility_Node
+                    (Role_Button,
+                     Free_Region_X,
+                     Bottom_Content_Y,
+                     Free_Region_W,
+                     Bottom_Content_H,
+                     Command_Label (Files.Commands.Toggle_Free_Space_Display_Command),
+                     Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Free_Space_Display_Command)),
+                     Enabled => Snapshot.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command));
+               end;
             end if;
             Add_Tooltip_Text
               (Bottom.Info_X,

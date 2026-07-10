@@ -142,6 +142,10 @@ package body Files.Interaction is
             Outcome :=
               Files.Controller.Toggle_Show_Extensions (Model, Settings, Settings_Path);
             Result.Settings_Changed := True;
+         when Files.Commands.Toggle_Free_Space_Display_Command =>
+            Outcome :=
+              Files.Controller.Toggle_Free_Space_Display (Model, Settings, Settings_Path);
+            Result.Settings_Changed := True;
          when Files.Commands.Toggle_Favorite_Command =>
             declare
                Selected : constant Files.File_System.Item_Vectors.Vector :=

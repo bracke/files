@@ -494,6 +494,18 @@ package body Files.Rendering is
          return "";
       end if;
 
+      --  In used-space mode, show the difference from total capacity; fall back
+      --  to free space when the total is unknown or inconsistent.
+      if Snapshot.Show_Used_Space
+        and then Snapshot.Total_Space_Bytes > 0
+        and then Snapshot.Total_Space_Bytes >= Snapshot.Free_Space_Bytes
+      then
+         return
+           Size_Text (Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes)
+           & " "
+           & Files.Localization.Text ("status.used_space.suffix");
+      end if;
+
       return
         Size_Text (Snapshot.Free_Space_Bytes)
         & " "

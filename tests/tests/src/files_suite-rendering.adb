@@ -79,7 +79,8 @@ package body Files_Suite.Rendering is
    procedure Test_Free_Space_Has_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Outside_Toggle_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Split_Status_Region (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Free_Space_Not_Clickable (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Free_Space_Click_Toggles (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Used_Space_Label_After_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Counts_Compact_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -193,8 +194,11 @@ package body Files_Suite.Rendering is
         (T, Test_Split_Status_Region'Access,
          "Split_Status_Region carves the free-space field off the toggle area");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Free_Space_Not_Clickable'Access,
-         "clicking the free-space field does nothing, the counts area still toggles");
+        (T, Test_Free_Space_Click_Toggles'Access,
+         "clicking the free-space field toggles free/used space; counts still toggles hidden files");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Used_Space_Label_After_Toggle'Access,
+         "used-space mode shows the used-space suffix, not the free-space one");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Counts_Compact_When_Narrow'Access,
          "a narrow bar drops the count labels and slash-separates the numbers");
@@ -1899,9 +1903,9 @@ package body Files_Suite.Rendering is
       end;
    end Test_Free_Space_Separate_Field;
 
-   --  The counts are the clickable hidden-files toggle, so their text uses the
-   --  same active colour as the info-pane toggle button, brighter than the muted
-   --  non-clickable free-space field.
+   --  The counts (hidden-files toggle) and the free-space field (free/used
+   --  toggle) are both clickable, so their text uses the same active colour as
+   --  the info-pane toggle button.
    procedure Test_Counts_Text_Uses_Active_Color (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
@@ -1912,6 +1916,7 @@ package body Files_Suite.Rendering is
       Snap.Free_Space_Bytes := 12_000_000_000;
       Snap.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) := True;
       Snap.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command) := True;
+      Snap.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command) := True;
       declare
          Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
          Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
@@ -1939,8 +1944,8 @@ package body Files_Suite.Rendering is
                  "the counts, free-space and info-pane texts are all present");
          Assert (Counts_C = Pane_C,
                  "the counts text uses the same active colour as the info-pane toggle");
-         Assert (Counts_C /= Free_C,
-                 "the counts text is brighter than the muted free-space field");
+         Assert (Counts_C = Free_C,
+                 "the clickable free-space field uses the same active colour as the counts");
       end;
    end Test_Counts_Text_Uses_Active_Color;
 
@@ -1997,8 +2002,8 @@ package body Files_Suite.Rendering is
       end;
    end Test_Free_Space_Has_Tooltip;
 
-   --  The hidden-files toggle's hover highlight covers only the counts area, not
-   --  the separate free-space field to its right.
+   --  The counts (hidden-files toggle) and the free-space field (free/used
+   --  toggle) are two separate hover regions: hovering one highlights only it.
    procedure Test_Free_Space_Outside_Toggle_Hover (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snap : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
@@ -2006,6 +2011,7 @@ package body Files_Suite.Rendering is
       Snap.Free_Space_Known := True;
       Snap.Free_Space_Bytes := 12_000_000_000;
       Snap.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) := True;
+      Snap.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command) := True;
       declare
          Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
          Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
@@ -2015,26 +2021,30 @@ package body Files_Suite.Rendering is
          Counts_X : constant Natural := Bar.Info_X + 5;
          Free_HX  : constant Natural := Bar.Info_X + Bar.Info_Width - 5;
 
-         --  True when a hover highlight rectangle in the bottom bar covers PX,
-         --  with the cursor placed at PX.
-         function Hover_Covers (PX : Natural) return Boolean is
+         --  True when, with the cursor at Hover_At, a hover highlight rectangle
+         --  in the bottom bar covers Check_X.
+         function Highlight_At (Hover_At, Check_X : Natural) return Boolean is
             Frame : constant Frame_Commands :=
-              Build_Frame_Commands (Snap, 1000, 800, 20, Hover_X => PX, Hover_Y => HY, Has_Hover => True);
+              Build_Frame_Commands (Snap, 1000, 800, 20, Hover_X => Hover_At, Hover_Y => HY, Has_Hover => True);
          begin
             for R of Frame.Rectangles loop
                if R.Color = Hover_Color and then R.Y >= Bottom_Y
-                 and then PX >= R.X and then PX < R.X + R.Width
+                 and then Check_X >= R.X and then Check_X < R.X + R.Width
                then
                   return True;
                end if;
             end loop;
             return False;
-         end Hover_Covers;
+         end Highlight_At;
       begin
-         Assert (Hover_Covers (Counts_X),
-                 "hovering the counts area highlights the hidden-files toggle");
-         Assert (not Hover_Covers (Free_HX),
-                 "hovering the free-space field does not highlight the toggle");
+         Assert (Highlight_At (Counts_X, Counts_X),
+                 "hovering the counts area highlights it");
+         Assert (not Highlight_At (Counts_X, Free_HX),
+                 "hovering the counts area does not highlight the free-space field");
+         Assert (Highlight_At (Free_HX, Free_HX),
+                 "hovering the free-space field highlights it");
+         Assert (not Highlight_At (Free_HX, Counts_X),
+                 "hovering the free-space field does not highlight the counts area");
       end;
    end Test_Free_Space_Outside_Toggle_Hover;
 
@@ -2064,9 +2074,9 @@ package body Files_Suite.Rendering is
               "toggle, divider gap and free field partition the region");
    end Test_Split_Status_Region;
 
-   --  Clicking the counts area toggles hidden files; clicking the separate
-   --  free-space field to its right does nothing.
-   procedure Test_Free_Space_Not_Clickable (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   --  Clicking the counts area toggles hidden files; clicking the free-space
+   --  field toggles between free and used space.
+   procedure Test_Free_Space_Click_Toggles (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snap : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
    begin
@@ -2089,10 +2099,43 @@ package body Files_Suite.Rendering is
             "clicking the counts area toggles hidden files");
          Assert
            (Files.UI.Bottom_Bar_Command_At (Free_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.No_Command,
-            "clicking the free-space field does nothing");
+              = Files.Commands.Toggle_Free_Space_Display_Command,
+            "clicking the free-space field toggles free/used space");
       end;
-   end Test_Free_Space_Not_Clickable;
+   end Test_Free_Space_Click_Toggles;
+
+   --  In used-space mode the field's label shows the used-space suffix, not the
+   --  free-space one.
+   procedure Test_Used_Space_Label_After_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Used_Sfx : constant String := Files.Localization.Text ("status.used_space.suffix");
+      Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");
+   begin
+      Snap.Free_Space_Known := True;
+      Snap.Free_Space_Bytes := 12_000_000_000;
+      Snap.Total_Space_Bytes := 100_000_000_000;
+      Snap.Show_Used_Space := True;
+      declare
+         Layout    : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
+         Frame     : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
+         Bottom_Y  : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+         Has_Used  : Boolean := False;
+         Has_Free  : Boolean := False;
+      begin
+         for C of Frame.Text loop
+            if C.Y >= Bottom_Y then
+               if Ada.Strings.Fixed.Index (To_String (C.Text), " " & Used_Sfx) > 0 then
+                  Has_Used := True;
+               elsif Ada.Strings.Fixed.Index (To_String (C.Text), " " & Free_Sfx) > 0 then
+                  Has_Free := True;
+               end if;
+            end if;
+         end loop;
+         Assert (Has_Used, "used-space mode shows the used-space suffix");
+         Assert (not Has_Free, "used-space mode does not show the free-space suffix");
+      end;
+   end Test_Used_Space_Label_After_Toggle;
 
    --  A wide bar shows the labelled counts; a narrow one drops the labels and
    --  slash-separates the three numbers.

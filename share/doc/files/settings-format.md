@@ -6,7 +6,8 @@ entries. Missing settings use built-in defaults.
 Core sections:
 
 1. `[settings]` stores global options such as default view mode, hidden-file
-   visibility, sort field, sort order, and icon theme.
+   visibility, sort field, sort order, icon theme, and whether the status bar
+   shows used space (`show_used_space`) rather than free space.
 2. `[filetypes]` maps filename extensions to filetype identifiers.
 3. `[icons]` maps filetype identifiers to icon identifiers.
 4. `[open-actions]` maps filetypes and modifier-specific filetype tokens to

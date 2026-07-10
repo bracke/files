@@ -129,6 +129,20 @@ package Files.Controller is
       Settings_Path : String)
       return Controller_Result;
 
+   --  Flip the Show_Used_Space setting and persist it, so the status bar's
+   --  disk-space field switches between showing free and used space. Display
+   --  only: the item list is unchanged and the directory is not reloaded.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model whose free/used flag is flipped.
+   --  @param Settings_Path Central settings file path.
+   --  @return Controller result with persistence operation details.
+   function Toggle_Free_Space_Display
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result;
+
    --  Execute a command produced by a toolbar or bottom-bar hit test.
    --
    --  @param Id Command identifier from the clicked UI control.

@@ -128,6 +128,9 @@ package Files.Rendering is
       Free_Space_Known      : Boolean := False;
       Free_Space_Bytes      : Long_Long_Integer := 0;
       Total_Space_Bytes     : Long_Long_Integer := 0;
+      --  When set, the status bar shows used space (Total - Free) rather than
+      --  free space; toggled by clicking the field.
+      Show_Used_Space       : Boolean := False;
       Filter_Text           : UString;
       --  Active filter-bar search scope and whether the current view holds
       --  recursive search results (name or content) rather than a plain
