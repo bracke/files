@@ -2699,6 +2699,14 @@ separate (Files.Rendering)
                   To_Unbounded_String (Free_Text),
                   Bottom_Info_Color,
                   Fit => True);
+               --  The free-space field is its own thing, so it carries its own
+               --  tooltip explaining the number rather than the toggle's.
+               Add_Tooltip
+                 (Free_X,
+                  Bottom_Content_Y,
+                  Free_Field_W,
+                  Bottom_Content_H,
+                  "status.free_space.tooltip");
             end if;
             Add_Command_Tooltip
               (Bottom.Info_X,

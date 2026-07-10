@@ -119,6 +119,7 @@ es.status.items = Elementos
 es.status.visible = visibles
 es.status.selected = seleccionados
 es.status.free_space.suffix = libre
+es.status.free_space.tooltip = Espacio libre en el sistema de archivos actual
 es.status.missing_metadata = No disponible
 es.status.empty_directory = Esta carpeta está vacía.
 es.status.empty_filter = Ningún elemento coincide con el filtro actual.

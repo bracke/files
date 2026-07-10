@@ -119,6 +119,7 @@ it.status.items = Elementi
 it.status.visible = visibili
 it.status.selected = selezionati
 it.status.free_space.suffix = liberi
+it.status.free_space.tooltip = Spazio libero nel file system corrente
 it.status.missing_metadata = Non disponibile
 it.status.empty_directory = Questa cartella è vuota.
 it.status.empty_filter = Nessun elemento corrisponde al filtro corrente.

@@ -119,6 +119,7 @@ pt.status.items = Itens
 pt.status.visible = visíveis
 pt.status.selected = selecionados
 pt.status.free_space.suffix = livre
+pt.status.free_space.tooltip = Espaço livre no sistema de arquivos atual
 pt.status.missing_metadata = Indisponível
 pt.status.empty_directory = Esta pasta está vazia.
 pt.status.empty_filter = Nenhum item corresponde ao filtro atual.

@@ -159,6 +159,7 @@ de-DE.status.items = Elemente
 de-DE.status.visible = sichtbar
 de-DE.status.selected = markiert
 de-DE.status.free_space.suffix = frei
+de-DE.status.free_space.tooltip = Freier Speicherplatz im aktuellen Dateisystem
 de-DE.status.missing_metadata = Nicht verfügbar
 de-DE.status.empty_directory = Dieser Ordner ist leer.
 de-DE.status.empty_filter = Keine Elemente entsprechen dem aktuellen Filter.

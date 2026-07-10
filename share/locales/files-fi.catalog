@@ -119,6 +119,7 @@ fi.status.items = Kohteet
 fi.status.visible = näkyvät
 fi.status.selected = valitut
 fi.status.free_space.suffix = vapaana
+fi.status.free_space.tooltip = Vapaa tila nykyisessä tiedostojärjestelmässä
 fi.status.missing_metadata = Ei saatavilla
 fi.status.empty_directory = Tämä kansio on tyhjä.
 fi.status.empty_filter = Mikään kohde ei vastaa nykyistä suodatinta.

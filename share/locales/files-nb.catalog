@@ -119,6 +119,7 @@ nb.status.items = Elementer
 nb.status.visible = synlige
 nb.status.selected = valgte
 nb.status.free_space.suffix = ledig
+nb.status.free_space.tooltip = Ledig plass på det gjeldende filsystemet
 nb.status.missing_metadata = Ikke tilgjengelig
 nb.status.empty_directory = Denne mappen er tom.
 nb.status.empty_filter = Ingen elementer samsvarer med gjeldende filter.

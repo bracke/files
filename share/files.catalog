@@ -344,6 +344,7 @@ en.status.visible = visible
 en.status.selected = selected
 en.status.hidden = hidden
 en.status.free_space.suffix = free
+en.status.free_space.tooltip = Free space on the current filesystem
 en.status.missing_metadata = Unavailable
 en.status.empty_directory = This directory is empty.
 en.status.empty_filter = No items match the current filter.
