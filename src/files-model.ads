@@ -1062,11 +1062,23 @@ package Files.Model is
 
    --  Show the Ordinal-th settings section (clamped to the available range),
    --  moving focus to its first field. Used to drive the tab switcher
-   --  programmatically (e.g. tests, and any future keyboard tab navigation).
+   --  programmatically (keyboard tab navigation and tests).
    --
    --  @param Model Model to update.
    --  @param Ordinal One-based section ordinal.
    procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural);
+
+   --  The number of settings sections (tabs) in the current field list.
+   --
+   --  @param Model Model to inspect.
+   --  @return Section count (0 before the panel has been laid out).
+   function Settings_Section_Count (Model : Window_Model) return Natural;
+
+   --  The one-based ordinal of the currently shown settings section.
+   --
+   --  @param Model Model to inspect.
+   --  @return Active section ordinal.
+   function Settings_Active_Section (Model : Window_Model) return Natural;
 
    --  Arm the focused field for capture when it is an enabled Shortcut field.
    --

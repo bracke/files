@@ -1590,6 +1590,22 @@ package body Files.Controller is
       end if;
    end Capture_Settings_Shortcut;
 
+   --  Move the settings pane to the next/previous section tab, wrapping. This is
+   --  the only keyboard path between sections -- Up/Down move field focus within
+   --  the active section, never across tabs.
+   procedure Cycle_Settings_Section (Model : in out Files.Model.Window_Model; Forward : Boolean) is
+      Count  : constant Natural := Files.Model.Settings_Section_Count (Model);
+      Active : constant Natural := Files.Model.Settings_Active_Section (Model);
+   begin
+      if Count <= 1 then
+         return;
+      elsif Forward then
+         Files.Model.Settings_Set_Active_Section (Model, (if Active >= Count then 1 else Active + 1));
+      else
+         Files.Model.Settings_Set_Active_Section (Model, (if Active <= 1 then Count else Active - 1));
+      end if;
+   end Cycle_Settings_Section;
+
    function Handle_Settings_Click
      (Model : in out Files.Model.Window_Model;
       X     : Integer;
@@ -1938,6 +1954,15 @@ package body Files.Controller is
             --  no-op on text fields); the emitted change is applied to the draft.
             Files.Model.Settings_Cycle_Choice (Model, Forward => Key = Guikit.Input.Key_Right);
             return Applied_Settings_Change (Model);
+         elsif Key = Guikit.Input.Key_Tab
+           and then Modifiers (Guikit.Input.Control_Key)
+           and then not Modifiers (Guikit.Input.Alt_Key)
+           and then not Modifiers (Guikit.Input.Meta_Key)
+         then
+            --  Ctrl+Tab / Ctrl+Shift+Tab switch between the section tabs -- the
+            --  keyboard equivalent of clicking the tab switcher.
+            Cycle_Settings_Section (Model, Forward => not Modifiers (Guikit.Input.Shift_Key));
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
          elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
             --  Enter on a focused Shortcut row arms press-to-capture (the
             --  keyboard equivalent of clicking it); otherwise fall through to the

@@ -2412,6 +2412,16 @@ package body Files.Model is
       Guikit.Settings_Panel.Set_Active_Section (Model.Settings_Panel_View, Ordinal);
    end Settings_Set_Active_Section;
 
+   function Settings_Section_Count (Model : Window_Model) return Natural is
+   begin
+      return Guikit.Settings_Panel.Section_Count (Model.Settings_Panel_View);
+   end Settings_Section_Count;
+
+   function Settings_Active_Section (Model : Window_Model) return Natural is
+   begin
+      return Guikit.Settings_Panel.Active_Section (Model.Settings_Panel_View);
+   end Settings_Active_Section;
+
    procedure Settings_Begin_Capture (Model : in out Window_Model) is
    begin
       Guikit.Settings_Panel.Begin_Capture (Model.Settings_Panel_View);

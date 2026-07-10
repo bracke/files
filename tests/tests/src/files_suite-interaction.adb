@@ -101,6 +101,7 @@ package body Files_Suite.Interaction is
    procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -182,6 +183,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Capture_Routing'Access,
          "an armed shortcut row captures the next chord via the key seam; Esc/Backspace/Delete cancel/unbind/reset");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Tab_Keys'Access,
+         "Ctrl+Tab and Ctrl+Shift+Tab cycle the settings section tabs, wrapping at the ends");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Grid_Nav_Keys'Access,
          "Home/End/PageUp/PageDown page the grid selection through the key seam");
@@ -909,6 +913,63 @@ package body Files_Suite.Interaction is
 
       Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Capture_Routing;
+
+   --  Ctrl+Tab / Ctrl+Shift+Tab move between the settings section tabs through the
+   --  key seam -- the only keyboard route across sections -- and wrap at the ends.
+   procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Path     : constant String :=
+        Files_Suite.Support.Join (Files_Suite.Support.Root, "tabs.conf");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Rects    : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Text     : Guikit.Draw.Text_Command_Vectors.Vector;
+      Nodes    : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+
+      procedure Tab (Mods : Guikit.Input.Modifier_Set) is
+      begin
+         Files.Interaction.Handle_Key
+           (Model => Model, Settings => Settings, Settings_Path => Path,
+            Key => Guikit.Input.Key_Tab, Modifiers => Mods,
+            Current_Font_Size => Base_Font, Result => Result);
+      end Tab;
+   begin
+      Files_Suite.Support.Reset_Root;
+
+      --  Open the pane and lay it out so the sections exist.
+      Files.Interaction.Handle_Key
+        (Model => Model, Settings => Settings, Settings_Path => Path,
+         Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
+         Current_Font_Size => Base_Font, Result => Result);
+      Files.Model.Settings_Build_Frame
+        (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
+         Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
+         Rectangles => Rects, Text => Text, Accessibility => Nodes);
+
+      declare
+         Count : constant Natural := Files.Model.Settings_Section_Count (Model);
+      begin
+         Assert (Count > 1, "the settings form has multiple section tabs");
+         Assert (Files.Model.Settings_Active_Section (Model) = 1, "the first section is active initially");
+
+         Tab (Ctrl);
+         Assert (Files.Model.Settings_Active_Section (Model) = 2, "Ctrl+Tab advances to the next section");
+
+         Tab (Ctrl_Shift);
+         Assert (Files.Model.Settings_Active_Section (Model) = 1, "Ctrl+Shift+Tab returns to the previous section");
+
+         --  Wrap backward from the first section to the last.
+         Tab (Ctrl_Shift);
+         Assert (Files.Model.Settings_Active_Section (Model) = Count,
+                 "Ctrl+Shift+Tab wraps from the first section to the last");
+
+         --  Wrap forward from the last section back to the first.
+         Tab (Ctrl);
+         Assert (Files.Model.Settings_Active_Section (Model) = 1,
+                 "Ctrl+Tab wraps from the last section to the first");
+      end;
+   end Test_Settings_Tab_Keys;
 
    --  Home/End/PageUp/PageDown page the file-grid selection through the genuine
    --  key seam (Files.Interaction.Handle_Key) and never navigate: plain Home is
