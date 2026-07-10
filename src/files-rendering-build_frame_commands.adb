@@ -2367,16 +2367,17 @@ separate (Files.Rendering)
            (Segments      => View_Segments,
             Active        => Active,
             Region_X      => Bottom.View_Mode_X,
-            --  Use the shared bottom-bar content band (not the full bar height) so
-            --  the segment labels sit on the same baseline as the rest of the bar.
-            Region_Y      => Bottom_Content_Y,
+            Region_Y      => Bottom_Y,
             Region_Width  => Bottom.View_Mode_Width,
-            Region_Height => Bottom_Content_H,
+            Region_Height => Layout.Bottom_Bar_Height,
             Clip_Width    => Width,
             Clip_Height   => Height,
             Line_Height   => Line_Height,
             Hover_X       => (if Has_Hover then Hover_X else -1),
             Hover_Y       => (if Has_Hover then Hover_Y else -1),
+            --  Cells fill the full bar, but sit the labels on the shared bottom-bar
+            --  text baseline instead of centring them in the taller cell.
+            Label_Inset   => Bottom_Content_Y - Bottom_Y,
             Rectangles    => Seg_Rects,
             Text          => Seg_Text,
             Tooltips      => Seg_Tips,
