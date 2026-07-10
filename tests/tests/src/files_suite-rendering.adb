@@ -74,6 +74,7 @@ package body Files_Suite.Rendering is
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Counts_Text_Uses_Active_Color (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Has_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Outside_Toggle_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Split_Status_Region (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -174,6 +175,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Free_Space_Separate_Field'Access,
          "free space is its own field, divided from the counts by a divider");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Counts_Text_Uses_Active_Color'Access,
+         "the counts text uses the active control colour, not the muted info colour");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Free_Space_Has_Tooltip'Access,
          "the free-space field has its own tooltip");
@@ -1849,6 +1853,51 @@ package body Files_Suite.Rendering is
          Assert (Divider, "a vertical divider separates the free-space field from the counts");
       end;
    end Test_Free_Space_Separate_Field;
+
+   --  The counts are the clickable hidden-files toggle, so their text uses the
+   --  same active colour as the info-pane toggle button, brighter than the muted
+   --  non-clickable free-space field.
+   procedure Test_Counts_Text_Uses_Active_Color (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
+      Vis_Lbl  : constant String := Files.Localization.Text ("status.visible");
+      Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");
+   begin
+      Snap.Free_Space_Known := True;
+      Snap.Free_Space_Bytes := 12_000_000_000;
+      Snap.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) := True;
+      Snap.Command_Enabled (Files.Commands.Toggle_Info_Pane_Command) := True;
+      declare
+         Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
+         Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
+           Files.UI.Calculate_Bottom_Bar_Layout (1000, Snap.Sort_Field, 20);
+         Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
+         Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+         Counts_C, Free_C, Pane_C : Guikit.Draw.Render_Color;
+         Has_Counts, Has_Free, Has_Pane : Boolean := False;
+      begin
+         for C of Frame.Text loop
+            if C.Y >= Bottom_Y then
+               if Ada.Strings.Fixed.Index (To_String (C.Text), Vis_Lbl) > 0 then
+                  Counts_C := C.Color;
+                  Has_Counts := True;
+               elsif Ada.Strings.Fixed.Index (To_String (C.Text), Free_Sfx) > 0 then
+                  Free_C := C.Color;
+                  Has_Free := True;
+               elsif C.X >= Bar.Info_Pane_X then
+                  Pane_C := C.Color;
+                  Has_Pane := True;
+               end if;
+            end if;
+         end loop;
+         Assert (Has_Counts and then Has_Free and then Has_Pane,
+                 "the counts, free-space and info-pane texts are all present");
+         Assert (Counts_C = Pane_C,
+                 "the counts text uses the same active colour as the info-pane toggle");
+         Assert (Counts_C /= Free_C,
+                 "the counts text is brighter than the muted free-space field");
+      end;
+   end Test_Counts_Text_Uses_Active_Color;
 
    --  The free-space field carries its own tooltip, positioned over the field
    --  (right side of the info region), distinct from the toggle's tooltip.

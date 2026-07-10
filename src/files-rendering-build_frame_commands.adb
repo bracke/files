@@ -2658,6 +2658,14 @@ separate (Files.Rendering)
               and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
             Status_Text : constant UString :=
               (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
+            --  The counts area is the clickable hidden-files toggle, so its text
+            --  is drawn in the active control colour (white when enabled), like
+            --  the neighbouring toggle buttons, rather than the muted info colour
+            --  used for the non-clickable free-space field. The error line keeps
+            --  the error colour.
+            Counts_Color : constant Render_Color :=
+              (if Length (Snapshot.Last_Error_Key) > 0 then Error_Text_Color
+               else Command_Color (Files.Commands.Toggle_Hidden_Files_Command));
          begin
             Add_Rect
               (Bottom.Info_X,
@@ -2679,7 +2687,7 @@ separate (Files.Rendering)
                Counts_W,
                Bottom_Content_H,
                Status_Text,
-               Bottom_Info_Color,
+               Counts_Color,
                Fit => True);
             if Show_Free then
                --  Span the full bar height (matching the button fills), not just
