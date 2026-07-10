@@ -566,3 +566,4 @@ nb.settings.shortcut.capturing = Trykk en snarvei. Esc avbryter, Tilbake sletter
 nb.settings.shortcut.conflict = Denne snarveien brukes allerede av en annen kommando.
 nb.settings.shortcut.secondary = Også tildelt:
 nb.settings.view = Standardvisning
+nb.settings.tabs.hint = Ctrl+Tab bytter seksjoner

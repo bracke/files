@@ -456,6 +456,7 @@ en.settings.section.behavior = Behavior
 en.settings.section.details = Details view
 en.settings.section.file_types = File types and applications
 en.settings.section.shortcuts = Shortcuts
+en.settings.tabs.hint = Ctrl+Tab switches sections
 en.settings.shortcut.capturing = Press a shortcut. Esc cancels, Backspace clears, Delete resets.
 en.settings.shortcut.conflict = That shortcut is already used by another command.
 en.settings.shortcut.secondary = Also bound:

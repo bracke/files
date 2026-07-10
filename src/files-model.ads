@@ -1122,6 +1122,9 @@ package Files.Model is
    --  @param Clip_Height Drawable window height in pixels.
    --  @param Line_Height Row height in pixels.
    --  @param Focused Whether the panel has keyboard focus.
+   --  @param Hover_X Cursor X in pixels, or negative when off-window (drives the
+   --    tab-switcher hover tooltip).
+   --  @param Hover_Y Cursor Y in pixels.
    --  @param Rectangles Out: rectangle commands.
    --  @param Text Out: text commands.
    --  @param Accessibility Out: accessibility nodes.
@@ -1135,6 +1138,8 @@ package Files.Model is
       Clip_Height   : Natural;
       Line_Height   : Positive;
       Focused       : Boolean;
+      Hover_X       : Integer := -1;
+      Hover_Y       : Integer := -1;
       Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);

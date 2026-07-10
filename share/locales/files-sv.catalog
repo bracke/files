@@ -566,3 +566,4 @@ sv.settings.shortcut.capturing = Tryck på ett kortkommando. Esc avbryter, Backs
 sv.settings.shortcut.conflict = Det kortkommandot används redan av ett annat kommando.
 sv.settings.shortcut.secondary = Även bunden:
 sv.settings.view = Standardvy
+sv.settings.tabs.hint = Ctrl+Tab växlar avsnitt

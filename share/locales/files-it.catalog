@@ -566,3 +566,4 @@ it.settings.shortcut.capturing = Premi una scorciatoia. Esc annulla, Backspace c
 it.settings.shortcut.conflict = Questa scorciatoia è già usata da un altro comando.
 it.settings.shortcut.secondary = Anche associata:
 it.settings.view = Vista predefinita
+it.settings.tabs.hint = Ctrl+Tab cambia sezione

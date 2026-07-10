@@ -565,3 +565,4 @@ de.settings.shortcut.capturing = Tastenkürzel drücken. Esc bricht ab, Rücktas
 de.settings.shortcut.conflict = Dieses Tastenkürzel wird bereits von einem anderen Befehl verwendet.
 de.settings.shortcut.secondary = Auch belegt:
 de.settings.view = Standardansicht
+de.settings.tabs.hint = Strg+Tab wechselt Abschnitte

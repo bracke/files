@@ -566,3 +566,4 @@ es.settings.shortcut.capturing = Pulse un atajo. Esc cancela, Retroceso borra, S
 es.settings.shortcut.conflict = Ese atajo ya lo usa otro comando.
 es.settings.shortcut.secondary = También asignado:
 es.settings.view = Modo de vista predeterminado
+es.settings.tabs.hint = Ctrl+Tab cambia de sección

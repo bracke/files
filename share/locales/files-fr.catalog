@@ -566,3 +566,4 @@ fr.settings.shortcut.capturing = Appuyez sur un raccourci. Échap annule, Retour
 fr.settings.shortcut.conflict = Ce raccourci est déjà utilisé par une autre commande.
 fr.settings.shortcut.secondary = Aussi associé :
 fr.settings.view = Mode d'affichage par défaut
+fr.settings.tabs.hint = Ctrl+Tab change de section

@@ -2437,6 +2437,10 @@ package body Files.Application.Windows is
                   Line_Height   => Line_Height,
                   Focused       =>
                     Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
+                  Hover_X       =>
+                    (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_X) else -1),
+                  Hover_Y       =>
+                    (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_Y) else -1),
                   Rectangles    => S_Rects,
                   Text          => S_Text,
                   Accessibility => S_Nodes);

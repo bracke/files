@@ -2457,6 +2457,8 @@ package body Files.Model is
       Clip_Height   : Natural;
       Line_Height   : Positive;
       Focused       : Boolean;
+      Hover_X       : Integer := -1;
+      Hover_Y       : Integer := -1;
       Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
@@ -2465,6 +2467,7 @@ package body Files.Model is
    begin
       Config.Line_Height := Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
+      Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
       if Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View) then
          --  While a chord is being captured, the footer prompts for input
          --  instead of showing any pending validation error.
@@ -2487,8 +2490,8 @@ package body Files.Model is
          Clip_Width    => Clip_Width,
          Clip_Height   => Clip_Height,
          Focused       => Focused,
-         Hover_X       => -1,
-         Hover_Y       => -1,
+         Hover_X       => Hover_X,
+         Hover_Y       => Hover_Y,
          Rectangles    => Rectangles,
          Text          => Text,
          Accessibility => Accessibility);

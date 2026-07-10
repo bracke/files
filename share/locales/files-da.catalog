@@ -566,3 +566,4 @@ da.settings.shortcut.capturing = Tryk på en genvej. Esc annullerer, Backspace r
 da.settings.shortcut.conflict = Denne genvej bruges allerede af en anden kommando.
 da.settings.shortcut.secondary = Også tildelt:
 da.settings.view = Standardvisning
+da.settings.tabs.hint = Ctrl+Tab skifter sektioner

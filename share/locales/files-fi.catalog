@@ -566,3 +566,4 @@ fi.settings.shortcut.capturing = Paina pikanäppäintä. Esc peruuttaa, askelpal
 fi.settings.shortcut.conflict = Tämä pikanäppäin on jo toisen komennon käytössä.
 fi.settings.shortcut.secondary = Myös sidottu:
 fi.settings.view = Oletusnäkymä
+fi.settings.tabs.hint = Ctrl+Tab vaihtaa osioita

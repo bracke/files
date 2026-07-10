@@ -566,3 +566,4 @@ nl.settings.shortcut.capturing = Druk op een sneltoets. Esc annuleert, Backspace
 nl.settings.shortcut.conflict = Die sneltoets is al in gebruik door een andere opdracht.
 nl.settings.shortcut.secondary = Ook toegewezen:
 nl.settings.view = Standaardweergave
+nl.settings.tabs.hint = Ctrl+Tab wisselt secties
