@@ -400,7 +400,8 @@ separate (Files.Rendering)
          Text_H : Natural;
          Text   : UString;
          Color  : Render_Color := Text_Color;
-         Fit    : Boolean := False)
+         Fit    : Boolean := False;
+         Italic : Boolean := False)
       is
          Draw_W : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
          Draw_H : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
@@ -421,7 +422,7 @@ separate (Files.Rendering)
                   Color     => Color,
                   Truncated => Was_Truncated,
                   Scale_To_Box => False,
-                  Italic    => False));
+                  Italic    => Italic));
          end if;
       end Add_Overlay_Text;
 
@@ -623,6 +624,27 @@ separate (Files.Rendering)
          Add_Rect (Saturating_Add (X, Border_W - 1), Y, 1, Border_H, Color);
       end Add_Border;
 
+      --  Add_Border for the overlay layer: the four edge rects go through
+      --  Add_Overlay_Rect so the border composites on top of an opaque overlay
+      --  panel rather than under the main grid content.
+      procedure Add_Overlay_Border
+        (X        : Natural;
+         Y        : Natural;
+         Border_W : Natural;
+         Border_H : Natural;
+         Color    : Render_Color)
+      is
+      begin
+         if Border_W = 0 or else Border_H = 0 then
+            return;
+         end if;
+
+         Add_Overlay_Rect (X, Y, Border_W, 1, Color);
+         Add_Overlay_Rect (X, Y, 1, Border_H, Color);
+         Add_Overlay_Rect (X, Saturating_Add (Y, Border_H - 1), Border_W, 1, Color);
+         Add_Overlay_Rect (Saturating_Add (X, Border_W - 1), Y, 1, Border_H, Color);
+      end Add_Overlay_Border;
+
       procedure Add_Focus_Ring
         (X      : Natural;
          Y      : Natural;
@@ -680,6 +702,25 @@ separate (Files.Rendering)
             Height      => Shadow_H,
             Color       => Pane_Color);
       end Add_Drop_Shadow;
+
+      --  Add_Drop_Shadow into the overlay layer, so an overlay panel's shadow
+      --  composites on top of the main grid content like the panel itself.
+      procedure Add_Overlay_Drop_Shadow
+        (X        : Natural;
+         Y        : Natural;
+         Shadow_W : Natural;
+         Shadow_H : Natural) is
+      begin
+         Guikit.Widgets.Draw_Drop_Shadow
+           (Rectangles  => Result.Overlay_Rectangles,
+            Clip_Width  => Layout.Width,
+            Clip_Height => Layout.Height,
+            X           => X,
+            Y           => Y,
+            Width       => Shadow_W,
+            Height      => Shadow_H,
+            Color       => Pane_Color);
+      end Add_Overlay_Drop_Shadow;
 
       procedure Add_Scrollbar
         (Track_X  : Natural;
@@ -1170,7 +1211,8 @@ separate (Files.Rendering)
                Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon"),
                Thumbnail_Width  => 0,
                Thumbnail_Height => 0,
-               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
+               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
+               Overlay          => False));
 
          if Id = Files.Commands.Navigate_Home_Command then
             Draw_Home;
@@ -1460,7 +1502,8 @@ separate (Files.Rendering)
                Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
                Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
                Thumbnail_Pixels =>
-                 (if Use_Thumbnail then Item.Thumbnail_Pixels else Files.Types.Byte_Vectors.Empty_Vector)));
+                 (if Use_Thumbnail then Item.Thumbnail_Pixels else Files.Types.Byte_Vectors.Empty_Vector),
+               Overlay          => False));
 
          if Use_Thumbnail
            and then Item.Thumbnail_Available
@@ -3754,15 +3797,15 @@ separate (Files.Rendering)
               (if QL.Width > Saturating_Multiply (Margin, 2)
                then QL.Width - Saturating_Multiply (Margin, 2) else QL.Width);
          begin
-            Add_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
-            Add_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
-            Add_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
-            Add_Rect (QL.X, QL.Y, QL.Width, Natural'Min (3, QL.Height), Selection_Color);
+            Add_Overlay_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
+            Add_Overlay_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
+            Add_Overlay_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
+            Add_Overlay_Rect (QL.X, QL.Y, QL.Width, Natural'Min (3, QL.Height), Selection_Color);
             Add_Accessibility_Node
               (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height, Localized ("accessibility.quick_look"));
             --  Panel title: the previewed item's name, which also serves as the
             --  content marker tests assert on for every kind.
-            Add_Text (Title_X, Title_Y, Title_W, Line_Height, Snapshot.Quick_Look_Name, Fit => True);
+            Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Snapshot.Quick_Look_Name, Fit => True);
 
             case Snapshot.Quick_Look_Kind is
                when Files.Quick_Look.Image_Content =>
@@ -3795,11 +3838,12 @@ separate (Files.Rendering)
                                  Asset_Path       => Null_Unbounded_String,
                                  Thumbnail_Width  => Snapshot.Quick_Look_Image_Width,
                                  Thumbnail_Height => Snapshot.Quick_Look_Image_Height,
-                                 Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels));
+                                 Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels,
+                                 Overlay          => True));
                         end if;
                      end;
                   else
-                     Add_Text
+                     Add_Overlay_Text
                        (QL.Content_X, QL.Content_Y, QL.Content_Width, Line_Height,
                         Localized ("quick_look.empty"), Muted_Text_Color);
                   end if;
@@ -3811,14 +3855,14 @@ separate (Files.Rendering)
                   begin
                      for Line of Snapshot.Quick_Look_Text_Lines loop
                         exit when Row >= Max_Lines;
-                        Add_Text
+                        Add_Overlay_Text
                           (QL.Content_X,
                            Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
                            QL.Content_Width, Line_Height, Line, Fit => True);
                         Row := Row + 1;
                      end loop;
                      if Snapshot.Quick_Look_Text_Truncated and then Row < Max_Lines then
-                        Add_Text
+                        Add_Overlay_Text
                           (QL.Content_X,
                            Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
                            QL.Content_Width, Line_Height,
@@ -3847,19 +3891,20 @@ separate (Files.Rendering)
                               Asset_Path       => Null_Unbounded_String,
                               Thumbnail_Width  => 0,
                               Thumbnail_Height => 0,
-                              Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector));
+                              Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
+                              Overlay          => True));
                      end if;
-                     Add_Text
+                     Add_Overlay_Text
                        (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,
                         Snapshot.Quick_Look_Type, Muted_Text_Color, Fit => True);
                      Row_Y := Saturating_Add (Row_Y, Line_Height);
-                     Add_Text
+                     Add_Overlay_Text
                        (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,
                         Size_Value, Muted_Text_Color, Fit => True);
                   end;
             end case;
 
-            Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => False);
+            Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => True);
          end;
       end if;
 

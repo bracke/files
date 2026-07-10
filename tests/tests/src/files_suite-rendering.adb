@@ -89,6 +89,7 @@ package body Files_Suite.Rendering is
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -151,6 +152,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Quick_Look_Overlay_Content'Access,
          "the quick look overlay emits its dialog panel and previewed content");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Quick_Look_Drawn_In_Overlay'Access,
+         "the quick look panel composites in the overlay layer, not the main grid layer");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Theme_Palette_Selection'Access,
          "the light palette differs from dark while high contrast keeps the dark base");
@@ -1024,6 +1028,14 @@ package body Files_Suite.Rendering is
             return True;
          end if;
       end loop;
+      --  Overlay panels (command palette, settings, Quick Look) draw their text
+      --  into the overlay layer, so a "does the frame show this text" check must
+      --  cover both layers.
+      for Command of Frame.Overlay_Text loop
+         if Contains (To_String (Command.Text), Needle) then
+            return True;
+         end if;
+      end loop;
       return False;
    end Frame_Has_Text;
    --  The grouping field (index 9) is laid out as two rows: a label row and a
@@ -1604,6 +1616,54 @@ package body Files_Suite.Rendering is
          Assert (not Frame_Has_Text (Frame, "readme.txt"), "no quick look content is drawn when closed");
       end;
    end Test_Quick_Look_Overlay_Content;
+
+   --  Quick Look composites in the overlay layer (on top of the grid), so its
+   --  panel background is an overlay rectangle and its preview icon is flagged
+   --  as an overlay icon; nothing leaks into the main layer under the grid.
+   procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Layout : Guikit.Draw.Layout_Metrics;
+      QL     : Quick_Look_Layout;
+      Frame  : Frame_Commands;
+
+      function Panel_Bg_In (Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector) return Boolean is
+      begin
+         for R of Rects loop
+            if R.Color = Pane_Color and then R.X = QL.X and then R.Y = QL.Y
+              and then R.Width = QL.Width and then R.Height = QL.Height
+            then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Panel_Bg_In;
+
+      Icon_Overlay : Boolean := False;
+   begin
+      Snap.Quick_Look_Open := True;
+      Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
+      Snap.Quick_Look_Name := To_Unbounded_String ("notes.txt");
+      Snap.Quick_Look_Icon_Id := To_Unbounded_String ("document");
+      Layout := Calculate_Layout (Snap, Width, Height, LH);
+      QL     := Calculate_Quick_Look_Layout (Layout, LH);
+      Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+
+      Assert (Panel_Bg_In (Frame.Overlay_Rectangles),
+              "the quick look panel background is drawn in the overlay layer");
+      Assert (not Panel_Bg_In (Frame.Rectangles),
+              "the quick look panel background does not leak into the main layer under the grid");
+
+      for Icon of Frame.Icons loop
+         if Icon.Overlay then
+            Icon_Overlay := True;
+         end if;
+      end loop;
+      Assert (Icon_Overlay, "the quick look preview icon is flagged as an overlay icon");
+   end Test_Quick_Look_Drawn_In_Overlay;
 
    --  The palette is theme-aware through Guikit.Draw.Color_For. This is a
    --  legitimate palette assertion (the role-to-color mapping), not a fragile

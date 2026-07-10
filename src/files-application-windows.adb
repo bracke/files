@@ -2947,6 +2947,8 @@ package body Files.Application.Windows is
             return "light_theme";
          when Scenario_Details_View =>
             return "details_view";
+         when Scenario_Quick_Look =>
+            return "quick_look";
       end case;
    end Scenario_Name;
 
@@ -3086,6 +3088,14 @@ package body Files.Application.Windows is
                Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Large_Icons);
             else
                Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
+            end if;
+
+         when Scenario_Quick_Look =>
+            --  Preview the first item: Quick Look opens an overlay panel drawn on
+            --  top of the grid, exercising the overlay icon/text/rect passes.
+            if Has_Item then
+               Files.Model.Select_Visible (Runtime.Model, 1);
+               Files.Model.Toggle_Quick_Look (Runtime.Model);
             end if;
       end case;
    end Apply_Scenario;
