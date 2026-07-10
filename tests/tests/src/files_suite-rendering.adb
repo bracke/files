@@ -65,6 +65,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -142,6 +143,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Header_Separator_Hit_Test'Access,
          "a header column boundary hit-tests to its resize separator and misses elsewhere");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Detail_Separators_Within_Content'Access,
+         "an overflowing details view keeps its column dividers inside the content, out of the bottom bar");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Reorder_Layout'Access,
          "a reordered column order lays columns out left-to-right in that order with widths following the column");
@@ -1490,6 +1494,33 @@ package body Files_Suite.Rendering is
                  "a sub-minimum custom width is clamped up to the minimum");
       end;
    end Test_Detail_Column_Customization;
+
+   --  With more rows than fit, the last row sits below the viewport; the column
+   --  dividers must be clamped to the content area rather than running down to
+   --  that row and showing through the bottom bar.
+   procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : constant View_Snapshot := Sample_Snapshot (40, Files.Types.Details);
+      Layout   : constant Guikit.Draw.Layout_Metrics :=
+        Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
+      Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
+      Main_Bottom : constant Natural := Layout.Main_Y + Layout.Main_Height;
+      Separators  : Natural := 0;
+   begin
+      for Rect of Frame.Rectangles loop
+         --  Column dividers are 1px, border-coloured, and begin at the content
+         --  top (just inside the main region), which distinguishes them from the
+         --  bottom-bar borders far below.
+         if Rect.Width = 1 and then Rect.Color = Border_Color
+           and then Rect.Y >= Layout.Main_Y and then Rect.Y < Layout.Main_Y + 20
+         then
+            Separators := Separators + 1;
+            Assert (Rect.Y + Rect.Height <= Main_Bottom,
+                    "a column divider stays within the content area, not into the bottom bar");
+         end if;
+      end loop;
+      Assert (Separators > 0, "the overflowing details view emits column dividers");
+   end Test_Detail_Separators_Within_Content;
 
    procedure Test_Detail_Column_Reorder_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

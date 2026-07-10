@@ -2920,10 +2920,18 @@ separate (Files.Rendering)
             Content_Y : constant Natural := Content.Y;
             Last_Row  : constant Item_Layout := Items.Element (Positive (Items.Length));
             Separator_Y : constant Natural := Content_Y;
+            --  Span the rows, but never past the content area's bottom edge: when
+            --  the list overflows the viewport the last row sits below it, and an
+            --  unclamped divider would run down into (and show through) the bottom
+            --  bar.
             Separator_H : constant Natural :=
-              (if Last_Row.Y >= Content_Y
-               then Saturating_Add (Last_Row.Y - Content_Y, (if Last_Row.Height > 0 then Last_Row.Height - 1 else 0))
-               else Saturating_Add ((if Last_Row.Height > 0 then Last_Row.Height - 1 else 0), Content_Y - Last_Row.Y));
+              Natural'Min
+                (Content.Height,
+                 (if Last_Row.Y >= Content_Y
+                  then Saturating_Add
+                         (Last_Row.Y - Content_Y, (if Last_Row.Height > 0 then Last_Row.Height - 1 else 0))
+                  else Saturating_Add
+                         ((if Last_Row.Height > 0 then Last_Row.Height - 1 else 0), Content_Y - Last_Row.Y)));
             Columns   : constant Detail_Column_Geometry_Array :=
               Compute_Detail_Columns
                 (Snapshot.Detail_Columns_Visible,
