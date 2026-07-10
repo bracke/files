@@ -62,6 +62,7 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -130,6 +131,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Suppresses_Item_Hover'Access,
          "an open context menu suppresses the main-grid item hover highlight");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tooltip_Wraps_When_Narrow'Access,
+         "a narrow window wraps a long tooltip onto multiple rows");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Separators'Access,
          "the item context menu groups its commands with non-selectable separators");
@@ -1107,6 +1111,82 @@ package body Files_Suite.Rendering is
          end;
       end;
    end Test_Context_Menu_Suppresses_Item_Hover;
+
+   --  Hover the toolbar button whose tooltip text is longest, then count the
+   --  overlay rows that render that tooltip: a narrow window wraps it onto
+   --  several rows, a wide one keeps it on a single row.
+   procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Base : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+
+      --  Centre of the longest-text tooltip region in the frame.
+      procedure Longest_Tooltip
+        (Frame : Frame_Commands; HX, HY : out Natural;
+         Text : out Ada.Strings.Unbounded.Unbounded_String; Found : out Boolean)
+      is
+         Best : Natural := 0;
+      begin
+         HX := 0;
+         HY := 0;
+         Text := Ada.Strings.Unbounded.Null_Unbounded_String;
+         Found := False;
+         for C of Frame.Tooltips loop
+            if Files.UTF8.Display_Units (To_String (C.Text)) > Best then
+               Best := Files.UTF8.Display_Units (To_String (C.Text));
+               HX := C.X + C.Width / 2;
+               HY := C.Y + C.Height / 2;
+               Text := C.Text;
+               Found := True;
+            end if;
+         end loop;
+      end Longest_Tooltip;
+
+      --  Overlay rows whose text is a slice of the tooltip's text (its wrapped
+      --  lines), i.e. how many rows the tooltip occupies.
+      function Tooltip_Rows (Frame : Frame_Commands; Full : String) return Natural is
+         Count : Natural := 0;
+      begin
+         for C of Frame.Overlay_Text loop
+            if Length (C.Text) > 0 and then Ada.Strings.Fixed.Index (Full, To_String (C.Text)) > 0 then
+               Count := Count + 1;
+            end if;
+         end loop;
+         return Count;
+      end Tooltip_Rows;
+
+      HX, HY : Natural;
+      Tip    : Ada.Strings.Unbounded.Unbounded_String;
+      Found  : Boolean;
+   begin
+      declare
+         Probe : constant Frame_Commands := Build_Frame_Commands (Base, 260, 800, 20);
+      begin
+         Longest_Tooltip (Probe, HX, HY, Tip, Found);
+         Assert (Found and then Files.UTF8.Display_Units (To_String (Tip)) >= 24,
+                 "a long toolbar tooltip is present in a narrow window");
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Base, 260, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+         begin
+            Assert (Tooltip_Rows (Frame, To_String (Tip)) >= 2,
+                    "a narrow window wraps the tooltip onto multiple rows");
+         end;
+      end;
+
+      declare
+         Probe : constant Frame_Commands := Build_Frame_Commands (Base, 1000, 800, 20);
+      begin
+         Longest_Tooltip (Probe, HX, HY, Tip, Found);
+         Assert (Found, "a tooltip is present in a wide window");
+         declare
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Base, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+         begin
+            Assert (Tooltip_Rows (Frame, To_String (Tip)) = 1,
+                    "a wide window shows the tooltip on a single row");
+         end;
+      end;
+   end Test_Tooltip_Wraps_When_Narrow;
 
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

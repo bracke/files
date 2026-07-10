@@ -818,8 +818,13 @@ separate (Files.Rendering)
            (if Max_Tip_W > 2 * Padding
             then Natural'Min (Raw_Text_W, Max_Tip_W - 2 * Padding)
             else 0);
+         --  When the text is wider than the window-clamped line width it wraps
+         --  onto several rows; the box grows to hold every row.
+         Row_Count   : constant Positive :=
+           Positive'Max (1, Wrapped_Line_Count (Text, Text_W, Line_Height));
          Tip_W       : constant Natural := Saturating_Add (Text_W, 2 * Padding);
-         Tip_H       : constant Natural := Saturating_Add (Line_Height, 2 * Padding_V);
+         Tip_H       : constant Natural :=
+           Saturating_Add (Saturating_Multiply (Row_Count, Line_Height), 2 * Padding_V);
 
          function Fits_Right return Boolean is
          begin
@@ -866,34 +871,85 @@ separate (Files.Rendering)
             return;
          end if;
 
-         --  Fit the label exactly as the former Add_Overlay_Text (Fit => True)
-         --  did: capacity is derived from the label box clipped to the window,
-         --  so the widget's re-clip reproduces the identical text command.
+         --  Draw the box and border once, then lay the wrapped text rows on top.
+         Guikit.Widgets.Draw_Tooltip
+           (Rectangles      => Result.Overlay_Rectangles,
+            Text            => Result.Overlay_Text,
+            Clip_Width      => Layout.Width,
+            Clip_Height     => Layout.Height,
+            Box_X           => Tip_X,
+            Box_Y           => Tip_Y,
+            Box_Width       => Tip_W,
+            Box_Height      => Tip_H,
+            Fill_Color      => Overlay_Color,
+            Border_Color    => Border_Color,
+            Label_X         => Saturating_Add (Tip_X, Padding),
+            Label_Y         => Saturating_Add (Tip_Y, Padding_V),
+            Label_Width     => 0,
+            Label_Height    => 0,
+            Label_Text      => Null_Unbounded_String,
+            Label_Truncated => False,
+            Label_Color     => Text_Color);
+
+         --  Wrap the text across rows using the same capacity and segmentation
+         --  as Wrapped_Line_Count, so the drawn rows match the box height.
          declare
-            Label_X    : constant Natural := Tip_X + Padding;
-            Label_Y    : constant Natural := Tip_Y + Padding_V;
-            Draw_W     : constant Natural := Clipped_Size (Label_X, Text_W, Layout.Width);
-            Capacity   : constant Natural := Draw_W / Cell_W;
-            Fitted     : constant UString := Fitted_Text_For (Text, Capacity);
+            Capacity   : constant Natural := Text_W / Cell_W;
+            Row        : Natural := 0;
+
+            --  Append one clipped text row at the given wrapped-row offset.
+            procedure Emit_Line (Line_Text : UString; Row_Index : Natural) is
+               Label_X : constant Natural := Saturating_Add (Tip_X, Padding);
+               Label_Y : constant Natural :=
+                 Saturating_Add
+                   (Saturating_Add (Tip_Y, Padding_V), Saturating_Multiply (Row_Index, Line_Height));
+               Draw_W  : constant Natural := Clipped_Size (Label_X, Text_W, Layout.Width);
+               Draw_H  : constant Natural := Clipped_Size (Label_Y, Line_Height, Layout.Height);
+            begin
+               if Draw_W > 0 and then Draw_H > 0 and then Length (Line_Text) > 0 then
+                  Result.Overlay_Text.Append
+                    (Guikit.Draw.Text_Command'
+                       (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
+                        Text => Line_Text, Color => Text_Color, Truncated => False,
+                        Scale_To_Box => False, Italic => False));
+               end if;
+            end Emit_Line;
+
+            --  Break one explicit line [First, Last] into wrapped rows.
+            procedure Emit_Segment (First, Last : Integer) is
+               Start : Integer := First;
+            begin
+               if Capacity = 0 or else Last < First then
+                  Row := Saturating_Add (Row, 1);
+                  return;
+               end if;
+               while Start <= Last loop
+                  declare
+                     Prefix : constant String :=
+                       Files.UTF8.Prefix_By_Units (Text_Raw (Start .. Last), Capacity);
+                     Stop   : constant Integer :=
+                       (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                  begin
+                     Emit_Line (To_Unbounded_String (Text_Raw (Start .. Stop)), Row);
+                     exit when Stop >= Last;
+                     Start := Stop + 1;
+                     Row := Saturating_Add (Row, 1);
+                  end;
+               end loop;
+               Row := Saturating_Add (Row, 1);
+            end Emit_Segment;
+
+            Line_First : Integer := Text_Raw'First;
          begin
-            Guikit.Widgets.Draw_Tooltip
-              (Rectangles      => Result.Overlay_Rectangles,
-               Text            => Result.Overlay_Text,
-               Clip_Width      => Layout.Width,
-               Clip_Height     => Layout.Height,
-               Box_X           => Tip_X,
-               Box_Y           => Tip_Y,
-               Box_Width       => Tip_W,
-               Box_Height      => Tip_H,
-               Fill_Color      => Overlay_Color,
-               Border_Color    => Border_Color,
-               Label_X         => Label_X,
-               Label_Y         => Label_Y,
-               Label_Width     => Text_W,
-               Label_Height    => Line_Height,
-               Label_Text      => Fitted,
-               Label_Truncated => To_String (Fitted) /= Text_Raw,
-               Label_Color     => Text_Color);
+            for Position in Text_Raw'Range loop
+               if Text_Raw (Position) = ASCII.LF then
+                  Emit_Segment (Line_First, Position - 1);
+                  Line_First := Position + 1;
+               end if;
+            end loop;
+            if Line_First <= Text_Raw'Last then
+               Emit_Segment (Line_First, Text_Raw'Last);
+            end if;
          end;
       end Add_Hover_Tooltip;
 
