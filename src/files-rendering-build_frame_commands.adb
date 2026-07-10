@@ -2634,35 +2634,10 @@ separate (Files.Rendering)
             Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Sort_Menu_Command),
             Selected => Snapshot.Sort_Menu_Open);
       end;
-      --  The status area doubles as the hidden-count control: clicking it
-      --  toggles Show_Hidden_Files. Give it button hover/press affordances and
-      --  expose it as a button so it matches the neighboring bottom-bar
-      --  controls.
-      declare
-         --  Fill the whole button height (matching the neighbouring bottom-bar
-         --  controls and this control's own full-height hit region), not just
-         --  the padding-inset content box, so hover/press has no uncovered
-         --  stripe at the bottom.
-         Info_Btn_Y : constant Natural :=
-           (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
-         Info_Btn_H : constant Natural :=
-           (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
-            else Layout.Bottom_Bar_Height);
-      begin
-         Add_Rect
-           (Bottom.Info_X,
-            Info_Btn_Y,
-            Bottom.Info_Width,
-            Info_Btn_H,
-            (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) then Bottom_Bar_Color
-             elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height)
-             then Pressed_Color
-             elsif Has_Hover
-               and then Contains_Point
-                 (Bottom.Info_X, Bottom_Y, Bottom.Info_Width, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
-             then Hover_Color
-             else Bottom_Bar_Color));
-      end;
+      --  The counts area doubles as the hidden-count control: clicking it
+      --  toggles Show_Hidden_Files. The free-space field to its right is a
+      --  separate, non-interactive field, so the toggle's hover/press/tooltip
+      --  affordances stop at the divider rather than spanning the whole region.
       declare
          Pad       : constant Natural := 4;
          Div_Gap   : constant Natural := 8;
@@ -2680,6 +2655,11 @@ separate (Files.Rendering)
            (if Show_Free
             then Bottom.Info_X + Bottom.Info_Width - Free_W - Pad else 0);
          Divider_X : constant Natural := (if Free_X > Div_Gap then Free_X - Div_Gap else 0);
+         --  The interactive toggle region: the whole info area, or just the part
+         --  left of the divider when the free-space field is split off.
+         Toggle_W  : constant Natural :=
+           (if Show_Free and then Divider_X > Bottom.Info_X then Divider_X - Bottom.Info_X
+            else Bottom.Info_Width);
          Counts_W  : constant Natural :=
            (if Show_Free then
               (if Divider_X > Bottom.Info_X + 2 * Pad then Divider_X - Bottom.Info_X - 2 * Pad else 0)
@@ -2697,7 +2677,29 @@ separate (Files.Rendering)
            and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
          Status_Text : constant UString :=
            (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
+         --  Fill the whole button height (matching the neighbouring bottom-bar
+         --  controls and this control's own full-height hit region), not just
+         --  the padding-inset content box, so hover/press has no uncovered
+         --  stripe at the bottom.
+         Info_Btn_Y : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
+         Info_Btn_H : constant Natural :=
+           (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
+            else Layout.Bottom_Bar_Height);
       begin
+         Add_Rect
+           (Bottom.Info_X,
+            Info_Btn_Y,
+            Toggle_W,
+            Info_Btn_H,
+            (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command) then Bottom_Bar_Color
+             elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height)
+             then Pressed_Color
+             elsif Has_Hover
+               and then Contains_Point
+                 (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
+             then Hover_Color
+             else Bottom_Bar_Color));
          Add_Text
            (Saturating_Add (Bottom.Info_X, Pad),
             Bottom_Content_Y,
@@ -2725,22 +2727,22 @@ separate (Files.Rendering)
                Bottom_Info_Color,
                Fit => True);
          end if;
+         Add_Command_Tooltip
+           (Bottom.Info_X,
+            Bottom_Content_Y,
+            Toggle_W,
+            Bottom_Content_H,
+            Files.Commands.Toggle_Hidden_Files_Command);
+         Add_Accessibility_Node
+           (Role_Button,
+            Bottom.Info_X,
+            Bottom_Content_Y,
+            Toggle_W,
+            Bottom_Content_H,
+            Command_Label (Files.Commands.Toggle_Hidden_Files_Command),
+            Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Hidden_Files_Command)),
+            Enabled => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
       end;
-      Add_Command_Tooltip
-        (Bottom.Info_X,
-         Bottom_Content_Y,
-         Bottom.Info_Width,
-         Bottom_Content_H,
-         Files.Commands.Toggle_Hidden_Files_Command);
-      Add_Accessibility_Node
-        (Role_Button,
-         Bottom.Info_X,
-         Bottom_Content_Y,
-         Bottom.Info_Width,
-         Bottom_Content_H,
-         Command_Label (Files.Commands.Toggle_Hidden_Files_Command),
-         Localized (Files.Commands.Description_Key (Files.Commands.Toggle_Hidden_Files_Command)),
-         Enabled => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
       declare
          Info_Btn_Y : constant Natural :=
            (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
