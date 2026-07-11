@@ -2593,6 +2593,7 @@ package body Files.Rendering is
       if Any_Directory then
          declare
             Values : Info_Value_Vectors.Vector;
+            Rows   : Info_Value_Vectors.Vector;
          begin
             for Info of Snapshot.Selected_Info loop
                if Info.Is_Directory and then Info.Folder_Size_Available then
@@ -2601,8 +2602,16 @@ package body Files.Rendering is
                   Values.Append (To_Unbounded_String (Coalesced_Placeholder));
                end if;
             end loop;
+            Rows := Qualified (Values);
+            --  The combined selection total is the section's last line (not tied
+            --  to any one item, so it carries no name postfix).
+            Rows.Append
+              (To_Unbounded_String
+                 (Files.Localization.Text ("info.contents.total") & ": "
+                  & Size_Text (Snapshot.Selection_Total_Bytes)
+                  & (if Snapshot.Selection_Total_Pending then " ..." else "")));
             Sections.Append
-              (Coalesced_Section'(Key => To_Unbounded_String ("info.folder_size"), Values => Qualified (Values)));
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.folder_size"), Values => Rows));
          end;
       end if;
 
@@ -2709,10 +2718,9 @@ package body Files.Rendering is
       Pane_X        : constant Natural := Layout.Main_Width;
       Bar_W         : constant Natural := Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width);
       Text_W        : constant Natural := Info_Text_Width (Layout, Bar_W);
-      --  Rows reserved above the per-item list for the combined selection total.
-      --  Must match the Section_Offset_Rows seed in Build_Frame_Commands.
-      Header_Rows   : constant Natural := (if Snapshot.Selected_Count >= 2 then 2 else 0);
-      Content_Rows  : constant Natural := Saturating_Add (Total_Info_Rows, Header_Rows);
+      --  The combined selection total is now the last line of the Contents
+      --  section (counted by Total_Info_Rows), so no header rows are reserved.
+      Content_Rows  : constant Natural := Total_Info_Rows;
       Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
       Content_H     : constant Natural :=
         (if Raw_Content_H > 0

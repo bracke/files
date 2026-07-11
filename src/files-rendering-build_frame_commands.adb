@@ -3454,37 +3454,11 @@ separate (Files.Rendering)
             Info_Pane.Height,
             Localized ("accessibility.info_pane"));
          declare
-            --  Seed matches Header_Rows in Calculate_Info_Pane_Layout: reserve
-            --  two rows above the list for the combined selection total.
-            Section_Offset_Rows : Natural := (if Snapshot.Selected_Count >= 2 then 2 else 0);
+            --  The combined selection total is rendered as the last line of the
+            --  Contents section (see Coalesced_Info_Sections), so no header rows
+            --  are reserved above the list.
+            Section_Offset_Rows : Natural := 0;
          begin
-            if Snapshot.Selected_Count >= 2 then
-               declare
-                  Row_Y : constant Integer :=
-                    Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding))
-                    - Integer (Info_Pane.Scroll_Pixels);
-                  Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
-                  Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
-                  Reserved_W : constant Natural :=
-                    Saturating_Add
-                      ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
-                       Saturating_Multiply (Info_Pane_Padding, 2));
-                  Text_W : constant Natural :=
-                    (if Layout.Info_Pane_Width > Reserved_W then Layout.Info_Pane_Width - Reserved_W else 0);
-                  Total_Line : constant UString :=
-                    To_Unbounded_String
-                      (Files.Localization.Text ("info.contents.total") & ": "
-                       & Size_Text (Snapshot.Selection_Total_Bytes)
-                       & (if Snapshot.Selection_Total_Pending then " ..." else ""));
-               begin
-                  if Text_W > 0
-                    and then Row_Y >= Integer (Info_Pane.Y)
-                    and then Row_Y < Integer (Info_Bottom)
-                  then
-                     Add_Text (Text_X, Natural (Row_Y), Text_W, Line_Height, Total_Line, Text_Color, Fit => True);
-                  end if;
-               end;
-            end if;
 
             if Natural (Snapshot.Selected_Info.Length) >= 2 then
                declare
