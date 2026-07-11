@@ -3571,7 +3571,7 @@ package body Files_Suite.Operations is
          Assert (Found_Permission_First, "info pane frame includes first permission row");
          Assert (Found_Permission_Second, "info pane frame includes second permission row");
          Assert (Found_Metadata_Key, "info pane frame includes localized metadata fallback row");
-         Assert (Found_Kind, "info pane frame includes filetype-specific detail row");
+         Assert (not Found_Kind, "info pane no longer shows the redundant Kind row");
          Assert (Found_Extra, "info pane frame includes filetype-specific extra metadata row");
          Assert (Found_Extra_First, "info pane details renders first metadata item");
          Assert (Found_Extra_Second, "info pane details renders second metadata item on separate row");
@@ -3824,6 +3824,7 @@ package body Files_Suite.Operations is
          Assert (Label_Rows ("info.size") = 1, "Size label appears once");
          Assert (Label_Rows ("info.filetype") = 1, "Filetype label appears once");
          Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
+         Assert (Label_Rows ("info.kind") = 0, "the redundant Kind section is removed");
          Assert (Value_Ends_With (" (alpha.txt)") and then Value_Ends_With (" (beta.txt)"),
                  "every section row is postfixed with its item name");
 

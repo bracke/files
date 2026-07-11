@@ -3926,7 +3926,7 @@ separate (Files.Rendering)
                      Add_Ownership_Field ("info.group", 10, Info.Group_Editing);
                   end if;
                   Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
-                  Add_Info_Field ("info.kind", Info_Field_Value (Info, 7), 7);
+                  --  Kind (field 7) is omitted: it duplicates the Filetype field.
                   Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
                   declare
                      Section_H : constant Natural :=

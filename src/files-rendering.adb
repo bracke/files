@@ -2450,9 +2450,9 @@ package body Files.Rendering is
    begin
       --  Field 0 (Name) is omitted: the name rides on every value as a suffix.
       --  Field 2 (Filesize) is omitted for folders: they carry no byte size and
-      --  show Contents instead.
+      --  show Contents instead. Field 7 (Kind) is omitted: it duplicates Filetype.
       for Field in 1 .. 8 loop
-         if not (Field = 2 and then Info.Is_Directory) then
+         if Field /= 7 and then not (Field = 2 and then Info.Is_Directory) then
             Rows :=
               Saturating_Add
                 (Rows,
@@ -2640,7 +2640,7 @@ package body Files.Rendering is
          end;
       end if;
 
-      Add_Field_Section ("info.kind", 7);
+      --  Kind (field 7) is omitted: it duplicates the Filetype section.
       Add_Field_Section ("info.extra", 8);
 
       if Any_Error then
