@@ -332,6 +332,11 @@ package body Files_Suite.Model is
 
    procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  The "extra info" is now computed lazily (not stored on load), so tests
+      --  compute it on demand via the shared token function.
+      function Item_Extra (I : Files.File_System.Directory_Item) return String is
+        (Files.File_System.Extra_Info_Token
+           (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
       Run_Path  : constant String := Join (Root, "run.sh");
       Text_Path : constant String := Join (Root, "plain.txt");
       Long_Text_Path : constant String := Join (Root, "long-line.txt");
@@ -480,7 +485,7 @@ package body Files_Suite.Model is
                "real symlink directory item ignores extension mappings");
             Assert (To_String (Item.Icon_Id) = "link", "real symlink directory item uses link icon");
             Assert
-              (To_String (Item.Filetype_Extra) = "symlink.target|plain.txt",
+              (Item_Extra (Item) = "symlink.target|plain.txt",
                "real symlink directory item records target metadata");
          elsif To_String (Item.Name) = "link-to-run.sh" then
             Found_Executable_Symlink := True;
@@ -491,84 +496,84 @@ package body Files_Suite.Model is
               (To_String (Item.Filetype) = "inode/symlink",
                "executable symlink filetype wins before executable metadata");
             Assert
-              (To_String (Item.Filetype_Extra) = "symlink.target|run.sh",
+              (Item_Extra (Item) = "symlink.target|run.sh",
                "executable symlink records target metadata");
          elsif To_String (Item.Name) = "long-line.txt" then
             Found_Long_Text := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|ascii",
+              (Item_Extra (Item) = "text.lines_encoding|1|ascii",
                "long text lines count as one physical line");
          elsif To_String (Item.Name) = "utf8.txt" then
             Found_Utf8 := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|utf8",
+              (Item_Extra (Item) = "text.lines_encoding|1|utf8",
                "UTF-8 text files expose text encoding metadata");
          elsif To_String (Item.Name) = "binary.txt" then
             Found_Binary_Text := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+              (Item_Extra (Item) = "text.lines_encoding|1|binary",
                "invalid text files expose binary encoding metadata");
          elsif To_String (Item.Name) = "late-binary.txt" then
             Found_Late_Binary_Text := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+              (Item_Extra (Item) = "text.lines_encoding|1|binary",
                "text encoding metadata scans beyond the first read buffer");
          elsif To_String (Item.Name) = "split-utf8.txt" then
             Found_Split_Utf8 := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|utf8",
+              (Item_Extra (Item) = "text.lines_encoding|1|utf8",
                "text encoding metadata accepts UTF-8 split across read buffers");
          elsif To_String (Item.Name) = "overlong.txt" then
             Found_Overlong_Text := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+              (Item_Extra (Item) = "text.lines_encoding|1|binary",
                "overlong UTF-8 text files expose binary encoding metadata");
          elsif To_String (Item.Name) = "surrogate.txt" then
             Found_Surrogate_Text := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "text.lines_encoding|1|binary",
+              (Item_Extra (Item) = "text.lines_encoding|1|binary",
                "surrogate UTF-8 text files expose binary encoding metadata");
          elsif To_String (Item.Name) = "notes.md" then
             Found_Markdown := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "markdown.lines_encoding|2|ascii",
+              (Item_Extra (Item) = "markdown.lines_encoding|2|ascii",
                "Markdown files expose markdown line and encoding metadata");
          elsif To_String (Item.Name) = "picture.png" then
             Found_Png := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "image.dimensions|32x16",
+              (Item_Extra (Item) = "image.dimensions|32x16",
                "PNG dimensions are loaded as filetype-specific metadata");
          elsif To_String (Item.Name) = "photo.jpg" then
             Found_Jpeg := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "image.dimensions|48x24",
+              (Item_Extra (Item) = "image.dimensions|48x24",
                "JPEG dimensions tolerate fill bytes before frame markers");
          elsif To_String (Item.Name) = "folder" then
             Found_Dir := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "directory.count|1",
+              (Item_Extra (Item) = "directory.count|1",
                "directory item counts are loaded as filetype-specific metadata");
          elsif To_String (Item.Name) = "paper.pdf" then
             Found_Pdf := True;
             Assert (To_String (Item.Filetype) = "application/pdf", "PDF extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "document.pdf.pages|1",
+              (Item_Extra (Item) = "document.pdf.pages|1",
                "PDF files expose page marker metadata");
          elsif To_String (Item.Name) = "paper-control.pdf" then
             Found_Pdf_Control := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "document.pdf.pages|2",
+              (Item_Extra (Item) = "document.pdf.pages|2",
                "PDF page markers accept vertical tab and form feed separators");
          elsif To_String (Item.Name) = "bundle.zip" then
             Found_Zip := True;
             Assert (To_String (Item.Filetype) = "application/zip", "ZIP extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "archive.zip.entries|1",
+              (Item_Extra (Item) = "archive.zip.entries|1",
                "ZIP files expose entry-count metadata");
          elsif To_String (Item.Name) = "split.zip" then
             Found_Split_Zip := True;
             Assert
-              (To_String (Item.Filetype_Extra) = "archive.zip.entries|1",
+              (Item_Extra (Item) = "archive.zip.entries|1",
                "ZIP entry counting detects signatures split across read buffers");
          elsif To_String (Item.Name) = "report.docx" then
             Found_Docx := True;
@@ -577,7 +582,7 @@ package body Files_Suite.Model is
                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                "DOCX extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "office.docx.entries|1",
+              (Item_Extra (Item) = "office.docx.entries|1",
                "DOCX files expose package entry-count metadata");
          elsif To_String (Item.Name) = "sheet.xlsx" then
             Found_Xlsx := True;
@@ -586,43 +591,43 @@ package body Files_Suite.Model is
                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                "XLSX extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "office.xlsx.entries|1",
+              (Item_Extra (Item) = "office.xlsx.entries|1",
                "XLSX files expose package entry-count metadata");
          elsif To_String (Item.Name) = "track.mp3" then
             Found_Mp3 := True;
             Assert (To_String (Item.Filetype) = "audio/mpeg", "MP3 extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "media.kind|audio",
+              (Item_Extra (Item) = "media.kind|audio",
                "MP3 files expose audio metadata");
          elsif To_String (Item.Name) = "clip.mp4" then
             Found_Mp4 := True;
             Assert (To_String (Item.Filetype) = "video/mp4", "MP4 extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "media.kind|video",
+              (Item_Extra (Item) = "media.kind|video",
                "MP4 files expose video metadata");
          elsif To_String (Item.Name) = "archive.tar.gz" then
             Found_Tar_Gz := True;
             Assert (To_String (Item.Filetype) = "application/gzip-tar", "compound extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "archive.format|gzip",
+              (Item_Extra (Item) = "archive.format|gzip",
                "compound gzip-tar archive files expose gzip format metadata");
          elsif To_String (Item.Name) = "unit.adb" then
             Found_Ada := True;
             Assert (To_String (Item.Filetype) = "text/x-ada", "Ada body extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "source.ada.lines_encoding|4|ascii",
+              (Item_Extra (Item) = "source.ada.lines_encoding|4|ascii",
                "Ada source files expose source metadata");
          elsif To_String (Item.Name) = "data.json" then
             Found_Json := True;
             Assert (To_String (Item.Filetype) = "application/json", "JSON extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "source.json.lines_encoding|1|ascii",
+              (Item_Extra (Item) = "source.json.lines_encoding|1|ascii",
                "JSON files expose source metadata");
          elsif To_String (Item.Name) = "doc.xml" then
             Found_Xml := True;
             Assert (To_String (Item.Filetype) = "application/xml", "XML extension maps to filetype");
             Assert
-              (To_String (Item.Filetype_Extra) = "source.xml.lines_encoding|1|ascii",
+              (Item_Extra (Item) = "source.xml.lines_encoding|1|ascii",
                "XML files expose source metadata");
          end if;
       end loop;

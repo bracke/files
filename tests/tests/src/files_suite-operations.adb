@@ -124,6 +124,7 @@ package body Files_Suite.Operations is
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -202,6 +203,9 @@ package body Files_Suite.Operations is
         (T, Test_Commit_Multi_Rename'Access, "commit synchronized multi-rename best-effort");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filetype_Extra_Is_Lazy'Access,
+         "filetype extra (folder counts, document scans) is computed lazily, not on load");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3171,6 +3175,9 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
+      --  Extra info is computed lazily for the selected item when the info pane
+      --  is open (the interaction reducer does this after each input).
+      Files.Model.Ensure_Selected_Item_Extra (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert (Natural (Snapshot.Selected_Info.Length) = 1, "snapshot contains selected item info");
       Assert (Snapshot.Selected_Info.Element (1).Name = To_Unbounded_String ("meta.txt"), "info name is captured");
@@ -3216,6 +3223,14 @@ package body Files_Suite.Operations is
             "info.extra.text.lines.suffix",
             "info.extra.encoding.ascii"),
          "info pane captures loaded text line metadata");
+      --  Visit each item so its lazy extra info is computed and cached (as
+      --  happens when the selection lands on it with the info pane open), then
+      --  rebuild the snapshot so it carries every item's localized extra.
+      for Idx in 1 .. Files.Model.Visible_Count (Model) loop
+         Files.Model.Select_Visible (Model, Idx);
+         Files.Model.Ensure_Selected_Item_Extra (Model);
+      end loop;
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
       declare
          Found_Utf8_Metadata   : Boolean := False;
          Found_Binary_Metadata : Boolean := False;
@@ -3377,6 +3392,7 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
       Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Ensure_Selected_Item_Extra (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       --  Tall enough that every info-pane row (now including the owner/group
       --  fields) stays within the visible pane rather than being clipped.
@@ -3664,6 +3680,50 @@ package body Files_Suite.Operations is
             "info pane spaces selected sections by every rendered row");
       end;
    end Test_Info_Pane_Metadata_Snapshot;
+
+   --  The expensive "extra info" (folder child counts, document scans) must not
+   --  be computed on load -- that made navigation slow. It is computed lazily
+   --  only for the selected item when the info pane is open.
+   procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+
+      --  The generic fallback shown when the child count has not been computed.
+      Fallback : constant String := Files.Localization.Text ("info.extra.directory");
+
+      function Folder_Extra return String is
+         Snap : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
+      begin
+         for Idx in 1 .. Natural (Snap.Items.Length) loop
+            if Snap.Items.Element (Idx).Name = To_Unbounded_String ("sub") then
+               return To_String (Snap.Items.Element (Idx).Filetype_Extra);
+            end if;
+         end loop;
+         return "";
+      end Folder_Extra;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "sub"));
+      Write_File (Join (Join (Root, "sub"), "x.txt"), "hi");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "sub");
+
+      --  Info pane closed: the child count is not computed (no subfolder opened),
+      --  so the snapshot shows the cheap generic fallback rather than a count.
+      Files.Model.Ensure_Selected_Item_Extra (Model);
+      Assert (Folder_Extra = Fallback,
+              "folder shows the generic fallback, not a child count, while the info pane is closed");
+
+      --  Info pane open: the selected folder's child count is computed lazily,
+      --  replacing the fallback with the actual count detail.
+      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Ensure_Selected_Item_Extra (Model);
+      Assert (Folder_Extra /= Fallback and then Folder_Extra'Length > 0,
+              "folder child count is computed lazily when the info pane is open");
+   end Test_Filetype_Extra_Is_Lazy;
 
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

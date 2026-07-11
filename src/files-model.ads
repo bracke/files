@@ -967,6 +967,16 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  Compute and cache the selected item's "extra info" (folder child count,
+   --  document counts, symlink target) when the info pane is open and it has not
+   --  been computed yet. Called after input so the info pane can show the detail
+   --  without every item paying for it on load. A no-op when the info pane is
+   --  closed, nothing is selected, or the value is already cached.
+   --
+   --  @param Model Model whose selected item is updated in place.
+   procedure Ensure_Selected_Item_Extra
+     (Model : in out Window_Model);
+
    --  Toggle settings pane visibility.
    --
    --  @param Model Model to update.

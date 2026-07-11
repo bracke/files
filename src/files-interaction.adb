@@ -675,6 +675,12 @@ package body Files.Interaction is
       --  Refresh the info-pane folder-size cache for the (possibly changed)
       --  selection. Cheap when the selected directory is unchanged.
       Files.Operations.Update_Folder_Size (Model, Settings);
+
+      --  Compute the selected item's extra info (folder child count, document
+      --  page/entry/line counts, symlink target) lazily for the info pane, so
+      --  navigation does not open every subfolder and read every document on
+      --  load. A no-op when the info pane is closed or the value is cached.
+      Files.Model.Ensure_Selected_Item_Extra (Model);
    end Apply_Input_Action;
 
    procedure Apply_Context_Menu_Command

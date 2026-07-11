@@ -1513,11 +1513,11 @@ package body Files.File_System is
          Metadata_Error     => False,
          Error_Key          => Null_Unbounded_String);
    begin
-      if Kind = Files.Types.Symlink_Item then
-         Item.Filetype_Extra :=
-           To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
-      end if;
-
+      --  Filetype_Extra (folder item counts, document page/entry/line counts,
+      --  symlink targets) is computed lazily for the selected item when the info
+      --  pane needs it -- see Files.Model.Ensure_Selected_Item_Extra -- rather
+      --  than here, where it would open every subfolder and read every document
+      --  on load, making navigation slow. It stays empty at load time.
       begin
          if Kind /= Files.Types.Directory_Item then
             Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
@@ -1539,10 +1539,6 @@ package body Files.File_System is
            Files.Platform.Metadata.File_Permission_Bits (Full, Item.Mode_Available);
          Files.Platform.Metadata.File_Ownership
            (Full, Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
-         if Kind /= Files.Types.Symlink_Item then
-            Item.Filetype_Extra :=
-              To_Unbounded_String (Extra_Info_Token (Full, Kind, Filetype));
-         end if;
       exception
          when others =>
             Item.Metadata_Error := True;
