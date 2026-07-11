@@ -115,6 +115,19 @@ package Files.Model is
      (Model : in out Window_Model;
       Field : Sort_Field);
 
+   --  Set the sort field and direction to absolute values and re-sort. Unlike
+   --  Select_Sort_Field (which toggles direction when re-selecting the current
+   --  field), this applies a known target state, for use when applying saved or
+   --  persisted settings.
+   --
+   --  @param Model Model to update.
+   --  @param Field Sort field to sort by.
+   --  @param Ascending True to sort ascending, False for descending.
+   procedure Apply_Sort
+     (Model     : in out Window_Model;
+      Field     : Sort_Field;
+      Ascending : Boolean);
+
    --  Toggle the bottom-bar sort menu visibility.
    --
    --  @param Model Model to update.

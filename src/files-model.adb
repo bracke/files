@@ -750,6 +750,16 @@ package body Files.Model is
       Resort_Items (Model);
    end Select_Sort_Field;
 
+   procedure Apply_Sort
+     (Model     : in out Window_Model;
+      Field     : Sort_Field;
+      Ascending : Boolean) is
+   begin
+      Model.Sort_Field_Value := Field;
+      Model.Sort_Ascending   := Ascending;
+      Resort_Items (Model);
+   end Apply_Sort;
+
    procedure Toggle_Sort_Menu
      (Model : in out Window_Model) is
    begin

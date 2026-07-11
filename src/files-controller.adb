@@ -787,6 +787,21 @@ package body Files.Controller is
       end if;
 
       Settings := Final;
+
+      --  Apply the saved view mode and sort to the live model so a change made in
+      --  the settings pane takes effect now, not only on the next launch. Do this
+      --  before the refresh so the reload lists items in the new order.
+      Files.Model.Set_View_Mode (Model, Final.Default_View);
+      Files.Model.Apply_Sort
+        (Model,
+         (case Final.Sort_Field_Value is
+             when Files.Settings.Sort_By_Name     => Files.Model.Sort_Name,
+             when Files.Settings.Sort_By_Filetype => Files.Model.Sort_Type,
+             when Files.Settings.Sort_By_Size     => Files.Model.Sort_Size,
+             when Files.Settings.Sort_By_Created  => Files.Model.Sort_Created,
+             when Files.Settings.Sort_By_Modified => Files.Model.Sort_Changed),
+         Final.Sort_Ascending);
+
       Operation := Files.Operations.Refresh (Model, Settings);
       if Operation.Status = Files.Operations.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
