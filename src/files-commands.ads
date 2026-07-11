@@ -223,6 +223,18 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
+   --  Return whether a command changes global UI state (view mode, sort field or
+   --  direction, or the info pane) that is mirrored into the settings and
+   --  persisted. The interaction layer routes such commands so a runtime change --
+   --  e.g. from the bottom bar -- is written back to the settings file, not lost
+   --  until the next launch.
+   --
+   --  @param Id Command identifier.
+   --  @return True when the command's effect is persisted as global UI state.
+   function Persists_Global_Ui_State
+     (Id : Command_Id)
+      return Boolean;
+
    --  Return number of registered commands.
    --
    --  @return Registered command count.

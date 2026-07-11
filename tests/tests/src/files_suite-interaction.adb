@@ -107,6 +107,7 @@ package body Files_Suite.Interaction is
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -199,6 +200,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Toggle'Access,
          "bottom-bar hidden-count click flips Show_Hidden_Files, persists, and reloads");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Bottom_Bar_Sort_Persists'Access,
+         "a bottom-bar sort command persists the sort field and direction to settings");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Selector_Click_Navigates'Access, "root-selector row click navigates to the chosen root");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1256,6 +1260,75 @@ package body Files_Suite.Interaction is
       Assert (Result.Directory_Reloaded, "the hidden-count click reports the directory reload");
       Assert (Ada.Directories.Exists (Path), "the hidden-count click persists the settings file");
    end Test_Bottom_Bar_Hidden_Toggle;
+
+   procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Model.Sort_Field;
+      use type Files.Settings.Sort_Field;
+      Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "sort-persist.conf");
+
+      function Items return Files.File_System.Item_Vectors.Vector is
+         V : Files.File_System.Item_Vectors.Vector;
+      begin
+         V.Append (Files.File_System.Make_Item
+                     (Files_Suite.Support.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
+         V.Append (Files.File_System.Make_Item
+                     (Files_Suite.Support.Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
+         return V;
+      end Items;
+
+      Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+
+      procedure Dispatch (Command : Files.Commands.Command_Id) is
+         Action : constant Files.Events.Input_Action :=
+           (Kind => Files.Events.Command_Input_Action, Command => Command, Activate => True, others => <>);
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => Path,
+            Action            => Action,
+            Current_Font_Size => Base_Font,
+            Modifiers         => Guikit.Input.No_Modifiers,
+            Result            => Result);
+      end Dispatch;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Files.Model.Initialize
+        (Model,
+         Directory_Path => Files_Suite.Support.Root,
+         Items          => Items,
+         Home_Path      => "/home/test");
+
+      --  Default sort is by name, ascending. Selecting size from the bottom bar
+      --  must apply live and persist the field to the settings file.
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Name, "the model starts sorted by name");
+      Dispatch (Files.Commands.Sort_By_Size_Command);
+      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size, "the sort command applies live");
+      Assert (Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "the sort field is written to settings");
+      Assert (Result.Settings_Changed, "the sort command reports a settings change");
+      Assert (Ada.Directories.Exists (Path), "the sort command persists the settings file");
+
+      --  Re-selecting the same field flips direction; that flip must persist too --
+      --  the reported bug was that the bottom-bar direction change was not saved.
+      Assert (Files.Model.Sort_Is_Ascending (Model), "selecting a new field sorts ascending");
+      Dispatch (Files.Commands.Sort_By_Size_Command);
+      Assert (not Files.Model.Sort_Is_Ascending (Model), "re-selecting the field flips to descending");
+      Assert (not Settings.Sort_Ascending, "the flipped direction is written to settings");
+
+      --  The direction survives a round-trip through the on-disk settings file.
+      declare
+         Reloaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Path);
+      begin
+         Assert (Reloaded.Success, "the persisted settings file reloads cleanly");
+         Assert (Reloaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size,
+                 "the reloaded settings keep the chosen sort field");
+         Assert (not Reloaded.Settings.Sort_Ascending,
+                 "the reloaded settings keep the descending direction");
+      end;
+   end Test_Bottom_Bar_Sort_Persists;
 
    --  Format a positive index without the leading space Integer'Image inserts.
    function Index_Image (Value : Positive) return String is

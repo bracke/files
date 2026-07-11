@@ -392,6 +392,16 @@ package body Files.Interaction is
             Result.Status := Outcome.Status;
             Result.Command_Executed :=
               Outcome.Status = Files.Controller.Controller_Command_Executed;
+            --  A view / info-pane change driven from the keyboard (Ctrl+1..4) has
+            --  already run inside Handle_Key; sync it to the settings so it
+            --  persists. Sync_Global_UI_State is idempotent -- it writes only when
+            --  the mirrored state actually differs -- so this is a no-op for any
+            --  other command.
+            if Files.Commands.Persists_Global_Ui_State (Outcome.Command)
+              and then Sync_Global_UI_State (Model, Settings, Settings_Path)
+            then
+               Result.Settings_Changed := True;
+            end if;
          end if;
       end;
 
@@ -427,7 +437,12 @@ package body Files.Interaction is
    begin
       case Action.Kind is
          when Files.Events.Command_Input_Action =>
-            if Files.Commands.Requires_Settings_Path (Action.Command) then
+            if Files.Commands.Requires_Settings_Path (Action.Command)
+              or else Files.Commands.Persists_Global_Ui_State (Action.Command)
+            then
+               --  Route through Execute_Command so a runtime view / sort / info
+               --  change (e.g. from the bottom bar) is synced to the settings and,
+               --  for sort, the listing is re-loaded to match the new order.
                Execute_Command
                  (Model, Settings, Settings_Path, Action.Command,
                   Current_Font_Size, Modifiers, Result);
@@ -545,7 +560,8 @@ package body Files.Interaction is
                      else Files.Commands.No_Command);
                begin
                   if Command /= Files.Commands.No_Command
-                    and then Files.Commands.Requires_Settings_Path (Command)
+                    and then (Files.Commands.Requires_Settings_Path (Command)
+                              or else Files.Commands.Persists_Global_Ui_State (Command))
                     and then Files.Commands.Is_Enabled (Command, Model)
                   then
                      Execute_Command

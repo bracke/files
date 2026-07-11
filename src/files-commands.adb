@@ -1036,6 +1036,26 @@ package body Files.Commands is
       end case;
    end Requires_Settings_Path;
 
+   function Persists_Global_Ui_State
+     (Id : Command_Id)
+      return Boolean is
+   begin
+      case Id is
+         when Select_Small_Icons_Command
+            | Select_Large_Icons_Command
+            | Select_Details_Command
+            | Sort_By_Name_Command
+            | Sort_By_Size_Command
+            | Sort_By_Type_Command
+            | Sort_By_Created_Command
+            | Sort_By_Changed_Command
+            | Toggle_Info_Pane_Command =>
+            return True;
+         when others =>
+            return False;
+      end case;
+   end Persists_Global_Ui_State;
+
    function Command_Count return Natural is
    begin
       return Command_Id'Pos (Registered_Command_Id'Last)
