@@ -521,13 +521,21 @@ package body Files.Rendering is
       return Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
    end Free_Space_Label_Width;
 
-   function Permission_Text (Permissions : String) return String is
+   function Permission_Text
+     (Permissions : String;
+      Inline      : Boolean := False)
+      return String
+   is
       Result : Unbounded_String;
+      --  Stack the parts one per line by default; Inline joins them with the
+      --  localized separator so a whole item fits on one row (coalesced view).
+      Separator : constant String :=
+        (if Inline then Files.Localization.Text ("info.permissions.separator") else (1 => ASCII.LF));
 
       procedure Append_Part (Key : String) is
       begin
          if Length (Result) > 0 then
-            Append (Result, ASCII.LF);
+            Append (Result, Separator);
          end if;
          Append (Result, Files.Localization.Text (Key));
       end Append_Part;
@@ -2621,7 +2629,23 @@ package body Files.Rendering is
 
       Add_Field_Section ("info.created", 3);
       Add_Field_Section ("info.modified", 4);
-      Add_Field_Section ("info.permissions", 5);
+
+      --  Permissions inline (readable, writable, ... on one line) so each item
+      --  occupies a single coalesced row rather than one row per permission.
+      declare
+         Values : Info_Value_Vectors.Vector;
+      begin
+         for Info of Snapshot.Selected_Info loop
+            if Length (Info.Permissions) = 0 then
+               Values.Append (To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")));
+            else
+               Values.Append
+                 (To_Unbounded_String (Permission_Text (To_String (Info.Permissions), Inline => True)));
+            end if;
+         end loop;
+         Sections.Append
+           (Coalesced_Section'(Key => To_Unbounded_String ("info.permissions"), Values => Qualified (Values)));
+      end;
 
       if Any_Ownership then
          declare

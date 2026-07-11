@@ -3768,11 +3768,13 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Selected_Count (Model) = 2, "two items are selected");
 
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
+      --  Wide enough that a short permissions line ("readable, writable") does
+      --  not wrap, so the coalesced one-row-per-item layout is what is tested.
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 1600, Height => 1200, Line_Height => 20);
 
       declare
          Layout      : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
+           Files.Rendering.Calculate_Layout (Snapshot, Width => 1600, Height => 1200, Line_Height => 20);
          Info_Layout : constant Files.Rendering.Info_Pane_Layout :=
            Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
 
@@ -3818,6 +3820,20 @@ package body Files_Suite.Operations is
             end loop;
             return False;
          end Value_Ends_With;
+
+         --  Some info-pane text row contains both substrings.
+         function Row_Has_Both (A : String; B : String) return Boolean is
+         begin
+            for Text of Frame.Text loop
+               if Text.X >= Info_Layout.X
+                 and then Ada.Strings.Fixed.Index (To_String (Text.Text), A) > 0
+                 and then Ada.Strings.Fixed.Index (To_String (Text.Text), B) > 0
+               then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         end Row_Has_Both;
       begin
          Assert (Label_Rows ("info.name") = 0, "there is no dedicated Name section");
          Assert (not Value_Present ("alpha.txt") and then not Value_Present ("beta.txt"),
@@ -3826,6 +3842,9 @@ package body Files_Suite.Operations is
          Assert (Label_Rows ("info.filetype") = 1, "Filetype label appears once");
          Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
          Assert (Label_Rows ("info.kind") = 0, "the redundant Kind section is removed");
+         Assert (Row_Has_Both (Files.Localization.Text ("info.permissions.readable"),
+                               Files.Localization.Text ("info.permissions.writable")),
+                 "an item's readable and writable permissions share one coalesced row");
          Assert (Value_Ends_With (" (alpha.txt)") and then Value_Ends_With (" (beta.txt)"),
                  "every section row is postfixed with its item name");
 
