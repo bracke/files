@@ -33,10 +33,13 @@ separate (Files.Rendering)
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
       Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
-      --  Visible glyph content sits in the lower half of the Line_Height cell
-      --  (see Sel_Y_Offset elsewhere). Pull the text origin up by Line_Height/12
-      --  so the rendered glyph centers in the field instead of biasing low.
-      Toolbar_Glyph_Bias : constant Natural := Line_Height / 12;
+      --  Visible glyph content sits low in the Line_Height cell, so the text
+      --  origin is pulled up two pixels above the geometric centre. This matches
+      --  the bottom bar's optical text centring (Bottom_Content_Y) exactly -- the
+      --  fields share the same height -- so the toolbar text reads centred in its
+      --  field, aligning with the geometric-centred toolbar icons and favourite
+      --  star rather than sitting a pixel low.
+      Toolbar_Glyph_Bias : constant Natural := 2;
       Toolbar_Input_Text_Y : constant Natural :=
         (if Toolbar_Input_H > Line_Height
          then
