@@ -125,6 +125,7 @@ package body Files_Suite.Operations is
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -206,6 +207,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Filetype_Extra_Is_Lazy'Access,
          "filetype extra (folder counts, document scans) is computed lazily, not on load");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Size_Is_Lazy'Access,
+         "recursive folder size is computed only when the info pane is open");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3724,6 +3728,37 @@ package body Files_Suite.Operations is
       Assert (Folder_Extra /= Fallback and then Folder_Extra'Length > 0,
               "folder child count is computed lazily when the info pane is open");
    end Test_Filetype_Extra_Is_Lazy;
+
+   --  The recursive folder-size walk (Directory_Size) shown in the info pane
+   --  must not run when the pane is closed, or moving the selection onto a
+   --  folder would walk its whole subtree on the UI path.
+   procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "sub"));
+      Write_File (Join (Join (Root, "sub"), "x.txt"), "hi");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Select_Name (Model, "sub");
+      declare
+         Path : constant String := To_String (Files.Model.Selected_Item (Model).Full_Path);
+      begin
+         --  Info pane closed: selecting a folder does not walk its subtree.
+         Files.Operations.Update_Folder_Size (Model, Settings);
+         Assert (not Files.Model.Folder_Size_Cached_For (Model, Path),
+                 "folder size is not walked while the info pane is closed");
+
+         --  Info pane open: the folder size is computed for the info pane.
+         Files.Model.Toggle_Info_Pane (Model);
+         Files.Operations.Update_Folder_Size (Model, Settings);
+         Assert (Files.Model.Folder_Size_Cached_For (Model, Path),
+                 "folder size is computed when the info pane is open");
+      end;
+   end Test_Folder_Size_Is_Lazy;
 
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

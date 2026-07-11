@@ -2743,7 +2743,12 @@ package body Files.Operations is
       pragma Unreferenced (Settings);
       Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
    begin
-      if Files.Model.Selected_Count (Model) = 1
+      --  The folder size is a recursive subtree walk (Directory_Size) shown only
+      --  in the info pane, so only compute it when the pane is open. Otherwise
+      --  moving the selection onto a folder would walk its whole subtree on the
+      --  UI path, making selection feel slow.
+      if Files.Model.Info_Pane_Is_Open (Model)
+        and then Files.Model.Selected_Count (Model) = 1
         and then not Files.Model.Selection_Includes_Temporary (Model)
         and then Item.Kind = Files.Types.Directory_Item
       then
