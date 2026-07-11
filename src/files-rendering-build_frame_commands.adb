@@ -2796,13 +2796,19 @@ separate (Files.Rendering)
                      --  Bar mode: a scrollbar-like track whose blue core width is
                      --  the fraction of disk space used.
                      declare
-                        Bar_H  : constant Natural := Natural'Max (4, Line_Height / 3);
+                        Bar_H  : constant Natural := Natural'Max (8, Saturating_Multiply (Line_Height, 2) / 3);
                         Bar_Y  : constant Natural :=
                           (if Bottom_Content_H > Bar_H
                            then Saturating_Add (Bottom_Content_Y, (Bottom_Content_H - Bar_H) / 2)
                            else Bottom_Content_Y);
                         Bar_W  : constant Natural :=
                           (if Free_Field_W > Pad then Free_Field_W - Pad else 0);
+                        --  Centre the bar in the field's interactive region so the
+                        --  margins before and after it are equal.
+                        Bar_X  : constant Natural :=
+                          (if Free_Region_W > Bar_W
+                           then Saturating_Add (Free_Region_X, (Free_Region_W - Bar_W) / 2)
+                           else Free_Region_X);
                         Used   : constant Long_Long_Integer :=
                           Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes;
                         Fill_W : constant Natural :=
@@ -2812,9 +2818,9 @@ separate (Files.Rendering)
                            else 0);
                      begin
                         if Bar_W > 0 then
-                           Add_Rect (Free_X, Bar_Y, Bar_W, Bar_H, Input_Color);
-                           Add_Rect (Free_X, Bar_Y, Fill_W, Bar_H, Selection_Color);
-                           Add_Border (Free_X, Bar_Y, Bar_W, Bar_H, Border_Color);
+                           Add_Rect (Bar_X, Bar_Y, Bar_W, Bar_H, Input_Color);
+                           Add_Rect (Bar_X, Bar_Y, Fill_W, Bar_H, Selection_Color);
+                           Add_Border (Bar_X, Bar_Y, Bar_W, Bar_H, Border_Color);
                         end if;
                      end;
                   else
