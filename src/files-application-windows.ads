@@ -64,7 +64,8 @@ package Files.Application.Windows is
       Scenario_Large_Font,
       Scenario_Light_Theme,
       Scenario_Details_View,
-      Scenario_Quick_Look);
+      Scenario_Quick_Look,
+      Scenario_Quick_Look_Image);
 
    --  Per-scenario live smoke outcome captured from the framebuffer readback.
    type Scenario_Outcome is record

@@ -1212,7 +1212,9 @@ separate (Files.Rendering)
                Thumbnail_Width  => 0,
                Thumbnail_Height => 0,
                Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
-               Overlay          => False));
+               Overlay          => False,
+               Draw_Width       => 0,
+               Draw_Height      => 0));
 
          if Id = Files.Commands.Navigate_Home_Command then
             Draw_Home;
@@ -1503,7 +1505,9 @@ separate (Files.Rendering)
                Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
                Thumbnail_Pixels =>
                  (if Use_Thumbnail then Item.Thumbnail_Pixels else Files.Types.Byte_Vectors.Empty_Vector),
-               Overlay          => False));
+               Overlay          => False,
+               Draw_Width       => 0,
+               Draw_Height      => 0));
 
          if Use_Thumbnail
            and then Item.Thumbnail_Available
@@ -3814,32 +3818,40 @@ separate (Files.Rendering)
                     and then Snapshot.Quick_Look_Image_Height > 0
                   then
                      declare
-                        Img_Size : constant Natural :=
-                          Natural'Min (QL.Content_Width, QL.Content_Height);
-                        Img_X    : constant Natural :=
-                          Saturating_Add
-                            (QL.Content_X,
-                             (if QL.Content_Width > Img_Size then (QL.Content_Width - Img_Size) / 2 else 0));
-                        Img_Y    : constant Natural :=
-                          Saturating_Add
-                            (QL.Content_Y,
-                             (if QL.Content_Height > Img_Size then (QL.Content_Height - Img_Size) / 2 else 0));
+                        IW : constant Natural := Snapshot.Quick_Look_Image_Width;
+                        IH : constant Natural := Snapshot.Quick_Look_Image_Height;
+                        CW : constant Natural := QL.Content_Width;
+                        CH : constant Natural := QL.Content_Height;
+                        --  Fit the image inside the content box preserving aspect.
+                        Height_Bound : constant Boolean :=
+                          Saturating_Multiply (IW, CH) <= Saturating_Multiply (IH, CW);
+                        Draw_W : constant Natural :=
+                          (if Height_Bound then Saturating_Multiply (IW, CH) / IH else CW);
+                        Draw_H : constant Natural :=
+                          (if Height_Bound then CH else Saturating_Multiply (IH, CW) / IW);
+                        Img_X  : constant Natural :=
+                          Saturating_Add (QL.Content_X, (if CW > Draw_W then (CW - Draw_W) / 2 else 0));
+                        Img_Y  : constant Natural :=
+                          Saturating_Add (QL.Content_Y, (if CH > Draw_H then (CH - Draw_H) / 2 else 0));
                      begin
-                        if Img_Size > 0 then
-                           --  Reuse the icon/thumbnail draw path: a single icon
-                           --  command carrying the decoded pixels scaled to fit.
+                        if Draw_W > 0 and then Draw_H > 0 then
+                           --  One icon command carrying the decoded pixels; the
+                           --  atlas gives it a high-resolution tile and it draws
+                           --  at its aspect-correct size.
                            Result.Icons.Append
                              (Icon_Command'
                                 (X                => Img_X,
                                  Y                => Img_Y,
-                                 Size             => Img_Size,
+                                 Size             => Draw_W,
                                  Icon_Id          => Snapshot.Quick_Look_Icon_Id,
                                  Theme_Name       => Snapshot.Theme_Name,
                                  Asset_Path       => Null_Unbounded_String,
-                                 Thumbnail_Width  => Snapshot.Quick_Look_Image_Width,
-                                 Thumbnail_Height => Snapshot.Quick_Look_Image_Height,
+                                 Thumbnail_Width  => IW,
+                                 Thumbnail_Height => IH,
                                  Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels,
-                                 Overlay          => True));
+                                 Overlay          => True,
+                                 Draw_Width       => Draw_W,
+                                 Draw_Height      => Draw_H));
                         end if;
                      end;
                   else
@@ -3892,7 +3904,9 @@ separate (Files.Rendering)
                               Thumbnail_Width  => 0,
                               Thumbnail_Height => 0,
                               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
-                              Overlay          => True));
+                              Overlay          => True,
+                              Draw_Width       => 0,
+                              Draw_Height      => 0));
                      end if;
                      Add_Overlay_Text
                        (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,

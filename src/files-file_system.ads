@@ -120,6 +120,16 @@ package Files.File_System is
       Error_Key      : UString;
    end record;
 
+   --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel) scaled to
+   --  fit within a target box while preserving aspect ratio. Available is False
+   --  when the image could not be decoded.
+   type Decoded_Image is record
+      Available : Boolean := False;
+      Width     : Natural := 0;
+      Height    : Natural := 0;
+      Pixels    : Files.Types.Byte_Vectors.Vector;
+   end record;
+
    type Mutation_Result is record
       Success   : Boolean := False;
       Error_Key : UString;
@@ -870,6 +880,19 @@ package Files.File_System is
       Cache_Directory : String;
       Size            : Positive := 64)
       return Thumbnail_Result;
+
+   --  Decode an image file directly to RGBA pixels, scaled to fit within
+   --  Max_Size x Max_Size while preserving aspect ratio. Used for the Quick Look
+   --  image preview so it renders from the original rather than the small
+   --  thumbnail. Returns Available => False when decoding is unavailable.
+   --
+   --  @param Path Image file to decode.
+   --  @param Max_Size Longest-side bound in pixels for the decoded result.
+   --  @return The decoded RGBA image, or Available => False on failure.
+   function Decode_Image_To_Pixels
+     (Path     : String;
+      Max_Size : Positive)
+      return Decoded_Image;
 
    --  Return whether an item is a previewable raster image, using the same
    --  classification the automatic thumbnail generator applies (image/* MIME,

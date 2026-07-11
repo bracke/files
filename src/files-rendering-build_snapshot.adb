@@ -523,9 +523,18 @@ separate (Files.Rendering)
             Snapshot.Quick_Look_Size           := Content.Size;
             Snapshot.Quick_Look_Text_Lines     := Content.Text_Lines;
             Snapshot.Quick_Look_Text_Truncated := Content.Text_Truncated;
-            --  Reuse the item's already-decoded thumbnail pixels for the image
-            --  preview; the renderer scales them to fit the panel.
+            --  Prefer the original image decoded at preview resolution; fall
+            --  back to the item's small thumbnail when decoding was unavailable.
             if Content.Kind = Files.Quick_Look.Image_Content
+              and then Content.Image_Width > 0
+              and then Content.Image_Height > 0
+              and then Natural (Content.Image_Pixels.Length)
+                       = Content.Image_Width * Content.Image_Height * 4
+            then
+               Snapshot.Quick_Look_Image_Width  := Content.Image_Width;
+               Snapshot.Quick_Look_Image_Height := Content.Image_Height;
+               Snapshot.Quick_Look_Image_Pixels := Content.Image_Pixels;
+            elsif Content.Kind = Files.Quick_Look.Image_Content
               and then Item.Thumbnail_Available
             then
                Snapshot.Quick_Look_Image_Width  := Item.Thumbnail_Width;

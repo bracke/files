@@ -3089,6 +3089,7 @@ package body Files.Operations is
      (Item : Files.File_System.Directory_Item)
       return Files.Quick_Look.Quick_Look_Content
    is
+      use type Files.Quick_Look.Content_Kind;
       Name     : constant String := To_String (Item.Name);
       Filetype : constant String := To_String (Item.Filetype);
       Icon_Id  : constant String := To_String (Item.Icon_Id);
@@ -3102,17 +3103,36 @@ package body Files.Operations is
          then ""
          else Files.File_System.Read_Preview_Text
                 (Path, Files.Quick_Look.Max_Preview_Bytes));
+      --  Preview resolution for the decoded original image, matching the icon
+      --  atlas's large-tile bound so it renders crisply within the panel.
+      Preview_Size : constant Positive := 512;
+      Content : Files.Quick_Look.Quick_Look_Content :=
+        Files.Quick_Look.Prepare_Content
+          (Name           => Name,
+           Filetype       => Filetype,
+           Icon_Id        => Icon_Id,
+           Kind           => Item.Kind,
+           Size_Available => Item.Size_Available,
+           Size           => Item.Size,
+           Is_Image       => Is_Image,
+           Image_Path     => Path,
+           Raw_Bytes      => Raw);
    begin
-      return Files.Quick_Look.Prepare_Content
-        (Name           => Name,
-         Filetype       => Filetype,
-         Icon_Id        => Icon_Id,
-         Kind           => Item.Kind,
-         Size_Available => Item.Size_Available,
-         Size           => Item.Size,
-         Is_Image       => Is_Image,
-         Image_Path     => Path,
-         Raw_Bytes      => Raw);
+      --  Decode the original image once here (Files.Quick_Look is pure), so the
+      --  preview scales the source rather than the small thumbnail.
+      if Content.Kind = Files.Quick_Look.Image_Content then
+         declare
+            Decoded : constant Files.File_System.Decoded_Image :=
+              Files.File_System.Decode_Image_To_Pixels (Path, Preview_Size);
+         begin
+            if Decoded.Available then
+               Content.Image_Pixels := Decoded.Pixels;
+               Content.Image_Width := Decoded.Width;
+               Content.Image_Height := Decoded.Height;
+            end if;
+         end;
+      end if;
+      return Content;
    end Prepare_Quick_Look;
 
 end Files.Operations;

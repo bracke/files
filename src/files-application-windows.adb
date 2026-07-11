@@ -25,6 +25,7 @@ with Files.Events;
 with Files.File_System;
 with Files.Interaction;
 with Files.Operations;
+with Files.Quick_Look;
 with Guikit.Draw;
 with Guikit.Layout;
 with Files.Rendering;
@@ -2949,6 +2950,8 @@ package body Files.Application.Windows is
             return "details_view";
          when Scenario_Quick_Look =>
             return "quick_look";
+         when Scenario_Quick_Look_Image =>
+            return "quick_look_image";
       end case;
    end Scenario_Name;
 
@@ -3096,6 +3099,31 @@ package body Files.Application.Windows is
             if Has_Item then
                Files.Model.Select_Visible (Runtime.Model, 1);
                Files.Model.Toggle_Quick_Look (Runtime.Model);
+            end if;
+
+         when Scenario_Quick_Look_Image =>
+            --  Open Quick Look on a synthetic high-resolution image so the large
+            --  icon-atlas tile and overlay image pass are exercised end to end
+            --  (no real file or image library needed).
+            if Has_Item then
+               Files.Model.Select_Visible (Runtime.Model, 1);
+               declare
+                  Dim     : constant := 256;
+                  Content : Files.Quick_Look.Quick_Look_Content;
+               begin
+                  Content.Kind := Files.Quick_Look.Image_Content;
+                  Content.Image_Width := Dim;
+                  Content.Image_Height := Dim;
+                  for Y in 0 .. Dim - 1 loop
+                     for X in 0 .. Dim - 1 loop
+                        Content.Image_Pixels.Append (Interfaces.Unsigned_8 (X mod 256));
+                        Content.Image_Pixels.Append (Interfaces.Unsigned_8 (Y mod 256));
+                        Content.Image_Pixels.Append (128);
+                        Content.Image_Pixels.Append (255);
+                     end loop;
+                  end loop;
+                  Files.Model.Open_Quick_Look (Runtime.Model, Content);
+               end;
             end if;
       end case;
    end Apply_Scenario;

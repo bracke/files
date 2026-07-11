@@ -34,6 +34,13 @@ package Files.Quick_Look is
       Image_Path     : UString;
       Text_Lines     : Files.Types.String_Vectors.Vector;
       Text_Truncated : Boolean := False;
+      --  For Image_Content: the original image decoded to RGBA at preview
+      --  resolution, filled by the caller after classification (this package is
+      --  pure). Empty when decoding was unavailable; the renderer then falls back
+      --  to the item's small thumbnail.
+      Image_Pixels   : Files.Types.Byte_Vectors.Vector;
+      Image_Width    : Natural := 0;
+      Image_Height   : Natural := 0;
    end record;
 
    --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a
