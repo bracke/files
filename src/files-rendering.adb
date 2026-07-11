@@ -2506,10 +2506,27 @@ package body Files.Rendering is
          return Values;
       end Field_Values;
 
-      procedure Add_Field_Section (Key : String; Field : Natural) is
+      --  Postfix each per-item value with " (<name>)" so a coalesced row shows
+      --  which selected item it describes. Values are one-per-item in the same
+      --  order as Selected_Info. The Name section is left bare (it is the roster).
+      function Qualified (Values : Info_Value_Vectors.Vector) return Info_Value_Vectors.Vector is
+         Result : Info_Value_Vectors.Vector;
+         Index  : Positive := 1;
+      begin
+         for Info of Snapshot.Selected_Info loop
+            Result.Append (Values.Element (Index) & " (" & Info.Name & ")");
+            Index := Index + 1;
+         end loop;
+         return Result;
+      end Qualified;
+
+      procedure Add_Field_Section (Key : String; Field : Natural; Qualify : Boolean := True) is
+         Values : constant Info_Value_Vectors.Vector := Field_Values (Field);
       begin
          Sections.Append
-           (Coalesced_Section'(Key => To_Unbounded_String (Key), Values => Field_Values (Field)));
+           (Coalesced_Section'
+              (Key    => To_Unbounded_String (Key),
+               Values => (if Qualify then Qualified (Values) else Values)));
       end Add_Field_Section;
 
       Any_Directory : Boolean := False;
@@ -2522,7 +2539,7 @@ package body Files.Rendering is
          Any_Error     := Any_Error or else Info.Metadata_Error;
       end loop;
 
-      Add_Field_Section ("info.name", 0);
+      Add_Field_Section ("info.name", 0, Qualify => False);
       Add_Field_Section ("info.filetype", 1);
       Add_Field_Section ("info.size", 2);
 
@@ -2538,7 +2555,7 @@ package body Files.Rendering is
                end if;
             end loop;
             Sections.Append
-              (Coalesced_Section'(Key => To_Unbounded_String ("info.folder_size"), Values => Values));
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.folder_size"), Values => Qualified (Values)));
          end;
       end if;
 
@@ -2561,9 +2578,9 @@ package body Files.Rendering is
                end if;
             end loop;
             Sections.Append
-              (Coalesced_Section'(Key => To_Unbounded_String ("info.owner"), Values => Owners));
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.owner"), Values => Qualified (Owners)));
             Sections.Append
-              (Coalesced_Section'(Key => To_Unbounded_String ("info.group"), Values => Groups));
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.group"), Values => Qualified (Groups)));
          end;
       end if;
 
@@ -2582,7 +2599,7 @@ package body Files.Rendering is
                end if;
             end loop;
             Sections.Append
-              (Coalesced_Section'(Key => To_Unbounded_String ("info.metadata_error"), Values => Values));
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.metadata_error"), Values => Qualified (Values)));
          end;
       end if;
 

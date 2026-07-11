@@ -3771,13 +3771,29 @@ package body Files_Suite.Operations is
             end loop;
             return False;
          end Value_Present;
+
+         --  Some info-pane text row ends with the given " (<name>)" postfix.
+         function Value_Ends_With (Postfix : String) return Boolean is
+         begin
+            for Text of Frame.Text loop
+               if Text.X >= Info_Layout.X
+                 and then Length (Text.Text) >= Postfix'Length
+                 and then Slice (Text.Text, Length (Text.Text) - Postfix'Length + 1, Length (Text.Text)) = Postfix
+               then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         end Value_Ends_With;
       begin
          Assert (Label_Rows ("info.name") = 1, "Name label appears once");
          Assert (Label_Rows ("info.size") = 1, "Size label appears once");
          Assert (Label_Rows ("info.filetype") = 1, "Filetype label appears once");
          Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
          Assert (Value_Present ("alpha.txt") and then Value_Present ("beta.txt"),
-                 "each selected item contributes its own value row");
+                 "the Name section lists each selected item bare");
+         Assert (Value_Ends_With (" (alpha.txt)") and then Value_Ends_With (" (beta.txt)"),
+                 "non-Name section rows are postfixed with their item name");
       end;
    end Test_Info_Pane_Coalesced_Multi;
 
