@@ -54,10 +54,11 @@ package body Files.Rendering is
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
    Info_Pane_Padding : constant Natural := 10;
-   --  Vertical rows the interactive 3x3 rwx permission grid reserves in the
-   --  info pane: three cell rows (user/group/other) plus one spacing row. Both
-   --  the row-count math and the renderer use it so layout and scroll agree.
-   Permission_Grid_Rows : constant Natural := 4;
+   --  Vertical rows the permission matrix reserves in the single-item info pane:
+   --  a "Permissions" label, an R/W/E header, three cell rows (user/group/other)
+   --  and one spacing row. Both the row-count math and the renderer use it so
+   --  layout and scroll agree.
+   Permission_Grid_Rows : constant Natural := 6;
    Main_Content_Padding : constant Natural := 8;
    Main_Grid_Gap : constant Natural := 8;
    Item_Content_Padding : constant Natural := 4;
@@ -2450,18 +2451,19 @@ package body Files.Rendering is
    function Info_Section_Row_Count
      (Info        : Info_Snapshot;
       Text_W      : Natural;
-      Line_Height : Positive;
-      Show_Grid   : Boolean := False)
+      Line_Height : Positive)
       return Natural
    is
       Rows : Natural := 0;
    begin
       --  Field 0 (Name) is omitted: the name rides on every value as a suffix.
       --  Field 2 (Filesize) is omitted for folders: they carry no byte size and
-      --  show Contents instead. Field 7 (Kind) is omitted: it duplicates Filetype.
+      --  show Contents instead. Field 5 (Permissions) is drawn as the matrix
+      --  below, not as text. Field 7 (Kind) is omitted: it duplicates Filetype.
       --  Field 6 (Metadata Error) only appears when metadata actually failed.
       for Field in 1 .. 8 loop
-         if Field /= 7
+         if Field /= 5
+           and then Field /= 7
            and then not (Field = 2 and then Info.Is_Directory)
            and then not (Field = 6 and then not Info.Metadata_Error)
          then
@@ -2474,7 +2476,8 @@ package body Files.Rendering is
          end if;
       end loop;
 
-      if Show_Grid then
+      --  Permissions render as a matrix whenever the item's mode was read.
+      if Info.Mode_Available then
          Rows := Saturating_Add (Rows, Permission_Grid_Rows);
       end if;
 
@@ -2736,8 +2739,7 @@ package body Files.Rendering is
             Rows :=
               Saturating_Add
                 (Rows,
-                 Info_Section_Row_Count
-                   (Info, Text_W, Line_Height, Show_Grid => Snapshot.Permissions_Editable));
+                 Info_Section_Row_Count (Info, Text_W, Line_Height));
          end loop;
 
          return Rows;

@@ -3794,17 +3794,53 @@ separate (Files.Rendering)
                      Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
                   end Add_Info_Field;
 
-                  Show_Grid_Here : constant Boolean :=
-                    Snapshot.Permissions_Editable and then Info.Mode_Available;
-
-                  --  Draw the interactive 3x3 rwx grid (rows user/group/other,
-                  --  columns read/write/execute) and register one click hit
-                  --  region per cell. Cell index Bit maps to POSIX mode bit
-                  --  2 ** (8 - Bit); a filled cell means the bit is set.
+                  --  Draw the permissions matrix: a "Permissions" label, an
+                  --  R/W/E column header, a 3x3 rwx grid (rows user/group/other,
+                  --  columns read/write/execute) with a per-row label, and -- when
+                  --  editable -- one click hit region per cell. Cell index Bit
+                  --  maps to POSIX mode bit 2 ** (8 - Bit); a filled cell is set.
                   procedure Add_Permission_Grid is
                      Cell : constant Natural := Natural'Max (6, Line_Height - 6);
                      Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
+                     --  The row labels sit just past the three columns.
+                     Labels_X : constant Natural :=
+                       Saturating_Add
+                         (Text_X, Saturating_Add (Saturating_Multiply (3, Cell + Gap), Gap));
+                     Labels_W : constant Natural :=
+                       (if Text_W > Labels_X - Text_X then Text_W - (Labels_X - Text_X) else 0);
+
+                     --  Draw a clipped label/glyph at a section-row offset.
+                     procedure Add_At (X : Natural; Section_Row : Natural; Width : Natural; Text : String) is
+                        Y : constant Integer :=
+                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Section_Row, Line_Height));
+                     begin
+                        if Width > 0
+                          and then Y >= Integer (Info_Pane.Y)
+                          and then Y < Integer (Info_Bottom)
+                        then
+                           Add_Text
+                             (X, Natural (Y), Width, Line_Height,
+                              To_Unbounded_String (Text), Muted_Text_Color, Fit => True);
+                        end if;
+                     end Add_At;
+
+                     Column_Header : constant array (0 .. 2) of Character := ('R', 'W', 'E');
+
+                     function Row_Label_Key (Row : Natural) return String is
+                       (case Row is
+                           when 0      => "info.permissions.user",
+                           when 1      => "info.permissions.group",
+                           when others => "info.permissions.other");
                   begin
+                     Add_Info_Label (Current_Row, "info.permissions");
+
+                     --  R/W/E header, one letter over each column.
+                     for Col in 0 .. 2 loop
+                        Add_At
+                          (Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)),
+                           Current_Row + 1, Cell, (1 => Column_Header (Col)));
+                     end loop;
+
                      for Bit in 0 .. 8 loop
                         declare
                            Col   : constant Natural := Bit mod 3;
@@ -3813,7 +3849,8 @@ separate (Files.Rendering)
                              Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap));
                            Cell_Y : constant Integer :=
                              Saturating_Integer_Add
-                               (Row_Y, Saturating_Multiply (Saturating_Add (Current_Row, Row), Line_Height));
+                               (Row_Y,
+                                Saturating_Multiply (Saturating_Add (Current_Row + 2, Row), Line_Height));
                            Is_Set : constant Boolean :=
                              (Info.Mode_Bits / (2 ** (8 - Bit))) mod 2 = 1;
                         begin
@@ -3829,16 +3866,25 @@ separate (Files.Rendering)
                                     Cell - 2,
                                     (if Is_Set then Selection_Color else Input_Color));
                               end if;
-                              Result.Permission_Hits.Append
-                                (Permission_Hit_Region'
-                                   (Present => True,
-                                    Bit     => Bit,
-                                    X       => Cell_X,
-                                    Y       => Natural (Cell_Y),
-                                    Width   => Cell,
-                                    Height  => Cell));
+                              if Snapshot.Permissions_Editable then
+                                 Result.Permission_Hits.Append
+                                   (Permission_Hit_Region'
+                                      (Present => True,
+                                       Bit     => Bit,
+                                       X       => Cell_X,
+                                       Y       => Natural (Cell_Y),
+                                       Width   => Cell,
+                                       Height  => Cell));
+                              end if;
                            end if;
                         end;
+                     end loop;
+
+                     --  Per-row labels: user / group / other.
+                     for Row in 0 .. 2 loop
+                        Add_At
+                          (Labels_X, Current_Row + 2 + Row, Labels_W,
+                           Files.Localization.Text (Row_Label_Key (Row)));
                      end loop;
 
                      Current_Row := Saturating_Add (Current_Row, Permission_Grid_Rows);
@@ -3917,8 +3963,9 @@ separate (Files.Rendering)
                   end if;
                   Add_Info_Field ("info.created", Info_Field_Value (Info, 3), 3);
                   Add_Info_Field ("info.modified", Info_Field_Value (Info, 4), 4);
-                  Add_Info_Field ("info.permissions", Info_Field_Value (Info, 5), 5);
-                  if Show_Grid_Here then
+                  --  Permissions render as a labelled matrix (no text summary),
+                  --  clickable only when editable (gated inside Add_Permission_Grid).
+                  if Info.Mode_Available then
                      Add_Permission_Grid;
                   end if;
                   if Info.Ownership_Available then
@@ -3937,8 +3984,7 @@ separate (Files.Rendering)
                        Natural'Min
                          (Saturating_Multiply
                             (Line_Height,
-                             Info_Section_Row_Count
-                               (Info, Text_W, Line_Height, Snapshot.Permissions_Editable)),
+                             Info_Section_Row_Count (Info, Text_W, Line_Height)),
                           Info_Pane.Height);
                      Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
                      Raw_Bottom : constant Integer :=
@@ -3978,8 +4024,7 @@ separate (Files.Rendering)
                   Section_Offset_Rows :=
                     Saturating_Add
                       (Section_Offset_Rows,
-                       Info_Section_Row_Count
-                         (Info, Text_W, Line_Height, Snapshot.Permissions_Editable));
+                       Info_Section_Row_Count (Info, Text_W, Line_Height));
                end;
             end loop;
             end if;

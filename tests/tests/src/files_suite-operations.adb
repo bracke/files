@@ -3437,9 +3437,9 @@ package body Files_Suite.Operations is
          Found_Created      : Boolean := False;
          Found_Modified     : Boolean := False;
          Found_Permissions  : Boolean := False;
-         Found_Permission_First : Boolean := False;
-         Found_Permission_Second : Boolean := False;
-         Permission_First_Y : Natural := 0;
+         Found_Perm_Text    : Boolean := False;
+         Header_R, Header_W, Header_E : Boolean := False;
+         Row_User, Row_Other : Boolean := False;
          Found_Metadata_Key : Boolean := False;
          Found_Kind         : Boolean := False;
          Found_Extra        : Boolean := False;
@@ -3507,12 +3507,22 @@ package body Files_Suite.Operations is
                   Found_Modified := True;
                elsif Value = Files.Localization.Text ("info.permissions") then
                   Found_Permissions := True;
-               elsif Value = Files.Localization.Text ("info.permissions.readable") then
-                  Found_Permission_First := True;
-                  Permission_First_Y := Text.Y;
-               elsif Value = Files.Localization.Text ("info.permissions.writable") then
-                  Found_Permission_Second :=
-                    Permission_First_Y > 0 and then Text.Y = Permission_First_Y + 20;
+               elsif Text.X >= Info_X and then Value = "R" then
+                  Header_R := True;
+               elsif Text.X >= Info_X and then Value = "W" then
+                  Header_W := True;
+               elsif Text.X >= Info_X and then Value = "E" then
+                  Header_E := True;
+               elsif Value = Files.Localization.Text ("info.permissions.user") then
+                  Row_User := True;
+               elsif Value = Files.Localization.Text ("info.permissions.other") then
+                  Row_Other := True;
+               elsif Value = Files.Localization.Text ("info.permissions.readable")
+                 or else Value = Files.Localization.Text ("info.permissions.writable")
+               then
+                  --  Must NOT happen: the stacked text summary was replaced by
+                  --  the matrix for a single selection.
+                  Found_Perm_Text := True;
                elsif Value = Files.Localization.Text ("info.metadata_error") then
                   Found_Metadata_Key := True;
                elsif Value = Files.Localization.Text ("info.kind") then
@@ -3567,9 +3577,15 @@ package body Files_Suite.Operations is
          Assert (Found_Size_Value, "info pane frame includes size unit");
          Assert (Found_Created, "info pane frame includes localized missing creation row");
          Assert (Found_Modified, "info pane frame includes localized modified row");
-         Assert (Found_Permissions, "info pane frame includes localized permissions row");
-         Assert (Found_Permission_First, "info pane frame includes first permission row");
-         Assert (Found_Permission_Second, "info pane frame includes second permission row");
+         Assert (Found_Permissions, "info pane frame includes localized permissions label");
+         Assert (Header_R and then Header_W and then Header_E,
+                 "info pane permission matrix has an R/W/E column header");
+         Assert (Row_User and then Row_Other,
+                 "info pane permission matrix labels its user/group/other rows");
+         Assert (not Found_Perm_Text,
+                 "single-item permissions show the matrix, not a stacked text summary");
+         Assert (Natural (Frame.Permission_Hits.Length) > 0,
+                 "the editable single item registers clickable permission cells");
          Assert (not Found_Metadata_Key,
                  "a healthy item shows no Metadata Error row");
          Assert (not Found_Kind, "info pane no longer shows the redundant Kind row");
