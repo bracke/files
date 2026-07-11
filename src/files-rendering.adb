@@ -2449,13 +2449,17 @@ package body Files.Rendering is
       Rows : Natural := 0;
    begin
       --  Field 0 (Name) is omitted: the name rides on every value as a suffix.
+      --  Field 2 (Filesize) is omitted for folders: they carry no byte size and
+      --  show Contents instead.
       for Field in 1 .. 8 loop
-         Rows :=
-           Saturating_Add
-             (Rows,
+         if not (Field = 2 and then Info.Is_Directory) then
+            Rows :=
               Saturating_Add
-                 (2,
-                 Wrapped_Line_Count (Info_Field_Postfixed_Value (Info, Field), Text_W, Line_Height)));
+                (Rows,
+                 Saturating_Add
+                    (2,
+                    Wrapped_Line_Count (Info_Field_Postfixed_Value (Info, Field), Text_W, Line_Height)));
+         end if;
       end loop;
 
       if Show_Grid then
@@ -2568,7 +2572,23 @@ package body Files.Rendering is
       --  No dedicated Name section: every value below is postfixed with the item
       --  name, which serves as the per-row identifier.
       Add_Field_Section ("info.filetype", 1);
-      Add_Field_Section ("info.size", 2);
+
+      --  Filesize applies only to files: a folder carries no byte size, so it
+      --  contributes no row. When every selected item is a folder the section is
+      --  omitted entirely (folders show Contents instead).
+      declare
+         Values : Info_Value_Vectors.Vector;
+      begin
+         for Info of Snapshot.Selected_Info loop
+            if not Info.Is_Directory then
+               Values.Append (Info_Field_Value (Info, 2) & Info_Postfix (Info));
+            end if;
+         end loop;
+         if not Values.Is_Empty then
+            Sections.Append
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.size"), Values => Values));
+         end if;
+      end;
 
       if Any_Directory then
          declare

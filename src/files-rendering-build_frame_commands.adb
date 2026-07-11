@@ -3934,7 +3934,10 @@ separate (Files.Rendering)
                begin
                   --  No Name field: the item name is postfixed onto every value.
                   Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
-                  Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
+                  --  Filesize is a file-only field; a folder shows Contents.
+                  if not Info.Is_Directory then
+                     Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
+                  end if;
                   if Info.Is_Directory and then Info.Folder_Size_Available then
                      Add_Info_Field ("info.folder_size", Folder_Contents_Text (Info), 2);
                   end if;
