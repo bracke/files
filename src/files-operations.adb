@@ -2743,14 +2743,13 @@ package body Files.Operations is
    is
       pragma Unreferenced (Settings);
    begin
-      --  Folder size is a recursive subtree walk shown only in the info pane, so
-      --  only measure it when the pane is open. The walk runs incrementally off
-      --  the UI path (Files.Folder_Size): here we just request the selected
-      --  directories; the frame loop advances the walks and publishes results.
-      --  Every selected directory is measured so a multi-item selection shows
-      --  each folder's size and a combined selection total.
-      if Files.Model.Info_Pane_Is_Open (Model)
-        and then Files.Model.Selected_Count (Model) >= 1
+      --  Folder size is a recursive subtree walk. It runs incrementally off the
+      --  UI path (Files.Folder_Size), so measuring it does not block: here we just
+      --  request the selected directories and the frame loop advances the walks.
+      --  Every selected directory is measured -- for any selection, not only when
+      --  the info pane is open -- so both the info pane and the bottom bar's
+      --  combined total can count folder contents.
+      if Files.Model.Selected_Count (Model) >= 1
         and then not Files.Model.Selection_Includes_Temporary (Model)
       then
          declare

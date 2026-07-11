@@ -1853,35 +1853,21 @@ separate (Files.Rendering)
            & Files.Localization.Text ("status.hidden");
       end Hidden_Status_Text;
 
-      function Selected_Size_Bytes return Long_Long_Integer is
-         Total : Long_Long_Integer := 0;
-      begin
-         --  Sum the byte sizes of the selected items whose size is known.
-         --  Directories and metadata-less entries carry no byte total and are
-         --  counted (via Selected_Count) without contributing to the sum.
-         for Item of Snapshot.Items loop
-            if Item.Selected and then Item.Size_Available and then Item.Size > 0 then
-               if Total <= Long_Long_Integer'Last - Item.Size then
-                  Total := Total + Item.Size;
-               else
-                  Total := Long_Long_Integer'Last;
-               end if;
-            end if;
-         end loop;
-         return Total;
-      end Selected_Size_Bytes;
-
       function Selected_Status_Text return String is
          Count : constant String :=
            Natural_Text (Snapshot.Selected_Count)
            & " "
            & Files.Localization.Text ("status.selected");
       begin
-         --  When something is selected, append the summed size in parentheses,
-         --  e.g. "Selected: 3 (4.5 MB)". Only spaces and punctuation are inline
-         --  literals; every word comes from the catalog or the size formatter.
+         --  When something is selected, append the combined size in parentheses,
+         --  e.g. "Selected: 3 (4.5 MB)". The total includes the recursive size of
+         --  selected folders; while any folder is still being measured it is
+         --  marked with a trailing "..." (the total is still growing). Only spaces
+         --  and punctuation are inline literals; the size comes from the formatter.
          if Snapshot.Selected_Count >= 1 then
-            return Count & " (" & Size_Text (Selected_Size_Bytes) & ")";
+            return
+              Count & " (" & Size_Text (Snapshot.Selection_Total_Bytes)
+              & (if Snapshot.Selection_Total_Pending then " ..." else "") & ")";
          else
             return Count;
          end if;

@@ -136,6 +136,8 @@ package body Files_Suite.Operations is
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Multi_Selection
      (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Selection_Total_Counts_Folders
+     (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -233,13 +235,16 @@ package body Files_Suite.Operations is
          "filetype extra (folder counts, document scans) is computed lazily, not on load");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Folder_Size_Is_Lazy'Access,
-         "recursive folder size is requested only when the info pane is open and computed off the UI path");
+         "recursive folder size is requested for a selected folder and computed off the UI path");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Incremental_Folder_Size_Matches_Reference'Access,
          "incremental folder-size walk matches the synchronous Directory_Size");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Folder_Size_Multi_Selection'Access,
          "a multi-item selection caches each selected folder's recursive size");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Selection_Total_Counts_Folders'Access,
+         "the selection total counts selected folders' recursive size");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -4159,19 +4164,12 @@ package body Files_Suite.Operations is
          Reference : constant Files.File_System.Directory_Size_Result :=
            Files.File_System.Directory_Size (Path);
       begin
-         --  Info pane closed: no measurement is requested and nothing is cached.
-         Files.Operations.Update_Folder_Size (Model, Settings);
-         Assert (not Files.Folder_Size.Is_Active,
-                 "no folder-size walk is requested while the info pane is closed");
-         Assert (not Files.Model.Folder_Size_Cached_For (Model, Path),
-                 "folder size is not cached while the info pane is closed");
-
-         --  Info pane open: a request is posted, but the result is NOT computed
-         --  synchronously on the input path.
-         Files.Model.Toggle_Info_Pane (Model);
+         --  Selecting a folder requests its size (so the info pane and the bottom
+         --  bar's total can count it), but the walk runs incrementally off the UI
+         --  path: nothing is computed synchronously on the input.
          Files.Operations.Update_Folder_Size (Model, Settings);
          Assert (Files.Folder_Size.Is_Active and then Files.Folder_Size.Target_For_Test = Path,
-                 "opening the info pane requests the selected folder's size");
+                 "selecting a folder requests its size");
          Assert (not Files.Model.Folder_Size_Cached_For (Model, Path),
                  "folder size is not computed synchronously on the input path");
 
@@ -4295,6 +4293,37 @@ package body Files_Suite.Operations is
                 and then Files.Model.Folder_Size_Value (Model, Dir_B).Total_Bytes = 10,
               "per-folder sizes are the recursive totals of each folder");
    end Test_Folder_Size_Multi_Selection;
+
+   --  The combined selection total (shown in the bottom bar) counts the recursive
+   --  size of selected folders, not just selected files -- and it is computed for
+   --  any selection, independent of the info pane.
+   procedure Test_Selection_Total_Counts_Folders (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Dir_Path : constant String := Join (Root, "adir");
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir_Path);
+      Write_Binary_File (Join (Root, "afile.bin"), "0123456789");   --  10-byte file
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Files.Model.Select_All_Visible (Model);                       --  folder + file
+      Assert (Files.Model.Selected_Count (Model) = 2, "the folder and file are selected");
+
+      --  Publish a measured folder size (as the incremental walk would), then the
+      --  combined total must count it (folder 500 + file 10). Info pane stays closed.
+      Files.Model.Set_Folder_Size
+        (Model, Dir_Path, (Available => True, Total_Bytes => 500, others => <>));
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (not Snapshot.Info_Pane_Open, "the info pane is closed");
+      Assert (Snapshot.Selection_Total_Bytes = 510,
+              "the selection total counts the folder's recursive size plus the file");
+      Assert (not Snapshot.Selection_Total_Pending,
+              "the total is not pending once every selected folder is measured");
+   end Test_Selection_Total_Counts_Folders;
 
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -1216,11 +1216,15 @@ package body Files_Suite.Rendering is
       Assert (not Frame_Has_Text (Frame, Mib_Unit),
               "the neutral bottom bar shows no selection size total");
 
-      --  Three selected items with known sizes summing to 3 MB.
+      --  Three selected items with known sizes summing to 3 MB. The bottom bar
+      --  reads the combined selection total (files plus measured folder sizes),
+      --  which Build_Snapshot computes; here the snapshot is built directly, so
+      --  set it to the sum.
       Mark_Selected (1, One_Mib);
       Mark_Selected (2, One_Mib);
       Mark_Selected (3, One_Mib);
       Snapshot.Selected_Count := 3;
+      Snapshot.Selection_Total_Bytes := 3 * One_Mib;
       Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
       Assert (Frame_Has_Text (Frame, Selected_Word),
               "the bottom bar shows the selection label when items are selected");
