@@ -2797,10 +2797,12 @@ separate (Files.Rendering)
                      --  the fraction of disk space used.
                      declare
                         Bar_H  : constant Natural := Natural'Max (8, Saturating_Multiply (Line_Height, 2) / 3);
+                        --  Centre the bar in the field's full height (the hover
+                        --  rect band), not the smaller inset content band.
                         Bar_Y  : constant Natural :=
-                          (if Bottom_Content_H > Bar_H
-                           then Saturating_Add (Bottom_Content_Y, (Bottom_Content_H - Bar_H) / 2)
-                           else Bottom_Content_Y);
+                          (if Info_Btn_H > Bar_H
+                           then Saturating_Add (Info_Btn_Y, (Info_Btn_H - Bar_H) / 2)
+                           else Info_Btn_Y);
                         Bar_W  : constant Natural :=
                           (if Free_Field_W > Pad then Free_Field_W - Pad else 0);
                         --  Centre the bar in the field's interactive region so the
