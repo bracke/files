@@ -90,6 +90,7 @@ package body Files_Suite.Rendering is
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -234,6 +235,9 @@ package body Files_Suite.Rendering is
         (T, Test_Scope_Chip_Has_Own_Tooltip'Access,
          "the search-scope chip has its own tooltip describing the scope");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filetype_Labels_Omit_Document'Access,
+         "detail type labels omit the redundant 'document' word");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Details_Header_Text_Centered'Access,
          "details header labels are optically centred like the bottom-bar text");
    end Register_Tests;
@@ -371,6 +375,21 @@ package body Files_Suite.Rendering is
          Assert (Found, "a tooltip covers the scope chip");
       end;
    end Test_Scope_Chip_Has_Own_Tooltip;
+
+   --  The detail-view type labels are the short format names, without the
+   --  redundant "document" word that widened the Type column.
+   procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert (Files.Localization.Text ("info.kind.markdown") = "Markdown",
+              "the markdown type label omits 'document'");
+      Assert (Files.Localization.Text ("info.kind.document.pdf") = "PDF",
+              "the PDF type label omits 'document'");
+      Assert (Files.Localization.Text ("info.kind.document.word") = "Word",
+              "the Word type label omits 'document'");
+      Assert (Files.Localization.Text ("info.kind.document.spreadsheet")'Length > 0,
+              "the spreadsheet type label is present");
+   end Test_Filetype_Labels_Omit_Document;
 
    --  True when the frame contains at least one filled rectangle of Color.
    function Has_Rectangle_Colored
