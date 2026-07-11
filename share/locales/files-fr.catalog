@@ -530,6 +530,7 @@ fr.command.search.contents.description = Rechercher les fichiers du sous-arbre d
 fr.search.scope.here = Ici
 fr.search.scope.names = Noms
 fr.search.scope.contents = Contenu
+fr.search.scope.tooltip = Changer la portée de recherche : ce dossier, les noms ou le contenu des fichiers
 fr.search.no_matches = Aucun fichier correspondant.
 fr.accessibility.search_scope = Sélecteur de portée de recherche
 fr.settings.system_opener = Utiliser l'ouvreur par défaut du système

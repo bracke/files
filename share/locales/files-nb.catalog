@@ -530,6 +530,7 @@ nb.command.search.contents.description = Søk i gjeldende undertre etter filer d
 nb.search.scope.here = Her
 nb.search.scope.names = Navn
 nb.search.scope.contents = Innhold
+nb.search.scope.tooltip = Bytt søkeområde: denne mappen, navn eller filinnhold
 nb.search.no_matches = Ingen samsvarende filer.
 nb.accessibility.search_scope = Velger for søkeområde
 nb.settings.system_opener = Bruk systemets standardåpner

@@ -530,6 +530,7 @@ es.command.search.contents.description = Buscar en el subárbol actual archivos 
 es.search.scope.here = Aquí
 es.search.scope.names = Nombres
 es.search.scope.contents = Contenido
+es.search.scope.tooltip = Cambiar el ámbito de búsqueda: esta carpeta, nombres o contenido de archivos
 es.search.no_matches = No hay archivos coincidentes.
 es.accessibility.search_scope = Selector de ámbito de búsqueda
 es.settings.system_opener = Usar el programa predeterminado del sistema

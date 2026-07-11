@@ -530,6 +530,7 @@ pt.command.search.contents.description = Pesquisar na subárvore atual ficheiros
 pt.search.scope.here = Aqui
 pt.search.scope.names = Nomes
 pt.search.scope.contents = Conteúdo
+pt.search.scope.tooltip = Alternar o âmbito da pesquisa: esta pasta, nomes ou conteúdo dos ficheiros
 pt.search.no_matches = Nenhum ficheiro correspondente.
 pt.accessibility.search_scope = Seletor de âmbito de pesquisa
 pt.settings.system_opener = Usar o abridor predefinido do sistema

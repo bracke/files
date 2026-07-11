@@ -529,6 +529,7 @@ de.command.search.contents.description = Teilbaum nach Dateien durchsuchen, dere
 de.search.scope.here = Hier
 de.search.scope.names = Namen
 de.search.scope.contents = Inhalte
+de.search.scope.tooltip = Suchbereich wechseln: dieser Ordner, Namen oder Dateiinhalte
 de.search.no_matches = Keine passenden Dateien.
 de.accessibility.search_scope = Auswahl des Suchbereichs
 de.settings.system_opener = Systemstandardöffner verwenden

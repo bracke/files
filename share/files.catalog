@@ -358,6 +358,7 @@ en.filter.placeholder = find…
 en.search.scope.here = Here
 en.search.scope.names = Names
 en.search.scope.contents = Contents
+en.search.scope.tooltip = Cycle the search scope: this folder, names, or file contents
 en.search.no_matches = No matching files.
 en.info.name = Name
 en.info.filetype = Filetype

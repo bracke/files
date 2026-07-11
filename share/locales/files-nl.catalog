@@ -530,6 +530,7 @@ nl.command.search.contents.description = Doorzoek de substructuur naar bestanden
 nl.search.scope.here = Hier
 nl.search.scope.names = Namen
 nl.search.scope.contents = Inhoud
+nl.search.scope.tooltip = Zoekbereik wisselen: deze map, namen of bestandsinhoud
 nl.search.no_matches = Geen overeenkomende bestanden.
 nl.accessibility.search_scope = Selectie van zoekbereik
 nl.settings.system_opener = Systeemstandaardopener gebruiken

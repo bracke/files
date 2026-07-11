@@ -89,6 +89,7 @@ package body Files_Suite.Rendering is
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -230,6 +231,9 @@ package body Files_Suite.Rendering is
         (T, Test_Toolbar_Text_Optically_Centered'Access,
          "toolbar input text aligns vertically with the toolbar icons and star");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scope_Chip_Has_Own_Tooltip'Access,
+         "the search-scope chip has its own tooltip describing the scope");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Details_Header_Text_Centered'Access,
          "details header labels are optically centred like the bottom-bar text");
    end Register_Tests;
@@ -334,6 +338,39 @@ package body Files_Suite.Rendering is
       Assert (abs (Icon_Center - Field_Ctr) <= 1,
               "the toolbar icon is centred in the toolbar field");
    end Test_Toolbar_Text_Optically_Centered;
+
+   --  Hovering the search-scope chip shows a tooltip describing the scope, not
+   --  the filter field's tooltip that spans the same toolbar section.
+   procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap  : constant View_Snapshot := Sample_Snapshot (5, Files.Types.Small_Icons);
+      Tip   : constant String := Files.Localization.Text ("search.scope.tooltip");
+      Frame : constant Frame_Commands := Build_Frame_Commands (Snap, 1400, 800, 20);
+      Toolbar : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (1400);
+      Chip  : constant Guikit.Layout.Scope_Chip_Region :=
+        Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Files.UI.Filter_Scope_Chip_Width (20), 20);
+      Found : Boolean := False;
+   begin
+      Assert (Chip.Visible, "the search-scope chip is visible in a wide window");
+      Assert (Tip'Length > 0, "the scope tooltip text is localized");
+      declare
+         CX : constant Natural := Chip.X + Chip.Width / 2;
+         CY : constant Natural := Chip.Y + Chip.Height / 2;
+      begin
+         for C of Frame.Tooltips loop
+            if CX >= C.X and then CX < C.X + C.Width
+              and then CY >= C.Y and then CY < C.Y + C.Height
+            then
+               --  First tooltip covering the point wins, as Tooltip_At resolves it.
+               Assert (To_String (C.Text) = Tip,
+                       "the first tooltip over the scope chip describes the scope");
+               Found := True;
+               exit;
+            end if;
+         end loop;
+         Assert (Found, "a tooltip covers the scope chip");
+      end;
+   end Test_Scope_Chip_Has_Own_Tooltip;
 
    --  True when the frame contains at least one filled rectangle of Color.
    function Has_Rectangle_Colored

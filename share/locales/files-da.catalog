@@ -530,6 +530,7 @@ da.command.search.contents.description = Søg i det aktuelle undertræ efter fil
 da.search.scope.here = Her
 da.search.scope.names = Navne
 da.search.scope.contents = Indhold
+da.search.scope.tooltip = Skift søgeområde: denne mappe, navne eller filindhold
 da.search.no_matches = Ingen matchende filer.
 da.accessibility.search_scope = Vælger for søgeområde
 da.settings.system_opener = Brug systemets standardåbner

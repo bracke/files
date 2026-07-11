@@ -530,6 +530,7 @@ it.command.search.contents.description = Cerca nel sottoalbero corrente i file i
 it.search.scope.here = Qui
 it.search.scope.names = Nomi
 it.search.scope.contents = Contenuti
+it.search.scope.tooltip = Cambia ambito di ricerca: questa cartella, nomi o contenuto dei file
 it.search.no_matches = Nessun file corrispondente.
 it.accessibility.search_scope = Selettore ambito di ricerca
 it.settings.system_opener = Usa l'applicazione predefinita del sistema

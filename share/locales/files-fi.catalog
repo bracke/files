@@ -530,6 +530,7 @@ fi.command.search.contents.description = Hae nykyisestä alipuusta tiedostot, jo
 fi.search.scope.here = Tässä
 fi.search.scope.names = Nimet
 fi.search.scope.contents = Sisältö
+fi.search.scope.tooltip = Vaihda hakualuetta: tämä kansio, nimet tai tiedostojen sisältö
 fi.search.no_matches = Ei osumia.
 fi.accessibility.search_scope = Hakualueen valitsin
 fi.settings.system_opener = Käytä järjestelmän oletusavaajaa

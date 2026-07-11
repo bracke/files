@@ -2492,6 +2492,15 @@ separate (Files.Rendering)
                   Localized (Scope_Key),
                   (if Chip_Active then Text_Color else Muted_Text_Color),
                   Fit => True);
+               --  The chip's own tooltip, added before the filter field's, so it
+               --  wins the first-match hit-test for points over the chip and
+               --  explains the scope control rather than the filter input.
+               Add_Tooltip
+                 (Scope_Chip.X,
+                  Scope_Chip.Y,
+                  Scope_Chip.Width,
+                  Scope_Chip.Height,
+                  "search.scope.tooltip");
                Add_Accessibility_Node
                  (Role_Button,
                   Scope_Chip.X,
