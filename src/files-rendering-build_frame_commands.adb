@@ -3802,6 +3802,14 @@ separate (Files.Rendering)
                   procedure Add_Permission_Grid is
                      Cell : constant Natural := Natural'Max (6, Line_Height - 6);
                      Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
+                     --  Approximate glyph advance, used to horizontally centre a
+                     --  header letter over its column.
+                     Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                     --  Vertical inset that centres a cell square within its row so
+                     --  it lines up with the row label text.
+                     Cell_Top : constant Natural := (if Line_Height > Cell then (Line_Height - Cell) / 2 else 0);
+                     --  Horizontal inset that centres a header letter over a cell.
+                     Header_Pad : constant Natural := (if Cell > Char_W then (Cell - Char_W) / 2 else 0);
                      --  The row labels sit just past the three columns.
                      Labels_X : constant Natural :=
                        Saturating_Add
@@ -3834,11 +3842,12 @@ separate (Files.Rendering)
                   begin
                      Add_Info_Label (Current_Row, "info.permissions");
 
-                     --  R/W/E header, one letter over each column.
+                     --  R/W/E header, one letter centred over each column.
                      for Col in 0 .. 2 loop
                         Add_At
-                          (Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)),
-                           Current_Row + 1, Cell, (1 => Column_Header (Col)));
+                          (Saturating_Add
+                             (Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)), Header_Pad),
+                           Current_Row + 1, Char_W, (1 => Column_Header (Col)));
                      end loop;
 
                      for Bit in 0 .. 8 loop
@@ -3849,8 +3858,10 @@ separate (Files.Rendering)
                              Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap));
                            Cell_Y : constant Integer :=
                              Saturating_Integer_Add
-                               (Row_Y,
-                                Saturating_Multiply (Saturating_Add (Current_Row + 2, Row), Line_Height));
+                               (Saturating_Integer_Add
+                                  (Row_Y,
+                                   Saturating_Multiply (Saturating_Add (Current_Row + 2, Row), Line_Height)),
+                                Cell_Top);
                            Is_Set : constant Boolean :=
                              (Info.Mode_Bits / (2 ** (8 - Bit))) mod 2 = 1;
                         begin
