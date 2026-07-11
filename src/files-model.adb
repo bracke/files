@@ -3406,6 +3406,15 @@ package body Files.Model is
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
       Model.Items := Items;
+      --  Order the loaded items by the active sort so the model's order matches
+      --  the displayed order. Without this, arrow navigation (which walks the
+      --  model's order) would move opposite to the display under descending sort
+      --  or any non-default sort, because Build_Snapshot sorts for display but
+      --  Load_Directory cannot know the model's current sort direction.
+      Files.File_System.Sort_Items
+        (Model.Items,
+         Settings_Sort_Field (Model.Sort_Field_Value),
+         Model.Sort_Ascending);
       Model.Directory_Signature := Signature_From_Items (Current_Path (Model), Items);
       Model.Main_View_Scroll := 0;
       Model.Info_Pane_Scroll := 0;
