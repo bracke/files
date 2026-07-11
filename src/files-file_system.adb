@@ -1,4 +1,5 @@
 with Ada.Characters.Handling;
+with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams;
@@ -37,6 +38,15 @@ package body Files.File_System is
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element;
    use type Ada.Streams.Stream_Element_Offset;
+
+   --  Session cache for numeric-id -> name resolution. Build_Snapshot resolves
+   --  the selected items' owner/group names every frame, so memoize each id's
+   --  name (including an unresolved "") to avoid repeated getpwuid/getgrgid.
+   package Id_Name_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Natural,
+      Element_Type => Unbounded_String);
+   User_Name_Cache  : Id_Name_Maps.Map;
+   Group_Name_Cache : Id_Name_Maps.Map;
    use type System.Address;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Item_Kind;
@@ -3672,6 +3682,34 @@ package body Files.File_System is
    begin
       return Files.Platform.Metadata.Group_Id_For_Name (Name, Found);
    end Group_Id_For_Name;
+
+   function User_Name_For_Id (Id : Natural) return String is
+      Position : constant Id_Name_Maps.Cursor := User_Name_Cache.Find (Id);
+   begin
+      if Id_Name_Maps.Has_Element (Position) then
+         return To_String (Id_Name_Maps.Element (Position));
+      end if;
+      declare
+         Name : constant String := Files.Platform.Metadata.User_Name_For_Id (Id);
+      begin
+         User_Name_Cache.Insert (Id, To_Unbounded_String (Name));
+         return Name;
+      end;
+   end User_Name_For_Id;
+
+   function Group_Name_For_Id (Id : Natural) return String is
+      Position : constant Id_Name_Maps.Cursor := Group_Name_Cache.Find (Id);
+   begin
+      if Id_Name_Maps.Has_Element (Position) then
+         return To_String (Id_Name_Maps.Element (Position));
+      end if;
+      declare
+         Name : constant String := Files.Platform.Metadata.Group_Name_For_Id (Id);
+      begin
+         Group_Name_Cache.Insert (Id, To_Unbounded_String (Name));
+         return Name;
+      end;
+   end Group_Name_For_Id;
 
    function Directory_Size
      (Path        : String;

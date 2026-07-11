@@ -115,6 +115,18 @@ package body Files.Platform.Metadata is
       return 0;
    end Group_Id_For_Name;
 
+   function User_Name_For_Id (Id : Natural) return String is
+      pragma Unreferenced (Id);
+   begin
+      return "";
+   end User_Name_For_Id;
+
+   function Group_Name_For_Id (Id : Natural) return String is
+      pragma Unreferenced (Id);
+   begin
+      return "";
+   end Group_Name_For_Id;
+
    function Ownership_Supported return Boolean is
    begin
       return False;

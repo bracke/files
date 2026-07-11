@@ -2304,14 +2304,14 @@ package body Files.Rendering is
             return Info.Filetype_Extra;
          when 9 =>
             return
-              (if Info.Owner_Editing
-               then Info.Ownership_Buffer
+              (if Info.Owner_Editing then Info.Ownership_Buffer
+               elsif Length (Info.Owner_Name) > 0 then Info.Owner_Name
                else To_Unbounded_String
                       (Ada.Strings.Fixed.Trim (Natural'Image (Info.Owner_Id), Ada.Strings.Both)));
          when 10 =>
             return
-              (if Info.Group_Editing
-               then Info.Ownership_Buffer
+              (if Info.Group_Editing then Info.Ownership_Buffer
+               elsif Length (Info.Group_Name) > 0 then Info.Group_Name
                else To_Unbounded_String
                       (Ada.Strings.Fixed.Trim (Natural'Image (Info.Group_Id), Ada.Strings.Both)));
          when others =>

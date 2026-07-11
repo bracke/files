@@ -4892,6 +4892,15 @@ package body Files_Suite.Operations is
 
       Id := Files.File_System.Group_Id_For_Name ("no_such_group_xyzzy_42", Found);
       Assert (not Found and then Id = 0, "a bogus group name reports Found => False");
+
+      --  Reverse resolution: uid 0 is root on any normal Linux system; gid 0 is
+      --  "root" or "wheel" depending on distribution, so only assert non-empty.
+      Assert (Files.File_System.User_Name_For_Id (0) = "root", "uid 0 resolves to root");
+      Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
+      Assert (Files.File_System.User_Name_For_Id (2_000_000_000) = "",
+              "an unassigned uid resolves to the empty string");
+      Assert (Files.File_System.Group_Name_For_Id (2_000_000_000) = "",
+              "an unassigned gid resolves to the empty string");
    end Test_Ownership_Name_Resolution;
 
    procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class) is

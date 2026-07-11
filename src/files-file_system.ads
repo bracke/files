@@ -740,6 +740,18 @@ package Files.File_System is
       Found : out Boolean)
       return Natural;
 
+   --  Resolve a numeric user id to its name (getpwuid), memoized for the session.
+   --
+   --  @param Id User id to resolve.
+   --  @return The user name, or the empty string when it cannot be resolved.
+   function User_Name_For_Id (Id : Natural) return String;
+
+   --  Resolve a numeric group id to its name (getgrgid), memoized for the session.
+   --
+   --  @param Id Group id to resolve.
+   --  @return The group name, or the empty string when it cannot be resolved.
+   function Group_Name_For_Id (Id : Natural) return String;
+
    --  Sum the sizes of every descendant regular file under a directory.
    --
    --  The walk skips symbolic links (it never descends through a symlinked

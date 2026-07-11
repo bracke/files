@@ -975,6 +975,14 @@ separate (Files.Rendering)
                   end;
                end if;
 
+               --  Resolve owner/group names for display (cached per session).
+               if Item.Ownership_Available then
+                  Info.Owner_Name :=
+                    To_Unbounded_String (Files.File_System.User_Name_For_Id (Item.Owner_Id));
+                  Info.Group_Name :=
+                    To_Unbounded_String (Files.File_System.Group_Name_For_Id (Item.Group_Id));
+               end if;
+
                return Info;
             end Build_Info;
 

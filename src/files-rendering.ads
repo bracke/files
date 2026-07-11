@@ -87,6 +87,8 @@ package Files.Rendering is
       Ownership_Available : Boolean := False;
       Owner_Id           : Natural := 0;
       Group_Id           : Natural := 0;
+      Owner_Name         : UString;
+      Group_Name         : UString;
       Owner_Editing      : Boolean := False;
       Group_Editing      : Boolean := False;
       Ownership_Buffer   : UString;

@@ -159,6 +159,22 @@ package Files.Platform.Metadata is
       Found : out Boolean)
       return Natural;
 
+   --  Resolve a numeric user id to its name through getpwuid(3).
+   --
+   --  Non-Linux bodies are stubs that return the empty string.
+   --
+   --  @param Id User id to resolve.
+   --  @return The user name, or the empty string when it cannot be resolved.
+   function User_Name_For_Id (Id : Natural) return String;
+
+   --  Resolve a numeric group id to its name through getgrgid(3).
+   --
+   --  Non-Linux bodies are stubs that return the empty string.
+   --
+   --  @param Id Group id to resolve.
+   --  @return The group name, or the empty string when it cannot be resolved.
+   function Group_Name_For_Id (Id : Natural) return String;
+
    --  Return whether this platform can read and change file ownership.
    --
    --  @return True on the Linux adapter, False on the stub adapters.

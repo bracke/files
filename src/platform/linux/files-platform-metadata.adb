@@ -161,6 +161,16 @@ package body Files.Platform.Metadata is
       return access Group_Front
      with Import, Convention => C, External_Name => "getgrnam";
 
+   function Getpwuid
+     (Uid : C_U32)
+      return access Passwd_Front
+     with Import, Convention => C, External_Name => "getpwuid";
+
+   function Getgrgid
+     (Gid : C_U32)
+      return access Group_Front
+     with Import, Convention => C, External_Name => "getgrgid";
+
    Statx_Mode      : constant C_Unsigned := 16#2#;
    Permission_Mask : constant C_U16 := 8#7777#;
 
@@ -480,6 +490,38 @@ package body Files.Platform.Metadata is
          Found := False;
          return 0;
    end Group_Id_For_Name;
+
+   function User_Name_For_Id (Id : Natural) return String is
+      --  The returned struct points into a static libc buffer; do not free it.
+      Entry_Ptr : constant access Passwd_Front := Getpwuid (C_U32 (Id));
+   begin
+      if Entry_Ptr /= null
+        and then Entry_Ptr.Name /= Interfaces.C.Strings.Null_Ptr
+      then
+         return Interfaces.C.Strings.Value (Entry_Ptr.Name);
+      else
+         return "";
+      end if;
+   exception
+      when others =>
+         return "";
+   end User_Name_For_Id;
+
+   function Group_Name_For_Id (Id : Natural) return String is
+      --  The returned struct points into a static libc buffer; do not free it.
+      Entry_Ptr : constant access Group_Front := Getgrgid (C_U32 (Id));
+   begin
+      if Entry_Ptr /= null
+        and then Entry_Ptr.Name /= Interfaces.C.Strings.Null_Ptr
+      then
+         return Interfaces.C.Strings.Value (Entry_Ptr.Name);
+      else
+         return "";
+      end if;
+   exception
+      when others =>
+         return "";
+   end Group_Name_For_Id;
 
    function Ownership_Supported return Boolean is
    begin
