@@ -23,6 +23,7 @@ with Files.Commands;
 with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
+with Files.Folder_Size;
 with Files.Interaction;
 with Files.Operations;
 with Files.Quick_Look;
@@ -1282,6 +1283,40 @@ package body Files.Application.Windows is
          Handle_File_Watch_Poll (Runtime);
       end loop;
    end Handle_All_File_Watch_Poll;
+
+   --  Advance the incremental folder-size walk by one frame's worth of work and
+   --  publish a finished measurement into the window whose selected directory it
+   --  belongs to. Requests are posted from the input path (Update_Folder_Size);
+   --  this keeps the walk off the UI critical path so selection stays smooth.
+   procedure Poll_All_Folder_Sizes
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector)
+   is
+      use type Ada.Strings.Unbounded.Unbounded_String;
+      Path      : Ada.Strings.Unbounded.Unbounded_String;
+      Result    : Files.File_System.Directory_Size_Result;
+      Available : Boolean;
+   begin
+      Files.Folder_Size.Step;
+      Files.Folder_Size.Take (Path, Result, Available);
+      if not Available then
+         return;
+      end if;
+
+      for Runtime of Runtime_Windows loop
+         declare
+            Item : constant Files.File_System.Directory_Item :=
+              Files.Model.Selected_Item (Runtime.Model);
+         begin
+            if Files.Model.Selected_Count (Runtime.Model) = 1
+              and then Item.Kind = Files.Types.Directory_Item
+              and then Item.Full_Path = Path
+            then
+               Files.Model.Set_Folder_Size
+                 (Runtime.Model, Ada.Strings.Unbounded.To_String (Path), Result);
+            end if;
+         end;
+      end loop;
+   end Poll_All_Folder_Sizes;
 
    procedure Handle_Scroll_Input
      (Runtime : in out Runtime_Window)
@@ -3581,6 +3616,7 @@ package body Files.Application.Windows is
             Handle_All_Scroll_Input (Runtime_Windows);
             Render_All (Runtime_Windows);
             Handle_All_File_Watch_Poll (Runtime_Windows);
+            Poll_All_Folder_Sizes (Runtime_Windows);
          exception
             --  Resilience: a stray error while handling one frame's input or
             --  rendering should not tear down every window. Skip the frame and

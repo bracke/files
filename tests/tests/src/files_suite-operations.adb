@@ -37,6 +37,7 @@ with Files.Events;
 with Files.File_System;
 with Files.File_Types;
 with Files.Features;
+with Files.Folder_Size;
 with Files.Folder_Tree;
 with Files.Fonts;
 with Files.Interaction;
@@ -126,6 +127,8 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Incremental_Folder_Size_Matches_Reference
+     (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -209,7 +212,10 @@ package body Files_Suite.Operations is
          "filetype extra (folder counts, document scans) is computed lazily, not on load");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Folder_Size_Is_Lazy'Access,
-         "recursive folder size is computed only when the info pane is open");
+         "recursive folder size is requested only when the info pane is open and computed off the UI path");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Incremental_Folder_Size_Matches_Reference'Access,
+         "incremental folder-size walk matches the synchronous Directory_Size");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3729,14 +3735,33 @@ package body Files_Suite.Operations is
               "folder child count is computed lazily when the info pane is open");
    end Test_Filetype_Extra_Is_Lazy;
 
-   --  The recursive folder-size walk (Directory_Size) shown in the info pane
-   --  must not run when the pane is closed, or moving the selection onto a
-   --  folder would walk its whole subtree on the UI path.
+   --  The recursive folder-size walk shown in the info pane must not run
+   --  synchronously on the UI path: while the pane is closed no measurement is
+   --  requested at all, and while it is open the request is served incrementally
+   --  (Files.Folder_Size), not computed inline. Moving the selection onto a
+   --  folder must never walk its whole subtree on the input path.
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
+
+      --  Drive the incremental walk to completion and publish it into the model,
+      --  as the frame loop's Poll_All_Folder_Sizes would.
+      procedure Drain_Into_Model is
+         Path      : Ada.Strings.Unbounded.Unbounded_String;
+         Result    : Files.File_System.Directory_Size_Result;
+         Available : Boolean := False;
+      begin
+         loop
+            Files.Folder_Size.Step (Budget => 100_000);
+            Files.Folder_Size.Take (Path, Result, Available);
+            exit when Available or else not Files.Folder_Size.Is_Active;
+         end loop;
+         if Available then
+            Files.Model.Set_Folder_Size (Model, Ada.Strings.Unbounded.To_String (Path), Result);
+         end if;
+      end Drain_Into_Model;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "sub"));
@@ -3744,21 +3769,97 @@ package body Files_Suite.Operations is
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "sub");
+      Files.Folder_Size.Cancel;
       declare
-         Path : constant String := To_String (Files.Model.Selected_Item (Model).Full_Path);
+         Path      : constant String := To_String (Files.Model.Selected_Item (Model).Full_Path);
+         Reference : constant Files.File_System.Directory_Size_Result :=
+           Files.File_System.Directory_Size (Path);
       begin
-         --  Info pane closed: selecting a folder does not walk its subtree.
+         --  Info pane closed: no measurement is requested and nothing is cached.
          Files.Operations.Update_Folder_Size (Model, Settings);
+         Assert (not Files.Folder_Size.Is_Active,
+                 "no folder-size walk is requested while the info pane is closed");
          Assert (not Files.Model.Folder_Size_Cached_For (Model, Path),
-                 "folder size is not walked while the info pane is closed");
+                 "folder size is not cached while the info pane is closed");
 
-         --  Info pane open: the folder size is computed for the info pane.
+         --  Info pane open: a request is posted, but the result is NOT computed
+         --  synchronously on the input path.
          Files.Model.Toggle_Info_Pane (Model);
          Files.Operations.Update_Folder_Size (Model, Settings);
+         Assert (Files.Folder_Size.Is_Active and then Files.Folder_Size.Target_For_Test = Path,
+                 "opening the info pane requests the selected folder's size");
+         Assert (not Files.Model.Folder_Size_Cached_For (Model, Path),
+                 "folder size is not computed synchronously on the input path");
+
+         --  Advancing the incremental walk to completion publishes the
+         --  measurement, which matches the synchronous reference.
+         Drain_Into_Model;
          Assert (Files.Model.Folder_Size_Cached_For (Model, Path),
-                 "folder size is computed when the info pane is open");
+                 "folder size is published once the incremental walk finishes");
+         declare
+            Measured : constant Files.File_System.Directory_Size_Result :=
+              Files.Model.Folder_Size_Value (Model);
+         begin
+            Assert (Measured.Available = Reference.Available
+                      and then Measured.Total_Bytes = Reference.Total_Bytes
+                      and then Measured.File_Count = Reference.File_Count
+                      and then Measured.Item_Count = Reference.Item_Count
+                      and then Measured.Capped = Reference.Capped,
+                    "incremental folder size matches Directory_Size");
+         end;
       end;
    end Test_Folder_Size_Is_Lazy;
+
+   --  The incremental walk must produce exactly the same totals as the
+   --  synchronous Directory_Size for a subtree within the entry/depth guards.
+   procedure Test_Incremental_Folder_Size_Matches_Reference
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Tree      : constant String := Join (Root, "tree");
+      Deep      : constant String := Join (Join (Tree, "a"), "b");
+      Reference : Files.File_System.Directory_Size_Result;
+      Path      : Ada.Strings.Unbounded.Unbounded_String;
+      Result    : Files.File_System.Directory_Size_Result;
+      Available : Boolean := False;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Deep);
+      Ada.Directories.Create_Path (Join (Tree, "c"));
+      --  4 files totalling 21 bytes across 3 nested directories (a, a/b, c).
+      Write_Binary_File (Join (Tree, "root.txt"), "12345");            --  5 bytes
+      Write_Binary_File (Join (Join (Tree, "a"), "mid.bin"), "0123456789");  --  10 bytes
+      Write_Binary_File (Join (Deep, "leaf.dat"), "z");               --  1 byte
+      Write_Binary_File (Join (Join (Tree, "c"), "note.md"), "hello"); --  5 bytes
+
+      Reference := Files.File_System.Directory_Size (Tree);
+
+      Files.Folder_Size.Cancel;
+      Files.Folder_Size.Request (Tree);
+      loop
+         Files.Folder_Size.Step (Budget => 100_000);
+         Files.Folder_Size.Take (Path, Result, Available);
+         exit when Available or else not Files.Folder_Size.Is_Active;
+      end loop;
+
+      Assert (Available, "incremental walk produced a finished result");
+      Assert (Ada.Strings.Unbounded.To_String (Path) = Tree,
+              "result path matches the requested root");
+      Assert (Result.Available = Reference.Available
+                and then Result.Total_Bytes = Reference.Total_Bytes
+                and then Result.File_Count = Reference.File_Count
+                and then Result.Item_Count = Reference.Item_Count
+                and then Result.Capped = Reference.Capped,
+              "incremental totals equal Directory_Size for the same tree");
+      --  Independent check of the constructed tree: 4 files, 21 bytes,
+      --  4 files + 3 directories = 7 visited items, within the guards.
+      Assert (Reference.Available
+                and then Reference.File_Count = 4
+                and then Reference.Total_Bytes = 21
+                and then Reference.Item_Count = 7
+                and then not Reference.Capped,
+              "reference totals match the constructed tree");
+   end Test_Incremental_Folder_Size_Matches_Reference;
 
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -4591,7 +4692,26 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tree");
       Files.Model.Toggle_Info_Pane (Model);
+      Files.Folder_Size.Cancel;
       Files.Operations.Update_Folder_Size (Model, Settings);
+
+      --  The measurement now runs incrementally off the UI path; drive it to
+      --  completion and publish it, as the frame loop would, before snapshotting.
+      declare
+         Done_Path : Ada.Strings.Unbounded.Unbounded_String;
+         Measured  : Files.File_System.Directory_Size_Result;
+         Available : Boolean := False;
+      begin
+         loop
+            Files.Folder_Size.Step (Budget => 100_000);
+            Files.Folder_Size.Take (Done_Path, Measured, Available);
+            exit when Available or else not Files.Folder_Size.Is_Active;
+         end loop;
+         if Available then
+            Files.Model.Set_Folder_Size
+              (Model, Ada.Strings.Unbounded.To_String (Done_Path), Measured);
+         end if;
+      end;
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=

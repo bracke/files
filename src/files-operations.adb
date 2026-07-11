@@ -8,6 +8,7 @@ with GNAT.OS_Lib;
 
 with Files_Config;
 
+with Files.Folder_Size;
 with Files.Fs;
 with Files.Paste;
 
@@ -2743,10 +2744,12 @@ package body Files.Operations is
       pragma Unreferenced (Settings);
       Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
    begin
-      --  The folder size is a recursive subtree walk (Directory_Size) shown only
-      --  in the info pane, so only compute it when the pane is open. Otherwise
-      --  moving the selection onto a folder would walk its whole subtree on the
-      --  UI path, making selection feel slow.
+      --  The folder size is a recursive subtree walk shown only in the info
+      --  pane, so only measure it when the pane is open. The walk runs
+      --  incrementally off the UI path (Files.Folder_Size): here we just post
+      --  the request for the selected directory; the frame loop advances it and
+      --  publishes the result. Otherwise moving the selection onto a folder
+      --  would walk its whole subtree synchronously, making selection feel slow.
       if Files.Model.Info_Pane_Is_Open (Model)
         and then Files.Model.Selected_Count (Model) = 1
         and then not Files.Model.Selection_Includes_Temporary (Model)
@@ -2756,11 +2759,12 @@ package body Files.Operations is
             Path : constant String := To_String (Item.Full_Path);
          begin
             if not Files.Model.Folder_Size_Cached_For (Model, Path) then
-               Files.Model.Set_Folder_Size (Model, Path, Files.File_System.Directory_Size (Path));
+               Files.Folder_Size.Request (Path);
             end if;
          end;
       else
          Files.Model.Clear_Folder_Size (Model);
+         Files.Folder_Size.Cancel;
       end if;
    end Update_Folder_Size;
 
