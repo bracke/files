@@ -1,6 +1,5 @@
 with Ada.Calendar;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
 
 with Files.Command_Palette;
 with Files.Localization;
@@ -3993,41 +3992,67 @@ package body Files.Model is
       Path  : String;
       Value : Files.File_System.Directory_Size_Result) is
    begin
-      Model.Folder_Size_Known_Value := True;
-      Model.Folder_Size_Path_Value := To_Unbounded_String (Path);
-      Model.Folder_Size_Value := Value;
+      Model.Folder_Sizes.Include (To_Unbounded_String (Path), Value);
    end Set_Folder_Size;
 
    procedure Clear_Folder_Size
      (Model : in out Window_Model) is
    begin
-      Model.Folder_Size_Known_Value := False;
-      Model.Folder_Size_Path_Value := Null_Unbounded_String;
-      Model.Folder_Size_Value := (others => <>);
+      Model.Folder_Sizes.Clear;
    end Clear_Folder_Size;
+
+   procedure Prune_Folder_Sizes_To_Selection
+     (Model : in out Window_Model) is
+      use type Files.Types.Item_Kind;
+      Kept : Folder_Size_Maps.Map;
+   begin
+      --  Rebuild the cache keeping only entries for directories still selected.
+      for Item of Selected_Items (Model) loop
+         if Item.Kind = Files.Types.Directory_Item
+           and then Model.Folder_Sizes.Contains (Item.Full_Path)
+         then
+            Kept.Include (Item.Full_Path, Model.Folder_Sizes.Element (Item.Full_Path));
+         end if;
+      end loop;
+      Model.Folder_Sizes := Kept;
+   end Prune_Folder_Sizes_To_Selection;
 
    function Folder_Size_Cached_For
      (Model : Window_Model;
       Path  : String)
       return Boolean is
    begin
-      return Model.Folder_Size_Known_Value
-        and then To_String (Model.Folder_Size_Path_Value) = Path;
+      return Model.Folder_Sizes.Contains (To_Unbounded_String (Path));
    end Folder_Size_Cached_For;
 
    function Folder_Size_Value
-     (Model : Window_Model)
+     (Model : Window_Model;
+      Path  : String)
       return Files.File_System.Directory_Size_Result is
+      Key : constant UString := To_Unbounded_String (Path);
    begin
-      return Model.Folder_Size_Value;
+      if Model.Folder_Sizes.Contains (Key) then
+         return Model.Folder_Sizes.Element (Key);
+      else
+         return (others => <>);
+      end if;
    end Folder_Size_Value;
 
-   function Folder_Size_Path
-     (Model : Window_Model)
-      return String is
+   function Is_Selected_Directory
+     (Model : Window_Model;
+      Path  : String)
+      return Boolean is
+      use type Files.Types.Item_Kind;
    begin
-      return To_String (Model.Folder_Size_Path_Value);
-   end Folder_Size_Path;
+      for Item of Selected_Items (Model) loop
+         if Item.Kind = Files.Types.Directory_Item
+           and then To_String (Item.Full_Path) = Path
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Is_Selected_Directory;
 
    procedure Open_Context_Menu
      (Model      : in out Window_Model;

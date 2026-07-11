@@ -1291,30 +1291,26 @@ package body Files.Application.Windows is
    procedure Poll_All_Folder_Sizes
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector)
    is
-      use type Ada.Strings.Unbounded.Unbounded_String;
       Path      : Ada.Strings.Unbounded.Unbounded_String;
       Result    : Files.File_System.Directory_Size_Result;
       Available : Boolean;
    begin
       Files.Folder_Size.Step;
-      Files.Folder_Size.Take (Path, Result, Available);
-      if not Available then
-         return;
-      end if;
 
-      for Runtime of Runtime_Windows loop
-         declare
-            Item : constant Files.File_System.Directory_Item :=
-              Files.Model.Selected_Item (Runtime.Model);
-         begin
-            if Files.Model.Selected_Count (Runtime.Model) = 1
-              and then Item.Kind = Files.Types.Directory_Item
-              and then Item.Full_Path = Path
+      --  Drain every finished measurement and publish each into the window whose
+      --  selection still contains that directory.
+      loop
+         Files.Folder_Size.Take (Path, Result, Available);
+         exit when not Available;
+
+         for Runtime of Runtime_Windows loop
+            if Files.Model.Is_Selected_Directory
+                 (Runtime.Model, Ada.Strings.Unbounded.To_String (Path))
             then
                Files.Model.Set_Folder_Size
                  (Runtime.Model, Ada.Strings.Unbounded.To_String (Path), Result);
             end if;
-         end;
+         end loop;
       end loop;
    end Poll_All_Folder_Sizes;
 

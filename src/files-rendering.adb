@@ -2485,7 +2485,10 @@ package body Files.Rendering is
       Pane_X        : constant Natural := Layout.Main_Width;
       Bar_W         : constant Natural := Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width);
       Text_W        : constant Natural := Info_Text_Width (Layout, Bar_W);
-      Content_Rows  : constant Natural := Total_Info_Rows;
+      --  Rows reserved above the per-item list for the combined selection total.
+      --  Must match the Section_Offset_Rows seed in Build_Frame_Commands.
+      Header_Rows   : constant Natural := (if Snapshot.Selected_Count >= 2 then 2 else 0);
+      Content_Rows  : constant Natural := Saturating_Add (Total_Info_Rows, Header_Rows);
       Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
       Content_H     : constant Natural :=
         (if Raw_Content_H > 0

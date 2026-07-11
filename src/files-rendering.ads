@@ -181,6 +181,11 @@ package Files.Rendering is
       Command_Enabled                : Command_Enablement_Array := [others => False];
       Items                          : Item_Snapshot_Vectors.Vector;
       Selected_Info                  : Info_Snapshot_Vectors.Vector;
+      --  Combined size of the whole selection (selected files plus the recursive
+      --  size of selected folders). Selection_Total_Pending is True while any
+      --  selected folder is still being measured, so the total is not yet final.
+      Selection_Total_Bytes          : Long_Long_Integer := 0;
+      Selection_Total_Pending        : Boolean := False;
       Context_Menu_Open              : Boolean := False;
       Context_Menu_X                 : Natural := 0;
       Context_Menu_Y                 : Natural := 0;

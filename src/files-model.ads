@@ -1,4 +1,6 @@
+with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
 
 with Files.File_System;
 with Files.Folder_Tree;
@@ -2246,37 +2248,48 @@ package Files.Model is
       Path  : String;
       Value : Files.File_System.Directory_Size_Result);
 
-   --  Forget any cached folder-size measurement.
+   --  Forget every cached folder-size measurement.
    --
    --  @param Model Model to update.
    procedure Clear_Folder_Size
      (Model : in out Window_Model);
 
+   --  Drop cached folder-size measurements for directories that are no longer
+   --  part of the current selection, keeping the cache bounded to the selection.
+   --
+   --  @param Model Model to update.
+   procedure Prune_Folder_Sizes_To_Selection
+     (Model : in out Window_Model);
+
    --  Return whether a folder-size measurement is cached for Path.
    --
    --  @param Model Model to inspect.
-   --  @param Path Directory path to test against the cache key.
-   --  @return True when a measurement for exactly Path is cached.
+   --  @param Path Directory path to look up in the cache.
+   --  @return True when a measurement for Path is cached.
    function Folder_Size_Cached_For
      (Model : Window_Model;
       Path  : String)
       return Boolean;
 
-   --  Return the cached folder-size measurement.
+   --  Return the cached folder-size measurement for Path.
    --
    --  @param Model Model to inspect.
-   --  @return Cached totals; Available is False when nothing is cached.
+   --  @param Path Directory path to look up.
+   --  @return Cached totals for Path; Available is False when Path is not cached.
    function Folder_Size_Value
-     (Model : Window_Model)
+     (Model : Window_Model;
+      Path  : String)
       return Files.File_System.Directory_Size_Result;
 
-   --  Return the path the cached folder-size measurement describes.
+   --  Return whether Path is one of the currently selected directories.
    --
    --  @param Model Model to inspect.
-   --  @return Cached measurement path, or an empty string when nothing is cached.
-   function Folder_Size_Path
-     (Model : Window_Model)
-      return String;
+   --  @param Path Absolute path to test against the selection.
+   --  @return True when a selected item is a directory whose full path is Path.
+   function Is_Selected_Directory
+     (Model : Window_Model;
+      Path  : String)
+      return Boolean;
 
    --  Record a recoverable error key.
    --
@@ -2344,6 +2357,15 @@ private
    package Rename_Field_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Rename_Field);
+
+   --  Cache of recursive folder-size measurements, keyed by absolute path. Holds
+   --  one entry per measured selected directory so a multi-item selection can
+   --  show each folder's size; pruned to the selection by Prune_Folder_Sizes.
+   use type Files.File_System.Directory_Size_Result;
+   package Folder_Size_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => UString,
+      Element_Type => Files.File_System.Directory_Size_Result,
+      "<"          => Ada.Strings.Unbounded."<");
 
    type Window_Model is record
       Current_Path_Value   : UString;
@@ -2416,9 +2438,7 @@ private
       Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
       Undo_Stack            : Undo_Entry_Vectors.Vector;
       Redo_Stack            : Undo_Entry_Vectors.Vector;
-      Folder_Size_Known_Value : Boolean := False;
-      Folder_Size_Path_Value  : UString;
-      Folder_Size_Value       : Files.File_System.Directory_Size_Result;
+      Folder_Sizes            : Folder_Size_Maps.Map;
       Context_Menu_Open_Value       : Boolean := False;
       Context_Menu_X_Value          : Natural := 0;
       Context_Menu_Y_Value          : Natural := 0;

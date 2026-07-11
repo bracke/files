@@ -965,7 +965,7 @@ separate (Files.Rendering)
                then
                   declare
                      Measured : constant Files.File_System.Directory_Size_Result :=
-                       Files.Model.Folder_Size_Value (Model);
+                       Files.Model.Folder_Size_Value (Model, To_String (Item.Full_Path));
                   begin
                      Info.Folder_Size_Available := Measured.Available;
                      Info.Folder_Size_Bytes     := Measured.Total_Bytes;
@@ -1002,6 +1002,38 @@ separate (Files.Rendering)
                   Snapshot.Selected_Info.Append (Build_Info (Item));
                end loop;
             end if;
+
+            --  Combined selection total: every selected file's size plus the
+            --  recursive size of each selected folder. Folders not yet measured
+            --  mark the total pending (still growing) rather than contributing.
+            declare
+               Total   : Long_Long_Integer := 0;
+               Pending : Boolean := False;
+
+               procedure Add (Amount : Long_Long_Integer) is
+               begin
+                  if Amount > 0 and then Total <= Long_Long_Integer'Last - Amount then
+                     Total := Total + Amount;
+                  elsif Amount > 0 then
+                     Total := Long_Long_Integer'Last;
+                  end if;
+               end Add;
+            begin
+               for Item of Items loop
+                  if Item.Kind = Files.Types.Directory_Item then
+                     if Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path)) then
+                        Add (Files.Model.Folder_Size_Value
+                               (Model, To_String (Item.Full_Path)).Total_Bytes);
+                     else
+                        Pending := True;
+                     end if;
+                  elsif Item.Size_Available then
+                     Add (Item.Size);
+                  end if;
+               end loop;
+               Snapshot.Selection_Total_Bytes := Total;
+               Snapshot.Selection_Total_Pending := Pending;
+            end;
 
             --  Reflect an active ownership edit on the single selected item so
             --  the info pane shows the editor buffer and draws the caret.

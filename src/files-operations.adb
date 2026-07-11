@@ -2742,25 +2742,33 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
    is
       pragma Unreferenced (Settings);
-      Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
    begin
-      --  The folder size is a recursive subtree walk shown only in the info
-      --  pane, so only measure it when the pane is open. The walk runs
-      --  incrementally off the UI path (Files.Folder_Size): here we just post
-      --  the request for the selected directory; the frame loop advances it and
-      --  publishes the result. Otherwise moving the selection onto a folder
-      --  would walk its whole subtree synchronously, making selection feel slow.
+      --  Folder size is a recursive subtree walk shown only in the info pane, so
+      --  only measure it when the pane is open. The walk runs incrementally off
+      --  the UI path (Files.Folder_Size): here we just request the selected
+      --  directories; the frame loop advances the walks and publishes results.
+      --  Every selected directory is measured so a multi-item selection shows
+      --  each folder's size and a combined selection total.
       if Files.Model.Info_Pane_Is_Open (Model)
-        and then Files.Model.Selected_Count (Model) = 1
+        and then Files.Model.Selected_Count (Model) >= 1
         and then not Files.Model.Selection_Includes_Temporary (Model)
-        and then Item.Kind = Files.Types.Directory_Item
       then
          declare
-            Path : constant String := To_String (Item.Full_Path);
+            Targets : Files.Folder_Size.Path_Vectors.Vector;
          begin
-            if not Files.Model.Folder_Size_Cached_For (Model, Path) then
-               Files.Folder_Size.Request (Path);
-            end if;
+            Files.Model.Prune_Folder_Sizes_To_Selection (Model);
+            for Item of Files.Model.Selected_Items (Model) loop
+               if Item.Kind = Files.Types.Directory_Item then
+                  declare
+                     Path : constant String := To_String (Item.Full_Path);
+                  begin
+                     if not Files.Model.Folder_Size_Cached_For (Model, Path) then
+                        Targets.Append (To_Unbounded_String (Path));
+                     end if;
+                  end;
+               end if;
+            end loop;
+            Files.Folder_Size.Set_Targets (Targets);
          end;
       else
          Files.Model.Clear_Folder_Size (Model);

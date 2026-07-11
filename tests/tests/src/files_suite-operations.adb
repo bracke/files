@@ -129,6 +129,8 @@ package body Files_Suite.Operations is
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Incremental_Folder_Size_Matches_Reference
      (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Size_Multi_Selection
+     (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -216,6 +218,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Incremental_Folder_Size_Matches_Reference'Access,
          "incremental folder-size walk matches the synchronous Directory_Size");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Size_Multi_Selection'Access,
+         "a multi-item selection caches each selected folder's recursive size");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3668,18 +3673,22 @@ package body Files_Suite.Operations is
            Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
          Info_Layout  : constant Files.Rendering.Info_Pane_Layout :=
            Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
-         Row_Stride   : constant Natural := (Info_Layout.Content_Height - 20) / 2;
+         --  A multi-item selection reserves two rows above the list for the
+         --  combined selection total (see Section_Offset_Rows in the renderer),
+         --  so the first per-item section starts below that header.
+         Header_Px    : constant Natural := 2 * 20;
+         Row_Stride   : constant Natural := (Info_Layout.Content_Height - 20 - Header_Px) / 2;
          First_Name_Y  : Natural := 0;
          Second_Name_Y : Natural := 0;
          Name_Label    : constant String := Files.Localization.Text ("info.name");
       begin
          for Text of Frame.Text loop
             if To_String (Text.Text) = Name_Label
-              and then Text.Y = Info_Layout.Y + 10
+              and then Text.Y = Info_Layout.Y + 10 + Header_Px
             then
                First_Name_Y := Text.Y;
             elsif To_String (Text.Text) = Name_Label
-              and then Text.Y = Info_Layout.Y + 10 + Row_Stride
+              and then Text.Y = Info_Layout.Y + 10 + Header_Px + Row_Stride
             then
                Second_Name_Y := Text.Y;
             end if;
@@ -3798,7 +3807,7 @@ package body Files_Suite.Operations is
                  "folder size is published once the incremental walk finishes");
          declare
             Measured : constant Files.File_System.Directory_Size_Result :=
-              Files.Model.Folder_Size_Value (Model);
+              Files.Model.Folder_Size_Value (Model, Path);
          begin
             Assert (Measured.Available = Reference.Available
                       and then Measured.Total_Bytes = Reference.Total_Bytes
@@ -3860,6 +3869,57 @@ package body Files_Suite.Operations is
                 and then not Reference.Capped,
               "reference totals match the constructed tree");
    end Test_Incremental_Folder_Size_Matches_Reference;
+
+   --  A multi-item selection measures every selected directory: each folder's
+   --  recursive size is cached under its own path so the info pane can show a
+   --  per-folder size and a combined selection total.
+   procedure Test_Folder_Size_Multi_Selection
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Dir_A    : constant String := Join (Root, "a");
+      Dir_B    : constant String := Join (Root, "b");
+      Path      : Ada.Strings.Unbounded.Unbounded_String;
+      Result    : Files.File_System.Directory_Size_Result;
+      Available : Boolean := False;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir_A);
+      Ada.Directories.Create_Path (Dir_B);
+      Write_Binary_File (Join (Dir_A, "one.bin"), "12345");         --  5 bytes
+      Write_Binary_File (Join (Dir_B, "two.bin"), "0123456789");    --  10 bytes
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Files.Folder_Size.Cancel;
+
+      --  Select both folders with the info pane open, then request their sizes.
+      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Select_All_Visible (Model);
+      Assert (Files.Model.Selected_Count (Model) = 2, "both folders are selected");
+      Files.Operations.Update_Folder_Size (Model, Settings);
+
+      --  Drive both queued walks to completion, publishing each result as the
+      --  frame loop's Poll_All_Folder_Sizes would.
+      loop
+         Files.Folder_Size.Step (Budget => 100_000);
+         loop
+            Files.Folder_Size.Take (Path, Result, Available);
+            exit when not Available;
+            Files.Model.Set_Folder_Size (Model, Ada.Strings.Unbounded.To_String (Path), Result);
+         end loop;
+         exit when not Files.Folder_Size.Is_Active;
+      end loop;
+
+      Assert (Files.Model.Folder_Size_Cached_For (Model, Dir_A)
+                and then Files.Model.Folder_Size_Cached_For (Model, Dir_B),
+              "each selected folder has its own cached size");
+      Assert (Files.Model.Folder_Size_Value (Model, Dir_A).Total_Bytes = 5
+                and then Files.Model.Folder_Size_Value (Model, Dir_B).Total_Bytes = 10,
+              "per-folder sizes are the recursive totals of each folder");
+   end Test_Folder_Size_Multi_Selection;
 
    procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

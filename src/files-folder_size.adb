@@ -1,4 +1,3 @@
-with Ada.Containers.Vectors;
 with Ada.Directories;
 
 with Files.Platform.Metadata;
@@ -24,7 +23,18 @@ package body Files.Folder_Size is
        (Index_Type   => Positive,
         Element_Type => Pending_Dir);
 
-   --  Walk state (one measurement at a time, all on the UI thread).
+   --  A finished measurement awaiting collection by Take.
+   type Finished_Measurement is record
+      Path   : Unbounded_String;
+      Result : Files.File_System.Directory_Size_Result;
+   end record;
+
+   package Finished_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Finished_Measurement);
+
+   --  Walk state (one directory measured at a time, all on the UI thread).
    Target_Path : Unbounded_String;
    Active      : Boolean := False;
    Root_Valid  : Boolean := False;
@@ -35,10 +45,11 @@ package body Files.Folder_Size is
    Acc         : Files.File_System.Directory_Size_Result;
    Visited     : Natural := 0;
 
-   --  Finished result awaiting collection.
-   Done        : Boolean := False;
-   Done_Path   : Unbounded_String;
-   Done_Result : Files.File_System.Directory_Size_Result;
+   --  Directories still to measure once the current walk finishes.
+   Targets : Path_Vectors.Vector;
+
+   --  Finished measurements awaiting collection, in completion order.
+   Done_Queue : Finished_Vectors.Vector;
 
    function Saturating_Long_Add
      (Left  : Long_Long_Integer;
@@ -69,33 +80,15 @@ package body Files.Folder_Size is
       end if;
    end Close_Search;
 
-   --  Publish the accumulated totals as the finished result and go idle.
-   --  Available mirrors Directory_Size: True whenever the root was a readable
-   --  directory (even when the walk was capped), False otherwise.
-   procedure Finish is
+   --  Begin measuring the directory at Path as the current walk.
+   procedure Begin_Walk (Path : Unbounded_String) is
    begin
       Close_Search;
       Pending.Clear;
-      Acc.Available := Root_Valid;
-      Done_Path := Target_Path;
-      Done_Result := Acc;
-      Done := True;
-      Active := False;
-   end Finish;
-
-   procedure Request (Path : String) is
-   begin
-      if Active and then Target_Path = To_Unbounded_String (Path) then
-         return;
-      end if;
-
-      Close_Search;
-      Pending.Clear;
-      Target_Path := To_Unbounded_String (Path);
+      Target_Path := Path;
       Acc := (others => <>);
       Visited := 0;
       Cur_Depth := 0;
-      Done := False;
 
       --  Match the top-level guard of Directory_Size: a missing path or a
       --  non-directory yields an unavailable result. The validity captured
@@ -103,22 +96,79 @@ package body Files.Folder_Size is
       --  including the race where the root vanishes after this check.
       begin
          Root_Valid :=
-           Path /= ""
-           and then Ada.Directories.Exists (Path)
-           and then Ada.Directories.Kind (Path) = Ada.Directories.Directory;
+           Path /= Null_Unbounded_String
+           and then Ada.Directories.Exists (To_String (Path))
+           and then Ada.Directories.Kind (To_String (Path)) = Ada.Directories.Directory;
       exception
          when others =>
             Root_Valid := False;
       end;
 
-      Pending.Append (Pending_Dir'(Path => Target_Path, Depth => 0));
+      Pending.Append (Pending_Dir'(Path => Path, Depth => 0));
       Active := True;
+   end Begin_Walk;
+
+   --  Start the next queued directory, or go idle when the queue is empty.
+   procedure Start_Next is
+   begin
+      if Targets.Is_Empty then
+         Active := False;
+         return;
+      end if;
+
+      declare
+         Next : constant Unbounded_String := Targets.First_Element;
+      begin
+         Targets.Delete_First;
+         Begin_Walk (Next);
+      end;
+   end Start_Next;
+
+   --  Publish the accumulated totals as a finished result and move on to the
+   --  next queued directory. Available mirrors Directory_Size: True whenever the
+   --  root was a readable directory (even when the walk was capped).
+   procedure Finish is
+   begin
+      Close_Search;
+      Pending.Clear;
+      Acc.Available := Root_Valid;
+      Done_Queue.Append (Finished_Measurement'(Path => Target_Path, Result => Acc));
+      Start_Next;
+   end Finish;
+
+   procedure Set_Targets (Paths : Path_Vectors.Vector) is
+   begin
+      if Active and then Paths.Contains (Target_Path) then
+         --  Keep the walk in progress; queue every other requested directory.
+         Targets.Clear;
+         for P of Paths loop
+            if P /= Target_Path then
+               Targets.Append (P);
+            end if;
+         end loop;
+      else
+         --  The current walk (if any) is no longer wanted: abandon it and start
+         --  measuring the requested directories from scratch.
+         Close_Search;
+         Pending.Clear;
+         Active := False;
+         Targets := Paths;
+         Start_Next;
+      end if;
+   end Set_Targets;
+
+   procedure Request (Path : String) is
+      One : Path_Vectors.Vector;
+   begin
+      One.Append (To_Unbounded_String (Path));
+      Set_Targets (One);
    end Request;
 
    procedure Cancel is
    begin
       Close_Search;
       Pending.Clear;
+      Targets.Clear;
       Active := False;
    end Cancel;
 
@@ -227,15 +277,19 @@ package body Files.Folder_Size is
       Result    : out Files.File_System.Directory_Size_Result;
       Available : out Boolean) is
    begin
-      if Done then
-         Path := Done_Path;
-         Result := Done_Result;
-         Available := True;
-         Done := False;
-      else
+      if Done_Queue.Is_Empty then
          Path := Null_Unbounded_String;
          Result := (others => <>);
          Available := False;
+      else
+         declare
+            First : constant Finished_Measurement := Done_Queue.First_Element;
+         begin
+            Path := First.Path;
+            Result := First.Result;
+            Available := True;
+            Done_Queue.Delete_First;
+         end;
       end if;
    end Take;
 
