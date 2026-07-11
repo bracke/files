@@ -2451,8 +2451,12 @@ package body Files.Rendering is
       --  Field 0 (Name) is omitted: the name rides on every value as a suffix.
       --  Field 2 (Filesize) is omitted for folders: they carry no byte size and
       --  show Contents instead. Field 7 (Kind) is omitted: it duplicates Filetype.
+      --  Field 6 (Metadata Error) only appears when metadata actually failed.
       for Field in 1 .. 8 loop
-         if Field /= 7 and then not (Field = 2 and then Info.Is_Directory) then
+         if Field /= 7
+           and then not (Field = 2 and then Info.Is_Directory)
+           and then not (Field = 6 and then not Info.Metadata_Error)
+         then
             Rows :=
               Saturating_Add
                 (Rows,

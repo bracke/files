@@ -3925,7 +3925,11 @@ separate (Files.Rendering)
                      Add_Ownership_Field ("info.owner", 9, Info.Owner_Editing);
                      Add_Ownership_Field ("info.group", 10, Info.Group_Editing);
                   end if;
-                  Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
+                  --  Metadata Error only appears when the item's metadata could
+                  --  not be read; healthy items show no such row.
+                  if Info.Metadata_Error then
+                     Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
+                  end if;
                   --  Kind (field 7) is omitted: it duplicates the Filetype field.
                   Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
                   declare

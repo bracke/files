@@ -3570,7 +3570,8 @@ package body Files_Suite.Operations is
          Assert (Found_Permissions, "info pane frame includes localized permissions row");
          Assert (Found_Permission_First, "info pane frame includes first permission row");
          Assert (Found_Permission_Second, "info pane frame includes second permission row");
-         Assert (Found_Metadata_Key, "info pane frame includes localized metadata fallback row");
+         Assert (not Found_Metadata_Key,
+                 "a healthy item shows no Metadata Error row");
          Assert (not Found_Kind, "info pane no longer shows the redundant Kind row");
          Assert (Found_Extra, "info pane frame includes filetype-specific extra metadata row");
          Assert (Found_Extra_First, "info pane details renders first metadata item");
