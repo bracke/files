@@ -3805,9 +3805,13 @@ separate (Files.Rendering)
                      --  Approximate glyph advance, used to horizontally centre a
                      --  header letter over its column.
                      Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-                     --  Vertical inset that centres a cell square within its row so
-                     --  it lines up with the row label text.
-                     Cell_Top : constant Natural := (if Line_Height > Cell then (Line_Height - Cell) / 2 else 0);
+                     --  The glyph box is ~4/5 of the line height and sits at the
+                     --  bottom of the row (the leading is above it), so centre the
+                     --  cell square within that font box -- not the whole line --
+                     --  to line it up with the row label text.
+                     Font_H : constant Natural := Saturating_Multiply (Line_Height, 4) / 5;
+                     Cell_Top : constant Natural :=
+                       (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 else 0);
                      --  Horizontal inset that centres a header letter over a cell.
                      Header_Pad : constant Natural := (if Cell > Char_W then (Cell - Char_W) / 2 else 0);
                      --  The row labels sit just past the three columns.
