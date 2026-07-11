@@ -3826,6 +3826,23 @@ package body Files_Suite.Operations is
          Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
          Assert (Value_Ends_With (" (alpha.txt)") and then Value_Ends_With (" (beta.txt)"),
                  "every section row is postfixed with its item name");
+
+         --  No leftover header gap: the first section starts at the pane top.
+         declare
+            Filetype_Label : constant String := Files.Localization.Text ("info.filetype");
+            Top_Y          : Integer := Integer'Last;
+         begin
+            for Text of Frame.Text loop
+               if Text.X >= Info_Layout.X
+                 and then To_String (Text.Text) = Filetype_Label
+                 and then Integer (Text.Y) < Top_Y
+               then
+                  Top_Y := Integer (Text.Y);
+               end if;
+            end loop;
+            Assert (Top_Y = Info_Layout.Y + 10,
+                    "the first info-pane section starts at the pane top with no reserved header gap");
+         end;
       end;
    end Test_Info_Pane_Coalesced_Multi;
 

@@ -3462,10 +3462,10 @@ separate (Files.Rendering)
 
             if Natural (Snapshot.Selected_Info.Length) >= 2 then
                declare
+                  --  Sections start at the top of the pane: the combined total is
+                  --  now the Contents section's last line, not a reserved header.
                   Base_Y : constant Integer :=
-                    Saturating_Integer_Add
-                      (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)),
-                       Saturating_Multiply (2, Line_Height));
+                    Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding));
                   Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
                   Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
                   Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
