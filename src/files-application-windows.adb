@@ -2953,6 +2953,14 @@ package body Files.Application.Windows is
    --  the scrolled render is guaranteed to differ from the default frame.
    Scenario_Overflow_Item_Count : constant Positive := 800;
 
+   --  Minimum visible item count that reliably fills the whole smoke window at
+   --  any view mode/font. A startup directory sparser than this (e.g. a home
+   --  folder with hidden files off) leaves the lower frame empty, which the
+   --  structural verdict -- every horizontal band must hold content -- reads as
+   --  a failure. The baseline seeds a synthetic grid below this count so the
+   --  smoke's structural check does not depend on the real directory contents.
+   Scenario_Minimum_Fill_Items : constant Positive := 150;
+
    --  Main-view scroll offset applied once the overflowing list is in place.
    Scenario_Scroll_Lines : constant Positive := 40;
 
@@ -3389,6 +3397,14 @@ package body Files.Application.Windows is
          Bases : Scenario_Base_Vectors.Vector;
       begin
          for Runtime of Runtime_Windows loop
+            --  Seed a full synthetic grid when the real startup directory is too
+            --  sparse to fill the frame, so the plain-view scenarios (default,
+            --  selection, light theme) pass the "every band has content"
+            --  structural check regardless of the user's home directory.
+            if Files.Model.Visible_Count (Runtime.Model) < Scenario_Minimum_Fill_Items then
+               Files.Model.Replace_Items
+                 (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
+            end if;
             Bases.Append
               (Scenario_Base_State'
                  (Model    => Runtime.Model,
