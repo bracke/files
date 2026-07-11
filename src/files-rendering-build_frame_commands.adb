@@ -3523,6 +3523,22 @@ separate (Files.Rendering)
                            end if;
                         end;
                      end if;
+
+                     --  A "<key>.tooltip" catalog entry, when present, describes
+                     --  the section on hover.
+                     declare
+                        Tip_Key : constant String := Key & ".tooltip";
+                        Tip_Y   : constant Integer :=
+                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                     begin
+                        if Text_W > 0
+                          and then Tip_Y >= Integer (Info_Pane.Y)
+                          and then Tip_Y < Integer (Info_Bottom)
+                          and then Files.Localization.Text (Tip_Key) /= Tip_Key
+                        then
+                           Add_Tooltip (Text_X, Natural (Tip_Y), Text_W, Line_Height, Tip_Key);
+                        end if;
+                     end;
                   end Add_Info_Label;
 
                   procedure Add_Info_Wrapped_Value
@@ -3708,6 +3724,22 @@ separate (Files.Rendering)
                            end if;
                         end;
                      end if;
+
+                     --  A "<key>.tooltip" catalog entry, when present, describes
+                     --  the section on hover.
+                     declare
+                        Tip_Key : constant String := Key & ".tooltip";
+                        Tip_Y   : constant Integer :=
+                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                     begin
+                        if Text_W > 0
+                          and then Tip_Y >= Integer (Info_Pane.Y)
+                          and then Tip_Y < Integer (Info_Bottom)
+                          and then Files.Localization.Text (Tip_Key) /= Tip_Key
+                        then
+                           Add_Tooltip (Text_X, Natural (Tip_Y), Text_W, Line_Height, Tip_Key);
+                        end if;
+                     end;
                   end Add_Info_Label;
 
                   procedure Add_Info_Wrapped_Value
