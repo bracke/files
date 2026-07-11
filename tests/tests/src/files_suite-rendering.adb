@@ -2399,6 +2399,33 @@ package body Files_Suite.Rendering is
          Assert (abs (Fill_W * 100 / Track_W - 60) <= 8, "the fill width is ~60% (the used fraction)");
          Assert (not Has_Used and then not Has_Free, "bar mode shows no free/used suffix text");
       end;
+
+      --  When 10% or less of the disk is free, the fill warns in red, not blue.
+      Snap.Free_Space_Bytes := 5;  --  5% free (95% used)
+      declare
+         Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 1000, 800, 20);
+         Frame    : constant Frame_Commands := Build_Frame_Commands (Snap, 1000, 800, 20);
+         Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
+         Track_X, Track_Y : Natural := 0;
+         Has_Red, Has_Blue : Boolean := False;
+      begin
+         for R of Frame.Rectangles loop
+            if R.Y >= Bottom_Y and then R.Color = Guikit.Draw.Input_Color then
+               Track_X := R.X; Track_Y := R.Y;
+            end if;
+         end loop;
+         for R of Frame.Rectangles loop
+            if R.X = Track_X and then R.Y = Track_Y then
+               if R.Color = Guikit.Draw.Error_Text_Color then
+                  Has_Red := True;
+               elsif R.Color = Guikit.Draw.Selection_Color then
+                  Has_Blue := True;
+               end if;
+            end if;
+         end loop;
+         Assert (Has_Red, "the fill is red when 10% or less is free");
+         Assert (not Has_Blue, "the fill is not blue when free space is low");
+      end;
    end Test_Space_Bar_Renders;
 
    --  A wide bar shows the labelled counts; a narrow one drops the labels and

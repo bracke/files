@@ -2804,10 +2804,15 @@ separate (Files.Rendering)
                            then Natural
                                   (Used * Long_Long_Integer (Bar_W) / Snapshot.Total_Space_Bytes)
                            else 0);
+                        --  Warn in red when 10% or less of the disk is free.
+                        Fill_Color : constant Render_Color :=
+                          (if Snapshot.Free_Space_Bytes * 10 <= Snapshot.Total_Space_Bytes
+                           then Error_Text_Color
+                           else Selection_Color);
                      begin
                         if Bar_W > 0 then
                            Add_Rect (Bar_X, Bar_Y, Bar_W, Bar_H, Input_Color);
-                           Add_Rect (Bar_X, Bar_Y, Fill_W, Bar_H, Selection_Color);
+                           Add_Rect (Bar_X, Bar_Y, Fill_W, Bar_H, Fill_Color);
                            Add_Border (Bar_X, Bar_Y, Bar_W, Bar_H, Border_Color);
                         end if;
                      end;
