@@ -203,9 +203,10 @@ package body Files.Settings_Form is
    begin
       Action_Buttons;
       Section ("settings.section.view");
+      --  Use the same short labels as the bottom bar's view-mode selector.
       Choice ("settings.view", D.Default_View_Mode,
               V3 ("small_icons", "large_icons", "details"),
-              LV3 ("command.view.small", "command.view.large", "command.view.details"),
+              LV3 ("command.view.small.short", "command.view.large.short", "command.view.details.short"),
               "settings.help.default_view");
       Toggle ("settings.hidden_files", D.Show_Hidden_Files, "settings.help.boolean");
       Toggle ("settings.show_extensions", D.Show_File_Extensions, "settings.help.boolean");
