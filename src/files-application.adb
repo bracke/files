@@ -12,6 +12,7 @@ with Files.Fs;
 with Files.Application.Windows;
 with Files_Config;
 with Files.Localization;
+with Files.Operations;
 with Files.Rendering;
 with Guikit.Frame_Analysis;
 with Guikit.Vulkan;
@@ -244,20 +245,11 @@ package body Files.Application is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
    is
-      Mapped : Files.Model.Sort_Field;
    begin
-      case Settings.Sort_Field_Value is
-         when Files.Settings.Sort_By_Name     => Mapped := Files.Model.Sort_Name;
-         when Files.Settings.Sort_By_Filetype => Mapped := Files.Model.Sort_Type;
-         when Files.Settings.Sort_By_Size     => Mapped := Files.Model.Sort_Size;
-         when Files.Settings.Sort_By_Created  => Mapped := Files.Model.Sort_Created;
-         when Files.Settings.Sort_By_Modified => Mapped := Files.Model.Sort_Changed;
-      end case;
-
-      Files.Model.Select_Sort_Field (Model, Mapped);
-      if not Settings.Sort_Ascending and then Files.Model.Sort_Is_Ascending (Model) then
-         Files.Model.Select_Sort_Field (Model, Mapped);
-      end if;
+      --  Apply view mode and sort absolutely (Files.Operations.Apply_Ui_State),
+      --  not by toggling: toggling from the model's default sort field mis-set the
+      --  direction, leaving the model out of step with the settings.
+      Files.Operations.Apply_Ui_State (Model, Settings);
       if Settings.Info_Pane_Open and then not Files.Model.Info_Pane_Is_Open (Model) then
          Files.Model.Toggle_Info_Pane (Model);
       end if;

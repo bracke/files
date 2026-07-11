@@ -110,6 +110,18 @@ package Files.Operations is
       Detach      : Boolean := False)
       return Boolean;
 
+   --  Apply the persisted global UI state -- view mode and sort field/direction --
+   --  from Settings to the model, deterministically (an absolute set, not a
+   --  toggle). Used at startup and after a settings save so the model matches the
+   --  settings exactly regardless of its prior sort state. Info-pane visibility is
+   --  handled separately by the caller.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model providing the view mode and sort state.
+   procedure Apply_Ui_State
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
    --  Refresh the current directory and replace loaded items.
    --
    --  @param Model Window model to refresh.

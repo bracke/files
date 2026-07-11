@@ -127,6 +127,7 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Display_Cycle (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Filesize_Files_Only (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Total_In_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -217,6 +218,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Free_Space_Display_Cycle'Access,
          "the free-space field toggle cycles free -> used -> bar -> free");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Apply_Ui_State_Round_Trip'Access,
+         "applying persisted UI state sets view and sort absolutely, even for the default field");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3833,6 +3837,37 @@ package body Files_Suite.Operations is
       Assert (not Settings.Show_Used_Space and then not Settings.Show_Space_Bar,
               "bar -> free");
    end Test_Free_Space_Display_Cycle;
+
+   procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      procedure Check
+        (Field        : Files.Settings.Sort_Field;
+         Ascending    : Boolean;
+         Expect_Model : Files.Model.Sort_Field;
+         Label        : String)
+      is
+         Model    : Files.Model.Window_Model := Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      begin
+         Settings.Default_View     := Files.Types.Details;
+         Settings.Sort_Field_Value := Field;
+         Settings.Sort_Ascending   := Ascending;
+         Files.Operations.Apply_Ui_State (Model, Settings);
+         Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, Label & ": view mode applied");
+         Assert (Files.Model.Sort_Field_Of (Model) = Expect_Model, Label & ": sort field applied");
+         Assert (Files.Model.Sort_Is_Ascending (Model) = Ascending, Label & ": sort direction applied");
+      end Check;
+   begin
+      --  Every field/direction combination applies exactly. The regression case is
+      --  the default field (name) ascending: the previous toggle-based apply flipped
+      --  it to descending, leaving the model out of step with the settings so a later
+      --  user toggle merely undid the discrepancy and never persisted.
+      Check (Files.Settings.Sort_By_Name, True,  Files.Model.Sort_Name, "name ascending");
+      Check (Files.Settings.Sort_By_Name, False, Files.Model.Sort_Name, "name descending");
+      Check (Files.Settings.Sort_By_Size, True,  Files.Model.Sort_Size, "size ascending");
+      Check (Files.Settings.Sort_By_Size, False, Files.Model.Sort_Size, "size descending");
+   end Test_Apply_Ui_State_Round_Trip;
 
    --  With several items selected the info pane is coalesced field-major: each
    --  section label is drawn once (not repeated per item) and each selected
