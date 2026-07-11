@@ -122,6 +122,7 @@ da.status.free_space.suffix = ledig
 da.status.free_space.tooltip = Ledig plads på det aktuelle filsystem
 da.status.used_space.suffix = brugt
 da.status.used_space.tooltip = Brugt plads på det aktuelle filsystem
+da.status.space_bar.tooltip = Brugt kontra ledig plads på det aktuelle filsystem
 da.status.missing_metadata = Ikke tilgængelig
 da.status.empty_directory = Denne mappe er tom.
 da.status.empty_filter = Ingen elementer matcher det aktuelle filter.

@@ -122,6 +122,7 @@ fi.status.free_space.suffix = vapaana
 fi.status.free_space.tooltip = Vapaa tila nykyisessä tiedostojärjestelmässä
 fi.status.used_space.suffix = käytetty
 fi.status.used_space.tooltip = Käytetty tila nykyisessä tiedostojärjestelmässä
+fi.status.space_bar.tooltip = Käytetty ja vapaa tila nykyisessä tiedostojärjestelmässä
 fi.status.missing_metadata = Ei saatavilla
 fi.status.empty_directory = Tämä kansio on tyhjä.
 fi.status.empty_filter = Mikään kohde ei vastaa nykyistä suodatinta.

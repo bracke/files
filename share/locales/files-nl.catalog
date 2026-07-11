@@ -122,6 +122,7 @@ nl.status.free_space.suffix = vrij
 nl.status.free_space.tooltip = Vrije ruimte op het huidige bestandssysteem
 nl.status.used_space.suffix = gebruikt
 nl.status.used_space.tooltip = Gebruikte ruimte op het huidige bestandssysteem
+nl.status.space_bar.tooltip = Gebruikte versus vrije ruimte op het huidige bestandssysteem
 nl.status.missing_metadata = Niet beschikbaar
 nl.status.empty_directory = Deze map is leeg.
 nl.status.empty_filter = Geen items komen overeen met het huidige filter.

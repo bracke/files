@@ -349,6 +349,7 @@ en.status.free_space.suffix = free
 en.status.free_space.tooltip = Free space on the current filesystem
 en.status.used_space.suffix = used
 en.status.used_space.tooltip = Used space on the current filesystem
+en.status.space_bar.tooltip = Used versus free disk space on the current filesystem
 en.status.missing_metadata = Unavailable
 en.status.empty_directory = This directory is empty.
 en.status.empty_filter = No items match the current filter.

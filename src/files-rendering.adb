@@ -485,6 +485,13 @@ package body Files.Rendering is
       return Scaled_Number & " " & Files.Localization.Text (Unit_Key, Locale);
    end Size_Text;
 
+   function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean is
+     (Snapshot.Show_Space_Bar
+      and then Snapshot.Free_Space_Known
+      and then Length (Snapshot.Last_Error_Key) = 0
+      and then Snapshot.Total_Space_Bytes > 0
+      and then Snapshot.Total_Space_Bytes >= Snapshot.Free_Space_Bytes);
+
    function Free_Space_Label (Snapshot : View_Snapshot) return String is
    begin
       --  Omitted when free space is unknown or an error line is showing, so the
@@ -492,6 +499,12 @@ package body Files.Rendering is
       if not Snapshot.Free_Space_Known
         or else Length (Snapshot.Last_Error_Key) > 0
       then
+         return "";
+      end if;
+
+      --  In bar mode the field is a graphical bar, so no text is drawn (falls
+      --  through to text when the totals are missing).
+      if Free_Space_Bar_Active (Snapshot) then
          return "";
       end if;
 
@@ -519,6 +532,11 @@ package body Files.Rendering is
       Label  : constant String := Free_Space_Label (Snapshot);
       Cell_W : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
    begin
+      --  Bar mode reserves a fixed-width band for the graphical bar.
+      if Free_Space_Bar_Active (Snapshot) then
+         return Saturating_Multiply (Line_Height, 3);
+      end if;
+
       return Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
    end Free_Space_Label_Width;
 

@@ -122,6 +122,7 @@ fr.status.free_space.suffix = libre
 fr.status.free_space.tooltip = Espace libre sur le système de fichiers actuel
 fr.status.used_space.suffix = utilisé
 fr.status.used_space.tooltip = Espace utilisé sur le système de fichiers actuel
+fr.status.space_bar.tooltip = Espace utilisé par rapport à l'espace libre du système de fichiers actuel
 fr.status.missing_metadata = Indisponible
 fr.status.empty_directory = Ce dossier est vide.
 fr.status.empty_filter = Aucun élément ne correspond au filtre actuel.

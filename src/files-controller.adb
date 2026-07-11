@@ -879,7 +879,15 @@ package body Files.Controller is
       Saved     : Files.Settings.Settings_Write_Result;
       Operation : Files.Operations.Operation_Result := Empty_Operation;
    begin
-      Updated.Show_Used_Space := not Updated.Show_Used_Space;
+      --  Cycle the field through free -> used -> bar -> free.
+      if Updated.Show_Space_Bar then
+         Updated.Show_Space_Bar := False;
+         Updated.Show_Used_Space := False;
+      elsif Updated.Show_Used_Space then
+         Updated.Show_Space_Bar := True;
+      else
+         Updated.Show_Used_Space := True;
+      end if;
 
       Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Updated));
       if not Saved.Success then

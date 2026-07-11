@@ -126,6 +126,7 @@ package body Files_Suite.Operations is
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Free_Space_Display_Cycle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Filesize_Files_Only (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Total_In_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -211,6 +212,9 @@ package body Files_Suite.Operations is
         (T, Test_Commit_Rename'Access, "commit rename mode");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Commit_Multi_Rename'Access, "commit synchronized multi-rename best-effort");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Free_Space_Display_Cycle'Access,
+         "the free-space field toggle cycles free -> used -> bar -> free");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3801,6 +3805,29 @@ package body Files_Suite.Operations is
       Assert (Tooltip_Present (Files.Localization.Text ("info.filetype.tooltip")),
               "the Filetype section has its descriptive tooltip");
    end Test_Info_Pane_Section_Tooltips;
+
+   --  Clicking the free-space field cycles its display: free -> used -> bar ->
+   --  free, tracked by the Show_Used_Space / Show_Space_Bar settings.
+   procedure Test_Free_Space_Display_Cycle (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Path     : constant String := Join (Root, "settings.conf");
+      Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
+   begin
+      Reset_Root;
+      Assert (not Settings.Show_Used_Space and then not Settings.Show_Space_Bar,
+              "starts in free-space mode");
+      Result := Files.Controller.Toggle_Free_Space_Display (Model, Settings, Path);
+      Assert (Settings.Show_Used_Space and then not Settings.Show_Space_Bar,
+              "free -> used");
+      Result := Files.Controller.Toggle_Free_Space_Display (Model, Settings, Path);
+      Assert (Settings.Show_Space_Bar, "used -> bar");
+      Result := Files.Controller.Toggle_Free_Space_Display (Model, Settings, Path);
+      Assert (not Settings.Show_Used_Space and then not Settings.Show_Space_Bar,
+              "bar -> free");
+   end Test_Free_Space_Display_Cycle;
 
    --  With several items selected the info pane is coalesced field-major: each
    --  section label is drawn once (not repeated per item) and each selected

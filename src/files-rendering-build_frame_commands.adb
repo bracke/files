@@ -2792,21 +2792,49 @@ separate (Files.Rendering)
                      (if Layout.Bottom_Bar_Height >= 1 then Layout.Bottom_Bar_Height - 1
                       else Layout.Bottom_Bar_Height),
                      Border_Color);
-                  Add_Text
-                    (Free_X,
-                     Bottom_Content_Y,
-                     Free_Field_W,
-                     Bottom_Content_H,
-                     To_Unbounded_String (Free_Text),
-                     Command_Color (Files.Commands.Toggle_Free_Space_Display_Command),
-                     Fit => True);
+                  if Free_Space_Bar_Active (Snapshot) then
+                     --  Bar mode: a scrollbar-like track whose blue core width is
+                     --  the fraction of disk space used.
+                     declare
+                        Bar_H  : constant Natural := Natural'Max (4, Line_Height / 3);
+                        Bar_Y  : constant Natural :=
+                          (if Bottom_Content_H > Bar_H
+                           then Saturating_Add (Bottom_Content_Y, (Bottom_Content_H - Bar_H) / 2)
+                           else Bottom_Content_Y);
+                        Bar_W  : constant Natural :=
+                          (if Free_Field_W > Pad then Free_Field_W - Pad else 0);
+                        Used   : constant Long_Long_Integer :=
+                          Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes;
+                        Fill_W : constant Natural :=
+                          (if Bar_W > 0
+                           then Natural
+                                  (Used * Long_Long_Integer (Bar_W) / Snapshot.Total_Space_Bytes)
+                           else 0);
+                     begin
+                        if Bar_W > 0 then
+                           Add_Rect (Free_X, Bar_Y, Bar_W, Bar_H, Input_Color);
+                           Add_Rect (Free_X, Bar_Y, Fill_W, Bar_H, Selection_Color);
+                           Add_Border (Free_X, Bar_Y, Bar_W, Bar_H, Border_Color);
+                        end if;
+                     end;
+                  else
+                     Add_Text
+                       (Free_X,
+                        Bottom_Content_Y,
+                        Free_Field_W,
+                        Bottom_Content_H,
+                        To_Unbounded_String (Free_Text),
+                        Command_Color (Files.Commands.Toggle_Free_Space_Display_Command),
+                        Fit => True);
+                  end if;
                   --  Tooltip describes the current mode and flips after a toggle.
                   Add_Tooltip
                     (Free_Region_X,
                      Bottom_Content_Y,
                      Free_Region_W,
                      Bottom_Content_H,
-                     (if Snapshot.Show_Used_Space then "status.used_space.tooltip"
+                     (if Free_Space_Bar_Active (Snapshot) then "status.space_bar.tooltip"
+                      elsif Snapshot.Show_Used_Space then "status.used_space.tooltip"
                       else "status.free_space.tooltip"));
                   Add_Accessibility_Node
                     (Role_Button,

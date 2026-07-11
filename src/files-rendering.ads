@@ -133,6 +133,9 @@ package Files.Rendering is
       --  When set, the status bar shows used space (Total - Free) rather than
       --  free space; toggled by clicking the field.
       Show_Used_Space       : Boolean := False;
+      --  When set, the free-space field shows a graphical used/free bar instead
+      --  of text; takes precedence over Show_Used_Space.
+      Show_Space_Bar        : Boolean := False;
       Filter_Text           : UString;
       --  Active filter-bar search scope and whether the current view holds
       --  recursive search results (name or content) rather than a plain
@@ -867,6 +870,14 @@ package Files.Rendering is
    --  @param Snapshot The immutable view snapshot.
    --  @return The free-space label text, or "" when there is no free field.
    function Free_Space_Label (Snapshot : View_Snapshot) return String;
+
+   --  Whether the free-space field should render the graphical used/free bar
+   --  (bar mode selected and the capacity totals are usable). When False the
+   --  field falls back to the free/used text label.
+   --
+   --  @param Snapshot The immutable view snapshot.
+   --  @return True when the field should draw the used/free bar.
+   function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean;
 
    --  The rendered pixel width of Free_Space_Label, or zero when there is no
    --  free field.
