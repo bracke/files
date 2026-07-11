@@ -3486,6 +3486,185 @@ separate (Files.Rendering)
                end;
             end if;
 
+            if Natural (Snapshot.Selected_Info.Length) >= 2 then
+               declare
+                  Base_Y : constant Integer :=
+                    Saturating_Integer_Add
+                      (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)),
+                       Saturating_Multiply (2, Line_Height));
+                  Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
+                  Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
+                  Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
+                  Reserved_W : constant Natural :=
+                    Saturating_Add
+                      ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
+                       Saturating_Multiply (Info_Pane_Padding, 2));
+                  Text_W : constant Natural :=
+                    (if Layout.Info_Pane_Width > Reserved_W
+                     then Layout.Info_Pane_Width - Reserved_W
+                     else 0);
+                  Sections : constant Coalesced_Section_Vectors.Vector :=
+                    Coalesced_Info_Sections (Snapshot);
+                  Current_Row : Natural := 0;
+
+                  procedure Add_Info_Text
+                    (Offset : Natural;
+                     Text   : UString;
+                     Color  : Render_Color := Text_Color;
+                     Fit    : Boolean := True)
+                  is
+                     Y : constant Integer :=
+                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
+                  begin
+                     if Y >= Integer (Info_Pane.Y)
+                       and then Y < Integer (Info_Bottom)
+                     then
+                        Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => Fit);
+                     end if;
+                  end Add_Info_Text;
+
+                  procedure Add_Info_Label
+                    (Row : Natural;
+                     Key : String)
+                  is
+                     Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+                  begin
+                     Add_Info_Text (Row, Text, Text_Color);
+                     if Text_W > 1 then
+                        declare
+                           Y : constant Integer :=
+                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                        begin
+                           if Y >= Integer (Info_Pane.Y)
+                             and then Y < Integer (Info_Bottom)
+                           then
+                              Add_Text
+                                (Saturating_Add (Text_X, 1),
+                                 Natural (Y),
+                                 Text_W - 1,
+                                 Line_Height,
+                                 Text,
+                                 Text_Color,
+                                 Fit => True);
+                           end if;
+                        end;
+                     end if;
+                  end Add_Info_Label;
+
+                  procedure Add_Info_Wrapped_Value
+                    (Row   : Natural;
+                     Text  : UString;
+                     Color : Render_Color := Muted_Text_Color)
+                  is
+                     Raw        : constant String := To_String (Text);
+                     Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                     Capacity   : constant Natural := Text_W / Cell_W;
+                     Line_Index : Natural := 0;
+
+                     procedure Add_Wrapped_Segment
+                       (Segment_First : Integer;
+                        Segment_Last  : Integer)
+                     is
+                        Start : Integer := Segment_First;
+                     begin
+                        if Segment_Last < Segment_First then
+                           Line_Index := Saturating_Add (Line_Index, 1);
+                           return;
+                        end if;
+
+                        while Start <= Segment_Last loop
+                           declare
+                              Prefix : constant String :=
+                                Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
+                              Last   : constant Integer :=
+                                (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                           begin
+                              Add_Info_Text
+                                (Saturating_Add (Row, Line_Index),
+                                 To_Unbounded_String (Raw (Start .. Last)),
+                                 Color,
+                                 Fit => False);
+                              exit when Last >= Segment_Last;
+                              Start := Last + 1;
+                              Line_Index := Saturating_Add (Line_Index, 1);
+                           end;
+                        end loop;
+
+                        Line_Index := Saturating_Add (Line_Index, 1);
+                     end Add_Wrapped_Segment;
+
+                     Line_First : Integer := Raw'First;
+                  begin
+                     if Raw'Length = 0 or else Capacity = 0 then
+                        Add_Info_Text (Row, Text, Color, Fit => False);
+                        return;
+                     end if;
+
+                     for Position in Raw'Range loop
+                        if Raw (Position) = ASCII.LF then
+                           Add_Wrapped_Segment (Line_First, Position - 1);
+                           Line_First := Position + 1;
+                        end if;
+                     end loop;
+
+                     if Line_First <= Raw'Last then
+                        Add_Wrapped_Segment (Line_First, Raw'Last);
+                     elsif Raw (Raw'Last) = ASCII.LF then
+                        Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
+                     end if;
+                  end Add_Info_Wrapped_Value;
+               begin
+                  --  Field-major coalesced layout: each section's label once,
+                  --  then one value row per selected item (see Coalesced_Info_Rows
+                  --  for the matching row accounting).
+                  for Section of Sections loop
+                     Add_Info_Label (Current_Row, To_String (Section.Key));
+                     Current_Row := Saturating_Add (Current_Row, 1);
+                     for Value of Section.Values loop
+                        Add_Info_Wrapped_Value (Current_Row, Value);
+                        Current_Row :=
+                          Saturating_Add (Current_Row, Wrapped_Line_Count (Value, Text_W, Line_Height));
+                     end loop;
+                     Current_Row := Saturating_Add (Current_Row, 1);
+                  end loop;
+
+                  --  One accessibility node per item, anchored at its row in the
+                  --  Name section (the first section, values starting at row 1).
+                  declare
+                     Name_Row : Natural := 1;
+                  begin
+                     for Info of Snapshot.Selected_Info loop
+                        declare
+                           Y : constant Integer :=
+                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Name_Row, Line_Height));
+                           Visible_Y : constant Integer := Integer'Max (Y, Integer (Info_Pane.Y));
+                           Description : constant Unbounded_String :=
+                             To_Unbounded_String
+                               (Files.Localization.Text ("info.filetype") & ": " &
+                                To_String (Info_Field_Value (Info, 1)) & ", " &
+                                Files.Localization.Text ("info.size") & ": " &
+                                To_String (Info_Field_Value (Info, 2)));
+                        begin
+                           if Y >= Integer (Info_Pane.Y)
+                             and then Y < Integer (Info_Bottom)
+                             and then Text_W > 0
+                           then
+                              Add_Accessibility_Node
+                                (Role_List_Item,
+                                 Info_Pane.X,
+                                 Natural (Visible_Y),
+                                 Text_W,
+                                 Line_Height,
+                                 Info.Name,
+                                 Description);
+                           end if;
+                           Name_Row :=
+                             Saturating_Add (Name_Row, Wrapped_Line_Count (Info.Name, Text_W, Line_Height));
+                        end;
+                     end loop;
+                  end;
+               end;
+            else
             for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
                declare
                   Info   : constant Info_Snapshot := Snapshot.Selected_Info.Element (Positive (Index));
@@ -3811,6 +3990,7 @@ separate (Files.Rendering)
                          (Info, Text_W, Line_Height, Snapshot.Permissions_Editable));
                end;
             end loop;
+            end if;
          end;
 
          if Info_Pane.Scrollbar_Visible then

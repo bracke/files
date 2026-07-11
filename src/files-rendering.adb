@@ -2459,6 +2459,161 @@ package body Files.Rendering is
       return Rows;
    end Info_Section_Row_Count;
 
+   --  One coalesced info-pane section for a multi-item selection: a single field
+   --  label plus the per-item display values (one entry per selected item, in
+   --  order, with placeholders already filled for items the field omits).
+   package Info_Value_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Unbounded_String);
+
+   type Coalesced_Section is record
+      Key    : Unbounded_String;
+      Values : Info_Value_Vectors.Vector;
+   end record;
+
+   package Coalesced_Section_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Coalesced_Section);
+
+   --  Placeholder shown for an item a section does not apply to. ASCII so it is
+   --  always covered by the glyph atlas (the live-smoke asserts no missing glyphs).
+   Coalesced_Placeholder : constant String := "-";
+
+   --  Build the ordered coalesced sections for the current multi-item selection.
+   --  Each section carries one value per selected item so the layout and the
+   --  renderer stay in lock-step. Intended for Selected_Info.Length >= 2.
+   --
+   --  @param Snapshot View snapshot holding the selected-item info blocks.
+   --  @return The ordered sections, each with one display value per selected item.
+   function Coalesced_Info_Sections
+     (Snapshot : View_Snapshot)
+      return Coalesced_Section_Vectors.Vector
+   is
+      Sections : Coalesced_Section_Vectors.Vector;
+
+      --  Collect the value of Field across every selected item, using the
+      --  display form for the wrapped extra field (8).
+      function Field_Values (Field : Natural) return Info_Value_Vectors.Vector is
+         Values : Info_Value_Vectors.Vector;
+      begin
+         for Info of Snapshot.Selected_Info loop
+            if Field = 8 then
+               Values.Append (Info_Field_Display_Value (Info, Field));
+            else
+               Values.Append (Info_Field_Value (Info, Field));
+            end if;
+         end loop;
+         return Values;
+      end Field_Values;
+
+      procedure Add_Field_Section (Key : String; Field : Natural) is
+      begin
+         Sections.Append
+           (Coalesced_Section'(Key => To_Unbounded_String (Key), Values => Field_Values (Field)));
+      end Add_Field_Section;
+
+      Any_Directory : Boolean := False;
+      Any_Ownership : Boolean := False;
+      Any_Error     : Boolean := False;
+   begin
+      for Info of Snapshot.Selected_Info loop
+         Any_Directory := Any_Directory or else Info.Is_Directory;
+         Any_Ownership := Any_Ownership or else Info.Ownership_Available;
+         Any_Error     := Any_Error or else Info.Metadata_Error;
+      end loop;
+
+      Add_Field_Section ("info.name", 0);
+      Add_Field_Section ("info.filetype", 1);
+      Add_Field_Section ("info.size", 2);
+
+      if Any_Directory then
+         declare
+            Values : Info_Value_Vectors.Vector;
+         begin
+            for Info of Snapshot.Selected_Info loop
+               if Info.Is_Directory and then Info.Folder_Size_Available then
+                  Values.Append (Folder_Contents_Text (Info));
+               else
+                  Values.Append (To_Unbounded_String (Coalesced_Placeholder));
+               end if;
+            end loop;
+            Sections.Append
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.folder_size"), Values => Values));
+         end;
+      end if;
+
+      Add_Field_Section ("info.created", 3);
+      Add_Field_Section ("info.modified", 4);
+      Add_Field_Section ("info.permissions", 5);
+
+      if Any_Ownership then
+         declare
+            Owners : Info_Value_Vectors.Vector;
+            Groups : Info_Value_Vectors.Vector;
+         begin
+            for Info of Snapshot.Selected_Info loop
+               if Info.Ownership_Available then
+                  Owners.Append (Info_Field_Value (Info, 9));
+                  Groups.Append (Info_Field_Value (Info, 10));
+               else
+                  Owners.Append (To_Unbounded_String (Coalesced_Placeholder));
+                  Groups.Append (To_Unbounded_String (Coalesced_Placeholder));
+               end if;
+            end loop;
+            Sections.Append
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.owner"), Values => Owners));
+            Sections.Append
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.group"), Values => Groups));
+         end;
+      end if;
+
+      Add_Field_Section ("info.kind", 7);
+      Add_Field_Section ("info.extra", 8);
+
+      if Any_Error then
+         declare
+            Values : Info_Value_Vectors.Vector;
+         begin
+            for Info of Snapshot.Selected_Info loop
+               if Info.Metadata_Error then
+                  Values.Append (Info_Field_Value (Info, 6));
+               else
+                  Values.Append (To_Unbounded_String (Coalesced_Placeholder));
+               end if;
+            end loop;
+            Sections.Append
+              (Coalesced_Section'(Key => To_Unbounded_String ("info.metadata_error"), Values => Values));
+         end;
+      end if;
+
+      return Sections;
+   end Coalesced_Info_Sections;
+
+   --  Rows the coalesced sections occupy: each section is one label row plus one
+   --  gap row plus the wrapped height of every per-item value. Mirrors the single
+   --  view's per-field "2 + Wrapped_Line_Count" so layout and rendering agree.
+   --
+   --  @param Sections Coalesced sections from Coalesced_Info_Sections.
+   --  @param Text_W Available text width used for wrapping.
+   --  @param Line_Height Row height in pixels.
+   --  @return Total rows the coalesced sections occupy.
+   function Coalesced_Info_Rows
+     (Sections    : Coalesced_Section_Vectors.Vector;
+      Text_W      : Natural;
+      Line_Height : Positive)
+      return Natural
+   is
+      Rows : Natural := 0;
+   begin
+      for Section of Sections loop
+         Rows := Saturating_Add (Rows, 2);
+         for Value of Section.Values loop
+            Rows := Saturating_Add (Rows, Wrapped_Line_Count (Value, Text_W, Line_Height));
+         end loop;
+      end loop;
+      return Rows;
+   end Coalesced_Info_Rows;
+
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
@@ -2466,17 +2621,22 @@ package body Files.Rendering is
       return Info_Pane_Layout
    is
       function Total_Info_Rows return Natural is
-         Rows : Natural := 0;
+         Rows   : Natural := 0;
+         Text_W : constant Natural :=
+           Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width));
       begin
+         --  A multi-item selection is drawn field-major (one label per section,
+         --  a value row per item); a single selection keeps the per-item block.
+         if Natural (Snapshot.Selected_Info.Length) >= 2 then
+            return Coalesced_Info_Rows (Coalesced_Info_Sections (Snapshot), Text_W, Line_Height);
+         end if;
+
          for Info of Snapshot.Selected_Info loop
             Rows :=
               Saturating_Add
                 (Rows,
                  Info_Section_Row_Count
-                   (Info,
-                    Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width)),
-                    Line_Height,
-                    Show_Grid => Snapshot.Permissions_Editable));
+                   (Info, Text_W, Line_Height, Show_Grid => Snapshot.Permissions_Editable));
          end loop;
 
          return Rows;

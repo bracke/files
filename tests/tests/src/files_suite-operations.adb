@@ -125,6 +125,7 @@ package body Files_Suite.Operations is
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Extra_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Incremental_Folder_Size_Matches_Reference
@@ -209,6 +210,9 @@ package body Files_Suite.Operations is
         (T, Test_Commit_Multi_Rename'Access, "commit synchronized multi-rename best-effort");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Coalesced_Multi'Access,
+         "multi-selection info pane coalesces sections with one value row per item");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Filetype_Extra_Is_Lazy'Access,
          "filetype extra (folder counts, document scans) is computed lazily, not on load");
@@ -3674,31 +3678,108 @@ package body Files_Suite.Operations is
          Info_Layout  : constant Files.Rendering.Info_Pane_Layout :=
            Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
          --  A multi-item selection reserves two rows above the list for the
-         --  combined selection total (see Section_Offset_Rows in the renderer),
-         --  so the first per-item section starts below that header.
+         --  combined selection total, then draws a COALESCED, field-major layout:
+         --  each section label appears once, followed by one value row per item.
          Header_Px    : constant Natural := 2 * 20;
-         Row_Stride   : constant Natural := (Info_Layout.Content_Height - 20 - Header_Px) / 2;
-         First_Name_Y  : Natural := 0;
-         Second_Name_Y : Natural := 0;
-         Name_Label    : constant String := Files.Localization.Text ("info.name");
+         Label_Y      : constant Natural := Info_Layout.Y + 10 + Header_Px;
+         Name_Label   : constant String := Files.Localization.Text ("info.name");
+         Label_Rows   : Natural := 0;
+         Last_Label_Y : Integer := -1;
+         First_Val_Y  : Natural := 0;
+         Second_Val_Y : Natural := 0;
       begin
          for Text of Frame.Text loop
-            if To_String (Text.Text) = Name_Label
-              and then Text.Y = Info_Layout.Y + 10 + Header_Px
-            then
-               First_Name_Y := Text.Y;
-            elsif To_String (Text.Text) = Name_Label
-              and then Text.Y = Info_Layout.Y + 10 + Header_Px + Row_Stride
-            then
-               Second_Name_Y := Text.Y;
+            if Text.X >= Info_Layout.X then
+               if To_String (Text.Text) = Name_Label then
+                  --  The label is drawn twice for a faux-bold weight (X and X+1)
+                  --  at one Y; count distinct rows, not draws.
+                  if Integer (Text.Y) /= Last_Label_Y then
+                     Label_Rows := Label_Rows + 1;
+                     Last_Label_Y := Integer (Text.Y);
+                  end if;
+               elsif To_String (Text.Text) = "meta.txt" and then Text.Y > Label_Y then
+                  First_Val_Y := Text.Y;
+               elsif To_String (Text.Text) = "more.txt" and then Text.Y > Label_Y then
+                  Second_Val_Y := Text.Y;
+               end if;
             end if;
          end loop;
 
          Assert
-           (First_Name_Y > 0 and then Second_Name_Y = First_Name_Y + Row_Stride,
-            "info pane spaces selected sections by every rendered row");
+           (Label_Rows = 1,
+            "coalesced info pane shows the Name section label exactly once for a multi-selection");
+         Assert
+           (First_Val_Y > Label_Y and then Second_Val_Y > First_Val_Y,
+            "both selected item names appear as value rows below the single Name label");
       end;
    end Test_Info_Pane_Metadata_Snapshot;
+
+   --  With several items selected the info pane is coalesced field-major: each
+   --  section label is drawn once (not repeated per item) and each selected
+   --  item's value follows as its own row.
+   procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Frame    : Files.Rendering.Frame_Commands;
+   begin
+      Reset_Root;
+      Write_File (Join (Root, "alpha.txt"), "aaaa");
+      Write_File (Join (Root, "beta.txt"), "bbbb");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Files.Model.Select_All_Visible (Model);
+      Files.Model.Toggle_Info_Pane (Model);
+      Assert (Files.Model.Selected_Count (Model) = 2, "two items are selected");
+
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
+
+      declare
+         Layout      : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
+         Info_Layout : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
+
+         --  Count the distinct rows a label appears on within the info pane
+         --  (the label is drawn twice per row for a faux-bold weight).
+         function Label_Rows (Key : String) return Natural is
+            Label : constant String := Files.Localization.Text (Key);
+            Rows  : Natural := 0;
+            Last  : Integer := -1;
+         begin
+            for Text of Frame.Text loop
+               if Text.X >= Info_Layout.X
+                 and then To_String (Text.Text) = Label
+                 and then Integer (Text.Y) /= Last
+               then
+                  Rows := Rows + 1;
+                  Last := Integer (Text.Y);
+               end if;
+            end loop;
+            return Rows;
+         end Label_Rows;
+
+         function Value_Present (Value : String) return Boolean is
+         begin
+            for Text of Frame.Text loop
+               if Text.X >= Info_Layout.X and then To_String (Text.Text) = Value then
+                  return True;
+               end if;
+            end loop;
+            return False;
+         end Value_Present;
+      begin
+         Assert (Label_Rows ("info.name") = 1, "Name label appears once");
+         Assert (Label_Rows ("info.size") = 1, "Size label appears once");
+         Assert (Label_Rows ("info.filetype") = 1, "Filetype label appears once");
+         Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
+         Assert (Value_Present ("alpha.txt") and then Value_Present ("beta.txt"),
+                 "each selected item contributes its own value row");
+      end;
+   end Test_Info_Pane_Coalesced_Multi;
 
    --  The expensive "extra info" (folder child counts, document scans) must not
    --  be computed on load -- that made navigation slow. It is computed lazily
