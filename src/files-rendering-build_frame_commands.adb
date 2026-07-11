@@ -3811,7 +3811,7 @@ separate (Files.Rendering)
                      --  to line it up with the row label text.
                      Font_H : constant Natural := Saturating_Multiply (Line_Height, 4) / 5;
                      Cell_Top : constant Natural :=
-                       (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 else 0);
+                       (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 + 1 else 0);
                      --  Horizontal inset that centres a header letter over a cell.
                      Header_Pad : constant Natural := (if Cell > Char_W then (Cell - Char_W) / 2 else 0);
                      --  The row labels sit just past the three columns.
