@@ -3418,8 +3418,10 @@ package body Files_Suite.Operations is
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 1200, Line_Height => 20);
       declare
          Found_Name         : Boolean := False;
-         Found_Name_Value   : Boolean := False;
-         Found_Name_Bold    : Boolean := False;
+         Found_Top_Value    : Boolean := False;
+         Found_Top_Bold     : Boolean := False;
+         Found_Top_Label    : Boolean := False;
+         Found_Postfixed_Value : Boolean := False;
          Found_Filetype     : Boolean := False;
          Found_Filetype_Value : Boolean := False;
          Found_Size         : Boolean := False;
@@ -3443,25 +3445,45 @@ package body Files_Suite.Operations is
       begin
          for Text of Frame.Text loop
             declare
-               Value : constant String := To_String (Text.Text);
+               Raw    : constant String := To_String (Text.Text);
+               Suffix : constant String := " (meta.txt)";
+               Postfixed : constant Boolean :=
+                 Raw'Length > Suffix'Length
+                 and then Raw (Raw'Last - Suffix'Length + 1 .. Raw'Last) = Suffix;
+               --  Match against the value with its item-name postfix removed so
+               --  the field checks below are unaffected by the postfix.
+               Value : constant String :=
+                 (if Postfixed then Raw (Raw'First .. Raw'Last - Suffix'Length) else Raw);
             begin
+               if Postfixed and then Text.X = Info_X then
+                  Found_Postfixed_Value := True;
+               end if;
+
                if Value = Files.Localization.Text ("info.name")
+                 and then Text.X >= Info_X
+               then
+                  --  Must not happen: the info pane's Name field is replaced by
+                  --  the postfix (a "Name" column header may exist in the grid).
+                  Found_Name := True;
+               elsif Value = Files.Localization.Text ("info.filetype")
                  and then Text.X = Info_X
                  and then Text.Y = Info_Y
                then
-                  Found_Name := True;
-               elsif Value = Files.Localization.Text ("info.name")
+                  Found_Top_Label := True;
+                  Found_Filetype := True;
+               elsif Value = Files.Localization.Text ("info.filetype")
                  and then Text.X = Info_X + 1
                  and then Text.Y = Info_Y
                then
-                  Found_Name_Bold := True;
-               elsif Value = "meta.txt"
+                  Found_Top_Bold := True;
+               elsif Value = Files.Localization.Text ("info.filetype") then
+                  Found_Filetype := True;
+               elsif Value = Files.Localization.Text ("info.kind.text")
                  and then Text.X = Info_X
                  and then Text.Y = Info_Y + 20
                then
-                  Found_Name_Value := True;
-               elsif Value = Files.Localization.Text ("info.filetype") then
-                  Found_Filetype := True;
+                  Found_Top_Value := True;
+                  Found_Filetype_Value := True;
                elsif Value = Files.Localization.Text ("info.kind.text") then
                   Found_Filetype_Value := True;
                elsif Value = Files.Localization.Text ("info.size") then
@@ -3526,9 +3548,11 @@ package body Files_Suite.Operations is
             end if;
          end loop;
 
-         Assert (Found_Name, "info pane frame includes localized name row");
-         Assert (Found_Name_Bold, "info pane label renders with bold offset");
-         Assert (Found_Name_Value, "info pane value follows label on next row");
+         Assert (not Found_Name, "info pane has no dedicated Name row (name is postfixed onto each value)");
+         Assert (Found_Top_Label, "info pane top row is the filetype label");
+         Assert (Found_Top_Bold, "info pane label renders with bold offset");
+         Assert (Found_Top_Value, "info pane value follows label on next row");
+         Assert (Found_Postfixed_Value, "info pane single-item values are postfixed with the item name");
          Assert (Found_Filetype, "info pane frame includes localized filetype row");
          Assert (Found_Filetype_Value, "info pane filetype value is separate from label");
          Assert (Found_Size, "info pane frame includes localized size row");
@@ -3568,7 +3592,9 @@ package body Files_Suite.Operations is
          Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 800, Line_Height => 20);
 
          for Text of Frame.Text loop
-            if To_String (Text.Text) = Files.Localization.Text ("error.metadata.read")
+            --  The value is postfixed with " (broken.txt)", so match the prefix.
+            if Ada.Strings.Fixed.Index
+                 (To_String (Text.Text), Files.Localization.Text ("error.metadata.read")) = 1
             then
                Found_Localized := True;
             end if;
@@ -3677,40 +3703,38 @@ package body Files_Suite.Operations is
            Files.Rendering.Calculate_Layout (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
          Info_Layout  : constant Files.Rendering.Info_Pane_Layout :=
            Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height => 20);
-         --  A multi-item selection reserves two rows above the list for the
-         --  combined selection total, then draws a COALESCED, field-major layout:
-         --  each section label appears once, followed by one value row per item.
-         Header_Px    : constant Natural := 2 * 20;
-         Label_Y      : constant Natural := Info_Layout.Y + 10 + Header_Px;
-         Name_Label   : constant String := Files.Localization.Text ("info.name");
-         Label_Rows   : Natural := 0;
-         Last_Label_Y : Integer := -1;
-         First_Val_Y  : Natural := 0;
-         Second_Val_Y : Natural := 0;
+         --  A multi-item selection draws a COALESCED, field-major layout: each
+         --  section label appears once and each value row is postfixed with its
+         --  item name, so there is no dedicated Name section.
+         Name_Label       : constant String := Files.Localization.Text ("info.name");
+         Name_Label_Count : Natural := 0;
+         Meta_Postfixed   : Boolean := False;
+         More_Postfixed   : Boolean := False;
+
+         function Ends_With (Text : Unbounded_String; Suffix : String) return Boolean is
+         begin
+            return Length (Text) >= Suffix'Length
+              and then Slice (Text, Length (Text) - Suffix'Length + 1, Length (Text)) = Suffix;
+         end Ends_With;
       begin
          for Text of Frame.Text loop
             if Text.X >= Info_Layout.X then
                if To_String (Text.Text) = Name_Label then
-                  --  The label is drawn twice for a faux-bold weight (X and X+1)
-                  --  at one Y; count distinct rows, not draws.
-                  if Integer (Text.Y) /= Last_Label_Y then
-                     Label_Rows := Label_Rows + 1;
-                     Last_Label_Y := Integer (Text.Y);
-                  end if;
-               elsif To_String (Text.Text) = "meta.txt" and then Text.Y > Label_Y then
-                  First_Val_Y := Text.Y;
-               elsif To_String (Text.Text) = "more.txt" and then Text.Y > Label_Y then
-                  Second_Val_Y := Text.Y;
+                  Name_Label_Count := Name_Label_Count + 1;
+               elsif Ends_With (Text.Text, " (meta.txt)") then
+                  Meta_Postfixed := True;
+               elsif Ends_With (Text.Text, " (more.txt)") then
+                  More_Postfixed := True;
                end if;
             end if;
          end loop;
 
          Assert
-           (Label_Rows = 1,
-            "coalesced info pane shows the Name section label exactly once for a multi-selection");
+           (Name_Label_Count = 0,
+            "coalesced info pane has no dedicated Name section");
          Assert
-           (First_Val_Y > Label_Y and then Second_Val_Y > First_Val_Y,
-            "both selected item names appear as value rows below the single Name label");
+           (Meta_Postfixed and then More_Postfixed,
+            "each selected item's rows are postfixed with its own name");
       end;
    end Test_Info_Pane_Metadata_Snapshot;
 
@@ -3786,14 +3810,14 @@ package body Files_Suite.Operations is
             return False;
          end Value_Ends_With;
       begin
-         Assert (Label_Rows ("info.name") = 1, "Name label appears once");
+         Assert (Label_Rows ("info.name") = 0, "there is no dedicated Name section");
+         Assert (not Value_Present ("alpha.txt") and then not Value_Present ("beta.txt"),
+                 "item names appear only as postfixes, not as bare Name rows");
          Assert (Label_Rows ("info.size") = 1, "Size label appears once");
          Assert (Label_Rows ("info.filetype") = 1, "Filetype label appears once");
          Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
-         Assert (Value_Present ("alpha.txt") and then Value_Present ("beta.txt"),
-                 "the Name section lists each selected item bare");
          Assert (Value_Ends_With (" (alpha.txt)") and then Value_Ends_With (" (beta.txt)"),
-                 "non-Name section rows are postfixed with their item name");
+                 "every section row is postfixed with its item name");
       end;
    end Test_Info_Pane_Coalesced_Multi;
 

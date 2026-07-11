@@ -2415,6 +2415,30 @@ package body Files.Rendering is
          else 0);
    end Info_Text_Width;
 
+   --  The " (<name>)" suffix appended to each info-pane value so a row shows the
+   --  item it describes. Applied uniformly (single and multi selection); the
+   --  dedicated Name field is dropped since the name now rides on every row.
+   --
+   --  @param Info The selected-item info block.
+   --  @return The parenthesised item-name suffix.
+   function Info_Postfix (Info : Info_Snapshot) return String is
+   begin
+      return " (" & To_String (Info.Name) & ")";
+   end Info_Postfix;
+
+   --  The display value of a numbered info field with the item-name suffix.
+   --
+   --  @param Info The selected-item info block.
+   --  @param Field Field index (see Info_Field_Value).
+   --  @return The postfixed display value used for both layout and rendering.
+   function Info_Field_Postfixed_Value
+     (Info  : Info_Snapshot;
+      Field : Natural)
+      return UString is
+   begin
+      return Info_Field_Display_Value (Info, Field) & Info_Postfix (Info);
+   end Info_Field_Postfixed_Value;
+
    function Info_Section_Row_Count
      (Info        : Info_Snapshot;
       Text_W      : Natural;
@@ -2424,19 +2448,21 @@ package body Files.Rendering is
    is
       Rows : Natural := 0;
    begin
-      for Field in 0 .. 8 loop
+      --  Field 0 (Name) is omitted: the name rides on every value as a suffix.
+      for Field in 1 .. 8 loop
          Rows :=
            Saturating_Add
              (Rows,
               Saturating_Add
                  (2,
-                 Wrapped_Line_Count (Info_Field_Display_Value (Info, Field), Text_W, Line_Height)));
+                 Wrapped_Line_Count (Info_Field_Postfixed_Value (Info, Field), Text_W, Line_Height)));
       end loop;
 
       if Show_Grid then
          Rows := Saturating_Add (Rows, Permission_Grid_Rows);
       end if;
 
+      --  Owner/Group stay bare: they are interactive (inline editing + caret).
       if Info.Ownership_Available then
          for Field in 9 .. 10 loop
             Rows :=
@@ -2453,7 +2479,8 @@ package body Files.Rendering is
            Saturating_Add
              (Rows,
               Saturating_Add
-                (2, Wrapped_Line_Count (Folder_Contents_Text (Info), Text_W, Line_Height)));
+                (2, Wrapped_Line_Count
+                      (Folder_Contents_Text (Info) & Info_Postfix (Info), Text_W, Line_Height)));
       end if;
 
       return Rows;
@@ -2520,13 +2547,12 @@ package body Files.Rendering is
          return Result;
       end Qualified;
 
-      procedure Add_Field_Section (Key : String; Field : Natural; Qualify : Boolean := True) is
-         Values : constant Info_Value_Vectors.Vector := Field_Values (Field);
+      procedure Add_Field_Section (Key : String; Field : Natural) is
       begin
          Sections.Append
            (Coalesced_Section'
               (Key    => To_Unbounded_String (Key),
-               Values => (if Qualify then Qualified (Values) else Values)));
+               Values => Qualified (Field_Values (Field))));
       end Add_Field_Section;
 
       Any_Directory : Boolean := False;
@@ -2539,7 +2565,8 @@ package body Files.Rendering is
          Any_Error     := Any_Error or else Info.Metadata_Error;
       end loop;
 
-      Add_Field_Section ("info.name", 0, Qualify => False);
+      --  No dedicated Name section: every value below is postfixed with the item
+      --  name, which serves as the per-row identifier.
       Add_Field_Section ("info.filetype", 1);
       Add_Field_Section ("info.size", 2);
 

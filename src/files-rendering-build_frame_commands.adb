@@ -3628,41 +3628,49 @@ separate (Files.Rendering)
                      Current_Row := Saturating_Add (Current_Row, 1);
                   end loop;
 
-                  --  One accessibility node per item, anchored at its row in the
-                  --  Name section (the first section, values starting at row 1).
-                  declare
-                     Name_Row : Natural := 1;
-                  begin
-                     for Info of Snapshot.Selected_Info loop
-                        declare
-                           Y : constant Integer :=
-                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Name_Row, Line_Height));
-                           Visible_Y : constant Integer := Integer'Max (Y, Integer (Info_Pane.Y));
-                           Description : constant Unbounded_String :=
-                             To_Unbounded_String
-                               (Files.Localization.Text ("info.filetype") & ": " &
-                                To_String (Info_Field_Value (Info, 1)) & ", " &
-                                Files.Localization.Text ("info.size") & ": " &
-                                To_String (Info_Field_Value (Info, 2)));
-                        begin
-                           if Y >= Integer (Info_Pane.Y)
-                             and then Y < Integer (Info_Bottom)
-                             and then Text_W > 0
-                           then
-                              Add_Accessibility_Node
-                                (Role_List_Item,
-                                 Info_Pane.X,
-                                 Natural (Visible_Y),
-                                 Text_W,
-                                 Line_Height,
-                                 Info.Name,
-                                 Description);
-                           end if;
-                           Name_Row :=
-                             Saturating_Add (Name_Row, Wrapped_Line_Count (Info.Name, Text_W, Line_Height));
-                        end;
-                     end loop;
-                  end;
+                  --  One accessibility node per item, anchored at its value row in
+                  --  the first rendered section (values start one row below its
+                  --  label). Advance by that section's per-item wrapped height.
+                  if not Sections.Is_Empty then
+                     declare
+                        First : constant Coalesced_Section := Sections.First_Element;
+                        Item_Row : Natural := 1;
+                        Item_Index : Positive := 1;
+                     begin
+                        for Info of Snapshot.Selected_Info loop
+                           declare
+                              Y : constant Integer :=
+                                Saturating_Integer_Add (Row_Y, Saturating_Multiply (Item_Row, Line_Height));
+                              Visible_Y : constant Integer := Integer'Max (Y, Integer (Info_Pane.Y));
+                              Description : constant Unbounded_String :=
+                                To_Unbounded_String
+                                  (Files.Localization.Text ("info.filetype") & ": " &
+                                   To_String (Info_Field_Value (Info, 1)) & ", " &
+                                   Files.Localization.Text ("info.size") & ": " &
+                                   To_String (Info_Field_Value (Info, 2)));
+                           begin
+                              if Y >= Integer (Info_Pane.Y)
+                                and then Y < Integer (Info_Bottom)
+                                and then Text_W > 0
+                              then
+                                 Add_Accessibility_Node
+                                   (Role_List_Item,
+                                    Info_Pane.X,
+                                    Natural (Visible_Y),
+                                    Text_W,
+                                    Line_Height,
+                                    Info.Name,
+                                    Description);
+                              end if;
+                              Item_Row :=
+                                Saturating_Add
+                                  (Item_Row,
+                                   Wrapped_Line_Count (First.Values.Element (Item_Index), Text_W, Line_Height));
+                              Item_Index := Item_Index + 1;
+                           end;
+                        end loop;
+                     end;
+                  end if;
                end;
             else
             for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
@@ -3799,8 +3807,11 @@ separate (Files.Rendering)
                      Field : Natural;
                      Color : Render_Color := Muted_Text_Color)
                   is
+                     --  Postfix the value with the item name (dropping the Name
+                     --  field), matching Info_Section_Row_Count's row accounting.
                      Display_Value : constant UString :=
-                       (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value);
+                       (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value)
+                       & Info_Postfix (Info);
                      Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
                   begin
                      Add_Info_Label (Current_Row, Key);
@@ -3921,7 +3932,7 @@ separate (Files.Rendering)
                      Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
                   end Add_Ownership_Field;
                begin
-                  Add_Info_Field ("info.name", Info_Field_Value (Info, 0), 0);
+                  --  No Name field: the item name is postfixed onto every value.
                   Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
                   Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
                   if Info.Is_Directory and then Info.Folder_Size_Available then
