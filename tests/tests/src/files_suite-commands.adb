@@ -364,20 +364,27 @@ package body Files_Suite.Commands is
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
-      Files.Controller.Replace_Focused_Text (Model, "ab");
-      Files.Model.Set_Text_Cursor_Position (Model, 1);
+      --  Opening the pane now focuses the first setting, not the preamble action
+      --  buttons. The settings caret is not movable -- it always rests at the end
+      --  of the focused value -- so a manually set cursor is superseded by that end
+      --  position. Focus the icon-theme field (appearance is the third section, its
+      --  second field -- a Choice whose displayed value mirrors the draft) to check
+      --  this on a real, non-empty setting; the assert catches any layout drift.
+      Files.Model.Settings_Set_Active_Section (Model, 3);
+      Files.Model.Settings_Move_Focus (Model, 1);
       declare
-         Utf8_Text : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
-         Draft     : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
       begin
-         Draft.Icon_Theme_Name := To_Unbounded_String (Utf8_Text);
-         Files.Model.Set_Settings_Draft (Model, Draft);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 0,
-            "settings draft replacement snaps stale UTF-8 cursor to character boundary");
          Draft.Icon_Theme_Name := To_Unbounded_String ("files-basic");
          Files.Model.Set_Settings_Draft (Model, Draft);
       end;
+      Assert
+        (Files.Model.Settings_Focused_Value (Model) = "files-basic",
+         "icon-theme field is focused for the settings caret check");
+      Files.Model.Set_Text_Cursor_Position (Model, 1);
+      Assert
+        (Files.Model.Text_Cursor_Position (Model) = Files.Model.Settings_Focused_Value (Model)'Length,
+         "settings caret rests at the end of the focused value, ignoring a manual cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
       Assert (Result.Command = Files.Commands.Save_Settings_Command, "control+s routes settings save command");
       Assert
