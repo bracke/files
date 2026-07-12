@@ -26,5 +26,10 @@ project_tools = "*"
 [[pins]]
 project_tools = { path = "../../../project_tools" }
 
+# Pins are root-only in Alire: this root builds zlib (via files), so it must
+# pin cryptolib too.
+[[pins]]
+cryptolib = { path = "../../../cryptolib" }
+
 [[depends-on]]
 aunit = "^26.0.0"

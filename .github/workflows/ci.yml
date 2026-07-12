@@ -78,8 +78,6 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/textrender.git" textrender
           git clone --depth 1 "https://github.com/${owner}/zlib.git" zlib
           git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
-          # zlib.gpr imports ../cryptolib/cryptolib.gpr directly, so cryptolib is
-          # needed at build time even though no alire.toml pins it.
           git clone --depth 1 "https://github.com/${owner}/cryptolib.git" cryptolib
 
       - name: Set up Alire
@@ -88,14 +86,6 @@ jobs:
         uses: alire-project/setup-alire@v5
         with:
           toolchain: gnat_native=15.2.1 gprbuild
-
-      # cryptolib's config/ is Alire-generated and gitignored, so a fresh clone
-      # has none. zlib reaches it by raw GPR import, which bypasses Alire and so
-      # never triggers that generation — build it once to materialise the config.
-      - name: Bootstrap cryptolib's generated config
-        shell: bash
-        working-directory: cryptolib
-        run: alr --non-interactive build
 
       - name: Build the application
         shell: bash
