@@ -2855,6 +2855,7 @@ procedure Check_All is
          Saw_Grid   : Boolean := False;
          Grid       : Natural := 0;
          Rectangles : Natural := 0;
+         Triangles  : Natural := 0;
 
          procedure Check_Rectangle (Text : String) is
             X : Natural;
@@ -2883,6 +2884,37 @@ procedure Check_All is
             Rectangles := Rectangles + 1;
          end Check_Rectangle;
 
+         procedure Check_Triangle (Text : String) is
+            X1 : Natural;
+            Y1 : Natural;
+            X2 : Natural;
+            Y2 : Natural;
+            X3 : Natural;
+            Y3 : Natural;
+         begin
+            if not Saw_Grid then
+               Fail_Icon (Path, "triangle appears before grid declaration");
+            elsif Field (Text, 8) /= "" then
+               Fail_Icon (Path, "triangle has too many fields");
+            elsif not Try_Parse_Natural (Field (Text, 1), X1)
+              or else not Try_Parse_Natural (Field (Text, 2), Y1)
+              or else not Try_Parse_Natural (Field (Text, 3), X2)
+              or else not Try_Parse_Natural (Field (Text, 4), Y2)
+              or else not Try_Parse_Natural (Field (Text, 5), X3)
+              or else not Try_Parse_Natural (Field (Text, 6), Y3)
+            then
+               Fail_Icon (Path, "triangle has nonnumeric fields");
+            elsif X1 > Grid or else Y1 > Grid or else X2 > Grid or else Y2 > Grid
+              or else X3 > Grid or else Y3 > Grid
+            then
+               Fail_Icon (Path, "triangle exceeds declared grid");
+            elsif not Valid_Icon_Role (Field (Text, 7)) then
+               Fail_Icon (Path, "triangle uses an unknown role");
+            end if;
+
+            Triangles := Triangles + 1;
+         end Check_Triangle;
+
          procedure Check_Line (Raw : String) is
             Line : constant String := Ada.Strings.Fixed.Trim (Raw, Ada.Strings.Both);
          begin
@@ -2909,6 +2941,8 @@ procedure Check_All is
                Saw_Grid := True;
             elsif Starts_With (Line, "rect=") then
                Check_Rectangle (Value_After_Prefix (Line, "rect="));
+            elsif Starts_With (Line, "tri=") then
+               Check_Triangle (Value_After_Prefix (Line, "tri="));
             else
                Fail_Icon (Path, "unknown icon asset directive");
             end if;
@@ -2937,8 +2971,8 @@ procedure Check_All is
             Fail_Icon (Path, "missing icon name declaration");
          elsif not Saw_Grid then
             Fail_Icon (Path, "missing icon grid declaration");
-         elsif Rectangles = 0 then
-            Fail_Icon (Path, "icon asset must contain at least one rectangle");
+         elsif Rectangles = 0 and then Triangles = 0 then
+            Fail_Icon (Path, "icon asset must contain at least one shape");
          end if;
       end Require_Valid_Icon_Asset;
    begin
