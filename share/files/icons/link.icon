@@ -1,8 +1,9 @@
 files-icon-v1
 name=link
-grid=16
-rect=1,0,14,16,base
-rect=11,0,4,4,muted
-rect=3,8,8,2,accent
-rect=8,5,5,2,accent
-rect=8,11,5,2,accent
+grid=32
+rect=7,3,11,26,base
+rect=18,9,7,20,base
+tri=18,3,25,9,18,9,muted
+tri=13,23,15,23,21,13,accent
+tri=15,23,21,13,21,15,accent
+tri=15,11,23,11,23,19,accent

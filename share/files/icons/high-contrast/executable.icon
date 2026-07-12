@@ -1,8 +1,8 @@
 files-icon-v1
 name=executable
-grid=16
-rect=1,0,14,16,base
-rect=11,0,4,4,border
-rect=1,0,3,16,accent
-rect=7,5,3,6,accent
-rect=10,8,3,3,accent
+grid=32
+rect=7,3,11,26,base
+rect=18,9,7,20,base
+tri=18,3,25,9,18,9,border
+tri=11,13,11,21,18,17,accent
+rect=13,23,8,2,border

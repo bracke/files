@@ -1,8 +1,10 @@
 files-icon-v1
 name=image
-grid=16
-rect=1,0,14,16,base
-rect=11,0,4,4,border
-rect=3,5,10,6,accent
-rect=4,8,4,2,border
-rect=8,7,4,3,border
+grid=32
+rect=7,3,11,26,base
+rect=18,9,7,20,base
+tri=18,3,25,9,18,9,border
+rect=9,13,14,13,accent
+rect=11,15,3,3,base
+tri=9,26,16,16,20,26,border
+tri=15,26,20,20,23,26,border

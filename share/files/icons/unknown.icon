@@ -1,8 +1,11 @@
 files-icon-v1
 name=unknown
-grid=16
-rect=1,0,14,16,base
-rect=11,0,4,4,muted
-rect=5,4,6,2,border
-rect=8,6,2,5,border
-rect=8,13,2,1,border
+grid=32
+rect=7,3,11,26,base
+rect=18,9,7,20,base
+tri=18,3,25,9,18,9,muted
+rect=13,12,7,2,border
+rect=18,13,2,4,border
+rect=15,16,5,2,border
+rect=15,18,2,4,border
+rect=15,25,2,2,border

@@ -1,7 +1,8 @@
 files-icon-v1
 name=folder
-grid=16
-rect=0,3,7,3,base
-rect=0,6,16,10,base
-rect=1,7,14,1,border
-rect=1,14,14,1,border
+grid=32
+rect=4,5,10,6,base
+tri=14,5,14,11,18,11,base
+rect=4,11,24,16,base
+rect=4,11,24,3,accent
+rect=6,16,20,1,border

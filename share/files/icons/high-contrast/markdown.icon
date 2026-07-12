@@ -1,8 +1,11 @@
 files-icon-v1
 name=markdown
-grid=16
-rect=1,0,14,16,base
-rect=11,0,4,4,border
-rect=4,5,2,8,border
-rect=7,8,2,5,border
-rect=10,5,2,8,border
+grid=32
+rect=7,3,11,26,base
+rect=18,9,7,20,base
+tri=18,3,25,9,18,9,border
+rect=10,12,2,9,border
+rect=20,12,2,9,border
+tri=11,12,21,12,16,18,border
+rect=15,21,2,3,accent
+tri=13,23,19,23,16,27,accent
