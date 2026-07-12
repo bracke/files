@@ -1546,8 +1546,8 @@ separate (Files.Rendering)
             end if;
             declare
                Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
-               Pad_X    : constant Natural := 1;
-               Pad_Y    : constant Natural := 0;
+               Pad_Y    : constant Natural := Natural'Max (1, Line_Height / 8);
+               Pad_X    : constant Natural := Pad_Y + 1;
                Shown    : constant String :=
                  (if Ext'Length > 3 then Ext (Ext'First .. Ext'First + 2) else Ext);
                Lbl      : constant Files.Extension_Labels.Label :=
