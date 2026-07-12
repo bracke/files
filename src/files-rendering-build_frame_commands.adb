@@ -1544,14 +1544,29 @@ separate (Files.Rendering)
                Max_N   : constant Natural := Natural'Max (1, Draw_Size / Cell);
                Count   : constant Natural := Natural'Min (Ext'Length, Max_N);
                Badge_H : constant Natural := Count * Cell;
-               Badge_Y : constant Natural := Saturating_Add (Y, (Draw_Size - Badge_H) / 2);
+               Chamfer : constant Natural := Natural'Max (1, Cell / 2);
+               --  A paper tab attached to the icon's right edge, bottom-aligned,
+               --  with its inner-top corner chamfered so it reads as a physical tab.
+               Tab_X   : constant Natural :=
+                 Saturating_Add (X, (if Draw_Size > Cell then Draw_Size - Cell else 0));
+               Tab_Y   : constant Natural :=
+                 Saturating_Add (Y, (if Draw_Size > Badge_H then Draw_Size - Badge_H else 0));
             begin
-               Add_Rect (X, Badge_Y, Cell, Badge_H, Muted_Text_Color);
+               Add_Rect
+                 (Tab_X, Saturating_Add (Tab_Y, Chamfer), Cell,
+                  (if Badge_H > Chamfer then Badge_H - Chamfer else Badge_H), Border_Color);
+               Add_Rect
+                 (Saturating_Add (Tab_X, Chamfer), Tab_Y,
+                  (if Cell > Chamfer then Cell - Chamfer else Cell), Chamfer, Border_Color);
+               Add_Triangle
+                 (Float (Saturating_Add (Tab_X, Chamfer)), Float (Tab_Y),
+                  Float (Saturating_Add (Tab_X, Chamfer)), Float (Saturating_Add (Tab_Y, Chamfer)),
+                  Float (Tab_X), Float (Saturating_Add (Tab_Y, Chamfer)), Border_Color);
                for Position in 1 .. Count loop
                   Add_Text
-                    (X, Badge_Y + (Position - 1) * Cell, Cell, Cell,
+                    (Tab_X, Tab_Y + (Position - 1) * Cell, Cell, Cell,
                      To_Unbounded_String ((1 => Ext (Ext'First + Position - 1))),
-                     Pane_Color, Scale_To_Box => True);
+                     Text_Color, Scale_To_Box => True);
                end loop;
             end;
          end Add_Extension_Badge;
