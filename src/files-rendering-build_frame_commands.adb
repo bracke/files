@@ -1524,16 +1524,18 @@ separate (Files.Rendering)
             return Files.Types.To_Lower (Name (Dot + 1 .. Name'Last));
          end Extension_Of;
 
-         --  On a large enough icon, tuck the file extension into the empty margin
+         --  In large-icon view, tuck the file extension into the empty margin
          --  beside the (narrow) icon as a small gray badge with the letters stacked
-         --  vertically. Skipped for folders, thumbnails, and extensionless names.
+         --  vertically. Only in large-icon view (where Use_Thumbnail is set and the
+         --  icon is big enough), and skipped for folders, items showing an actual
+         --  photo thumbnail, and extensionless names.
          procedure Add_Extension_Badge is
             Ext : constant String := Extension_Of (To_String (Item.Name));
          begin
             if Ext = ""
-              or else Use_Thumbnail
+              or else not Use_Thumbnail
               or else Item.Kind = Files.Types.Directory_Item
-              or else Draw_Size < Line_Height * 2
+              or else (Item.Thumbnail_Available and then Length (Item.Thumbnail_Path) > 0)
             then
                return;
             end if;
