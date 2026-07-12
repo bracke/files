@@ -108,19 +108,23 @@ package body Files.Extension_Labels is
          Atlas : constant Atlas_Conversions.Object_Pointer :=
            Atlas_Conversions.To_Pointer (Result.Atlas_Pixels);
          L_W   : Natural := 0;
+         L_H   : Natural := 0;
       begin
+         --  Size the bitmap to the actual glyph extents so descenders (g, j, p in
+         --  png/jpg) are not clipped.
          for G of Result.Glyphs loop
             L_W := Natural'Max (L_W, Natural (Float'Ceiling (G.X + G.Width)));
+            L_H := Natural'Max (L_H, Natural (Float'Ceiling (G.Y + G.Height)));
          end loop;
-         if L_W = 0 then
+         if L_W = 0 or else L_H = 0 then
             return (Width => 0, Height => 0, Pixels => Byte_Vectors.Empty_Vector);
          end if;
 
          return Out_Label : Label do
             Out_Label.Width  := L_W;
-            Out_Label.Height := Height;
+            Out_Label.Height := L_H;
             Out_Label.Pixels :=
-              Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (L_W * Height * 4));
+              Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (L_W * L_H * 4));
             for G of Result.Glyphs loop
                declare
                   SX0 : constant Natural := Natural (Float'Floor (G.U0 * Float (AW)));
@@ -139,7 +143,7 @@ package body Files.Extension_Labels is
                            DY    : constant Natural := DY0 + Y;
                            A_Idx : constant Natural := SY * AW + SX + 1;
                         begin
-                           if DX < L_W and then DY < Height
+                           if DX < L_W and then DY < L_H
                              and then SX < AW and then SY < AH
                              and then A_Idx <= Result.Atlas_Bytes
                            then

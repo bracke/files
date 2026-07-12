@@ -1546,8 +1546,10 @@ separate (Files.Rendering)
             declare
                Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
                Pad      : constant Natural := Natural'Max (1, Line_Height / 4);
+               Shown    : constant String :=
+                 (if Ext'Length > 3 then Ext (Ext'First .. Ext'First + 2) else Ext);
                Lbl      : constant Files.Extension_Labels.Label :=
-                 Files.Extension_Labels.Label_For (Ext, Text_H, Snapshot.Theme_Palette);
+                 Files.Extension_Labels.Label_For (Shown, Text_H, Snapshot.Theme_Palette);
                Band_W   : constant Natural := Saturating_Add (Lbl.Width, 2 * Pad);
                Band_H   : constant Natural := Saturating_Add (Lbl.Height, 2 * Pad);
                Overhang : constant Natural := Band_W / 3;
@@ -1577,7 +1579,7 @@ separate (Files.Rendering)
                        (X                => Text_X,
                         Y                => Text_Y,
                         Size             => Lbl.Width,
-                        Icon_Id          => To_Unbounded_String ("extlabel:" & Ext),
+                        Icon_Id          => To_Unbounded_String ("extlabel:" & Shown),
                         Theme_Name       => Snapshot.Theme_Name,
                         Asset_Path       => Null_Unbounded_String,
                         Thumbnail_Width  => Lbl.Width,
