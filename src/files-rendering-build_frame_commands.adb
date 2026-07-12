@@ -1552,21 +1552,25 @@ separate (Files.Rendering)
                Tab_Y   : constant Natural :=
                  Saturating_Add (Y, (if Draw_Size > Badge_H then Draw_Size - Badge_H else 0));
             begin
+               --  A near-white paper tab with near-black letters: Text_Color is the
+               --  palette's lightest gray and Canvas_Color its darkest, used here as
+               --  the tab fill and letter colour (not as text/canvas) so the tab
+               --  stands out against the darker cell in either theme.
                Add_Rect
                  (Tab_X, Saturating_Add (Tab_Y, Chamfer), Cell,
-                  (if Badge_H > Chamfer then Badge_H - Chamfer else Badge_H), Border_Color);
+                  (if Badge_H > Chamfer then Badge_H - Chamfer else Badge_H), Text_Color);
                Add_Rect
                  (Saturating_Add (Tab_X, Chamfer), Tab_Y,
-                  (if Cell > Chamfer then Cell - Chamfer else Cell), Chamfer, Border_Color);
+                  (if Cell > Chamfer then Cell - Chamfer else Cell), Chamfer, Text_Color);
                Add_Triangle
                  (Float (Saturating_Add (Tab_X, Chamfer)), Float (Tab_Y),
                   Float (Saturating_Add (Tab_X, Chamfer)), Float (Saturating_Add (Tab_Y, Chamfer)),
-                  Float (Tab_X), Float (Saturating_Add (Tab_Y, Chamfer)), Border_Color);
+                  Float (Tab_X), Float (Saturating_Add (Tab_Y, Chamfer)), Text_Color);
                for Position in 1 .. Count loop
                   Add_Text
                     (Tab_X, Tab_Y + (Position - 1) * Cell, Cell, Cell,
                      To_Unbounded_String ((1 => Ext (Ext'First + Position - 1))),
-                     Text_Color, Scale_To_Box => True);
+                     Canvas_Color, Scale_To_Box => True);
                end loop;
             end;
          end Add_Extension_Badge;
