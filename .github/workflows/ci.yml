@@ -77,6 +77,7 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/i18n.git" i18n
           git clone --depth 1 "https://github.com/${owner}/textrender.git" textrender
           git clone --depth 1 "https://github.com/${owner}/zlib.git" zlib
+          git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
 
       - name: Set up Alire
         # v5 defaults to alr 2.1.0, whose index carries gnat_native 15.2.1.
