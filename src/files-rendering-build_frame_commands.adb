@@ -1545,12 +1545,16 @@ separate (Files.Rendering)
                Count   : constant Natural := Natural'Min (Ext'Length, Max_N);
                Badge_H : constant Natural := Count * Cell;
                Chamfer : constant Natural := Natural'Max (1, Cell / 2);
-               --  A paper tab attached to the icon's right edge, bottom-aligned,
-               --  with its inner-top corner chamfered so it reads as a physical tab.
-               Tab_X   : constant Natural :=
-                 Saturating_Add (X, (if Draw_Size > Cell then Draw_Size - Cell else 0));
+               --  Align to the drawn page, not the padded draw square: the document
+               --  glyph sits inside a transparent margin (its right edge is ~25/32
+               --  and its bottom ~29/32 of the square). Attach the tab at the page's
+               --  right edge and bottom-align it there, with the inner-top corner
+               --  chamfered so it reads as a physical tab.
+               Content_R : constant Natural := Saturating_Multiply (Draw_Size, 25) / 32;
+               Content_B : constant Natural := Saturating_Multiply (Draw_Size, 29) / 32;
+               Tab_X   : constant Natural := Saturating_Add (X, Content_R);
                Tab_Y   : constant Natural :=
-                 Saturating_Add (Y, (if Draw_Size > Badge_H then Draw_Size - Badge_H else 0));
+                 Saturating_Add (Y, (if Content_B > Badge_H then Content_B - Badge_H else 0));
             begin
                --  A near-white paper tab with near-black letters: Text_Color is the
                --  palette's lightest gray and Canvas_Color its darkest, used here as
