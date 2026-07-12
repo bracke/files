@@ -2611,7 +2611,9 @@ package body Files.Model is
 
    --  The presentation config for the command palette (overlay with shortcuts,
    --  the component owns the filtering).
-   function Palette_Config (Line_Height : Positive) return Guikit.Command_Palette.Configuration is
+   function Palette_Config
+     (Line_Height : Positive;
+      Mode        : Palette_Mode) return Guikit.Command_Palette.Configuration is
    begin
       return
         (Line_Height    => Line_Height,
@@ -2620,7 +2622,12 @@ package body Files.Model is
          Overlay        => True,
          Wrap_Selection => True,
          Placeholder    => Null_Unbounded_String,
-         Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty")));
+         Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty")),
+         Title          => To_Unbounded_String
+                             (Files.Localization.Text
+                                (if Mode = Palette_Open_With
+                                 then "command_palette.title.open_with"
+                                 else "command_palette.title")));
    end Palette_Config;
 
    procedure Open_Command_Palette
@@ -2629,7 +2636,8 @@ package body Files.Model is
       Model.Command_Palette_Open := True;
       Model.Command_Palette_Mode := Palette_Commands;
       Model.Open_With_Targets_Value.Clear;
-      Guikit.Command_Palette.Set_Configuration (Model.Command_Palette_View, Palette_Config (20));
+      Guikit.Command_Palette.Set_Configuration
+        (Model.Command_Palette_View, Palette_Config (20, Palette_Commands));
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Guikit.Command_Palette.Set_Commands
         (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
@@ -2727,7 +2735,8 @@ package body Files.Model is
    begin
       --  Refresh the config (line height) and the command list (fresh enablement)
       --  each frame; the component preserves the query and selection.
-      Guikit.Command_Palette.Set_Configuration (Model.Command_Palette_View, Palette_Config (Line_Height));
+      Guikit.Command_Palette.Set_Configuration
+        (Model.Command_Palette_View, Palette_Config (Line_Height, Model.Command_Palette_Mode));
       Guikit.Command_Palette.Set_Commands
         (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
       Guikit.Command_Palette.Build_Frame

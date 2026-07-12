@@ -1754,12 +1754,16 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Command_Palette_Layout is
    begin
+      --  The palette always carries a title, so reserve the same title band the
+      --  component renders (guikit-command_palette.adb: LH + Palette_Padding) or
+      --  clicks on results would be offset from the drawn rows.
       return Guikit.Layout.Calculate_Palette_Layout
         (Command_X      => Layout.Command_X,
          Command_Y      => Layout.Command_Y,
          Command_Width  => Layout.Command_Width,
          Command_Height => Layout.Command_Height,
-         Line_Height    => Line_Height);
+         Line_Height    => Line_Height,
+         Title_Height   => Saturating_Add (Line_Height, Guikit.Layout.Palette_Padding));
    end Calculate_Command_Palette_Layout;
 
    function Calculate_Quick_Look_Layout
