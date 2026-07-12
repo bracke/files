@@ -43,6 +43,7 @@ with Files.Fonts;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
+with Files.Icon_Assets;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
@@ -128,6 +129,7 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Display_Cycle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Filesize_Files_Only (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Total_In_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -221,6 +223,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Apply_Ui_State_Round_Trip'Access,
          "applying persisted UI state sets view and sort absolutely, even for the default field");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Icon_Assets_Load_From_Disk'Access,
+         "filetype icon definitions load from the bundled .icon files at runtime");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3868,6 +3873,22 @@ package body Files_Suite.Operations is
       Check (Files.Settings.Sort_By_Size, True,  Files.Model.Sort_Size, "size ascending");
       Check (Files.Settings.Sort_By_Size, False, Files.Model.Sort_Size, "size descending");
    end Test_Apply_Ui_State_Round_Trip;
+
+   procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      --  Read the bundled folder.icon from disk. This confirms the runtime loads
+      --  icon definitions from the .icon files (the single edit surface) rather
+      --  than only the built-in copies, and that it sees the redesigned shapes.
+      Folder : constant String := Files.Icon_Assets.Disk_Icon_Asset ("folder", "");
+   begin
+      Assert (Folder /= "", "the bundled folder.icon is read from disk");
+      Assert (Ada.Strings.Fixed.Index (Folder, "files-icon-v1") > 0,
+              "the disk icon carries the files-icon-v1 header");
+      Assert (Ada.Strings.Fixed.Index (Folder, "grid=32") > 0,
+              "the disk icon uses the finer 32-unit grid");
+      Assert (Ada.Strings.Fixed.Index (Folder, "tri=") > 0,
+              "the disk icon uses triangle primitives");
+   end Test_Icon_Assets_Load_From_Disk;
 
    --  With several items selected the info pane is coalesced field-major: each
    --  section label is drawn once (not repeated per item) and each selected

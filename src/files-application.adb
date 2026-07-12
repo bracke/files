@@ -11,6 +11,7 @@ with Files.File_System;
 with Files.Fs;
 with Files.Application.Windows;
 with Files_Config;
+with Files.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
@@ -516,6 +517,10 @@ package body Files.Application is
       Result    : Startup_Result;
       Report    : Unbounded_String;
    begin
+      --  Serve icon definitions from the bundled .icon files (the single edit
+      --  surface); Guikit.Draw falls back to its built-in copies if they are absent.
+      Files.Icon_Assets.Register;
+
       for Index in 1 .. Ada.Command_Line.Argument_Count loop
          Arguments.Append (To_Unbounded_String (Ada.Command_Line.Argument (Index)));
       end loop;
