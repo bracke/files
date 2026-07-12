@@ -1506,6 +1506,53 @@ separate (Files.Rendering)
               and then Length (Item.Thumbnail_Path) > 0
             then Item.Thumbnail_Path
             else To_Unbounded_String (Icon_Asset_Directory & "/" & Resolved_Name & ".icon"));
+
+         --  The lowercase extension of a filename (after the last dot), or "" for
+         --  no extension, a dotfile (leading dot only), or a trailing dot.
+         function Extension_Of (Name : String) return String is
+            Dot : Natural := 0;
+         begin
+            for Position in reverse Name'Range loop
+               if Name (Position) = '.' then
+                  Dot := Position;
+                  exit;
+               end if;
+            end loop;
+            if Dot <= Name'First or else Dot = Name'Last then
+               return "";
+            end if;
+            return Files.Types.To_Lower (Name (Dot + 1 .. Name'Last));
+         end Extension_Of;
+
+         --  On a large enough icon, tuck the file extension into the empty margin
+         --  beside the (narrow) icon as a small gray badge with the letters stacked
+         --  vertically. Skipped for folders, thumbnails, and extensionless names.
+         procedure Add_Extension_Badge is
+            Ext : constant String := Extension_Of (To_String (Item.Name));
+         begin
+            if Ext = ""
+              or else Use_Thumbnail
+              or else Item.Kind = Files.Types.Directory_Item
+              or else Draw_Size < Line_Height * 2
+            then
+               return;
+            end if;
+            declare
+               Cell    : constant Natural := Natural'Max (1, Draw_Size / 5);
+               Max_N   : constant Natural := Natural'Max (1, Draw_Size / Cell);
+               Count   : constant Natural := Natural'Min (Ext'Length, Max_N);
+               Badge_H : constant Natural := Count * Cell;
+               Badge_Y : constant Natural := Saturating_Add (Y, (Draw_Size - Badge_H) / 2);
+            begin
+               Add_Rect (X, Badge_Y, Cell, Badge_H, Muted_Text_Color);
+               for Position in 1 .. Count loop
+                  Add_Text
+                    (X, Badge_Y + (Position - 1) * Cell, Cell, Cell,
+                     To_Unbounded_String ((1 => Ext (Ext'First + Position - 1))),
+                     Pane_Color, Scale_To_Box => True);
+               end loop;
+            end;
+         end Add_Extension_Badge;
       begin
          if Draw_Size = 0 then
             return;
@@ -1514,6 +1561,8 @@ separate (Files.Rendering)
          elsif Hidden_By_Command_Palette (X, Y, Draw_Size, Draw_Size) then
             return;
          end if;
+
+         Add_Extension_Badge;
 
          Result.Icons.Append
            (Icon_Command'
