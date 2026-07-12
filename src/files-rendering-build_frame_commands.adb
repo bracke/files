@@ -392,6 +392,7 @@ separate (Files.Rendering)
                   Color  => Color,
                   Truncated => Was_Truncated,
                   Scale_To_Box => Scale_To_Box,
+                  Shrink_To_Box => False,
                   Italic => Italic));
          end if;
       end Add_Text;
@@ -425,6 +426,7 @@ separate (Files.Rendering)
                   Color     => Color,
                   Truncated => Was_Truncated,
                   Scale_To_Box => False,
+                  Shrink_To_Box => False,
                   Italic    => Italic));
          end if;
       end Add_Overlay_Text;
@@ -1084,7 +1086,7 @@ separate (Files.Rendering)
                        (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
                         Text => To_Unbounded_String (Wrapped (First .. Last)),
                         Color => Text_Color, Truncated => False,
-                        Scale_To_Box => False, Italic => False));
+                        Scale_To_Box => False, Shrink_To_Box => False, Italic => False));
                end if;
             end Emit_Line;
          begin
@@ -1540,26 +1542,29 @@ separate (Files.Rendering)
                return;
             end if;
             declare
-               Text_H  : constant Natural := Natural'Max (1, Line_Height);
-               Cell_W  : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-               Pad_X   : constant Natural := Natural'Max (1, Cell_W / 2);
-               Pad_Y   : constant Natural := Natural'Max (1, Text_H / 6);
-               Band_H  : constant Natural := Saturating_Add (Text_H, 2 * Pad_Y);
-               Full_W  : constant Natural :=
-                 Saturating_Add (Saturating_Multiply (Ext'Length, Cell_W), 2 * Pad_X);
-               Band_W  : constant Natural := Natural'Min (Draw_Size, Full_W);
-               Inner_W : constant Natural := (if Band_W > 2 * Pad_X then Band_W - 2 * Pad_X else Band_W);
-               Band_X  : constant Natural :=
-                 Saturating_Add (X, (if Draw_Size > Band_W then Draw_Size - Band_W else 0));
-               Band_Y  : constant Natural :=
+               Unit     : constant Natural := Natural'Max (1, Draw_Size / 8);
+               Char_W   : constant Natural := Natural'Max (1, Unit * 3 / 5);
+               Pad      : constant Natural := Natural'Max (1, Unit / 3);
+               Max_N    : constant Natural :=
+                 Natural'Max (1, (if Draw_Size > 2 * Pad then (Draw_Size - 2 * Pad) / Char_W else 1));
+               Count    : constant Natural := Natural'Min (Ext'Length, Max_N);
+               Band_W   : constant Natural := Saturating_Add (Saturating_Multiply (Count, Char_W), 2 * Pad);
+               Band_H   : constant Natural := Saturating_Add (Unit, 2 * Pad);
+               Overhang : constant Natural := Band_W / 3;
+               Band_X   : constant Natural :=
+                 Saturating_Add
+                   (X, (if Draw_Size + Overhang > Band_W then Draw_Size + Overhang - Band_W else 0));
+               Band_Y   : constant Natural :=
                  Saturating_Add (Y, (if Draw_Size > Band_H then Draw_Size - Band_H else 0));
+               Text_X   : constant Natural := Saturating_Add (Band_X, Pad);
+               Text_Y   : constant Natural := Saturating_Add (Band_Y, Pad);
             begin
-               --  A near-white index tab flush to the icon's bottom-right, drawn on the
-               --  overlay layer so it sits on top of the opaque icon (the base layers
-               --  render beneath the icon tile). A single sharp rectangle -- the
-               --  renderer has one font size, so the extension is drawn at that size
-               --  (it cannot be shrunk further), in Canvas_Color on a Text_Color fill
-               --  for contrast in either theme, laid out horizontally inset by padding.
+               --  A small near-white index tab at the icon's bottom-right, drawn on the
+               --  overlay layer so it sits on top of the opaque icon and allowed to
+               --  stick out past the icon's right edge. Each extension character is
+               --  scaled down into its own cell (Scale_To_Box + Shrink_To_Box) so the
+               --  label is smaller than the standard text size, laid out horizontally
+               --  in Canvas_Color on a Text_Color fill, inset by the padding.
                Result.Overlay_Rectangles.Append
                  (Rectangle_Command'
                     (X      => Band_X,
@@ -1567,9 +1572,20 @@ separate (Files.Rendering)
                      Width  => Band_W,
                      Height => Band_H,
                      Color  => Text_Color));
-               Add_Overlay_Text
-                 (Saturating_Add (Band_X, Pad_X), Saturating_Add (Band_Y, Pad_Y),
-                  Inner_W, Text_H, To_Unbounded_String (Ext), Canvas_Color, Fit => True);
+               for I in 0 .. Count - 1 loop
+                  Result.Overlay_Text.Append
+                    (Text_Command'
+                       (X             => Saturating_Add (Text_X, Saturating_Multiply (I, Char_W)),
+                        Y             => Text_Y,
+                        Width         => Char_W,
+                        Height        => Unit,
+                        Text          => To_Unbounded_String ([1 => Ext (Ext'First + I)]),
+                        Color         => Canvas_Color,
+                        Truncated     => False,
+                        Scale_To_Box  => True,
+                        Shrink_To_Box => True,
+                        Italic        => False));
+               end loop;
             end;
          end Add_Extension_Badge;
       begin
