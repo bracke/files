@@ -1,3 +1,5 @@
+with Files.Extension_Labels;
+
 separate (Files.Rendering)
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
@@ -1543,13 +1545,11 @@ separate (Files.Rendering)
             end if;
             declare
                Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
-               Char_W   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 9) / 20);
                Pad      : constant Natural := Natural'Max (1, Line_Height / 4);
-               Max_N    : constant Natural :=
-                 Natural'Max (1, (if Draw_Size > 2 * Pad then (Draw_Size - 2 * Pad) / Char_W else 1));
-               Count    : constant Natural := Natural'Min (Ext'Length, Max_N);
-               Band_W   : constant Natural := Saturating_Add (Saturating_Multiply (Count, Char_W), 2 * Pad);
-               Band_H   : constant Natural := Saturating_Add (Text_H, 2 * Pad);
+               Lbl      : constant Files.Extension_Labels.Label :=
+                 Files.Extension_Labels.Label_For (Ext, Text_H, Snapshot.Theme_Palette);
+               Band_W   : constant Natural := Saturating_Add (Lbl.Width, 2 * Pad);
+               Band_H   : constant Natural := Saturating_Add (Lbl.Height, 2 * Pad);
                Overhang : constant Natural := Band_W / 3;
                Band_X   : constant Natural :=
                  Saturating_Add
@@ -1559,31 +1559,34 @@ separate (Files.Rendering)
                Text_X   : constant Natural := Saturating_Add (Band_X, Pad);
                Text_Y   : constant Natural := Saturating_Add (Band_Y, Pad);
             begin
-               --  A small near-white index tab at the icon's bottom-right, drawn on the
-               --  overlay layer so it sits on top of the opaque icon and allowed to
-               --  stick out past the icon's right edge. The extension is one text run
-               --  with Shrink_To_Box, so guikit scales the whole word down to the box
-               --  height on a shared baseline (smaller than the standard text size but
-               --  properly laid out), in Canvas_Color on a Text_Color fill.
-               Result.Overlay_Rectangles.Append
-                 (Rectangle_Command'
-                    (X      => Band_X,
-                     Y      => Band_Y,
-                     Width  => Band_W,
-                     Height => Band_H,
-                     Color  => Text_Color));
-               Result.Overlay_Text.Append
-                 (Text_Command'
-                    (X             => Text_X,
-                     Y             => Text_Y,
-                     Width         => Saturating_Multiply (Count, Char_W),
-                     Height        => Text_H,
-                     Text          => To_Unbounded_String (Ext (Ext'First .. Ext'First + Count - 1)),
-                     Color         => Canvas_Color,
-                     Truncated     => False,
-                     Scale_To_Box  => False,
-                     Shrink_To_Box => True,
-                     Italic        => False));
+               if Lbl.Width > 0 then
+                  --  A small near-white index tab at the icon's bottom-right, drawn on
+                  --  the overlay layer so it sits on top of the opaque icon and allowed
+                  --  to stick out past the icon's right edge. The extension is a bitmap
+                  --  prerendered at this height (crisp small text, not downscaled),
+                  --  drawn 1:1 as an overlay image over a Text_Color background rect.
+                  Result.Overlay_Rectangles.Append
+                    (Rectangle_Command'
+                       (X      => Band_X,
+                        Y      => Band_Y,
+                        Width  => Band_W,
+                        Height => Band_H,
+                        Color  => Text_Color));
+                  Result.Icons.Append
+                    (Icon_Command'
+                       (X                => Text_X,
+                        Y                => Text_Y,
+                        Size             => Lbl.Width,
+                        Icon_Id          => To_Unbounded_String ("extlabel:" & Ext),
+                        Theme_Name       => Snapshot.Theme_Name,
+                        Asset_Path       => Null_Unbounded_String,
+                        Thumbnail_Width  => Lbl.Width,
+                        Thumbnail_Height => Lbl.Height,
+                        Thumbnail_Pixels => Lbl.Pixels,
+                        Overlay          => True,
+                        Draw_Width       => Lbl.Width,
+                        Draw_Height      => Lbl.Height));
+               end if;
             end;
          end Add_Extension_Badge;
       begin
