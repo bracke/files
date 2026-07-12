@@ -1522,7 +1522,10 @@ separate (Files.Rendering)
                   exit;
                end if;
             end loop;
-            if Dot <= Name'First or else Dot = Name'Last then
+            --  No dot at all (README, Makefile) has nothing to show; a trailing dot
+            --  likewise. A leading dot (dotfiles like .gitignore, .env) is treated as
+            --  a bare extension so those still get a tab.
+            if Dot = 0 or else Dot = Name'Last then
                return "";
             end if;
             return Files.Types.To_Lower (Name (Dot + 1 .. Name'Last));

@@ -107,47 +107,35 @@ package body Files.Extension_Labels is
          AH    : constant Natural := Result.Atlas_Height;
          Atlas : constant Atlas_Conversions.Object_Pointer :=
            Atlas_Conversions.To_Pointer (Result.Atlas_Pixels);
-         Min_X : Float := Float (AW);
-         Min_Y : Float := Float (AH);
-         Max_X : Float := 0.0;
-         Max_Y : Float := 0.0;
-         OX    : Natural := 0;
-         OY    : Natural := 0;
-         L_W   : Natural := 0;
-         L_H   : Natural := 0;
+         W0    : Natural := 0;
+         H0    : Natural := 0;
       begin
-         --  Crop to the glyphs' tight bounding box: no top/left margin is baked into
-         --  the bitmap (the tab supplies its own padding), while descenders (g, j, p
-         --  in png, jpg) are included so nothing is clipped.
          for G of Result.Glyphs loop
-            Min_X := Float'Min (Min_X, G.X);
-            Min_Y := Float'Min (Min_Y, G.Y);
-            Max_X := Float'Max (Max_X, G.X + G.Width);
-            Max_Y := Float'Max (Max_Y, G.Y + G.Height);
+            W0 := Natural'Max (W0, Natural (Float'Ceiling (G.X + G.Width)));
+            H0 := Natural'Max (H0, Natural (Float'Ceiling (G.Y + G.Height)));
          end loop;
-         if Max_X <= Min_X or else Max_Y <= Min_Y then
+         if W0 = 0 or else H0 = 0 then
             return (Width => 0, Height => 0, Pixels => Byte_Vectors.Empty_Vector);
          end if;
-         OX  := Natural (Float'Floor (Float'Max (0.0, Min_X)));
-         OY  := Natural (Float'Floor (Float'Max (0.0, Min_Y)));
-         L_W := Natural (Float'Ceiling (Max_X)) - OX;
-         L_H := Natural (Float'Ceiling (Max_Y)) - OY;
 
-         return Out_Label : Label do
-            Out_Label.Width  := L_W;
-            Out_Label.Height := L_H;
-            Out_Label.Pixels :=
-              Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (L_W * L_H * 4));
+         declare
+            Buf   : Byte_Vectors.Vector :=
+              Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (W0 * H0 * 4));
+            Min_C : Natural := W0;
+            Max_C : Natural := 0;
+            Min_R : Natural := H0;
+            Max_R : Natural := 0;
+            Inked : Boolean := False;
+         begin
+            --  Composite every glyph into a scratch buffer, tracking the inked bounds.
             for G of Result.Glyphs loop
                declare
                   SX0 : constant Natural := Natural (Float'Floor (G.U0 * Float (AW)));
                   SY0 : constant Natural := Natural (Float'Floor (G.V0 * Float (AH)));
                   GW  : constant Natural := Natural (Float'Rounding (G.Width));
                   GH  : constant Natural := Natural (Float'Rounding (G.Height));
-                  DX0 : constant Natural :=
-                    Natural (Integer'Max (0, Integer (Float'Rounding (G.X)) - Integer (OX)));
-                  DY0 : constant Natural :=
-                    Natural (Integer'Max (0, Integer (Float'Rounding (G.Y)) - Integer (OY)));
+                  DX0 : constant Natural := Natural (Float'Rounding (G.X));
+                  DY0 : constant Natural := Natural (Float'Rounding (G.Y));
                begin
                   for Y in 0 .. GH - 1 loop
                      for X in 0 .. GW - 1 loop
@@ -158,19 +146,24 @@ package body Files.Extension_Labels is
                            DY    : constant Natural := DY0 + Y;
                            A_Idx : constant Natural := SY * AW + SX + 1;
                         begin
-                           if DX < L_W and then DY < L_H
+                           if DX < W0 and then DY < H0
                              and then SX < AW and then SY < AH
                              and then A_Idx <= Result.Atlas_Bytes
                            then
                               declare
                                  Alpha : constant Interfaces.Unsigned_8 := Atlas.all (A_Idx);
-                                 P     : constant Positive := Positive ((DY * L_W + DX) * 4 + 1);
+                                 P     : constant Positive := Positive ((DY * W0 + DX) * 4 + 1);
                               begin
                                  if Alpha > 0 then
-                                    Out_Label.Pixels.Replace_Element (P, Cr);
-                                    Out_Label.Pixels.Replace_Element (P + 1, Cg);
-                                    Out_Label.Pixels.Replace_Element (P + 2, Cb);
-                                    Out_Label.Pixels.Replace_Element (P + 3, Alpha);
+                                    Buf.Replace_Element (P, Cr);
+                                    Buf.Replace_Element (P + 1, Cg);
+                                    Buf.Replace_Element (P + 2, Cb);
+                                    Buf.Replace_Element (P + 3, Alpha);
+                                    Min_C := Natural'Min (Min_C, DX);
+                                    Max_C := Natural'Max (Max_C, DX);
+                                    Min_R := Natural'Min (Min_R, DY);
+                                    Max_R := Natural'Max (Max_R, DY);
+                                    Inked := True;
                                  end if;
                               end;
                            end if;
@@ -179,7 +172,38 @@ package body Files.Extension_Labels is
                   end loop;
                end;
             end loop;
-         end return;
+
+            if not Inked then
+               return (Width => 0, Height => 0, Pixels => Byte_Vectors.Empty_Vector);
+            end if;
+
+            --  Crop to the inked bounds so no transparent margin remains on any side.
+            declare
+               CW : constant Natural := Max_C - Min_C + 1;
+               CH : constant Natural := Max_R - Min_R + 1;
+            begin
+               return Out_Label : Label do
+                  Out_Label.Width  := CW;
+                  Out_Label.Height := CH;
+                  Out_Label.Pixels :=
+                    Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (CW * CH * 4));
+                  for Row in 0 .. CH - 1 loop
+                     for Col in 0 .. CW - 1 loop
+                        declare
+                           Src : constant Positive :=
+                             Positive (((Row + Min_R) * W0 + (Col + Min_C)) * 4 + 1);
+                           Dst : constant Positive := Positive ((Row * CW + Col) * 4 + 1);
+                        begin
+                           Out_Label.Pixels.Replace_Element (Dst, Buf.Element (Src));
+                           Out_Label.Pixels.Replace_Element (Dst + 1, Buf.Element (Src + 1));
+                           Out_Label.Pixels.Replace_Element (Dst + 2, Buf.Element (Src + 2));
+                           Out_Label.Pixels.Replace_Element (Dst + 3, Buf.Element (Src + 3));
+                        end;
+                     end loop;
+                  end loop;
+               end return;
+            end;
+         end;
       end;
    end Rasterize;
 
