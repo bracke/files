@@ -53,7 +53,12 @@ jobs:
             libgtk-3-dev \
             fonts-dejavu-core \
             mesa-vulkan-drivers \
-            xvfb
+            xvfb \
+            libxcursor-dev \
+            libxxf86vm-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev
 
       - name: Install system libraries (macOS)
         if: runner.os == 'macOS'
