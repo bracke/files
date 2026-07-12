@@ -1587,6 +1587,9 @@ separate (Files.Rendering)
             return;
          end if;
 
+         --  Visualise the icon's draw square (the glyph sits inset within it).
+         Add_Border (X, Y, Draw_Size, Draw_Size, Border_Color);
+
          Add_Extension_Badge;
 
          Result.Icons.Append
