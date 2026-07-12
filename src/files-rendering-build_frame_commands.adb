@@ -1547,31 +1547,53 @@ separate (Files.Rendering)
                Band_W  : constant Natural :=
                  Natural'Min (Draw_Size, Saturating_Add (Saturating_Multiply (Count, Char_W), Cell));
                Chamfer : constant Natural := Natural'Max (1, Band_H / 3);
-               R_Off   : constant Natural := (if Band_W > Chamfer then Band_W - Chamfer else Band_W);
-               Inner_W : constant Natural := (if Band_W > 2 * Chamfer then Band_W - 2 * Chamfer else Band_W);
                Body_H  : constant Natural := (if Band_H > Chamfer then Band_H - Chamfer else Band_H);
+               Top_W   : constant Natural := (if Band_W > Chamfer then Band_W - Chamfer else Band_W);
                Band_X  : constant Natural :=
-                 Saturating_Add (X, (if Draw_Size > Band_W then (Draw_Size - Band_W) / 2 else 0));
+                 Saturating_Add (X, (if Draw_Size > Band_W then Draw_Size - Band_W else 0));
                Band_Y  : constant Natural :=
                  Saturating_Add (Y, (if Draw_Size > Band_H then Draw_Size - Band_H else 0));
-               Top     : constant Float := Float (Band_Y);
-               Mid     : constant Float := Float (Saturating_Add (Band_Y, Chamfer));
-               X_L     : constant Float := Float (Band_X);
-               X_R     : constant Float := Float (Saturating_Add (Band_X, Band_W));
-               X_IL    : constant Float := Float (Saturating_Add (Band_X, Chamfer));
-               X_IR    : constant Float := Float (Saturating_Add (Band_X, R_Off));
+               Cut_X   : constant Float := Float (Saturating_Add (Band_X, Chamfer));
+               Cut_Y   : constant Float := Float (Saturating_Add (Band_Y, Chamfer));
             begin
-               --  A near-white horizontal paper tab across the bottom of the icon,
-               --  its top corners chamfered into a trapezoid so it reads as a physical
-               --  tab; Text_Color is the palette's lightest gray and Canvas_Color its
-               --  darkest, used as fill and text so the tab stands out in either theme.
-               --  The extension is drawn horizontally, scaled to fit.
-               Add_Rect (Band_X, Saturating_Add (Band_Y, Chamfer), Band_W, Body_H, Text_Color);
-               Add_Rect (Saturating_Add (Band_X, Chamfer), Band_Y, Inner_W, Chamfer, Text_Color);
-               Add_Triangle (X_L, Mid, X_IL, Top, X_IL, Mid, Text_Color);
-               Add_Triangle (X_R, Mid, X_IR, Top, X_IR, Mid, Text_Color);
-               Add_Text (Band_X, Band_Y, Band_W, Band_H, To_Unbounded_String (Ext),
-                         Canvas_Color, Scale_To_Box => True);
+               --  A near-white horizontal index tab in the icon's bottom-right, its
+               --  top-left corner clipped at 45 degrees so it reads like a paper tab.
+               --  Drawn on the overlay layers so it sits on top of the opaque icon
+               --  (the base layers render beneath the icon tile). Text_Color is the
+               --  palette's lightest gray and Canvas_Color its darkest, used as fill
+               --  and text for contrast in either theme; the extension is drawn
+               --  horizontally, scaled to fit.
+               Result.Overlay_Rectangles.Append
+                 (Rectangle_Command'
+                    (X      => Band_X,
+                     Y      => Saturating_Add (Band_Y, Chamfer),
+                     Width  => Band_W,
+                     Height => Body_H,
+                     Color  => Text_Color));
+               Result.Overlay_Rectangles.Append
+                 (Rectangle_Command'
+                    (X      => Saturating_Add (Band_X, Chamfer),
+                     Y      => Band_Y,
+                     Width  => Top_W,
+                     Height => Chamfer,
+                     Color  => Text_Color));
+               Result.Overlay_Triangles.Append
+                 (Triangle_Command'
+                    (X1 => Cut_X, Y1 => Float (Band_Y),
+                     X2 => Cut_X, Y2 => Cut_Y,
+                     X3 => Float (Band_X), Y3 => Cut_Y,
+                     Color => Text_Color));
+               Result.Overlay_Text.Append
+                 (Text_Command'
+                    (X            => Band_X,
+                     Y            => Band_Y,
+                     Width        => Band_W,
+                     Height       => Band_H,
+                     Text         => To_Unbounded_String (Ext),
+                     Color        => Canvas_Color,
+                     Truncated    => False,
+                     Scale_To_Box => True,
+                     Italic       => False));
             end;
          end Add_Extension_Badge;
       begin
