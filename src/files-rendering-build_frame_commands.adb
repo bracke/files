@@ -1542,14 +1542,14 @@ separate (Files.Rendering)
                return;
             end if;
             declare
-               Unit     : constant Natural := Natural'Max (1, Draw_Size / 8);
-               Char_W   : constant Natural := Natural'Max (1, Unit * 3 / 5);
-               Pad      : constant Natural := Natural'Max (1, Unit / 3);
+               Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
+               Char_W   : constant Natural := Natural'Max (1, Line_Height / 2);
+               Pad      : constant Natural := Natural'Max (1, Line_Height / 4);
                Max_N    : constant Natural :=
                  Natural'Max (1, (if Draw_Size > 2 * Pad then (Draw_Size - 2 * Pad) / Char_W else 1));
                Count    : constant Natural := Natural'Min (Ext'Length, Max_N);
                Band_W   : constant Natural := Saturating_Add (Saturating_Multiply (Count, Char_W), 2 * Pad);
-               Band_H   : constant Natural := Saturating_Add (Unit, 2 * Pad);
+               Band_H   : constant Natural := Saturating_Add (Text_H, 2 * Pad);
                Overhang : constant Natural := Band_W / 3;
                Band_X   : constant Natural :=
                  Saturating_Add
@@ -1578,7 +1578,7 @@ separate (Files.Rendering)
                        (X             => Saturating_Add (Text_X, Saturating_Multiply (I, Char_W)),
                         Y             => Text_Y,
                         Width         => Char_W,
-                        Height        => Unit,
+                        Height        => Text_H,
                         Text          => To_Unbounded_String ([1 => Ext (Ext'First + I)]),
                         Color         => Canvas_Color,
                         Truncated     => False,
