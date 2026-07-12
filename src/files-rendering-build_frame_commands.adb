@@ -1543,7 +1543,7 @@ separate (Files.Rendering)
             end if;
             declare
                Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
-               Char_W   : constant Natural := Natural'Max (1, Line_Height / 2);
+               Char_W   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 9) / 20);
                Pad      : constant Natural := Natural'Max (1, Line_Height / 4);
                Max_N    : constant Natural :=
                  Natural'Max (1, (if Draw_Size > 2 * Pad then (Draw_Size - 2 * Pad) / Char_W else 1));
@@ -1561,10 +1561,10 @@ separate (Files.Rendering)
             begin
                --  A small near-white index tab at the icon's bottom-right, drawn on the
                --  overlay layer so it sits on top of the opaque icon and allowed to
-               --  stick out past the icon's right edge. Each extension character is
-               --  scaled down into its own cell (Scale_To_Box + Shrink_To_Box) so the
-               --  label is smaller than the standard text size, laid out horizontally
-               --  in Canvas_Color on a Text_Color fill, inset by the padding.
+               --  stick out past the icon's right edge. The extension is one text run
+               --  with Shrink_To_Box, so guikit scales the whole word down to the box
+               --  height on a shared baseline (smaller than the standard text size but
+               --  properly laid out), in Canvas_Color on a Text_Color fill.
                Result.Overlay_Rectangles.Append
                  (Rectangle_Command'
                     (X      => Band_X,
@@ -1572,20 +1572,18 @@ separate (Files.Rendering)
                      Width  => Band_W,
                      Height => Band_H,
                      Color  => Text_Color));
-               for I in 0 .. Count - 1 loop
-                  Result.Overlay_Text.Append
-                    (Text_Command'
-                       (X             => Saturating_Add (Text_X, Saturating_Multiply (I, Char_W)),
-                        Y             => Text_Y,
-                        Width         => Char_W,
-                        Height        => Text_H,
-                        Text          => To_Unbounded_String ([1 => Ext (Ext'First + I)]),
-                        Color         => Canvas_Color,
-                        Truncated     => False,
-                        Scale_To_Box  => True,
-                        Shrink_To_Box => True,
-                        Italic        => False));
-               end loop;
+               Result.Overlay_Text.Append
+                 (Text_Command'
+                    (X             => Text_X,
+                     Y             => Text_Y,
+                     Width         => Saturating_Multiply (Count, Char_W),
+                     Height        => Text_H,
+                     Text          => To_Unbounded_String (Ext (Ext'First .. Ext'First + Count - 1)),
+                     Color         => Canvas_Color,
+                     Truncated     => False,
+                     Scale_To_Box  => False,
+                     Shrink_To_Box => True,
+                     Italic        => False));
             end;
          end Add_Extension_Badge;
       begin
