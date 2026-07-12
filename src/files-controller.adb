@@ -1910,14 +1910,36 @@ package body Files.Controller is
       end if;
 
       --  While the Quick Look overlay is open it owns the keyboard: Escape or
-      --  Space close it and every other key is swallowed so nothing behind the
-      --  modal-lite preview reacts.
+      --  Space close it; the arrow keys move the grid selection underneath -- just
+      --  as they would in the file grid -- and re-preview the newly selected item,
+      --  so the user can flip through files without leaving Quick Look. Every other
+      --  key is swallowed so nothing behind the modal-lite preview reacts.
       if Files.Model.Quick_Look_Is_Open (Model) then
          if (Key = Guikit.Input.Key_Escape or else Key = Guikit.Input.Key_Space)
            and then Modifiers = Guikit.Input.No_Modifiers
          then
             Files.Model.Close_Quick_Look (Model);
             return Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
+         elsif Modifiers = Guikit.Input.No_Modifiers
+           and then (Key = Guikit.Input.Key_Up or else Key = Guikit.Input.Key_Down
+                     or else Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Right)
+         then
+            declare
+               Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+               Dir       : constant Guikit.Input.Navigation_Direction :=
+                 (if Key = Guikit.Input.Key_Up then Guikit.Input.Move_Up
+                  elsif Key = Guikit.Input.Key_Down then Guikit.Input.Move_Down
+                  elsif Key = Guikit.Input.Key_Left then Guikit.Input.Move_Left
+                  else Guikit.Input.Move_Right);
+            begin
+               Files.Model.Move_Selection (Model, Dir);
+               if Files.Model.Selected_Index (Model) = Old_Index then
+                  return Make_Result (Controller_Ignored);
+               end if;
+               Files.Model.Open_Quick_Look
+                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+               return Make_Result (Controller_Selection_Moved);
+            end;
          end if;
          return Make_Result (Controller_Ignored);
       end if;
