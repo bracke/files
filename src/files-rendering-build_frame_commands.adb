@@ -1541,41 +1541,37 @@ separate (Files.Rendering)
             end if;
             declare
                Cell    : constant Natural := Natural'Max (1, Draw_Size / 5);
-               Max_N   : constant Natural := Natural'Max (1, Draw_Size / Cell);
-               Count   : constant Natural := Natural'Min (Ext'Length, Max_N);
-               Badge_H : constant Natural := Count * Cell;
-               Chamfer : constant Natural := Natural'Max (1, Cell / 2);
-               --  Align to the drawn page, not the padded draw square: the document
-               --  glyph sits inside a transparent margin (its right edge is ~25/32
-               --  and its bottom ~29/32 of the square). Attach the tab at the page's
-               --  right edge and bottom-align it there, with the inner-top corner
-               --  chamfered so it reads as a physical tab.
-               Content_R : constant Natural := Saturating_Multiply (Draw_Size, 25) / 32;
-               Content_B : constant Natural := Saturating_Multiply (Draw_Size, 29) / 32;
-               Tab_X   : constant Natural := Saturating_Add (X, Content_R);
-               Tab_Y   : constant Natural :=
-                 Saturating_Add (Y, (if Content_B > Badge_H then Content_B - Badge_H else 0));
+               Count   : constant Natural := Ext'Length;
+               Char_W  : constant Natural := Natural'Max (1, Cell * 3 / 5);
+               Band_H  : constant Natural := Cell;
+               Band_W  : constant Natural :=
+                 Natural'Min (Draw_Size, Saturating_Add (Saturating_Multiply (Count, Char_W), Cell));
+               Chamfer : constant Natural := Natural'Max (1, Band_H / 3);
+               R_Off   : constant Natural := (if Band_W > Chamfer then Band_W - Chamfer else Band_W);
+               Inner_W : constant Natural := (if Band_W > 2 * Chamfer then Band_W - 2 * Chamfer else Band_W);
+               Body_H  : constant Natural := (if Band_H > Chamfer then Band_H - Chamfer else Band_H);
+               Band_X  : constant Natural :=
+                 Saturating_Add (X, (if Draw_Size > Band_W then (Draw_Size - Band_W) / 2 else 0));
+               Band_Y  : constant Natural :=
+                 Saturating_Add (Y, (if Draw_Size > Band_H then Draw_Size - Band_H else 0));
+               Top     : constant Float := Float (Band_Y);
+               Mid     : constant Float := Float (Saturating_Add (Band_Y, Chamfer));
+               X_L     : constant Float := Float (Band_X);
+               X_R     : constant Float := Float (Saturating_Add (Band_X, Band_W));
+               X_IL    : constant Float := Float (Saturating_Add (Band_X, Chamfer));
+               X_IR    : constant Float := Float (Saturating_Add (Band_X, R_Off));
             begin
-               --  A near-white paper tab with near-black letters: Text_Color is the
-               --  palette's lightest gray and Canvas_Color its darkest, used here as
-               --  the tab fill and letter colour (not as text/canvas) so the tab
-               --  stands out against the darker cell in either theme.
-               Add_Rect
-                 (Tab_X, Saturating_Add (Tab_Y, Chamfer), Cell,
-                  (if Badge_H > Chamfer then Badge_H - Chamfer else Badge_H), Text_Color);
-               Add_Rect
-                 (Saturating_Add (Tab_X, Chamfer), Tab_Y,
-                  (if Cell > Chamfer then Cell - Chamfer else Cell), Chamfer, Text_Color);
-               Add_Triangle
-                 (Float (Saturating_Add (Tab_X, Chamfer)), Float (Tab_Y),
-                  Float (Saturating_Add (Tab_X, Chamfer)), Float (Saturating_Add (Tab_Y, Chamfer)),
-                  Float (Tab_X), Float (Saturating_Add (Tab_Y, Chamfer)), Text_Color);
-               for Position in 1 .. Count loop
-                  Add_Text
-                    (Tab_X, Tab_Y + (Position - 1) * Cell, Cell, Cell,
-                     To_Unbounded_String ((1 => Ext (Ext'First + Position - 1))),
-                     Canvas_Color, Scale_To_Box => True);
-               end loop;
+               --  A near-white horizontal paper tab across the bottom of the icon,
+               --  its top corners chamfered into a trapezoid so it reads as a physical
+               --  tab; Text_Color is the palette's lightest gray and Canvas_Color its
+               --  darkest, used as fill and text so the tab stands out in either theme.
+               --  The extension is drawn horizontally, scaled to fit.
+               Add_Rect (Band_X, Saturating_Add (Band_Y, Chamfer), Band_W, Body_H, Text_Color);
+               Add_Rect (Saturating_Add (Band_X, Chamfer), Band_Y, Inner_W, Chamfer, Text_Color);
+               Add_Triangle (X_L, Mid, X_IL, Top, X_IL, Mid, Text_Color);
+               Add_Triangle (X_R, Mid, X_IR, Top, X_IR, Mid, Text_Color);
+               Add_Text (Band_X, Band_Y, Band_W, Band_H, To_Unbounded_String (Ext),
+                         Canvas_Color, Scale_To_Box => True);
             end;
          end Add_Extension_Badge;
       begin
@@ -1586,9 +1582,6 @@ separate (Files.Rendering)
          elsif Hidden_By_Command_Palette (X, Y, Draw_Size, Draw_Size) then
             return;
          end if;
-
-         --  Visualise the icon's draw square (the glyph sits inset within it).
-         Add_Border (X, Y, Draw_Size, Draw_Size, Border_Color);
 
          Add_Extension_Badge;
 
