@@ -1540,13 +1540,16 @@ separate (Files.Rendering)
                return;
             end if;
             declare
-               Cell    : constant Natural := Natural'Max (1, Draw_Size / 5);
-               Count   : constant Natural := Ext'Length;
-               Char_W  : constant Natural := Natural'Max (1, Cell * 3 / 5);
-               Band_H  : constant Natural := Cell;
-               Band_W  : constant Natural :=
-                 Natural'Min (Draw_Size, Saturating_Add (Saturating_Multiply (Count, Char_W), Cell));
-               Chamfer : constant Natural := Natural'Max (1, Band_H / 3);
+               Cell_W  : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+               Text_H  : constant Natural := Natural'Max (1, Line_Height);
+               Pad_X   : constant Natural := Natural'Max (1, Cell_W / 2);
+               Pad_Y   : constant Natural := Natural'Max (1, Text_H / 6);
+               Band_H  : constant Natural := Saturating_Add (Text_H, 2 * Pad_Y);
+               Full_W  : constant Natural :=
+                 Saturating_Add (Saturating_Multiply (Ext'Length, Cell_W), 2 * Pad_X);
+               Band_W  : constant Natural := Natural'Min (Draw_Size, Full_W);
+               Inner_W : constant Natural := (if Band_W > 2 * Pad_X then Band_W - 2 * Pad_X else Band_W);
+               Chamfer : constant Natural := Natural'Max (1, Band_H / 4);
                Body_H  : constant Natural := (if Band_H > Chamfer then Band_H - Chamfer else Band_H);
                Top_W   : constant Natural := (if Band_W > Chamfer then Band_W - Chamfer else Band_W);
                Band_X  : constant Natural :=
@@ -1561,8 +1564,8 @@ separate (Files.Rendering)
                --  Drawn on the overlay layers so it sits on top of the opaque icon
                --  (the base layers render beneath the icon tile). Text_Color is the
                --  palette's lightest gray and Canvas_Color its darkest, used as fill
-               --  and text for contrast in either theme; the extension is drawn
-               --  horizontally, scaled to fit.
+               --  and text for contrast in either theme. The extension is laid out
+               --  horizontally at the normal text size, inset by the padding.
                Result.Overlay_Rectangles.Append
                  (Rectangle_Command'
                     (X      => Band_X,
@@ -1583,17 +1586,9 @@ separate (Files.Rendering)
                      X2 => Cut_X, Y2 => Cut_Y,
                      X3 => Float (Band_X), Y3 => Cut_Y,
                      Color => Text_Color));
-               Result.Overlay_Text.Append
-                 (Text_Command'
-                    (X            => Band_X,
-                     Y            => Band_Y,
-                     Width        => Band_W,
-                     Height       => Band_H,
-                     Text         => To_Unbounded_String (Ext),
-                     Color        => Canvas_Color,
-                     Truncated    => False,
-                     Scale_To_Box => True,
-                     Italic       => False));
+               Add_Overlay_Text
+                 (Saturating_Add (Band_X, Pad_X), Saturating_Add (Band_Y, Pad_Y),
+                  Inner_W, Text_H, To_Unbounded_String (Ext), Canvas_Color, Fit => True);
             end;
          end Add_Extension_Badge;
       begin
