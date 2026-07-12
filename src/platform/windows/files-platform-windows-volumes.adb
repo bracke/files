@@ -2,6 +2,8 @@ with Interfaces.C;
 with System;
 
 package body Files.Platform.Windows.Volumes is
+   use type Files.File_System.Native_API_Binding_Status;
+
    function GetVolumeInformationW
      (Root_Path_Name          : System.Address;
       Volume_Name_Buffer     : System.Address;
@@ -22,8 +24,9 @@ package body Files.Platform.Windows.Volumes is
       return Interfaces.C.int
      with Import, Convention => Stdcall, External_Name => "GetDiskFreeSpaceExW";
 
+   pragma Unreferenced (GetVolumeInformationW, GetDiskFreeSpaceExW);
+
    function Binding_Status return Files.File_System.Native_API_Binding_Status is
-      pragma Unreferenced (GetVolumeInformationW, GetDiskFreeSpaceExW);
    begin
       return Files.File_System.Native_API_Binding_Available;
    end Binding_Status;

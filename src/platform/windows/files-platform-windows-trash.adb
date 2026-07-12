@@ -6,6 +6,7 @@ with System;
 package body Files.Platform.Windows.Trash is
    use Ada.Strings.Unbounded;
    use type Interfaces.C.int;
+   use type Interfaces.C.unsigned_short;
    use type Files.File_System.Native_API_Binding_Status;
 
    type SH_File_Operation_W is record

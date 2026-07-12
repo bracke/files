@@ -7,6 +7,8 @@ with Files.Platform.Macos.Volumes;
 package body Files.Platform.Macos is
    use Ada.Strings.Unbounded;
    use type System.Address;
+   use type Interfaces.C.int;
+   use type Files.File_System.Native_API_Binding_Status;
 
    type CF_Index is new Interfaces.C.long;
    type CF_String_Encoding is new Interfaces.C.unsigned;

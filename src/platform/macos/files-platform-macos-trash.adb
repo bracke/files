@@ -6,6 +6,7 @@ with System;
 package body Files.Platform.Macos.Trash is
    use Ada.Strings.Unbounded;
    use type Interfaces.C.int;
+   use type Interfaces.C.Strings.chars_ptr;
    use type Files.File_System.Native_API_Binding_Status;
 
    type FS_Ref is array (1 .. 80) of Interfaces.C.unsigned_char
@@ -42,7 +43,6 @@ package body Files.Platform.Macos.Trash is
    end Safe_Free;
 
    function Binding_Status return Files.File_System.Native_API_Binding_Status is
-      pragma Unreferenced (FSPathMakeRef, FSMoveObjectToTrashSync);
    begin
       return Files.File_System.Native_API_Binding_Available;
    end Binding_Status;

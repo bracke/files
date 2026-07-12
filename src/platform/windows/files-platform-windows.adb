@@ -6,6 +6,8 @@ with Files.Platform.Windows.Volumes;
 
 package body Files.Platform.Windows is
    use Ada.Strings.Unbounded;
+   use type Interfaces.C.int;
+   use type Files.File_System.Native_API_Binding_Status;
 
    function GetUserDefaultLocaleName
      (Locale_Name : System.Address;

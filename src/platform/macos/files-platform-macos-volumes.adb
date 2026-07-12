@@ -2,6 +2,8 @@ with Interfaces.C;
 with System;
 
 package body Files.Platform.Macos.Volumes is
+   use type Files.File_System.Native_API_Binding_Status;
+
    type Statfs_Record is record
       Spare : Interfaces.C.char_array (1 .. 216);
    end record
@@ -13,8 +15,9 @@ package body Files.Platform.Macos.Volumes is
       return Interfaces.C.int
      with Import, Convention => C, External_Name => "statfs";
 
+   pragma Unreferenced (Statfs);
+
    function Binding_Status return Files.File_System.Native_API_Binding_Status is
-      pragma Unreferenced (Statfs);
    begin
       return Files.File_System.Native_API_Binding_Available;
    end Binding_Status;
