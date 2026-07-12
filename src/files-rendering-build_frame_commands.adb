@@ -393,9 +393,7 @@ separate (Files.Rendering)
                   Text   => Fitted,
                   Color  => Color,
                   Truncated => Was_Truncated,
-                  Scale_To_Box => Scale_To_Box,
-                  Shrink_To_Box => False,
-                  Italic => Italic));
+                  Scale_To_Box => Scale_To_Box,                  Italic => Italic));
          end if;
       end Add_Text;
 
@@ -427,9 +425,7 @@ separate (Files.Rendering)
                   Text      => Fitted,
                   Color     => Color,
                   Truncated => Was_Truncated,
-                  Scale_To_Box => False,
-                  Shrink_To_Box => False,
-                  Italic    => Italic));
+                  Scale_To_Box => False,                  Italic    => Italic));
          end if;
       end Add_Overlay_Text;
 
@@ -1088,7 +1084,7 @@ separate (Files.Rendering)
                        (X => Label_X, Y => Label_Y, Width => Draw_W, Height => Draw_H,
                         Text => To_Unbounded_String (Wrapped (First .. Last)),
                         Color => Text_Color, Truncated => False,
-                        Scale_To_Box => False, Shrink_To_Box => False, Italic => False));
+                        Scale_To_Box => False, Italic => False));
                end if;
             end Emit_Line;
          begin

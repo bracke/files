@@ -90,7 +90,6 @@ package body Files.Extension_Labels is
             Color         => Canvas_Color,
             Truncated     => False,
             Scale_To_Box  => False,
-            Shrink_To_Box => False,
             Italic        => False));
       Result := Guikit.Text.Build_Glyphs (R, Cmd, Empty);
       if Result.Status /= Text_Render_Success
