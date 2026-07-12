@@ -1,8 +1,8 @@
 files-icon-v1
 name=executable
 grid=32
-rect=7,3,11,26,base
-rect=18,9,7,20,base
-tri=18,3,25,9,18,9,border
-tri=11,13,11,21,18,17,accent
-rect=13,23,8,2,border
+rect=5,0,13,32,base
+rect=18,7,9,25,base
+tri=18,0,27,7,18,7,border
+tri=10,12,10,22,18,17,accent
+rect=12,25,10,2,border

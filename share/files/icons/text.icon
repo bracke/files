@@ -1,10 +1,10 @@
 files-icon-v1
 name=text
 grid=64
-rect=14,6,22,52,base
-rect=36,18,14,40,base
-tri=36,6,50,18,36,18,muted
-rect=20,26,24,3,border
-rect=20,34,24,3,border
-rect=20,42,24,3,border
-rect=20,50,16,3,border
+rect=10,0,27,64,base
+rect=37,15,17,49,base
+tri=37,0,54,15,37,15,muted
+rect=17,25,30,3,border
+rect=17,34,30,4,border
+rect=17,44,30,4,border
+rect=17,54,20,4,border
