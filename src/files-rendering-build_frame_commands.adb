@@ -1429,6 +1429,22 @@ separate (Files.Rendering)
             Add_Rect (Rect_X, Rect_Y, Rect_W, Rect_H, Asset_Color (Rect.Role));
          end Add_Asset_Rect;
 
+         procedure Add_Asset_Tri
+           (Asset : Icon_Asset;
+            Tri   : Icon_Asset_Tri)
+         is
+            function PX (G : Natural) return Float is
+              (Float (Saturating_Add
+                 (X, Bounded_Product_Divide (Value => G, Factor => Draw_Size, Denominator => Asset.Grid))));
+            function PY (G : Natural) return Float is
+              (Float (Saturating_Add
+                 (Y, Bounded_Product_Divide (Value => G, Factor => Draw_Size, Denominator => Asset.Grid))));
+         begin
+            Add_Triangle
+              (PX (Tri.X1), PY (Tri.Y1), PX (Tri.X2), PY (Tri.Y2), PX (Tri.X3), PY (Tri.Y3),
+               Asset_Color (Tri.Role));
+         end Add_Asset_Tri;
+
          function Add_Named_Asset (Name : String) return Boolean is
             Asset : constant Icon_Asset := Parse_Icon_Asset (Icon_Asset_Text (Name, Icon_Theme_Name));
          begin
@@ -1438,6 +1454,9 @@ separate (Files.Rendering)
 
             for Rect of Asset.Rectangles loop
                Add_Asset_Rect (Asset, Rect);
+            end loop;
+            for Tri of Asset.Triangles loop
+               Add_Asset_Tri (Asset, Tri);
             end loop;
             return True;
          end Add_Named_Asset;
