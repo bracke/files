@@ -78,6 +78,9 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/textrender.git" textrender
           git clone --depth 1 "https://github.com/${owner}/zlib.git" zlib
           git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
+          # zlib.gpr imports ../cryptolib/cryptolib.gpr directly, so cryptolib is
+          # needed at build time even though no alire.toml pins it.
+          git clone --depth 1 "https://github.com/${owner}/cryptolib.git" cryptolib
 
       - name: Set up Alire
         # v5 defaults to alr 2.1.0, whose index carries gnat_native 15.2.1.
