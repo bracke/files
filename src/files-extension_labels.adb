@@ -107,18 +107,31 @@ package body Files.Extension_Labels is
          AH    : constant Natural := Result.Atlas_Height;
          Atlas : constant Atlas_Conversions.Object_Pointer :=
            Atlas_Conversions.To_Pointer (Result.Atlas_Pixels);
+         Min_X : Float := Float (AW);
+         Min_Y : Float := Float (AH);
+         Max_X : Float := 0.0;
+         Max_Y : Float := 0.0;
+         OX    : Natural := 0;
+         OY    : Natural := 0;
          L_W   : Natural := 0;
          L_H   : Natural := 0;
       begin
-         --  Size the bitmap to the actual glyph extents so descenders (g, j, p in
-         --  png/jpg) are not clipped.
+         --  Crop to the glyphs' tight bounding box: no top/left margin is baked into
+         --  the bitmap (the tab supplies its own padding), while descenders (g, j, p
+         --  in png, jpg) are included so nothing is clipped.
          for G of Result.Glyphs loop
-            L_W := Natural'Max (L_W, Natural (Float'Ceiling (G.X + G.Width)));
-            L_H := Natural'Max (L_H, Natural (Float'Ceiling (G.Y + G.Height)));
+            Min_X := Float'Min (Min_X, G.X);
+            Min_Y := Float'Min (Min_Y, G.Y);
+            Max_X := Float'Max (Max_X, G.X + G.Width);
+            Max_Y := Float'Max (Max_Y, G.Y + G.Height);
          end loop;
-         if L_W = 0 or else L_H = 0 then
+         if Max_X <= Min_X or else Max_Y <= Min_Y then
             return (Width => 0, Height => 0, Pixels => Byte_Vectors.Empty_Vector);
          end if;
+         OX  := Natural (Float'Floor (Float'Max (0.0, Min_X)));
+         OY  := Natural (Float'Floor (Float'Max (0.0, Min_Y)));
+         L_W := Natural (Float'Ceiling (Max_X)) - OX;
+         L_H := Natural (Float'Ceiling (Max_Y)) - OY;
 
          return Out_Label : Label do
             Out_Label.Width  := L_W;
@@ -131,8 +144,10 @@ package body Files.Extension_Labels is
                   SY0 : constant Natural := Natural (Float'Floor (G.V0 * Float (AH)));
                   GW  : constant Natural := Natural (Float'Rounding (G.Width));
                   GH  : constant Natural := Natural (Float'Rounding (G.Height));
-                  DX0 : constant Natural := Natural (Float'Rounding (G.X));
-                  DY0 : constant Natural := Natural (Float'Rounding (G.Y));
+                  DX0 : constant Natural :=
+                    Natural (Integer'Max (0, Integer (Float'Rounding (G.X)) - Integer (OX)));
+                  DY0 : constant Natural :=
+                    Natural (Integer'Max (0, Integer (Float'Rounding (G.Y)) - Integer (OY)));
                begin
                   for Y in 0 .. GH - 1 loop
                      for X in 0 .. GW - 1 loop
