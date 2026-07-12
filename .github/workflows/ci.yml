@@ -89,6 +89,14 @@ jobs:
         with:
           toolchain: gnat_native=15.2.1 gprbuild
 
+      # cryptolib's config/ is Alire-generated and gitignored, so a fresh clone
+      # has none. zlib reaches it by raw GPR import, which bypasses Alire and so
+      # never triggers that generation — build it once to materialise the config.
+      - name: Bootstrap cryptolib's generated config
+        shell: bash
+        working-directory: cryptolib
+        run: alr --non-interactive build
+
       - name: Build the application
         shell: bash
         working-directory: files
