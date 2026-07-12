@@ -2566,8 +2566,7 @@ package body Files.Application.Windows is
                           Overlay_Rectangles => Frame.Overlay_Rectangles,
                           Layout             => Frame.Layout,
                           Theme              => Frame.Theme_Palette,
-                          Text               => Glyphs,
-                          Overlay_Triangles  => Frame.Overlay_Triangles);
+                          Text               => Glyphs);
                   begin
                      Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
                      Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;

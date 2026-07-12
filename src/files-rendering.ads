@@ -696,7 +696,6 @@ package Files.Rendering is
       Text          : Text_Command_Vectors.Vector;
       Icons         : Icon_Command_Vectors.Vector;
       Overlay_Rectangles : Rectangle_Command_Vectors.Vector;
-      Overlay_Triangles  : Triangle_Command_Vectors.Vector;
       Overlay_Text       : Text_Command_Vectors.Vector;
       Tooltips      : Tooltip_Command_Vectors.Vector;
       Accessibility : Accessibility_Node_Vectors.Vector;
