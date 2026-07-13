@@ -1683,10 +1683,23 @@ package body Files_Suite.Startup is
         (Repository_File_Contains ("src/files-application-windows.adb", "Guikit.Vulkan.Wait_For_Events")
          and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
+      --  Native watching is connected to the event loop through the platform
+      --  layer, not by calling a kernel facility from window code: inotify is
+      --  Linux-only, and naming it here once made the application impossible to
+      --  link on macOS or Windows. Each platform body supplies its own.
       Assert
-        (Repository_File_Contains ("src/files-application-windows.adb", "inotify_init1")
+        (Repository_File_Contains ("src/files-application-windows.adb", "Files.Platform.Watch.Poll")
          and then Repository_File_Contains ("src/files-application-windows.adb", "Drain_Native_Watch"),
          "native file watching is connected to the desktop event loop");
+      Assert
+        (Repository_File_Contains ("src/platform/linux/files-platform-watch.adb", "inotify_init1")
+         and then Repository_File_Contains ("src/platform/macos/files-platform-watch.adb", "kqueue")
+         and then Repository_File_Contains
+                    ("src/platform/windows/files-platform-watch.adb", "FindFirstChangeNotification"),
+         "each platform supplies its own native directory-change notification");
+      Assert
+        (not Repository_File_Contains ("src/files-application-windows.adb", "inotify"),
+         "window code must not name a Linux-only facility directly");
       Assert
         (Files.Features.Included_In_First_Implementation
            (Files.Features.Network_Filesystem_Special_Handling),

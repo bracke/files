@@ -26,6 +26,7 @@ with Files.File_System;
 with Files.Folder_Size;
 with Files.Interaction;
 with Files.Operations;
+with Files.Platform.Watch;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Guikit.Layout;
@@ -290,10 +291,7 @@ package body Files.Application.Windows is
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
-      Native_Watch_FD : Interfaces.C.int := -1;
-      Native_Watch_ID : Interfaces.C.int := -1;
-      Native_Watch_Path : Unbounded_String;
-      Native_Watch_Event_Count : Natural := 0;
+      Watch : Files.Platform.Watch.Watch_State;
    end record;
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
@@ -318,43 +316,6 @@ package body Files.Application.Windows is
    File_Watch_Poll_Interval : constant Duration := 1.0;
    Type_Ahead_Timeout : constant Duration := 1.0;
    Event_Wait_Timeout : constant Duration := 0.016;
-   Inotify_Nonblock : constant Interfaces.C.int := 2_048;
-   Inotify_Cloexec : constant Interfaces.C.int := 524_288;
-   Inotify_Event_Mask : constant Interfaces.C.unsigned :=
-     16#00000004# or 16#00000008# or 16#00000040# or 16#00000080#
-     or 16#00000100# or 16#00000200# or 16#00000400# or 16#00000800#
-     or 16#00002000# or 16#00004000# or 16#01000000#;
-
-   function Inotify_Init1
-     (Flags : Interfaces.C.int)
-      return Interfaces.C.int
-   with Import, Convention => C, External_Name => "inotify_init1";
-
-   function Inotify_Add_Watch
-     (FD       : Interfaces.C.int;
-      Pathname : Interfaces.C.Strings.chars_ptr;
-      Mask     : Interfaces.C.unsigned)
-      return Interfaces.C.int
-   with Import, Convention => C, External_Name => "inotify_add_watch";
-
-   function Inotify_Rm_Watch
-     (FD : Interfaces.C.int;
-      WD : Interfaces.C.int)
-      return Interfaces.C.int
-   with Import, Convention => C, External_Name => "inotify_rm_watch";
-
-   function C_Read
-     (FD    : Interfaces.C.int;
-      Buf   : System.Address;
-      Count : Interfaces.C.size_t)
-      return Interfaces.C.long
-   with Import, Convention => C, External_Name => "read";
-
-   function C_Close
-     (FD : Interfaces.C.int)
-      return Interfaces.C.int
-   with Import, Convention => C, External_Name => "close";
-
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -1168,83 +1129,21 @@ package body Files.Application.Windows is
    end Handle_All_Drop_Input;
 
    procedure Release_Native_Watch
-     (Runtime : in out Runtime_Window)
-   is
-      Ignored : Interfaces.C.int;
+     (Runtime : in out Runtime_Window) is
    begin
-      if Runtime.Native_Watch_FD >= 0 and then Runtime.Native_Watch_ID >= 0 then
-         Ignored := Inotify_Rm_Watch (Runtime.Native_Watch_FD, Runtime.Native_Watch_ID);
-      end if;
-
-      if Runtime.Native_Watch_FD >= 0 then
-         Ignored := C_Close (Runtime.Native_Watch_FD);
-      end if;
-      pragma Unreferenced (Ignored);
-
-      Runtime.Native_Watch_FD := -1;
-      Runtime.Native_Watch_ID := -1;
-      Runtime.Native_Watch_Path := Null_Unbounded_String;
+      Files.Platform.Watch.Release (Runtime.Watch);
    end Release_Native_Watch;
-
-   procedure Ensure_Native_Watch
-     (Runtime : in out Runtime_Window)
-   is
-      Path   : constant String := Files.Model.Current_Path (Runtime.Model);
-      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;
-   begin
-      if Path = "" or else To_String (Runtime.Native_Watch_Path) = Path then
-         return;
-      end if;
-
-      Release_Native_Watch (Runtime);
-      Runtime.Native_Watch_FD := Inotify_Init1 (Inotify_Nonblock + Inotify_Cloexec);
-      if Runtime.Native_Watch_FD < 0 then
-         Runtime.Native_Watch_FD := -1;
-         return;
-      end if;
-
-      C_Path := Interfaces.C.Strings.New_String (Path);
-      Runtime.Native_Watch_ID := Inotify_Add_Watch (Runtime.Native_Watch_FD, C_Path, Inotify_Event_Mask);
-      Interfaces.C.Strings.Free (C_Path);
-
-      if Runtime.Native_Watch_ID < 0 then
-         Release_Native_Watch (Runtime);
-      else
-         Runtime.Native_Watch_Path := To_Unbounded_String (Path);
-      end if;
-   exception
-      when others =>
-         if C_Path /= Interfaces.C.Strings.Null_Ptr then
-            Interfaces.C.Strings.Free (C_Path);
-         end if;
-         Release_Native_Watch (Runtime);
-   end Ensure_Native_Watch;
 
    function Drain_Native_Watch
      (Runtime : in out Runtime_Window)
-      return Boolean
-   is
-      Buffer : Interfaces.C.char_array (0 .. 4095);
-      Count  : Interfaces.C.long;
-      Changed : Boolean := False;
+      return Boolean is
    begin
-      Ensure_Native_Watch (Runtime);
-      if Runtime.Native_Watch_FD < 0 then
-         return False;
-      end if;
+      --  Re-pointing the watch at the directory currently on screen is a no-op
+      --  once it is already there, so this is cheap to do every frame.
+      Files.Platform.Watch.Watch_Path
+        (Runtime.Watch, Files.Model.Current_Path (Runtime.Model));
 
-      loop
-         Count := C_Read (Runtime.Native_Watch_FD, Buffer'Address, Buffer'Length);
-         exit when Count <= 0;
-         Changed := True;
-         Runtime.Native_Watch_Event_Count := Runtime.Native_Watch_Event_Count + 1;
-      end loop;
-
-      return Changed;
-   exception
-      when others =>
-         Release_Native_Watch (Runtime);
-         return False;
+      return Files.Platform.Watch.Poll (Runtime.Watch);
    end Drain_Native_Watch;
 
    procedure Handle_File_Watch_Poll
@@ -1926,10 +1825,7 @@ package body Files.Application.Windows is
             Last_Missing_Glyph_Count => 0,
             Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,
             Last_Watch_Poll => Ada.Calendar.Time_Of (1901, 1, 1),
-            Native_Watch_FD => -1,
-            Native_Watch_ID => -1,
-            Native_Watch_Path => Null_Unbounded_String,
-            Native_Watch_Event_Count => 0));
+            Watch => <>));
    exception
       when others =>
          if Handle /= null then
