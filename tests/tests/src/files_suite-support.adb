@@ -3,7 +3,6 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Interfaces;
-with Interfaces.C.Strings;
 with Ada.Strings;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -46,6 +45,7 @@ with Files.Settings;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
+with Files.Platform.Symlinks;
 
 package body Files_Suite.Support is
 
@@ -78,7 +78,6 @@ package body Files_Suite.Support is
    use type Guikit.Vulkan.Texture_Source;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
-   use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
    use type Files.Settings.Sort_Field;
@@ -90,12 +89,6 @@ package body Files_Suite.Support is
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
-
-   function Symlink
-     (Target   : Interfaces.C.Strings.chars_ptr;
-      Linkpath : Interfaces.C.Strings.chars_ptr)
-      return Interfaces.C.int
-     with Import, Convention => C, External_Name => "symlink";
 
    function Click_Action
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -115,21 +108,13 @@ package body Files_Suite.Support is
    function Create_Symlink
      (Target   : String;
       Linkpath : String)
-      return Boolean
-   is
-      C_Target : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Target);
-      C_Link   : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Linkpath);
-      Result   : Interfaces.C.int;
+      return Boolean is
    begin
-      Result := Symlink (C_Target, C_Link);
-      Interfaces.C.Strings.Free (C_Target);
-      Interfaces.C.Strings.Free (C_Link);
-      return Result = 0;
-   exception
-      when others =>
-         Interfaces.C.Strings.Free (C_Target);
-         Interfaces.C.Strings.Free (C_Link);
-         return False;
+      --  Through the platform layer: symlink(2) is POSIX-only, and naming it here
+      --  made the test executable impossible to link on Windows. A platform that
+      --  will not make a link returns False, and every caller already guards on
+      --  that -- Windows needs Developer Mode or a privilege to create one.
+      return Files.Platform.Symlinks.Create (Target, Linkpath);
    end Create_Symlink;
 
    procedure Reset_Root is
