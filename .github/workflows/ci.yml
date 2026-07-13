@@ -68,8 +68,15 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          # MoltenVK provides the Vulkan loader/ICD on macOS.
-          brew install vulkan-headers vulkan-loader molten-vk glfw
+          # MoltenVK provides the Vulkan loader/ICD on macOS. gdk-pixbuf (which
+          # pulls in glib) satisfies files.gpr's thumbnail-decoding switches, and
+          # zstd the pragma Linker_Options in the zlib sibling crate -- macOS
+          # ships libbz2 in the SDK but not libzstd.
+          brew install vulkan-headers vulkan-loader molten-vk glfw gdk-pixbuf zstd
+
+          # Homebrew on the x86_64 runner installs under /usr/local, which is not
+          # on the linker's default search path.
+          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
 
       - name: Install system libraries (Windows)
         if: runner.os == 'Windows'
