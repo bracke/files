@@ -138,7 +138,13 @@ jobs:
             || '' }}
         run: |
           alr --non-interactive build
-          ./bin/tests
+          # The binary is tests.exe on Windows, and bash will not find it under
+          # the Unix name.
+          if [ -f ./bin/tests.exe ]; then
+            ./bin/tests.exe
+          else
+            ./bin/tests
+          fi
 
       - name: Live GPU smoke (Linux, software Vulkan)
         # Exercises the full GLFW + Vulkan render path headlessly under Xvfb with

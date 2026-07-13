@@ -2481,7 +2481,11 @@ package body Files.File_System is
                Volume_Binding_Unit   => To_Unbounded_String ("Files.File_System.Root_Volume_Details_For"),
                Required_Library      => To_Unbounded_String ("libc"),
                Required_Framework    => Null_Unbounded_String,
-               Current_Target        => True,
+               --  Only when Linux really is the target. The Windows and macOS
+               --  profiles already answer this from their per-OS bodies; this
+               --  branch used to say True unconditionally, so on a Mac both the
+               --  Linux and the macOS adapter claimed to be the current one.
+               Current_Target        => Files_Config.Alire_Host_OS = "linux",
                Trash_Can_Execute     => Trash_Is_Available,
                Volume_Can_Query      => Caps.Capacity_Bytes_Known or else Caps.Filesystem_Type_Available);
          when Native_Adapter_Windows =>

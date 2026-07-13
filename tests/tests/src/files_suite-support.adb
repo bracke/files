@@ -256,6 +256,73 @@ package body Files_Suite.Support is
       return Files.File_System.Join_Path (Parent, Name);
    end Join;
 
+   function Compute_Root return String is
+      function System_Temp return String;
+
+      function System_Temp return String is
+         use Ada.Environment_Variables;
+      begin
+         --  TMPDIR on Unix, TEMP/TMP on Windows.
+         if Exists ("TMPDIR") and then Value ("TMPDIR") /= "" then
+            return Value ("TMPDIR");
+         elsif Exists ("TEMP") and then Value ("TEMP") /= "" then
+            return Value ("TEMP");
+         elsif Exists ("TMP") and then Value ("TMP") /= "" then
+            return Value ("TMP");
+         else
+            return "/tmp";
+         end if;
+      end System_Temp;
+
+      --  Resolve_Links is the point of this: the model reports canonical paths,
+      --  so the fixtures must be built under one too, or every path comparison
+      --  fails on macOS.
+      Resolved : constant String :=
+        GNAT.OS_Lib.Normalize_Pathname
+          (System_Temp, Resolve_Links => True);
+   begin
+      return Files.File_System.Join_Path (Resolved, "files_aunit");
+
+   exception
+      when others =>
+         return "/tmp/files_aunit";
+   end Compute_Root;
+
+   Cached_Root : Unbounded_String := Null_Unbounded_String;
+
+   function Root return String is
+   begin
+      if Length (Cached_Root) = 0 then
+         Cached_Root := To_Unbounded_String (Compute_Root);
+      end if;
+      return To_String (Cached_Root);
+   end Root;
+
+   Case_Probe_Done   : Boolean := False;
+   Case_Probe_Result : Boolean := False;
+
+   function Case_Insensitive_Filesystem return Boolean is
+      Probe_Dir : constant String := Ada.Directories.Containing_Directory (Root);
+      Lower     : constant String := Join (Probe_Dir, "files_case_probe");
+      Upper     : constant String := Join (Probe_Dir, "FILES_CASE_PROBE");
+   begin
+      if Case_Probe_Done then
+         return Case_Probe_Result;
+      end if;
+
+      Write_File (Lower);
+      Case_Probe_Result := Ada.Directories.Exists (Upper);
+      Ada.Directories.Delete_File (Lower);
+      Case_Probe_Done := True;
+      return Case_Probe_Result;
+
+   exception
+      when others =>
+         Case_Probe_Done := True;
+         Case_Probe_Result := False;
+         return False;
+   end Case_Insensitive_Filesystem;
+
    function Sample_Items return Files.File_System.Item_Vectors.Vector is
       Items : Files.File_System.Item_Vectors.Vector;
    begin

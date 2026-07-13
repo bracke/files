@@ -180,30 +180,50 @@ package body Files_Suite.Model is
       Dir      : constant String := Join (Root, "sort");
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load     : Files.File_System.Directory_Load_Result;
+      Case_Sensitive : Boolean;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Join (Dir, "zdir"));
       Write_File (Join (Dir, "b.txt"));
       Write_File (Join (Dir, "A.txt"));
-      Write_File (Join (Dir, "a.txt"));
+
+      --  "A.txt" and "a.txt" are the same file on a case-insensitive filesystem,
+      --  which macOS uses by default. The tie-break between names that differ
+      --  only by case is exactly what the second half of this test pins down --
+      --  and it cannot be staged where the two cannot coexist, so say so rather
+      --  than assert against a fixture that was never built.
+      Case_Sensitive := not Case_Insensitive_Filesystem;
+
+      if Case_Sensitive then
+         Write_File (Join (Dir, "a.txt"));
+      end if;
+
       Write_File (Join (Root, "not-a-directory.txt"));
       Load := Files.File_System.Load_Directory (Dir, Settings);
 
       Assert (Load.Success, "directory load succeeds");
       Assert
-        (Natural (Load.Items.Length) = 4,
+        (Natural (Load.Items.Length) = (if Case_Sensitive then 4 else 3),
          "all direct children are loaded; count=" & Natural'Image (Natural (Load.Items.Length)));
       Assert (To_String (Load.Items.Element (1).Name) = "A.txt", "directory items sort by name with files");
       Load := Files.File_System.Load_Directory (Dir & "/.", Settings);
       Assert (Load.Success, "non-normal directory path loads");
       Assert (To_String (Load.Items.Element (1).Parent_Path) = To_String (Load.Path), "item parent path is normalized");
-      Assert
-        (To_String (Load.Items.Element (2).Name) = "a.txt",
-         "case-insensitive equal names use deterministic fallback order");
-      Assert
-        (To_String (Load.Items.Element (3).Name) = "b.txt",
-         "fallback name order is deterministic");
-      Assert (To_String (Load.Items.Element (4).Name) = "zdir", "directories remain in normal name order");
+
+      if Case_Sensitive then
+         Assert
+           (To_String (Load.Items.Element (2).Name) = "a.txt",
+            "case-insensitive equal names use deterministic fallback order");
+         Assert
+           (To_String (Load.Items.Element (3).Name) = "b.txt",
+            "fallback name order is deterministic");
+         Assert (To_String (Load.Items.Element (4).Name) = "zdir", "directories remain in normal name order");
+      else
+         Assert
+           (To_String (Load.Items.Element (2).Name) = "b.txt",
+            "fallback name order is deterministic");
+         Assert (To_String (Load.Items.Element (3).Name) = "zdir", "directories remain in normal name order");
+      end if;
 
       Load := Files.File_System.Load_Directory (Join (Root, "missing-directory"), Settings);
       Assert (not Load.Success, "missing directory load reports failure");
@@ -1702,25 +1722,40 @@ package body Files_Suite.Model is
       Assert
         (Linux_Profile.Adapter = Files.File_System.Native_Adapter_Linux,
          "Linux native profile identifies adapter");
-      Assert (Linux_Profile.Current_Target, "Linux native profile marks current target");
+      --  Exactly one adapter is the current target, and which one depends on the
+      --  host. This block used to assert it was always Linux, which is why every
+      --  one of these failed the moment the suite first ran on a Mac.
+      Assert
+        (Linux_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Linux),
+         "the Linux profile marks itself the current target exactly on Linux");
+      Assert
+        (Windows_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows),
+         "the Windows profile marks itself the current target exactly on Windows");
+      Assert
+        (Macos_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos),
+         "the macOS profile marks itself the current target exactly on macOS");
+      Assert (Current_Profile.Current_Target, "the current profile is the current target");
       Assert
         (Linux_Profile.Volume_Binding_Status = Volume_Caps.Native_Binding_Status,
          "Linux native profile follows volume capability binding status");
       Assert
         (To_String (Linux_Profile.Volume_Binding_Unit) = "Files.File_System.Root_Volume_Details_For",
          "Linux native profile records volume binding unit");
+      declare
+         Host_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+           Files.File_System.Native_Platform_API_Profile_For (Current_Profile.Adapter);
+      begin
+         Assert
+           (Current_Profile.Volume_Binding_Status = Host_Profile.Volume_Binding_Status,
+            "platform current API profile follows host volume status");
+         Assert
+           (To_String (Current_Profile.Volume_Binding_Unit) = To_String (Host_Profile.Volume_Binding_Unit),
+            "platform current API profile exposes host binding unit");
+      end;
       Assert
-        (Current_Profile.Adapter = Linux_Profile.Adapter,
-         "platform current API profile follows the host adapter");
-      Assert
-        (Current_Profile.Volume_Binding_Status = Linux_Profile.Volume_Binding_Status,
-         "platform current API profile follows host volume status");
-      Assert
-        (To_String (Current_Profile.Volume_Binding_Unit) = To_String (Linux_Profile.Volume_Binding_Unit),
-         "platform current API profile exposes host binding unit");
-      Assert
-        (Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
-         "Windows native profile is not active on this target");
+        (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows
+         or else Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
+         "Windows native profile is not active off Windows");
       Assert
         (To_String (Windows_Profile.Trash_Binding_Unit) = "Files.Platform.Windows.Trash",
          "Windows native profile records trash binding unit");
@@ -1728,8 +1763,9 @@ package body Files_Suite.Model is
         (To_String (Windows_Profile.Volume_API_Name) = "GetVolumeInformationW+GetDiskFreeSpaceExW",
          "Windows native profile records volume APIs");
       Assert
-        (Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
-         "macOS native profile is not active on this target");
+        (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos
+         or else Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
+         "macOS native profile is not active off macOS");
       Assert
         (To_String (Macos_Profile.Required_Framework) = "Foundation",
          "macOS native profile records required framework");

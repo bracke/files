@@ -7,7 +7,22 @@ with Files.Types;
 
 package Files_Suite.Support is
 
-   Root : constant String := "/tmp/files_aunit";
+   --  The scratch directory every fixture builds under.
+   --
+   --  This is deliberately not a hardcoded "/tmp/...": on macOS /tmp is a
+   --  symlink into /private, so the application's canonicalised paths never
+   --  string-compare equal to a path spelled through it, and Windows has no /tmp
+   --  at all. Test_Root resolves the platform's real temporary directory,
+   --  following links, so a path built here matches the one the model reports.
+   --  A function, not a constant: a spec-level constant cannot call into the
+   --  body before that body is elaborated.
+   function Root return String;
+
+   --  True when the filesystem under Root treats "A.txt" and "a.txt" as the same
+   --  file, as macOS does by default. Fixtures that rely on both existing at once
+   --  cannot be built there, and must say so rather than quietly measure the
+   --  wrong thing.
+   function Case_Insensitive_Filesystem return Boolean;
 
    --  Translate a simulated click against a snapshot into an input action.
    --
