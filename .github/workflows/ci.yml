@@ -14,10 +14,11 @@ name: CI
 # under Xvfb with the Mesa lavapipe software ICD, structurally analysing the
 # read-back framebuffer (exit 77 = skipped, non-fatal).
 #
-# NOTE: the Linux job is validated. The macOS and Windows jobs are best-effort
-# and have not yet been executed on real runners — the native Vulkan/GLFW
-# dependency setup and the FILES_FONT_PATH values below will likely need
-# iteration on the first cross-platform run.
+# NOTE: the Linux job is validated and green. Windows has now run on a real
+# runner: every Ada unit compiles and only the link step needed native
+# libraries (see the Windows setup step). macOS has still never executed --
+# its jobs sat unscheduled on the retired macos-13 image -- so the macOS
+# dependency setup and FILES_FONT_PATH value below remain unverified.
 
 on:
   push:
@@ -32,9 +33,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-13 is the last x86_64 runner image: gnat_native=15.2.1 ships no
+        # An x86_64 macOS image is required: gnat_native=15.2.1 ships no
         # aarch64-darwin binary, so macos-latest (arm64) cannot resolve the pin.
-        os: [ubuntu-latest, macos-13, windows-latest]
+        # macos-13 was retired on 2025-12-04 and its jobs now queue forever with
+        # no runner; macos-15-intel replaces it and is the last x86_64 image
+        # Actions will offer (available until August 2027).
+        os: [ubuntu-latest, macos-15-intel, windows-latest]
 
     steps:
       - name: Checkout
@@ -69,9 +73,28 @@ jobs:
 
       - name: Install system libraries (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: bash
         run: |
-          choco install --no-progress vulkan-sdk
+          # Alire's gnat_native is a mingw-w64 toolchain, so its `ld` needs mingw
+          # import libraries (libvulkan.dll.a). The chocolatey vulkan-sdk ships
+          # MSVC .lib files, which that linker cannot use -- take every library
+          # from the MSYS2 installation preinstalled on the runner instead.
+          #
+          # vulkan-loader/glib2/gdk-pixbuf2 satisfy files.gpr's Windows linker
+          # switches; bzip2 and zstd satisfy the pragma Linker_Options in the
+          # zlib sibling crate, whose 7z codecs bind libbz2 and libzstd.
+          pacman() { /c/msys64/usr/bin/pacman "$@"; }
+          pacman -Sy --noconfirm --needed \
+            mingw-w64-x86_64-vulkan-loader \
+            mingw-w64-x86_64-glib2 \
+            mingw-w64-x86_64-gdk-pixbuf2 \
+            mingw-w64-x86_64-bzip2 \
+            mingw-w64-x86_64-zstd
+
+          # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
+          # PATH for the test binary and the live app to start.
+          echo "LIBRARY_PATH=C:/msys64/mingw64/lib" >> "$GITHUB_ENV"
+          echo "C:\msys64\mingw64\bin" >> "$GITHUB_PATH"
 
       - name: Clone sibling crate dependencies
         shell: bash
