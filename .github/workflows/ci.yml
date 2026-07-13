@@ -69,9 +69,10 @@ jobs:
         run: |
           brew update
           # MoltenVK provides the Vulkan loader/ICD on macOS. gdk-pixbuf (which
-          # pulls in glib) satisfies files.gpr's thumbnail-decoding switches, and
-          # zstd the last pragma Linker_Options in the zlib sibling crate.
-          brew install vulkan-headers vulkan-loader molten-vk glfw gdk-pixbuf zstd
+          # pulls in glib) satisfies files.gpr's thumbnail-decoding switches. No
+          # compression library is needed -- the zlib sibling crate's codecs are
+          # all pure Ada.
+          brew install vulkan-headers vulkan-loader molten-vk glfw gdk-pixbuf
 
           # Homebrew on the x86_64 runner installs under /usr/local, which is not
           # on the linker's default search path.
@@ -87,14 +88,14 @@ jobs:
           # from the MSYS2 installation preinstalled on the runner instead.
           #
           # vulkan-loader/glib2/gdk-pixbuf2 satisfy files.gpr's Windows linker
-          # switches; zstd satisfies the last pragma Linker_Options in the zlib
-          # sibling crate. bzip2 is no longer needed -- that codec is pure Ada now.
+          # switches. No compression library is needed: the zlib sibling crate
+          # implements every codec it supports -- Deflate, LZMA, PPMd, bzip2 and
+          # zstd -- in Ada, and links none of them.
           pacman() { /c/msys64/usr/bin/pacman "$@"; }
           pacman -Sy --noconfirm --needed \
             mingw-w64-x86_64-vulkan-loader \
             mingw-w64-x86_64-glib2 \
-            mingw-w64-x86_64-gdk-pixbuf2 \
-            mingw-w64-x86_64-zstd
+            mingw-w64-x86_64-gdk-pixbuf2
 
           # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
           # PATH for the test binary and the live app to start.
