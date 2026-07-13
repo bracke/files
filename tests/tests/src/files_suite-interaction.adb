@@ -2393,6 +2393,7 @@ package body Files_Suite.Interaction is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("HOME", Trash_Home);
 
       --  Delete moves the item to trash and records an undoable action.
@@ -2774,6 +2775,7 @@ package body Files_Suite.Interaction is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("HOME", Trash_Home);
 
       --  A selected file in a normal directory: Restore From Trash is disabled.
@@ -3130,6 +3132,7 @@ package body Files_Suite.Interaction is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("HOME", Trash_Home);
 
       --  Step 1: delete a file to trash via the item menu.

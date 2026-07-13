@@ -24,6 +24,8 @@ with Files_Config;
 
 with Files.Platform.Macos;
 with Files.Platform.Metadata;
+with Files.Platform.Macos.Trash;
+with Files.Platform.Windows.Trash;
 with Files.Platform.Windows;
 with Files.UTF8;
 
@@ -613,8 +615,13 @@ package body Files.File_System is
          return Trash_Windows_Recycle_Bin;
       elsif Environment_Equals ("FILES_TRASH_BACKEND", "macos") then
          return Trash_Macos_Native;
-      elsif Files_Config.Alire_Host_OS = "windows" then
+      elsif Files_Config.Alire_Host_OS = "windows"
+        and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
+      then
          --  Windows has no HOME/XDG trash; use the shell Recycle Bin by default.
+         --  "xdg" forces the freedesktop implementation regardless of host, which
+         --  is what lets it be exercised on every platform rather than only where
+         --  it happens to be the default.
          return Trash_Windows_Recycle_Bin;
       elsif Xdg_Data_Home /= "" then
          return Trash_Xdg_Data_Home;
@@ -4101,6 +4108,39 @@ package body Files.File_System is
             return Preflight;
          end if;
       end;
+
+      --  Hand the item to the desktop's own trash where the platform has one.
+      --  These backends were written and then never called: everything went down
+      --  the freedesktop path, so deleting on Windows built a .trashinfo sidecar
+      --  in a directory the Recycle Bin knows nothing about.
+      --
+      --  The shell owns the item afterwards, so there is no path to hand back --
+      --  which is also why an undo cannot restore it, and says so.
+      if Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native then
+         declare
+            Request : constant Native_Trash_Request :=
+              (Backend                 => Backend,
+               Path                    => To_Unbounded_String (Path),
+               Requires_Native_Api     => True,
+               Can_Use_Current_Process => True);
+
+            Native : constant Native_Trash_Result :=
+              (if Backend = Trash_Windows_Recycle_Bin
+               then Files.Platform.Windows.Trash.Move (Request)
+               else Files.Platform.Macos.Trash.Move (Request));
+         begin
+            if Native.Completed then
+               return (Success => True, Error_Key => Null_Unbounded_String);
+            end if;
+
+            return
+              (Success   => False,
+               Error_Key =>
+                 (if Native.Error_Key = Null_Unbounded_String
+                  then To_Unbounded_String ("error.trash.failed")
+                  else Native.Error_Key));
+         end;
+      end if;
 
       Ada.Directories.Create_Path (Files_Dir);
       if Info_Dir /= "" then
