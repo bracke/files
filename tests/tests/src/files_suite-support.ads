@@ -18,6 +18,12 @@ package Files_Suite.Support is
    --  body before that body is elaborated.
    function Root return String;
 
+   --  A real executable that succeeds and does nothing, for tests that need an
+   --  action to actually run. It is NOT /bin/true everywhere: macOS has no
+   --  /bin/true at all -- true lives in /usr/bin there -- so the path is probed
+   --  rather than assumed.
+   function No_Op_Executable return String;
+
    --  True when the filesystem under Root treats "A.txt" and "a.txt" as the same
    --  file, as macOS does by default. Fixtures that rely on both existing at once
    --  cannot be built there, and must say so rather than quietly measure the

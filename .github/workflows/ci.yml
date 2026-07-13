@@ -141,6 +141,15 @@ jobs:
           # The binary is tests.exe on Windows, and bash will not find it under
           # the Unix name.
           if [ -f ./bin/tests.exe ]; then
+            # A missing DLL makes Windows refuse to start the process, and bash
+            # reports that as a plain "not found" (exit 127) with no hint as to
+            # which library is absent. Put the mingw runtime on PATH and name any
+            # unresolved import, so a load failure says what it is.
+            export PATH="/c/msys64/mingw64/bin:$PATH"
+            if ldd ./bin/tests.exe | grep -i 'not found'; then
+              echo "::error::the test binary has unresolved DLL imports (listed above)"
+              exit 1
+            fi
             ./bin/tests.exe
           else
             ./bin/tests

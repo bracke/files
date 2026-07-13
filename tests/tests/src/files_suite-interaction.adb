@@ -3716,37 +3716,56 @@ package body Files_Suite.Interaction is
       Found       : out Boolean;
       Result      : out Files.Interaction.Interaction_Result)
    is
-      Snapshot : constant Files.Rendering.View_Snapshot :=
-        Files.Rendering.Build_Snapshot (Model, Settings);
-      Frame    : constant Files.Rendering.Frame_Commands :=
-        Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
-      Layout   : constant Files.Rendering.Layout_Metrics :=
-        Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
-      Selector : constant Files.Rendering.Root_Selector_Layout :=
-        Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
-      Rows     : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
-      X, Y     : Natural := 0;
+      X, Y : Natural := 0;
    begin
       Found := False;
-      for Row of Rows loop
-         if Files.Model.Root_Path (Model, Positive (Row.Root_Index)) = Target_Path then
-            X := Row.X + Row.Width / 2;
-            Y := Row.Y + Row.Height / 2;
-            Found := True;
+
+      --  The selector lays out only the rows that fit, scrolling around the
+      --  selected one, so a root can exist and still be off screen. That never
+      --  happened on the Linux runner, whose root list is short; a Mac mounts
+      --  enough volumes to push the favourites out of view. Select the target
+      --  first -- which is what scrolls it in -- exactly as a user reaching for
+      --  an off-screen row would, and only then lay the frame out and click it.
+      for Index in 1 .. Files.Model.Root_Count (Model) loop
+         if Files.Model.Root_Path (Model, Index) = Target_Path then
+            Files.Model.Set_Root_Selected_Index (Model, Index);
+            exit;
          end if;
       end loop;
-      if not Found then
-         Result := (others => <>);
-         return;
-      end if;
+
       declare
-         Action : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Frame    : constant Files.Rendering.Frame_Commands :=
+           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+         Selector : constant Files.Rendering.Root_Selector_Layout :=
+           Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line);
+         Rows     : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
       begin
-         Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+         for Row of Rows loop
+            if Files.Model.Root_Path (Model, Positive (Row.Root_Index)) = Target_Path then
+               X := Row.X + Row.Width / 2;
+               Y := Row.Y + Row.Height / 2;
+               Found := True;
+            end if;
+         end loop;
+
+         if not Found then
+            Result := (others => <>);
+            return;
+         end if;
+
+         declare
+            Action : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+         begin
+            Files.Interaction.Apply_Input_Action
+              (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+         end;
       end;
    end Click_Root_Row;
 

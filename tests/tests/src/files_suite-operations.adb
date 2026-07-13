@@ -1326,7 +1326,7 @@ package body Files_Suite.Operations is
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain+control",
-         Files.Settings.Make_Action ("/bin/true", Arguments));
+         Files.Settings.Make_Action (No_Op_Executable, Arguments));
       Modifiers (Guikit.Input.Control_Key) := True;
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Set_Error (Model, "error.open_action.missing");
@@ -1335,8 +1335,8 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Success, "file open action can be prepared without spawn");
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "prepared action reports selected file path");
       Assert (Files.Model.Last_Error_Key (Model) = "", "prepared action clears stale error state");
-      Assert (To_String (Result.Action.Executable) = "/bin/true", "prepared action uses configured executable");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "prepared result exposes executable text");
+      Assert (To_String (Result.Action.Executable) = No_Op_Executable, "prepared action uses configured executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "prepared result exposes executable text");
       Assert (Result.Action_Arguments = 3, "prepared result exposes argument count");
       Assert (not Result.Execution_Attempted, "prepared action does not execute");
       Assert (not Result.Action.Use_Shell, "prepared action preserves non-shell execution");
@@ -1349,8 +1349,8 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Action_Executed, "file open executes an action");
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "file open returns selected file path");
       Assert (Files.Model.Last_Error_Key (Model) = "", "executed open action clears stale error state");
-      Assert (To_String (Result.Action.Executable) = "/bin/true", "executed action uses configured executable");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "executed result exposes executable text");
+      Assert (To_String (Result.Action.Executable) = No_Op_Executable, "executed action uses configured executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "executed result exposes executable text");
       Assert (Result.Action_Arguments = 3, "executed result exposes argument count");
       Assert (Result.Execution_Attempted, "executed result records process attempt");
       Assert (Result.Executable_Found, "executed result records executable discovery");
@@ -1366,7 +1366,7 @@ package body Files_Suite.Operations is
          Assert
            (Lifecycle.State = Files.Operations.Open_Action_Completed,
             "open-action lifecycle records completed action");
-         Assert (To_String (Lifecycle.Executable) = "/bin/true", "lifecycle records executable");
+         Assert (To_String (Lifecycle.Executable) = No_Op_Executable, "lifecycle records executable");
          Assert (Lifecycle.Argument_Count = 3, "lifecycle records argument count");
          Assert (Lifecycle.Exit_Status_Known, "lifecycle records known exit status");
          Assert (Lifecycle.Exit_Status = 0, "lifecycle records successful process status");
@@ -1375,10 +1375,10 @@ package body Files_Suite.Operations is
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
+         Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Action_Executed, "zero-argument open action executes");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "zero-argument action exposes executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "zero-argument action exposes executable");
       Assert (Result.Action_Arguments = 0, "zero-argument action exposes empty argument vector");
       Assert (Result.Execution_Attempted, "zero-argument action records process attempt");
       Assert (Result.Executable_Found, "zero-argument action records executable discovery");
@@ -1395,7 +1395,7 @@ package body Files_Suite.Operations is
         (To_String (Result.Path) = Join (Root, "Alpha.txt"),
          "multi-file open preparation reports first selected path");
       Assert
-        (To_String (Result.Action_Executable) = "/bin/true",
+        (To_String (Result.Action_Executable) = No_Op_Executable,
          "multi-file open preparation exposes first executable");
       Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open preparation clears stale error state");
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
@@ -1403,7 +1403,7 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "multi-file open reports first selected path");
       Assert (Result.Execution_Attempted, "multi-file open records process attempts");
       Assert (Result.Executable_Found, "multi-file open records executable discovery");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "multi-file open exposes first action executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "multi-file open exposes first action executable");
       Assert (Result.Action_Arguments = 3, "multi-file open exposes first action argument count");
       Assert
         (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
@@ -1508,7 +1508,7 @@ package body Files_Suite.Operations is
          Files.Settings.Add_Open_Action
            (Detached_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Settings.Add_Open_Action
            (Detached_Settings,
             "text/markdown",
@@ -1523,7 +1523,7 @@ package body Files_Suite.Operations is
            (To_String (Detached_Result.Path) = Join (Root, "Alpha.txt"),
             "multi-file detached open reports first selected path");
          Assert
-           (To_String (Detached_Result.Action_Executable) = "/bin/true",
+           (To_String (Detached_Result.Action_Executable) = No_Op_Executable,
             "multi-file detached open exposes first action executable");
          Assert
            (Detached_Result.Execution_Attempted,
@@ -1783,7 +1783,7 @@ package body Files_Suite.Operations is
          Files.Settings.Add_Open_Action
            (Settings,
             "text/unsafe-argument",
-            Files.Settings.Make_Action ("/bin/true", Unsafe_Arguments));
+            Files.Settings.Make_Action (No_Op_Executable, Unsafe_Arguments));
          Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-argument", Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
@@ -1810,7 +1810,7 @@ package body Files_Suite.Operations is
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain+control",
-         Files.Settings.Make_Action ("/bin/true", Arguments));
+         Files.Settings.Make_Action (No_Op_Executable, Arguments));
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Assert (Result.Status = Files.Operations.Operation_Success, "modifier-specific action can be prepared");
       Assert

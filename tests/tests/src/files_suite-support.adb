@@ -298,6 +298,18 @@ package body Files_Suite.Support is
       return To_String (Cached_Root);
    end Root;
 
+   function No_Op_Executable return String is
+   begin
+      --  Linux keeps true in /bin; macOS only in /usr/bin.
+      if Ada.Directories.Exists ("/bin/true") then
+         return "/bin/true";
+      elsif Ada.Directories.Exists ("/usr/bin/true") then
+         return "/usr/bin/true";
+      else
+         return "/bin/true";
+      end if;
+   end No_Op_Executable;
+
    Case_Probe_Done   : Boolean := False;
    Case_Probe_Result : Boolean := False;
 
