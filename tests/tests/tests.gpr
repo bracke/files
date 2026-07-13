@@ -16,9 +16,25 @@ project Tests is
       for Switches ("Ada") use ("-Es"); --  Symbolic traceback
    end Binder;
 
+   --  Mirrors the Linker package in files.gpr: the suite links the application's
+   --  own code, so it needs the same native libraries. Keep the two in step.
    package Linker is
-      for Default_Switches ("Ada") use
-        ("-lvulkan", "-lz", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
+      case Tests_Config.Alire_Host_OS is
+         when "macos" =>
+            for Default_Switches ("Ada") use
+              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
+               "-framework", "CoreFoundation", "-framework", "CoreServices",
+               "-framework", "Foundation");
+         when "windows" =>
+            --  The Vulkan loader is named vulkan-1 on Windows (vulkan-1.dll),
+            --  not vulkan.
+            for Default_Switches ("Ada") use
+              ("-lvulkan-1", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
+               "-lshell32", "-lole32", "-lkernel32");
+         when others =>
+            for Default_Switches ("Ada") use
+              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
+      end case;
    end Linker;
 
    package Builder is
