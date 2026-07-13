@@ -1961,7 +1961,7 @@ package body Files_Suite.Operations is
         (To_String (Mutation.Error_Key) = "error.name.invalid",
          "direct invalid-name create reports invalid-name diagnostic");
       Assert
-        (not Ada.Directories.Exists (Join (Root, "bad:name.txt")),
+        (not Path_Exists (Join (Root, "bad:name.txt")),
          "direct invalid-name create writes no file");
       Mutation := Files.File_System.Create_Empty_File (Direct_Path);
       Assert (Mutation.Success, "direct create mutation succeeds");
@@ -2582,7 +2582,7 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects path separator names");
       Assert (To_String (Result.Error_Key) = "error.name.invalid", "create invalid name reports error key");
       Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "create invalid name records error");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad")), "invalid create does not create directories");
+      Assert (not Path_Exists (Join (Root, "bad")), "invalid create does not create directories");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid create keeps temporary item active");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid create keeps rename active");
 
@@ -2590,19 +2590,19 @@ package body Files_Suite.Operations is
       Files.Model.Begin_Create_File (Model, "bad\name.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects backslash names");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad\name.txt")), "invalid backslash create writes no file");
+      Assert (not Path_Exists (Join (Root, "bad\name.txt")), "invalid backslash create writes no file");
 
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "bad:name.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects Windows-reserved names");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad:name.txt")), "invalid reserved create writes no file");
+      Assert (not Path_Exists (Join (Root, "bad:name.txt")), "invalid reserved create writes no file");
 
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "bad*name.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects wildcard names");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad*name.txt")), "invalid wildcard create writes no file");
+      Assert (not Path_Exists (Join (Root, "bad*name.txt")), "invalid wildcard create writes no file");
 
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "trailing-dot.txt.");
@@ -2728,7 +2728,7 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Error_Key) = "error.name.invalid", "rename invalid name reports error key");
       Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "rename invalid name records error");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "invalid rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad")), "invalid rename does not create directories");
+      Assert (not Path_Exists (Join (Root, "bad")), "invalid rename does not create directories");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid rename keeps rename active");
       Assert (Files.Model.Selected_Name (Model) = "old.txt", "invalid rename keeps selected item");
 
@@ -2736,19 +2736,19 @@ package body Files_Suite.Operations is
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects backslash names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "backslash rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad\name.txt")), "invalid backslash rename writes no file");
+      Assert (not Path_Exists (Join (Root, "bad\name.txt")), "invalid backslash rename writes no file");
 
       Files.Model.Set_Rename_Text (Model, "bad:name.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects Windows-reserved names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "reserved-character rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad:name.txt")), "invalid reserved rename writes no file");
+      Assert (not Path_Exists (Join (Root, "bad:name.txt")), "invalid reserved rename writes no file");
 
       Files.Model.Set_Rename_Text (Model, "bad*name.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects wildcard names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "wildcard rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad*name.txt")), "invalid wildcard rename writes no file");
+      Assert (not Path_Exists (Join (Root, "bad*name.txt")), "invalid wildcard rename writes no file");
 
       Files.Model.Set_Rename_Text (Model, "renamed.");
       Result := Files.Operations.Commit_Rename (Model, Settings);
@@ -2929,7 +2929,7 @@ package body Files_Suite.Operations is
          "direct invalid-name rename reports invalid-name diagnostic");
       Assert (Ada.Directories.Exists (Direct_Source), "direct invalid-name rename leaves source in place");
       Assert
-        (not Ada.Directories.Exists (Join (Root, "bad:name.txt")),
+        (not Path_Exists (Join (Root, "bad:name.txt")),
          "direct invalid-name rename writes no target");
       Mutation := Files.File_System.Rename_Item (Direct_Source, Direct_Target);
       Assert (Mutation.Success, "direct rename mutation succeeds");

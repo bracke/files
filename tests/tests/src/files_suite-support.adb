@@ -321,6 +321,14 @@ package body Files_Suite.Support is
       end if;
    end Failing_Executable;
 
+   function Path_Exists (Path : String) return Boolean is
+   begin
+      return Ada.Directories.Exists (Path);
+   exception
+      when others =>
+         return False;
+   end Path_Exists;
+
    Case_Probe_Done   : Boolean := False;
    Case_Probe_Result : Boolean := False;
 

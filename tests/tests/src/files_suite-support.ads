@@ -24,6 +24,15 @@ package Files_Suite.Support is
    --  rather than assumed.
    function No_Op_Executable return String;
 
+   --  Does this path exist? False, rather than an exception, for a name the host
+   --  cannot even represent.
+   --
+   --  Ada.Directories.Exists raises Name_Error on Windows for a name containing
+   --  ':' or '\\', which are ordinary characters on POSIX. Tests that check an
+   --  invalid name was REFUSED then ask whether the file exists -- and a path the
+   --  operating system cannot name certainly does not.
+   function Path_Exists (Path : String) return Boolean;
+
    --  A real executable that fails, for tests that check a non-zero exit is not
    --  surfaced. Like true, false lives in /usr/bin on macOS, not /bin.
    function Failing_Executable return String;
