@@ -310,6 +310,17 @@ package body Files_Suite.Support is
       end if;
    end No_Op_Executable;
 
+   function Failing_Executable return String is
+   begin
+      if Ada.Directories.Exists ("/bin/false") then
+         return "/bin/false";
+      elsif Ada.Directories.Exists ("/usr/bin/false") then
+         return "/usr/bin/false";
+      else
+         return "/bin/false";
+      end if;
+   end Failing_Executable;
+
    Case_Probe_Done   : Boolean := False;
    Case_Probe_Result : Boolean := False;
 

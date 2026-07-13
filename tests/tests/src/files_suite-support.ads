@@ -24,6 +24,10 @@ package Files_Suite.Support is
    --  rather than assumed.
    function No_Op_Executable return String;
 
+   --  A real executable that fails, for tests that check a non-zero exit is not
+   --  surfaced. Like true, false lives in /usr/bin on macOS, not /bin.
+   function Failing_Executable return String;
+
    --  True when the filesystem under Root treats "A.txt" and "a.txt" as the same
    --  file, as macOS does by default. Fixtures that rely on both existing at once
    --  cannot be built there, and must say so rather than quietly measure the

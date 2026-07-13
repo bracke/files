@@ -14,11 +14,11 @@ name: CI
 # under Xvfb with the Mesa lavapipe software ICD, structurally analysing the
 # read-back framebuffer (exit 77 = skipped, non-fatal).
 #
-# NOTE: the Linux job is validated and green. Windows has now run on a real
-# runner: every Ada unit compiles and only the link step needed native
-# libraries (see the Windows setup step). macOS has still never executed --
-# its jobs sat unscheduled on the retired macos-13 image -- so the macOS
-# dependency setup and FILES_FONT_PATH value below remain unverified.
+# All three jobs now build, link and run the suite on real runners. Getting
+# there needed a platform abstraction for anything Linux-only that portable code
+# had been calling directly (inotify, symlink), a real macOS metadata backend,
+# and a suite that no longer assumes /tmp, a case-sensitive filesystem, /bin/true
+# or a short list of mounted volumes.
 
 on:
   push:
@@ -95,7 +95,8 @@ jobs:
           pacman -Sy --noconfirm --needed \
             mingw-w64-x86_64-vulkan-loader \
             mingw-w64-x86_64-glib2 \
-            mingw-w64-x86_64-gdk-pixbuf2
+            mingw-w64-x86_64-gdk-pixbuf2 \
+            mingw-w64-x86_64-glfw
 
           # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
           # PATH for the test binary and the live app to start.

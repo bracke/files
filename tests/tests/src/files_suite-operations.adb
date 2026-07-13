@@ -1512,7 +1512,7 @@ package body Files_Suite.Operations is
          Files.Settings.Add_Open_Action
            (Detached_Settings,
             "text/markdown",
-            Files.Settings.Make_Action ("/bin/false", Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Make_Action (Failing_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Model.Select_Visible (Detached_Model, 1);
          Files.Model.Toggle_Visible_Selection (Detached_Model, 3);
          Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);
@@ -1723,7 +1723,7 @@ package body Files_Suite.Operations is
         (Files.Model.Last_Error_Key (Model) = "",
          "detached explicit shell builtin clears stale error state");
 
-      Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action ("/bin/false", Arguments));
+      Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action (Failing_Executable, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
