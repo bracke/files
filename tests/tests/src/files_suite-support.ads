@@ -18,24 +18,6 @@ package Files_Suite.Support is
    --  body before that body is elaborated.
    function Root return String;
 
-   --  A real executable that succeeds and does nothing, for tests that need an
-   --  action to actually run. It is NOT /bin/true everywhere: macOS has no
-   --  /bin/true at all -- true lives in /usr/bin there -- so the path is probed
-   --  rather than assumed.
-   --  May this suite let the application launch a child process?
-   --
-   --  False on Windows, and NOT because the platform cannot: it is an open
-   --  defect. The moment Files.Operations actually spawns a program there -- any
-   --  program, including the Noop this suite ships -- the run stops finishing and
-   --  the CI runner eventually kills it. With no executable to launch the spawn
-   --  failed instantly and the hang never appeared, which is why it stayed hidden
-   --  until Windows got far enough to reach these tests.
-   --
-   --  The action-preparation half is still asserted everywhere. Only the launch
-   --  itself is held back, so the day this is fixed the coverage comes straight
-   --  back by deleting one guard.
-   function Can_Launch_Child_Processes return Boolean;
-
    --  Does a mode bit decide what runs here? On POSIX, yes: chmod +x makes a file
    --  executable whatever it is called. Windows decides from the extension alone
    --  -- every ordinary file carries FILE_EXECUTE in its DACL, so the bit says
@@ -47,6 +29,10 @@ package Files_Suite.Support is
    --  name it .bat.
    function Honours_Executable_Bit return Boolean;
 
+   --  A real executable that succeeds and does nothing, for tests that need an
+   --  action to actually run. It is NOT /bin/true everywhere: macOS has no
+   --  /bin/true at all -- true lives in /usr/bin there -- so the path is probed
+   --  rather than assumed.
    function No_Op_Executable return String;
 
    --  Does this path exist? False, rather than an exception, for a name the host

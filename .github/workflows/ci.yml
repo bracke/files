@@ -30,6 +30,9 @@ jobs:
   build-and-test:
     name: build-and-test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # A hung child process used to park the suite until Actions killed the job six
+    # hours later. Fail in minutes instead: nothing here legitimately takes 45.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:

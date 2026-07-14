@@ -1411,7 +1411,7 @@ package body Files_Suite.Operations is
       Assert (Policy.Checks_Executable_Before_Spawn, "open-action policy checks executables before spawn");
       Assert (Policy.Tracks_Execution_Attempt, "open-action policy tracks execution attempts");
       Assert (Policy.Tracks_Exit_Status, "open-action policy tracks exit status");
-      Assert (not Policy.Runs_Asynchronously, "open-action policy records synchronous execution limit");
+      Assert (Policy.Runs_Asynchronously, "open-action policy records asynchronous detached launches");
       Assert (not Policy.Supports_Cancellation, "open-action policy records cancellation limit");
       Assert
         (Policy.Rejects_Unsafe_Placeholders,
@@ -1474,13 +1474,6 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"), "path placeholder expands");
       Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
 
-      if not Can_Launch_Child_Processes then
-         --  See Support.Can_Launch_Child_Processes: launching hangs the suite
-         --  on Windows. Everything above -- the whole preparation path -- has
-         --  been asserted; only the launch is held back.
-         return;
-      end if;
-
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
       Assert (Result.Status = Files.Operations.Operation_Action_Executed,
               "file open executes an action; got "
@@ -1502,13 +1495,14 @@ package body Files_Suite.Operations is
          Lifecycle : constant Files.Operations.Open_Action_Lifecycle :=
            Files.Operations.Open_Action_Lifecycle_Of (Result);
       begin
+         --  Open_Selected launches detached, so the action is spawned and let go.
+         --  "Completed" would claim we watched it finish, and we did not.
          Assert
-           (Lifecycle.State = Files.Operations.Open_Action_Completed,
-            "open-action lifecycle records completed action");
+           (Lifecycle.State = Files.Operations.Open_Action_Spawned,
+            "open-action lifecycle records a spawned action");
          Assert (To_String (Lifecycle.Executable) = No_Op_Executable, "lifecycle records executable");
          Assert (Lifecycle.Argument_Count = 3, "lifecycle records argument count");
-         Assert (Lifecycle.Exit_Status_Known, "lifecycle records known exit status");
-         Assert (Lifecycle.Exit_Status = 0, "lifecycle records successful process status");
+         Assert (not Lifecycle.Exit_Status_Known, "lifecycle records no exit status for a detached launch");
       end;
 
       Files.Settings.Add_Open_Action
@@ -1521,8 +1515,7 @@ package body Files_Suite.Operations is
       Assert (Result.Action_Arguments = 0, "zero-argument action exposes empty argument vector");
       Assert (Result.Execution_Attempted, "zero-argument action records process attempt");
       Assert (Result.Executable_Found, "zero-argument action records executable discovery");
-      Assert (Result.Exit_Status_Known, "zero-argument action records exit status");
-      Assert (Result.Exit_Status = 0, "zero-argument action records successful exit");
+      Assert (not Result.Exit_Status_Known, "zero-argument detached action records no exit status");
 
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
@@ -1549,8 +1542,8 @@ package body Files_Suite.Operations is
          "multi-file open exposes first expanded action path");
       Assert
         (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
-         Files.Operations.Open_Action_Completed,
-         "multi-file open lifecycle records completed action");
+         Files.Operations.Open_Action_Spawned,
+         "multi-file open lifecycle records a spawned action");
       Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open clears stale error state");
       Files.Model.Select_Visible (Model, 1);
 
@@ -1670,12 +1663,12 @@ package body Files_Suite.Operations is
          Assert
            (Detached_Result.Executable_Found,
             "multi-file detached open records executable discovery");
+         --  There is no exit status to record. The launch does not wait, so what
+         --  used to be asserted here was the wrapper shell's zero -- a number that
+         --  said nothing whatever about the application.
          Assert
-           (Detached_Result.Exit_Status_Known,
-            "multi-file detached open records exit status");
-         Assert
-           (Detached_Result.Exit_Status = 0,
-            "multi-file detached open records the wrapper shell zero exit");
+           (not Detached_Result.Exit_Status_Known,
+            "a detached open has no exit status to report");
          Assert
            (Files.Model.Last_Error_Key (Detached_Model) = "",
             "multi-file detached open clears stale error state");
@@ -1816,8 +1809,22 @@ package body Files_Suite.Operations is
       Assert (Result.Action.Use_Shell, "explicit shell action remains explicit after execution");
       Assert (Result.Action_Uses_Shell, "executed shell result exposes explicit shell flag");
       Assert (Result.Execution_Attempted, "executed shell action records process attempt");
-      Assert (Result.Exit_Status_Known, "executed shell action records exit status");
-      Assert (Result.Exit_Status = 0, "quoted shell action exits successfully");
+      Assert (not Result.Exit_Status_Known, "a detached shell action reports no exit status");
+
+      --  The quoting is the point of this action -- "literal; exit 9" must stay one
+      --  argument, or the shell would run "exit 9" as a second command. An exit code
+      --  is the only way to see that, and a detached launch has none, so ask for the
+      --  same action synchronously: it goes through the same quoting on the way in.
+      declare
+         Exit_Status : Integer := -1;
+         Ran         : constant Boolean :=
+           Files.Operations.Execute_Open_Action (Result.Action, Exit_Status);
+      begin
+         Assert (Ran, "the quoted shell action runs to completion when awaited");
+         Assert
+           (Exit_Status = 0,
+            "the semicolon stays inside one argument rather than running as a command");
+      end;
 
       Files.Settings.Add_Open_Action
         (Settings,
@@ -1830,8 +1837,7 @@ package body Files_Suite.Operations is
       Assert (Result.Action.Use_Shell, "shell builtin action preserves explicit shell execution");
       Assert (Result.Execution_Attempted, "shell builtin action records shell execution attempt");
       Assert (Result.Executable_Found, "shell builtin action records shell discovery");
-      Assert (Result.Exit_Status_Known, "shell builtin action records exit status");
-      Assert (Result.Exit_Status = 0, "shell builtin action exits successfully");
+      Assert (not Result.Exit_Status_Known, "a detached shell builtin reports no exit status");
 
       declare
          Exit_Arguments : Files.Settings.String_Vectors.Vector;
@@ -1842,22 +1848,22 @@ package body Files_Suite.Operations is
             "text/plain",
             Files.Settings.Make_Action ("exit", Exit_Arguments, True));
       end;
-      --  Open actions are launched detached through a backgrounding shell
-      --  wrapper, so a launched command's own nonzero exit code is no longer
-      --  surfaced: the wrapper shell itself exits zero after backgrounding.
+      --  "exit 7" is launched and let go, so its non-zero exit code is not surfaced.
+      --  That was true before as well, but for a worse reason: the backgrounding
+      --  wrapper shell exited zero and we reported *that*. Now nothing is reported.
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
          "detached explicit shell builtin launches fire-and-forget");
       Assert
         (Result.Execution_Attempted,
-         "detached explicit shell builtin runs through the wrapper shell");
+         "detached explicit shell builtin records a launch");
       Assert
         (Result.Executable_Found,
          "detached explicit shell builtin records successful shell lookup");
       Assert
-        (Result.Exit_Status = 0,
-         "detached explicit shell builtin records the wrapper shell zero exit");
+        (not Result.Exit_Status_Known,
+         "a detached launch does not surface the command's own exit code");
       Assert
         (Files.Model.Last_Error_Key (Model) = "",
          "detached explicit shell builtin clears stale error state");
@@ -1869,14 +1875,18 @@ package body Files_Suite.Operations is
          "detached open action launches without surfacing app exit codes");
       Assert (Result.Execution_Attempted, "detached process result records execution attempt");
       Assert (Result.Executable_Found, "detached process result records executable discovery");
-      Assert (Result.Exit_Status_Known, "detached process result records exit status");
-      Assert (Result.Exit_Status = 0, "detached process result records the wrapper shell zero exit");
+      --  This action's executable fails, and that is the point: a detached launch is
+      --  reported as launched, and the application's own exit code is never seen.
+      --  What used to be asserted here -- a known, zero exit status -- was the
+      --  wrapper shell's, which succeeded in backgrounding a program that then went
+      --  on to fail. Nothing waits for it now, so there is no status at all.
+      Assert (not Result.Exit_Status_Known, "a detached process reports no exit status");
       Assert
-        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Completed,
-         "detached process lifecycle records completed state");
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Spawned,
+         "detached process lifecycle records it as spawned, not completed");
       Assert
-        (Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
-         "detached process lifecycle exposes known exit status");
+        (not Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
+         "detached process lifecycle exposes no exit status");
       Assert
         (Files.Model.Last_Error_Key (Model) = "",
          "detached open action clears localized error key");
