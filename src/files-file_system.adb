@@ -2284,7 +2284,14 @@ package body Files.File_System is
             Safe_Close (File);
       end Append_Proc_Mounts;
    begin
-      Append_If_Directory ("/", Root_Filesystem);
+      --  "/" is the filesystem root only where it names one. On Windows it is
+      --  drive-relative -- it resolves to the root of whatever drive the process
+      --  happens to sit on -- so offering it here put a phantom "Filesystem" root
+      --  at the top of the tree, ahead of, and duplicating, a real drive letter.
+      --  The drive loop below is what enumerates roots there.
+      if Files_Config.Alire_Host_OS /= "windows" then
+         Append_If_Directory ("/", Root_Filesystem);
+      end if;
       Append_Proc_Mounts;
       if Home /= "" then
          Append_If_Directory (Home, Root_Home);

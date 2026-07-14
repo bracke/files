@@ -358,6 +358,9 @@ package body Files_Suite.Model is
         (Files.File_System.Extra_Info_Token
            (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
       Run_Path  : constant String := Join (Root, "run.sh");
+      --  What "executable" means is host-specific, so cover both meanings: the
+      --  mode bit on POSIX, the extension on Windows. See Support.Honours_Executable_Bit.
+      Bat_Path  : constant String := Join (Root, "run.bat");
       Text_Path : constant String := Join (Root, "plain.txt");
       Long_Text_Path : constant String := Join (Root, "long-line.txt");
       Utf8_Path : constant String := Join (Root, "utf8.txt");
@@ -428,6 +431,7 @@ package body Files_Suite.Model is
       Ada.Directories.Create_Path (Join (Root, "folder"));
       Write_File (Join (Join (Root, "folder"), "inside.txt"));
       Write_File (Run_Path, "echo run");
+      Write_File (Bat_Path, "@echo run");
       Write_File (Text_Path, "plain");
       Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
       Write_Binary_File (Utf8_Path, "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
@@ -480,7 +484,15 @@ package body Files_Suite.Model is
                Permissions : constant String := To_String (Item.Permissions);
             begin
                Found_Run := True;
-               Assert (Item.Kind = Files.Types.Executable_Item, "executable metadata affects item kind");
+               if Files_Suite.Support.Honours_Executable_Bit then
+                  Assert
+                    (Item.Kind = Files.Types.Executable_Item,
+                     "the executable bit affects item kind");
+               else
+                  Assert
+                    (Item.Kind /= Files.Types.Executable_Item,
+                     "a chmod +x .sh is not an executable on a host that runs by extension");
+               end if;
                Assert (Item.Modified_Available, "modified timestamp is available");
                Assert (Item.Size_Available, "file size is available");
                if Item.Creation_Available then
@@ -493,8 +505,20 @@ package body Files_Suite.Model is
                      "missing creation timestamp keeps deterministic sentinel");
                end if;
                Assert (Permissions'Length = 3, "permission metadata has stable rwx shape");
-               Assert (Permissions (3) = 'x', "executable permission is captured");
+               if Files_Suite.Support.Honours_Executable_Bit then
+                  Assert (Permissions (3) = 'x', "executable permission is captured");
+               end if;
             end;
+         elsif To_String (Item.Name) = "run.bat" then
+            --  The other meaning of executable: no bit was ever set on this file.
+            if not Files_Suite.Support.Honours_Executable_Bit then
+               Assert
+                 (Item.Kind = Files.Types.Executable_Item,
+                  "a .bat is an executable on a host that runs by extension");
+               Assert
+                 (To_String (Item.Permissions) (3) = 'x',
+                  "and it is reported as executable in its permissions");
+            end if;
          elsif To_String (Item.Name) = "plain.txt" then
             Assert (To_String (Item.Permissions)'Length = 3, "regular file permissions are captured");
          elsif To_String (Item.Name) = "link-to-plain.adb" then

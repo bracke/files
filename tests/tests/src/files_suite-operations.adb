@@ -579,27 +579,53 @@ package body Files_Suite.Operations is
          Assert
            (not Native_Result.Requires_User_Consent,
             "native trash result records no in-app consent requirement");
-         Assert
-           (To_String (Native_Result.Error_Key) = "error.trash.native_unavailable",
-            "native trash result reports native-unavailable diagnostic");
-         Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
-         Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
-         Assert
-           (not Native_Execution.Native_Binding_Available,
-            "native trash execution reports unavailable binding");
-         Assert
-           (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
-            "native trash execution preserves binding status");
+         --  An evaluation carries a diagnostic only when it has something to
+         --  report. On Windows the adapter is right here and working, so there is
+         --  nothing to say; everywhere else the "unavailable" key IS the finding.
          if Files.Platform.Current_API_Profile.Adapter
-              /= Files.File_System.Native_Adapter_Windows
+              = Files.File_System.Native_Adapter_Windows
          then
+            Assert
+              (To_String (Native_Result.Error_Key) = "",
+               "on Windows a supported adapter evaluates without a diagnostic; key was "
+               & To_String (Native_Result.Error_Key));
+
+            --  Executing against a path that does not exist: the adapter is real,
+            --  so it genuinely calls the shell and the shell genuinely refuses.
+            --  That is a failed attempt, not an unsupported one -- and the two
+            --  must not be reported the same way, or a broken Recycle Bin would
+            --  look exactly like a missing one.
+            Assert (Native_Execution.Supported, "on Windows the adapter is supported");
+            Assert (Native_Execution.Attempted, "on Windows the shell is actually called");
+            Assert
+              (not Native_Execution.Completed,
+               "and it refuses a path that does not exist");
+            Assert
+              (Native_Execution.Native_Binding_Available,
+               "on Windows the binding stays available across execution");
+            Assert
+              (Native_Execution.Native_Binding_Status
+                 = Files.File_System.Native_API_Binding_Available,
+               "on Windows execution preserves binding status");
+            Assert
+              (To_String (Native_Execution.Error_Key) = "error.trash.failed",
+               "a refused move is reported as a failure, not as an absent adapter; key was "
+               & To_String (Native_Execution.Error_Key));
+         else
+            Assert
+              (To_String (Native_Result.Error_Key) = "error.trash.native_unavailable",
+               "off Windows the evaluation reports native-unavailable");
+            Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
+            Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
+            Assert
+              (not Native_Execution.Native_Binding_Available,
+               "native trash execution reports unavailable binding");
+            Assert
+              (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
+               "native trash execution preserves binding status");
             Assert
               (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
                "off Windows, native trash execution reports native-unavailable");
-         else
-            Assert
-              (not Native_Execution.Completed,
-               "on Windows the shell still refuses a path that does not exist");
          end if;
       end;
       --  This used a path that did not exist, because the preflight refused a

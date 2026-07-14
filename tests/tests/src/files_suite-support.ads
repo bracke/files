@@ -36,6 +36,17 @@ package Files_Suite.Support is
    --  back by deleting one guard.
    function Can_Launch_Child_Processes return Boolean;
 
+   --  Does a mode bit decide what runs here? On POSIX, yes: chmod +x makes a file
+   --  executable whatever it is called. Windows decides from the extension alone
+   --  -- every ordinary file carries FILE_EXECUTE in its DACL, so the bit says
+   --  nothing -- and GNAT.OS_Lib.Set_Executable is a no-op there.
+   --
+   --  So "run.sh, chmod +x" is an executable on POSIX and a plain file on Windows,
+   --  and that is the product being right on both, not a gap. Tests that make a
+   --  file executable branch on this; the ones that want an executable on Windows
+   --  name it .bat.
+   function Honours_Executable_Bit return Boolean;
+
    function No_Op_Executable return String;
 
    --  Does this path exist? False, rather than an exception, for a name the host

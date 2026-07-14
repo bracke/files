@@ -3669,7 +3669,10 @@ package body Files_Suite.Interaction is
          Assert
            (Expected.Status = Files.File_System.Path_Valid
               and then Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
-            "clicking a tree label navigates to that directory");
+            "clicking a tree label navigates to that directory; node 1 was """
+            & Target & """, which normalized to """
+            & To_String (Expected.Directory_Path) & """, and we landed on """
+            & Files.Model.Current_Path (Model) & """");
       end;
 
       Files.Interaction.Execute_Command

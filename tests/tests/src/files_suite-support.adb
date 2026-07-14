@@ -331,6 +331,12 @@ package body Files_Suite.Support is
                /= Files.File_System.Native_Adapter_Windows;
    end Can_Launch_Child_Processes;
 
+   function Honours_Executable_Bit return Boolean is
+   begin
+      return Files.Platform.Current_API_Profile.Adapter
+               /= Files.File_System.Native_Adapter_Windows;
+   end Honours_Executable_Bit;
+
    function No_Op_Executable return String is
    begin
       return Companion_Program ("noop");
