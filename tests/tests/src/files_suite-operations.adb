@@ -5996,15 +5996,21 @@ package body Files_Suite.Operations is
       Src_Dir  : constant String := Join (Root, "conflict-src");
       Dest_Dir : constant String := Join (Root, "conflict-dest");
 
-      --  Read a file, dropping a single trailing newline added by Write_File so
-      --  the payload compares cleanly against the written text.
+      --  Read a file, dropping the line terminator Write_File leaves behind so the
+      --  payload compares cleanly against the written text. That terminator is
+      --  CRLF on Windows, not LF, and dropping only the LF left a stray CR that
+      --  made every content comparison fail there.
       function Read (Path : String) return String is
-         Raw : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Raw  : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Last : Natural := Raw'Last;
       begin
-         if Raw'Length > 0 and then Raw (Raw'Last) = ASCII.LF then
-            return Raw (Raw'First .. Raw'Last - 1);
+         if Last >= Raw'First and then Raw (Last) = ASCII.LF then
+            Last := Last - 1;
          end if;
-         return Raw;
+         if Last >= Raw'First and then Raw (Last) = ASCII.CR then
+            Last := Last - 1;
+         end if;
+         return Raw (Raw'First .. Last);
       end Read;
 
       procedure Arm_Model
@@ -6294,13 +6300,18 @@ package body Files_Suite.Operations is
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;
 
+      --  The terminator Write_File leaves is CRLF on Windows, not LF.
       function Read (Path : String) return String is
-         Raw : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Raw  : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Last : Natural := Raw'Last;
       begin
-         if Raw'Length > 0 and then Raw (Raw'Last) = ASCII.LF then
-            return Raw (Raw'First .. Raw'Last - 1);
+         if Last >= Raw'First and then Raw (Last) = ASCII.LF then
+            Last := Last - 1;
          end if;
-         return Raw;
+         if Last >= Raw'First and then Raw (Last) = ASCII.CR then
+            Last := Last - 1;
+         end if;
+         return Raw (Raw'First .. Last);
       end Read;
 
       --  Reset the fixture and initialize the model on the destination directory

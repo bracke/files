@@ -416,6 +416,46 @@ package body Files.Platform.Metadata is
       end if;
    end Safe_Free;
 
+   function Runs_On_Windows (Path : String) return Boolean;
+
+   function Runs_On_Windows (Path : String) return Boolean is
+      --  Windows does not decide what runs from an ACL. Every ordinary file is
+      --  granted FILE_EXECUTE in its DACL, so folding that bit into the mode said
+      --  that everything is executable -- and the file manager duly classified a
+      --  .tar.gz as a program. What runs here is decided by the extension.
+      Runnable : constant array (1 .. 6) of access constant String :=
+        [new String'(".exe"), new String'(".com"), new String'(".bat"),
+         new String'(".cmd"), new String'(".ps1"), new String'(".msi")];
+   begin
+      for Suffix of Runnable loop
+         declare
+            Text : constant String := Suffix.all;
+         begin
+            if Path'Length >= Text'Length then
+               declare
+                  Tail : constant String :=
+                    Path (Path'Last - Text'Length + 1 .. Path'Last);
+                  Lower : String := Tail;
+               begin
+                  for Index in Lower'Range loop
+                     if Lower (Index) in 'A' .. 'Z' then
+                        Lower (Index) :=
+                          Character'Val
+                            (Character'Pos (Lower (Index)) + 32);
+                     end if;
+                  end loop;
+
+                  if Lower = Text then
+                     return True;
+                  end if;
+               end;
+            end if;
+         end;
+      end loop;
+
+      return False;
+   end Runs_On_Windows;
+
    function Rights_To_Triplet (Rights : C_DWord) return Natural;
 
    function Rights_To_Triplet (Rights : C_DWord) return Natural is
@@ -739,6 +779,23 @@ package body Files.Platform.Metadata is
             pragma Unreferenced (Freed);
          begin
             null;
+         end;
+      end if;
+
+      --  Strip the execute bits unless the file is one Windows would actually run.
+      if not Runs_On_Windows (Path) then
+         declare
+            Owner_Bits : constant Natural := (Mode / 64) mod 8;
+            Group_Bits : constant Natural := (Mode / 8) mod 8;
+            Other_Bits : constant Natural := Mode mod 8;
+
+            function Without_Execute (Triplet : Natural) return Natural is
+              (Triplet - (Triplet mod 2));
+         begin
+            Mode :=
+              Without_Execute (Owner_Bits) * 64
+              + Without_Execute (Group_Bits) * 8
+              + Without_Execute (Other_Bits);
          end;
       end if;
 
