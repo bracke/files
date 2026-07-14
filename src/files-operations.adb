@@ -12,6 +12,7 @@ with Files.Folder_Size;
 with Files.Fs;
 with Files.Launcher;
 with Files.Paste;
+with Files.Platform.Process;
 
 with Zlib;
 
@@ -212,6 +213,19 @@ package body Files.Operations is
       return Result;
    end Shell_Argument_Vector;
 
+   --  The whole command line cmd is to be handed, as a single raw string.
+   --
+   --  "/S /C" is the reliable form: with /S, cmd strips the first and last quote of
+   --  everything after it and runs the rest verbatim. So the already-quoted command
+   --  is wrapped in one more pair of quotes, which /S then removes -- leaving exactly
+   --  the line we built. Without /S, cmd applies a rule of its own: with more than
+   --  two quotes in the line it strips the first and the last, which cuts through the
+   --  middle of our quoting and leaves an argument's contents loose on the line.
+   function Shell_Raw_Command_Line (Action : Files.Settings.Open_Action) return String is
+   begin
+      return """" & Shell_Executable & """ /S /C """ & Shell_Command_Line (Action) & """";
+   end Shell_Raw_Command_Line;
+
    function Safe_Environment_Value (Name : String) return String is
    begin
       if Ada.Environment_Variables.Exists (Name) then
@@ -267,20 +281,23 @@ package body Files.Operations is
       --  problem -- and it reported the *shell's* exit code, which said nothing
       --  about the application. Files.Launcher starts the process directly.
       if Detach then
-         declare
-            Launched : constant Files.Settings.Open_Action :=
-              (if Action.Use_Shell
-               then Files.Settings.Make_Action
-                      (Shell_Executable,
-                       Shell_Argument_Vector (Shell_Command_Option, Shell_Command_Line (Action)))
-               else Action);
-         begin
-            if Action.Use_Shell and then Shell_Executable = "" then
+         if Action.Use_Shell then
+            if Shell_Executable = "" then
                return False;
             end if;
 
-            return Files.Launcher.Launch (Launched);
-         end;
+            if Files.Platform.Process.Supports_Raw_Command_Line then
+               return Files.Platform.Process.Run_Command_Line
+                        (Shell_Raw_Command_Line (Action), Wait => False, Exit_Status => Exit_Status);
+            end if;
+
+            return Files.Launcher.Launch
+                     (Files.Settings.Make_Action
+                        (Shell_Executable,
+                         Shell_Argument_Vector (Shell_Command_Option, Shell_Command_Line (Action))));
+         end if;
+
+         return Files.Launcher.Launch (Action);
       end if;
 
       if Action.Use_Shell then
@@ -290,6 +307,11 @@ package body Files.Operations is
          begin
             if Shell_Path = "" then
                return False;
+            end if;
+
+            if Files.Platform.Process.Supports_Raw_Command_Line then
+               return Files.Platform.Process.Run_Command_Line
+                        (Shell_Raw_Command_Line (Action), Wait => True, Exit_Status => Exit_Status);
             end if;
 
             Args := new GNAT.OS_Lib.Argument_List (1 .. 2);

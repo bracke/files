@@ -29,4 +29,23 @@ package body Files.Platform.Process is
          null;
    end Reap_Finished_Children;
 
+   --  POSIX needs no raw command line: sh takes "-c" and the command as ordinary
+   --  vector elements, and nothing rewrites them on the way.
+   function Supports_Raw_Command_Line return Boolean is
+   begin
+      return False;
+   end Supports_Raw_Command_Line;
+
+   function Run_Command_Line
+     (Command     : String;
+      Wait        : Boolean;
+      Exit_Status : out Integer)
+      return Boolean
+   is
+      pragma Unreferenced (Command, Wait);
+   begin
+      Exit_Status := -1;
+      return False;
+   end Run_Command_Line;
+
 end Files.Platform.Process;
