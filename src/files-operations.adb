@@ -12,6 +12,7 @@ with Files.Folder_Size;
 with Files.Fs;
 with Files.Launcher;
 with Files.Paste;
+with Files.Platform.Metadata;
 with Files.Platform.Process;
 
 with Zlib;
@@ -358,7 +359,16 @@ package body Files.Operations is
 
       for Character_Value of Executable loop
          if Character_Value = '/' or else Character_Value = '\' then
-            return GNAT.OS_Lib.Is_Executable_File (Executable);
+            --  A path, not a name to be looked up: it has to be a regular file that
+            --  this host will actually run.
+            --
+            --  GNAT.OS_Lib.Is_Executable_File was the whole check, and on Windows it
+            --  answers True for a directory -- so an action whose "executable" was a
+            --  directory passed the preflight and got launched. It is the same shape
+            --  as the lstat-less Is_Symbolic_Link: a POSIX-flavoured helper that
+            --  quietly says yes there instead of failing.
+            return Files.Fs.File_Exists (Executable)
+              and then Files.Platform.Metadata.Is_Executable (Executable);
          end if;
       end loop;
 
