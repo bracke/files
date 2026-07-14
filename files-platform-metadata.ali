@@ -1,0 +1,399 @@
+V "GNAT Lib v15"
+A -gnatc
+A -gnat2022
+A -gnatW8
+A -gnaty3
+A -gnatyM120
+A -gnatwa
+A -gnatX
+A -mtune=generic
+A -march=x86-64
+P NO
+
+RN
+RV NO_CALENDAR
+RV NO_DELAY
+RV NO_EXCEPTION_HANDLERS
+RV NO_EXCEPTIONS
+RV NO_FIXED_POINT
+RV NO_LONG_LONG_INTEGERS
+RV NO_NESTED_FINALIZATION
+RV NO_STANDARD_STORAGE_POOLS
+RV NO_DEFAULT_INITIALIZATION
+RV NO_DYNAMIC_SIZED_OBJECTS
+RV NO_ELABORATION_CODE
+
+U files.platform.metadata%b  files-platform-metadata.adb  979951ca OO PK
+W ada%s			ada.ads			ada.ali
+W ada.strings%s		a-string.ads		a-string.ali
+Z ada.strings.text_buffers%s  a-sttebu.adb	a-sttebu.ali
+W ada.strings.unbounded%s  a-strunb.adb		a-strunb.ali
+W files.platform%s	files-platform.adb	files-platform.ali
+W gnat%s		gnat.ads		gnat.ali
+W gnat.os_lib%s		g-os_lib.ads		g-os_lib.ali
+W interfaces%s		interfac.ads		interfac.ali
+W interfaces.c%s	i-c.adb			i-c.ali
+W interfaces.c.strings%s  i-cstrin.adb		i-cstrin.ali
+
+U files.platform.metadata%s  files-platform-metadata.ads  9efb363f EE OO PK
+W ada%s			ada.ads			ada.ali
+W ada.calendar%s	a-calend.adb		a-calend.ali
+W files.platform%s	files-platform.adb	files-platform.ali
+
+D ada.ads		20250808065140 76789da1 ada%s
+D a-calend.ads		20250808065140 bf7f3cc9 ada.calendar%s
+D a-charac.ads		20250808065140 2d3ec45b ada.characters%s
+D a-chlat1.ads		20250808065140 e0d72e76 ada.characters.latin_1%s
+D a-contai.ads		20250808065140 61e5e089 ada.containers%s
+D a-cohata.ads		20250808065140 bea783e3 ada.containers.hash_tables%s
+D a-conhel.ads		20250808065140 46fe1ce3 ada.containers.helpers%s
+D a-cihama.ads		20250808065140 42861819 ada.containers.indefinite_hashed_maps%s
+D a-convec.ads		20250808065140 91fb49f3 ada.containers.vectors%s
+D a-finali.ads		20250808065140 bf4f806b ada.finalization%s
+D a-iteint.ads		20250808065140 49a8bee2 ada.iterator_interfaces%s
+D a-stream.ads		20250808065140 17477cbd ada.streams%s
+D a-string.ads		20250808065140 90ac6797 ada.strings%s
+D a-strhas.ads		20250808065140 e06866e7 ada.strings.hash%s
+D a-strmap.ads		20250808065140 1f91ebb6 ada.strings.maps%s
+D a-strsea.ads		20250808065140 18c3c634 ada.strings.search%s
+D a-sttebu.ads		20250808065140 f1ad67a2 ada.strings.text_buffers%s
+D a-strunb.ads		20250808065140 b10770ab ada.strings.unbounded%s
+D a-stuten.ads		20250808065140 c6ced0ae ada.strings.utf_encoding%s
+D a-unccon.ads		20250808065140 0e9b276f ada.unchecked_conversion%s
+D a-uncdea.ads		20250808065140 c3a8ac65 ada.unchecked_deallocation%s
+D files.ads		20260614184958 68e46503 files%s
+D files-file_system.ads	20260711132800 5488d98c files.file_system%s
+D files-platform.ads	20260623051108 17f785d8 files.platform%s
+D files-platform-metadata.ads  20260714172024 36738f2e files.platform.metadata%s
+D files-platform-metadata.adb  20260714172024 a01fbca2 files.platform.metadata%b
+D files-settings.ads	20260711151447 ccdd737f files.settings%s
+D files-types.ads	20260704031527 de3d2fda files.types%s
+D gnat.ads		20250808065140 b5988c27 gnat%s
+D g-os_lib.ads		20250808065140 0db74523 gnat.os_lib%s
+D guikit.ads		20260704031527 443d1058 guikit%s
+D guikit-draw.ads	20260712171118 03fdd51f guikit.draw%s
+D guikit-input.ads	20260709165919 63d7e6da guikit.input%s
+D interfac.ads		20250808065140 9111f9c1 interfaces%s
+D i-c.ads		20250808065140 e94c966a interfaces.c%s
+D i-cstrin.ads		20250808065140 5409c1a4 interfaces.c.strings%s
+D system.ads		20250808065140 14286b0f system%s
+D s-atocou.ads		20250808065140 dc18efc3 system.atomic_counters%s
+D s-finroo.ads		20250808065140 0a7c3ed4 system.finalization_root%s
+D s-os_lib.ads		20250808065140 dd4133ed system.os_lib%s
+D s-parame.ads		20250808065140 3597fc11 system.parameters%s
+D s-string.ads		20250808065140 582aac7d system.strings%s
+D s-unstyp.ads		20250808065140 fa2a7f59 system.unsigned_types%s
+G a e
+G c Z s b [file_creation_time files__platform__metadata 34 13 none]
+G c Z s b [symlink_target_token files__platform__metadata 43 13 none]
+G c Z s b [volume_capacity_of files__platform__metadata 49 13 none]
+G c Z s b [create_symbolic_link files__platform__metadata 59 13 none]
+G c Z s b [create_hard_link files__platform__metadata 72 13 none]
+G c Z s b [file_permission_bits files__platform__metadata 85 13 none]
+G c Z s b [set_permissions files__platform__metadata 98 13 none]
+G c Z s b [permissions_supported files__platform__metadata 103 13 none]
+G c Z s b [file_ownership files__platform__metadata 113 14 none]
+G c Z s b [set_ownership files__platform__metadata 129 13 none]
+G c Z s b [user_id_for_name files__platform__metadata 142 13 none]
+G c Z s b [group_id_for_name files__platform__metadata 154 13 none]
+G c Z s b [user_name_for_id files__platform__metadata 165 13 none]
+G c Z s b [group_name_for_id files__platform__metadata 173 13 none]
+G c Z s b [ownership_supported files__platform__metadata 178 13 none]
+G c Z b b [statx files__platform__metadata 89 13 none]
+G c Z b b [readlink files__platform__metadata 98 13 none]
+G c Z b b [statvfs files__platform__metadata 105 13 none]
+G c Z b b [symlink files__platform__metadata 111 13 none]
+G c Z b b [link files__platform__metadata 117 13 none]
+G c Z b b [chmod files__platform__metadata 123 13 none]
+G c Z b b [chown files__platform__metadata 129 13 none]
+G c Z b b [getpwnam files__platform__metadata 156 13 none]
+G c Z b b [getgrnam files__platform__metadata 161 13 none]
+G c Z b b [getpwuid files__platform__metadata 166 13 none]
+G c Z b b [getgrgid files__platform__metadata 171 13 none]
+G c Z b b [safe_free files__platform__metadata 179 14 none]
+X 1 ada.ads
+18K9*Ada 22e8 25|1r6 37r14 26|1r6 8r8 9r13 195r14 200r25 200r46 211r14 216r17
+X 2 a-calend.ads
+36K13*Calendar 440e17 25|1w10 37r18 26|9r17 195r18 200r29 200r50 211r18 216r21
+42I9*Time<226I9> 25|37r27 26|9r26 195r27 200r38
+83V13*Time_Of{42I9} 26|200s59 211s27 216s30
+103V14*"+"{42I9} 26|208s23 208s60
+226I9 Time_Rep<long_long_integer>
+X 11 a-iteint.ads
+24h9 Forward_Iterator
+32h9 Reversible_Iterator<24R9[9|119]>
+X 13 a-string.ads
+16K13*Strings 35e16 26|1r10 8r12
+X 18 a-strunb.ads
+91K21*Unbounded 1641e26 26|1w18 8r20
+105R9*Unbounded_String<10|43R9> 1620e15 26|223r16
+109r4*Null_Unbounded_String{105R9} 26|223r36
+135V13*To_String{string} 26|235s34
+168U14*Append 26|232s10
+X 22 files.ads
+2K9*Files 4e10 25|9r9 180r5 26|7r14 534r5
+X 24 files-platform.ads
+4K15*Platform 22|2k9 24|9e19 25|9r15 180r11 26|7r20 534r11
+X 25 files-platform-metadata.ads
+9K24*Metadata 24|4k15 25|180l20 180e28 26|7b29 534l20 534t28
+16R9*Volume_Capacity 27e14 49r55 26|242r55 281r16
+17b7*Available{boolean} 26|300m20
+18i7*Capacity_Bytes{long_long_integer} 26|298m20
+19i7*Free_Bytes{long_long_integer} 26|299m20
+20i7*Inode_Count{long_long_integer} 26|293m20
+21i7*Free_Inode_Count{long_long_integer} 26|294m20
+22i7*Name_Max{natural} 26|289m20
+23b7*Read_Only{boolean} 26|286m17
+24b7*Inodes_Known{boolean} 26|295m20
+25b7*Name_Max_Known{boolean} 26|290m20
+26b7*Read_Only_Known{boolean} 26|287m17
+34V13*File_Creation_Time{2|42I9} 35>7 36<7 26|192b13 217l8 217t26
+35a7 Path{string} 26|193b7 197r83
+36b7 Available{boolean} 26|194b7 202m7 207m10 215m10
+43V13*Symlink_Target_Token{string} 43>35 26|219b13 240l8 240t28
+43a35 Path{string} 26|219b35 220r83
+49V13*Volume_Capacity_Of{16R9} 49>33 26|242b13 308l8 308t26
+49a33 Path{string} 26|242b33 278r83
+59V13*Create_Symbolic_Link{boolean} 60>7 61>7 26|310b13 328l8 328t28
+60a7 Target{string} 26|311b7 315r85
+61a7 Link_Path{string} 26|312b7 316r85
+72V13*Create_Hard_Link{boolean} 73>7 74>7 26|330b13 348l8 348t24
+73a7 Existing_Path{string} 26|331b7 335r87
+74a7 New_Path{string} 26|332b7 336r87
+85V13*File_Permission_Bits{natural} 86>7 87<7 26|350b13 374l8 374t28
+86a7 Path{string} 26|351b7 355r83
+87b7 Available{boolean} 26|352b7 359m7 364m10 372m10
+98V13*Set_Permissions{boolean} 99>7 100>7 26|376b13 391l8 391t23
+99a7 Path{string} 26|377b7 381r83
+100i7 Mode{natural} 26|378b7 384r44
+103V13*Permissions_Supported{boolean} 26|394b13 397l8 397t29
+113U14*File_Ownership 114>7 115<7 116<7 117<7 26|402b14 429l8 429t22
+114a7 Path{string} 26|403b7 408r83
+115i7 User_Id{natural} 26|404b7 412m7 420m10 426m10
+116i7 Group_Id{natural} 26|405b7 413m7 421m10 427m10
+117b7 Available{boolean} 26|406b7 414m7 419m10 428m10
+129V13*Set_Ownership{boolean} 130>7 131>7 132>7 26|431b13 447l8 447t21
+130a7 Path{string} 26|432b7 437r83
+131i7 User_Id{natural} 26|433b7 440r39
+132i7 Group_Id{natural} 26|434b7 440r56
+142V13*User_Id_For_Name{natural} 143>7 144<7 26|449b13 471l8 471t24
+143a7 Name{string} 26|450b7 454r83
+144b7 Found{boolean} 26|451b7 458m7 462m10 469m10
+154V13*Group_Id_For_Name{natural} 155>7 156<7 26|473b13 495l8 495t25
+155a7 Name{string} 26|474b7 478r83
+156b7 Found{boolean} 26|475b7 482m7 486m10 493m10
+165V13*User_Name_For_Id{string} 165>31 26|497b13 511l8 511t24
+165i31 Id{natural} 26|497b31 499r68
+173V13*Group_Name_For_Id{string} 173>32 26|513b13 527l8 527t25
+173i32 Id{natural} 26|513b32 515r67
+178V13*Ownership_Supported{boolean} 26|529b13 532l8 532t27
+X 26 files-platform-metadata.adb
+17I12 C_Int{35|62I9} 27r24 90r22 95r14 108r14 114r14 120r14 126r14 133r14
+. 199r16 280r16 317r18 337r20 357r16 382r16 410r16 438r16
+18M12 C_Unsigned{35|71M9} 28r35 29r27 92r22 93r22 125r18 176r31 384r32 399r25
+. 400r25
+19M12 C_U16{35|72M9} 32r51 52r25 177r31
+20M12 C_U32{35|71M9} 40r21 41r21 46r25 47r25 49r25 50r25 51r25 62r25 63r25
+. 64r25 65r25 67r32 68r32 131r18 132r18 142r16 143r16 152r16 167r13 172r13
+. 440r32 440r49 499r61 515r60
+21M12 C_U64{35|73M9} 35r51 48r25 54r25 55r25 56r25 57r25 66r25
+22I12 C_S64{35|64I9} 39r21 102r14 222r16
+23M12 C_Size{35|92M9} 101r18
+24M12 C_ULong{35|73M9} 30r33 74r32 75r32 76r32 77r32 78r32 79r32 80r32 81r32
+. 82r32 83r32 84r32 243r44 245r21 252r46 254r21 262r26 263r26
+25E12 C_Char{35|109E9} 232r41
+27i4 At_FDCWD{17I12} 203r24 360r24 415r24
+28m4 At_Symlink_Nofollow{18M12} 203r42
+29m4 Statx_Btime{18M12} 203r63 206r45
+30m4 Statvfs_Read_Only{24M12} 286r46
+32A9 U16_Array(19M12)<integer> 53r25
+35A9 U64_Array(21M12)<integer> 69r25 85r32
+38R9 Statx_Timestamp 43e6 58r25 59r25 60r25 61r25
+39i7*Seconds{22I12} 206r88 208r51
+40m7*Nanoseconds{20M12} 208r88
+41m7*Reserved{20M12}
+45R9 Statx_Record 71e6 94r29 198r24 356r24 409r24
+46m7*Mask{20M12} 206r36
+47m7*Block_Size{20M12}
+48m7*Attributes{21M12}
+49m7*Link_Count{20M12}
+50m7*User_Id{20M12} 420r35
+51m7*Group_Id{20M12} 421r36
+52m7*Mode{19M12} 365r31
+53a7*Spare_0{32A9}
+54m7*Inode{21M12}
+55m7*Size{21M12}
+56m7*Blocks{21M12}
+57m7*Attributes_Mask{21M12}
+58r7*Access_Time{38R9}
+59r7*Birth_Time{38R9} 206r77 208r40 208r77
+60r7*Change_Time{38R9}
+61r7*Modified_Time{38R9}
+62m7*Device_Major{20M12}
+63m7*Device_Minor{20M12}
+64m7*File_Major{20M12}
+65m7*File_Minor{20M12}
+66m7*Mount_Id{21M12}
+67m7*Direct_Io_Memory_Align{20M12}
+68m7*Direct_Io_Offset_Align{20M12}
+69a7*Spare_3{35A9}
+73R9 Statvfs_Record 87e6 107r25 279r24
+74m7*Block_Size{24M12}
+75m7*Fragment_Size{24M12} 297r18 298r79 299r85
+76m7*Blocks{24M12} 297r50 298r66
+77m7*Blocks_Free{24M12}
+78m7*Blocks_Available{24M12} 299r62
+79m7*Files{24M12} 292r18 293r62
+80m7*Files_Free{24M12} 294r67
+81m7*Files_Available{24M12}
+82m7*Filesystem_Id{24M12}
+83m7*Flags{24M12} 286r36
+84m7*Name_Max{24M12} 288r18 289r57
+85a7*Spare{35A9}
+89V13 Statx{17I12} 90>7 91>7 92>7 93>7 94^7 203s17 360s17 415s17
+90i7 Directory_Fd{17I12}
+91p7 Pathname{36|65P9}
+92m7 Flags{18M12}
+93m7 Mask{18M12}
+94p7 Buffer(45R9)
+98V13 Readlink{22I12} 99>7 100<7 101>7 225s16
+99p7 Pathname{36|65P9}
+100a7 Buffer{35|124A9}
+101m7 Bufsiz{23M12}
+105V13 Statvfs{17I12} 106>7 107^7 283s17
+106p7 Pathname{36|65P9}
+107p7 Buffer(73R9)
+111V13 Symlink{17I12} 112>7 113>7 319s17
+112p7 Target{36|65P9}
+113p7 Link_Path{36|65P9}
+117V13 Link{17I12} 118>7 119>7 339s17
+118p7 Existing_Path{36|65P9}
+119p7 New_Path{36|65P9}
+123V13 Chmod{17I12} 124>7 125>7 384s17
+124p7 Pathname{36|65P9}
+125m7 Mode{18M12}
+129V13 Chown{17I12} 130>7 131>7 132>7 440s17
+130p7 Pathname{36|65P9}
+131m7 Owner{20M12}
+132m7 Group{20M12}
+139R9 Passwd_Front 145e6 158r21 168r21 455r26 499r35
+140p7*Name{36|65P9} 502r28 504r55
+141p7*Passwd{36|65P9}
+142m7*Uid{20M12} 463r39
+143m7*Gid{20M12}
+149R9 Group_Front 154e6 163r21 173r21 479r26 515r35
+150p7*Name{36|65P9} 518r28 520r55
+151p7*Passwd{36|65P9}
+152m7*Gid{20M12} 487r39
+156V13 Getpwnam(139R9) 157>7 459s20
+157p7 Name{36|65P9}
+161V13 Getgrnam(149R9) 162>7 483s20
+162p7 Name{36|65P9}
+166V13 Getpwuid(139R9) 167>7 499s51
+167m7 Uid{20M12}
+171V13 Getgrgid(149R9) 172>7 515s50
+172m7 Gid{20M12}
+176m4 Statx_Mode{18M12} 360r45
+177m4 Permission_Mask{19M12} 365r40
+179U14 Safe_Free 179b14 180=7 190l8 190t17 214s10 238s10 306s10 325s10 326s10
+. 345s10 346s10 371s10 389s10 425s10 445s10 468s10 492s10
+180p7 Pointer{36|65P9} 182r10 184m40
+197p7 C_Path{36|65P9} 203r34 204m34 204r34 214m21 214r21
+198r7 Info{45R9} 203m76 203r76 206r31 206r72 208r35 208r72
+199i7 Status{17I12} 203m7 206r10
+200i7 Epoch{2|42I9} 208r17
+220p7 C_Path{36|65P9} 225r26 226m34 226r34 238m21 238r21
+221a7 Buffer{35|124A9} 225m34 225r34 225r42 232r53
+222i7 Count{22I12} 225m7 227r10 231r34
+223r7 Target{18|105R9} 232m18 232r18 235r45
+231i11 Index{integer} 232r82
+243V16 Saturating_Natural{natural} 243b16 243>36 250l11 250t29 289s32
+243m36 Value{24M12} 245r13 248r29
+252V16 Saturating_Long_Long{long_long_integer} 252b16 252>38 259l11 259t31
+. 266s54 267s54 293s35 294s40
+252m38 Value{24M12} 254r13 257r39
+261V16 Saturating_Byte_Count{long_long_integer} 261b16 262>10 263>10 276l11
+. 276t32 298s38 299s34
+262m10 Blocks{24M12} 266r76
+263m10 Fragment_Size{24M12} 267r76
+266i10 Block_Count{long_long_integer} 269r13 271r16 274r20
+267i10 Unit_Size{long_long_integer} 269r37 271r55 274r34
+278p7 C_Path{36|65P9} 283r26 284m34 284r34 306m21 306r21
+279r7 Data{73R9} 283m34 283r34 286r31 288r13 289r52 292r13 293r57 294r62
+. 297r13 297r45 298r61 298r74 299r57 299r80
+280i7 Status{17I12} 283m7 285r10
+281r7 Result{25|16R9} 286m10 287m10 289m13 290m13 293m13 294m13 295m13 298m13
+. 299m13 300m13 303r14
+315p7 C_Target{36|65P9} 319r26 320m34 320r34 325m21 325r21
+316p7 C_Link{36|65P9} 319r36 321m34 321r34 326m21 326r21
+317i7 Status{17I12} 319m7 322r14
+335p7 C_Existing{36|65P9} 339r23 340m34 340r34 345m21 345r21
+336p7 C_New{36|65P9} 339r35 341m34 341r34 346m21 346r21
+337i7 Status{17I12} 339m7 342r14
+355p7 C_Path{36|65P9} 360r34 361m34 361r34 371m21 371r21
+356r7 Info{45R9} 360m57 360r57 365r26
+357i7 Status{17I12} 360m7 363r10
+381p7 C_Path{36|65P9} 384r24 385m34 385r34 389m21 389r21
+382i7 Status{17I12} 384m7 386r14
+399m4 Statx_Uid{18M12} 415r45
+400m4 Statx_Gid{18M12} 415r58
+408p7 C_Path{36|65P9} 415r34 416m34 416r34 425m21 425r21
+409r7 Info{45R9} 415m69 415r69 420r30 421r31
+410i7 Status{17I12} 415m7 418r10
+437p7 C_Path{36|65P9} 440r24 441m34 441r34 445m21 445r21
+438i7 Status{17I12} 440m7 442r14
+454p7 C_Name{36|65P9} 459r30 460m34 460r34 468m21 468r21
+455p7 Entry_Ptr(139R9) 459m7 461r10 463r29
+456i7 Result{natural} 463m10 465r14
+478p7 C_Name{36|65P9} 483r30 484m34 484r34 492m21 492r21
+479p7 Entry_Ptr(149R9) 483m7 485r10 487r29
+480i7 Result{natural} 487m10 489r14
+499p7 Entry_Ptr(139R9) 501r10 502r18 504r45
+515p7 Entry_Ptr(149R9) 517r10 518r18 520r45
+X 29 gnat.ads
+40K9*GNAT 26|3r6 29|63e9
+X 30 g-os_lib.ads
+51K14*OS_Lib=51:36 26|3w11
+X 34 interfac.ads
+47K9*Interfaces 26|2r6 5r6 10r13 11r13 12r13 13r13 14r13 15r13 17r21 18r26
+. 19r21 20r21 21r21 22r21 23r22 24r23 25r22 91r22 99r18 100r22 106r18 112r18
+. 113r19 118r23 119r23 124r18 130r18 140r16 141r16 150r16 151r16 157r14 162r14
+. 180r24 182r21 184r13 197r16 197r50 204r7 220r16 220r50 221r16 226r7 232r61
+. 278r16 278r50 284r7 315r18 315r52 316r18 316r52 320r7 321r7 335r20 335r54
+. 336r20 336r54 340r7 341r7 355r16 355r50 361r7 381r16 381r50 385r7 408r16
+. 408r50 416r7 437r16 437r50 441r7 454r16 454r50 460r7 478r16 478r50 484r7
+. 502r36 504r17 518r36 520r17 34|247e15
+X 35 i-c.ads
+33K20*C 26|2w17 5r17 10r24 11r24 12r24 13r24 14r24 15r24 17r32 18r37 19r32
+. 20r32 21r32 22r32 23r33 24r34 25r33 91r33 99r29 100r33 106r29 112r29 113r30
+. 118r34 119r34 124r29 130r29 140r27 141r27 150r27 151r27 157r25 162r25 180r35
+. 182r32 184r24 197r27 197r61 204r18 220r27 220r61 221r27 226r18 232r72 278r27
+. 278r61 284r18 315r29 315r63 316r29 316r63 320r18 321r18 335r31 335r65 336r31
+. 336r65 340r18 341r18 355r27 355r61 361r18 381r27 381r61 385r18 408r27 408r61
+. 416r18 437r27 437r61 441r18 454r27 454r61 460r18 478r27 478r61 484r18 502r47
+. 504r28 518r47 520r28 35|601e17
+62I9*int<integer> 26|10r26 17r34
+64I9*long<long_integer> 26|11r26 22r34
+71M9*unsigned 26|12r26 18r39 20r34
+72M9*unsigned_short 26|14r26 19r34
+73M9*unsigned_long 26|13r26 21r34 24r36
+92M9*size_t 26|23r35 232r74
+109E9*char<character> 26|25r35
+124A9*char_array(109E9)<92M9> 26|100r35 221r29
+X 36 i-cstrin.ads
+48K22*Strings 26|5w19 15r26 91r35 99r31 106r31 112r31 113r32 118r36 119r36
+. 124r31 130r31 140r29 141r29 150r29 151r29 157r27 162r27 180r37 182r34 184r26
+. 197r29 197r63 204r20 220r29 220r63 226r20 278r29 278r63 284r20 315r31 315r65
+. 316r31 316r65 320r20 321r20 335r33 335r67 336r33 336r67 340r20 341r20 355r29
+. 355r63 361r20 381r29 381r63 385r20 408r29 408r63 416r20 437r29 437r63 441r20
+. 454r29 454r63 460r20 478r29 478r63 484r20 502r49 504r30 518r49 520r30 36|171e25
+65P9*chars_ptr 26|15r34 91r43 99r39 106r39 112r39 113r40 118r44 119r44 124r39
+. 130r39 140r37 141r37 150r37 151r37 157r35 162r35 180r45 197r37 220r37 278r37
+. 315r39 316r39 335r41 336r41 355r37 381r37 408r37 437r37 454r37 478r37
+70p4*Null_Ptr{65P9} 26|182r42 502r57 518r57
+86V13*New_String{65P9} 26|197s71 220s71 278s71 315s73 316s73 335s75 336s75
+. 355s71 381s71 408s71 437s71 454s71 478s71
+92U14*Free 26|184s34 204s28 226s28 284s28 320s28 321s28 340s28 341s28 361s28
+. 385s28 416s28 441s28 460s28 484s28
+114V13*Value{string} 26|504s38 520s38
+

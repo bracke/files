@@ -46,7 +46,7 @@ with Files.Settings;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
-with Files.Platform.Symlinks;
+with Hostkit.Fs;
 
 package body Files_Suite.Support is
 
@@ -115,7 +115,7 @@ package body Files_Suite.Support is
       --  made the test executable impossible to link on Windows. A platform that
       --  will not make a link returns False, and every caller already guards on
       --  that -- Windows needs Developer Mode or a privilege to create one.
-      return Files.Platform.Symlinks.Create (Target, Linkpath);
+      return Hostkit.Fs.Create_Link (Target, Linkpath);
    end Create_Symlink;
 
    procedure Reset_Root is

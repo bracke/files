@@ -157,6 +157,7 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/textrender.git" textrender
           git clone --depth 1 "https://github.com/${owner}/zlib.git" zlib
           git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
+          git clone --depth 1 "https://github.com/${owner}/hostkit.git" hostkit
           git clone --depth 1 "https://github.com/${owner}/cryptolib.git" cryptolib
 
       - name: Set up Alire

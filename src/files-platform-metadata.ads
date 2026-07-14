@@ -100,20 +100,6 @@ package Files.Platform.Metadata is
       Mode : Natural)
       return Boolean;
 
-   --  Return whether this platform can read and change permission bits.
-   --
-   --  @return True on the Linux adapter, False on the stub adapters.
-   --  Would this platform actually run this file?
-   --
-   --  GNAT.OS_Lib.Is_Executable_File answers True for every existing file on
-   --  Windows, so asking it there classified every file as a program. Windows
-   --  decides what runs from the extension, not from a permission bit it does not
-   --  have.
-   --
-   --  @param Path Path to test.
-   --  @return True when the platform would execute this file.
-   function Is_Executable (Path : String) return Boolean;
-
    function Permissions_Supported return Boolean;
 
    --  Return the numeric owner (UID) and group (GID) of Path.

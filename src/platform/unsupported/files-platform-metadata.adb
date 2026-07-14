@@ -64,11 +64,6 @@ package body Files.Platform.Metadata is
       return False;
    end Set_Permissions;
 
-   function Is_Executable (Path : String) return Boolean is
-      pragma Unreferenced (Path);
-   begin
-      return False;
-   end Is_Executable;
 
    function Permissions_Supported return Boolean is
    begin

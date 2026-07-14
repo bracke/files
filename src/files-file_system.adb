@@ -24,7 +24,7 @@ with Files_Config;
 
 with Files.Platform.Macos;
 with Files.Platform.Metadata;
-with Files.Platform.Symlinks;
+with Hostkit.Fs;
 with Files.Platform.Macos.Trash;
 with Files.Platform.Windows.Trash;
 with Files.Platform.Windows;
@@ -813,7 +813,7 @@ package body Files.File_System is
       if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
          Result (2) := 'w';
       end if;
-      if Files.Platform.Metadata.Is_Executable (Path) then
+      if Hostkit.Fs.Is_Executable (Path) then
          Result (3) := 'x';
       end if;
 
@@ -1419,7 +1419,7 @@ package body Files.File_System is
    is
       Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
    begin
-      if Files.Platform.Symlinks.Is_Link (Full) then
+      if Hostkit.Fs.Is_Link (Full) then
          return Files.Types.Symlink_Item;
       end if;
 
@@ -1427,7 +1427,7 @@ package body Files.File_System is
          when Ada.Directories.Directory =>
             return Files.Types.Directory_Item;
          when Ada.Directories.Ordinary_File =>
-            if Files.Platform.Metadata.Is_Executable (Full) then
+            if Hostkit.Fs.Is_Executable (Full) then
                return Files.Types.Executable_Item;
             end if;
             return Files.Types.Regular_File_Item;
@@ -1702,14 +1702,14 @@ package body Files.File_System is
          Parent : constant String := Ada.Directories.Containing_Directory (Full);
          Kind   : Files.Types.Item_Kind;
       begin
-         if Files.Platform.Symlinks.Is_Link (Full) then
+         if Hostkit.Fs.Is_Link (Full) then
             Kind := Files.Types.Symlink_Item;
          else
             case Ada.Directories.Kind (Full) is
                when Ada.Directories.Directory =>
                   Kind := Files.Types.Directory_Item;
                when Ada.Directories.Ordinary_File =>
-                  if Files.Platform.Metadata.Is_Executable (Full) then
+                  if Hostkit.Fs.Is_Executable (Full) then
                      Kind := Files.Types.Executable_Item;
                   else
                      Kind := Files.Types.Regular_File_Item;

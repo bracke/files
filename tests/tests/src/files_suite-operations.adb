@@ -47,7 +47,7 @@ with Files.Icon_Assets;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
-with Files.Platform.Symlinks;
+with Hostkit.Fs;
 with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
@@ -5509,7 +5509,7 @@ package body Files_Suite.Operations is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "create-symlink succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after linking");
-      Assert (Files.Platform.Symlinks.Is_Link (Link_Path), "a symbolic link is created next to the source");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "a symbolic link is created next to the source");
       Assert
         (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "the symbolic link resolves to the original contents");
@@ -5520,7 +5520,7 @@ package body Files_Suite.Operations is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "undo of a created symlink succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
-      Assert (not Files.Platform.Symlinks.Is_Link (Link_Path), "undo leaves no dangling symlink entry");
+      Assert (not Hostkit.Fs.Is_Link (Link_Path), "undo leaves no dangling symlink entry");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original source item");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
    end Test_Create_Symlink_Operation;
@@ -5554,7 +5554,7 @@ package body Files_Suite.Operations is
          "create-hard-link succeeds");
       Assert (Ada.Directories.Exists (Source), "original file still exists after linking");
       Assert (Ada.Directories.Exists (Link_Path), "a hard link is created next to the source");
-      Assert (not Files.Platform.Symlinks.Is_Link (Link_Path), "a hard link is a regular directory entry");
+      Assert (not Hostkit.Fs.Is_Link (Link_Path), "a hard link is a regular directory entry");
       Assert
         (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "the hard link shares the original contents");
@@ -5677,7 +5677,7 @@ package body Files_Suite.Operations is
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "create-symlink succeeds");
-      Assert (Files.Platform.Symlinks.Is_Link (Link_Path), "the symbolic link is created");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "the symbolic link is created");
 
       Result := Files.Operations.Undo_Last (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "undo of a created link succeeds");
@@ -5686,7 +5686,7 @@ package body Files_Suite.Operations is
 
       Result := Files.Operations.Redo_Last (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "redo of a created link succeeds");
-      Assert (Files.Platform.Symlinks.Is_Link (Link_Path), "redo re-creates the symbolic link from its source");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "redo re-creates the symbolic link from its source");
       Assert (Ada.Directories.Exists (Source), "redo keeps the original source item");
       Assert (Files.Model.Undo_Available (Model), "the re-created link is undoable again");
       Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying");

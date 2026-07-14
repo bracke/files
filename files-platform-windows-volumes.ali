@@ -1,0 +1,81 @@
+V "GNAT Lib v15"
+A -gnatc
+A -gnat2022
+A -gnatW8
+A -gnaty3
+A -gnatyM120
+A -gnatwa
+A -gnatX
+A -mtune=generic
+A -march=x86-64
+P NO
+
+RN
+RV NO_ELABORATION_CODE
+
+U files.platform.windows.volumes%b  files-platform-windows-volumes.adb  7976f71a OO PK
+Z ada.strings.text_buffers%s  a-sttebu.adb	a-sttebu.ali
+W files.platform.windows%s  files-platform-windows.adb  files-platform-windows.ali
+
+U files.platform.windows.volumes%s  files-platform-windows-volumes.ads  b4e6cdae EE OO PK
+W files%s		files.ads		files.ali
+W files.file_system%s	files-file_system.adb	files-file_system.ali
+W files.platform.windows%s  files-platform-windows.adb  files-platform-windows.ali
+
+D ada.ads		20250808065140 76789da1 ada%s
+D a-calend.ads		20250808065140 bf7f3cc9 ada.calendar%s
+D a-charac.ads		20250808065140 2d3ec45b ada.characters%s
+D a-chlat1.ads		20250808065140 e0d72e76 ada.characters.latin_1%s
+D a-contai.ads		20250808065140 61e5e089 ada.containers%s
+D a-cohata.ads		20250808065140 bea783e3 ada.containers.hash_tables%s
+D a-conhel.ads		20250808065140 46fe1ce3 ada.containers.helpers%s
+D a-cihama.ads		20250808065140 42861819 ada.containers.indefinite_hashed_maps%s
+D a-convec.ads		20250808065140 91fb49f3 ada.containers.vectors%s
+D a-finali.ads		20250808065140 bf4f806b ada.finalization%s
+D a-iteint.ads		20250808065140 49a8bee2 ada.iterator_interfaces%s
+D a-stream.ads		20250808065140 17477cbd ada.streams%s
+D a-string.ads		20250808065140 90ac6797 ada.strings%s
+D a-strhas.ads		20250808065140 e06866e7 ada.strings.hash%s
+D a-strmap.ads		20250808065140 1f91ebb6 ada.strings.maps%s
+D a-strsea.ads		20250808065140 18c3c634 ada.strings.search%s
+D a-sttebu.ads		20250808065140 f1ad67a2 ada.strings.text_buffers%s
+D a-strunb.ads		20250808065140 b10770ab ada.strings.unbounded%s
+D a-stuten.ads		20250808065140 c6ced0ae ada.strings.utf_encoding%s
+D a-unccon.ads		20250808065140 0e9b276f ada.unchecked_conversion%s
+D files.ads		20260614184958 68e46503 files%s
+D files-file_system.ads	20260711132800 5488d98c files.file_system%s
+D files-platform.ads	20260623051108 17f785d8 files.platform%s
+D files-platform-windows.ads  20260624211034 aa5e07bc files.platform.windows%s
+D files-platform-windows-volumes.ads  20260618155758 4a30139e files.platform.windows.volumes%s
+D files-platform-windows-volumes.adb  20260628195130 3346e484 files.platform.windows.volumes%b
+D files-settings.ads	20260711151447 ccdd737f files.settings%s
+D files-types.ads	20260704031527 de3d2fda files.types%s
+D guikit.ads		20260704031527 443d1058 guikit%s
+D guikit-draw.ads	20260712171118 03fdd51f guikit.draw%s
+D guikit-input.ads	20260709165919 63d7e6da guikit.input%s
+D interfac.ads		20250808065140 9111f9c1 interfaces%s
+D system.ads		20250808065140 14286b0f system%s
+D s-atocou.ads		20250808065140 dc18efc3 system.atomic_counters%s
+D s-finroo.ads		20250808065140 0a7c3ed4 system.finalization_root%s
+D s-unstyp.ads		20250808065140 fa2a7f59 system.unsigned_types%s
+G a e
+G c Z s b [binding_status files__platform__windows__volumes 8 13 none]
+G c Z s b [can_query files__platform__windows__volumes 13 13 none]
+X 11 a-iteint.ads
+24h9 Forward_Iterator
+32h9 Reversible_Iterator<24R9[9|119]>
+X 21 files.ads
+2K9*Files 4e10 25|1r6 4r9 8r35 14r5 26|1r14 2r35 4r14 11r5
+X 22 files-file_system.ads
+8K15*File_System 953e22 25|1w12 8r41 26|2r41 4r20
+160E9*Native_API_Binding_Status 163e36 25|8r53 26|2r53
+161n7*Native_API_Not_Target{160E9} 26|4r32
+X 23 files-platform.ads
+4K15*Platform 21|2k9 23|9e19 25|4r15 14r11 26|1r20 11r11
+X 24 files-platform-windows.ads
+4K24*Windows 23|4k15 24|30e27 25|4r24 14r20 26|1r29 11r20
+X 25 files-platform-windows-volumes.ads
+4K32*Volumes 24|4k24 25|14l28 14e35 26|1b37 11l28 11t35
+8V13*Binding_Status{22|160E9} 26|2b13 5l8 5t22
+13V13*Can_Query{boolean} 26|7b13 10l8 10t17
+

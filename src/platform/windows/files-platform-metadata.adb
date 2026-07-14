@@ -4,7 +4,7 @@ with Ada.Containers.Vectors;
 with Interfaces.C.Strings;
 with System;
 
-with Files.Platform.Symlinks;
+with Hostkit.Fs;
 
 package body Files.Platform.Metadata is
    use Ada.Strings.Unbounded;
@@ -583,7 +583,7 @@ package body Files.Platform.Metadata is
       Given  : aliased C_DWord := 0;
       Result : C_Int;
    begin
-      if not Files.Platform.Symlinks.Is_Link (Path) then
+      if not Hostkit.Fs.Is_Link (Path) then
          Interfaces.C.Strings.Free (C_Path);
          return "";
       end if;
@@ -731,7 +731,7 @@ package body Files.Platform.Metadata is
       Link_Path : String) return Boolean is
    begin
       --  Already bound, once, for the platform symlink backend.
-      return Files.Platform.Symlinks.Create (Target, Link_Path);
+      return Hostkit.Fs.Create_Link (Target, Link_Path);
    end Create_Symbolic_Link;
 
    function Create_Hard_Link
@@ -959,10 +959,6 @@ package body Files.Platform.Metadata is
          return False;
    end Set_Permissions;
 
-   function Is_Executable (Path : String) return Boolean is
-   begin
-      return Runs_On_Windows (Path);
-   end Is_Executable;
 
    function Permissions_Supported return Boolean is
    begin
