@@ -504,6 +504,19 @@ package body Files.Platform.Metadata is
         [others => Interfaces.C.nul];
       Length : C_DWord;
    begin
+      --  Ask first whether this is a link at all.
+      --
+      --  GetFinalPathNameByHandle resolves ANY path, not just a link's -- hand it
+      --  an ordinary file and it cheerfully returns that file's own name. Callers
+      --  read a non-empty token as "this is a symlink", so without this check
+      --  every file on Windows looked like one: the recursive size walk, which
+      --  declines to descend into links, skipped all of them and reported a tree
+      --  of zero bytes.
+      if not Files.Platform.Symlinks.Is_Link (Path) then
+         Interfaces.C.Strings.Free (C_Path);
+         return "";
+      end if;
+
       Handle :=
         Create_File
           (C_Path, 0, Share_All, System.Null_Address,

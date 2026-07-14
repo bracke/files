@@ -4529,10 +4529,16 @@ package body Files.File_System is
          I : constant String := Ada.Directories.Full_Name (Inner);
          O : constant String := Ada.Directories.Full_Name (Outer);
       begin
+         --  The boundary is whichever separator the host writes. This accepted
+         --  only '/', and Full_Name spells a Windows path with '\', so no
+         --  directory was ever inside its own tree there -- and dropping a folder
+         --  into its own subfolder, which this exists to refuse, was allowed
+         --  straight through into an unbounded recursive copy.
          return I = O
            or else (I'Length > O'Length
                     and then I (I'First .. I'First + O'Length - 1) = O
-                    and then I (I'First + O'Length) = '/');
+                    and then (I (I'First + O'Length) = '/'
+                              or else I (I'First + O'Length) = '\'));
       end Is_Within_Tree;
    begin
       if not Files.Fs.Directory_Exists (Destination_Directory)
