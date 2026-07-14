@@ -107,11 +107,37 @@ jobs:
                     mingw-w64-x86_64-gdk-pixbuf2
                     mingw-w64-x86_64-glfw"
 
-          if ! pacman -Sy --noconfirm --needed $packages; then
+          # The mirrors stall often enough to matter -- a sync dies on "less than
+          # 1 bytes/sec" rather than on anything we did -- so give each sync room
+          # to be slow, and retry it before concluding anything is actually wrong.
+          sync() {
+            pacman -Sy --noconfirm --needed --disable-download-timeout "$@" $packages
+          }
+
+          synced=""
+          for attempt in 1 2 3; do
+            if sync; then synced=yes; break; fi
+            echo "::warning::pacman sync attempt ${attempt} failed"
+            sleep 15
+          done
+
+          if [ -z "$synced" ]; then
             echo "::warning::signed pacman sync failed; retrying without signature checks"
-            sed 's/^SigLevel.*/SigLevel = Never/' /c/msys64/etc/pacman.conf > /tmp/pacman-nosig.conf
-            pacman -Sy --noconfirm --needed --config /tmp/pacman-nosig.conf $packages
+            # This step runs in Git Bash, whose /tmp is NOT the /tmp of the MSYS2
+            # installation that owns this pacman -- writing the config to "/tmp"
+            # put it somewhere pacman would never look, and the fallback died on
+            # "config file could not be read" every time it was reached. Hand both
+            # of them a path they agree on.
+            sed 's/^SigLevel.*/SigLevel = Never/' /c/msys64/etc/pacman.conf \
+              > /c/msys64/tmp/pacman-nosig.conf
+            for attempt in 1 2 3; do
+              if sync --config C:/msys64/tmp/pacman-nosig.conf; then synced=yes; break; fi
+              echo "::warning::unsigned pacman sync attempt ${attempt} failed"
+              sleep 15
+            done
           fi
+
+          [ -n "$synced" ] || { echo "::error::could not install the MSYS2 packages"; exit 1; }
 
           # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
           # PATH for the test binary and the live app to start.
