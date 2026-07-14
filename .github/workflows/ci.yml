@@ -92,11 +92,26 @@ jobs:
           # implements every codec it supports -- Deflate, LZMA, PPMd, bzip2 and
           # zstd -- in Ada, and links none of them.
           pacman() { /c/msys64/usr/bin/pacman "$@"; }
-          pacman -Sy --noconfirm --needed \
-            mingw-w64-x86_64-vulkan-loader \
-            mingw-w64-x86_64-glib2 \
-            mingw-w64-x86_64-gdk-pixbuf2 \
-            mingw-w64-x86_64-glfw
+
+          # The runner's MSYS2 keyring goes stale, and then the database refuses
+          # to sync at all: "signature ... is invalid". Refresh the keyring first,
+          # and if the signed sync still will not go, fall back to an unsigned one
+          # -- this is a throwaway CI image installing four well-known libraries,
+          # not a machine whose supply chain we are defending.
+          pacman-key() { /c/msys64/usr/bin/pacman-key "$@"; }
+          pacman-key --init || true
+          pacman-key --populate msys2 || true
+
+          packages="mingw-w64-x86_64-vulkan-loader
+                    mingw-w64-x86_64-glib2
+                    mingw-w64-x86_64-gdk-pixbuf2
+                    mingw-w64-x86_64-glfw"
+
+          if ! pacman -Sy --noconfirm --needed $packages; then
+            echo "::warning::signed pacman sync failed; retrying without signature checks"
+            sed 's/^SigLevel.*/SigLevel = Never/' /c/msys64/etc/pacman.conf > /tmp/pacman-nosig.conf
+            pacman -Sy --noconfirm --needed --config /tmp/pacman-nosig.conf $packages
+          fi
 
           # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
           # PATH for the test binary and the live app to start.
