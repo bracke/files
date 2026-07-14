@@ -1394,6 +1394,13 @@ package body Files_Suite.Operations is
       Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Arguments : Files.Settings.String_Vectors.Vector;
       Shell_Arguments : Files.Settings.String_Vectors.Vector;
+      Injected_Argument : Unbounded_String;
+
+      --  How this host's shell separates two commands: cmd uses "&", sh uses ";".
+      Shell_Command_Separator : constant String :=
+        (if Files.Platform.Current_API_Profile.Adapter = Files.File_System.Native_Adapter_Windows
+         then "&"
+         else ";");
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Model     : Files.Model.Window_Model := Sample_Model;
       Result    : Files.Operations.Operation_Result;
@@ -1799,19 +1806,27 @@ package body Files_Suite.Operations is
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Select_Visible (Model, 1);
 
-      Shell_Arguments.Append (To_Unbounded_String ("literal; exit 9"));
+      --  An argument that tries to be a second command. Each shell has its own way
+      --  of spelling that -- ";" for sh, "&" for cmd -- and the executable has to be
+      --  one that exists on the host, which "true" is not on Windows. If the quoting
+      --  holds, the whole thing stays one argument to Noop, which ignores it and
+      --  exits zero; if it leaks, the shell runs "exit 9" and we see a 9.
+      Injected_Argument :=
+        To_Unbounded_String
+          ("literal" & Shell_Command_Separator & " exit 9");
+      Shell_Arguments.Append (Injected_Argument);
       Shell_Arguments.Append (To_Unbounded_String ("{name}"));
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action ("true", Shell_Arguments, True));
+         Files.Settings.Make_Action (No_Op_Executable, Shell_Arguments, True));
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "unmodified action fallback can be prepared");
       Assert (Result.Action.Use_Shell, "prepared fallback action preserves explicit shell execution");
       Assert (Result.Action_Uses_Shell, "prepared result exposes explicit shell flag");
       Assert
-        (To_String (Result.Action.Arguments.Element (1)) = "literal; exit 9",
-         "explicit shell action keeps semicolon argument as one vector value");
+        (To_String (Result.Action.Arguments.Element (1)) = To_String (Injected_Argument),
+         "explicit shell action keeps the separator argument as one vector value");
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
@@ -1821,10 +1836,9 @@ package body Files_Suite.Operations is
       Assert (Result.Execution_Attempted, "executed shell action records process attempt");
       Assert (not Result.Exit_Status_Known, "a detached shell action reports no exit status");
 
-      --  The quoting is the point of this action -- "literal; exit 9" must stay one
-      --  argument, or the shell would run "exit 9" as a second command. An exit code
-      --  is the only way to see that, and a detached launch has none, so ask for the
-      --  same action synchronously: it goes through the same quoting on the way in.
+      --  The quoting is the point of this action. An exit code is the only way to
+      --  see it hold, and a detached launch has none, so ask for the same action
+      --  synchronously: it goes through the same quoting on the way in.
       declare
          Exit_Status : Integer := -1;
          Ran         : constant Boolean :=
@@ -1833,7 +1847,8 @@ package body Files_Suite.Operations is
          Assert (Ran, "the quoted shell action runs to completion when awaited");
          Assert
            (Exit_Status = 0,
-            "the semicolon stays inside one argument rather than running as a command");
+            "the separator stays inside one argument rather than running as a command; exit was "
+            & Exit_Status'Image);
       end;
 
       Files.Settings.Add_Open_Action

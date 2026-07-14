@@ -143,9 +143,39 @@ package body Files.Operations is
       return Make_Result (Operation_Failed, "error.open_action.unsafe_placeholder", Path);
    end Unsafe_Open_Action;
 
-   function Shell_Quote (Value : String) return String is
-      Result : Unbounded_String := To_Unbounded_String ("'");
+   function Safe_Environment_Value (Name : String) return String;
+
+   --  Which shell will Shell_Executable actually pick? Everything about running a
+   --  command line through it -- the flag that introduces the command, and how its
+   --  arguments must be quoted -- follows from this one answer, so it is asked in
+   --  one place. They disagreed before: the shell was chosen from COMSPEC (cmd on
+   --  Windows) while the quoting stayed POSIX, so an explicit-shell action on
+   --  Windows handed cmd single-quoted arguments, which cmd does not understand.
+   function Uses_Command_Shell return Boolean is
    begin
+      return Safe_Environment_Value ("COMSPEC") /= "";
+   end Uses_Command_Shell;
+
+   function Shell_Quote (Value : String) return String is
+      Result : Unbounded_String;
+   begin
+      if Uses_Command_Shell then
+         --  cmd.exe: a double-quoted argument, in which a literal " is doubled.
+         --  Single quotes mean nothing to cmd -- it would pass them through as part
+         --  of the text -- so they cannot be used to group an argument here.
+         Append (Result, '"');
+         for Character_Value of Value loop
+            if Character_Value = '"' then
+               Append (Result, """""");
+            else
+               Append (Result, Character_Value);
+            end if;
+         end loop;
+         Append (Result, '"');
+         return To_String (Result);
+      end if;
+
+      Append (Result, "'");
       for Character_Value of Value loop
          if Character_Value = ''' then
             Append (Result, "'\''");
@@ -208,13 +238,8 @@ package body Files.Operations is
    end Shell_Executable;
 
    function Shell_Command_Option return String is
-      Comspec : constant String := Safe_Environment_Value ("COMSPEC");
    begin
-      if Comspec /= "" then
-         return "/C";
-      else
-         return "-c";
-      end if;
+      return (if Uses_Command_Shell then "/C" else "-c");
    end Shell_Command_Option;
 
    function Execute_Open_Action
