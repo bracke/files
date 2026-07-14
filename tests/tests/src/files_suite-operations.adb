@@ -666,7 +666,13 @@ package body Files_Suite.Operations is
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,
          "trash backend can represent native macOS trash intent");
-      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      --  Everything from here on is about the freedesktop implementation -- the
+      --  trash directory, the .trashinfo metadata, the collision naming. Clearing
+      --  the variable used to select it, back when XDG was the default everywhere.
+      --  Windows now defaults to the Recycle Bin, which has none of those things,
+      --  so ask for XDG by name and it stays exercised on every host instead of
+      --  only where it happens to be the default.
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Write_File (Join (Root, "native-execute.txt"));
       declare
          Request : constant Files.File_System.Native_Trash_Request :=

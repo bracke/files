@@ -1607,12 +1607,38 @@ package body Files.File_System is
               and then Name /= ".."
               and then (Settings.Show_Hidden_Files or else Name (Name'First) /= '.')
             then
-               declare
-                  Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
-                  Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
+               --  One entry we cannot inspect must not cost us the directory. It
+               --  used to: anything raised here fell through to the handler below
+               --  and the whole load failed, so a single locked entry made the
+               --  directory unopenable. On Linux you rarely meet one; C:\ has
+               --  several -- System Volume Information, pagefile.sys, DumpStack.log
+               --  -- so the drive root, the one directory a Windows user starts
+               --  from, could not be listed at all.
+               --
+               --  An entry whose kind we cannot read is still an entry the user can
+               --  see, so keep it and say only what we know, rather than hiding it.
                begin
-                  Items.Append
-                    (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings));
+                  declare
+                     Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
+                     Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
+                  begin
+                     Items.Append
+                       (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings));
+                  end;
+               exception
+                  when others =>
+                     begin
+                        Items.Append
+                          (Item_For_Path
+                             (Join_Path (To_String (Normalized_Path), Name),
+                              Name,
+                              To_String (Normalized_Path),
+                              Files.Types.Other_Item,
+                              Settings));
+                     exception
+                        when others =>
+                           null;
+                     end;
                end;
             end if;
          end;
