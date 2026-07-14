@@ -1,3 +1,5 @@
+with GNAT.OS_Lib;
+
 with Interfaces.C.Strings;
 
 package body Files.Platform.Symlinks is
@@ -9,6 +11,14 @@ package body Files.Platform.Symlinks is
      (Target   : Interfaces.C.Strings.chars_ptr;
       Link_Path : Interfaces.C.Strings.chars_ptr) return Interfaces.C.int
      with Import, Convention => C, External_Name => "symlink";
+
+   function Is_Link (Path : String) return Boolean is
+   begin
+      return GNAT.OS_Lib.Is_Symbolic_Link (Path);
+   exception
+      when others =>
+         return False;
+   end Is_Link;
 
    function Create (Target : String; Link_Path : String) return Boolean is
       C_Target : Interfaces.C.Strings.chars_ptr :=

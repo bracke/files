@@ -37,6 +37,12 @@ package body Files.Platform.Metadata is
    Group_Information : constant C_DWord := 16#0000_0002#;
    Dacl_Information  : constant C_DWord := 16#0000_0004#;
 
+   --  PROTECTED_DACL_SECURITY_INFORMATION. Without it the new DACL is merged
+   --  with whatever the parent directory hands down, so revoking a right does not
+   --  revoke it: an inherited ACE keeps granting it, and a mode set to 0600 reads
+   --  back with the group and Everyone bits still on.
+   Protected_Dacl : constant C_DWord := 16#8000_0000#;
+
    Trustee_Is_Sid     : constant C_Int := 0;
    Trustee_Is_Unknown : constant C_Int := 0;
    Grant_Access       : constant C_Int := 1;
@@ -789,7 +795,7 @@ package body Files.Platform.Metadata is
 
       Status :=
         Set_Named_Security_Info
-          (C_Path, Se_File_Object, Dacl_Information,
+          (C_Path, Se_File_Object, Dacl_Information or Protected_Dacl,
            System.Null_Address, System.Null_Address,
            New_Acl, System.Null_Address);
 

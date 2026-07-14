@@ -12,6 +12,18 @@ package Files.Platform.Symlinks is
    --  must therefore treat False as "this machine will not make one", not as a
    --  failure -- which is exactly how the test suite already uses it.
 
+   function Is_Link (Path : String) return Boolean;
+   --  Is this path a symbolic link (on Windows, any reparse point)?
+   --
+   --  This cannot be asked portably. GNAT.OS_Lib.Is_Symbolic_Link is built on
+   --  lstat, which mingw does not have, so on Windows it answers False for every
+   --  path -- links included. It does not fail; it just always says no, which
+   --  means a symlink is never recognised as one and a tree walk will happily
+   --  descend into it.
+   --
+   --  @param Path the path to test
+   --  @return True when Path is a symbolic link or reparse point
+
    function Create (Target : String; Link_Path : String) return Boolean;
    --  Create a symbolic link at Link_Path pointing at Target.
    --  @param Target    what the link should point at

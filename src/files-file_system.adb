@@ -24,6 +24,7 @@ with Files_Config;
 
 with Files.Platform.Macos;
 with Files.Platform.Metadata;
+with Files.Platform.Symlinks;
 with Files.Platform.Macos.Trash;
 with Files.Platform.Windows.Trash;
 with Files.Platform.Windows;
@@ -1418,7 +1419,7 @@ package body Files.File_System is
    is
       Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
    begin
-      if GNAT.OS_Lib.Is_Symbolic_Link (Full) then
+      if Files.Platform.Symlinks.Is_Link (Full) then
          return Files.Types.Symlink_Item;
       end if;
 
@@ -1656,7 +1657,7 @@ package body Files.File_System is
          Parent : constant String := Ada.Directories.Containing_Directory (Full);
          Kind   : Files.Types.Item_Kind;
       begin
-         if GNAT.OS_Lib.Is_Symbolic_Link (Full) then
+         if Files.Platform.Symlinks.Is_Link (Full) then
             Kind := Files.Types.Symlink_Item;
          else
             case Ada.Directories.Kind (Full) is

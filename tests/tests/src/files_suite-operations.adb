@@ -47,6 +47,7 @@ with Files.Icon_Assets;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
+with Files.Platform.Symlinks;
 with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
@@ -5090,15 +5091,44 @@ package body Files_Suite.Operations is
          return;
       end if;
 
-      Id := Files.File_System.User_Id_For_Name ("root", Found);
-      Assert (Found and then Id = 0, "user name root resolves to uid 0");
+      if Files.Platform.Current_API_Profile.Adapter
+           = Files.File_System.Native_Adapter_Windows
+      then
+         --  There is no "root" on Windows and no uid 0: an account is a SID, and
+         --  the number the interface hands out is that SID's relative identifier.
+         --  So assert the property that actually holds -- the identity of a file
+         --  we just made round-trips through a name and back.
+         declare
+            Owned : constant String := Join (Root, "owned.txt");
+            Uid, Gid : Natural := 0;
+            Avail    : Boolean := False;
+            Round    : Natural := 0;
+         begin
+            Reset_Root;
+            Write_File (Owned, "owned");
+            Files.File_System.Ownership_Of (Owned, Uid, Gid, Avail);
+            Assert (Avail, "a file we just created has an owner");
 
-      Id := Files.File_System.Group_Id_For_Name ("root", Found);
-      --  The root group is gid 0 on Linux; on some systems it is named
-      --  "wheel", so accept a successful resolution to 0 or a not-found result
-      --  rather than asserting a fixed gid that may vary by distribution.
-      if Found then
-         Assert (Id = 0, "group name root, when present, resolves to gid 0");
+            declare
+               Name : constant String := Files.File_System.User_Name_For_Id (Uid);
+            begin
+               Assert (Name /= "", "the owning identity resolves to a name");
+               Round := Files.File_System.User_Id_For_Name (Name, Found);
+               Assert (Found and then Round = Uid,
+                       "that name resolves back to the same identity");
+            end;
+         end;
+      else
+         Id := Files.File_System.User_Id_For_Name ("root", Found);
+         Assert (Found and then Id = 0, "user name root resolves to uid 0");
+
+         Id := Files.File_System.Group_Id_For_Name ("root", Found);
+         --  The root group is gid 0 on Linux; on some systems it is named
+         --  "wheel", so accept a successful resolution to 0 or a not-found result
+         --  rather than asserting a fixed gid that may vary by distribution.
+         if Found then
+            Assert (Id = 0, "group name root, when present, resolves to gid 0");
+         end if;
       end if;
 
       Id := Files.File_System.User_Id_For_Name ("no_such_user_xyzzy_42", Found);
@@ -5109,8 +5139,13 @@ package body Files_Suite.Operations is
 
       --  Reverse resolution: uid 0 is root on any normal Linux system; gid 0 is
       --  "root" or "wheel" depending on distribution, so only assert non-empty.
-      Assert (Files.File_System.User_Name_For_Id (0) = "root", "uid 0 resolves to root");
-      Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
+      --  Neither number means anything on Windows.
+      if Files.Platform.Current_API_Profile.Adapter
+           /= Files.File_System.Native_Adapter_Windows
+      then
+         Assert (Files.File_System.User_Name_For_Id (0) = "root", "uid 0 resolves to root");
+         Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
+      end if;
       Assert (Files.File_System.User_Name_For_Id (2_000_000_000) = "",
               "an unassigned uid resolves to the empty string");
       Assert (Files.File_System.Group_Name_For_Id (2_000_000_000) = "",
@@ -5321,7 +5356,7 @@ package body Files_Suite.Operations is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "create-symlink succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after linking");
-      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "a symbolic link is created next to the source");
+      Assert (Files.Platform.Symlinks.Is_Link (Link_Path), "a symbolic link is created next to the source");
       Assert
         (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "the symbolic link resolves to the original contents");
@@ -5332,7 +5367,7 @@ package body Files_Suite.Operations is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "undo of a created symlink succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
-      Assert (not GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "undo leaves no dangling symlink entry");
+      Assert (not Files.Platform.Symlinks.Is_Link (Link_Path), "undo leaves no dangling symlink entry");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original source item");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
    end Test_Create_Symlink_Operation;
@@ -5366,7 +5401,7 @@ package body Files_Suite.Operations is
          "create-hard-link succeeds");
       Assert (Ada.Directories.Exists (Source), "original file still exists after linking");
       Assert (Ada.Directories.Exists (Link_Path), "a hard link is created next to the source");
-      Assert (not GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "a hard link is a regular directory entry");
+      Assert (not Files.Platform.Symlinks.Is_Link (Link_Path), "a hard link is a regular directory entry");
       Assert
         (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "the hard link shares the original contents");
@@ -5489,7 +5524,7 @@ package body Files_Suite.Operations is
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "create-symlink succeeds");
-      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "the symbolic link is created");
+      Assert (Files.Platform.Symlinks.Is_Link (Link_Path), "the symbolic link is created");
 
       Result := Files.Operations.Undo_Last (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "undo of a created link succeeds");
@@ -5498,7 +5533,7 @@ package body Files_Suite.Operations is
 
       Result := Files.Operations.Redo_Last (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "redo of a created link succeeds");
-      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "redo re-creates the symbolic link from its source");
+      Assert (Files.Platform.Symlinks.Is_Link (Link_Path), "redo re-creates the symbolic link from its source");
       Assert (Ada.Directories.Exists (Source), "redo keeps the original source item");
       Assert (Files.Model.Undo_Available (Model), "the re-created link is undoable again");
       Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying");
