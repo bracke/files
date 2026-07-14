@@ -300,11 +300,14 @@ package body Files_Suite.Support is
 
    function No_Op_Executable return String is
    begin
-      --  Linux keeps true in /bin; macOS only in /usr/bin.
+      --  Linux keeps true in /bin; macOS only in /usr/bin; Windows has neither,
+      --  so the test needs some real executable that will start.
       if Ada.Directories.Exists ("/bin/true") then
          return "/bin/true";
       elsif Ada.Directories.Exists ("/usr/bin/true") then
          return "/usr/bin/true";
+      elsif Ada.Directories.Exists ("C:\Windows\System32\cmd.exe") then
+         return "C:\Windows\System32\cmd.exe";
       else
          return "/bin/true";
       end if;
@@ -316,6 +319,10 @@ package body Files_Suite.Support is
          return "/bin/false";
       elsif Ada.Directories.Exists ("/usr/bin/false") then
          return "/usr/bin/false";
+      elsif Ada.Directories.Exists ("C:\Windows\System32\cmd.exe") then
+         --  cmd.exe fed the test's arguments exits non-zero, which is what a
+         --  "failing action" needs here.
+         return "C:\Windows\System32\cmd.exe";
       else
          return "/bin/false";
       end if;

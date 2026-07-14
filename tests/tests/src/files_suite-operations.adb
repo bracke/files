@@ -1375,7 +1375,10 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
 
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "file open executes an action");
+      Assert (Result.Status = Files.Operations.Operation_Action_Executed,
+              "file open executes an action; got "
+              & Files.Operations.Operation_Status'Image (Result.Status)
+              & " with executable " & To_String (Result.Action_Executable));
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "file open returns selected file path");
       Assert (Files.Model.Last_Error_Key (Model) = "", "executed open action clears stale error state");
       Assert (To_String (Result.Action.Executable) = No_Op_Executable, "executed action uses configured executable");
@@ -2280,7 +2283,9 @@ package body Files_Suite.Operations is
       Plans :=
         Files.File_System.Plan_Drop_Import
           (Sources, Join (Join (Root, "tree"), "sub"), Files.File_System.Drop_Move);
-      Assert (not Plans.Success, "moving a directory into its own subtree is rejected");
+      Assert (not Plans.Success,
+              "moving a directory into its own subtree is rejected; error was "
+              & To_String (Plans.Error_Key));
       Assert
         (To_String (Plans.Error_Key) = "error.drop.into_self",
          "into-self drop reports a deterministic diagnostic");
@@ -4325,7 +4330,10 @@ package body Files_Suite.Operations is
                 and then Reference.Total_Bytes = 21
                 and then Reference.Item_Count = 7
                 and then not Reference.Capped,
-              "reference totals match the constructed tree");
+              "reference totals match the constructed tree; got files="
+                & Natural'Image (Reference.File_Count)
+                & " bytes=" & Long_Long_Integer'Image (Reference.Total_Bytes)
+                & " items=" & Natural'Image (Reference.Item_Count));
    end Test_Incremental_Folder_Size_Matches_Reference;
 
    --  A multi-item selection measures every selected directory: each folder's
