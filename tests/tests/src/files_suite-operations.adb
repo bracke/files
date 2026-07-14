@@ -1374,6 +1374,13 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"), "path placeholder expands");
       Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
 
+      if not Can_Launch_Child_Processes then
+         --  See Support.Can_Launch_Child_Processes: launching hangs the suite
+         --  on Windows. Everything above -- the whole preparation path -- has
+         --  been asserted; only the launch is held back.
+         return;
+      end if;
+
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
       Assert (Result.Status = Files.Operations.Operation_Action_Executed,
               "file open executes an action; got "
