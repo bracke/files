@@ -492,7 +492,8 @@ package body Files_Suite.Operations is
       Assert
         (Files.File_System.Trash_Capabilities_Of_Current_Environment.Multi_Item_Preflight,
          "XDG trash backend reports multi-item preflight support");
-      Mutation := Files.File_System.Move_To_Trash_Preflight ("/");
+      --  "/" is not a root on Windows; the drive is.
+      Mutation := Files.File_System.Move_To_Trash_Preflight (Filesystem_Root);
       Assert (not Mutation.Success, "trash preflight rejects filesystem root");
       Assert
         (To_String (Mutation.Error_Key) = "error.trash.failed",
@@ -5289,7 +5290,10 @@ package body Files_Suite.Operations is
             Guarded : constant Files.File_System.Directory_Size_Result :=
               Files.File_System.Directory_Size (Tree);
          begin
-            Ada.Directories.Delete_File (Join (Tree, "loop"));
+            --  A link to a directory is a directory entry on Windows, so
+            --  Delete_File will not take it. Delete_Tree removes a link without
+            --  following it, whichever kind of entry the platform made it.
+            Project_Tools.Files.Delete_Tree (Join (Tree, "loop"));
             Assert (Guarded.Available, "size walk completes despite a symlink cycle");
             Assert (Guarded.Total_Bytes = 10, "symlinked directory is not descended into");
          end;
@@ -6043,7 +6047,9 @@ package body Files_Suite.Operations is
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
       Assert (Resolved.Status = Files.Operations.Operation_Success, "replace resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving clears the dialog");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC", "replace overwrites the destination with the source");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC",
+              "replace overwrites the destination with the source; destination holds "
+              & Read (Join (Dest_Dir, "a.txt")));
 
       --  Skip: the destination is left untouched and the source remains.
       Reset_Root;
@@ -6327,7 +6333,9 @@ package body Files_Suite.Operations is
          Routed.Operation :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop clears the dialog");
-         Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC", "replace overwrites the destination with the dropped source");
+         Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC",
+              "replace overwrites the destination with the dropped source; destination holds "
+              & Read (Join (Dest_Dir, "a.txt")));
       end;
 
       --  Skip: the destination and the source both stay untouched.

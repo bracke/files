@@ -591,14 +591,32 @@ package body Files.Platform.Metadata is
          Answer.Free_Bytes := Long_Long_Integer (Free_To_Caller);
       end if;
 
-      --  Windows keeps no inode count; the name limit and the read-only flag
-      --  come from the volume rather than the file.
-      Result :=
-        Get_Volume_Information
-          (C_Path,
-           System.Null_Address, 0,
-           Serial'Access, Component'Access, Flags'Access,
-           System.Null_Address, 0);
+      --  Windows keeps no inode count; the name limit and the read-only flag come
+      --  from the volume rather than the file -- and GetVolumeInformation insists
+      --  on the volume's ROOT, "C:\", not a directory anywhere inside it. Handed
+      --  a path like C:\Users\... it simply fails, and the read-only flag and the
+      --  name limit were reported as unknown for every volume.
+      declare
+         Root : Interfaces.C.Strings.chars_ptr :=
+           Interfaces.C.Strings.Null_Ptr;
+      begin
+         if Path'Length >= 2 and then Path (Path'First + 1) = ':' then
+            Root :=
+              Interfaces.C.Strings.New_String
+                (Path (Path'First .. Path'First + 1) & "\");
+         else
+            Root := Interfaces.C.Strings.New_String (Path);
+         end if;
+
+         Result :=
+           Get_Volume_Information
+             (Root,
+              System.Null_Address, 0,
+              Serial'Access, Component'Access, Flags'Access,
+              System.Null_Address, 0);
+
+         Interfaces.C.Strings.Free (Root);
+      end;
 
       if Result /= 0 then
          Answer.Name_Max := Natural (Component);

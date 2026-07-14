@@ -47,6 +47,10 @@ package Files_Suite.Support is
    --  operating system cannot name certainly does not.
    function Path_Exists (Path : String) return Boolean;
 
+   --  The root of the filesystem the scratch root lives on: "/" on POSIX, and the
+   --  drive -- "C:\" -- on Windows, where "/" is not a root at all.
+   function Filesystem_Root return String;
+
    --  A real executable that fails, for tests that check a non-zero exit is not
    --  surfaced. Like true, false lives in /usr/bin on macOS, not /bin.
    function Failing_Executable return String;

@@ -7,17 +7,58 @@ package body Files.Breadcrumbs is
      (Path : String)
       return Segment_Vectors.Vector
    is
+      --  Paths are not always spelled with '/'. A Windows path begins with a
+      --  drive -- "C:\Users\..." -- and is separated by '\', so a splitter that
+      --  knows only forward slashes finds no components at all and the breadcrumb
+      --  bar comes out empty.
+      function Is_Separator (Value : Character) return Boolean is
+        (Value = '/' or else Value = '\');
+
+      function Drive_Prefix return Natural is
+      begin
+         --  "C:\" or "C:/": the root is the drive, and it keeps its name --
+         --  unlike a POSIX root, which is a bare separator with nothing to show.
+         if Path'Length >= 3
+           and then Path (Path'First + 1) = ':'
+           and then Is_Separator (Path (Path'First + 2))
+         then
+            return 3;
+         end if;
+
+         return 0;
+      end Drive_Prefix;
+
       Result   : Segment_Vectors.Vector;
       Ancestor : Unbounded_String := Null_Unbounded_String;
+      Drive    : constant Natural := Drive_Prefix;
       Index    : Integer := Path'First;
+
       Absolute : constant Boolean :=
-        Path'Length > 0 and then Path (Path'First) = '/';
+        Drive > 0
+        or else (Path'Length > 0 and then Is_Separator (Path (Path'First)));
+
+      Separator : constant String :=
+        (if Drive > 0 then "\" else "/");
    begin
       if Path = "" then
          return Result;
       end if;
 
-      if Absolute then
+      if Drive > 0 then
+         --  The drive itself is the first breadcrumb: "C:" is where the tree
+         --  starts, and it is a place the user can click back to.
+         declare
+            Root : constant String := Path (Path'First .. Path'First + 1);
+         begin
+            Ancestor := To_Unbounded_String (Root & Separator);
+            Result.Append
+              (Segment'
+                 (Label         => To_Unbounded_String (Root),
+                  Ancestor_Path => Ancestor));
+         end;
+         Index := Path'First + Drive;
+
+      elsif Absolute then
          --  The filesystem root is not shown as its own breadcrumb (a bare '/'
          --  next to the '>' separators reads as a stray mark); skip the leading
          --  slash and start at the first named component.
@@ -29,7 +70,9 @@ package body Files.Breadcrumbs is
             Comp_Start : constant Integer := Index;
             Comp_End   : Integer := Index - 1;
          begin
-            while Index <= Path'Last and then Path (Index) /= '/' loop
+            while Index <= Path'Last
+              and then not Is_Separator (Path (Index))
+            loop
                Comp_End := Index;
                Index := Index + 1;
             end loop;
@@ -46,11 +89,15 @@ package body Files.Breadcrumbs is
                   if Length (Ancestor) = 0 then
                      Ancestor :=
                        (if Absolute
-                        then To_Unbounded_String ("/" & Name)
+                        then To_Unbounded_String (Separator & Name)
                         else To_Unbounded_String (Name));
+                  elsif Drive > 0 and then Natural (Result.Length) = 1 then
+                     --  Straight after the drive: "C:\" already ends in one.
+                     Ancestor := Ancestor & Name;
                   else
-                     Ancestor := Ancestor & "/" & Name;
+                     Ancestor := Ancestor & Separator & Name;
                   end if;
+
                   Result.Append
                     (Segment'
                        (Label         => To_Unbounded_String (Name),

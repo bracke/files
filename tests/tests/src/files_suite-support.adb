@@ -341,6 +341,16 @@ package body Files_Suite.Support is
       return Companion_Program ("failing");
    end Failing_Executable;
 
+   function Filesystem_Root return String is
+      Base : constant String := Root;
+   begin
+      if Base'Length >= 2 and then Base (Base'First + 1) = ':' then
+         return Base (Base'First .. Base'First + 1) & '\';
+      end if;
+
+      return "/";
+   end Filesystem_Root;
+
    function Path_Exists (Path : String) return Boolean is
    begin
       return Ada.Directories.Exists (Path);

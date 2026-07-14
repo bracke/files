@@ -627,7 +627,9 @@ package body Files_Suite.Model is
                "MP4 files expose video metadata");
          elsif To_String (Item.Name) = "archive.tar.gz" then
             Found_Tar_Gz := True;
-            Assert (To_String (Item.Filetype) = "application/gzip-tar", "compound extension maps to filetype");
+            Assert (To_String (Item.Filetype) = "application/gzip-tar",
+                    "compound extension maps to filetype; got "
+                    & To_String (Item.Filetype));
             Assert
               (Item_Extra (Item) = "archive.format|gzip",
                "compound gzip-tar archive files expose gzip format metadata");
