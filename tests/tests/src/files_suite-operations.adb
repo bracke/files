@@ -1558,12 +1558,17 @@ package body Files_Suite.Operations is
             Ada.Directories.Delete_File (Marker_Path);
          end if;
 
-         Preflight_Args.Append (To_Unbounded_String ("-c"));
-         Preflight_Args.Append (To_Unbounded_String ("touch " & Marker_Path));
+         --  An action that leaves a trace if it runs, so the assertions below can
+         --  prove nothing ran rather than take the result's word for it.
+         --
+         --  This was "/bin/sh -c touch <path>" -- two POSIX assumptions in one line.
+         --  Windows has no /bin/sh, so this action failed on its own missing
+         --  executable before the preflight reached the item the test is about.
+         Preflight_Args.Append (To_Unbounded_String (Marker_Path));
          Files.Settings.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+            Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
          --  Keep the missing-action preflight deterministic by opting out of
          --  the host opener fallback for the unmapped second selection.
          Preflight_Settings.Use_System_Default_Opener := False;
@@ -1601,12 +1606,17 @@ package body Files_Suite.Operations is
             Ada.Directories.Delete_File (Marker_Path);
          end if;
 
-         Preflight_Args.Append (To_Unbounded_String ("-c"));
-         Preflight_Args.Append (To_Unbounded_String ("touch " & Marker_Path));
+         --  An action that leaves a trace if it runs, so the assertions below can
+         --  prove nothing ran rather than take the result's word for it.
+         --
+         --  This was "/bin/sh -c touch <path>" -- two POSIX assumptions in one line.
+         --  Windows has no /bin/sh, so this action failed on its own missing
+         --  executable before the preflight reached the item the test is about.
+         Preflight_Args.Append (To_Unbounded_String (Marker_Path));
          Files.Settings.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+            Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
          Files.Settings.Add_Open_Action
            (Preflight_Settings,
             "text/markdown",

@@ -341,6 +341,11 @@ package body Files_Suite.Support is
       return Companion_Program ("failing");
    end Failing_Executable;
 
+   function Marker_Executable return String is
+   begin
+      return Companion_Program ("marker");
+   end Marker_Executable;
+
    function Filesystem_Root return String is
       Base : constant String := Root;
    begin
