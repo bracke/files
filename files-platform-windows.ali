@@ -1,0 +1,133 @@
+V "GNAT Lib v15"
+A -gnatc
+A -gnat2022
+A -gnatW8
+A -gnaty3
+A -gnatyM120
+A -gnatwa
+A -gnatX
+A -mtune=generic
+A -march=x86-64
+P NO
+
+RN
+RV NO_ELABORATION_CODE
+
+U files.platform.windows%b  files-platform-windows.adb  6cdb15bc OO PK
+W ada%s			ada.ads			ada.ali
+W ada.strings%s		a-string.ads		a-string.ali
+Z ada.strings.text_buffers%s  a-sttebu.adb	a-sttebu.ali
+W ada.strings.unbounded%s  a-strunb.adb		a-strunb.ali
+W files%s		files.ads		files.ali
+W files.platform%s	files-platform.adb	files-platform.ali
+W files.platform.windows%s  files-platform-windows.adb  files-platform-windows.ali
+W files.platform.windows.trash%s  files-platform-windows-trash.adb  files-platform-windows-trash.ali
+W files.platform.windows.volumes%s  files-platform-windows-volumes.adb  files-platform-windows-volumes.ali
+
+U files.platform.windows%s  files-platform-windows.ads  e9215be8 EE OO PK
+W files%s		files.ads		files.ali
+W files.file_system%s	files-file_system.adb	files-file_system.ali
+W files.platform%s	files-platform.adb	files-platform.ali
+
+D ada.ads		20250808065140 76789da1 ada%s
+D a-calend.ads		20250808065140 bf7f3cc9 ada.calendar%s
+D a-charac.ads		20250808065140 2d3ec45b ada.characters%s
+D a-chlat1.ads		20250808065140 e0d72e76 ada.characters.latin_1%s
+D a-contai.ads		20250808065140 61e5e089 ada.containers%s
+D a-cohata.ads		20250808065140 bea783e3 ada.containers.hash_tables%s
+D a-conhel.ads		20250808065140 46fe1ce3 ada.containers.helpers%s
+D a-cihama.ads		20250808065140 42861819 ada.containers.indefinite_hashed_maps%s
+D a-convec.ads		20250808065140 91fb49f3 ada.containers.vectors%s
+D a-finali.ads		20250808065140 bf4f806b ada.finalization%s
+D a-iteint.ads		20250808065140 49a8bee2 ada.iterator_interfaces%s
+D a-stream.ads		20250808065140 17477cbd ada.streams%s
+D a-string.ads		20250808065140 90ac6797 ada.strings%s
+D a-strhas.ads		20250808065140 e06866e7 ada.strings.hash%s
+D a-strmap.ads		20250808065140 1f91ebb6 ada.strings.maps%s
+D a-strsea.ads		20250808065140 18c3c634 ada.strings.search%s
+D a-sttebu.ads		20250808065140 f1ad67a2 ada.strings.text_buffers%s
+D a-strunb.ads		20250808065140 b10770ab ada.strings.unbounded%s
+D a-stuten.ads		20250808065140 c6ced0ae ada.strings.utf_encoding%s
+D a-unccon.ads		20250808065140 0e9b276f ada.unchecked_conversion%s
+D files.ads		20260614184958 68e46503 files%s
+D files-file_system.ads	20260711132800 5488d98c files.file_system%s
+D files-platform.ads	20260623051108 17f785d8 files.platform%s
+D files-platform-windows.ads  20260624211034 aa5e07bc files.platform.windows%s
+D files-platform-windows.adb  20260628195130 2a781cf4 files.platform.windows%b
+D files-platform-windows-trash.ads  20260618155758 17ca6dc1 files.platform.windows.trash%s
+D files-platform-windows-volumes.ads  20260618155758 4a30139e files.platform.windows.volumes%s
+D files-settings.ads	20260711151447 ccdd737f files.settings%s
+D files-types.ads	20260704031527 de3d2fda files.types%s
+D guikit.ads		20260704031527 443d1058 guikit%s
+D guikit-draw.ads	20260712171118 03fdd51f guikit.draw%s
+D guikit-input.ads	20260709165919 63d7e6da guikit.input%s
+D interfac.ads		20250808065140 9111f9c1 interfaces%s
+D system.ads		20250808065140 14286b0f system%s
+D s-atocou.ads		20250808065140 dc18efc3 system.atomic_counters%s
+D s-finroo.ads		20250808065140 0a7c3ed4 system.finalization_root%s
+D s-unstyp.ads		20250808065140 fa2a7f59 system.unsigned_types%s
+G a e
+G c Z s b [api_profile files__platform__windows 8 13 none]
+G c Z s b [native_locale files__platform__windows 13 13 none]
+G c Z s b [evaluate_trash files__platform__windows 19 13 none]
+G c Z s b [move_to_recycle_bin files__platform__windows 27 13 none]
+G r c none [api_profile files__platform__windows 8 13 none] [binding_status files__platform__windows__trash 8 13 none]
+G r c none [api_profile files__platform__windows 8 13 none] [binding_status files__platform__windows__volumes 8 13 none]
+G r c none [api_profile files__platform__windows 8 13 none] [can_query files__platform__windows__volumes 13 13 none]
+G r c none [evaluate_trash files__platform__windows 19 13 none] [evaluate files__platform__windows__trash 14 13 none]
+G r c none [move_to_recycle_bin files__platform__windows 27 13 none] [move files__platform__windows__trash 22 13 none]
+X 1 ada.ads
+18K9*Ada 22e8 25|1r6 6r8
+X 11 a-iteint.ads
+24h9 Forward_Iterator
+32h9 Reversible_Iterator<24R9[9|119]>
+X 13 a-string.ads
+16K13*Strings 35e16 25|1r10 6r12
+X 18 a-strunb.ads
+91K21*Unbounded 1641e26 25|1w18 6r20
+109r4*Null_Unbounded_String{105R9} 25|19r35
+122V13*To_Unbounded_String{105R9} 25|14s35 15s35 16s35 17s35 18s35
+X 21 files.ads
+2K9*Files 4e10 24|1r6 4r9 8r32 20r17 21r14 28r17 29r14 30r5 25|2r6 3r6 5r14
+. 8r32 11r35 12r35 13r35 22r35 31r17 32r14 35r14 39r17 40r14 42r14 44r5
+X 22 files-file_system.ads
+8K15*File_System 953e22 24|1w12 8r38 20r23 21r20 28r23 29r20 25|8r38 11r41
+. 31r23 32r20 39r23 40r20
+168n7*Native_Adapter_Windows{165E9} 25|11r53
+171R9*Native_Platform_API_Profile 184e14 24|8r50 25|8r50
+172e7*Adapter{165E9} 25|11m10
+173e7*Trash_Binding_Status{160E9} 25|12m10
+174e7*Volume_Binding_Status{160E9} 25|13m10
+175r7*Trash_API_Name{9R12} 25|14m10
+176r7*Volume_API_Name{9R12} 25|15m10
+177r7*Trash_Binding_Unit{9R12} 25|16m10
+178r7*Volume_Binding_Unit{9R12} 25|17m10
+179r7*Required_Library{9R12} 25|18m10
+180r7*Required_Framework{9R12} 25|19m10
+181b7*Current_Target{boolean} 25|20m10
+182b7*Trash_Can_Execute{boolean} 25|21m10
+183b7*Volume_Can_Query{boolean} 25|22m10
+197R9*Native_Trash_Request 202e14 24|20r35 28r35 25|31r35 39r35
+204R9*Native_Trash_Result 220e14 24|21r32 29r32 25|32r32 40r32
+X 23 files-platform.ads
+4K15*Platform 21|2k9 23|9e19 24|4r15 30r11 25|2r12 3r12 5r20 12r41 13r41
+. 22r41 35r20 42r20 44r11
+X 24 files-platform-windows.ads
+4K24*Windows 23|4k15 24|30l20 30e27 25|2r21 3r21 5b29 12r50 13r50 22r50 35r29
+. 42r29 44l20 44t27
+8V13*API_Profile{22|171R9} 25|8b13 23l8 23t19
+13V13*Native_Locale{string} 25|25b13 28l8 28t21
+19V13*Evaluate_Trash{22|204R9} 20>7 25|30b13 36l8 36t22
+20r7 Request{22|197R9} 25|31b7 35r53
+27V13*Move_To_Recycle_Bin{22|204R9} 28>7 25|38b13 43l8 43t27
+28r7 Request{22|197R9} 25|39b7 42r49
+X 26 files-platform-windows-trash.ads
+4K32*Trash 25|2w29 12r58 35r37 42r37 26|25e33
+8V13*Binding_Status{22|160E9} 25|12s64
+14V13*Evaluate{22|204R9} 25|35s43
+22V13*Move{22|204R9} 25|42s43
+X 27 files-platform-windows-volumes.ads
+4K32*Volumes 25|3w29 13r58 22r58 27|14e35
+8V13*Binding_Status{22|160E9} 25|13s66
+13V13*Can_Query{boolean} 25|22s66
+

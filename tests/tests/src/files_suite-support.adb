@@ -1,9 +1,9 @@
 with Ada.Calendar;
 with Ada.Characters.Handling;
+with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Interfaces;
-with Interfaces.C.Strings;
 with Ada.Strings;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -46,6 +46,7 @@ with Files.Settings;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
+with Hostkit.Fs;
 
 package body Files_Suite.Support is
 
@@ -78,7 +79,6 @@ package body Files_Suite.Support is
    use type Guikit.Vulkan.Texture_Source;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
-   use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
    use type Files.Settings.Sort_Field;
@@ -90,12 +90,6 @@ package body Files_Suite.Support is
    use type Files.Types.View_Mode;
    use type Glfw.Input.Mouse.Coordinate;
    use type System.Address;
-
-   function Symlink
-     (Target   : Interfaces.C.Strings.chars_ptr;
-      Linkpath : Interfaces.C.Strings.chars_ptr)
-      return Interfaces.C.int
-     with Import, Convention => C, External_Name => "symlink";
 
    function Click_Action
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -115,21 +109,13 @@ package body Files_Suite.Support is
    function Create_Symlink
      (Target   : String;
       Linkpath : String)
-      return Boolean
-   is
-      C_Target : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Target);
-      C_Link   : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Linkpath);
-      Result   : Interfaces.C.int;
+      return Boolean is
    begin
-      Result := Symlink (C_Target, C_Link);
-      Interfaces.C.Strings.Free (C_Target);
-      Interfaces.C.Strings.Free (C_Link);
-      return Result = 0;
-   exception
-      when others =>
-         Interfaces.C.Strings.Free (C_Target);
-         Interfaces.C.Strings.Free (C_Link);
-         return False;
+      --  Through the platform layer: symlink(2) is POSIX-only, and naming it here
+      --  made the test executable impossible to link on Windows. A platform that
+      --  will not make a link returns False, and every caller already guards on
+      --  that -- Windows needs Developer Mode or a privilege to create one.
+      return Hostkit.Fs.Create_Link (Target, Linkpath);
    end Create_Symlink;
 
    procedure Reset_Root is
@@ -270,6 +256,138 @@ package body Files_Suite.Support is
    begin
       return Files.File_System.Join_Path (Parent, Name);
    end Join;
+
+   function Compute_Root return String is
+      function System_Temp return String;
+
+      function System_Temp return String is
+         use Ada.Environment_Variables;
+      begin
+         --  TMPDIR on Unix, TEMP/TMP on Windows.
+         if Exists ("TMPDIR") and then Value ("TMPDIR") /= "" then
+            return Value ("TMPDIR");
+         elsif Exists ("TEMP") and then Value ("TEMP") /= "" then
+            return Value ("TEMP");
+         elsif Exists ("TMP") and then Value ("TMP") /= "" then
+            return Value ("TMP");
+         else
+            return "/tmp";
+         end if;
+      end System_Temp;
+
+      --  Resolve_Links is the point of this: the model reports canonical paths,
+      --  so the fixtures must be built under one too, or every path comparison
+      --  fails on macOS.
+      Resolved : constant String :=
+        GNAT.OS_Lib.Normalize_Pathname
+          (System_Temp, Resolve_Links => True);
+   begin
+      return Files.File_System.Join_Path (Resolved, "files_aunit");
+
+   exception
+      when others =>
+         return "/tmp/files_aunit";
+   end Compute_Root;
+
+   Cached_Root : Unbounded_String := Null_Unbounded_String;
+
+   function Root return String is
+   begin
+      if Length (Cached_Root) = 0 then
+         Cached_Root := To_Unbounded_String (Compute_Root);
+      end if;
+      return To_String (Cached_Root);
+   end Root;
+
+   function Companion_Program (Name : String) return String is
+      --  The suite ships its own Noop and Failing programs and launches those:
+      --  borrowing an executable from the host does not travel. /bin/true is
+      --  absent on macOS, absent again on Windows, and every Windows stand-in
+      --  either refused the arguments or -- cmd.exe -- opened an interactive
+      --  shell and sat waiting for input until CI gave up. They live beside the
+      --  test binary, so find them relative to it rather than to the working
+      --  directory.
+      Self : constant String := Ada.Command_Line.Command_Name;
+   begin
+      declare
+         Directory : constant String :=
+           Ada.Directories.Containing_Directory (Self);
+         Suffix    : constant String :=
+           (if Self'Length >= 4
+              and then Self (Self'Last - 3 .. Self'Last) = ".exe"
+            then ".exe" else "");
+      begin
+         return Ada.Directories.Compose (Directory, Name & Suffix);
+      end;
+
+   exception
+      when others =>
+         return Name;
+   end Companion_Program;
+
+   function Honours_Executable_Bit return Boolean is
+   begin
+      return Files.Platform.Current_API_Profile.Adapter
+               /= Files.File_System.Native_Adapter_Windows;
+   end Honours_Executable_Bit;
+
+   function No_Op_Executable return String is
+   begin
+      return Companion_Program ("noop");
+   end No_Op_Executable;
+
+   function Failing_Executable return String is
+   begin
+      return Companion_Program ("failing");
+   end Failing_Executable;
+
+   function Marker_Executable return String is
+   begin
+      return Companion_Program ("marker");
+   end Marker_Executable;
+
+   function Filesystem_Root return String is
+      Base : constant String := Root;
+   begin
+      if Base'Length >= 2 and then Base (Base'First + 1) = ':' then
+         return Base (Base'First .. Base'First + 1) & '\';
+      end if;
+
+      return "/";
+   end Filesystem_Root;
+
+   function Path_Exists (Path : String) return Boolean is
+   begin
+      return Ada.Directories.Exists (Path);
+   exception
+      when others =>
+         return False;
+   end Path_Exists;
+
+   Case_Probe_Done   : Boolean := False;
+   Case_Probe_Result : Boolean := False;
+
+   function Case_Insensitive_Filesystem return Boolean is
+      Probe_Dir : constant String := Ada.Directories.Containing_Directory (Root);
+      Lower     : constant String := Join (Probe_Dir, "files_case_probe");
+      Upper     : constant String := Join (Probe_Dir, "FILES_CASE_PROBE");
+   begin
+      if Case_Probe_Done then
+         return Case_Probe_Result;
+      end if;
+
+      Write_File (Lower);
+      Case_Probe_Result := Ada.Directories.Exists (Upper);
+      Ada.Directories.Delete_File (Lower);
+      Case_Probe_Done := True;
+      return Case_Probe_Result;
+
+   exception
+      when others =>
+         Case_Probe_Done := True;
+         Case_Probe_Result := False;
+         return False;
+   end Case_Insensitive_Filesystem;
 
    function Sample_Items return Files.File_System.Item_Vectors.Vector is
       Items : Files.File_System.Item_Vectors.Vector;

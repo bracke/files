@@ -47,6 +47,7 @@ with Files.Icon_Assets;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
+with Hostkit.Fs;
 with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
@@ -415,13 +416,34 @@ package body Files_Suite.Operations is
         (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 86_399.9)) =
          "2024-02-03T23:59:59",
          "trash deletion date does not round up near midnight");
+      --  On Windows the desktop trash is the Recycle Bin, which is always there:
+      --  "no trash base exists" is not a state that platform can be in. Select
+      --  the freedesktop backend explicitly, and the absence of a base is then
+      --  meaningful on every host.
       Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
       Ada.Environment_Variables.Clear ("HOME");
-      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Assert (not Files.File_System.Trash_Is_Available, "trash availability detects missing trash base");
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
          "trash backend reports unavailable when no trash base exists");
+
+      --  And with nothing selected, each platform falls back to its own desktop
+      --  trash: the Recycle Bin on Windows, the freedesktop layout elsewhere.
+      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      if Files.Platform.Current_API_Profile.Adapter = Files.File_System.Native_Adapter_Windows then
+         Assert
+           (Files.File_System.Trash_Backend_Of_Current_Environment
+              = Files.File_System.Trash_Windows_Recycle_Bin,
+            "Windows falls back to the Recycle Bin, which needs no trash base");
+         Assert (Files.File_System.Trash_Is_Available,
+                 "the Recycle Bin is always available");
+      else
+         Assert
+           (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
+            "elsewhere, no trash base means no trash");
+      end if;
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Assert
         (not Files.File_System.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
          "unavailable trash backend reports no metadata sidecar support");
@@ -456,6 +478,7 @@ package body Files_Suite.Operations is
       Ada.Directories.Delete_File (Join (Root, "blocked-trash-parent"));
       Ada.Directories.Delete_File (Join (Root, "blocked-trash-target.txt"));
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Assert (Files.File_System.Trash_Is_Available, "trash availability detects XDG trash base");
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Xdg_Data_Home,
@@ -469,7 +492,8 @@ package body Files_Suite.Operations is
       Assert
         (Files.File_System.Trash_Capabilities_Of_Current_Environment.Multi_Item_Preflight,
          "XDG trash backend reports multi-item preflight support");
-      Mutation := Files.File_System.Move_To_Trash_Preflight ("/");
+      --  "/" is not a root on Windows; the drive is.
+      Mutation := Files.File_System.Move_To_Trash_Preflight (Filesystem_Root);
       Assert (not Mutation.Success, "trash preflight rejects filesystem root");
       Assert
         (To_String (Mutation.Error_Key) = "error.trash.failed",
@@ -480,12 +504,14 @@ package body Files_Suite.Operations is
       begin
          Write_File (Prefix_Source);
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Prefix_Base);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Mutation := Files.File_System.Move_To_Trash_Preflight (Prefix_Source);
          Assert (Mutation.Success, "trash preflight accepts sibling paths sharing a prefix");
          Assert
            (To_String (Mutation.Error_Key) = "",
             "trash prefix-sibling preflight has no diagnostic");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Ada.Directories.Delete_File (Prefix_Source);
       end;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
@@ -508,13 +534,33 @@ package body Files_Suite.Operations is
       begin
          Assert (Request.Requires_Native_Api, "native trash request records native API requirement");
          Assert (not Request.Can_Use_Current_Process, "native trash request does not claim local fallback");
-         Assert (not Native_Result.Supported, "native trash result reports unsupported native adapter");
+         --  "here" was always Linux, where the Windows adapter is of course not
+         --  the target. On Windows it IS, and the binding is genuinely available.
+         if Files.Platform.Current_API_Profile.Adapter
+              = Files.File_System.Native_Adapter_Windows
+         then
+            Assert (Native_Result.Supported,
+                    "on Windows the native recycle-bin adapter is supported");
+            Assert (Native_Result.Native_Binding_Available,
+                    "on Windows the native trash binding is available");
+            Assert
+              (Native_Result.Native_Binding_Status
+                 = Files.File_System.Native_API_Binding_Available,
+               "on Windows the native trash binding reports available");
+         else
+            Assert (not Native_Result.Supported,
+                    "off Windows the recycle-bin adapter is unsupported");
+            Assert (not Native_Result.Native_Binding_Available,
+                    "off Windows the Windows trash binding is unavailable");
+            Assert
+              (Native_Result.Native_Binding_Status
+                 = Files.File_System.Native_API_Not_Target,
+               "off Windows the Windows trash binding is not the target");
+         end if;
+
+         --  Evaluation never mutates, on any host.
          Assert (not Native_Result.Attempted, "native trash evaluation does not attempt mutation");
          Assert (not Native_Result.Completed, "native trash evaluation does not complete mutation");
-         Assert (not Native_Result.Native_Binding_Available, "Windows native trash binding is unavailable here");
-         Assert
-           (Native_Result.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
-            "Windows native trash binding reports non-target status here");
          Assert
            (To_String (Native_Result.Binding_Unit) = "Files.Platform.Windows.Trash",
             "Windows native trash result records binding unit");
@@ -524,8 +570,8 @@ package body Files_Suite.Operations is
            (To_String (Native_Result.Adapter_Name) = "windows.recycle_bin",
             "Windows native trash result records adapter name");
          Assert
-           (To_String (Native_Result.Native_Api_Name) = "IFileOperation",
-            "Windows native trash result records native API name");
+           (To_String (Native_Result.Native_Api_Name) = "SHFileOperationW",
+            "Windows native trash result records the API it actually calls");
          Assert
            (To_String (Native_Result.Operation_Name) = "move_to_trash",
             "native trash result records operation name");
@@ -533,31 +579,100 @@ package body Files_Suite.Operations is
          Assert
            (not Native_Result.Requires_User_Consent,
             "native trash result records no in-app consent requirement");
-         Assert
-           (To_String (Native_Result.Error_Key) = "error.trash.native_unavailable",
-            "native trash result reports native-unavailable diagnostic");
-         Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
-         Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
-         Assert
-           (not Native_Execution.Native_Binding_Available,
-            "native trash execution reports unavailable binding");
-         Assert
-           (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
-            "native trash execution preserves binding status");
-         Assert
-           (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
-            "native trash execution reports native-unavailable diagnostic");
+         --  An evaluation carries a diagnostic only when it has something to
+         --  report. On Windows the adapter is right here and working, so there is
+         --  nothing to say; everywhere else the "unavailable" key IS the finding.
+         if Files.Platform.Current_API_Profile.Adapter
+              = Files.File_System.Native_Adapter_Windows
+         then
+            Assert
+              (To_String (Native_Result.Error_Key) = "",
+               "on Windows a supported adapter evaluates without a diagnostic; key was "
+               & To_String (Native_Result.Error_Key));
+
+            --  Executing against a path that does not exist: the adapter is real,
+            --  so it genuinely calls the shell and the shell genuinely refuses.
+            --  That is a failed attempt, not an unsupported one -- and the two
+            --  must not be reported the same way, or a broken Recycle Bin would
+            --  look exactly like a missing one.
+            Assert (Native_Execution.Supported, "on Windows the adapter is supported");
+            Assert (Native_Execution.Attempted, "on Windows the shell is actually called");
+            Assert
+              (not Native_Execution.Completed,
+               "and it refuses a path that does not exist");
+            Assert
+              (Native_Execution.Native_Binding_Available,
+               "on Windows the binding stays available across execution");
+            Assert
+              (Native_Execution.Native_Binding_Status
+                 = Files.File_System.Native_API_Binding_Available,
+               "on Windows execution preserves binding status");
+            Assert
+              (To_String (Native_Execution.Error_Key) = "error.trash.failed",
+               "a refused move is reported as a failure, not as an absent adapter; key was "
+               & To_String (Native_Execution.Error_Key));
+         else
+            Assert
+              (To_String (Native_Result.Error_Key) = "error.trash.native_unavailable",
+               "off Windows the evaluation reports native-unavailable");
+            Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
+            Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
+            Assert
+              (not Native_Execution.Native_Binding_Available,
+               "native trash execution reports unavailable binding");
+            Assert
+              (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
+               "native trash execution preserves binding status");
+            Assert
+              (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
+               "off Windows, native trash execution reports native-unavailable");
+         end if;
       end;
-      Mutation := Files.File_System.Move_To_Trash (Join (Root, "missing-for-native-trash.txt"));
-      Assert (not Mutation.Success, "unimplemented native Windows trash fails as recoverable data");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.native_unavailable",
-         "native Windows trash reports native-unavailable diagnostic");
+      --  This used a path that did not exist, because the preflight refused a
+      --  native backend outright and never got as far as looking. It does look
+      --  now, so give it something real -- and then the answer depends on where we
+      --  are: on Windows the Recycle Bin takes it, and everywhere else the Windows
+      --  adapter is a stub that says so.
+      declare
+         Victim : constant String := Join (Root, "for-native-trash.txt");
+      begin
+         Write_File (Victim, "bin me");
+         Mutation := Files.File_System.Move_To_Trash (Victim);
+
+         if Files.Platform.Current_API_Profile.Adapter
+              = Files.File_System.Native_Adapter_Windows
+         then
+            Assert (Mutation.Success,
+                    "on Windows the Recycle Bin takes the item; error was "
+                    & To_String (Mutation.Error_Key));
+            Assert (not Path_Exists (Victim),
+                    "the item is gone from its directory once the shell has it");
+         else
+            Assert (not Mutation.Success,
+                    "off Windows the recycle-bin adapter cannot do it");
+            Assert
+              (To_String (Mutation.Error_Key) = "error.trash.native_unavailable",
+               "and it fails as recoverable data, not an exception; key was "
+               & To_String (Mutation.Error_Key));
+         end if;
+
+         --  Off Windows the move fails and the file stays, which would leave the
+         --  scratch root holding one item more than the tests after this expect.
+         if Path_Exists (Victim) then
+            Ada.Directories.Delete_File (Victim);
+         end if;
+      end;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos");
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,
          "trash backend can represent native macOS trash intent");
-      Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+      --  Everything from here on is about the freedesktop implementation -- the
+      --  trash directory, the .trashinfo metadata, the collision naming. Clearing
+      --  the variable used to select it, back when XDG was the default everywhere.
+      --  Windows now defaults to the Recycle Bin, which has none of those things,
+      --  so ask for XDG by name and it stays exercised on every host instead of
+      --  only where it happens to be the default.
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Write_File (Join (Root, "native-execute.txt"));
       declare
          Request : constant Files.File_System.Native_Trash_Request :=
@@ -656,10 +771,20 @@ package body Files_Suite.Operations is
       Select_Name (Model, "space % file.txt");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "encoded trash target moves to trash");
+      --  What this is about is the encoding of the awkward characters, and that is
+      --  host-independent. The absolute path in front of them is not: it was spelled
+      --  out here as Full_Name (Root) & "/...", which is only ever true on POSIX. A
+      --  Windows path is "C:\..." and the encoder escapes its ':' and '\' too, so the
+      --  literal never matched. Assert the part this test is named for, and leave the
+      --  round-trip -- that the recorded path decodes back to the original location --
+      --  to Test_Restore_From_Trash, which is what that test exists to prove.
       Assert
         (Project_Tools.Files.File_Contains
-           (Join (Trash_Info, "space % file.txt.trashinfo"),
-            "Path=" & Ada.Directories.Full_Name (Root) & "/space%20%25%20file.txt"),
+           (Join (Trash_Info, "space % file.txt.trashinfo"), "Path="),
+         "trashinfo records the original path");
+      Assert
+        (Project_Tools.Files.File_Contains
+           (Join (Trash_Info, "space % file.txt.trashinfo"), "space%20%25%20file.txt"),
          "trashinfo path percent-encodes spaces and percent signs");
 
       Write_File (Join (Root, "multi-a.txt"));
@@ -832,6 +957,7 @@ package body Files_Suite.Operations is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
 
       Write_File (Source_Path, "payload");
       Mutation := Files.File_System.Move_To_Trash (Source_Path);
@@ -922,6 +1048,7 @@ package body Files_Suite.Operations is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
 
       --  Enablement: an ordinary directory never offers Empty Trash.
       Write_File (Source_A, "aaa");
@@ -1038,6 +1165,7 @@ package body Files_Suite.Operations is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
 
       --  One ordinary file plus one non-empty directory, both trashed.
       Write_File (Keep_File, "purge");
@@ -1147,6 +1275,7 @@ package body Files_Suite.Operations is
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
 
       --  Trashing a selected item records an undo-only Undo_Restore_Trash entry
       --  whose source is the payload's new location inside the trash.
@@ -1265,6 +1394,13 @@ package body Files_Suite.Operations is
       Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Arguments : Files.Settings.String_Vectors.Vector;
       Shell_Arguments : Files.Settings.String_Vectors.Vector;
+      Injected_Argument : Unbounded_String;
+
+      --  How this host's shell separates two commands: cmd uses "&", sh uses ";".
+      Shell_Command_Separator : constant String :=
+        (if Files.Platform.Current_API_Profile.Adapter = Files.File_System.Native_Adapter_Windows
+         then "&"
+         else ";");
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Model     : Files.Model.Window_Model := Sample_Model;
       Result    : Files.Operations.Operation_Result;
@@ -1282,7 +1418,7 @@ package body Files_Suite.Operations is
       Assert (Policy.Checks_Executable_Before_Spawn, "open-action policy checks executables before spawn");
       Assert (Policy.Tracks_Execution_Attempt, "open-action policy tracks execution attempts");
       Assert (Policy.Tracks_Exit_Status, "open-action policy tracks exit status");
-      Assert (not Policy.Runs_Asynchronously, "open-action policy records synchronous execution limit");
+      Assert (Policy.Runs_Asynchronously, "open-action policy records asynchronous detached launches");
       Assert (not Policy.Supports_Cancellation, "open-action policy records cancellation limit");
       Assert
         (Policy.Rejects_Unsafe_Placeholders,
@@ -1326,7 +1462,7 @@ package body Files_Suite.Operations is
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain+control",
-         Files.Settings.Make_Action ("/bin/true", Arguments));
+         Files.Settings.Make_Action (No_Op_Executable, Arguments));
       Modifiers (Guikit.Input.Control_Key) := True;
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Set_Error (Model, "error.open_action.missing");
@@ -1335,8 +1471,8 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Success, "file open action can be prepared without spawn");
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "prepared action reports selected file path");
       Assert (Files.Model.Last_Error_Key (Model) = "", "prepared action clears stale error state");
-      Assert (To_String (Result.Action.Executable) = "/bin/true", "prepared action uses configured executable");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "prepared result exposes executable text");
+      Assert (To_String (Result.Action.Executable) = No_Op_Executable, "prepared action uses configured executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "prepared result exposes executable text");
       Assert (Result.Action_Arguments = 3, "prepared result exposes argument count");
       Assert (not Result.Execution_Attempted, "prepared action does not execute");
       Assert (not Result.Action.Use_Shell, "prepared action preserves non-shell execution");
@@ -1346,11 +1482,14 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
 
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "file open executes an action");
+      Assert (Result.Status = Files.Operations.Operation_Action_Executed,
+              "file open executes an action; got "
+              & Files.Operations.Operation_Status'Image (Result.Status)
+              & " with executable " & To_String (Result.Action_Executable));
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "file open returns selected file path");
       Assert (Files.Model.Last_Error_Key (Model) = "", "executed open action clears stale error state");
-      Assert (To_String (Result.Action.Executable) = "/bin/true", "executed action uses configured executable");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "executed result exposes executable text");
+      Assert (To_String (Result.Action.Executable) = No_Op_Executable, "executed action uses configured executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "executed result exposes executable text");
       Assert (Result.Action_Arguments = 3, "executed result exposes argument count");
       Assert (Result.Execution_Attempted, "executed result records process attempt");
       Assert (Result.Executable_Found, "executed result records executable discovery");
@@ -1363,27 +1502,27 @@ package body Files_Suite.Operations is
          Lifecycle : constant Files.Operations.Open_Action_Lifecycle :=
            Files.Operations.Open_Action_Lifecycle_Of (Result);
       begin
+         --  Open_Selected launches detached, so the action is spawned and let go.
+         --  "Completed" would claim we watched it finish, and we did not.
          Assert
-           (Lifecycle.State = Files.Operations.Open_Action_Completed,
-            "open-action lifecycle records completed action");
-         Assert (To_String (Lifecycle.Executable) = "/bin/true", "lifecycle records executable");
+           (Lifecycle.State = Files.Operations.Open_Action_Spawned,
+            "open-action lifecycle records a spawned action");
+         Assert (To_String (Lifecycle.Executable) = No_Op_Executable, "lifecycle records executable");
          Assert (Lifecycle.Argument_Count = 3, "lifecycle records argument count");
-         Assert (Lifecycle.Exit_Status_Known, "lifecycle records known exit status");
-         Assert (Lifecycle.Exit_Status = 0, "lifecycle records successful process status");
+         Assert (not Lifecycle.Exit_Status_Known, "lifecycle records no exit status for a detached launch");
       end;
 
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
+         Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Action_Executed, "zero-argument open action executes");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "zero-argument action exposes executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "zero-argument action exposes executable");
       Assert (Result.Action_Arguments = 0, "zero-argument action exposes empty argument vector");
       Assert (Result.Execution_Attempted, "zero-argument action records process attempt");
       Assert (Result.Executable_Found, "zero-argument action records executable discovery");
-      Assert (Result.Exit_Status_Known, "zero-argument action records exit status");
-      Assert (Result.Exit_Status = 0, "zero-argument action records successful exit");
+      Assert (not Result.Exit_Status_Known, "zero-argument detached action records no exit status");
 
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
@@ -1395,7 +1534,7 @@ package body Files_Suite.Operations is
         (To_String (Result.Path) = Join (Root, "Alpha.txt"),
          "multi-file open preparation reports first selected path");
       Assert
-        (To_String (Result.Action_Executable) = "/bin/true",
+        (To_String (Result.Action_Executable) = No_Op_Executable,
          "multi-file open preparation exposes first executable");
       Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open preparation clears stale error state");
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
@@ -1403,15 +1542,15 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "multi-file open reports first selected path");
       Assert (Result.Execution_Attempted, "multi-file open records process attempts");
       Assert (Result.Executable_Found, "multi-file open records executable discovery");
-      Assert (To_String (Result.Action_Executable) = "/bin/true", "multi-file open exposes first action executable");
+      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "multi-file open exposes first action executable");
       Assert (Result.Action_Arguments = 3, "multi-file open exposes first action argument count");
       Assert
         (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
          "multi-file open exposes first expanded action path");
       Assert
         (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
-         Files.Operations.Open_Action_Completed,
-         "multi-file open lifecycle records completed action");
+         Files.Operations.Open_Action_Spawned,
+         "multi-file open lifecycle records a spawned action");
       Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open clears stale error state");
       Files.Model.Select_Visible (Model, 1);
 
@@ -1426,12 +1565,17 @@ package body Files_Suite.Operations is
             Ada.Directories.Delete_File (Marker_Path);
          end if;
 
-         Preflight_Args.Append (To_Unbounded_String ("-c"));
-         Preflight_Args.Append (To_Unbounded_String ("touch " & Marker_Path));
+         --  An action that leaves a trace if it runs, so the assertions below can
+         --  prove nothing ran rather than take the result's word for it.
+         --
+         --  This was "/bin/sh -c touch <path>" -- two POSIX assumptions in one line.
+         --  Windows has no /bin/sh, so this action failed on its own missing
+         --  executable before the preflight reached the item the test is about.
+         Preflight_Args.Append (To_Unbounded_String (Marker_Path));
          Files.Settings.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+            Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
          --  Keep the missing-action preflight deterministic by opting out of
          --  the host opener fallback for the unmapped second selection.
          Preflight_Settings.Use_System_Default_Opener := False;
@@ -1469,12 +1613,17 @@ package body Files_Suite.Operations is
             Ada.Directories.Delete_File (Marker_Path);
          end if;
 
-         Preflight_Args.Append (To_Unbounded_String ("-c"));
-         Preflight_Args.Append (To_Unbounded_String ("touch " & Marker_Path));
+         --  An action that leaves a trace if it runs, so the assertions below can
+         --  prove nothing ran rather than take the result's word for it.
+         --
+         --  This was "/bin/sh -c touch <path>" -- two POSIX assumptions in one line.
+         --  Windows has no /bin/sh, so this action failed on its own missing
+         --  executable before the preflight reached the item the test is about.
+         Preflight_Args.Append (To_Unbounded_String (Marker_Path));
          Files.Settings.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("/bin/sh", Preflight_Args));
+            Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
          Files.Settings.Add_Open_Action
            (Preflight_Settings,
             "text/markdown",
@@ -1508,11 +1657,11 @@ package body Files_Suite.Operations is
          Files.Settings.Add_Open_Action
            (Detached_Settings,
             "text/plain",
-            Files.Settings.Make_Action ("/bin/true", Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Settings.Add_Open_Action
            (Detached_Settings,
             "text/markdown",
-            Files.Settings.Make_Action ("/bin/false", Files.Settings.String_Vectors.Empty_Vector));
+            Files.Settings.Make_Action (Failing_Executable, Files.Settings.String_Vectors.Empty_Vector));
          Files.Model.Select_Visible (Detached_Model, 1);
          Files.Model.Toggle_Visible_Selection (Detached_Model, 3);
          Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);
@@ -1523,7 +1672,7 @@ package body Files_Suite.Operations is
            (To_String (Detached_Result.Path) = Join (Root, "Alpha.txt"),
             "multi-file detached open reports first selected path");
          Assert
-           (To_String (Detached_Result.Action_Executable) = "/bin/true",
+           (To_String (Detached_Result.Action_Executable) = No_Op_Executable,
             "multi-file detached open exposes first action executable");
          Assert
            (Detached_Result.Execution_Attempted,
@@ -1531,12 +1680,12 @@ package body Files_Suite.Operations is
          Assert
            (Detached_Result.Executable_Found,
             "multi-file detached open records executable discovery");
+         --  There is no exit status to record. The launch does not wait, so what
+         --  used to be asserted here was the wrapper shell's zero -- a number that
+         --  said nothing whatever about the application.
          Assert
-           (Detached_Result.Exit_Status_Known,
-            "multi-file detached open records exit status");
-         Assert
-           (Detached_Result.Exit_Status = 0,
-            "multi-file detached open records the wrapper shell zero exit");
+           (not Detached_Result.Exit_Status_Known,
+            "a detached open has no exit status to report");
          Assert
            (Files.Model.Last_Error_Key (Detached_Model) = "",
             "multi-file detached open clears stale error state");
@@ -1657,19 +1806,27 @@ package body Files_Suite.Operations is
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Select_Visible (Model, 1);
 
-      Shell_Arguments.Append (To_Unbounded_String ("literal; exit 9"));
+      --  An argument that tries to be a second command. Each shell has its own way
+      --  of spelling that -- ";" for sh, "&" for cmd -- and the executable has to be
+      --  one that exists on the host, which "true" is not on Windows. If the quoting
+      --  holds, the whole thing stays one argument to Noop, which ignores it and
+      --  exits zero; if it leaks, the shell runs "exit 9" and we see a 9.
+      Injected_Argument :=
+        To_Unbounded_String
+          ("literal" & Shell_Command_Separator & " exit 9");
+      Shell_Arguments.Append (Injected_Argument);
       Shell_Arguments.Append (To_Unbounded_String ("{name}"));
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain",
-         Files.Settings.Make_Action ("true", Shell_Arguments, True));
+         Files.Settings.Make_Action (No_Op_Executable, Shell_Arguments, True));
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "unmodified action fallback can be prepared");
       Assert (Result.Action.Use_Shell, "prepared fallback action preserves explicit shell execution");
       Assert (Result.Action_Uses_Shell, "prepared result exposes explicit shell flag");
       Assert
-        (To_String (Result.Action.Arguments.Element (1)) = "literal; exit 9",
-         "explicit shell action keeps semicolon argument as one vector value");
+        (To_String (Result.Action.Arguments.Element (1)) = To_String (Injected_Argument),
+         "explicit shell action keeps the separator argument as one vector value");
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
@@ -1677,8 +1834,22 @@ package body Files_Suite.Operations is
       Assert (Result.Action.Use_Shell, "explicit shell action remains explicit after execution");
       Assert (Result.Action_Uses_Shell, "executed shell result exposes explicit shell flag");
       Assert (Result.Execution_Attempted, "executed shell action records process attempt");
-      Assert (Result.Exit_Status_Known, "executed shell action records exit status");
-      Assert (Result.Exit_Status = 0, "quoted shell action exits successfully");
+      Assert (not Result.Exit_Status_Known, "a detached shell action reports no exit status");
+
+      --  The quoting is the point of this action. An exit code is the only way to
+      --  see it hold, and a detached launch has none, so ask for the same action
+      --  synchronously: it goes through the same quoting on the way in.
+      declare
+         Exit_Status : Integer := -1;
+         Ran         : constant Boolean :=
+           Files.Operations.Execute_Open_Action (Result.Action, Exit_Status);
+      begin
+         Assert (Ran, "the quoted shell action runs to completion when awaited");
+         Assert
+           (Exit_Status = 0,
+            "the separator stays inside one argument rather than running as a command; exit was "
+            & Exit_Status'Image);
+      end;
 
       Files.Settings.Add_Open_Action
         (Settings,
@@ -1691,8 +1862,7 @@ package body Files_Suite.Operations is
       Assert (Result.Action.Use_Shell, "shell builtin action preserves explicit shell execution");
       Assert (Result.Execution_Attempted, "shell builtin action records shell execution attempt");
       Assert (Result.Executable_Found, "shell builtin action records shell discovery");
-      Assert (Result.Exit_Status_Known, "shell builtin action records exit status");
-      Assert (Result.Exit_Status = 0, "shell builtin action exits successfully");
+      Assert (not Result.Exit_Status_Known, "a detached shell builtin reports no exit status");
 
       declare
          Exit_Arguments : Files.Settings.String_Vectors.Vector;
@@ -1703,41 +1873,45 @@ package body Files_Suite.Operations is
             "text/plain",
             Files.Settings.Make_Action ("exit", Exit_Arguments, True));
       end;
-      --  Open actions are launched detached through a backgrounding shell
-      --  wrapper, so a launched command's own nonzero exit code is no longer
-      --  surfaced: the wrapper shell itself exits zero after backgrounding.
+      --  "exit 7" is launched and let go, so its non-zero exit code is not surfaced.
+      --  That was true before as well, but for a worse reason: the backgrounding
+      --  wrapper shell exited zero and we reported *that*. Now nothing is reported.
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
          "detached explicit shell builtin launches fire-and-forget");
       Assert
         (Result.Execution_Attempted,
-         "detached explicit shell builtin runs through the wrapper shell");
+         "detached explicit shell builtin records a launch");
       Assert
         (Result.Executable_Found,
          "detached explicit shell builtin records successful shell lookup");
       Assert
-        (Result.Exit_Status = 0,
-         "detached explicit shell builtin records the wrapper shell zero exit");
+        (not Result.Exit_Status_Known,
+         "a detached launch does not surface the command's own exit code");
       Assert
         (Files.Model.Last_Error_Key (Model) = "",
          "detached explicit shell builtin clears stale error state");
 
-      Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action ("/bin/false", Arguments));
+      Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action (Failing_Executable, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
          "detached open action launches without surfacing app exit codes");
       Assert (Result.Execution_Attempted, "detached process result records execution attempt");
       Assert (Result.Executable_Found, "detached process result records executable discovery");
-      Assert (Result.Exit_Status_Known, "detached process result records exit status");
-      Assert (Result.Exit_Status = 0, "detached process result records the wrapper shell zero exit");
+      --  This action's executable fails, and that is the point: a detached launch is
+      --  reported as launched, and the application's own exit code is never seen.
+      --  What used to be asserted here -- a known, zero exit status -- was the
+      --  wrapper shell's, which succeeded in backgrounding a program that then went
+      --  on to fail. Nothing waits for it now, so there is no status at all.
+      Assert (not Result.Exit_Status_Known, "a detached process reports no exit status");
       Assert
-        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Completed,
-         "detached process lifecycle records completed state");
+        (Files.Operations.Open_Action_Lifecycle_Of (Result).State = Files.Operations.Open_Action_Spawned,
+         "detached process lifecycle records it as spawned, not completed");
       Assert
-        (Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
-         "detached process lifecycle exposes known exit status");
+        (not Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
+         "detached process lifecycle exposes no exit status");
       Assert
         (Files.Model.Last_Error_Key (Model) = "",
          "detached open action clears localized error key");
@@ -1783,7 +1957,7 @@ package body Files_Suite.Operations is
          Files.Settings.Add_Open_Action
            (Settings,
             "text/unsafe-argument",
-            Files.Settings.Make_Action ("/bin/true", Unsafe_Arguments));
+            Files.Settings.Make_Action (No_Op_Executable, Unsafe_Arguments));
          Lookup := Files.Settings.Lookup_Open_Action (Settings, "text/unsafe-argument", Guikit.Input.No_Modifiers);
          Assert
            (not Lookup.Found,
@@ -1810,7 +1984,7 @@ package body Files_Suite.Operations is
       Files.Settings.Add_Open_Action
         (Settings,
          "text/plain+control",
-         Files.Settings.Make_Action ("/bin/true", Arguments));
+         Files.Settings.Make_Action (No_Op_Executable, Arguments));
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Assert (Result.Status = Files.Operations.Operation_Success, "modifier-specific action can be prepared");
       Assert
@@ -1961,7 +2135,7 @@ package body Files_Suite.Operations is
         (To_String (Mutation.Error_Key) = "error.name.invalid",
          "direct invalid-name create reports invalid-name diagnostic");
       Assert
-        (not Ada.Directories.Exists (Join (Root, "bad:name.txt")),
+        (not Path_Exists (Join (Root, "bad:name.txt")),
          "direct invalid-name create writes no file");
       Mutation := Files.File_System.Create_Empty_File (Direct_Path);
       Assert (Mutation.Success, "direct create mutation succeeds");
@@ -2251,7 +2425,9 @@ package body Files_Suite.Operations is
       Plans :=
         Files.File_System.Plan_Drop_Import
           (Sources, Join (Join (Root, "tree"), "sub"), Files.File_System.Drop_Move);
-      Assert (not Plans.Success, "moving a directory into its own subtree is rejected");
+      Assert (not Plans.Success,
+              "moving a directory into its own subtree is rejected; error was "
+              & To_String (Plans.Error_Key));
       Assert
         (To_String (Plans.Error_Key) = "error.drop.into_self",
          "into-self drop reports a deterministic diagnostic");
@@ -2582,7 +2758,7 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects path separator names");
       Assert (To_String (Result.Error_Key) = "error.name.invalid", "create invalid name reports error key");
       Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "create invalid name records error");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad")), "invalid create does not create directories");
+      Assert (not Path_Exists (Join (Root, "bad")), "invalid create does not create directories");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid create keeps temporary item active");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid create keeps rename active");
 
@@ -2590,19 +2766,19 @@ package body Files_Suite.Operations is
       Files.Model.Begin_Create_File (Model, "bad\name.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects backslash names");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad\name.txt")), "invalid backslash create writes no file");
+      Assert (not Path_Exists (Join (Root, "bad\name.txt")), "invalid backslash create writes no file");
 
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "bad:name.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects Windows-reserved names");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad:name.txt")), "invalid reserved create writes no file");
+      Assert (not Path_Exists (Join (Root, "bad:name.txt")), "invalid reserved create writes no file");
 
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "bad*name.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects wildcard names");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad*name.txt")), "invalid wildcard create writes no file");
+      Assert (not Path_Exists (Join (Root, "bad*name.txt")), "invalid wildcard create writes no file");
 
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "trailing-dot.txt.");
@@ -2728,7 +2904,7 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Error_Key) = "error.name.invalid", "rename invalid name reports error key");
       Assert (Files.Model.Last_Error_Key (Model) = "error.name.invalid", "rename invalid name records error");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "invalid rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad")), "invalid rename does not create directories");
+      Assert (not Path_Exists (Join (Root, "bad")), "invalid rename does not create directories");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid rename keeps rename active");
       Assert (Files.Model.Selected_Name (Model) = "old.txt", "invalid rename keeps selected item");
 
@@ -2736,19 +2912,19 @@ package body Files_Suite.Operations is
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects backslash names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "backslash rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad\name.txt")), "invalid backslash rename writes no file");
+      Assert (not Path_Exists (Join (Root, "bad\name.txt")), "invalid backslash rename writes no file");
 
       Files.Model.Set_Rename_Text (Model, "bad:name.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects Windows-reserved names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "reserved-character rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad:name.txt")), "invalid reserved rename writes no file");
+      Assert (not Path_Exists (Join (Root, "bad:name.txt")), "invalid reserved rename writes no file");
 
       Files.Model.Set_Rename_Text (Model, "bad*name.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects wildcard names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "wildcard rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "bad*name.txt")), "invalid wildcard rename writes no file");
+      Assert (not Path_Exists (Join (Root, "bad*name.txt")), "invalid wildcard rename writes no file");
 
       Files.Model.Set_Rename_Text (Model, "renamed.");
       Result := Files.Operations.Commit_Rename (Model, Settings);
@@ -2929,7 +3105,7 @@ package body Files_Suite.Operations is
          "direct invalid-name rename reports invalid-name diagnostic");
       Assert (Ada.Directories.Exists (Direct_Source), "direct invalid-name rename leaves source in place");
       Assert
-        (not Ada.Directories.Exists (Join (Root, "bad:name.txt")),
+        (not Path_Exists (Join (Root, "bad:name.txt")),
          "direct invalid-name rename writes no target");
       Mutation := Files.File_System.Rename_Item (Direct_Source, Direct_Target);
       Assert (Mutation.Success, "direct rename mutation succeeds");
@@ -4296,7 +4472,10 @@ package body Files_Suite.Operations is
                 and then Reference.Total_Bytes = 21
                 and then Reference.Item_Count = 7
                 and then not Reference.Capped,
-              "reference totals match the constructed tree");
+              "reference totals match the constructed tree; got files="
+                & Natural'Image (Reference.File_Count)
+                & " bytes=" & Long_Long_Integer'Image (Reference.Total_Bytes)
+                & " items=" & Natural'Image (Reference.Item_Count));
    end Test_Incremental_Folder_Size_Matches_Reference;
 
    --  A multi-item selection measures every selected directory: each folder's
@@ -5062,15 +5241,44 @@ package body Files_Suite.Operations is
          return;
       end if;
 
-      Id := Files.File_System.User_Id_For_Name ("root", Found);
-      Assert (Found and then Id = 0, "user name root resolves to uid 0");
+      if Files.Platform.Current_API_Profile.Adapter
+           = Files.File_System.Native_Adapter_Windows
+      then
+         --  There is no "root" on Windows and no uid 0: an account is a SID, and
+         --  the number the interface hands out is that SID's relative identifier.
+         --  So assert the property that actually holds -- the identity of a file
+         --  we just made round-trips through a name and back.
+         declare
+            Owned : constant String := Join (Root, "owned.txt");
+            Uid, Gid : Natural := 0;
+            Avail    : Boolean := False;
+            Round    : Natural := 0;
+         begin
+            Reset_Root;
+            Write_File (Owned, "owned");
+            Files.File_System.Ownership_Of (Owned, Uid, Gid, Avail);
+            Assert (Avail, "a file we just created has an owner");
 
-      Id := Files.File_System.Group_Id_For_Name ("root", Found);
-      --  The root group is gid 0 on Linux; on some systems it is named
-      --  "wheel", so accept a successful resolution to 0 or a not-found result
-      --  rather than asserting a fixed gid that may vary by distribution.
-      if Found then
-         Assert (Id = 0, "group name root, when present, resolves to gid 0");
+            declare
+               Name : constant String := Files.File_System.User_Name_For_Id (Uid);
+            begin
+               Assert (Name /= "", "the owning identity resolves to a name");
+               Round := Files.File_System.User_Id_For_Name (Name, Found);
+               Assert (Found and then Round = Uid,
+                       "that name resolves back to the same identity");
+            end;
+         end;
+      else
+         Id := Files.File_System.User_Id_For_Name ("root", Found);
+         Assert (Found and then Id = 0, "user name root resolves to uid 0");
+
+         Id := Files.File_System.Group_Id_For_Name ("root", Found);
+         --  The root group is gid 0 on Linux; on some systems it is named
+         --  "wheel", so accept a successful resolution to 0 or a not-found result
+         --  rather than asserting a fixed gid that may vary by distribution.
+         if Found then
+            Assert (Id = 0, "group name root, when present, resolves to gid 0");
+         end if;
       end if;
 
       Id := Files.File_System.User_Id_For_Name ("no_such_user_xyzzy_42", Found);
@@ -5081,8 +5289,13 @@ package body Files_Suite.Operations is
 
       --  Reverse resolution: uid 0 is root on any normal Linux system; gid 0 is
       --  "root" or "wheel" depending on distribution, so only assert non-empty.
-      Assert (Files.File_System.User_Name_For_Id (0) = "root", "uid 0 resolves to root");
-      Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
+      --  Neither number means anything on Windows.
+      if Files.Platform.Current_API_Profile.Adapter
+           /= Files.File_System.Native_Adapter_Windows
+      then
+         Assert (Files.File_System.User_Name_For_Id (0) = "root", "uid 0 resolves to root");
+         Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
+      end if;
       Assert (Files.File_System.User_Name_For_Id (2_000_000_000) = "",
               "an unassigned uid resolves to the empty string");
       Assert (Files.File_System.Group_Name_For_Id (2_000_000_000) = "",
@@ -5211,7 +5424,10 @@ package body Files_Suite.Operations is
             Guarded : constant Files.File_System.Directory_Size_Result :=
               Files.File_System.Directory_Size (Tree);
          begin
-            Ada.Directories.Delete_File (Join (Tree, "loop"));
+            --  A link to a directory is a directory entry on Windows, so
+            --  Delete_File will not take it. Delete_Tree removes a link without
+            --  following it, whichever kind of entry the platform made it.
+            Project_Tools.Files.Delete_Tree (Join (Tree, "loop"));
             Assert (Guarded.Available, "size walk completes despite a symlink cycle");
             Assert (Guarded.Total_Bytes = 10, "symlinked directory is not descended into");
          end;
@@ -5293,7 +5509,7 @@ package body Files_Suite.Operations is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "create-symlink succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after linking");
-      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "a symbolic link is created next to the source");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "a symbolic link is created next to the source");
       Assert
         (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "the symbolic link resolves to the original contents");
@@ -5304,7 +5520,7 @@ package body Files_Suite.Operations is
         (Routed.Operation.Status = Files.Operations.Operation_Success,
          "undo of a created symlink succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
-      Assert (not GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "undo leaves no dangling symlink entry");
+      Assert (not Hostkit.Fs.Is_Link (Link_Path), "undo leaves no dangling symlink entry");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original source item");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
    end Test_Create_Symlink_Operation;
@@ -5338,7 +5554,7 @@ package body Files_Suite.Operations is
          "create-hard-link succeeds");
       Assert (Ada.Directories.Exists (Source), "original file still exists after linking");
       Assert (Ada.Directories.Exists (Link_Path), "a hard link is created next to the source");
-      Assert (not GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "a hard link is a regular directory entry");
+      Assert (not Hostkit.Fs.Is_Link (Link_Path), "a hard link is a regular directory entry");
       Assert
         (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "the hard link shares the original contents");
@@ -5461,7 +5677,7 @@ package body Files_Suite.Operations is
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "create-symlink succeeds");
-      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "the symbolic link is created");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "the symbolic link is created");
 
       Result := Files.Operations.Undo_Last (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "undo of a created link succeeds");
@@ -5470,7 +5686,7 @@ package body Files_Suite.Operations is
 
       Result := Files.Operations.Redo_Last (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Success, "redo of a created link succeeds");
-      Assert (GNAT.OS_Lib.Is_Symbolic_Link (Link_Path), "redo re-creates the symbolic link from its source");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "redo re-creates the symbolic link from its source");
       Assert (Ada.Directories.Exists (Source), "redo keeps the original source item");
       Assert (Files.Model.Undo_Available (Model), "the re-created link is undoable again");
       Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying");
@@ -5717,6 +5933,7 @@ package body Files_Suite.Operations is
          & "Name=No Command" & LF & "Exec=%F" & LF);
 
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", App_Base);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_DIRS", Empty_Dirs);
 
       declare
@@ -5913,15 +6130,21 @@ package body Files_Suite.Operations is
       Src_Dir  : constant String := Join (Root, "conflict-src");
       Dest_Dir : constant String := Join (Root, "conflict-dest");
 
-      --  Read a file, dropping a single trailing newline added by Write_File so
-      --  the payload compares cleanly against the written text.
+      --  Read a file, dropping the line terminator Write_File leaves behind so the
+      --  payload compares cleanly against the written text. That terminator is
+      --  CRLF on Windows, not LF, and dropping only the LF left a stray CR that
+      --  made every content comparison fail there.
       function Read (Path : String) return String is
-         Raw : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Raw  : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Last : Natural := Raw'Last;
       begin
-         if Raw'Length > 0 and then Raw (Raw'Last) = ASCII.LF then
-            return Raw (Raw'First .. Raw'Last - 1);
+         if Last >= Raw'First and then Raw (Last) = ASCII.LF then
+            Last := Last - 1;
          end if;
-         return Raw;
+         if Last >= Raw'First and then Raw (Last) = ASCII.CR then
+            Last := Last - 1;
+         end if;
+         return Raw (Raw'First .. Last);
       end Read;
 
       procedure Arm_Model
@@ -5964,7 +6187,9 @@ package body Files_Suite.Operations is
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
       Assert (Resolved.Status = Files.Operations.Operation_Success, "replace resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving clears the dialog");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC", "replace overwrites the destination with the source");
+      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC",
+              "replace overwrites the destination with the source; destination holds "
+              & Read (Join (Dest_Dir, "a.txt")));
 
       --  Skip: the destination is left untouched and the source remains.
       Reset_Root;
@@ -6209,13 +6434,18 @@ package body Files_Suite.Operations is
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;
 
+      --  The terminator Write_File leaves is CRLF on Windows, not LF.
       function Read (Path : String) return String is
-         Raw : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Raw  : constant String := Project_Tools.Files.Read_Raw_File (Path);
+         Last : Natural := Raw'Last;
       begin
-         if Raw'Length > 0 and then Raw (Raw'Last) = ASCII.LF then
-            return Raw (Raw'First .. Raw'Last - 1);
+         if Last >= Raw'First and then Raw (Last) = ASCII.LF then
+            Last := Last - 1;
          end if;
-         return Raw;
+         if Last >= Raw'First and then Raw (Last) = ASCII.CR then
+            Last := Last - 1;
+         end if;
+         return Raw (Raw'First .. Last);
       end Read;
 
       --  Reset the fixture and initialize the model on the destination directory
@@ -6248,7 +6478,9 @@ package body Files_Suite.Operations is
          Routed.Operation :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop clears the dialog");
-         Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC", "replace overwrites the destination with the dropped source");
+         Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC",
+              "replace overwrites the destination with the dropped source; destination holds "
+              & Read (Join (Dest_Dir, "a.txt")));
       end;
 
       --  Skip: the destination and the source both stay untouched.

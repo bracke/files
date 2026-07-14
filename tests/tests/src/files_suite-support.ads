@@ -7,7 +7,61 @@ with Files.Types;
 
 package Files_Suite.Support is
 
-   Root : constant String := "/tmp/files_aunit";
+   --  The scratch directory every fixture builds under.
+   --
+   --  This is deliberately not a hardcoded "/tmp/...": on macOS /tmp is a
+   --  symlink into /private, so the application's canonicalised paths never
+   --  string-compare equal to a path spelled through it, and Windows has no /tmp
+   --  at all. Test_Root resolves the platform's real temporary directory,
+   --  following links, so a path built here matches the one the model reports.
+   --  A function, not a constant: a spec-level constant cannot call into the
+   --  body before that body is elaborated.
+   function Root return String;
+
+   --  Does a mode bit decide what runs here? On POSIX, yes: chmod +x makes a file
+   --  executable whatever it is called. Windows decides from the extension alone
+   --  -- every ordinary file carries FILE_EXECUTE in its DACL, so the bit says
+   --  nothing -- and GNAT.OS_Lib.Set_Executable is a no-op there.
+   --
+   --  So "run.sh, chmod +x" is an executable on POSIX and a plain file on Windows,
+   --  and that is the product being right on both, not a gap. Tests that make a
+   --  file executable branch on this; the ones that want an executable on Windows
+   --  name it .bat.
+   function Honours_Executable_Bit return Boolean;
+
+   --  A real executable that succeeds and does nothing, for tests that need an
+   --  action to actually run. It is NOT /bin/true everywhere: macOS has no
+   --  /bin/true at all -- true lives in /usr/bin there -- so the path is probed
+   --  rather than assumed.
+   function No_Op_Executable return String;
+
+   --  Does this path exist? False, rather than an exception, for a name the host
+   --  cannot even represent.
+   --
+   --  Ada.Directories.Exists raises Name_Error on Windows for a name containing
+   --  ':' or '\\', which are ordinary characters on POSIX. Tests that check an
+   --  invalid name was REFUSED then ask whether the file exists -- and a path the
+   --  operating system cannot name certainly does not.
+   function Path_Exists (Path : String) return Boolean;
+
+   --  The root of the filesystem the scratch root lives on: "/" on POSIX, and the
+   --  drive -- "C:\" -- on Windows, where "/" is not a root at all.
+   function Filesystem_Root return String;
+
+   --  A real executable that fails, for tests that check a non-zero exit is not
+   --  surfaced. Like true, false lives in /usr/bin on macOS, not /bin.
+   function Failing_Executable return String;
+
+   --  A real executable that records having run, by creating the file named as its
+   --  first argument. Lets a test prove an action did not merely *report* that it
+   --  was never launched, but genuinely never ran.
+   function Marker_Executable return String;
+
+   --  True when the filesystem under Root treats "A.txt" and "a.txt" as the same
+   --  file, as macOS does by default. Fixtures that rely on both existing at once
+   --  cannot be built there, and must say so rather than quietly measure the
+   --  wrong thing.
+   function Case_Insensitive_Filesystem return Boolean;
 
    --  Translate a simulated click against a snapshot into an input action.
    --

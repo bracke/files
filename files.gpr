@@ -37,9 +37,10 @@ project Files is
                "-framework", "Foundation");
          when "windows" =>
             --  shell32 for SHFileOperationW (trash); ole32/kernel32 for shell
-            --  and locale APIs; plus Vulkan and gdk-pixbuf.
+            --  and locale APIs; plus Vulkan and gdk-pixbuf. The Vulkan loader
+            --  is named vulkan-1 on Windows (vulkan-1.dll), not vulkan.
             for Default_Switches ("Ada") use
-              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
+              ("-lvulkan-1", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
                "-lshell32", "-lole32", "-lkernel32");
          when others =>
             for Default_Switches ("Ada") use

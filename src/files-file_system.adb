@@ -24,6 +24,9 @@ with Files_Config;
 
 with Files.Platform.Macos;
 with Files.Platform.Metadata;
+with Hostkit.Fs;
+with Files.Platform.Macos.Trash;
+with Files.Platform.Windows.Trash;
 with Files.Platform.Windows;
 with Files.UTF8;
 
@@ -613,8 +616,13 @@ package body Files.File_System is
          return Trash_Windows_Recycle_Bin;
       elsif Environment_Equals ("FILES_TRASH_BACKEND", "macos") then
          return Trash_Macos_Native;
-      elsif Files_Config.Alire_Host_OS = "windows" then
+      elsif Files_Config.Alire_Host_OS = "windows"
+        and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
+      then
          --  Windows has no HOME/XDG trash; use the shell Recycle Bin by default.
+         --  "xdg" forces the freedesktop implementation regardless of host, which
+         --  is what lets it be exercised on every platform rather than only where
+         --  it happens to be the default.
          return Trash_Windows_Recycle_Bin;
       elsif Xdg_Data_Home /= "" then
          return Trash_Xdg_Data_Home;
@@ -805,7 +813,7 @@ package body Files.File_System is
       if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
          Result (2) := 'w';
       end if;
-      if GNAT.OS_Lib.Is_Executable_File (Path) then
+      if Hostkit.Fs.Is_Executable (Path) then
          Result (3) := 'x';
       end if;
 
@@ -1411,7 +1419,7 @@ package body Files.File_System is
    is
       Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
    begin
-      if GNAT.OS_Lib.Is_Symbolic_Link (Full) then
+      if Hostkit.Fs.Is_Link (Full) then
          return Files.Types.Symlink_Item;
       end if;
 
@@ -1419,7 +1427,7 @@ package body Files.File_System is
          when Ada.Directories.Directory =>
             return Files.Types.Directory_Item;
          when Ada.Directories.Ordinary_File =>
-            if GNAT.OS_Lib.Is_Executable_File (Full) then
+            if Hostkit.Fs.Is_Executable (Full) then
                return Files.Types.Executable_Item;
             end if;
             return Files.Types.Regular_File_Item;
@@ -1591,7 +1599,22 @@ package body Files.File_System is
       Started := True;
 
       while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+         begin
+            Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+         exception
+            when others =>
+               --  The enumeration itself failed, not one entry within it -- a file
+               --  that vanished mid-scan, typically. There is no way to step past
+               --  that and be sure of advancing, so stop and keep what we have: a
+               --  directory listed as far as we got beats one that will not open.
+               exit;
+         end;
+
+         --  An entry we cannot even name is skipped, not fatal. Naming it sits
+         --  outside the guard below, so it used to fall through to the handler at
+         --  the bottom and fail the whole load -- which is why C:\ loaded only when
+         --  nothing in it happened to be unreadable at that moment.
+         begin
          declare
             Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
          begin
@@ -1599,14 +1622,44 @@ package body Files.File_System is
               and then Name /= ".."
               and then (Settings.Show_Hidden_Files or else Name (Name'First) /= '.')
             then
-               declare
-                  Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
-                  Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
+               --  One entry we cannot inspect must not cost us the directory. It
+               --  used to: anything raised here fell through to the handler below
+               --  and the whole load failed, so a single locked entry made the
+               --  directory unopenable. On Linux you rarely meet one; C:\ has
+               --  several -- System Volume Information, pagefile.sys, DumpStack.log
+               --  -- so the drive root, the one directory a Windows user starts
+               --  from, could not be listed at all.
+               --
+               --  An entry whose kind we cannot read is still an entry the user can
+               --  see, so keep it and say only what we know, rather than hiding it.
                begin
-                  Items.Append
-                    (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings));
+                  declare
+                     Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
+                     Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
+                  begin
+                     Items.Append
+                       (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings));
+                  end;
+               exception
+                  when others =>
+                     begin
+                        Items.Append
+                          (Item_For_Path
+                             (Join_Path (To_String (Normalized_Path), Name),
+                              Name,
+                              To_String (Normalized_Path),
+                              Files.Types.Other_Item,
+                              Settings));
+                     exception
+                        when others =>
+                           null;
+                     end;
                end;
             end if;
+         end;
+         exception
+            when others =>
+               null;
          end;
       end loop;
 
@@ -1649,14 +1702,14 @@ package body Files.File_System is
          Parent : constant String := Ada.Directories.Containing_Directory (Full);
          Kind   : Files.Types.Item_Kind;
       begin
-         if GNAT.OS_Lib.Is_Symbolic_Link (Full) then
+         if Hostkit.Fs.Is_Link (Full) then
             Kind := Files.Types.Symlink_Item;
          else
             case Ada.Directories.Kind (Full) is
                when Ada.Directories.Directory =>
                   Kind := Files.Types.Directory_Item;
                when Ada.Directories.Ordinary_File =>
-                  if GNAT.OS_Lib.Is_Executable_File (Full) then
+                  if Hostkit.Fs.Is_Executable (Full) then
                      Kind := Files.Types.Executable_Item;
                   else
                      Kind := Files.Types.Regular_File_Item;
@@ -2276,7 +2329,14 @@ package body Files.File_System is
             Safe_Close (File);
       end Append_Proc_Mounts;
    begin
-      Append_If_Directory ("/", Root_Filesystem);
+      --  "/" is the filesystem root only where it names one. On Windows it is
+      --  drive-relative -- it resolves to the root of whatever drive the process
+      --  happens to sit on -- so offering it here put a phantom "Filesystem" root
+      --  at the top of the tree, ahead of, and duplicating, a real drive letter.
+      --  The drive loop below is what enumerates roots there.
+      if Files_Config.Alire_Host_OS /= "windows" then
+         Append_If_Directory ("/", Root_Filesystem);
+      end if;
       Append_Proc_Mounts;
       if Home /= "" then
          Append_If_Directory (Home, Root_Home);
@@ -2481,7 +2541,11 @@ package body Files.File_System is
                Volume_Binding_Unit   => To_Unbounded_String ("Files.File_System.Root_Volume_Details_For"),
                Required_Library      => To_Unbounded_String ("libc"),
                Required_Framework    => Null_Unbounded_String,
-               Current_Target        => True,
+               --  Only when Linux really is the target. The Windows and macOS
+               --  profiles already answer this from their per-OS bodies; this
+               --  branch used to say True unconditionally, so on a Mac both the
+               --  Linux and the macOS adapter claimed to be the current one.
+               Current_Target        => Files_Config.Alire_Host_OS = "linux",
                Trash_Can_Execute     => Trash_Is_Available,
                Volume_Can_Query      => Caps.Capacity_Bytes_Known or else Caps.Filesystem_Type_Available);
          when Native_Adapter_Windows =>
@@ -2959,6 +3023,26 @@ package body Files.File_System is
       return Ada.Directories.Compose
         (Containing_Directory => Parent_Path,
          Name                 => Name);
+
+   exception
+      when others =>
+         --  Compose raises Name_Error for a name the host cannot represent --
+         --  ':' and '\' are ordinary characters on POSIX but illegal on Windows.
+         --  Joining is not the place to decide that: callers validate names
+         --  themselves and report a rejection, and they need a path back in
+         --  order to do it. Raising here turned "that name is not allowed" into
+         --  a crash on Windows alone.
+         declare
+            Separator : constant Character := GNAT.OS_Lib.Directory_Separator;
+         begin
+            if Parent_Path (Parent_Path'Last) = Separator
+              or else Parent_Path (Parent_Path'Last) = '/'
+            then
+               return Parent_Path & Name;
+            end if;
+
+            return Parent_Path & Separator & Name;
+         end;
    end Join_Path;
 
    function Windows_Device_Basename (Name : String) return String is
@@ -3125,7 +3209,16 @@ package body Files.File_System is
    end Next_Untitled_Name;
 
    function Trash_Is_Available return Boolean is
+      Backend : constant Trash_Backend := Trash_Backend_For_Base;
    begin
+      --  The desktop's own trash needs no base directory of ours: the Recycle
+      --  Bin and the Finder's trash are simply there. Asking for a base path
+      --  would report no trash at all on Windows, and take the whole
+      --  move-to-trash command down with it.
+      if Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native then
+         return True;
+      end if;
+
       return Path_Can_Be_Directory (Trash_Base_Path);
    end Trash_Is_Available;
 
@@ -3294,6 +3387,9 @@ package body Files.File_System is
    is
       Base : constant String := Trash_Base_Path;
 
+      Uses_Native_Trash : constant Boolean :=
+        Trash_Backend_For_Base in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
+
       function Source_Exists return Boolean is
       begin
          return Path /= "" and then Ada.Directories.Exists (Path);
@@ -3348,17 +3444,30 @@ package body Files.File_System is
             return False;
       end Is_Same_Or_Inside;
    begin
-      if Trash_Backend_For_Base = Trash_Windows_Recycle_Bin
-        or else Trash_Backend_For_Base = Trash_Macos_Native
-      then
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.trash.native_unavailable"));
-      elsif not Source_Exists then
+      --  The native backends used to be refused here, because nothing called
+      --  them: a desktop trash we could not reach was the same as no trash. They
+      --  are wired up now, so refusing the platform's own trash before even
+      --  looking at the path meant deleting on Windows always failed with
+      --  "native unavailable" while the Recycle Bin sat there unused.
+      --
+      --  A native backend gets the same checks as any other: it still may not
+      --  swallow a path that does not exist, or the filesystem root.
+      if not Source_Exists then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));
-      elsif Base = "" then
+      end if;
+
+      --  Everything below is about OUR trash directory: that it exists, that we
+      --  are not trying to throw it into itself. A native backend has no such
+      --  directory -- the Recycle Bin is the shell's, not ours -- so those checks
+      --  do not apply to it, and applying them anyway reported "no trash" on the
+      --  one platform whose trash is always there.
+      if Uses_Native_Trash then
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      end if;
+
+      if Base = "" then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.unavailable"));
@@ -4078,6 +4187,39 @@ package body Files.File_System is
          end if;
       end;
 
+      --  Hand the item to the desktop's own trash where the platform has one.
+      --  These backends were written and then never called: everything went down
+      --  the freedesktop path, so deleting on Windows built a .trashinfo sidecar
+      --  in a directory the Recycle Bin knows nothing about.
+      --
+      --  The shell owns the item afterwards, so there is no path to hand back --
+      --  which is also why an undo cannot restore it, and says so.
+      if Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native then
+         declare
+            Request : constant Native_Trash_Request :=
+              (Backend                 => Backend,
+               Path                    => To_Unbounded_String (Path),
+               Requires_Native_Api     => True,
+               Can_Use_Current_Process => True);
+
+            Native : constant Native_Trash_Result :=
+              (if Backend = Trash_Windows_Recycle_Bin
+               then Files.Platform.Windows.Trash.Move (Request)
+               else Files.Platform.Macos.Trash.Move (Request));
+         begin
+            if Native.Completed then
+               return (Success => True, Error_Key => Null_Unbounded_String);
+            end if;
+
+            return
+              (Success   => False,
+               Error_Key =>
+                 (if Native.Error_Key = Null_Unbounded_String
+                  then To_Unbounded_String ("error.trash.failed")
+                  else Native.Error_Key));
+         end;
+      end if;
+
       Ada.Directories.Create_Path (Files_Dir);
       if Info_Dir /= "" then
          Ada.Directories.Create_Path (Info_Dir);
@@ -4455,10 +4597,16 @@ package body Files.File_System is
          I : constant String := Ada.Directories.Full_Name (Inner);
          O : constant String := Ada.Directories.Full_Name (Outer);
       begin
+         --  The boundary is whichever separator the host writes. This accepted
+         --  only '/', and Full_Name spells a Windows path with '\', so no
+         --  directory was ever inside its own tree there -- and dropping a folder
+         --  into its own subfolder, which this exists to refuse, was allowed
+         --  straight through into an unbounded recursive copy.
          return I = O
            or else (I'Length > O'Length
                     and then I (I'First .. I'First + O'Length - 1) = O
-                    and then I (I'First + O'Length) = '/');
+                    and then (I (I'First + O'Length) = '/'
+                              or else I (I'First + O'Length) = '\'));
       end Is_Within_Tree;
    begin
       if not Files.Fs.Directory_Exists (Destination_Directory)

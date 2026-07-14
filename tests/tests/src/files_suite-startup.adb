@@ -384,7 +384,10 @@ package body Files_Suite.Startup is
          "invalid HOME falls back to valid USERPROFILE");
       Ada.Environment_Variables.Set ("USERPROFILE", Join (Root, "missing-profile-env"));
       Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
-      Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile");
+      --  HOMEDRIVE and HOMEPATH are concatenated as they stand, so the separator
+      --  between them has to be the one this host writes -- '\\' on Windows.
+      Ada.Environment_Variables.Set
+        ("HOMEPATH", GNAT.OS_Lib.Directory_Separator & "drive-profile");
       Assert
         (Files.Application.Home_Directory = Join (Root, "drive-profile"),
          "HOMEDRIVE and HOMEPATH are used when USERPROFILE is invalid");
@@ -1683,10 +1686,23 @@ package body Files_Suite.Startup is
         (Repository_File_Contains ("src/files-application-windows.adb", "Guikit.Vulkan.Wait_For_Events")
          and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
+      --  Native watching is connected to the event loop through the platform
+      --  layer, not by calling a kernel facility from window code: inotify is
+      --  Linux-only, and naming it here once made the application impossible to
+      --  link on macOS or Windows. Each platform body supplies its own.
       Assert
-        (Repository_File_Contains ("src/files-application-windows.adb", "inotify_init1")
+        (Repository_File_Contains ("src/files-application-windows.adb", "Files.Platform.Watch.Poll")
          and then Repository_File_Contains ("src/files-application-windows.adb", "Drain_Native_Watch"),
          "native file watching is connected to the desktop event loop");
+      Assert
+        (Repository_File_Contains ("src/platform/linux/files-platform-watch.adb", "inotify_init1")
+         and then Repository_File_Contains ("src/platform/macos/files-platform-watch.adb", "kqueue")
+         and then Repository_File_Contains
+                    ("src/platform/windows/files-platform-watch.adb", "FindFirstChangeNotification"),
+         "each platform supplies its own native directory-change notification");
+      Assert
+        (not Repository_File_Contains ("src/files-application-windows.adb", "inotify"),
+         "window code must not name a Linux-only facility directly");
       Assert
         (Files.Features.Included_In_First_Implementation
            (Files.Features.Network_Filesystem_Special_Handling),
@@ -1794,8 +1810,13 @@ package body Files_Suite.Startup is
          "top-level tests sub-crate declares the AUnit dependency");
       Assert
         (Repository_File_Contains ("tests/tests.gpr", "tests/src/")
-         and then Repository_File_Contains ("tests/tests.gpr", "for Main use (""tests.adb"")"),
+         and then Repository_File_Contains ("tests/tests.gpr", "for Main use (""tests.adb"""),
          "top-level tests sub-crate reuses the AUnit suite sources");
+      Assert
+        (Repository_File_Contains ("tests/tests.gpr", "noop.adb")
+         and then Repository_File_Contains ("tests/tests.gpr", "failing.adb"),
+         "the suite ships the programs its open-action tests launch, rather than "
+         & "borrowing one from the host that may not exist or may never exit");
       Assert
         (Repository_File_Contains ("files.gpr", "src/platform/windows")
          and then Repository_File_Contains ("files.gpr", "src/platform/macos")
@@ -1806,7 +1827,7 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("files.gpr", "use ""files"""),
          "files project builds the expected binary entry point");
       Assert
-        (Repository_File_Contains ("tests/tests/tests.gpr", "for Main use (""tests.adb"")")
+        (Repository_File_Contains ("tests/tests/tests.gpr", "for Main use (""tests.adb""")
          and then Repository_File_Contains ("tests/tests/tests.gpr", "use ""tests"""),
          "nested tests project builds the expected AUnit runner");
       Assert

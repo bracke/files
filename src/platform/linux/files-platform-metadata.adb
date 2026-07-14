@@ -1,5 +1,7 @@
 with Ada.Strings.Unbounded;
 with Interfaces.C;
+with GNAT.OS_Lib;
+
 with Interfaces.C.Strings;
 
 package body Files.Platform.Metadata is
@@ -387,6 +389,7 @@ package body Files.Platform.Metadata is
          Safe_Free (C_Path);
          return False;
    end Set_Permissions;
+
 
    function Permissions_Supported return Boolean is
    begin

@@ -100,9 +100,6 @@ package Files.Platform.Metadata is
       Mode : Natural)
       return Boolean;
 
-   --  Return whether this platform can read and change permission bits.
-   --
-   --  @return True on the Linux adapter, False on the stub adapters.
    function Permissions_Supported return Boolean;
 
    --  Return the numeric owner (UID) and group (GID) of Path.

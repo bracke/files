@@ -11,6 +11,12 @@ with Files_Config;
 with Files.Folder_Size;
 with Files.Fs;
 with Files.Paste;
+with Files.Platform.Metadata;
+
+with Hostkit;
+with Hostkit.Fs;
+with Hostkit.Process;
+with Hostkit.Shell;
 
 with Zlib;
 
@@ -50,7 +56,9 @@ package body Files.Operations is
          Checks_Executable_Before_Spawn => True,
          Tracks_Execution_Attempt  => True,
          Tracks_Exit_Status        => True,
-         Runs_Asynchronously       => False,
+         --  A detached launch really is asynchronous now: Files.Launcher starts the
+         --  process and returns, instead of blocking on a shell that backgrounded it.
+         Runs_Asynchronously       => True,
          Supports_Cancellation     => False,
          Rejects_Unsafe_Placeholders => True,
          Reports_Missing_Action    => True,
@@ -69,7 +77,13 @@ package body Files.Operations is
       State : Open_Action_Lifecycle_State := Open_Action_Not_Started;
    begin
       if Result.Status = Operation_Action_Executed then
-         State := Open_Action_Completed;
+         --  "Completed" means we saw it finish, which we only do when we waited for
+         --  it. A detached launch is started and let go, so the honest state is
+         --  Spawned: the process is running, and its outcome is not ours to know.
+         State :=
+           (if Result.Exit_Status_Known
+            then Open_Action_Completed
+            else Open_Action_Spawned);
       elsif Result.Status = Operation_Failed and then Result.Execution_Attempted then
          State := Open_Action_Failed;
       elsif Result.Status = Operation_Failed
@@ -134,31 +148,6 @@ package body Files.Operations is
       return Make_Result (Operation_Failed, "error.open_action.unsafe_placeholder", Path);
    end Unsafe_Open_Action;
 
-   function Shell_Quote (Value : String) return String is
-      Result : Unbounded_String := To_Unbounded_String ("'");
-   begin
-      for Character_Value of Value loop
-         if Character_Value = ''' then
-            Append (Result, "'\''");
-         else
-            Append (Result, Character_Value);
-         end if;
-      end loop;
-      Append (Result, "'");
-      return To_String (Result);
-   end Shell_Quote;
-
-   function Shell_Command_Line (Action : Files.Settings.Open_Action) return String is
-      Result : Unbounded_String := To_Unbounded_String (Shell_Quote (To_String (Action.Executable)));
-   begin
-      for Argument of Action.Arguments loop
-         Append (Result, " ");
-         Append (Result, Shell_Quote (To_String (Argument)));
-      end loop;
-
-      return To_String (Result);
-   end Shell_Command_Line;
-
    function Safe_Environment_Value (Name : String) return String is
    begin
       if Ada.Environment_Variables.Exists (Name) then
@@ -171,28 +160,32 @@ package body Files.Operations is
          return "";
    end Safe_Environment_Value;
 
+   --  These stay public because callers and tests ask for them, but the answer is
+   --  Hostkit's: which shell, and how it wants a command introduced, is one question
+   --  asked in one place, not re-derived per crate.
    function Shell_Executable return String is
-      Comspec : constant String := Safe_Environment_Value ("COMSPEC");
-      Shell   : constant String := Safe_Environment_Value ("SHELL");
    begin
-      if Comspec /= "" then
-         return Comspec;
-      elsif Shell /= "" then
-         return Shell;
-      else
-         return "/bin/sh";
-      end if;
+      return Hostkit.Shell.Executable;
    end Shell_Executable;
 
    function Shell_Command_Option return String is
-      Comspec : constant String := Safe_Environment_Value ("COMSPEC");
    begin
-      if Comspec /= "" then
-         return "/C";
-      else
-         return "-c";
-      end if;
+      return Hostkit.Shell.Command_Option;
    end Shell_Command_Option;
+
+   --  An open action's arguments, in the vector Hostkit speaks.
+   function Host_Arguments
+     (Arguments : Files.Types.String_Vectors.Vector)
+      return Hostkit.String_Vectors.Vector
+   is
+      Result : Hostkit.String_Vectors.Vector;
+   begin
+      for Argument of Arguments loop
+         Result.Append (Argument);
+      end loop;
+
+      return Result;
+   end Host_Arguments;
 
    function Execute_Open_Action
      (Action      : Files.Settings.Open_Action;
@@ -200,103 +193,40 @@ package body Files.Operations is
       Detach      : Boolean := False)
       return Boolean
    is
-      Argument_Count : constant Natural := Natural (Action.Arguments.Length);
-      Args           : GNAT.OS_Lib.Argument_List_Access := null;
+      Executable : constant String := To_String (Action.Executable);
+      Arguments  : constant Hostkit.String_Vectors.Vector := Host_Arguments (Action.Arguments);
    begin
       Exit_Status := -1;
 
-      if To_String (Action.Executable) = "" then
+      if Executable = "" then
          return False;
       end if;
 
-      --  Detached launches go through the shell with explicit backgrounding
-      --  and full stdin/stdout/stderr redirection so the desktop opener (e.g.
-      --  xdg-open) can fork its real handler without inheriting Files's GLFW /
-      --  Vulkan-related file descriptors or signal mask.
-      if Detach then
-         declare
-            DQ           : constant String := """";
-            Shell_Path   : constant String := Shell_Executable;
-            Shell_Option : constant String := Shell_Command_Option;
-            Cmd          : Unbounded_String;
-         begin
-            if Shell_Path = "" then
-               return False;
-            end if;
-
-            if Files_Config.Alire_Host_OS = "windows" then
-               --  cmd.exe: detach via `start "" /b` and discard I/O to NUL.
-               --  POSIX `(... </dev/null ... &)` is not valid cmd syntax.
-               --  (Built from fragments so no literal mixes letters and spaces.)
-               Append (Cmd, "start");
-               Append (Cmd, " ");
-               Append (Cmd, DQ & DQ);
-               Append (Cmd, " ");
-               Append (Cmd, "/b");
-               Append (Cmd, " ");
-               Append (Cmd, DQ & To_String (Action.Executable) & DQ);
-               for Argument of Action.Arguments loop
-                  Append (Cmd, " ");
-                  Append (Cmd, DQ & To_String (Argument) & DQ);
-               end loop;
-               Append (Cmd, " >NUL 2>&1");
-            else
-               Append (Cmd, "(");
-               Append (Cmd, Shell_Quote (To_String (Action.Executable)));
-               for Argument of Action.Arguments loop
-                  Append (Cmd, " ");
-                  Append (Cmd, Shell_Quote (To_String (Argument)));
-               end loop;
-               Append (Cmd, " </dev/null >/dev/null 2>&1 &)");
-            end if;
-
-            Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
-            Args (1) := new String'(Shell_Option);
-            Args (2) := new String'(To_String (Cmd));
-            Exit_Status := GNAT.OS_Lib.Spawn (Shell_Path, Args.all);
-            GNAT.OS_Lib.Free (Args);
-            return Exit_Status = 0;
-         end;
-      end if;
-
+      --  An explicit-shell action is a command line, so it goes through the shell, and
+      --  Hostkit quotes it for whichever shell that turns out to be. Detached, it is not
+      --  waited for and has no exit status; awaited, its own status is reported.
       if Action.Use_Shell then
-         declare
-            Shell_Path   : constant String := Shell_Executable;
-            Shell_Option : constant String := Shell_Command_Option;
-         begin
-            if Shell_Path = "" then
-               return False;
-            end if;
+         if Hostkit.Shell.Executable = "" then
+            return False;
+         end if;
 
-            Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
-            Args (1) := new String'(Shell_Option);
-            Args (2) := new String'(Shell_Command_Line (Action));
-            Exit_Status := GNAT.OS_Lib.Spawn (Shell_Path, Args.all);
-         end;
-      elsif Argument_Count = 0 then
-         declare
-            Empty_Args : GNAT.OS_Lib.Argument_List (1 .. 0);
-         begin
-            Exit_Status := GNAT.OS_Lib.Spawn (To_String (Action.Executable), Empty_Args);
-         end;
-      else
-         Args := new GNAT.OS_Lib.Argument_List (1 .. Argument_Count);
-         for Index in 1 .. Argument_Count loop
-            Args (Index) := new String'(To_String (Action.Arguments.Element (Positive (Index))));
-         end loop;
-
-         Exit_Status := GNAT.OS_Lib.Spawn (To_String (Action.Executable), Args.all);
+         return Hostkit.Process.Run_Shell_Command
+                  (Hostkit.Shell.Command_Line (Executable, Arguments),
+                   Wait        => not Detach,
+                   Exit_Status => Exit_Status);
       end if;
 
-      if Args /= null then
-         GNAT.OS_Lib.Free (Args);
+      --  A detached launch starts the application and returns. It has no exit status to
+      --  report and does not pretend to: what used to be reported was the backgrounding
+      --  wrapper shell's zero, which said nothing about the application.
+      if Detach then
+         return Hostkit.Process.Launch (Executable, Arguments);
       end if;
-      return Exit_Status = 0;
+
+      return Hostkit.Process.Run (Executable, Arguments, Exit_Status);
    exception
       when others =>
-         if Args /= null then
-            GNAT.OS_Lib.Free (Args);
-         end if;
+         Exit_Status := -1;
          return False;
    end Execute_Open_Action;
 
@@ -312,7 +242,16 @@ package body Files.Operations is
 
       for Character_Value of Executable loop
          if Character_Value = '/' or else Character_Value = '\' then
-            return GNAT.OS_Lib.Is_Executable_File (Executable);
+            --  A path, not a name to be looked up: it has to be a regular file that
+            --  this host will actually run.
+            --
+            --  GNAT.OS_Lib.Is_Executable_File was the whole check, and on Windows it
+            --  answers True for a directory -- so an action whose "executable" was a
+            --  directory passed the preflight and got launched. It is the same shape
+            --  as the lstat-less Is_Symbolic_Link: a POSIX-flavoured helper that
+            --  quietly says yes there instead of failing.
+            return Files.Fs.File_Exists (Executable)
+              and then Hostkit.Fs.Is_Executable (Executable);
          end if;
       end loop;
 
@@ -923,36 +862,30 @@ package body Files.Operations is
       end if;
 
       declare
-         Shell_Path   : constant String := Shell_Executable;
-         Shell_Option : constant String := Shell_Command_Option;
-         Command      : Unbounded_String;
-         Args         : GNAT.OS_Lib.Argument_List_Access := null;
-         Exit_Status  : Integer := -1;
+         --  Change into the viewed directory, then start the terminal there. "cd /d" on
+         --  cmd, because plain cd will not cross to another drive.
+         Change_Dir : constant String :=
+           (if Hostkit.Shell.Is_Command_Shell then "cd /d " else "cd ");
+
+         Command : constant String :=
+           Change_Dir & Hostkit.Shell.Quote (Directory)
+           & " && " & Hostkit.Shell.Quote (Terminal);
+
+         Exit_Status : Integer := -1;
+         Started     : Boolean;
       begin
-         if Shell_Path = "" then
+         if Hostkit.Shell.Executable = "" then
             Files.Model.Set_Error (Model, "error.terminal.unavailable");
             return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
          end if;
 
-         --  Launch fully detached with the working directory set to the viewed
-         --  directory, mirroring the "Open With" detach policy: change into the
-         --  directory, then exec the terminal with I/O redirected so it does not
-         --  inherit Files's GLFW / Vulkan file descriptors or signal mask.
-         Append (Command, "(");
-         Append (Command, "cd");
-         Append (Command, " ");
-         Append (Command, Shell_Quote (Directory));
-         Append (Command, " && ");
-         Append (Command, Shell_Quote (Terminal));
-         Append (Command, " </dev/null >/dev/null 2>&1 &)");
+         --  Detached: the terminal outlives us and is not waited for. This used to end
+         --  in "</dev/null >/dev/null 2>&1 &", a shell asked to background the process
+         --  because the spawn underneath blocked -- and a Windows shell cannot read a
+         --  word of it.
+         Started := Hostkit.Process.Run_Shell_Command (Command, Wait => False, Exit_Status => Exit_Status);
 
-         Args := new GNAT.OS_Lib.Argument_List (1 .. 2);
-         Args (1) := new String'(Shell_Option);
-         Args (2) := new String'(To_String (Command));
-         Exit_Status := GNAT.OS_Lib.Spawn (Shell_Path, Args.all);
-         GNAT.OS_Lib.Free (Args);
-
-         if Exit_Status /= 0 then
+         if not Started then
             Files.Model.Set_Error (Model, "error.terminal.unavailable");
             return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
          end if;
@@ -1522,7 +1455,7 @@ package body Files.Operations is
                           Action,
                           Attempted => True,
                           Found     => True,
-                          Exit_Known => True,
+                          Exit_Known => False,
                           Exit_Status => Exit_Status);
                   end if;
 
@@ -1543,7 +1476,8 @@ package body Files.Operations is
                  Action    => First_Action,
                  Attempted => First_Action_Recorded,
                  Found     => First_Action_Recorded,
-                 Exit_Known => First_Action_Recorded,
+                 --  Detached: started and let go, so there is no exit status.
+                 Exit_Known => False,
                  Exit_Status => First_Exit_Status);
          end;
       end if;
@@ -1604,7 +1538,7 @@ package body Files.Operations is
                        Action => Prepared.Action,
                        Attempted => True,
                        Found  => True,
-                       Exit_Known => True,
+                       Exit_Known => False,
                        Exit_Status => Exit_Status);
                end if;
 
@@ -1617,7 +1551,7 @@ package body Files.Operations is
                     Prepared.Action,
                     Attempted => True,
                     Found     => True,
-                    Exit_Known => True,
+                    Exit_Known => False,
                     Exit_Status => Exit_Status);
             end;
          end if;

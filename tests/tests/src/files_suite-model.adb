@@ -180,30 +180,50 @@ package body Files_Suite.Model is
       Dir      : constant String := Join (Root, "sort");
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load     : Files.File_System.Directory_Load_Result;
+      Case_Sensitive : Boolean;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Join (Dir, "zdir"));
       Write_File (Join (Dir, "b.txt"));
       Write_File (Join (Dir, "A.txt"));
-      Write_File (Join (Dir, "a.txt"));
+
+      --  "A.txt" and "a.txt" are the same file on a case-insensitive filesystem,
+      --  which macOS uses by default. The tie-break between names that differ
+      --  only by case is exactly what the second half of this test pins down --
+      --  and it cannot be staged where the two cannot coexist, so say so rather
+      --  than assert against a fixture that was never built.
+      Case_Sensitive := not Case_Insensitive_Filesystem;
+
+      if Case_Sensitive then
+         Write_File (Join (Dir, "a.txt"));
+      end if;
+
       Write_File (Join (Root, "not-a-directory.txt"));
       Load := Files.File_System.Load_Directory (Dir, Settings);
 
       Assert (Load.Success, "directory load succeeds");
       Assert
-        (Natural (Load.Items.Length) = 4,
+        (Natural (Load.Items.Length) = (if Case_Sensitive then 4 else 3),
          "all direct children are loaded; count=" & Natural'Image (Natural (Load.Items.Length)));
       Assert (To_String (Load.Items.Element (1).Name) = "A.txt", "directory items sort by name with files");
       Load := Files.File_System.Load_Directory (Dir & "/.", Settings);
       Assert (Load.Success, "non-normal directory path loads");
       Assert (To_String (Load.Items.Element (1).Parent_Path) = To_String (Load.Path), "item parent path is normalized");
-      Assert
-        (To_String (Load.Items.Element (2).Name) = "a.txt",
-         "case-insensitive equal names use deterministic fallback order");
-      Assert
-        (To_String (Load.Items.Element (3).Name) = "b.txt",
-         "fallback name order is deterministic");
-      Assert (To_String (Load.Items.Element (4).Name) = "zdir", "directories remain in normal name order");
+
+      if Case_Sensitive then
+         Assert
+           (To_String (Load.Items.Element (2).Name) = "a.txt",
+            "case-insensitive equal names use deterministic fallback order");
+         Assert
+           (To_String (Load.Items.Element (3).Name) = "b.txt",
+            "fallback name order is deterministic");
+         Assert (To_String (Load.Items.Element (4).Name) = "zdir", "directories remain in normal name order");
+      else
+         Assert
+           (To_String (Load.Items.Element (2).Name) = "b.txt",
+            "fallback name order is deterministic");
+         Assert (To_String (Load.Items.Element (3).Name) = "zdir", "directories remain in normal name order");
+      end if;
 
       Load := Files.File_System.Load_Directory (Join (Root, "missing-directory"), Settings);
       Assert (not Load.Success, "missing directory load reports failure");
@@ -338,6 +358,9 @@ package body Files_Suite.Model is
         (Files.File_System.Extra_Info_Token
            (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
       Run_Path  : constant String := Join (Root, "run.sh");
+      --  What "executable" means is host-specific, so cover both meanings: the
+      --  mode bit on POSIX, the extension on Windows. See Support.Honours_Executable_Bit.
+      Bat_Path  : constant String := Join (Root, "run.bat");
       Text_Path : constant String := Join (Root, "plain.txt");
       Long_Text_Path : constant String := Join (Root, "long-line.txt");
       Utf8_Path : constant String := Join (Root, "utf8.txt");
@@ -408,6 +431,7 @@ package body Files_Suite.Model is
       Ada.Directories.Create_Path (Join (Root, "folder"));
       Write_File (Join (Join (Root, "folder"), "inside.txt"));
       Write_File (Run_Path, "echo run");
+      Write_File (Bat_Path, "@echo run");
       Write_File (Text_Path, "plain");
       Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
       Write_Binary_File (Utf8_Path, "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
@@ -460,7 +484,15 @@ package body Files_Suite.Model is
                Permissions : constant String := To_String (Item.Permissions);
             begin
                Found_Run := True;
-               Assert (Item.Kind = Files.Types.Executable_Item, "executable metadata affects item kind");
+               if Files_Suite.Support.Honours_Executable_Bit then
+                  Assert
+                    (Item.Kind = Files.Types.Executable_Item,
+                     "the executable bit affects item kind");
+               else
+                  Assert
+                    (Item.Kind /= Files.Types.Executable_Item,
+                     "a chmod +x .sh is not an executable on a host that runs by extension");
+               end if;
                Assert (Item.Modified_Available, "modified timestamp is available");
                Assert (Item.Size_Available, "file size is available");
                if Item.Creation_Available then
@@ -473,8 +505,20 @@ package body Files_Suite.Model is
                      "missing creation timestamp keeps deterministic sentinel");
                end if;
                Assert (Permissions'Length = 3, "permission metadata has stable rwx shape");
-               Assert (Permissions (3) = 'x', "executable permission is captured");
+               if Files_Suite.Support.Honours_Executable_Bit then
+                  Assert (Permissions (3) = 'x', "executable permission is captured");
+               end if;
             end;
+         elsif To_String (Item.Name) = "run.bat" then
+            --  The other meaning of executable: no bit was ever set on this file.
+            if not Files_Suite.Support.Honours_Executable_Bit then
+               Assert
+                 (Item.Kind = Files.Types.Executable_Item,
+                  "a .bat is an executable on a host that runs by extension");
+               Assert
+                 (To_String (Item.Permissions) (3) = 'x',
+                  "and it is reported as executable in its permissions");
+            end if;
          elsif To_String (Item.Name) = "plain.txt" then
             Assert (To_String (Item.Permissions)'Length = 3, "regular file permissions are captured");
          elsif To_String (Item.Name) = "link-to-plain.adb" then
@@ -607,7 +651,9 @@ package body Files_Suite.Model is
                "MP4 files expose video metadata");
          elsif To_String (Item.Name) = "archive.tar.gz" then
             Found_Tar_Gz := True;
-            Assert (To_String (Item.Filetype) = "application/gzip-tar", "compound extension maps to filetype");
+            Assert (To_String (Item.Filetype) = "application/gzip-tar",
+                    "compound extension maps to filetype; got "
+                    & To_String (Item.Filetype));
             Assert
               (Item_Extra (Item) = "archive.format|gzip",
                "compound gzip-tar archive files expose gzip format metadata");
@@ -1702,25 +1748,40 @@ package body Files_Suite.Model is
       Assert
         (Linux_Profile.Adapter = Files.File_System.Native_Adapter_Linux,
          "Linux native profile identifies adapter");
-      Assert (Linux_Profile.Current_Target, "Linux native profile marks current target");
+      --  Exactly one adapter is the current target, and which one depends on the
+      --  host. This block used to assert it was always Linux, which is why every
+      --  one of these failed the moment the suite first ran on a Mac.
+      Assert
+        (Linux_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Linux),
+         "the Linux profile marks itself the current target exactly on Linux");
+      Assert
+        (Windows_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows),
+         "the Windows profile marks itself the current target exactly on Windows");
+      Assert
+        (Macos_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos),
+         "the macOS profile marks itself the current target exactly on macOS");
+      Assert (Current_Profile.Current_Target, "the current profile is the current target");
       Assert
         (Linux_Profile.Volume_Binding_Status = Volume_Caps.Native_Binding_Status,
          "Linux native profile follows volume capability binding status");
       Assert
         (To_String (Linux_Profile.Volume_Binding_Unit) = "Files.File_System.Root_Volume_Details_For",
          "Linux native profile records volume binding unit");
+      declare
+         Host_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+           Files.File_System.Native_Platform_API_Profile_For (Current_Profile.Adapter);
+      begin
+         Assert
+           (Current_Profile.Volume_Binding_Status = Host_Profile.Volume_Binding_Status,
+            "platform current API profile follows host volume status");
+         Assert
+           (To_String (Current_Profile.Volume_Binding_Unit) = To_String (Host_Profile.Volume_Binding_Unit),
+            "platform current API profile exposes host binding unit");
+      end;
       Assert
-        (Current_Profile.Adapter = Linux_Profile.Adapter,
-         "platform current API profile follows the host adapter");
-      Assert
-        (Current_Profile.Volume_Binding_Status = Linux_Profile.Volume_Binding_Status,
-         "platform current API profile follows host volume status");
-      Assert
-        (To_String (Current_Profile.Volume_Binding_Unit) = To_String (Linux_Profile.Volume_Binding_Unit),
-         "platform current API profile exposes host binding unit");
-      Assert
-        (Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
-         "Windows native profile is not active on this target");
+        (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows
+         or else Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
+         "Windows native profile is not active off Windows");
       Assert
         (To_String (Windows_Profile.Trash_Binding_Unit) = "Files.Platform.Windows.Trash",
          "Windows native profile records trash binding unit");
@@ -1728,8 +1789,9 @@ package body Files_Suite.Model is
         (To_String (Windows_Profile.Volume_API_Name) = "GetVolumeInformationW+GetDiskFreeSpaceExW",
          "Windows native profile records volume APIs");
       Assert
-        (Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
-         "macOS native profile is not active on this target");
+        (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos
+         or else Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
+         "macOS native profile is not active off macOS");
       Assert
         (To_String (Macos_Profile.Required_Framework) = "Foundation",
          "macOS native profile records required framework");
@@ -2957,7 +3019,9 @@ package body Files_Suite.Model is
       Result := Files.Operations.Delete_Selected (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Failed, "trash failure is represented as data");
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "trash failure reports selected path");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "trash failure is recorded as data");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed",
+              "trash failure is recorded as data; key was "
+              & Files.Model.Last_Error_Key (Model));
    end Test_Error_State;
 
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class) is
