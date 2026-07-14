@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Ada.Characters.Handling;
+with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Interfaces;
@@ -298,38 +299,40 @@ package body Files_Suite.Support is
       return To_String (Cached_Root);
    end Root;
 
+   function Companion_Program (Name : String) return String is
+      --  The suite ships its own Noop and Failing programs and launches those:
+      --  borrowing an executable from the host does not travel. /bin/true is
+      --  absent on macOS, absent again on Windows, and every Windows stand-in
+      --  either refused the arguments or -- cmd.exe -- opened an interactive
+      --  shell and sat waiting for input until CI gave up. They live beside the
+      --  test binary, so find them relative to it rather than to the working
+      --  directory.
+      Self : constant String := Ada.Command_Line.Command_Name;
+   begin
+      declare
+         Directory : constant String :=
+           Ada.Directories.Containing_Directory (Self);
+         Suffix    : constant String :=
+           (if Self'Length >= 4
+              and then Self (Self'Last - 3 .. Self'Last) = ".exe"
+            then ".exe" else "");
+      begin
+         return Ada.Directories.Compose (Directory, Name & Suffix);
+      end;
+
+   exception
+      when others =>
+         return Name;
+   end Companion_Program;
+
    function No_Op_Executable return String is
    begin
-      --  Linux keeps true in /bin; macOS only in /usr/bin; Windows has neither,
-      --  so the test needs some real executable that will start.
-      if Ada.Directories.Exists ("/bin/true") then
-         return "/bin/true";
-      elsif Ada.Directories.Exists ("/usr/bin/true") then
-         return "/usr/bin/true";
-      elsif Ada.Directories.Exists ("C:\Windows\System32\hostname.exe") then
-         --  NOT cmd.exe: without /c it opens an interactive shell and waits for
-         --  input, which hangs the whole suite. hostname prints a line and exits
-         --  zero whatever it is handed.
-         return "C:\Windows\System32\hostname.exe";
-      else
-         return "/bin/true";
-      end if;
+      return Companion_Program ("noop");
    end No_Op_Executable;
 
    function Failing_Executable return String is
    begin
-      if Ada.Directories.Exists ("/bin/false") then
-         return "/bin/false";
-      elsif Ada.Directories.Exists ("/usr/bin/false") then
-         return "/usr/bin/false";
-      elsif Ada.Directories.Exists ("C:\Windows\System32\whoami.exe") then
-         --  whoami fed the test's arguments rejects them and exits non-zero,
-         --  which is what a "failing action" needs -- and, unlike cmd.exe, it
-         --  exits rather than waiting for input.
-         return "C:\Windows\System32\whoami.exe";
-      else
-         return "/bin/false";
-      end if;
+      return Companion_Program ("failing");
    end Failing_Executable;
 
    function Path_Exists (Path : String) return Boolean is

@@ -1807,8 +1807,13 @@ package body Files_Suite.Startup is
          "top-level tests sub-crate declares the AUnit dependency");
       Assert
         (Repository_File_Contains ("tests/tests.gpr", "tests/src/")
-         and then Repository_File_Contains ("tests/tests.gpr", "for Main use (""tests.adb"")"),
+         and then Repository_File_Contains ("tests/tests.gpr", "for Main use (""tests.adb"""),
          "top-level tests sub-crate reuses the AUnit suite sources");
+      Assert
+        (Repository_File_Contains ("tests/tests.gpr", "noop.adb")
+         and then Repository_File_Contains ("tests/tests.gpr", "failing.adb"),
+         "the suite ships the programs its open-action tests launch, rather than "
+         & "borrowing one from the host that may not exist or may never exit");
       Assert
         (Repository_File_Contains ("files.gpr", "src/platform/windows")
          and then Repository_File_Contains ("files.gpr", "src/platform/macos")
@@ -1819,7 +1824,7 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("files.gpr", "use ""files"""),
          "files project builds the expected binary entry point");
       Assert
-        (Repository_File_Contains ("tests/tests/tests.gpr", "for Main use (""tests.adb"")")
+        (Repository_File_Contains ("tests/tests/tests.gpr", "for Main use (""tests.adb""")
          and then Repository_File_Contains ("tests/tests/tests.gpr", "use ""tests"""),
          "nested tests project builds the expected AUnit runner");
       Assert
