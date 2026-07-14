@@ -26,7 +26,7 @@ package body Files.Platform.Windows.Trash is
          Would_Delete     => False,
          Uses_Recycle_Bin => True,
          Adapter_Name     => To_Unbounded_String ("windows.recycle_bin"),
-         Native_Api_Name  => To_Unbounded_String ("IFileOperation"),
+         Native_Api_Name  => To_Unbounded_String ("SHFileOperationW"),
          Operation_Name   => To_Unbounded_String ("move_to_trash"),
          Requires_User_Consent => False,
          Preserves_Metadata    => True,

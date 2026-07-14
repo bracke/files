@@ -570,8 +570,8 @@ package body Files_Suite.Operations is
            (To_String (Native_Result.Adapter_Name) = "windows.recycle_bin",
             "Windows native trash result records adapter name");
          Assert
-           (To_String (Native_Result.Native_Api_Name) = "IFileOperation",
-            "Windows native trash result records native API name");
+           (To_String (Native_Result.Native_Api_Name) = "SHFileOperationW",
+            "Windows native trash result records the API it actually calls");
          Assert
            (To_String (Native_Result.Operation_Name) = "move_to_trash",
             "native trash result records operation name");
@@ -590,15 +590,52 @@ package body Files_Suite.Operations is
          Assert
            (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
             "native trash execution preserves binding status");
-         Assert
-           (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
-            "native trash execution reports native-unavailable diagnostic");
+         if Files.Platform.Current_API_Profile.Adapter
+              /= Files.File_System.Native_Adapter_Windows
+         then
+            Assert
+              (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
+               "off Windows, native trash execution reports native-unavailable");
+         else
+            Assert
+              (not Native_Execution.Completed,
+               "on Windows the shell still refuses a path that does not exist");
+         end if;
       end;
-      Mutation := Files.File_System.Move_To_Trash (Join (Root, "missing-for-native-trash.txt"));
-      Assert (not Mutation.Success, "unimplemented native Windows trash fails as recoverable data");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.native_unavailable",
-         "native Windows trash reports native-unavailable diagnostic");
+      --  This used a path that did not exist, because the preflight refused a
+      --  native backend outright and never got as far as looking. It does look
+      --  now, so give it something real -- and then the answer depends on where we
+      --  are: on Windows the Recycle Bin takes it, and everywhere else the Windows
+      --  adapter is a stub that says so.
+      declare
+         Victim : constant String := Join (Root, "for-native-trash.txt");
+      begin
+         Write_File (Victim, "bin me");
+         Mutation := Files.File_System.Move_To_Trash (Victim);
+
+         if Files.Platform.Current_API_Profile.Adapter
+              = Files.File_System.Native_Adapter_Windows
+         then
+            Assert (Mutation.Success,
+                    "on Windows the Recycle Bin takes the item; error was "
+                    & To_String (Mutation.Error_Key));
+            Assert (not Path_Exists (Victim),
+                    "the item is gone from its directory once the shell has it");
+         else
+            Assert (not Mutation.Success,
+                    "off Windows the recycle-bin adapter cannot do it");
+            Assert
+              (To_String (Mutation.Error_Key) = "error.trash.native_unavailable",
+               "and it fails as recoverable data, not an exception; key was "
+               & To_String (Mutation.Error_Key));
+         end if;
+
+         --  Off Windows the move fails and the file stays, which would leave the
+         --  scratch root holding one item more than the tests after this expect.
+         if Path_Exists (Victim) then
+            Ada.Directories.Delete_File (Victim);
+         end if;
+      end;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos");
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,

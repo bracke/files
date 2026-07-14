@@ -12,6 +12,7 @@ package body Files.Platform.Metadata is
    use type Interfaces.C.int;
    use type Interfaces.C.unsigned;
    use type Interfaces.C.unsigned_char;
+   use type Interfaces.C.unsigned_short;
    use type Interfaces.C.unsigned_long;
    use type Interfaces.C.unsigned_long_long;
    use type Interfaces.C.Strings.chars_ptr;
@@ -533,41 +534,78 @@ package body Files.Platform.Metadata is
    end File_Creation_Time;
 
    function Symlink_Target_Token (Path : String) return String is
+      --  Read what the link STORES, not what it resolves to.
+      --
+      --  GetFinalPathNameByHandle answers with the target's own full path, so a
+      --  link written as "plain.txt" came back as "C:\...\plain.txt" -- a
+      --  different fact from the one the token is meant to carry, and not the one
+      --  every other platform reports. The stored text lives in the reparse point,
+      --  so ask for that.
+
       Backup_Semantics : constant C_DWord := 16#0200_0000#;
+      Open_Reparse     : constant C_DWord := 16#0020_0000#;
       Open_Existing    : constant C_DWord := 3;
       Share_All        : constant C_DWord := 7;
+      Fsctl_Get_Reparse : constant C_DWord := 16#0009_00A8#;
+
+      --  REPARSE_DATA_BUFFER, symbolic-link form. The names sit in PathBuffer at
+      --  the offsets the header gives, counted in BYTES, and are UTF-16.
+      type Reparse_Buffer is record
+         Tag                    : C_DWord := 0;
+         Data_Length            : Interfaces.C.unsigned_short := 0;
+         Reserved               : Interfaces.C.unsigned_short := 0;
+         Substitute_Name_Offset : Interfaces.C.unsigned_short := 0;
+         Substitute_Name_Length : Interfaces.C.unsigned_short := 0;
+         Print_Name_Offset      : Interfaces.C.unsigned_short := 0;
+         Print_Name_Length      : Interfaces.C.unsigned_short := 0;
+         Flags                  : C_DWord := 0;
+         Path_Buffer            : Wide_String (1 .. 4_000) :=
+           [others => Wide_Character'Val (0)];
+      end record
+        with Convention => C;
+
+      function Device_Io_Control
+        (Handle       : System.Address;
+         Code         : C_DWord;
+         In_Buffer    : System.Address;
+         In_Size      : C_DWord;
+         Out_Buffer   : System.Address;
+         Out_Size     : C_DWord;
+         Returned     : access C_DWord;
+         Overlapped   : System.Address) return C_Int
+        with Import, Convention => Stdcall,
+             External_Name => "DeviceIoControl";
 
       C_Path : Interfaces.C.Strings.chars_ptr :=
         Interfaces.C.Strings.New_String (Path);
       Handle : System.Address;
-      Buffer : aliased Interfaces.C.char_array (1 .. 4_096) :=
-        [others => Interfaces.C.nul];
-      Length : C_DWord;
+      Buffer : aliased Reparse_Buffer;
+      Given  : aliased C_DWord := 0;
+      Result : C_Int;
    begin
-      --  Ask first whether this is a link at all.
-      --
-      --  GetFinalPathNameByHandle resolves ANY path, not just a link's -- hand it
-      --  an ordinary file and it cheerfully returns that file's own name. Callers
-      --  read a non-empty token as "this is a symlink", so without this check
-      --  every file on Windows looked like one: the recursive size walk, which
-      --  declines to descend into links, skipped all of them and reported a tree
-      --  of zero bytes.
       if not Files.Platform.Symlinks.Is_Link (Path) then
          Interfaces.C.Strings.Free (C_Path);
          return "";
       end if;
 
+      --  FILE_FLAG_OPEN_REPARSE_POINT: open the link itself, not its target.
       Handle :=
         Create_File
           (C_Path, 0, Share_All, System.Null_Address,
-           Open_Existing, Backup_Semantics, System.Null_Address);
+           Open_Existing, Backup_Semantics + Open_Reparse,
+           System.Null_Address);
       Interfaces.C.Strings.Free (C_Path);
 
       if Handle = System.Null_Address then
          return "";
       end if;
 
-      Length := Get_Final_Path_Name (Handle, Buffer'Address, 4_096, 0);
+      Result :=
+        Device_Io_Control
+          (Handle, Fsctl_Get_Reparse,
+           System.Null_Address, 0,
+           Buffer'Address, Buffer'Size / 8,
+           Given'Access, System.Null_Address);
 
       declare
          Closed : constant C_Int := Close_Handle (Handle);
@@ -576,28 +614,42 @@ package body Files.Platform.Metadata is
          null;
       end;
 
-      if Length = 0 or else Length > 4_096 then
+      if Result = 0 then
          return "";
       end if;
 
       declare
-         Text : String (1 .. Natural (Length));
-         First : Natural := 1;
-      begin
-         for Index in Text'Range loop
-            Text (Index) :=
-              Character'Val
-                (Interfaces.C.char'Pos
-                   (Buffer (Interfaces.C.size_t (Index))));
-         end loop;
+         --  Prefer the print name -- the text a person wrote -- and fall back to
+         --  the substitute name when the link carries none.
+         Offset : constant Natural :=
+           Natural (if Buffer.Print_Name_Length > 0
+                    then Buffer.Print_Name_Offset
+                    else Buffer.Substitute_Name_Offset);
+         Length : constant Natural :=
+           Natural (if Buffer.Print_Name_Length > 0
+                    then Buffer.Print_Name_Length
+                    else Buffer.Substitute_Name_Length);
 
-         --  The resolved name comes back in the \\?\ extended form; the caller
-         --  wants a path it can show.
-         if Text'Length > 4 and then Text (1 .. 4) = "\\?\" then
-            First := 5;
+         First : constant Natural := Offset / 2 + 1;
+         Count : constant Natural := Length / 2;
+      begin
+         if Count = 0 or else First + Count - 1 > Buffer.Path_Buffer'Last then
+            return "";
          end if;
 
-         return "symlink.target|" & Text (First .. Text'Last);
+         declare
+            Wide : constant Wide_String :=
+              Buffer.Path_Buffer (First .. First + Count - 1);
+            Text : String (1 .. Count);
+         begin
+            for Index in Text'Range loop
+               Text (Index) :=
+                 Character'Val
+                   (Wide_Character'Pos (Wide (Wide'First + Index - 1)) mod 256);
+            end loop;
+
+            return "symlink.target|" & Text;
+         end;
       end;
 
    exception

@@ -3335,6 +3335,9 @@ package body Files.File_System is
    is
       Base : constant String := Trash_Base_Path;
 
+      Uses_Native_Trash : constant Boolean :=
+        Trash_Backend_For_Base in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
+
       function Source_Exists return Boolean is
       begin
          return Path /= "" and then Ada.Directories.Exists (Path);
@@ -3389,17 +3392,30 @@ package body Files.File_System is
             return False;
       end Is_Same_Or_Inside;
    begin
-      if Trash_Backend_For_Base = Trash_Windows_Recycle_Bin
-        or else Trash_Backend_For_Base = Trash_Macos_Native
-      then
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.trash.native_unavailable"));
-      elsif not Source_Exists then
+      --  The native backends used to be refused here, because nothing called
+      --  them: a desktop trash we could not reach was the same as no trash. They
+      --  are wired up now, so refusing the platform's own trash before even
+      --  looking at the path meant deleting on Windows always failed with
+      --  "native unavailable" while the Recycle Bin sat there unused.
+      --
+      --  A native backend gets the same checks as any other: it still may not
+      --  swallow a path that does not exist, or the filesystem root.
+      if not Source_Exists then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));
-      elsif Base = "" then
+      end if;
+
+      --  Everything below is about OUR trash directory: that it exists, that we
+      --  are not trying to throw it into itself. A native backend has no such
+      --  directory -- the Recycle Bin is the shell's, not ours -- so those checks
+      --  do not apply to it, and applying them anyway reported "no trash" on the
+      --  one platform whose trash is always there.
+      if Uses_Native_Trash then
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      end if;
+
+      if Base = "" then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.unavailable"));
