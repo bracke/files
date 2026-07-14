@@ -384,7 +384,10 @@ package body Files_Suite.Startup is
          "invalid HOME falls back to valid USERPROFILE");
       Ada.Environment_Variables.Set ("USERPROFILE", Join (Root, "missing-profile-env"));
       Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
-      Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile");
+      --  HOMEDRIVE and HOMEPATH are concatenated as they stand, so the separator
+      --  between them has to be the one this host writes -- '\\' on Windows.
+      Ada.Environment_Variables.Set
+        ("HOMEPATH", GNAT.OS_Lib.Directory_Separator & "drive-profile");
       Assert
         (Files.Application.Home_Directory = Join (Root, "drive-profile"),
          "HOMEDRIVE and HOMEPATH are used when USERPROFILE is invalid");

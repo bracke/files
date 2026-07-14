@@ -534,13 +534,33 @@ package body Files_Suite.Operations is
       begin
          Assert (Request.Requires_Native_Api, "native trash request records native API requirement");
          Assert (not Request.Can_Use_Current_Process, "native trash request does not claim local fallback");
-         Assert (not Native_Result.Supported, "native trash result reports unsupported native adapter");
+         --  "here" was always Linux, where the Windows adapter is of course not
+         --  the target. On Windows it IS, and the binding is genuinely available.
+         if Files.Platform.Current_API_Profile.Adapter
+              = Files.File_System.Native_Adapter_Windows
+         then
+            Assert (Native_Result.Supported,
+                    "on Windows the native recycle-bin adapter is supported");
+            Assert (Native_Result.Native_Binding_Available,
+                    "on Windows the native trash binding is available");
+            Assert
+              (Native_Result.Native_Binding_Status
+                 = Files.File_System.Native_API_Binding_Available,
+               "on Windows the native trash binding reports available");
+         else
+            Assert (not Native_Result.Supported,
+                    "off Windows the recycle-bin adapter is unsupported");
+            Assert (not Native_Result.Native_Binding_Available,
+                    "off Windows the Windows trash binding is unavailable");
+            Assert
+              (Native_Result.Native_Binding_Status
+                 = Files.File_System.Native_API_Not_Target,
+               "off Windows the Windows trash binding is not the target");
+         end if;
+
+         --  Evaluation never mutates, on any host.
          Assert (not Native_Result.Attempted, "native trash evaluation does not attempt mutation");
          Assert (not Native_Result.Completed, "native trash evaluation does not complete mutation");
-         Assert (not Native_Result.Native_Binding_Available, "Windows native trash binding is unavailable here");
-         Assert
-           (Native_Result.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
-            "Windows native trash binding reports non-target status here");
          Assert
            (To_String (Native_Result.Binding_Unit) = "Files.Platform.Windows.Trash",
             "Windows native trash result records binding unit");

@@ -813,7 +813,7 @@ package body Files.File_System is
       if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
          Result (2) := 'w';
       end if;
-      if GNAT.OS_Lib.Is_Executable_File (Path) then
+      if Files.Platform.Metadata.Is_Executable (Path) then
          Result (3) := 'x';
       end if;
 
@@ -1427,7 +1427,7 @@ package body Files.File_System is
          when Ada.Directories.Directory =>
             return Files.Types.Directory_Item;
          when Ada.Directories.Ordinary_File =>
-            if GNAT.OS_Lib.Is_Executable_File (Full) then
+            if Files.Platform.Metadata.Is_Executable (Full) then
                return Files.Types.Executable_Item;
             end if;
             return Files.Types.Regular_File_Item;
@@ -1664,7 +1664,7 @@ package body Files.File_System is
                when Ada.Directories.Directory =>
                   Kind := Files.Types.Directory_Item;
                when Ada.Directories.Ordinary_File =>
-                  if GNAT.OS_Lib.Is_Executable_File (Full) then
+                  if Files.Platform.Metadata.Is_Executable (Full) then
                      Kind := Files.Types.Executable_Item;
                   else
                      Kind := Files.Types.Regular_File_Item;

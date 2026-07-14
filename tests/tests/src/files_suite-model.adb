@@ -2995,7 +2995,9 @@ package body Files_Suite.Model is
       Result := Files.Operations.Delete_Selected (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Failed, "trash failure is represented as data");
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "trash failure reports selected path");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "trash failure is recorded as data");
+      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed",
+              "trash failure is recorded as data; key was "
+              & Files.Model.Last_Error_Key (Model));
    end Test_Error_State;
 
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class) is
