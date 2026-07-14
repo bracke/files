@@ -306,8 +306,11 @@ package body Files_Suite.Support is
          return "/bin/true";
       elsif Ada.Directories.Exists ("/usr/bin/true") then
          return "/usr/bin/true";
-      elsif Ada.Directories.Exists ("C:\Windows\System32\cmd.exe") then
-         return "C:\Windows\System32\cmd.exe";
+      elsif Ada.Directories.Exists ("C:\Windows\System32\hostname.exe") then
+         --  NOT cmd.exe: without /c it opens an interactive shell and waits for
+         --  input, which hangs the whole suite. hostname prints a line and exits
+         --  zero whatever it is handed.
+         return "C:\Windows\System32\hostname.exe";
       else
          return "/bin/true";
       end if;
@@ -319,10 +322,11 @@ package body Files_Suite.Support is
          return "/bin/false";
       elsif Ada.Directories.Exists ("/usr/bin/false") then
          return "/usr/bin/false";
-      elsif Ada.Directories.Exists ("C:\Windows\System32\cmd.exe") then
-         --  cmd.exe fed the test's arguments exits non-zero, which is what a
-         --  "failing action" needs here.
-         return "C:\Windows\System32\cmd.exe";
+      elsif Ada.Directories.Exists ("C:\Windows\System32\whoami.exe") then
+         --  whoami fed the test's arguments rejects them and exits non-zero,
+         --  which is what a "failing action" needs -- and, unlike cmd.exe, it
+         --  exits rather than waiting for input.
+         return "C:\Windows\System32\whoami.exe";
       else
          return "/bin/false";
       end if;
