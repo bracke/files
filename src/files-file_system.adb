@@ -1599,7 +1599,22 @@ package body Files.File_System is
       Started := True;
 
       while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+         begin
+            Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+         exception
+            when others =>
+               --  The enumeration itself failed, not one entry within it -- a file
+               --  that vanished mid-scan, typically. There is no way to step past
+               --  that and be sure of advancing, so stop and keep what we have: a
+               --  directory listed as far as we got beats one that will not open.
+               exit;
+         end;
+
+         --  An entry we cannot even name is skipped, not fatal. Naming it sits
+         --  outside the guard below, so it used to fall through to the handler at
+         --  the bottom and fail the whole load -- which is why C:\ loaded only when
+         --  nothing in it happened to be unreadable at that moment.
+         begin
          declare
             Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
          begin
@@ -1641,6 +1656,10 @@ package body Files.File_System is
                      end;
                end;
             end if;
+         end;
+         exception
+            when others =>
+               null;
          end;
       end loop;
 
