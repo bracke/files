@@ -56,6 +56,13 @@ openglada_glfw = "~0.9.0"
 [[depends-on]]
 utilada = "^2.9.0"
 
+# Bundle i18n's generated locale data into share/i18n after every build. The
+# load-only i18n serves formatting from those files at runtime, so a deployed
+# bin/files must ship them (found at Exe/../share/i18n). See tools/bundle_i18n_data.sh.
+[[actions]]
+type = "post-build"
+command = ["sh", "tools/bundle_i18n_data.sh"]
+
 # Build dependencies in the development profile (-Og) too, not the default
 # release (-O3). guikit is shared by files and launcher, and the profile lives in
 # its generated config gpr: if one root built it at -O3 and the other at -Og, each
