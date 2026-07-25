@@ -18,11 +18,15 @@ gnat_native = "=15.2.1"
 i18n = "*"
 
 [[depends-on]]
+messages = "*"
+
+[[depends-on]]
 hostkit = "*"
 
 [[pins]]
 hostkit = { path = "../hostkit" }
 i18n = { path = "../i18n" }
+messages = { path = "../messages" }
 
 [[depends-on]]
 textrender = "*"

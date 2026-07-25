@@ -7,9 +7,9 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
-with I18N.Arguments;
-with I18N.Result;
-with I18N.Runtime;
+with Messages.Arguments;
+with Messages.Result;
+with Messages.Runtime;
 
 with Files.Platform.Macos;
 with Files.Platform.Windows;
@@ -17,13 +17,13 @@ with Files_Config;
 
 package body Files.Localization is
    use Ada.Strings.Unbounded;
-   use type I18N.Result.Render_Status;
+   use type Messages.Result.Render_Status;
 
    package String_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Natural,
       Element_Type => Unbounded_String);
 
-   Runtime     : I18N.Runtime.Instance;
+   Runtime     : Messages.Runtime.Instance;
    Initialized : Boolean := False;
    Available   : Boolean := False;
    Loaded_Locales : String_Vectors.Vector;
@@ -433,8 +433,8 @@ package body Files.Localization is
       end if;
 
       if Ada.Directories.Exists (Path) then
-         I18N.Runtime.Load (Runtime, Path);
-         Available := I18N.Runtime.Is_Valid (Runtime);
+         Messages.Runtime.Load (Runtime, Path);
+         Available := Messages.Runtime.Is_Valid (Runtime);
       end if;
 
       Loaded_Locales.Append (To_Unbounded_String (Normalized));
@@ -450,8 +450,8 @@ package body Files.Localization is
    procedure Ensure_Initialized is
    begin
       if not Initialized then
-         I18N.Runtime.Initialize (Runtime, Catalog_Path);
-         Available := I18N.Runtime.Is_Valid (Runtime);
+         Messages.Runtime.Initialize (Runtime, Catalog_Path);
+         Available := Messages.Runtime.Is_Valid (Runtime);
          Initialized := True;
          Load_Locale (System_Locale);
          Load_Locale (System_Time_Locale);
@@ -520,8 +520,8 @@ package body Files.Localization is
       Locale : String)
       return String
    is
-      Args   : I18N.Arguments.Arguments;
-      Result : I18N.Result.Render_Result;
+      Args   : Messages.Arguments.Arguments;
+      Result : Messages.Result.Render_Result;
    begin
       Ensure_Initialized;
 
@@ -530,14 +530,14 @@ package body Files.Localization is
       end if;
 
       Result :=
-        I18N.Runtime.Render
+        Messages.Runtime.Render
           (Item      => Runtime,
            Locale    => Locale,
            Key       => Key,
            Arguments => Args);
 
-      if Result.Status = I18N.Result.Success then
-         return I18N.Result.Output_Text (Result.Text);
+      if Result.Status = Messages.Result.Success then
+         return Messages.Result.Output_Text (Result.Text);
       end if;
 
       return Key;
