@@ -66,6 +66,8 @@ jobs:
             libxrandr-dev \
             libxinerama-dev \
             libxi-dev
+          # OpenSSL for httpclient's TLS bridge (i18n's download_tzdb links it).
+          sudo apt-get install -y libssl-dev
 
       - name: Install system libraries (macOS)
         if: runner.os == 'macOS'
@@ -75,11 +77,13 @@ jobs:
           # pulls in glib) satisfies files.gpr's thumbnail-decoding switches. No
           # compression library is needed -- the zlib sibling crate's codecs are
           # all pure Ada.
-          brew install vulkan-headers vulkan-loader molten-vk glfw gdk-pixbuf
+          # openssl@3: httpclient's TLS bridge (i18n's download_tzdb links it).
+          brew install vulkan-headers vulkan-loader molten-vk glfw gdk-pixbuf openssl@3
 
           # Homebrew on the x86_64 runner installs under /usr/local, which is not
-          # on the linker's default search path.
-          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+          # on the linker's default search path; openssl@3 is keg-only, so add its
+          # lib dir too.
+          echo "LIBRARY_PATH=$(brew --prefix)/lib:$(brew --prefix openssl@3)/lib" >> "$GITHUB_ENV"
 
       - name: Install system libraries (Windows)
         if: runner.os == 'Windows'
@@ -105,10 +109,12 @@ jobs:
           pacman-key --init || true
           pacman-key --populate msys2 || true
 
+          # openssl: httpclient's TLS bridge (i18n's download_tzdb links it).
           packages="mingw-w64-x86_64-vulkan-loader
                     mingw-w64-x86_64-glib2
                     mingw-w64-x86_64-gdk-pixbuf2
-                    mingw-w64-x86_64-glfw"
+                    mingw-w64-x86_64-glfw
+                    mingw-w64-x86_64-openssl"
 
           # The mirrors stall often enough to matter -- a sync dies on "less than
           # 1 bytes/sec" rather than on anything we did -- so give each sync room
@@ -160,6 +166,12 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
           git clone --depth 1 "https://github.com/${owner}/hostkit.git" hostkit
           git clone --depth 1 "https://github.com/${owner}/cryptolib.git" cryptolib
+          # i18n's pre-build regeneration builds download_tzdb (httpclient, tarlib,
+          # awklib-on-regexp) and the CLDR import (httpclient); clone those too.
+          git clone --depth 1 "https://github.com/${owner}/httpclient.git" httpclient
+          git clone --depth 1 "https://github.com/${owner}/tarlib.git" tarlib
+          git clone --depth 1 "https://github.com/${owner}/awklib.git" awklib
+          git clone --depth 1 "https://github.com/${owner}/regexp.git" regexp
 
       - name: Set up Alire
         # v5 defaults to alr 2.1.0, whose index carries gnat_native 15.2.1.
