@@ -5,11 +5,14 @@
 --  pinned CLDR subset), so this copies the freshly generated tree from wherever
 --  Alire resolved i18n to.
 --
---  Built as a second main of files.gpr and run as the files post-build action
---  (see alire.toml). Idempotent: it re-copies only when the source is newer.
---  When no source is found it warns and leaves the tree alone; the release
---  check (tools/release_check) then fails the release if share/i18n is absent,
---  so a broken package cannot ship silently.
+--  Its own standalone project (tools/i18n_bundle/bundle_i18n_data.gpr) so it
+--  builds with plain gprbuild and stays out of the app's bin; the files
+--  post-build actions build then run it (see alire.toml). It runs from the
+--  files crate root, so the relative paths below resolve there. Idempotent: it
+--  re-copies only when the source is newer. When no source is found it warns
+--  and leaves the tree alone; the release check (tools/release_check) then
+--  fails the release if share/i18n is absent, so a broken package cannot ship
+--  silently.
 
 with Ada.Calendar;             use type Ada.Calendar.Time;
 with Ada.Directories;          use Ada.Directories;
