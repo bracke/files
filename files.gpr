@@ -14,7 +14,11 @@ project Files is
    for Object_Dir use "obj/" & Files_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
-   for Main use ("files-main.adb");
+   --  files-main is the app; bundle_i18n_data is a build helper run as the
+   --  post-build action (see alire.toml) to copy the i18n locale data into
+   --  share/i18n. It links no GUI libraries -- the Linker switches below are
+   --  scoped to files-main so the helper links clean.
+   for Main use ("files-main.adb", "bundle_i18n_data.adb");
 
    package Compiler is
       for Default_Switches ("Ada") use
@@ -26,12 +30,14 @@ project Files is
    end Binder;
 
    package Linker is
+      --  Scoped to files-main: the bundle_i18n_data helper main withs no GUI
+      --  library and must not pull these in.
       case Files_Config.Alire_Host_OS is
          when "macos" =>
             --  MoltenVK provides Vulkan; gdk-pixbuf for thumbnail decoding;
             --  CoreServices for the native trash API; CoreFoundation/Foundation
             --  for locale.
-            for Default_Switches ("Ada") use
+            for Switches ("files-main.adb") use
               ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
                "-framework", "CoreFoundation", "-framework", "CoreServices",
                "-framework", "Foundation");
@@ -39,17 +45,18 @@ project Files is
             --  shell32 for SHFileOperationW (trash); ole32/kernel32 for shell
             --  and locale APIs; plus Vulkan and gdk-pixbuf. The Vulkan loader
             --  is named vulkan-1 on Windows (vulkan-1.dll), not vulkan.
-            for Default_Switches ("Ada") use
+            for Switches ("files-main.adb") use
               ("-lvulkan-1", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
                "-lshell32", "-lole32", "-lkernel32");
          when others =>
-            for Default_Switches ("Ada") use
+            for Switches ("files-main.adb") use
               ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
       end case;
    end Linker;
 
    package Builder is
       for Executable ("files-main.adb") use "files";
+      for Executable ("bundle_i18n_data.adb") use "bundle_i18n_data";
    end Builder;
 
    package Install is

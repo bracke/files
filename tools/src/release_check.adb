@@ -94,7 +94,7 @@ begin
    Project_Tools.Release_Checks.Require_File (Checker, "README.md");
    Project_Tools.Release_Checks.Require_File (Checker, "share/doc/files/release-notes.md");
    --  The load-only i18n serves formatting from data files at runtime, so a
-   --  release must bundle them (tools/bundle_i18n_data.sh, run post-build).
+   --  release must bundle them (src/bundle_i18n_data.adb, run post-build).
    Project_Tools.Release_Checks.Require_File
      (Checker, "share/i18n/formats.i18ndata");
    Require_Alire_GNAT_15;
