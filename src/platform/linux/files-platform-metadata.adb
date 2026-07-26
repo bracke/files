@@ -390,7 +390,6 @@ package body Files.Platform.Metadata is
          return False;
    end Set_Permissions;
 
-
    function Permissions_Supported return Boolean is
    begin
       return True;

@@ -549,7 +549,7 @@ package body Files.Rendering is
       --  Stack the parts one per line by default; Inline joins them with the
       --  localized separator so a whole item fits on one row (coalesced view).
       Separator : constant String :=
-        (if Inline then Files.Localization.Text ("info.permissions.separator") else (1 => ASCII.LF));
+        (if Inline then Files.Localization.Text ("info.permissions.separator") else [1 => ASCII.LF]);
 
       procedure Append_Part (Key : String) is
       begin

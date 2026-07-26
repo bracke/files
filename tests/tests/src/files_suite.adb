@@ -1,4 +1,3 @@
-with AUnit.Test_Suites;
 
 with Files_Suite.Startup;
 with Files_Suite.Model;

@@ -3794,417 +3794,417 @@ separate (Files.Rendering)
                   end if;
                end;
             else
-            for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
-               declare
-                  Info   : constant Info_Snapshot := Snapshot.Selected_Info.Element (Positive (Index));
-                  Section_Offset : constant Natural := Saturating_Multiply (Section_Offset_Rows, Line_Height);
-                  Base_Y : constant Integer :=
-                    Saturating_Integer_Add
-                      (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)), Section_Offset);
-                  Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
-                  Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
-                  Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
-                  Reserved_W : constant Natural :=
-                    Saturating_Add
-                      ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
-                       Saturating_Multiply (Info_Pane_Padding, 2));
-                  Text_W : constant Natural :=
-                    (if Layout.Info_Pane_Width > Reserved_W
-                     then Layout.Info_Pane_Width - Reserved_W
-                     else 0);
+               for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
+                  declare
+                     Info   : constant Info_Snapshot := Snapshot.Selected_Info.Element (Positive (Index));
+                     Section_Offset : constant Natural := Saturating_Multiply (Section_Offset_Rows, Line_Height);
+                     Base_Y : constant Integer :=
+                       Saturating_Integer_Add
+                         (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)), Section_Offset);
+                     Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
+                     Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
+                     Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
+                     Reserved_W : constant Natural :=
+                       Saturating_Add
+                         ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
+                          Saturating_Multiply (Info_Pane_Padding, 2));
+                     Text_W : constant Natural :=
+                       (if Layout.Info_Pane_Width > Reserved_W
+                        then Layout.Info_Pane_Width - Reserved_W
+                        else 0);
 
-                  procedure Add_Info_Text
-                    (Offset : Natural;
-                     Text   : UString;
-                     Color  : Render_Color := Text_Color;
-                     Fit    : Boolean := True)
-                  is
-                     Y : constant Integer :=
-                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
-                  begin
-                     if Y >= Integer (Info_Pane.Y)
-                       and then Y < Integer (Info_Bottom)
-                     then
-                        Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => Fit);
-                     end if;
-                  end Add_Info_Text;
+                     procedure Add_Info_Text
+                       (Offset : Natural;
+                        Text   : UString;
+                        Color  : Render_Color := Text_Color;
+                        Fit    : Boolean := True)
+                     is
+                        Y : constant Integer :=
+                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
+                     begin
+                        if Y >= Integer (Info_Pane.Y)
+                          and then Y < Integer (Info_Bottom)
+                        then
+                           Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => Fit);
+                        end if;
+                     end Add_Info_Text;
 
-                  procedure Add_Info_Label
-                    (Row : Natural;
-                     Key : String)
-                  is
-                     Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
-                  begin
-                     Add_Info_Text (Row, Text, Text_Color);
-                     if Text_W > 1 then
+                     procedure Add_Info_Label
+                       (Row : Natural;
+                        Key : String)
+                     is
+                        Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+                     begin
+                        Add_Info_Text (Row, Text, Text_Color);
+                        if Text_W > 1 then
+                           declare
+                              Y : constant Integer :=
+                                Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                           begin
+                              if Y >= Integer (Info_Pane.Y)
+                                and then Y < Integer (Info_Bottom)
+                              then
+                                 Add_Text
+                                   (Saturating_Add (Text_X, 1),
+                                    Natural (Y),
+                                    Text_W - 1,
+                                    Line_Height,
+                                    Text,
+                                    Text_Color,
+                                    Fit => True);
+                              end if;
+                           end;
+                        end if;
+
+                        --  A "<key>.tooltip" catalog entry, when present, describes
+                        --  the section on hover.
                         declare
-                           Y : constant Integer :=
+                           Tip_Key : constant String := Key & ".tooltip";
+                           Tip_Y   : constant Integer :=
                              Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
                         begin
-                           if Y >= Integer (Info_Pane.Y)
-                             and then Y < Integer (Info_Bottom)
+                           if Text_W > 0
+                             and then Tip_Y >= Integer (Info_Pane.Y)
+                             and then Tip_Y < Integer (Info_Bottom)
+                             and then Files.Localization.Text (Tip_Key) /= Tip_Key
                            then
-                              Add_Text
-                                (Saturating_Add (Text_X, 1),
-                                 Natural (Y),
-                                 Text_W - 1,
-                                 Line_Height,
-                                 Text,
-                                 Text_Color,
-                                 Fit => True);
+                              Add_Tooltip (Text_X, Natural (Tip_Y), Text_W, Line_Height, Tip_Key);
                            end if;
                         end;
-                     end if;
+                     end Add_Info_Label;
 
-                     --  A "<key>.tooltip" catalog entry, when present, describes
-                     --  the section on hover.
-                     declare
-                        Tip_Key : constant String := Key & ".tooltip";
-                        Tip_Y   : constant Integer :=
-                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
-                     begin
-                        if Text_W > 0
-                          and then Tip_Y >= Integer (Info_Pane.Y)
-                          and then Tip_Y < Integer (Info_Bottom)
-                          and then Files.Localization.Text (Tip_Key) /= Tip_Key
-                        then
-                           Add_Tooltip (Text_X, Natural (Tip_Y), Text_W, Line_Height, Tip_Key);
-                        end if;
-                     end;
-                  end Add_Info_Label;
-
-                  procedure Add_Info_Wrapped_Value
-                    (Row   : Natural;
-                     Text  : UString;
-                     Color : Render_Color := Muted_Text_Color)
-                  is
-                     Raw        : constant String := To_String (Text);
-                     Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-                     Capacity   : constant Natural := Text_W / Cell_W;
-                     Line_Index : Natural := 0;
-
-                     procedure Add_Wrapped_Segment
-                       (Segment_First : Integer;
-                        Segment_Last  : Integer)
+                     procedure Add_Info_Wrapped_Value
+                       (Row   : Natural;
+                        Text  : UString;
+                        Color : Render_Color := Muted_Text_Color)
                      is
-                        Start : Integer := Segment_First;
-                     begin
-                        if Segment_Last < Segment_First then
+                        Raw        : constant String := To_String (Text);
+                        Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                        Capacity   : constant Natural := Text_W / Cell_W;
+                        Line_Index : Natural := 0;
+
+                        procedure Add_Wrapped_Segment
+                          (Segment_First : Integer;
+                           Segment_Last  : Integer)
+                        is
+                           Start : Integer := Segment_First;
+                        begin
+                           if Segment_Last < Segment_First then
+                              Line_Index := Saturating_Add (Line_Index, 1);
+                              return;
+                           end if;
+
+                           while Start <= Segment_Last loop
+                              declare
+                                 Prefix : constant String :=
+                                   Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
+                                 Last   : constant Integer :=
+                                   (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                              begin
+                                 Add_Info_Text
+                                   (Saturating_Add (Row, Line_Index),
+                                    To_Unbounded_String (Raw (Start .. Last)),
+                                    Color,
+                                    Fit => False);
+                                 exit when Last >= Segment_Last;
+                                 Start := Last + 1;
+                                 Line_Index := Saturating_Add (Line_Index, 1);
+                              end;
+                           end loop;
+
                            Line_Index := Saturating_Add (Line_Index, 1);
+                        end Add_Wrapped_Segment;
+
+                        Line_First : Integer := Raw'First;
+                     begin
+                        if Raw'Length = 0 or else Capacity = 0 then
+                           Add_Info_Text (Row, Text, Color, Fit => False);
                            return;
                         end if;
 
-                        while Start <= Segment_Last loop
+                        for Position in Raw'Range loop
+                           if Raw (Position) = ASCII.LF then
+                              Add_Wrapped_Segment (Line_First, Position - 1);
+                              Line_First := Position + 1;
+                           end if;
+                        end loop;
+
+                        if Line_First <= Raw'Last then
+                           Add_Wrapped_Segment (Line_First, Raw'Last);
+                        elsif Raw (Raw'Last) = ASCII.LF then
+                           Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
+                        end if;
+                     end Add_Info_Wrapped_Value;
+
+                     Current_Row : Natural := 0;
+
+                     procedure Add_Info_Field
+                       (Key   : String;
+                        Value : UString;
+                        Field : Natural;
+                        Color : Render_Color := Muted_Text_Color)
+                     is
+                        --  Postfix the value with the item name (dropping the Name
+                        --  field), matching Info_Section_Row_Count's row accounting.
+                        Display_Value : constant UString :=
+                          (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value)
+                          & Info_Postfix (Info);
+                        Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
+                     begin
+                        Add_Info_Label (Current_Row, Key);
+                        Current_Row := Saturating_Add (Current_Row, 1);
+                        Add_Info_Wrapped_Value (Current_Row, Display_Value, Color);
+                        Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
+                     end Add_Info_Field;
+
+                     --  Draw the permissions matrix: a "Permissions" label, an
+                     --  R/W/E column header, a 3x3 rwx grid (rows user/group/other,
+                     --  columns read/write/execute) with a per-row label, and -- when
+                     --  editable -- one click hit region per cell. Cell index Bit
+                     --  maps to POSIX mode bit 2 ** (8 - Bit); a filled cell is set.
+                     procedure Add_Permission_Grid is
+                        Cell : constant Natural := Natural'Max (6, Line_Height - 6);
+                        Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
+                        --  Approximate glyph advance, used to horizontally centre a
+                        --  header letter over its column.
+                        Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                        --  The glyph box is ~4/5 of the line height and sits at the
+                        --  bottom of the row (the leading is above it), so centre the
+                        --  cell square within that font box -- not the whole line --
+                        --  to line it up with the row label text.
+                        Font_H : constant Natural := Saturating_Multiply (Line_Height, 4) / 5;
+                        Cell_Top : constant Natural :=
+                          (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 + 1 else 0);
+                        --  Horizontal inset that centres a header letter over a cell.
+                        Header_Pad : constant Natural := (if Cell > Char_W then (Cell - Char_W) / 2 else 0);
+                        --  The row labels sit just past the three columns.
+                        Labels_X : constant Natural :=
+                          Saturating_Add
+                            (Text_X, Saturating_Add (Saturating_Multiply (3, Cell + Gap), Gap));
+                        Labels_W : constant Natural :=
+                          (if Text_W > Labels_X - Text_X then Text_W - (Labels_X - Text_X) else 0);
+
+                        --  Draw a clipped label/glyph at a section-row offset.
+                        procedure Add_At (X : Natural; Section_Row : Natural; Width : Natural; Text : String) is
+                           Y : constant Integer :=
+                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Section_Row, Line_Height));
+                        begin
+                           if Width > 0
+                             and then Y >= Integer (Info_Pane.Y)
+                             and then Y < Integer (Info_Bottom)
+                           then
+                              Add_Text
+                                (X, Natural (Y), Width, Line_Height,
+                                 To_Unbounded_String (Text), Muted_Text_Color, Fit => True);
+                           end if;
+                        end Add_At;
+
+                        Column_Header : constant array (0 .. 2) of Character := ('R', 'W', 'E');
+
+                        function Row_Label_Key (Row : Natural) return String is
+                          (case Row is
+                              when 0      => "info.permissions.user",
+                              when 1      => "info.permissions.group",
+                              when others => "info.permissions.other");
+                     begin
+                        Add_Info_Label (Current_Row, "info.permissions");
+
+                        --  R/W/E header, one letter centred over each column.
+                        for Col in 0 .. 2 loop
+                           Add_At
+                             (Saturating_Add
+                                (Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)), Header_Pad),
+                              Current_Row + 1, Char_W, [1 => Column_Header (Col)]);
+                        end loop;
+
+                        for Bit in 0 .. 8 loop
                            declare
-                              Prefix : constant String :=
-                                Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
-                              Last   : constant Integer :=
-                                (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                              Col   : constant Natural := Bit mod 3;
+                              Row   : constant Natural := Bit / 3;
+                              Cell_X : constant Natural :=
+                                Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap));
+                              Cell_Y : constant Integer :=
+                                Saturating_Integer_Add
+                                  (Saturating_Integer_Add
+                                     (Row_Y,
+                                      Saturating_Multiply (Saturating_Add (Current_Row + 2, Row), Line_Height)),
+                                   Cell_Top);
+                              Is_Set : constant Boolean :=
+                                (Info.Mode_Bits / (2 ** (8 - Bit))) mod 2 = 1;
                            begin
-                              Add_Info_Text
-                                (Saturating_Add (Row, Line_Index),
-                                 To_Unbounded_String (Raw (Start .. Last)),
-                                 Color,
-                                 Fit => False);
-                              exit when Last >= Segment_Last;
-                              Start := Last + 1;
-                              Line_Index := Saturating_Add (Line_Index, 1);
+                              if Cell_Y >= Integer (Info_Pane.Y)
+                                and then Cell_Y + Integer (Cell) <= Integer (Info_Bottom)
+                              then
+                                 Add_Rect (Cell_X, Natural (Cell_Y), Cell, Cell, Border_Color);
+                                 if Cell > 2 then
+                                    Add_Rect
+                                      (Saturating_Add (Cell_X, 1),
+                                       Natural (Cell_Y) + 1,
+                                       Cell - 2,
+                                       Cell - 2,
+                                       (if Is_Set then Selection_Color else Input_Color));
+                                 end if;
+                                 if Snapshot.Permissions_Editable then
+                                    Result.Permission_Hits.Append
+                                      (Permission_Hit_Region'
+                                         (Present => True,
+                                          Bit     => Bit,
+                                          X       => Cell_X,
+                                          Y       => Natural (Cell_Y),
+                                          Width   => Cell,
+                                          Height  => Cell));
+                                 end if;
+                              end if;
                            end;
                         end loop;
 
-                        Line_Index := Saturating_Add (Line_Index, 1);
-                     end Add_Wrapped_Segment;
+                        --  Per-row labels: user / group / other.
+                        for Row in 0 .. 2 loop
+                           Add_At
+                             (Labels_X, Current_Row + 2 + Row, Labels_W,
+                              Files.Localization.Text (Row_Label_Key (Row)));
+                        end loop;
 
-                     Line_First : Integer := Raw'First;
-                  begin
-                     if Raw'Length = 0 or else Capacity = 0 then
-                        Add_Info_Text (Row, Text, Color, Fit => False);
-                        return;
-                     end if;
+                        Current_Row := Saturating_Add (Current_Row, Permission_Grid_Rows);
+                     end Add_Permission_Grid;
 
-                     for Position in Raw'Range loop
-                        if Raw (Position) = ASCII.LF then
-                           Add_Wrapped_Segment (Line_First, Position - 1);
-                           Line_First := Position + 1;
-                        end if;
-                     end loop;
-
-                     if Line_First <= Raw'Last then
-                        Add_Wrapped_Segment (Line_First, Raw'Last);
-                     elsif Raw (Raw'Last) = ASCII.LF then
-                        Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
-                     end if;
-                  end Add_Info_Wrapped_Value;
-
-                  Current_Row : Natural := 0;
-
-                  procedure Add_Info_Field
-                    (Key   : String;
-                     Value : UString;
-                     Field : Natural;
-                     Color : Render_Color := Muted_Text_Color)
-                  is
-                     --  Postfix the value with the item name (dropping the Name
-                     --  field), matching Info_Section_Row_Count's row accounting.
-                     Display_Value : constant UString :=
-                       (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value)
-                       & Info_Postfix (Info);
-                     Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
-                  begin
-                     Add_Info_Label (Current_Row, Key);
-                     Current_Row := Saturating_Add (Current_Row, 1);
-                     Add_Info_Wrapped_Value (Current_Row, Display_Value, Color);
-                     Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
-                  end Add_Info_Field;
-
-                  --  Draw the permissions matrix: a "Permissions" label, an
-                  --  R/W/E column header, a 3x3 rwx grid (rows user/group/other,
-                  --  columns read/write/execute) with a per-row label, and -- when
-                  --  editable -- one click hit region per cell. Cell index Bit
-                  --  maps to POSIX mode bit 2 ** (8 - Bit); a filled cell is set.
-                  procedure Add_Permission_Grid is
-                     Cell : constant Natural := Natural'Max (6, Line_Height - 6);
-                     Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
-                     --  Approximate glyph advance, used to horizontally centre a
-                     --  header letter over its column.
-                     Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-                     --  The glyph box is ~4/5 of the line height and sits at the
-                     --  bottom of the row (the leading is above it), so centre the
-                     --  cell square within that font box -- not the whole line --
-                     --  to line it up with the row label text.
-                     Font_H : constant Natural := Saturating_Multiply (Line_Height, 4) / 5;
-                     Cell_Top : constant Natural :=
-                       (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 + 1 else 0);
-                     --  Horizontal inset that centres a header letter over a cell.
-                     Header_Pad : constant Natural := (if Cell > Char_W then (Cell - Char_W) / 2 else 0);
-                     --  The row labels sit just past the three columns.
-                     Labels_X : constant Natural :=
-                       Saturating_Add
-                         (Text_X, Saturating_Add (Saturating_Multiply (3, Cell + Gap), Gap));
-                     Labels_W : constant Natural :=
-                       (if Text_W > Labels_X - Text_X then Text_W - (Labels_X - Text_X) else 0);
-
-                     --  Draw a clipped label/glyph at a section-row offset.
-                     procedure Add_At (X : Natural; Section_Row : Natural; Width : Natural; Text : String) is
-                        Y : constant Integer :=
-                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Section_Row, Line_Height));
+                     --  Draw an editable owner or group value and register one
+                     --  click hit region over it. While editing, the value shows
+                     --  the editor buffer with an underline and a text caret.
+                     procedure Add_Ownership_Field
+                       (Key     : String;
+                        Field   : Natural;
+                        Editing : Boolean)
+                     is
+                        Value      : constant UString := Info_Field_Value (Info, Field);
+                        Value_Rows : constant Natural := Wrapped_Line_Count (Value, Text_W, Line_Height);
+                        Value_Row  : Natural;
+                        Cell_Y     : Integer;
                      begin
-                        if Width > 0
-                          and then Y >= Integer (Info_Pane.Y)
-                          and then Y < Integer (Info_Bottom)
+                        Add_Info_Label (Current_Row, Key);
+                        Current_Row := Saturating_Add (Current_Row, 1);
+                        Value_Row := Current_Row;
+                        Add_Info_Wrapped_Value
+                          (Value_Row, Value, (if Editing then Text_Color else Muted_Text_Color));
+                        Cell_Y :=
+                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Value_Row, Line_Height));
+                        if Cell_Y >= Integer (Info_Pane.Y)
+                          and then Cell_Y < Integer (Info_Bottom)
+                          and then Text_W > 0
                         then
-                           Add_Text
-                             (X, Natural (Y), Width, Line_Height,
-                              To_Unbounded_String (Text), Muted_Text_Color, Fit => True);
-                        end if;
-                     end Add_At;
-
-                     Column_Header : constant array (0 .. 2) of Character := ('R', 'W', 'E');
-
-                     function Row_Label_Key (Row : Natural) return String is
-                       (case Row is
-                           when 0      => "info.permissions.user",
-                           when 1      => "info.permissions.group",
-                           when others => "info.permissions.other");
-                  begin
-                     Add_Info_Label (Current_Row, "info.permissions");
-
-                     --  R/W/E header, one letter centred over each column.
-                     for Col in 0 .. 2 loop
-                        Add_At
-                          (Saturating_Add
-                             (Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap)), Header_Pad),
-                           Current_Row + 1, Char_W, (1 => Column_Header (Col)));
-                     end loop;
-
-                     for Bit in 0 .. 8 loop
-                        declare
-                           Col   : constant Natural := Bit mod 3;
-                           Row   : constant Natural := Bit / 3;
-                           Cell_X : constant Natural :=
-                             Saturating_Add (Text_X, Saturating_Multiply (Col, Cell + Gap));
-                           Cell_Y : constant Integer :=
-                             Saturating_Integer_Add
-                               (Saturating_Integer_Add
-                                  (Row_Y,
-                                   Saturating_Multiply (Saturating_Add (Current_Row + 2, Row), Line_Height)),
-                                Cell_Top);
-                           Is_Set : constant Boolean :=
-                             (Info.Mode_Bits / (2 ** (8 - Bit))) mod 2 = 1;
-                        begin
-                           if Cell_Y >= Integer (Info_Pane.Y)
-                             and then Cell_Y + Integer (Cell) <= Integer (Info_Bottom)
-                           then
-                              Add_Rect (Cell_X, Natural (Cell_Y), Cell, Cell, Border_Color);
-                              if Cell > 2 then
-                                 Add_Rect
-                                   (Saturating_Add (Cell_X, 1),
-                                    Natural (Cell_Y) + 1,
-                                    Cell - 2,
-                                    Cell - 2,
-                                    (if Is_Set then Selection_Color else Input_Color));
-                              end if;
-                              if Snapshot.Permissions_Editable then
-                                 Result.Permission_Hits.Append
-                                   (Permission_Hit_Region'
-                                      (Present => True,
-                                       Bit     => Bit,
-                                       X       => Cell_X,
-                                       Y       => Natural (Cell_Y),
-                                       Width   => Cell,
-                                       Height  => Cell));
-                              end if;
-                           end if;
-                        end;
-                     end loop;
-
-                     --  Per-row labels: user / group / other.
-                     for Row in 0 .. 2 loop
-                        Add_At
-                          (Labels_X, Current_Row + 2 + Row, Labels_W,
-                           Files.Localization.Text (Row_Label_Key (Row)));
-                     end loop;
-
-                     Current_Row := Saturating_Add (Current_Row, Permission_Grid_Rows);
-                  end Add_Permission_Grid;
-
-                  --  Draw an editable owner or group value and register one
-                  --  click hit region over it. While editing, the value shows
-                  --  the editor buffer with an underline and a text caret.
-                  procedure Add_Ownership_Field
-                    (Key     : String;
-                     Field   : Natural;
-                     Editing : Boolean)
-                  is
-                     Value      : constant UString := Info_Field_Value (Info, Field);
-                     Value_Rows : constant Natural := Wrapped_Line_Count (Value, Text_W, Line_Height);
-                     Value_Row  : Natural;
-                     Cell_Y     : Integer;
-                  begin
-                     Add_Info_Label (Current_Row, Key);
-                     Current_Row := Saturating_Add (Current_Row, 1);
-                     Value_Row := Current_Row;
-                     Add_Info_Wrapped_Value
-                       (Value_Row, Value, (if Editing then Text_Color else Muted_Text_Color));
-                     Cell_Y :=
-                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Value_Row, Line_Height));
-                     if Cell_Y >= Integer (Info_Pane.Y)
-                       and then Cell_Y < Integer (Info_Bottom)
-                       and then Text_W > 0
-                     then
-                        Result.Ownership_Hits.Append
-                          (Ownership_Hit_Region'
-                             (Present  => True,
-                              Is_Group => Field = 10,
-                              X        => Text_X,
-                              Y        => Natural (Cell_Y),
-                              Width    => Text_W,
-                              Height   => Line_Height));
-                        if Editing then
-                           Add_Rect
-                             (Text_X,
-                              Saturating_Add (Natural (Cell_Y), Line_Height - 1),
-                              Text_W,
-                              1,
-                              Selection_Color);
-                           declare
-                              Char_W  : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-                              Raw     : constant String := To_String (Value);
-                              Caret_X : constant Natural :=
-                                Saturating_Add
-                                  (Text_X,
-                                   Saturating_Multiply
-                                     (Files.UTF8.Display_Units_Before
-                                        (Raw, Snapshot.Text_Cursor_Position),
-                                      Char_W));
-                           begin
+                           Result.Ownership_Hits.Append
+                             (Ownership_Hit_Region'
+                                (Present  => True,
+                                 Is_Group => Field = 10,
+                                 X        => Text_X,
+                                 Y        => Natural (Cell_Y),
+                                 Width    => Text_W,
+                                 Height   => Line_Height));
+                           if Editing then
                               Add_Rect
-                                (Caret_X,
-                                 Saturating_Add (Natural (Cell_Y), 2),
-                                 2,
-                                 (if Line_Height > 4 then Line_Height - 4 else Line_Height),
-                                 Text_Color);
-                           end;
+                                (Text_X,
+                                 Saturating_Add (Natural (Cell_Y), Line_Height - 1),
+                                 Text_W,
+                                 1,
+                                 Selection_Color);
+                              declare
+                                 Char_W  : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+                                 Raw     : constant String := To_String (Value);
+                                 Caret_X : constant Natural :=
+                                   Saturating_Add
+                                     (Text_X,
+                                      Saturating_Multiply
+                                        (Files.UTF8.Display_Units_Before
+                                           (Raw, Snapshot.Text_Cursor_Position),
+                                         Char_W));
+                              begin
+                                 Add_Rect
+                                   (Caret_X,
+                                    Saturating_Add (Natural (Cell_Y), 2),
+                                    2,
+                                    (if Line_Height > 4 then Line_Height - 4 else Line_Height),
+                                    Text_Color);
+                              end;
+                           end if;
                         end if;
-                     end if;
-                     Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
-                  end Add_Ownership_Field;
-               begin
-                  --  No Name field: the item name is postfixed onto every value.
-                  Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
-                  --  Filesize is a file-only field; a folder shows Contents.
-                  if not Info.Is_Directory then
-                     Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
-                  end if;
-                  if Info.Is_Directory and then Info.Folder_Size_Available then
-                     Add_Info_Field ("info.folder_size", Folder_Contents_Text (Info), 2);
-                  end if;
-                  Add_Info_Field ("info.created", Info_Field_Value (Info, 3), 3);
-                  Add_Info_Field ("info.modified", Info_Field_Value (Info, 4), 4);
-                  --  Permissions render as a labelled matrix (no text summary),
-                  --  clickable only when editable (gated inside Add_Permission_Grid).
-                  if Info.Mode_Available then
-                     Add_Permission_Grid;
-                  end if;
-                  if Info.Ownership_Available then
-                     Add_Ownership_Field ("info.owner", 9, Info.Owner_Editing);
-                     Add_Ownership_Field ("info.group", 10, Info.Group_Editing);
-                  end if;
-                  --  Metadata Error only appears when the item's metadata could
-                  --  not be read; healthy items show no such row.
-                  if Info.Metadata_Error then
-                     Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
-                  end if;
-                  --  Kind (field 7) is omitted: it duplicates the Filetype field.
-                  Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
-                  declare
-                     Section_H : constant Natural :=
-                       Natural'Min
-                         (Saturating_Multiply
-                            (Line_Height,
-                             Info_Section_Row_Count (Info, Text_W, Line_Height)),
-                          Info_Pane.Height);
-                     Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
-                     Raw_Bottom : constant Integer :=
-                       Integer'Min
-                         (Saturating_Integer_Add (Row_Y, Section_H),
-                          Integer (Info_Bottom));
-                     Visible_H : constant Natural :=
-                       (if Raw_Bottom > Visible_Y then Natural (Raw_Bottom - Visible_Y) else 0);
-                     Size_Text : constant String := To_String (Info_Field_Value (Info, 2));
-                     Modified_Text : constant String :=
-                       To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"));
-                     Description : Unbounded_String :=
-                       To_Unbounded_String
-                         (Files.Localization.Text ("info.filetype") & ": " &
-                          To_String (Info_Field_Value (Info, 1)) & ", " &
-                          Files.Localization.Text ("info.size") & ": " &
-                          Size_Text & ", " &
-                          Modified_Text);
+                        Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
+                     end Add_Ownership_Field;
                   begin
-                     if Info.Metadata_Error then
-                        Append
-                          (Description,
-                           ", " &
-                           Files.Localization.Text ("info.metadata_error") & ": " &
-                           Files.Localization.Text (To_String (Info.Error_Key)));
+                     --  No Name field: the item name is postfixed onto every value.
+                     Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
+                     --  Filesize is a file-only field; a folder shows Contents.
+                     if not Info.Is_Directory then
+                        Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
                      end if;
+                     if Info.Is_Directory and then Info.Folder_Size_Available then
+                        Add_Info_Field ("info.folder_size", Folder_Contents_Text (Info), 2);
+                     end if;
+                     Add_Info_Field ("info.created", Info_Field_Value (Info, 3), 3);
+                     Add_Info_Field ("info.modified", Info_Field_Value (Info, 4), 4);
+                     --  Permissions render as a labelled matrix (no text summary),
+                     --  clickable only when editable (gated inside Add_Permission_Grid).
+                     if Info.Mode_Available then
+                        Add_Permission_Grid;
+                     end if;
+                     if Info.Ownership_Available then
+                        Add_Ownership_Field ("info.owner", 9, Info.Owner_Editing);
+                        Add_Ownership_Field ("info.group", 10, Info.Group_Editing);
+                     end if;
+                     --  Metadata Error only appears when the item's metadata could
+                     --  not be read; healthy items show no such row.
+                     if Info.Metadata_Error then
+                        Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
+                     end if;
+                     --  Kind (field 7) is omitted: it duplicates the Filetype field.
+                     Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
+                     declare
+                        Section_H : constant Natural :=
+                          Natural'Min
+                            (Saturating_Multiply
+                               (Line_Height,
+                                Info_Section_Row_Count (Info, Text_W, Line_Height)),
+                             Info_Pane.Height);
+                        Visible_Y : constant Integer := Integer'Max (Row_Y, Integer (Info_Pane.Y));
+                        Raw_Bottom : constant Integer :=
+                          Integer'Min
+                            (Saturating_Integer_Add (Row_Y, Section_H),
+                             Integer (Info_Bottom));
+                        Visible_H : constant Natural :=
+                          (if Raw_Bottom > Visible_Y then Natural (Raw_Bottom - Visible_Y) else 0);
+                        Size_Text : constant String := To_String (Info_Field_Value (Info, 2));
+                        Modified_Text : constant String :=
+                          To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"));
+                        Description : Unbounded_String :=
+                          To_Unbounded_String
+                            (Files.Localization.Text ("info.filetype") & ": " &
+                             To_String (Info_Field_Value (Info, 1)) & ", " &
+                             Files.Localization.Text ("info.size") & ": " &
+                             Size_Text & ", " &
+                             Modified_Text);
+                     begin
+                        if Info.Metadata_Error then
+                           Append
+                             (Description,
+                              ", " &
+                              Files.Localization.Text ("info.metadata_error") & ": " &
+                              Files.Localization.Text (To_String (Info.Error_Key)));
+                        end if;
 
-                     Add_Accessibility_Node
-                       (Role_List_Item,
-                        Info_Pane.X,
-                        Natural (Visible_Y),
-                        Text_W,
-                        Visible_H,
-                        Info.Name,
-                        Description);
+                        Add_Accessibility_Node
+                          (Role_List_Item,
+                           Info_Pane.X,
+                           Natural (Visible_Y),
+                           Text_W,
+                           Visible_H,
+                           Info.Name,
+                           Description);
+                     end;
+                     Section_Offset_Rows :=
+                       Saturating_Add
+                         (Section_Offset_Rows,
+                          Info_Section_Row_Count (Info, Text_W, Line_Height));
                   end;
-                  Section_Offset_Rows :=
-                    Saturating_Add
-                      (Section_Offset_Rows,
-                       Info_Section_Row_Count (Info, Text_W, Line_Height));
-               end;
-            end loop;
+               end loop;
             end if;
          end;
 

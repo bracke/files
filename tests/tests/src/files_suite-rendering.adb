@@ -432,7 +432,7 @@ package body Files_Suite.Rendering is
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Modes : constant array (1 .. 3) of Files.Types.View_Mode :=
-        (Files.Types.Small_Icons, Files.Types.Large_Icons, Files.Types.Details);
+        [Files.Types.Small_Icons, Files.Types.Large_Icons, Files.Types.Details];
    begin
       for Mode of Modes loop
          declare
@@ -1851,9 +1851,7 @@ package body Files_Suite.Rendering is
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
    begin
-      pragma Warnings (Off, "use of an anonymous access type allocator");
-      Result.Add_Test (new Rendering_Test_Case);
-      pragma Warnings (On, "use of an anonymous access type allocator");
+      Result.Add_Test (AUnit.Test_Cases.Test_Case_Access'(new Rendering_Test_Case));
       return Result;
    end Suite;
 

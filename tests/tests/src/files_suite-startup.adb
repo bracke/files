@@ -1982,7 +1982,6 @@ package body Files_Suite.Startup is
 
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Interfaces.Unsigned_32;
 
       --  All scenarios pass and every scenario carries a distinct framebuffer
       --  hash, so every non-default scenario differs from the default frame.
@@ -2052,9 +2051,7 @@ package body Files_Suite.Startup is
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
    begin
-      pragma Warnings (Off, "use of an anonymous access type allocator");
-      Result.Add_Test (new Startup_Test_Case);
-      pragma Warnings (On, "use of an anonymous access type allocator");
+      Result.Add_Test (AUnit.Test_Cases.Test_Case_Access'(new Startup_Test_Case));
       return Result;
    end Suite;
 

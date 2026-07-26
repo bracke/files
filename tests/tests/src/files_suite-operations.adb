@@ -504,14 +504,14 @@ package body Files_Suite.Operations is
       begin
          Write_File (Prefix_Source);
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Prefix_Base);
-      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+         Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Mutation := Files.File_System.Move_To_Trash_Preflight (Prefix_Source);
          Assert (Mutation.Success, "trash preflight accepts sibling paths sharing a prefix");
          Assert
            (To_String (Mutation.Error_Key) = "",
             "trash prefix-sibling preflight has no diagnostic");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
-      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+         Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Ada.Directories.Delete_File (Prefix_Source);
       end;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
@@ -1542,7 +1542,9 @@ package body Files_Suite.Operations is
       Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "multi-file open reports first selected path");
       Assert (Result.Execution_Attempted, "multi-file open records process attempts");
       Assert (Result.Executable_Found, "multi-file open records executable discovery");
-      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "multi-file open exposes first action executable");
+      Assert
+           (To_String (Result.Action_Executable) = No_Op_Executable,
+            "multi-file open exposes first action executable");
       Assert (Result.Action_Arguments = 3, "multi-file open exposes first action argument count");
       Assert
         (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
@@ -1893,7 +1895,10 @@ package body Files_Suite.Operations is
         (Files.Model.Last_Error_Key (Model) = "",
          "detached explicit shell builtin clears stale error state");
 
-      Files.Settings.Add_Open_Action (Settings, "text/plain", Files.Settings.Make_Action (Failing_Executable, Arguments));
+      Files.Settings.Add_Open_Action
+           (Settings,
+            "text/plain",
+            Files.Settings.Make_Action (Failing_Executable, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
       Assert
         (Result.Status = Files.Operations.Operation_Action_Executed,
@@ -6039,9 +6044,7 @@ package body Files_Suite.Operations is
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;
    begin
-      pragma Warnings (Off, "use of an anonymous access type allocator");
-      Result.Add_Test (new Operation_Test_Case);
-      pragma Warnings (On, "use of an anonymous access type allocator");
+      Result.Add_Test (AUnit.Test_Cases.Test_Case_Access'(new Operation_Test_Case));
       return Result;
    end Suite;
 
@@ -6890,7 +6893,7 @@ package body Files_Suite.Operations is
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Routed   : Files.Controller.Controller_Result;
-      Big      : String (1 .. 70_000) := (others => 'a');
+      Big      : String (1 .. 70_000) := [others => 'a'];
    begin
       --  Pure match seam: case-insensitive substring, binary and empty handled.
       Assert (Files.Operations.Content_Matches ("The Needle is here", "needle"),

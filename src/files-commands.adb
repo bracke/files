@@ -636,8 +636,8 @@ package body Files.Commands is
 
    --  ----- shortcut overrides (user-editable keymap) ---------------------------
 
-   Overrides    : array (Command_Id) of Shortcut := (others => (others => <>));
-   Override_Set : array (Command_Id) of Boolean := (others => False);
+   Overrides    : array (Command_Id) of Shortcut := [others => (others => <>)];
+   Override_Set : array (Command_Id) of Boolean := [others => False];
 
    procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut) is
    begin
@@ -652,7 +652,7 @@ package body Files.Commands is
 
    procedure Reset_Shortcut_Overrides is
    begin
-      Override_Set := (others => False);
+      Override_Set := [others => False];
    end Reset_Shortcut_Overrides;
 
    function Shortcut_Override (Id : Command_Id; Is_Set : out Boolean) return Shortcut is
