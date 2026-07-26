@@ -150,6 +150,9 @@ jobs:
 
           # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
           # PATH for the test binary and the live app to start.
+          # CPATH: httpclient's C bridge (built via i18n's download_tzdb) includes
+          # <openssl/...>, so the mingw headers must be on the C include path.
+          echo "CPATH=C:/msys64/mingw64/include" >> "$GITHUB_ENV"
           echo "LIBRARY_PATH=C:/msys64/mingw64/lib" >> "$GITHUB_ENV"
           echo "C:\msys64\mingw64\bin" >> "$GITHUB_PATH"
 
