@@ -1070,20 +1070,25 @@ package body Files.Operations is
       end;
    end Commit_Path_Input;
 
-   function Navigate_Home
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+   --  Shared normalize -> load -> navigate tail for the absolute-destination
+   --  navigations (Home, Parent, Trash, Select_Root). Path is the raw requested
+   --  path; on a normalize failure the error is reported against it, on a load
+   --  failure against the normalized path. Close_Selector closes the root selector
+   --  after a successful navigation (used only by Select_Root).
+   function Load_And_Navigate
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Path           : String;
+      Close_Selector : Boolean := False)
       return Operation_Result
    is
       Path_Result : constant Files.File_System.Path_Result :=
-        Files.File_System.Normalize_Path (Files.Model.Home_Path (Model));
+        Files.File_System.Normalize_Path (Path);
    begin
       if Path_Result.Status /= Files.File_System.Path_Valid then
          Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
          return Make_Result
-           (Operation_Failed,
-            To_String (Path_Result.Error_Key),
-            Files.Model.Home_Path (Model));
+           (Operation_Failed, To_String (Path_Result.Error_Key), Path);
       end if;
 
       declare
@@ -1092,20 +1097,93 @@ package body Files.Operations is
       begin
          if not Load.Success then
             Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-            return
-              Make_Result
-                (Operation_Failed,
-                 To_String (Load.Error_Key),
-                 To_String (Path_Result.Directory_Path));
+            return Make_Result
+              (Operation_Failed,
+               To_String (Load.Error_Key),
+               To_String (Path_Result.Directory_Path));
          end if;
 
          Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
          Files.Model.Set_Directory_Signature
            (Model,
             Files.File_System.Directory_State (To_String (Load.Path)));
+         if Close_Selector then
+            Files.Model.Close_Root_Selector (Model);
+         end if;
          Files.Model.Set_Error (Model, "");
          return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
       end;
+   end Load_And_Navigate;
+
+   type History_Direction is (History_Back, History_Forward);
+
+   --  History navigation shared by Navigate_Back and Navigate_Forward: mirror
+   --  images differing only in the availability check, the error key, the move,
+   --  and which way the rollback moves on a failed reload.
+   function Navigate_History
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Direction : History_Direction)
+      return Operation_Result
+   is
+      Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
+      Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
+      Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
+      Rename_Text    : constant String := Files.Model.Rename_Text (Model);
+      Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+      Available      : constant Boolean :=
+        (if Direction = History_Back
+         then Files.Model.Can_Go_Back (Model)
+         else Files.Model.Can_Go_Forward (Model));
+      Error_Key      : constant String :=
+        (if Direction = History_Back
+         then "error.history.back_unavailable"
+         else "error.history.forward_unavailable");
+   begin
+      if not Available then
+         return Disabled (Model, Error_Key);
+      end if;
+
+      if Direction = History_Back then
+         Files.Model.Go_Back (Model);
+      else
+         Files.Model.Go_Forward (Model);
+      end if;
+
+      declare
+         Reload : constant Operation_Result := Refresh (Model, Settings);
+      begin
+         if Reload.Status /= Operation_Success then
+            --  Undo the history move, then restore any interrupted rename/create.
+            if Direction = History_Back then
+               Files.Model.Go_Forward (Model);
+            else
+               Files.Model.Go_Back (Model);
+            end if;
+            if Had_Temporary then
+               Files.Model.Begin_Create_File (Model, Temporary_Name);
+            elsif Had_Rename then
+               declare
+                  Selection_Restored : constant Boolean :=
+                    Files.Model.Select_By_Name (Model, Rename_Source);
+                  pragma Unreferenced (Selection_Restored);
+               begin
+                  null;
+               end;
+               Files.Model.Resume_Rename (Model, Rename_Text);
+            end if;
+         end if;
+
+         return Reload;
+      end;
+   end Navigate_History;
+
+   function Navigate_Home
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result is
+   begin
+      return Load_And_Navigate (Model, Settings, Files.Model.Home_Path (Model));
    end Navigate_Home;
 
    function Navigate_Parent
@@ -1121,37 +1199,7 @@ package body Files.Operations is
          return Disabled (Model, "error.navigate.no_parent");
       end if;
 
-      declare
-         Path_Result : constant Files.File_System.Path_Result :=
-           Files.File_System.Normalize_Path (Parent);
-      begin
-         if Path_Result.Status /= Files.File_System.Path_Valid then
-            Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
-            return Make_Result
-              (Operation_Failed, To_String (Path_Result.Error_Key), Parent);
-         end if;
-
-         declare
-            Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
-         begin
-            if not Load.Success then
-               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-               return
-                 Make_Result
-                   (Operation_Failed,
-                    To_String (Load.Error_Key),
-                    To_String (Path_Result.Directory_Path));
-            end if;
-
-            Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
-            Files.Model.Set_Directory_Signature
-              (Model,
-               Files.File_System.Directory_State (To_String (Load.Path)));
-            Files.Model.Set_Error (Model, "");
-            return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
-         end;
-      end;
+      return Load_And_Navigate (Model, Settings, Parent);
    end Navigate_Parent;
 
    function Navigate_Trash
@@ -1166,37 +1214,7 @@ package body Files.Operations is
          return Make_Result (Operation_Failed, "error.trash.unavailable", Trash_Dir);
       end if;
 
-      declare
-         Path_Result : constant Files.File_System.Path_Result :=
-           Files.File_System.Normalize_Path (Trash_Dir);
-      begin
-         if Path_Result.Status /= Files.File_System.Path_Valid then
-            Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
-            return Make_Result
-              (Operation_Failed, To_String (Path_Result.Error_Key), Trash_Dir);
-         end if;
-
-         declare
-            Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
-         begin
-            if not Load.Success then
-               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-               return
-                 Make_Result
-                   (Operation_Failed,
-                    To_String (Load.Error_Key),
-                    To_String (Path_Result.Directory_Path));
-            end if;
-
-            Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
-            Files.Model.Set_Directory_Signature
-              (Model,
-               Files.File_System.Directory_State (To_String (Load.Path)));
-            Files.Model.Set_Error (Model, "");
-            return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
-         end;
-      end;
+      return Load_And_Navigate (Model, Settings, Trash_Dir);
    end Navigate_Trash;
 
    function Navigate_Recent
@@ -1229,109 +1247,26 @@ package body Files.Operations is
    function Navigate_Back
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
-      return Operation_Result
-   is
-      Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
-      Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
-      Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
-      Rename_Text    : constant String := Files.Model.Rename_Text (Model);
-      Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+      return Operation_Result is
    begin
-      if not Files.Model.Can_Go_Back (Model) then
-         return Disabled (Model, "error.history.back_unavailable");
-      end if;
-
-      Files.Model.Go_Back (Model);
-      declare
-         Reload : constant Operation_Result := Refresh (Model, Settings);
-      begin
-         if Reload.Status /= Operation_Success then
-            Files.Model.Go_Forward (Model);
-            if Had_Temporary then
-               Files.Model.Begin_Create_File (Model, Temporary_Name);
-            elsif Had_Rename then
-               declare
-                  Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Rename_Source);
-                  pragma Unreferenced (Selection_Restored);
-               begin
-                  null;
-               end;
-               Files.Model.Resume_Rename (Model, Rename_Text);
-            end if;
-         end if;
-
-         return Reload;
-      end;
+      return Navigate_History (Model, Settings, History_Back);
    end Navigate_Back;
 
    function Navigate_Forward
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
-      return Operation_Result
-   is
-      Had_Temporary  : constant Boolean := Files.Model.Temporary_Item_Is_Active (Model);
-      Temporary_Name : constant String := Files.Model.Temporary_Item_Name (Model);
-      Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
-      Rename_Text    : constant String := Files.Model.Rename_Text (Model);
-      Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+      return Operation_Result is
    begin
-      if not Files.Model.Can_Go_Forward (Model) then
-         return Disabled (Model, "error.history.forward_unavailable");
-      end if;
-
-      Files.Model.Go_Forward (Model);
-      declare
-         Reload : constant Operation_Result := Refresh (Model, Settings);
-      begin
-         if Reload.Status /= Operation_Success then
-            Files.Model.Go_Back (Model);
-            if Had_Temporary then
-               Files.Model.Begin_Create_File (Model, Temporary_Name);
-            elsif Had_Rename then
-               declare
-                  Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Rename_Source);
-                  pragma Unreferenced (Selection_Restored);
-               begin
-                  null;
-               end;
-               Files.Model.Resume_Rename (Model, Rename_Text);
-            end if;
-         end if;
-
-         return Reload;
-      end;
+      return Navigate_History (Model, Settings, History_Forward);
    end Navigate_Forward;
 
    function Select_Root
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Root_Path : String)
-      return Operation_Result
-   is
-      Path_Result : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Root_Path);
+      return Operation_Result is
    begin
-      if Path_Result.Status /= Files.File_System.Path_Valid then
-         Files.Model.Set_Error (Model, To_String (Path_Result.Error_Key));
-         return Make_Result (Operation_Failed, To_String (Path_Result.Error_Key), Root_Path);
-      end if;
-
-      declare
-         Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
-      begin
-         if not Load.Success then
-            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-            return Make_Result (Operation_Failed, To_String (Load.Error_Key), To_String (Path_Result.Directory_Path));
-         end if;
-
-         Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
-         Files.Model.Set_Directory_Signature
-           (Model,
-            Files.File_System.Directory_State (To_String (Load.Path)));
-         Files.Model.Close_Root_Selector (Model);
-         Files.Model.Set_Error (Model, "");
-         return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
-      end;
+      return Load_And_Navigate (Model, Settings, Root_Path, Close_Selector => True);
    end Select_Root;
 
    function Eject_Selected_Root
