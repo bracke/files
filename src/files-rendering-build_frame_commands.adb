@@ -4439,14 +4439,7 @@ separate (Files.Rendering)
                Files.Model.Sort_Changed];
          begin
             Add_Overlay_Rect (Menu_X, Menu_Y, Menu_W, Menu_H, Overlay_Color);
-            Add_Overlay_Rect (Menu_X, Menu_Y, Menu_W, 1, Border_Color);
-            Add_Overlay_Rect (Menu_X, Menu_Y, 1, Menu_H, Border_Color);
-            if Menu_H > 0 then
-               Add_Overlay_Rect (Menu_X, Saturating_Add (Menu_Y, Menu_H - 1), Menu_W, 1, Border_Color);
-            end if;
-            if Menu_W > 0 then
-               Add_Overlay_Rect (Saturating_Add (Menu_X, Menu_W - 1), Menu_Y, 1, Menu_H, Border_Color);
-            end if;
+            Add_Overlay_Border (Menu_X, Menu_Y, Menu_W, Menu_H, Border_Color);
             Add_Accessibility_Node
               (Role_List,
                Menu_X,
@@ -4526,20 +4519,9 @@ separate (Files.Rendering)
                Root_Selector.Width,
                Root_Selector.Height,
                Overlay_Color);
-            Add_Overlay_Rect (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, 1, Border_Color);
-            Add_Overlay_Rect (Root_Selector.X, Root_Selector.Y, 1, Root_Selector.Height, Border_Color);
-            Add_Overlay_Rect
-              (Root_Selector.X,
-               Saturating_Add (Root_Selector.Y, Root_Selector.Height - 1),
-               Root_Selector.Width,
-               1,
-               Border_Color);
-            Add_Overlay_Rect
-              (Saturating_Add (Root_Selector.X, Root_Selector.Width - 1),
-               Root_Selector.Y,
-               1,
-               Root_Selector.Height,
-               Border_Color);
+            Add_Overlay_Border
+              (Root_Selector.X, Root_Selector.Y,
+               Root_Selector.Width, Root_Selector.Height, Border_Color);
          end if;
          Add_Accessibility_Node
            (Role_List,
@@ -4656,20 +4638,8 @@ separate (Files.Rendering)
                Pane_Color);
             Add_Overlay_Rect
               (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay_Color);
-            Add_Overlay_Rect (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, 1, Border_Color);
-            Add_Overlay_Rect (Tree_Panel.X, Tree_Panel.Y, 1, Tree_Panel.Height, Border_Color);
-            Add_Overlay_Rect
-              (Tree_Panel.X,
-               Saturating_Add (Tree_Panel.Y, Tree_Panel.Height - 1),
-               Tree_Panel.Width,
-               1,
-               Border_Color);
-            Add_Overlay_Rect
-              (Saturating_Add (Tree_Panel.X, Tree_Panel.Width - 1),
-               Tree_Panel.Y,
-               1,
-               Tree_Panel.Height,
-               Border_Color);
+            Add_Overlay_Border
+              (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Border_Color);
             --  Title band.
             Add_Overlay_Rect
               (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Row_Height, Pane_Color);
@@ -5016,16 +4986,7 @@ separate (Files.Rendering)
          begin
             --  Modal backdrop and panel body.
             Add_Overlay_Rect (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay_Color);
-            Add_Overlay_Rect (Dialog.X, Dialog.Y, Dialog.Width, 1, Border_Color);
-            Add_Overlay_Rect (Dialog.X, Dialog.Y, 1, Dialog.Height, Border_Color);
-            if Dialog.Height > 0 then
-               Add_Overlay_Rect
-                 (Dialog.X, Saturating_Add (Dialog.Y, Dialog.Height - 1), Dialog.Width, 1, Border_Color);
-            end if;
-            if Dialog.Width > 0 then
-               Add_Overlay_Rect
-                 (Saturating_Add (Dialog.X, Dialog.Width - 1), Dialog.Y, 1, Dialog.Height, Border_Color);
-            end if;
+            Add_Overlay_Border (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Border_Color);
             Add_Accessibility_Node
               (Role_Dialog, Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height,
                Localized ("dialog.paste_conflict.title"));
@@ -5116,16 +5077,7 @@ separate (Files.Rendering)
          begin
             --  Modal-lite panel body and border.
             Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, Panel.Height, Overlay_Color);
-            Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, 1, Border_Color);
-            Add_Overlay_Rect (Panel.X, Panel.Y, 1, Panel.Height, Border_Color);
-            if Panel.Height > 0 then
-               Add_Overlay_Rect
-                 (Panel.X, Saturating_Add (Panel.Y, Panel.Height - 1), Panel.Width, 1, Border_Color);
-            end if;
-            if Panel.Width > 0 then
-               Add_Overlay_Rect
-                 (Saturating_Add (Panel.X, Panel.Width - 1), Panel.Y, 1, Panel.Height, Border_Color);
-            end if;
+            Add_Overlay_Border (Panel.X, Panel.Y, Panel.Width, Panel.Height, Border_Color);
             Add_Accessibility_Node
               (Role_Dialog, Panel.X, Panel.Y, Panel.Width, Panel.Height,
                Localized ("dialog.paste_progress.title"));
