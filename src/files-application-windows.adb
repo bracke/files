@@ -3020,6 +3020,8 @@ package body Files.Application.Windows is
             return "context_menu";
          when Scenario_Palette =>
             return "palette";
+         when Scenario_Root_Selector =>
+            return "root_selector";
          when Scenario_Settings =>
             return "settings";
          when Scenario_Large_Font =>
@@ -3142,6 +3144,15 @@ package body Files.Application.Windows is
 
          when Scenario_Palette =>
             Files.Model.Open_Command_Palette (Runtime.Model);
+
+         when Scenario_Root_Selector =>
+            declare
+               Roots : Files.Types.String_Vectors.Vector;
+            begin
+               Roots.Append (To_Unbounded_String ("/"));
+               Roots.Append (To_Unbounded_String ("/home"));
+               Files.Model.Open_Root_Selector (Runtime.Model, Roots);
+            end;
 
          when Scenario_Settings =>
             Files.Model.Begin_Settings_Edit

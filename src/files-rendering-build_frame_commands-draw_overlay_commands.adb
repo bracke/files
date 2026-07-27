@@ -1,3 +1,5 @@
+with Guikit.List_Panel;
+
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Overlay_Commands is
    begin
@@ -33,98 +35,117 @@ separate (Files.Rendering.Build_Frame_Commands)
             Root_Selector.Height,
             Localized ("accessibility.root_selector"));
 
-         for Index in 1 .. Natural (Root_Rows.Length) loop
+         if Natural (Root_Rows.Length) > 0 then
             declare
-               Row       : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
+               First_Row  : constant Root_Path_Layout := Root_Rows.First_Element;
+               Row_H      : constant Natural := Root_Selector.Row_Height;
+               Inner_H    : constant Natural :=
+                 (if Row_H > Saturating_Multiply (Root_Selector_Padding, 2)
+                  then Row_H - Saturating_Multiply (Root_Selector_Padding, 2)
+                  else Row_H);
                Toolbar_Icon_Size : constant Natural :=
                  Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2));
-               Row_Pad    : constant Natural := Natural'Min (Root_Selector_Padding, Row.Height);
-               Inner_H    : constant Natural :=
-                 (if Row.Height > Saturating_Multiply (Row_Pad, 2)
-                  then Row.Height - Saturating_Multiply (Row_Pad, 2)
-                  else Row.Height);
+               --  Uniform across rows (they share Row_Height), so compute once.
                Glyph_Size : constant Natural := Natural'Min (Toolbar_Icon_Size, Inner_H);
-               Glyph_X    : constant Natural := Saturating_Add (Row.X, Row_Pad);
-               Glyph_Y    : constant Natural :=
-                  (if Row.Height > Glyph_Size
-                  then Saturating_Add (Row.Y, (Row.Height - Glyph_Size) / 2)
-                  else Row.Y);
-               Text_X     : constant Natural :=
-                 Saturating_Add (Glyph_X, Saturating_Add (Glyph_Size, Root_Selector_Padding));
-               Text_H     : constant Natural :=
-                 Natural'Min (Line_Height, Inner_H);
-               Text_Y     : constant Natural :=
-                 (if Row.Height > Text_H
-                  then Saturating_Add (Row.Y, (Row.Height - Text_H) / 2)
-                  else Row.Y);
-               Text_W     : constant Natural :=
-                 (if Row.Width > Saturating_Add (Glyph_Size, Saturating_Multiply (Root_Selector_Padding, 3))
-                  then Row.Width - Saturating_Add (Glyph_Size, Saturating_Multiply (Root_Selector_Padding, 3))
-                  else 0);
-               Hovered    : constant Boolean :=
-                 Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
-               Pressed    : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
+               List_Rows  : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
+               --  List_Panel emits its own list/row accessibility; files keeps its
+               --  richer per-row nodes (path + focused) below, so its nodes are
+               --  discarded into a throwaway vector.
+               Discard_A11y : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+               Config : constant Guikit.List_Panel.List_Panel_Configuration :=
+                 (Line_Height         => Line_Height,
+                  Text_Padding        => Root_Selector_Padding,
+                  Show_Alternate_Rows => False,
+                  Row_Height          => Row_H,
+                  Leading_Icon_Width  => Saturating_Add (Glyph_Size, Root_Selector_Padding),
+                  others              => <>);
             begin
-               Add_Overlay_Rect
-                 (Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  (if Row.Selected then Selection_Color
-                   elsif Pressed then Pressed_Color
-                   elsif Hovered then Hover_Color
-                   else Overlay_Color));
-               if Index > 1 then
-                  Add_Overlay_Rect (Row.X, Row.Y, Row.Width, 1, Border_Color);
-               end if;
-               if Row.Selected then
-                  Add_Overlay_Rect
-                    (Row.X,
-                     Row.Y,
-                     Natural'Min (3, Row.Width),
-                     Row.Height,
-                     Border_Color);
-               end if;
-               if Glyph_Size > 0 then
-                  Add_Overlay_Rect
-                    (Glyph_X,
-                     Saturating_Add (Glyph_Y, Glyph_Size / 4),
-                     Glyph_Size,
-                     Natural'Max (1, Glyph_Size / 2),
-                     Icon_Directory_Color);
-                  Add_Overlay_Rect
-                    (Saturating_Add (Glyph_X, Glyph_Size / 4),
-                     Glyph_Y,
-                     Natural'Max (1, Glyph_Size / 2),
-                     Natural'Max (1, Glyph_Size / 4),
-                     Icon_Directory_Color);
-               end if;
-               Add_Overlay_Text
-                 (Text_X,
-                  Text_Y,
-                  Text_W,
-                  Text_H,
-                  Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
-                  Fit => True);
-               Add_Command_Tooltip
-                 (Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  Files.Commands.Open_Selected_Root_Command);
-               Add_Accessibility_Node
-                 (Role_List_Item,
-                  Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
-                  Snapshot.Root_Paths.Element (Positive (Row.Root_Index)),
-                  Enabled  => True,
-                  Selected => Row.Selected,
-                  Focused  => Row.Selected);
+               --  Row backgrounds, the selected accent bar, and the label text are
+               --  the common list geometry -- delegate them to Guikit.List_Panel.
+               --  The folder glyph, inter-row separators, tooltips and the richer
+               --  accessibility stay here (domain-specific).
+               for Index in 1 .. Natural (Root_Rows.Length) loop
+                  declare
+                     Row     : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
+                     Hovered : constant Boolean :=
+                       Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
+                     Pressed : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
+                  begin
+                     List_Rows.Append
+                       (Guikit.List_Panel.List_Panel_Row'
+                          (Label            => Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
+                           Selected         => Row.Selected,
+                           Has_Background   => not Row.Selected,
+                           Background_Color =>
+                             (if Pressed then Pressed_Color
+                              elsif Hovered then Hover_Color
+                              else Overlay_Color),
+                           others           => <>));
+                  end;
+               end loop;
+
+               Guikit.List_Panel.Draw_Frame
+                 (Rectangles    => Result.Overlay_Rectangles,
+                  Text          => Result.Overlay_Text,
+                  Accessibility => Discard_A11y,
+                  Clip_Width    => Width,
+                  Clip_Height   => Height,
+                  Region_X      => First_Row.X,
+                  Region_Y      => First_Row.Y,
+                  Region_Width  => First_Row.Width,
+                  Region_Height => Saturating_Multiply (Natural (Root_Rows.Length), Row_H),
+                  Config        => Config,
+                  Rows          => List_Rows,
+                  Draw_Chrome   => False);
+
+               for Index in 1 .. Natural (Root_Rows.Length) loop
+                  declare
+                     Row     : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
+                     Row_Pad : constant Natural := Natural'Min (Root_Selector_Padding, Row.Height);
+                     Glyph_X : constant Natural := Saturating_Add (Row.X, Row_Pad);
+                     Glyph_Y : constant Natural :=
+                       (if Row.Height > Glyph_Size
+                        then Saturating_Add (Row.Y, (Row.Height - Glyph_Size) / 2)
+                        else Row.Y);
+                  begin
+                     if Index > 1 then
+                        Add_Overlay_Rect (Row.X, Row.Y, Row.Width, 1, Border_Color);
+                     end if;
+                     if Glyph_Size > 0 then
+                        Add_Overlay_Rect
+                          (Glyph_X,
+                           Saturating_Add (Glyph_Y, Glyph_Size / 4),
+                           Glyph_Size,
+                           Natural'Max (1, Glyph_Size / 2),
+                           Icon_Directory_Color);
+                        Add_Overlay_Rect
+                          (Saturating_Add (Glyph_X, Glyph_Size / 4),
+                           Glyph_Y,
+                           Natural'Max (1, Glyph_Size / 2),
+                           Natural'Max (1, Glyph_Size / 4),
+                           Icon_Directory_Color);
+                     end if;
+                     Add_Command_Tooltip
+                       (Row.X,
+                        Row.Y,
+                        Row.Width,
+                        Row.Height,
+                        Files.Commands.Open_Selected_Root_Command);
+                     Add_Accessibility_Node
+                       (Role_List_Item,
+                        Row.X,
+                        Row.Y,
+                        Row.Width,
+                        Row.Height,
+                        Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
+                        Snapshot.Root_Paths.Element (Positive (Row.Root_Index)),
+                        Enabled  => True,
+                        Selected => Row.Selected,
+                        Focused  => Row.Selected);
+                  end;
+               end loop;
             end;
-         end loop;
+         end if;
          Draw_Close_Button
            (Root_Selector.X, Root_Selector.Y, Root_Selector.Width, Root_Selector.Height,
             Overlay => True);

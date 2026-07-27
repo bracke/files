@@ -60,6 +60,7 @@ package Files.Application.Windows is
       Scenario_Scrolled,
       Scenario_Context_Menu,
       Scenario_Palette,
+      Scenario_Root_Selector,
       Scenario_Settings,
       Scenario_Large_Font,
       Scenario_Light_Theme,
