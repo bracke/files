@@ -2757,7 +2757,7 @@ package body Files.Application.Windows is
                      Thumbnail_Path      => Null_Unbounded_String,
                      Thumbnail_Width     => 0,
                      Thumbnail_Height    => 0,
-                     Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
+                     Thumbnail           => (Pixels => Files.Types.Byte_Vectors.Empty_Vector),
                      Metadata_Error     => False,
                      Error_Key          => Null_Unbounded_String,
                      Selected           => True,

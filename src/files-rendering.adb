@@ -25,6 +25,14 @@ with Files.UI;
 
 package body Files.Rendering is
 
+   --  Thumbnail pixels never contribute to Item_Snapshot equality (see the
+   --  Thumbnail_Bitmap type in the spec).
+   overriding function "=" (Left, Right : Thumbnail_Bitmap) return Boolean is
+      pragma Unreferenced (Left, Right);
+   begin
+      return True;
+   end "=";
+
    --  Text rendering is provided by the guikit toolkit; this process-wide
    --  renderer holds the shared font/atlas the whole app draws through.
    The_Renderer : Guikit.Text.Renderer;

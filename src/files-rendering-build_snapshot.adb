@@ -630,7 +630,7 @@ separate (Files.Rendering)
                      Thumbnail_Path      => Item.Thumbnail_Path,
                      Thumbnail_Width     => Item.Thumbnail_Width,
                      Thumbnail_Height    => Item.Thumbnail_Height,
-                     Thumbnail_Pixels    => Item.Thumbnail_Pixels,
+                     Thumbnail           => (Pixels => Item.Thumbnail_Pixels),
                      Metadata_Error     => Item.Metadata_Error,
                      Error_Key          => Item.Error_Key,
                      Selected           => Files.Model.Is_Selected (Model, Index),

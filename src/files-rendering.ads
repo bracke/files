@@ -28,6 +28,17 @@ package Files.Rendering is
      (Label : Files.Types.Color_Label)
       return Render_Color;
 
+   --  The decoded thumbnail RGBA, wrapped so it takes no part in Item_Snapshot
+   --  equality (its "=" is always True). Two snapshots that differ only in
+   --  thumbnail pixels compare equal, so the per-frame frame-cache check no
+   --  longer walks every pixel of every item. This is safe: a real thumbnail
+   --  change also changes the item's Modified_Time or Size (which ARE compared),
+   --  and thumbnails only (re)load on a directory re-listing.
+   type Thumbnail_Bitmap is record
+      Pixels : Files.Types.Byte_Vectors.Vector;
+   end record;
+   overriding function "=" (Left, Right : Thumbnail_Bitmap) return Boolean;
+
    type Item_Snapshot is record
       Name               : UString;
       --  Case-folded Name, precomputed once at snapshot build so the sort
@@ -50,7 +61,7 @@ package Files.Rendering is
       Thumbnail_Path      : UString;
       Thumbnail_Width     : Natural := 0;
       Thumbnail_Height    : Natural := 0;
-      Thumbnail_Pixels    : Files.Types.Byte_Vectors.Vector;
+      Thumbnail           : Thumbnail_Bitmap;
       Metadata_Error     : Boolean := False;
       Error_Key          : UString;
       Selected           : Boolean := False;
