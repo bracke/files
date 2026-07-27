@@ -124,6 +124,12 @@ package body Files.Application.Windows is
       Drag_Start_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Left_Mouse_Down : Boolean := False;
       Drag_Moved : Boolean := False;
+      --  Time of the last accepted left-button press, for bounce rejection: a
+      --  failing mouse switch (or an un-debounced compositor) can emit a spurious
+      --  second press within a few ms of the real one, which double-fires the
+      --  click -- for a toggle toolbar icon that cancels out and looks like the
+      --  click "did nothing". See Left_Press_Debounce.
+      Last_Left_Press_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Drop_Source : Files.Drop_Events.Drop_Event_Source;
    end record;
 
@@ -351,6 +357,13 @@ package body Files.Application.Windows is
    --  interaction stays crisp -- and only skip presents once genuinely idle,
    --  where the idle-CPU saving actually matters.
    Present_Grace_Frames : constant := 24;
+
+   --  A left press landing within this window of the previous accepted press is
+   --  treated as a hardware/compositor bounce and dropped. It is far shorter than
+   --  any deliberate click or double-click (the double-click threshold is 0.5s),
+   --  so it never rejects a real one, but it absorbs the microsecond-apart phantom
+   --  presses a failing switch produces.
+   Left_Press_Debounce : constant Duration := 0.040;
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -630,6 +643,17 @@ package body Files.Application.Windows is
       end if;
 
       if State = Glfw.Input.Pressed then
+         declare
+            Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+         begin
+            --  Drop a press that follows the previous accepted one too closely to
+            --  be a real click -- a switch bounce that would otherwise double-fire.
+            if Now - Object.Last_Left_Press_Time < Left_Press_Debounce then
+               return;
+            end if;
+            Object.Last_Left_Press_Time := Now;
+         end;
+
          Object.Pending_Left_Clicks := Natural'Min (Object.Pending_Left_Clicks + 1, 8);
          Object.Left_Mouse_Down := True;
          Object.Drag_Start_X := Object.Last_Mouse_X;
