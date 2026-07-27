@@ -2888,11 +2888,6 @@ separate (Files.Rendering)
                            else Free_Region_X);
                         Used   : constant Long_Long_Integer :=
                           Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes;
-                        Fill_W : constant Natural :=
-                          (if Bar_W > 0
-                           then Natural
-                                  (Used * Long_Long_Integer (Bar_W) / Snapshot.Total_Space_Bytes)
-                           else 0);
                         --  Warn in red when 10% or less of the disk is free.
                         Fill_Color : constant Render_Color :=
                           (if Snapshot.Free_Space_Bytes * 10 <= Snapshot.Total_Space_Bytes
@@ -2900,8 +2895,11 @@ separate (Files.Rendering)
                            else Selection_Color);
                      begin
                         if Bar_W > 0 then
-                           Add_Rect (Bar_X, Bar_Y, Bar_W, Bar_H, Input_Color);
-                           Add_Rect (Bar_X, Bar_Y, Fill_W, Bar_H, Fill_Color);
+                           Guikit.Widgets.Draw_Meter
+                             (Result.Rectangles, Layout.Width, Layout.Height,
+                              Bar_X, Bar_Y, Bar_W, Bar_H,
+                              Used, Snapshot.Total_Space_Bytes,
+                              Input_Color, Fill_Color);
                            Add_Border (Bar_X, Bar_Y, Bar_W, Bar_H, Border_Color);
                         end if;
                      end;
@@ -5108,9 +5106,6 @@ separate (Files.Rendering)
               & Localized ("dialog.paste_progress.of")
               & To_Unbounded_String (" ")
               & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Total)));
-            Filled : constant Natural :=
-              (if Snapshot.Paste_Progress_Total = 0 then Panel.Bar_Width
-               else (Panel.Bar_Width * Snapshot.Paste_Progress_Done) / Snapshot.Paste_Progress_Total);
             Cancel_Hovered : constant Boolean :=
               Has_Hover
               and then Contains_Point
@@ -5144,11 +5139,13 @@ separate (Files.Rendering)
                Saturating_Add (Panel.Y, Saturating_Add (Pad, Line_Height)),
                Text_W, Line_Height, Snapshot.Paste_Progress_Name, Muted_Text_Color, Fit => True);
 
-            --  Progress bar: track, filled portion proportional to Done/Total, border.
-            Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, Panel.Bar_Height, Hover_Color);
-            if Filled > 0 then
-               Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Filled, Panel.Bar_Height, Selection_Color);
-            end if;
+            --  Progress bar: track + fill proportional to Done/Total, top border.
+            Guikit.Widgets.Draw_Meter
+              (Result.Overlay_Rectangles, Layout.Width, Layout.Height,
+               Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, Panel.Bar_Height,
+               Long_Long_Integer (Snapshot.Paste_Progress_Done),
+               Long_Long_Integer (Snapshot.Paste_Progress_Total),
+               Hover_Color, Selection_Color);
             Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, 1, Border_Color);
 
             --  Cancel button.
