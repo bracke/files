@@ -2653,6 +2653,7 @@ package body Files.Application.Windows is
                Drag_Snapshot.Items.Append
                  (Files.Rendering.Item_Snapshot'
                     (Name               => To_Unbounded_String ("quality-drag.txt"),
+                     Name_Lower         => To_Unbounded_String ("quality-drag.txt"),
                      Filetype           => To_Unbounded_String ("text/plain"),
                      Filetype_Detail    => To_Unbounded_String ("text"),
                      Icon_Id            => To_Unbounded_String ("text"),

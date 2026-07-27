@@ -602,6 +602,8 @@ separate (Files.Rendering)
                Snapshot.Items.Append
                  (Item_Snapshot'
                     (Name               => Item.Name,
+                     Name_Lower         =>
+                       To_Unbounded_String (Files.Types.To_Lower (To_String (Item.Name))),
                      Filetype           => Item.Filetype,
                      Filetype_Detail    => Filetype_Detail (Item),
                      Icon_Id            => Item.Icon_Id,
@@ -639,15 +641,14 @@ separate (Files.Rendering)
 
       declare
          function Name_Less (Left : Item_Snapshot; Right : Item_Snapshot) return Boolean is
-            Left_Text       : constant String := To_String (Left.Name);
-            Right_Text      : constant String := To_String (Right.Name);
-            Left_Lowercase  : constant String := Files.Types.To_Lower (Left_Text);
-            Right_Lowercase : constant String := Files.Types.To_Lower (Right_Text);
          begin
-            if Left_Lowercase /= Right_Lowercase then
-               return Left_Lowercase < Right_Lowercase;
+            --  Name_Lower is the case-folded Name, precomputed once per item at
+            --  build; case-sensitive Name breaks ties so distinct-case names
+            --  stay ordered deterministically.
+            if Left.Name_Lower /= Right.Name_Lower then
+               return Left.Name_Lower < Right.Name_Lower;
             else
-               return Left_Text < Right_Text;
+               return Left.Name < Right.Name;
             end if;
          end Name_Less;
 

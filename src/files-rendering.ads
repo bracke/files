@@ -30,6 +30,10 @@ package Files.Rendering is
 
    type Item_Snapshot is record
       Name               : UString;
+      --  Case-folded Name, precomputed once at snapshot build so the sort
+      --  comparator never re-lowercases the same names across its O(N log N)
+      --  comparisons. Always derived from Name; carries no independent state.
+      Name_Lower         : UString;
       Filetype           : UString;
       Filetype_Detail    : UString;
       Icon_Id            : UString;
