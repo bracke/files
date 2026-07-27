@@ -1593,6 +1593,59 @@ package body Files_Suite.Rendering is
             "the open folder tree emits a close-button accessibility node");
       end;
 
+      --  Folder-tree destination picker: the Choose/Cancel button bar. Covers the
+      --  Tree_Pick_Active render + hit-test path, which no other test exercises.
+      declare
+         Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout     : Guikit.Draw.Layout_Metrics;
+         Panel      : Tree_Panel_Layout;
+         Buttons    : Tree_Pick_Button_Layout;
+         Choose_Hit : Files.Events.Input_Action;
+         Cancel_Hit : Files.Events.Input_Action;
+      begin
+         Snap.Tree_Panel_Open  := True;
+         Snap.Tree_Pick_Active := True;
+         Layout  := Calculate_Layout (Snap, Width, Height, LH);
+         Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+         Buttons := Tree_Pick_Buttons (Panel, LH);
+
+         Assert (Buttons.Visible, "the active tree destination picker shows a Choose/Cancel bar");
+         Assert
+           (Buttons.Button_Width > 0 and then Buttons.Height > 0,
+            "the pick buttons have a non-empty click area");
+         Assert (Buttons.Choose_X < Buttons.Cancel_X, "Choose sits left of Cancel");
+         Assert
+           (Buttons.Choose_X + Buttons.Button_Width <= Buttons.Cancel_X,
+            "the Choose and Cancel buttons do not overlap");
+         Assert
+           (Buttons.Choose_X >= Panel.X
+              and then Buttons.Cancel_X + Buttons.Button_Width <= Panel.X + Panel.Width,
+            "both pick buttons sit within the tree panel");
+
+         --  Each button center is hit-testable and routes to the right action.
+         Choose_Hit :=
+           Files.Events.Translate_Click
+             (Snap, Build_Frame_Commands (Snap, Width, Height, LH),
+              X      => Buttons.Choose_X + Buttons.Button_Width / 2,
+              Y      => Buttons.Y + Buttons.Height / 2,
+              Width  => Width,
+              Height => Height);
+         Cancel_Hit :=
+           Files.Events.Translate_Click
+             (Snap, Build_Frame_Commands (Snap, Width, Height, LH),
+              X      => Buttons.Cancel_X + Buttons.Button_Width / 2,
+              Y      => Buttons.Y + Buttons.Height / 2,
+              Width  => Width,
+              Height => Height);
+         Assert
+           (Choose_Hit.Kind = Files.Events.Tree_Pick_Confirm_Input_Action,
+            "clicking Choose confirms the destination pick");
+         Assert
+           (Cancel_Hit.Kind = Files.Events.Command_Input_Action
+              and then Cancel_Hit.Command = Files.Commands.Toggle_Folder_Tree_Command,
+            "clicking Cancel closes the picker");
+      end;
+
       --  Quick Look overlay.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
