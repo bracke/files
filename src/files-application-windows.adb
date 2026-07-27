@@ -282,6 +282,11 @@ package body Files.Application.Windows is
       Presented_Once             : Boolean := False;
       Last_Present_Palette_Open  : Boolean := False;
       Last_Present_Settings_Open : Boolean := False;
+      --  Frames still owed a present after the last visible change (grace window,
+      --  see Present_Grace_Frames). Nonzero keeps us presenting every frame so
+      --  interaction stays paced to the display; it decays to zero when idle and
+      --  the present gate may then skip.
+      Present_Grace              : Natural := 0;
       Cached_Snapshot      : Files.Rendering.View_Snapshot;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       Cached_Frame_W       : Natural := 0;
@@ -335,6 +340,17 @@ package body Files.Application.Windows is
    --  long-idle wait cut idle CPU only ~2% -> ~1% but let input lag up to a
    --  second, so it was dropped.)
    Event_Wait_Timeout : constant Duration := 0.016;
+
+   --  How many frames to keep presenting after the last visible change before
+   --  the present gate is allowed to skip. Presenting every frame keeps us on
+   --  the compositor's frame clock, which is what keeps input paced at the
+   --  display rate; once we stop presenting that pacing drops and the *next*
+   --  interaction after an idle gap stalls, which feels like laggy keyboard and
+   --  mouse. So we stay presenting through a short grace window (~0.4s at 60fps)
+   --  after any change -- normal typing/mouse movement never lets it lapse, so
+   --  interaction stays crisp -- and only skip presents once genuinely idle,
+   --  where the idle-CPU saving actually matters.
+   Present_Grace_Frames : constant := 24;
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -1848,6 +1864,7 @@ package body Files.Application.Windows is
             Presented_Once             => False,
             Last_Present_Palette_Open  => False,
             Last_Present_Settings_Open => False,
+            Present_Grace              => 0,
             Cached_Snapshot      => <>,
             Cached_Frame         => <>,
             Cached_Frame_W       => 0,
@@ -2376,18 +2393,26 @@ package body Files.Application.Windows is
          Runtime.Snapshot_Fresh := True;
       end;
 
-      --  Present gate: when the frame's commands are unchanged, no overlay is (or
-      --  was just) open, and the text is settled, the identical frame is already
-      --  on screen -- skip the whole submit/present path. This is the idle saving:
-      --  the compositor wakes the loop every frame, but an unchanging view no
-      --  longer re-packs vertices or re-presents.
+      --  Anything that changes what is on screen -- a rebuilt frame, an open (or
+      --  just-closed) overlay, or text still settling -- opens the grace window,
+      --  so we keep presenting every frame through it and stay on the compositor's
+      --  frame clock while the user is interacting.
+      if Frame_Rebuilt
+        or else Files.Model.Command_Palette_Is_Open (Runtime.Model)
+        or else Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+        or else Runtime.Last_Present_Palette_Open
+        or else Runtime.Last_Present_Settings_Open
+        or else not Runtime.Text_Ready
+      then
+         Runtime.Present_Grace := Present_Grace_Frames;
+      end if;
+
+      --  Present gate: once the grace window has elapsed (nothing has changed for
+      --  a while), the identical frame is already on screen -- skip the whole
+      --  submit/present path. That is the idle saving: the loop still wakes each
+      --  timeout, but an unchanging view no longer re-packs vertices or presents.
       if Runtime.Presented_Once
-        and then not Frame_Rebuilt
-        and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
-        and then not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
-        and then not Runtime.Last_Present_Palette_Open
-        and then not Runtime.Last_Present_Settings_Open
-        and then Runtime.Text_Ready
+        and then Runtime.Present_Grace = 0
         and then not Guikit.Vulkan.Readback_Enabled (Runtime.Vulkan)
       then
          return;
@@ -2572,6 +2597,12 @@ package body Files.Application.Windows is
            Files.Model.Command_Palette_Is_Open (Runtime.Model);
          Runtime.Last_Present_Settings_Open :=
            Files.Model.Settings_Pane_Is_Open (Runtime.Model);
+
+         --  Burn down one frame of the grace window. It is refilled above on any
+         --  visible change, so it only reaches zero after a genuine idle gap.
+         if Runtime.Present_Grace > 0 then
+            Runtime.Present_Grace := Runtime.Present_Grace - 1;
+         end if;
       end;
    end Render_Window;
 
