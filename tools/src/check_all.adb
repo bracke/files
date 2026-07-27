@@ -975,6 +975,16 @@ procedure Check_All is
          end if;
       end loop;
 
+      --  Shell verbs assembled into the terminal command line. They carry no
+      --  metacharacter of their own -- "cd /d " is cmd's change-directory form,
+      --  "cd " every POSIX shell's -- but they are shell syntax, not localizable
+      --  user text.
+      if Literal = "cd /d "
+        or else Literal = "cd "
+      then
+         return False;
+      end if;
+
       if Literal = "/Type /Page"
         or else Literal = "untitled "
         or else Literal = "untitled.txt"
@@ -1008,10 +1018,87 @@ procedure Check_All is
       return Has_Letter and then Has_Space;
    end Looks_Like_User_Text;
 
+   function Is_Ada_Identifier_Char (Char : Character) return Boolean is
+     (Char in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
+
+   --  The length of a developer-diagnostic pragma header ("pragma
+   --  Compile_Time_Error" and friends) beginning at Content (From), or 0 when
+   --  none does. Their string arguments are compile-time messages for
+   --  developers, never localizable user text, so the scanner skips the whole
+   --  statement. GNAT style enforces the casing, so an exact-case match suffices.
+   function Diagnostic_Pragma_Length (Content : String; From : Positive) return Natural is
+      function Header_At (Keyword : String) return Boolean is
+         Full : constant String := "pragma " & Keyword;
+         Stop : constant Natural := From + Full'Length;
+      begin
+         if From > Content'First and then Is_Ada_Identifier_Char (Content (From - 1)) then
+            return False;
+         elsif Stop - 1 > Content'Last then
+            return False;
+         elsif Content (From .. Stop - 1) /= Full then
+            return False;
+         end if;
+
+         return Stop > Content'Last or else not Is_Ada_Identifier_Char (Content (Stop));
+      end Header_At;
+   begin
+      if Header_At ("Compile_Time_Error") then
+         return String'("pragma Compile_Time_Error")'Length;
+      elsif Header_At ("Compile_Time_Warning") then
+         return String'("pragma Compile_Time_Warning")'Length;
+      elsif Header_At ("Assert") then
+         return String'("pragma Assert")'Length;
+      end if;
+
+      return 0;
+   end Diagnostic_Pragma_Length;
+
    procedure Check_No_User_Text_Literals (Path : String) is
       Content       : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
       Index         : Natural := Content'First;
       Line          : Natural := 1;
+
+      --  Advance Index past the developer-diagnostic pragma statement that begins
+      --  at Index, tracking parenthesis depth so a ';' inside its message string
+      --  does not end it early, and counting newlines for accurate line numbers.
+      procedure Skip_Diagnostic_Pragma is
+         Depth : Integer := 0;
+      begin
+         while Index <= Content'Last loop
+            if Content (Index) = ASCII.LF then
+               Line := Line + 1;
+               Index := Index + 1;
+            elsif Content (Index) = '"' then
+               Index := Index + 1;
+               while Index <= Content'Last loop
+                  if Content (Index) = '"' then
+                     if Index < Content'Last and then Content (Index + 1) = '"' then
+                        Index := Index + 2;
+                     else
+                        Index := Index + 1;
+                        exit;
+                     end if;
+                  else
+                     if Content (Index) = ASCII.LF then
+                        Line := Line + 1;
+                     end if;
+                     Index := Index + 1;
+                  end if;
+               end loop;
+            elsif Content (Index) = '(' then
+               Depth := Depth + 1;
+               Index := Index + 1;
+            elsif Content (Index) = ')' then
+               Depth := Depth - 1;
+               Index := Index + 1;
+            elsif Content (Index) = ';' and then Depth = 0 then
+               Index := Index + 1;
+               exit;
+            else
+               Index := Index + 1;
+            end if;
+         end loop;
+      end Skip_Diagnostic_Pragma;
    begin
       while Index <= Content'Last loop
          if Content (Index) = ASCII.LF then
@@ -1028,6 +1115,8 @@ procedure Check_All is
             while Index <= Content'Last and then Content (Index) /= ASCII.LF loop
                Index := Index + 1;
             end loop;
+         elsif Diagnostic_Pragma_Length (Content, Index) > 0 then
+            Skip_Diagnostic_Pragma;
          elsif Is_Source_String_Delimiter (Content, Index) then
             Index := Index + 1;
             declare
@@ -1883,6 +1972,15 @@ procedure Check_All is
         (Main_Manifest,
          "i18n = { path = ""../i18n"" }",
          "files must pin i18n to the local relative crate");
+      Project_Tools.Files.Require_Contains
+        (Check_Source,
+         "if Literal = ""cd /d """ & ASCII.LF
+         & "        or else Literal = ""cd """,
+         "hard-coded text checks must keep terminal shell-verb exemptions narrow");
+      Project_Tools.Files.Require_Contains
+        (Check_Source,
+         "function Diagnostic_Pragma_Length",
+         "hard-coded text checks must exempt developer-diagnostic pragma messages");
       Project_Tools.Files.Require_Contains
         (Check_Source,
          "if Literal = ""/Type /Page""" & ASCII.LF
@@ -3110,6 +3208,13 @@ procedure Check_All is
                Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
             begin
                if Name = "." or else Name = ".." then
+                  null;
+               elsif Full = Root & "/share/i18n" then
+                  --  Generated build output, not a source-tracked resource: the
+                  --  post-build bundler copies the i18n data tree here from the
+                  --  resolved dependency (it is gitignored), and release_check
+                  --  verifies its presence. The hand-maintained package.manifest
+                  --  lists only the resources that live in this repository.
                   null;
                elsif Ada.Directories.Kind (Dir_Entry) = Ada.Directories.Directory then
                   Require_Share_Files_In_Manifest (Full);
