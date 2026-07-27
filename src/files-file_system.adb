@@ -1133,6 +1133,30 @@ package body Files.File_System is
          return Prefix & ".entries|0";
    end Zip_Entry_Count_Token;
 
+   --  Leading magic bytes that identify a file format, one per row.
+   ELF_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 4) :=
+     [16#7F#, 16#45#, 16#4C#, 16#46#];   --  7F 'E' 'L' 'F'
+   PE_Magic     : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
+     [16#4D#, 16#5A#];                   --  'M' 'Z'
+   Script_Magic : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
+     [16#23#, 16#21#];                   --  '#' '!'
+   PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
+     [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
+                                         --  89 'P' 'N' 'G' CR LF 1A LF
+
+   --  True when the first Pattern'Length bytes read into Buffer (of which Last
+   --  were read) equal Pattern. Buffer and Pattern are both 1-based.
+   function Matches_Signature
+     (Buffer  : Ada.Streams.Stream_Element_Array;
+      Last    : Ada.Streams.Stream_Element_Offset;
+      Pattern : Ada.Streams.Stream_Element_Array)
+      return Boolean
+   is
+      use type Ada.Streams.Stream_Element_Array;
+   begin
+      return Last >= Pattern'Last and then Buffer (Pattern'Range) = Pattern;
+   end Matches_Signature;
+
    function Executable_Format_Token (Path : String) return String is
       package Stream_IO renames Ada.Streams.Stream_IO;
 
@@ -1144,22 +1168,11 @@ package body Files.File_System is
       Stream_IO.Read (File, Buffer, Last);
       Stream_IO.Close (File);
 
-      if Last >= 4
-        and then Buffer (1) = 16#7F#
-        and then Character'Val (Buffer (2)) = 'E'
-        and then Character'Val (Buffer (3)) = 'L'
-        and then Character'Val (Buffer (4)) = 'F'
-      then
+      if Matches_Signature (Buffer, Last, ELF_Magic) then
          return "executable.format|elf";
-      elsif Last >= 2
-        and then Character'Val (Buffer (1)) = 'M'
-        and then Character'Val (Buffer (2)) = 'Z'
-      then
+      elsif Matches_Signature (Buffer, Last, PE_Magic) then
          return "executable.format|pe";
-      elsif Last >= 2
-        and then Character'Val (Buffer (1)) = '#'
-        and then Character'Val (Buffer (2)) = '!'
-      then
+      elsif Matches_Signature (Buffer, Last, Script_Magic) then
          return "executable.format|script";
       else
          return "executable.format|unknown";
@@ -1261,15 +1274,8 @@ package body Files.File_System is
 
       function Is_PNG return Boolean is
       begin
-         return Last >= 24
-           and then Buffer (1) = 16#89#
-           and then Character'Val (Buffer (2)) = 'P'
-           and then Character'Val (Buffer (3)) = 'N'
-           and then Character'Val (Buffer (4)) = 'G'
-           and then Buffer (5) = 16#0D#
-           and then Buffer (6) = 16#0A#
-           and then Buffer (7) = 16#1A#
-           and then Buffer (8) = 16#0A#;
+         --  Also require the 24 bytes the IHDR width/height are read from below.
+         return Last >= 24 and then Matches_Signature (Buffer, Last, PNG_Magic);
       end Is_PNG;
 
       function JPEG_Token return String is
