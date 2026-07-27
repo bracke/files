@@ -3022,6 +3022,8 @@ package body Files.Application.Windows is
             return "palette";
          when Scenario_Root_Selector =>
             return "root_selector";
+         when Scenario_Sort_Menu =>
+            return "sort_menu";
          when Scenario_Settings =>
             return "settings";
          when Scenario_Large_Font =>
@@ -3153,6 +3155,9 @@ package body Files.Application.Windows is
                Roots.Append (To_Unbounded_String ("/home"));
                Files.Model.Open_Root_Selector (Runtime.Model, Roots);
             end;
+
+         when Scenario_Sort_Menu =>
+            Files.Model.Toggle_Sort_Menu (Runtime.Model);
 
          when Scenario_Settings =>
             Files.Model.Begin_Settings_Edit

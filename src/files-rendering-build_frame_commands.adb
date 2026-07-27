@@ -1,4 +1,5 @@
 with Files.Extension_Labels;
+with Guikit.List_Panel;
 
 separate (Files.Rendering)
    function Build_Frame_Commands
@@ -4425,12 +4426,6 @@ separate (Files.Rendering)
             Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Guikit.Layout.Sort_Menu_Padding);
             Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
-            Text_X    : constant Natural :=
-              Saturating_Add (Row_X, Guikit.Layout.Input_Field_Padding);
-            Text_W    : constant Natural :=
-              (if Row_W > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-               then Row_W - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-               else 0);
 
             type Sort_Field_Array is array (Positive range <>) of Files.Model.Sort_Field;
             Fields : constant Sort_Field_Array :=
@@ -4450,54 +4445,94 @@ separate (Files.Rendering)
                Menu_H,
                Localized ("command.sort.menu"));
 
-            for Row in Fields'Range loop
-               declare
-                  Field     : constant Files.Model.Sort_Field := Fields (Row);
-                  Row_Y     : constant Natural :=
-                    Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
-                  Selected  : constant Boolean := Field = Snapshot.Sort_Field;
-                  Hovered   : constant Boolean :=
-                    Has_Hover and then Contains_Point (Menu_X, Row_Y, Menu_W, Row_H, Hover_X, Hover_Y);
-                  Pressed   : constant Boolean := Is_Pressed (Menu_X, Row_Y, Menu_W, Row_H);
-                  Label     : constant UString :=
-                    To_Unbounded_String
-                      (Sort_Field_Label (Field)
-                       & (if Selected then " " & Direction_Text else ""));
-               begin
-                  Add_Overlay_Rect
-                    (Row_X,
-                     Row_Y,
-                     Row_W,
-                     Row_H,
-                     (if Selected then Selection_Color
-                      elsif Pressed then Pressed_Color
-                      elsif Hovered then Hover_Color
-                      else Overlay_Color));
-                  if Row > Fields'First then
-                     Add_Overlay_Rect (Row_X, Row_Y, Row_W, 1, Border_Color);
-                  end if;
-                  Add_Overlay_Text
-                    (Text_X,
-                     Saturating_Add (Row_Y, Guikit.Layout.Bottom_Bar_Padding),
-                     Text_W,
-                     Line_Height,
-                     Label,
-                     (if Snapshot.Command_Enabled (Sort_Field_Command (Field))
-                      then Text_Color
-                      else Disabled_Text_Color),
-                     Fit => False);
-                  Add_Accessibility_Node
-                    (Role_List_Item,
-                     Menu_X,
-                     Row_Y,
-                     Menu_W,
-                     Row_H,
-                     Label,
-                     Localized (Files.Commands.Description_Key (Sort_Field_Command (Field))),
-                     Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
-                     Selected => Selected);
-               end;
-            end loop;
+            declare
+               --  Row backgrounds and label text are the shared list geometry --
+               --  delegate them to Guikit.List_Panel. The chrome, 1px inter-row
+               --  separators and the richer accessibility stay here. The sort menu
+               --  has no selected accent bar, so each row's accent is set to the
+               --  selection colour, which renders Draw_Palette_Row's accent
+               --  invisible against a selected row's background.
+               List_Rows    : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
+               Discard_A11y : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+               Config : constant Guikit.List_Panel.List_Panel_Configuration :=
+                 (Line_Height         => Line_Height,
+                  Text_Padding        => Guikit.Layout.Input_Field_Padding,
+                  Show_Alternate_Rows => False,
+                  Row_Height          => Row_H,
+                  others              => <>);
+            begin
+               for Row in Fields'Range loop
+                  declare
+                     Field    : constant Files.Model.Sort_Field := Fields (Row);
+                     Row_Y    : constant Natural :=
+                       Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
+                     Selected : constant Boolean := Field = Snapshot.Sort_Field;
+                     Hovered  : constant Boolean :=
+                       Has_Hover and then Contains_Point (Menu_X, Row_Y, Menu_W, Row_H, Hover_X, Hover_Y);
+                     Pressed  : constant Boolean := Is_Pressed (Menu_X, Row_Y, Menu_W, Row_H);
+                     Enabled  : constant Boolean := Snapshot.Command_Enabled (Sort_Field_Command (Field));
+                     Label    : constant UString :=
+                       To_Unbounded_String
+                         (Sort_Field_Label (Field)
+                          & (if Selected then " " & Direction_Text else ""));
+                  begin
+                     List_Rows.Append
+                       (Guikit.List_Panel.List_Panel_Row'
+                          (Label            => Label,
+                           Selected         => Selected,
+                           Enabled          => Enabled,
+                           Label_Color      => (if Enabled then Text_Color else Disabled_Text_Color),
+                           Accent_Color     => Selection_Color,
+                           Has_Background   => not Selected,
+                           Background_Color =>
+                             (if Pressed then Pressed_Color
+                              elsif Hovered then Hover_Color
+                              else Overlay_Color),
+                           others           => <>));
+                  end;
+               end loop;
+
+               Guikit.List_Panel.Draw_Frame
+                 (Rectangles    => Result.Overlay_Rectangles,
+                  Text          => Result.Overlay_Text,
+                  Accessibility => Discard_A11y,
+                  Clip_Width    => Layout.Width,
+                  Clip_Height   => Layout.Height,
+                  Region_X      => Row_X,
+                  Region_Y      => Rows_Y,
+                  Region_Width  => Row_W,
+                  Region_Height => Rows_H,
+                  Config        => Config,
+                  Rows          => List_Rows,
+                  Draw_Chrome   => False);
+
+               for Row in Fields'Range loop
+                  declare
+                     Field : constant Files.Model.Sort_Field := Fields (Row);
+                     Row_Y : constant Natural :=
+                       Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
+                     Selected : constant Boolean := Field = Snapshot.Sort_Field;
+                     Label : constant UString :=
+                       To_Unbounded_String
+                         (Sort_Field_Label (Field)
+                          & (if Selected then " " & Direction_Text else ""));
+                  begin
+                     if Row > Fields'First then
+                        Add_Overlay_Rect (Row_X, Row_Y, Row_W, 1, Border_Color);
+                     end if;
+                     Add_Accessibility_Node
+                       (Role_List_Item,
+                        Menu_X,
+                        Row_Y,
+                        Menu_W,
+                        Row_H,
+                        Label,
+                        Localized (Files.Commands.Description_Key (Sort_Field_Command (Field))),
+                        Enabled  => Snapshot.Command_Enabled (Sort_Field_Command (Field)),
+                        Selected => Selected);
+                  end;
+               end loop;
+            end;
          end;
       end if;
 
