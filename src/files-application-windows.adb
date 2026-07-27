@@ -327,12 +327,14 @@ package body Files.Application.Windows is
    Process_Text_Font_Path  : Unbounded_String;
    File_Watch_Poll_Interval : constant Duration := 1.0;
    Type_Ahead_Timeout : constant Duration := 1.0;
+   --  The event loop always waits this long: input, window refresh, and posted
+   --  events wake it immediately, and this bounds how long a background file
+   --  change (native watch / interval poll) or an animation frame waits. Present
+   --  is skipped for unchanged frames, so a short wait keeps input responsive
+   --  without the idle cost of actually re-rendering. (An earlier adaptive
+   --  long-idle wait cut idle CPU only ~2% -> ~1% but let input lag up to a
+   --  second, so it was dropped.)
    Event_Wait_Timeout : constant Duration := 0.016;
-   --  When nothing is animating the event loop sleeps this long instead of
-   --  spinning at Event_Wait_Timeout (~60 fps). Kept equal to the file-watch
-   --  poll interval so a background file change is still noticed within a second
-   --  while idle; input, window refresh, and posted events wake it immediately.
-   Idle_Wait_Timeout : constant Duration := File_Watch_Poll_Interval;
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -3558,46 +3560,6 @@ package body Files.Application.Windows is
       end if;
    end Gate_Outcome;
 
-   --  True while a key is physically held: auto-repeat is timer-driven (the loop
-   --  re-fires the key from Ada.Calendar rather than from GLFW repeat events), so
-   --  the loop must keep ticking to produce repeats even though no new event
-   --  arrives while the key stays down.
-   function Any_Key_Held (Runtime : Runtime_Window) return Boolean is
-   begin
-      for Key in Tracked_Key loop
-         if Runtime.Pressed_Keys (Key) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Any_Key_Held;
-
-   --  True when some window still needs the loop to advance on a timer rather
-   --  than only on events: a running folder-size walk, an in-flight paste, a
-   --  marquee or item drag, a pending type-ahead-prefix timeout, or a held key
-   --  for auto-repeat. When none of these hold, the loop may sleep until the next
-   --  real event instead of redrawing ~60 times a second.
-   function Needs_Active_Tick
-     (Runtime_Windows : Runtime_Window_Vectors.Vector) return Boolean is
-   begin
-      if Files.Folder_Size.Is_Active then
-         return True;
-      end if;
-
-      for Runtime of Runtime_Windows loop
-         if Files.Model.Paste_Execution_Is_Active (Runtime.Model)
-           or else Runtime.Marquee_Active
-           or else Runtime.Drag_Source_Index /= 0
-           or else Files.Model.Type_Ahead_Buffer (Runtime.Model) /= ""
-           or else Any_Key_Held (Runtime)
-         then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Needs_Active_Tick;
-
    procedure Run
      (Startup : Files.Application.Startup_Result)
    is
@@ -3643,10 +3605,7 @@ package body Files.Application.Windows is
 
       while Any_Window_Open (Runtime_Windows) loop
          begin
-            Guikit.Vulkan.Wait_For_Events
-              (if Needs_Active_Tick (Runtime_Windows)
-               then Event_Wait_Timeout
-               else Idle_Wait_Timeout);
+            Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Text_Input (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
