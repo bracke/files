@@ -274,6 +274,14 @@ package body Files.Application.Windows is
       --  so the next render reuses it instead of calling Build_Snapshot. Cleared
       --  by Invalidate_Snapshot at every point the app mutates the model.
       Snapshot_Fresh       : Boolean := False;
+      --  Present-gate state: whether we have presented at least once, and the
+      --  overlay open-states of the last presented frame. A frame is re-presented
+      --  only when its commands changed, an overlay is (or just was) open, or the
+      --  text is not yet settled -- otherwise the identical frame is left on
+      --  screen and the whole submit/present path is skipped.
+      Presented_Once             : Boolean := False;
+      Last_Present_Palette_Open  : Boolean := False;
+      Last_Present_Settings_Open : Boolean := False;
       Cached_Snapshot      : Files.Rendering.View_Snapshot;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       Cached_Frame_W       : Natural := 0;
@@ -320,6 +328,11 @@ package body Files.Application.Windows is
    File_Watch_Poll_Interval : constant Duration := 1.0;
    Type_Ahead_Timeout : constant Duration := 1.0;
    Event_Wait_Timeout : constant Duration := 0.016;
+   --  When nothing is animating the event loop sleeps this long instead of
+   --  spinning at Event_Wait_Timeout (~60 fps). Kept equal to the file-watch
+   --  poll interval so a background file change is still noticed within a second
+   --  while idle; input, window refresh, and posted events wake it immediately.
+   Idle_Wait_Timeout : constant Duration := File_Watch_Poll_Interval;
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -1830,6 +1843,9 @@ package body Files.Application.Windows is
             Fallback_Frames => 0,
             Frame_Cache_Valid    => False,
             Snapshot_Fresh       => False,
+            Presented_Once             => False,
+            Last_Present_Palette_Open  => False,
+            Last_Present_Settings_Open => False,
             Cached_Snapshot      => <>,
             Cached_Frame         => <>,
             Cached_Frame_W       => 0,
@@ -2202,6 +2218,10 @@ package body Files.Application.Windows is
       Cursor_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Cursor_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Mouse_Down : Boolean := False;
+      --  Set when the cached frame is (re)built this render; drives the decision
+      --  to re-present, so an idle frame whose commands are unchanged skips the
+      --  glyph/vertex/submit/present work entirely.
+      Frame_Rebuilt : Boolean := False;
    begin
       if Runtime.Handle = null
         or else not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
@@ -2308,6 +2328,7 @@ package body Files.Application.Windows is
            and then Runtime.Cached_Marquee_H = Runtime.Marquee_Rect_H;
       begin
          if not Inputs_Match or else Snapshot /= Runtime.Cached_Snapshot then
+            Frame_Rebuilt := True;
             Runtime.Cached_Snapshot := Snapshot;
             Runtime.Cached_Frame :=
               Files.Rendering.Build_Frame_Commands
@@ -2352,6 +2373,23 @@ package body Files.Application.Windows is
          --  Invalidate_Snapshot.
          Runtime.Snapshot_Fresh := True;
       end;
+
+      --  Present gate: when the frame's commands are unchanged, no overlay is (or
+      --  was just) open, and the text is settled, the identical frame is already
+      --  on screen -- skip the whole submit/present path. This is the idle saving:
+      --  the compositor wakes the loop every frame, but an unchanging view no
+      --  longer re-packs vertices or re-presents.
+      if Runtime.Presented_Once
+        and then not Frame_Rebuilt
+        and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
+        and then not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+        and then not Runtime.Last_Present_Palette_Open
+        and then not Runtime.Last_Present_Settings_Open
+        and then Runtime.Text_Ready
+        and then not Guikit.Vulkan.Readback_Enabled (Runtime.Vulkan)
+      then
+         return;
+      end if;
 
       declare
          --  A working copy of the cached frame so the palette overlay (whose
@@ -2524,6 +2562,14 @@ package body Files.Application.Windows is
                Runtime.Last_Missing_Glyph_Count := 0;
             end if;
          end;
+
+         --  Remember what we just put on screen so the next render's present gate
+         --  can tell whether an overlay closed (a change that must be presented).
+         Runtime.Presented_Once := True;
+         Runtime.Last_Present_Palette_Open :=
+           Files.Model.Command_Palette_Is_Open (Runtime.Model);
+         Runtime.Last_Present_Settings_Open :=
+           Files.Model.Settings_Pane_Is_Open (Runtime.Model);
       end;
    end Render_Window;
 
@@ -3512,6 +3558,46 @@ package body Files.Application.Windows is
       end if;
    end Gate_Outcome;
 
+   --  True while a key is physically held: auto-repeat is timer-driven (the loop
+   --  re-fires the key from Ada.Calendar rather than from GLFW repeat events), so
+   --  the loop must keep ticking to produce repeats even though no new event
+   --  arrives while the key stays down.
+   function Any_Key_Held (Runtime : Runtime_Window) return Boolean is
+   begin
+      for Key in Tracked_Key loop
+         if Runtime.Pressed_Keys (Key) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Any_Key_Held;
+
+   --  True when some window still needs the loop to advance on a timer rather
+   --  than only on events: a running folder-size walk, an in-flight paste, a
+   --  marquee or item drag, a pending type-ahead-prefix timeout, or a held key
+   --  for auto-repeat. When none of these hold, the loop may sleep until the next
+   --  real event instead of redrawing ~60 times a second.
+   function Needs_Active_Tick
+     (Runtime_Windows : Runtime_Window_Vectors.Vector) return Boolean is
+   begin
+      if Files.Folder_Size.Is_Active then
+         return True;
+      end if;
+
+      for Runtime of Runtime_Windows loop
+         if Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+           or else Runtime.Marquee_Active
+           or else Runtime.Drag_Source_Index /= 0
+           or else Files.Model.Type_Ahead_Buffer (Runtime.Model) /= ""
+           or else Any_Key_Held (Runtime)
+         then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Needs_Active_Tick;
+
    procedure Run
      (Startup : Files.Application.Startup_Result)
    is
@@ -3557,7 +3643,10 @@ package body Files.Application.Windows is
 
       while Any_Window_Open (Runtime_Windows) loop
          begin
-            Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
+            Guikit.Vulkan.Wait_For_Events
+              (if Needs_Active_Tick (Runtime_Windows)
+               then Event_Wait_Timeout
+               else Idle_Wait_Timeout);
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Text_Input (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
