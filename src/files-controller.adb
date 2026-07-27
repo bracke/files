@@ -303,31 +303,6 @@ package body Files.Controller is
       return Files.UTF8.Next_Boundary (Text, Cursor);
    end Next_Text_Boundary;
 
-   function Remove_Text_Range
-     (Text  : String;
-      First : Natural;
-      Last  : Natural)
-      return String
-   is
-      Start_Index : constant Natural := Natural'Min (First, Text'Length);
-      End_Index   : constant Natural := Natural'Min (Last, Text'Length);
-      Result      : Unbounded_String;
-   begin
-      if Text = "" or else Start_Index >= End_Index then
-         return Text;
-      end if;
-
-      if Start_Index > 0 then
-         Append (Result, Text (Text'First .. Text'First + Start_Index - 1));
-      end if;
-
-      if End_Index < Text'Length then
-         Append (Result, Text (Text'First + End_Index .. Text'Last));
-      end if;
-
-      return To_String (Result);
-   end Remove_Text_Range;
-
    type Delete_Direction is (Delete_Backward, Delete_Forward);
 
    --  Shared body for the four Delete_Focused_Text_* variants, which are identical
@@ -414,13 +389,13 @@ package body Files.Controller is
             Boundary :=
               (if By_Word then Previous_Word_Boundary (Text, Cursor)
                else Previous_Text_Boundary (Text, Cursor));
-            Replace_Focused_Text (Model, Remove_Text_Range (Text, Boundary, Cursor));
+            Replace_Focused_Text (Model, Files.UTF8.Remove_Range (Text, Boundary, Cursor));
             Files.Model.Set_Text_Cursor_Position (Model, Boundary);
          when Delete_Forward =>
             Boundary :=
               (if By_Word then Next_Word_Boundary (Text, Cursor)
                else Next_Text_Boundary (Text, Cursor));
-            Replace_Focused_Text (Model, Remove_Text_Range (Text, Cursor, Boundary));
+            Replace_Focused_Text (Model, Files.UTF8.Remove_Range (Text, Cursor, Boundary));
             Files.Model.Set_Text_Cursor_Position (Model, Cursor);
       end case;
       return Make_Result (Controller_Text_Updated);

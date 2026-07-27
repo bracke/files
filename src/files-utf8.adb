@@ -676,4 +676,26 @@ package body Files.UTF8 is
       return Position;
    end Next_Word_Boundary;
 
+   function Remove_Range
+     (Content : String;
+      First   : Natural;
+      Last    : Natural)
+      return String
+   is
+      Start_Index : constant Natural := Natural'Min (First, Content'Length);
+      End_Index   : constant Natural := Natural'Min (Last, Content'Length);
+   begin
+      if Content = "" or else Start_Index >= End_Index then
+         return Content;
+      end if;
+
+      return
+        (if Start_Index > 0
+         then Content (Content'First .. Content'First + Start_Index - 1)
+         else "")
+        & (if End_Index < Content'Length
+           then Content (Content'First + End_Index .. Content'Last)
+           else "");
+   end Remove_Range;
+
 end Files.UTF8;

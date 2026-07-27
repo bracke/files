@@ -186,4 +186,20 @@ package Files.UTF8 is
       Cursor  : Natural)
       return Natural;
 
+   --  Return Content with the byte range [First, Last) removed. Shared by the
+   --  model's and controller's text-field editing (delete, delete-word).
+   --
+   --  First and Last are clamped to the string length; an empty string or a
+   --  non-positive-width range returns Content unchanged.
+   --
+   --  @param Content UTF-8 encoded byte string.
+   --  @param First Zero-based byte offset of the first byte to remove.
+   --  @param Last Zero-based byte offset just past the last byte to remove.
+   --  @return Content with the [First, Last) byte range deleted.
+   function Remove_Range
+     (Content : String;
+      First   : Natural;
+      Last    : Natural)
+      return String;
+
 end Files.UTF8;

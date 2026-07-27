@@ -76,30 +76,6 @@ package body Files.Model is
    end Text_Boundary_At_Or_Before;
 
    --  Remove the byte range [First, Last) from Text (offsets are clamped).
-   function Remove_Text_Segment
-     (Text        : String;
-      First, Last : Natural)
-      return String
-   is
-      Start_Index : constant Natural := Natural'Min (First, Text'Length);
-      End_Index   : constant Natural := Natural'Min (Last, Text'Length);
-      Result      : Unbounded_String;
-   begin
-      if Text = "" or else Start_Index >= End_Index then
-         return Text;
-      end if;
-
-      if Start_Index > 0 then
-         Append (Result, Text (Text'First .. Text'First + Start_Index - 1));
-      end if;
-
-      if End_Index < Text'Length then
-         Append (Result, Text (Text'First + End_Index .. Text'Last));
-      end if;
-
-      return To_String (Result);
-   end Remove_Text_Segment;
-
    --  Insert Text into Old at the byte offset Cursor.
    function Insert_Text_At
      (Old    : String;
@@ -3061,7 +3037,7 @@ package body Files.Model is
                declare
                   Previous : constant Natural := Files.UTF8.Previous_Boundary (Text, Field.Cursor);
                begin
-                  Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Previous, Field.Cursor));
+                  Field.Value := To_Unbounded_String (Files.UTF8.Remove_Range (Text, Previous, Field.Cursor));
                   Field.Cursor := Previous;
                   Model.Rename_Fields.Replace_Element (Index, Field);
                   Sync_Temporary_From_Field (Model, Field);
@@ -3089,7 +3065,7 @@ package body Files.Model is
                declare
                   Next : constant Natural := Files.UTF8.Next_Boundary (Text, Field.Cursor);
                begin
-                  Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Field.Cursor, Next));
+                  Field.Value := To_Unbounded_String (Files.UTF8.Remove_Range (Text, Field.Cursor, Next));
                   Model.Rename_Fields.Replace_Element (Index, Field);
                   Sync_Temporary_From_Field (Model, Field);
                   Changed := True;
@@ -3114,7 +3090,7 @@ package body Files.Model is
             Boundary : constant Natural := Files.UTF8.Previous_Word_Boundary (Text, Field.Cursor);
          begin
             if Field.Cursor > 0 and then Boundary < Field.Cursor then
-               Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Boundary, Field.Cursor));
+               Field.Value := To_Unbounded_String (Files.UTF8.Remove_Range (Text, Boundary, Field.Cursor));
                Field.Cursor := Boundary;
                Model.Rename_Fields.Replace_Element (Index, Field);
                Sync_Temporary_From_Field (Model, Field);
@@ -3139,7 +3115,7 @@ package body Files.Model is
             Boundary : constant Natural := Files.UTF8.Next_Word_Boundary (Text, Field.Cursor);
          begin
             if Field.Cursor < Text'Length and then Boundary > Field.Cursor then
-               Field.Value := To_Unbounded_String (Remove_Text_Segment (Text, Field.Cursor, Boundary));
+               Field.Value := To_Unbounded_String (Files.UTF8.Remove_Range (Text, Field.Cursor, Boundary));
                Model.Rename_Fields.Replace_Element (Index, Field);
                Sync_Temporary_From_Field (Model, Field);
                Changed := True;
