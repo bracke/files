@@ -57,8 +57,6 @@ separate (Files.Rendering.Build_Frame_Commands)
                  (Line_Height         => Line_Height,
                   Text_Padding        => Root_Selector_Padding,
                   Show_Alternate_Rows => False,
-                  Row_Height          => Row_H,
-                  Leading_Icon_Width  => Saturating_Add (Glyph_Size, Root_Selector_Padding),
                   others              => <>);
             begin
                --  Row backgrounds, the selected accent bar, and the label text are
@@ -97,7 +95,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Region_Height => Saturating_Multiply (Natural (Root_Rows.Length), Row_H),
                   Config        => Config,
                   Rows          => List_Rows,
-                  Draw_Chrome   => False);
+                  Draw_Chrome   => False,
+                  Row_Height    => Row_H,
+                  Leading_Icon_Width => Saturating_Add (Glyph_Size, Root_Selector_Padding));
 
                for Index in 1 .. Natural (Root_Rows.Length) loop
                   declare

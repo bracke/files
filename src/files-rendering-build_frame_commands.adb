@@ -4458,7 +4458,6 @@ separate (Files.Rendering)
                  (Line_Height         => Line_Height,
                   Text_Padding        => Guikit.Layout.Input_Field_Padding,
                   Show_Alternate_Rows => False,
-                  Row_Height          => Row_H,
                   others              => <>);
             begin
                for Row in Fields'Range loop
@@ -4504,7 +4503,8 @@ separate (Files.Rendering)
                   Region_Height => Rows_H,
                   Config        => Config,
                   Rows          => List_Rows,
-                  Draw_Chrome   => False);
+                  Draw_Chrome   => False,
+                  Row_Height    => Row_H);
 
                for Row in Fields'Range loop
                   declare
