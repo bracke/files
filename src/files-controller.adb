@@ -328,56 +328,29 @@ package body Files.Controller is
       return To_String (Result);
    end Remove_Text_Range;
 
+   type Delete_Direction is (Delete_Backward, Delete_Forward);
+
+   --  Shared body for the four Delete_Focused_Text_* variants, which are identical
+   --  bar the direction and whether they delete to a word or a single character
+   --  boundary. Defined below, after the word-boundary helpers it dispatches to.
+   function Delete_Focused_Text
+     (Model     : in out Files.Model.Window_Model;
+      Direction : Delete_Direction;
+      By_Word   : Boolean)
+      return Controller_Result;
+
    function Delete_Focused_Text_Backward
      (Model : in out Files.Model.Window_Model)
-      return Controller_Result
-   is
-      Text : constant String := Focused_Text (Model);
-      Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-      Previous : Natural;
+      return Controller_Result is
    begin
-      if Files.Model.Focus (Model) = Files.Types.Focus_None then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
-         return
-           Make_Result
-             (if Files.Model.Rename_Delete_Backward (Model)
-              then Controller_Text_Updated
-              else Controller_Ignored);
-      elsif Text'Length = 0 or else Cursor = 0 then
-         return Make_Result (Controller_Ignored);
-      end if;
-
-      Previous := Previous_Text_Boundary (Text, Cursor);
-      Replace_Focused_Text (Model, Remove_Text_Range (Text, Previous, Cursor));
-      Files.Model.Set_Text_Cursor_Position (Model, Previous);
-      return Make_Result (Controller_Text_Updated);
+      return Delete_Focused_Text (Model, Delete_Backward, By_Word => False);
    end Delete_Focused_Text_Backward;
 
    function Delete_Focused_Text_Forward
      (Model : in out Files.Model.Window_Model)
-      return Controller_Result
-   is
-      Text   : constant String := Focused_Text (Model);
-      Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-      Next   : Natural;
+      return Controller_Result is
    begin
-      if Files.Model.Focus (Model) = Files.Types.Focus_None then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
-         return
-           Make_Result
-             (if Files.Model.Rename_Delete_Forward (Model)
-              then Controller_Text_Updated
-              else Controller_Ignored);
-      elsif Text'Length = 0 or else Cursor >= Text'Length then
-         return Make_Result (Controller_Ignored);
-      end if;
-
-      Next := Next_Text_Boundary (Text, Cursor);
-      Replace_Focused_Text (Model, Remove_Text_Range (Text, Cursor, Next));
-      Files.Model.Set_Text_Cursor_Position (Model, Cursor);
-      return Make_Result (Controller_Text_Updated);
+      return Delete_Focused_Text (Model, Delete_Forward, By_Word => False);
    end Delete_Focused_Text_Forward;
 
    function Previous_Word_Boundary
@@ -396,54 +369,75 @@ package body Files.Controller is
       return Files.UTF8.Next_Word_Boundary (Text, Cursor);
    end Next_Word_Boundary;
 
-   function Delete_Focused_Text_Word_Backward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result
-   is
-      Text   : constant String := Focused_Text (Model);
-      Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
-      Boundary : constant Natural := Previous_Word_Boundary (Text, Cursor);
-   begin
-      if Files.Model.Focus (Model) = Files.Types.Focus_None then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
-         return
-           Make_Result
-             (if Files.Model.Rename_Delete_Word_Backward (Model)
-              then Controller_Text_Updated
-              else Controller_Ignored);
-      elsif Cursor = 0 then
-         return Make_Result (Controller_Ignored);
-      end if;
-
-      Replace_Focused_Text (Model, Remove_Text_Range (Text, Boundary, Cursor));
-      Files.Model.Set_Text_Cursor_Position (Model, Boundary);
-      return Make_Result (Controller_Text_Updated);
-   end Delete_Focused_Text_Word_Backward;
-
-   function Delete_Focused_Text_Word_Forward
-     (Model : in out Files.Model.Window_Model)
+   function Delete_Focused_Text
+     (Model     : in out Files.Model.Window_Model;
+      Direction : Delete_Direction;
+      By_Word   : Boolean)
       return Controller_Result
    is
       Text     : constant String := Focused_Text (Model);
       Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
-      Boundary : constant Natural := Next_Word_Boundary (Text, Cursor);
+      Boundary : Natural;
    begin
+      --  No focused field: the grid owns the key, so deletion is a no-op here.
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
-         return
-           Make_Result
-             (if Files.Model.Rename_Delete_Word_Forward (Model)
-              then Controller_Text_Updated
-              else Controller_Ignored);
-      elsif Cursor >= Text'Length then
          return Make_Result (Controller_Ignored);
       end if;
 
-      Replace_Focused_Text (Model, Remove_Text_Range (Text, Cursor, Boundary));
-      Files.Model.Set_Text_Cursor_Position (Model, Cursor);
+      --  Rename edits broadcast to every synchronized caret via the model, which
+      --  reports whether anything changed. Exactly one variant is evaluated.
+      if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+         declare
+            Deleted : constant Boolean :=
+              (case Direction is
+                  when Delete_Backward =>
+                    (if By_Word then Files.Model.Rename_Delete_Word_Backward (Model)
+                     else Files.Model.Rename_Delete_Backward (Model)),
+                  when Delete_Forward =>
+                    (if By_Word then Files.Model.Rename_Delete_Word_Forward (Model)
+                     else Files.Model.Rename_Delete_Forward (Model)));
+         begin
+            return Make_Result
+              (if Deleted then Controller_Text_Updated else Controller_Ignored);
+         end;
+      end if;
+
+      --  Nothing to delete past the near edge of the field.
+      if (Direction = Delete_Backward and then Cursor = 0)
+        or else (Direction = Delete_Forward and then Cursor >= Text'Length)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      case Direction is
+         when Delete_Backward =>
+            Boundary :=
+              (if By_Word then Previous_Word_Boundary (Text, Cursor)
+               else Previous_Text_Boundary (Text, Cursor));
+            Replace_Focused_Text (Model, Remove_Text_Range (Text, Boundary, Cursor));
+            Files.Model.Set_Text_Cursor_Position (Model, Boundary);
+         when Delete_Forward =>
+            Boundary :=
+              (if By_Word then Next_Word_Boundary (Text, Cursor)
+               else Next_Text_Boundary (Text, Cursor));
+            Replace_Focused_Text (Model, Remove_Text_Range (Text, Cursor, Boundary));
+            Files.Model.Set_Text_Cursor_Position (Model, Cursor);
+      end case;
       return Make_Result (Controller_Text_Updated);
+   end Delete_Focused_Text;
+
+   function Delete_Focused_Text_Word_Backward
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result is
+   begin
+      return Delete_Focused_Text (Model, Delete_Backward, By_Word => True);
+   end Delete_Focused_Text_Word_Backward;
+
+   function Delete_Focused_Text_Word_Forward
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result is
+   begin
+      return Delete_Focused_Text (Model, Delete_Forward, By_Word => True);
    end Delete_Focused_Text_Word_Forward;
 
    --  Forward declaration: the reveal helper is defined alongside the other
