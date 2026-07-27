@@ -62,6 +62,7 @@ package Files.Application.Windows is
       Scenario_Palette,
       Scenario_Root_Selector,
       Scenario_Sort_Menu,
+      Scenario_Tree_Panel,
       Scenario_Settings,
       Scenario_Large_Font,
       Scenario_Light_Theme,

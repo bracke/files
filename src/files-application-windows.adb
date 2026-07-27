@@ -24,6 +24,7 @@ with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.Folder_Size;
+with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Operations;
 with Files.Platform.Watch;
@@ -3024,6 +3025,8 @@ package body Files.Application.Windows is
             return "root_selector";
          when Scenario_Sort_Menu =>
             return "sort_menu";
+         when Scenario_Tree_Panel =>
+            return "tree_panel";
          when Scenario_Settings =>
             return "settings";
          when Scenario_Large_Font =>
@@ -3158,6 +3161,22 @@ package body Files.Application.Windows is
 
          when Scenario_Sort_Menu =>
             Files.Model.Toggle_Sort_Menu (Runtime.Model);
+
+         when Scenario_Tree_Panel =>
+            declare
+               Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+            begin
+               Seeds.Append
+                 (Files.Folder_Tree.Entry_Seed'
+                    (Path => To_Unbounded_String ("/"),
+                     Name => To_Unbounded_String ("Root")));
+               Seeds.Append
+                 (Files.Folder_Tree.Entry_Seed'
+                    (Path => To_Unbounded_String ("/home"),
+                     Name => To_Unbounded_String ("Home")));
+               Files.Model.Seed_Tree (Runtime.Model, Seeds);
+               Files.Model.Open_Tree_Panel (Runtime.Model);
+            end;
 
          when Scenario_Settings =>
             Files.Model.Begin_Settings_Edit

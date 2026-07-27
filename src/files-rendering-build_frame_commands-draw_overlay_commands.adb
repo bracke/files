@@ -1,4 +1,5 @@
 with Guikit.List_Panel;
+with Guikit.Menu_Tree;
 
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Overlay_Commands is
@@ -152,160 +153,128 @@ separate (Files.Rendering.Build_Frame_Commands)
       end if;
 
       if Snapshot.Tree_Panel_Open then
-         if Tree_Panel.Width > 0 and then Tree_Panel.Height > 0 then
-            Add_Overlay_Rect
-              (Saturating_Add (Tree_Panel.X, Tree_Panel.Width),
-               Saturating_Add (Tree_Panel.Y, 3),
-               3,
-               Tree_Panel.Height,
-               Pane_Color);
-            Add_Overlay_Rect
-              (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay_Color);
-            Add_Overlay_Border
-              (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Border_Color);
-            --  Title band.
-            Add_Overlay_Rect
-              (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Row_Height, Pane_Color);
-            Add_Overlay_Rect
-              (Tree_Panel.X,
-               Saturating_Add (Tree_Panel.Y, Tree_Panel.Row_Height),
-               Tree_Panel.Width,
-               1,
-               Border_Color);
-            Add_Overlay_Text
-              (Saturating_Add (Tree_Panel.X, Root_Selector_Padding),
-               Saturating_Add
-                 (Tree_Panel.Y,
-                  (if Tree_Panel.Row_Height > Line_Height
-                   then (Tree_Panel.Row_Height - Line_Height) / 2
-                   else 0)),
-               (if Tree_Panel.Width > Saturating_Multiply (Root_Selector_Padding, 2)
-                then Tree_Panel.Width - Saturating_Multiply (Root_Selector_Padding, 2)
-                else 0),
-               Line_Height,
-               (if Snapshot.Tree_Pick_Active
-                then (if Snapshot.Tree_Pick_Moving
-                      then Localized ("tree.pick.move")
-                      else Localized ("tree.pick.copy"))
-                else Localized ("tree.panel.title")),
-               Fit => True);
-         end if;
-
-         Add_Accessibility_Node
-           (Role_List,
-            Tree_Panel.X,
-            Tree_Panel.Y,
-            Tree_Panel.Width,
-            Tree_Panel.Height,
-            Localized ("accessibility.tree_panel"));
-
-         for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
-            declare
-               Row      : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
-               Data     : constant Files.Folder_Tree.Visible_Row :=
-                 Snapshot.Tree_Rows.Element (Positive (I));
-               Label_X  : constant Natural :=
-                 Saturating_Add (Row.Triangle_X, Line_Height);
-               Label_W  : constant Natural :=
-                 (if Saturating_Add (Row.X, Row.Width)
-                     > Saturating_Add (Label_X, Root_Selector_Padding)
-                  then Saturating_Add (Row.X, Row.Width)
-                       - Saturating_Add (Label_X, Root_Selector_Padding)
-                  else 0);
-               Text_Y   : constant Natural :=
-                 (if Row.Height > Line_Height
-                  then Saturating_Add (Row.Y, (Row.Height - Line_Height) / 2)
-                  else Row.Y);
-               Hovered  : constant Boolean :=
-                 Has_Hover and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y);
-               Pressed  : constant Boolean := Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height);
-            begin
-               Add_Overlay_Rect
-                 (Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  (if Row.Selected then Selection_Color
-                   elsif Pressed then Pressed_Color
-                   elsif Hovered then Hover_Color
-                   else Overlay_Color));
-               if Row.Has_Children and then Row.Triangle_W > 0 then
-                  Add_Overlay_Text
-                    (Row.Triangle_X,
-                     Text_Y,
-                     Row.Triangle_W,
-                     Line_Height,
-                     To_Unbounded_String
-                       (if Row.Expanded
-                        then Tree_Expander_Expanded_Text
-                        else Tree_Expander_Collapsed_Text),
-                     Color => Muted_Text_Color);
-               end if;
-               Add_Overlay_Text
-                 (Label_X,
-                  Text_Y,
-                  Label_W,
-                  Line_Height,
-                  Data.Name,
-                  Color => Text_Color,
-                  Fit   => True);
-               Add_Accessibility_Node
-                 (Role_List_Item,
-                  Row.X,
-                  Row.Y,
-                  Row.Width,
-                  Row.Height,
-                  Data.Name,
-                  Data.Path,
-                  Enabled  => True,
-                  Selected => Row.Selected,
-                  Focused  => Row.Selected);
-            end;
-         end loop;
-
-         --  Destination picker button bar (Choose / Cancel).
-         if Snapshot.Tree_Pick_Active then
-            declare
-               Buttons : constant Tree_Pick_Button_Layout :=
-                 Tree_Pick_Buttons (Tree_Panel, Line_Height);
-
-               procedure Draw_Pick_Button (Button_X : Natural; Label_Key : String) is
-                  Hovered : constant Boolean :=
-                    Has_Hover
-                    and then Contains_Point
-                               (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
-                                Hover_X, Hover_Y);
-                  Pressed : constant Boolean :=
-                    Is_Pressed (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height);
+         declare
+            Title : constant UString :=
+              (if Snapshot.Tree_Pick_Active
+               then (if Snapshot.Tree_Pick_Moving
+                     then Localized ("tree.pick.move")
+                     else Localized ("tree.pick.copy"))
+               else Localized ("tree.panel.title"));
+            Config : constant Guikit.Menu_Tree.Menu_Tree_Configuration :=
+              (Line_Height     => Line_Height,
+               Text_Padding    => Root_Selector_Padding,
+               Title_Height    => Tree_Panel.Row_Height,
+               Expanded_Glyph  => To_Unbounded_String (Tree_Expander_Expanded_Text),
+               Collapsed_Glyph => To_Unbounded_String (Tree_Expander_Collapsed_Text));
+            Rows    : Guikit.Menu_Tree.Menu_Tree_Row_Vectors.Vector;
+            Buttons : Guikit.Menu_Tree.Menu_Tree_Button_Vectors.Vector;
+            Pick    : constant Tree_Pick_Button_Layout :=
+              (if Snapshot.Tree_Pick_Active
+               then Tree_Pick_Buttons (Tree_Panel, Line_Height)
+               else (others => <>));
+         begin
+            for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
+               declare
+                  Row  : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
+                  Data : constant Files.Folder_Tree.Visible_Row :=
+                    Snapshot.Tree_Rows.Element (Positive (I));
                begin
-                  Guikit.Widgets.Draw_Button
-                    (Rectangles      => Result.Overlay_Rectangles,
-                     Text            => Result.Overlay_Text,
-                     Clip_Width      => Layout.Width,
-                     Clip_Height     => Layout.Height,
-                     X               => Button_X,
-                     Y               => Buttons.Y,
-                     Width           => Buttons.Button_Width,
-                     Height          => Buttons.Height,
-                     Fill_Color      =>
-                       (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Pane_Color),
-                     Border_Color    => Border_Color,
-                     Padding         => Guikit.Layout.Input_Field_Padding,
-                     Label_Text      => Localized (Label_Key),
-                     Label_Truncated => False,
-                     Label_Height    => Line_Height,
-                     Label_Color     => Text_Color);
+                  Rows.Append
+                    (Guikit.Menu_Tree.Menu_Tree_Row'
+                       (Label          => Data.Name,
+                        X              => Row.X,
+                        Y              => Row.Y,
+                        Width          => Row.Width,
+                        Height         => Row.Height,
+                        Triangle_X     => Row.Triangle_X,
+                        Triangle_Width => Row.Triangle_W,
+                        Has_Children   => Row.Has_Children,
+                        Expanded       => Row.Expanded,
+                        Selected       => Row.Selected,
+                        Hovered        =>
+                          Has_Hover
+                          and then Contains_Point (Row.X, Row.Y, Row.Width, Row.Height, Hover_X, Hover_Y),
+                        Pressed        => Is_Pressed (Row.X, Row.Y, Row.Width, Row.Height)));
+               end;
+            end loop;
+
+            if Snapshot.Tree_Pick_Active and then Pick.Visible then
+               Buttons.Append
+                 (Guikit.Menu_Tree.Menu_Tree_Button'
+                    (Label   => Localized ("tree.pick.choose"),
+                     X       => Pick.Choose_X,
+                     Y       => Pick.Y,
+                     Width   => Pick.Button_Width,
+                     Height  => Pick.Height,
+                     Hovered =>
+                       Has_Hover
+                       and then Contains_Point
+                                  (Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height, Hover_X, Hover_Y),
+                     Pressed => Is_Pressed (Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height)));
+               Buttons.Append
+                 (Guikit.Menu_Tree.Menu_Tree_Button'
+                    (Label   => Localized ("tree.pick.cancel"),
+                     X       => Pick.Cancel_X,
+                     Y       => Pick.Y,
+                     Width   => Pick.Button_Width,
+                     Height  => Pick.Height,
+                     Hovered =>
+                       Has_Hover
+                       and then Contains_Point
+                                  (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height, Hover_X, Hover_Y),
+                     Pressed => Is_Pressed (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height)));
+            end if;
+
+            Guikit.Menu_Tree.Draw_Frame
+              (Rectangles    => Result.Overlay_Rectangles,
+               Text          => Result.Overlay_Text,
+               Clip_Width    => Layout.Width,
+               Clip_Height   => Layout.Height,
+               Region_X      => Tree_Panel.X,
+               Region_Y      => Tree_Panel.Y,
+               Region_Width  => Tree_Panel.Width,
+               Region_Height => Tree_Panel.Height,
+               Title         => Title,
+               Config        => Config,
+               Rows          => Rows,
+               Buttons       => Buttons);
+
+            --  Accessibility stays caller-side (it carries the node path + focus).
+            Add_Accessibility_Node
+              (Role_List,
+               Tree_Panel.X,
+               Tree_Panel.Y,
+               Tree_Panel.Width,
+               Tree_Panel.Height,
+               Localized ("accessibility.tree_panel"));
+            for I in 1 .. Natural (Tree_Rows_Layout.Length) loop
+               declare
+                  Row  : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
+                  Data : constant Files.Folder_Tree.Visible_Row :=
+                    Snapshot.Tree_Rows.Element (Positive (I));
+               begin
                   Add_Accessibility_Node
-                    (Role_Button, Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
-                     Localized (Label_Key));
-               end Draw_Pick_Button;
-            begin
-               if Buttons.Visible then
-                  Draw_Pick_Button (Buttons.Choose_X, "tree.pick.choose");
-                  Draw_Pick_Button (Buttons.Cancel_X, "tree.pick.cancel");
-               end if;
-            end;
-         end if;
+                    (Role_List_Item,
+                     Row.X,
+                     Row.Y,
+                     Row.Width,
+                     Row.Height,
+                     Data.Name,
+                     Data.Path,
+                     Enabled  => True,
+                     Selected => Row.Selected,
+                     Focused  => Row.Selected);
+               end;
+            end loop;
+            if Snapshot.Tree_Pick_Active and then Pick.Visible then
+               Add_Accessibility_Node
+                 (Role_Button, Pick.Choose_X, Pick.Y, Pick.Button_Width, Pick.Height,
+                  Localized ("tree.pick.choose"));
+               Add_Accessibility_Node
+                 (Role_Button, Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height,
+                  Localized ("tree.pick.cancel"));
+            end if;
+         end;
 
          Draw_Close_Button
            (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => True);
