@@ -612,38 +612,25 @@ separate (Files.Rendering)
          Y        : Natural;
          Border_W : Natural;
          Border_H : Natural;
-         Color    : Render_Color)
-      is
+         Color    : Render_Color) is
       begin
-         if Border_W = 0 or else Border_H = 0 then
-            return;
-         end if;
-
-         Add_Rect (X, Y, Border_W, 1, Color);
-         Add_Rect (X, Y, 1, Border_H, Color);
-         Add_Rect (X, Saturating_Add (Y, Border_H - 1), Border_W, 1, Color);
-         Add_Rect (Saturating_Add (X, Border_W - 1), Y, 1, Border_H, Color);
+         Guikit.Widgets.Draw_Border
+           (Result.Rectangles, Layout.Width, Layout.Height,
+            X, Y, Border_W, Border_H, Color);
       end Add_Border;
 
-      --  Add_Border for the overlay layer: the four edge rects go through
-      --  Add_Overlay_Rect so the border composites on top of an opaque overlay
-      --  panel rather than under the main grid content.
+      --  Add_Border for the overlay layer: the four edge rects composite on top
+      --  of an opaque overlay panel rather than under the main grid content.
       procedure Add_Overlay_Border
         (X        : Natural;
          Y        : Natural;
          Border_W : Natural;
          Border_H : Natural;
-         Color    : Render_Color)
-      is
+         Color    : Render_Color) is
       begin
-         if Border_W = 0 or else Border_H = 0 then
-            return;
-         end if;
-
-         Add_Overlay_Rect (X, Y, Border_W, 1, Color);
-         Add_Overlay_Rect (X, Y, 1, Border_H, Color);
-         Add_Overlay_Rect (X, Saturating_Add (Y, Border_H - 1), Border_W, 1, Color);
-         Add_Overlay_Rect (Saturating_Add (X, Border_W - 1), Y, 1, Border_H, Color);
+         Guikit.Widgets.Draw_Border
+           (Result.Overlay_Rectangles, Layout.Width, Layout.Height,
+            X, Y, Border_W, Border_H, Color);
       end Add_Overlay_Border;
 
       procedure Add_Focus_Ring
