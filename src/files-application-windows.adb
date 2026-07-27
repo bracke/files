@@ -270,6 +270,10 @@ package body Files.Application.Windows is
       --  between two Render_Window calls, skip the expensive layout and
       --  Build_Frame_Commands rebuild and reuse the previously built data.
       Frame_Cache_Valid    : Boolean := False;
+      --  When True, Cached_Snapshot already reflects the current model+settings,
+      --  so the next render reuses it instead of calling Build_Snapshot. Cleared
+      --  by Invalidate_Snapshot at every point the app mutates the model.
+      Snapshot_Fresh       : Boolean := False;
       Cached_Snapshot      : Files.Rendering.View_Snapshot;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       Cached_Frame_W       : Natural := 0;
@@ -356,10 +360,22 @@ package body Files.Application.Windows is
    --  Consume the GPU/GLFW/timing follow-up an interaction asks the shell to
    --  perform. Everything touching Runtime_Window's GPU/cache/input state stays
    --  here; Files.Interaction performs the model/settings mutation itself.
+   --  Mark the cached View_Snapshot stale so the next render rebuilds it. Called
+   --  wherever the app mutates the model or settings. Build_Snapshot is a pure
+   --  function of (model, settings) and the render path never mutates either, so
+   --  a snapshot is stale only when one of these app-layer entry points ran.
+   --  Over-invalidation merely rebuilds a snapshot that was already current, so
+   --  callers err toward calling this.
+   procedure Invalidate_Snapshot (Runtime : in out Runtime_Window) is
+   begin
+      Runtime.Snapshot_Fresh := False;
+   end Invalidate_Snapshot;
+
    procedure Apply_Interaction_Result
      (Runtime : in out Runtime_Window;
       Result  : Files.Interaction.Interaction_Result) is
    begin
+      Invalidate_Snapshot (Runtime);
       if Result.Font_Size_Changed then
          Runtime.Font_Pixel_Size := Runtime.Settings.Font_Pixel_Size;
       end if;
@@ -1061,6 +1077,7 @@ package body Files.Application.Windows is
          return;
       end if;
 
+      Invalidate_Snapshot (Runtime);
       Text := Runtime.Handle.Pending_Text;
       Runtime.Handle.Pending_Text := Null_Unbounded_String;
 
@@ -1093,6 +1110,7 @@ package body Files.Application.Windows is
         and then Ada.Calendar.Clock - Runtime.Type_Ahead_Input_At > Type_Ahead_Timeout
       then
          Files.Model.Reset_Type_Ahead (Runtime.Model);
+         Invalidate_Snapshot (Runtime);
       end if;
    end Handle_Type_Ahead_Timeout;
 
@@ -1118,6 +1136,7 @@ package body Files.Application.Windows is
       Files.Drop_Events.Take (Runtime.Handle.Drop_Source, Drops, Mode);
       Result := Files.Controller.Handle_Drop_Import (Runtime.Model, Runtime.Settings, Drops, Mode);
       pragma Unreferenced (Result);
+      Invalidate_Snapshot (Runtime);
    end Handle_Drop_Input;
 
    procedure Handle_All_Drop_Input
@@ -1163,6 +1182,7 @@ package body Files.Application.Windows is
             Native_Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
             pragma Unreferenced (Native_Result);
          end;
+         Invalidate_Snapshot (Runtime);
          return;
       end if;
 
@@ -1173,6 +1193,7 @@ package body Files.Application.Windows is
       Runtime.Last_Watch_Poll := Now;
       Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
       pragma Unreferenced (Result);
+      Invalidate_Snapshot (Runtime);
    end Handle_File_Watch_Poll;
 
    procedure Handle_All_File_Watch_Poll
@@ -1208,6 +1229,7 @@ package body Files.Application.Windows is
             then
                Files.Model.Set_Folder_Size
                  (Runtime.Model, Ada.Strings.Unbounded.To_String (Path), Result);
+               Invalidate_Snapshot (Runtime);
             end if;
          end loop;
       end loop;
@@ -1232,6 +1254,7 @@ package body Files.Application.Windows is
 
       Offset := Runtime.Handle.Pending_Scroll;
       Runtime.Handle.Pending_Scroll := 0;
+      Invalidate_Snapshot (Runtime);
 
       --  Ctrl + scroll: live font-size adjustment (zoom in / out).
       declare
@@ -1493,6 +1516,7 @@ package body Files.Application.Windows is
          return;
       end if;
 
+      Invalidate_Snapshot (Runtime);
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
@@ -1805,6 +1829,7 @@ package body Files.Application.Windows is
             Shown           => True,
             Fallback_Frames => 0,
             Frame_Cache_Valid    => False,
+            Snapshot_Fresh       => False,
             Cached_Snapshot      => <>,
             Cached_Frame         => <>,
             Cached_Frame_W       => 0,
@@ -2252,8 +2277,19 @@ package body Files.Application.Windows is
            Mouse_Down
            and then Runtime.Drag_Source_Index /= 0
            and then Runtime.Handle.Drag_Moved;
+         --  Reuse the cached snapshot when the model and settings are unchanged
+         --  since it was built. Build_Snapshot is O(items) with a sort and
+         --  per-item work, so skipping it on unchanged frames is the main saving.
+         --  The per-frame animations (paste progress, marquee drag) mutate the
+         --  model as they run above, so always rebuild while they are active.
+         Reuse_Snapshot : constant Boolean :=
+           Runtime.Snapshot_Fresh
+           and then Runtime.Frame_Cache_Valid
+           and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+           and then not Runtime.Marquee_Active;
          Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+           (if Reuse_Snapshot then Runtime.Cached_Snapshot
+            else Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings));
          Inputs_Match : constant Boolean :=
            Runtime.Frame_Cache_Valid
            and then Runtime.Cached_Frame_W = Natural (Width)
@@ -2310,6 +2346,11 @@ package body Files.Application.Windows is
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Frame_Cache_Valid := True;
          end if;
+
+         --  Cached_Snapshot now reflects the current model (it was reused, or
+         --  just rebuilt above), so the next render may reuse it until the next
+         --  Invalidate_Snapshot.
+         Runtime.Snapshot_Fresh := True;
       end;
 
       declare
