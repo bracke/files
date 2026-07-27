@@ -4754,26 +4754,24 @@ separate (Files.Rendering)
                                 Hover_X, Hover_Y);
                   Pressed : constant Boolean :=
                     Is_Pressed (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height);
-                  Inset   : constant Natural :=
-                    (if Buttons.Height > Line_Height then (Buttons.Height - Line_Height) / 2 else 0);
                begin
-                  Add_Overlay_Rect
-                    (Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
-                     (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Pane_Color));
-                  Add_Overlay_Rect (Button_X, Buttons.Y, Buttons.Button_Width, 1, Border_Color);
-                  Add_Overlay_Rect (Button_X, Buttons.Y, 1, Buttons.Height, Border_Color);
-                  if Buttons.Button_Width > 0 then
-                     Add_Overlay_Rect
-                       (Saturating_Add (Button_X, Buttons.Button_Width - 1), Buttons.Y, 1,
-                        Buttons.Height, Border_Color);
-                  end if;
-                  Add_Overlay_Text
-                    (Saturating_Add (Button_X, Guikit.Layout.Input_Field_Padding),
-                     Saturating_Add (Buttons.Y, Inset),
-                     (if Buttons.Button_Width > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-                      then Buttons.Button_Width - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-                      else Buttons.Button_Width),
-                     Line_Height, Localized (Label_Key), Text_Color, Fit => True);
+                  Guikit.Widgets.Draw_Button
+                    (Rectangles      => Result.Overlay_Rectangles,
+                     Text            => Result.Overlay_Text,
+                     Clip_Width      => Layout.Width,
+                     Clip_Height     => Layout.Height,
+                     X               => Button_X,
+                     Y               => Buttons.Y,
+                     Width           => Buttons.Button_Width,
+                     Height          => Buttons.Height,
+                     Fill_Color      =>
+                       (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Pane_Color),
+                     Border_Color    => Border_Color,
+                     Padding         => Guikit.Layout.Input_Field_Padding,
+                     Label_Text      => Localized (Label_Key),
+                     Label_Truncated => False,
+                     Label_Height    => Line_Height,
+                     Label_Color     => Text_Color);
                   Add_Accessibility_Node
                     (Role_Button, Button_X, Buttons.Y, Buttons.Button_Width, Buttons.Height,
                      Localized (Label_Key));
