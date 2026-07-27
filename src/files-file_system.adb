@@ -4030,12 +4030,52 @@ package body Files.File_System is
    --  across filesystems), by both trashing and drag-and-drop moves.
    procedure Copy_Tree
      (Source_Path      : String;
-      Destination_Path : String)
+      Destination_Path : String;
+      Depth            : Natural := 0)
    is
+      --  A copy of a folder that (directly or transitively) contains a symlink to
+      --  an ancestor would, without this cap, recurse until the path exceeds
+      --  PATH_MAX. The symlink guard below removes that cause; this is a defensive
+      --  backstop far beyond any real directory nesting. Reaching it raises, which
+      --  fails the whole copy (see the function wrapper) rather than silently
+      --  truncating -- important because a cross-device MOVE deletes the source
+      --  only after a successful copy.
+      Max_Copy_Depth : constant := 1024;
+
       Search    : Ada.Directories.Search_Type;
       Dir_Entry : Ada.Directories.Directory_Entry_Type;
       Started   : Boolean := False;
    begin
+      --  Preserve a symlink as a link instead of following it. Ada.Directories.Kind
+      --  dereferences links, so classifying by it would copy the link's *target*
+      --  (losing the link, or -- for a link to an ancestor -- exploding into an
+      --  unbounded recursive copy). Recreate the link verbatim and stop. This
+      --  mirrors the search/size walkers, which also skip links via Hostkit.Fs.
+      if Hostkit.Fs.Is_Link (Source_Path) then
+         declare
+            Target : Ada.Strings.Unbounded.Unbounded_String;
+         begin
+            if Hostkit.Fs.Read_Link_Target (Source_Path, Target) then
+               --  A host that refuses to create the link (e.g. Windows without the
+               --  privilege) leaves it out rather than dereferencing it.
+               declare
+                  Created : constant Boolean :=
+                    Hostkit.Fs.Create_Link (To_String (Target), Destination_Path);
+                  pragma Unreferenced (Created);
+               begin
+                  null;
+               end;
+            end if;
+         end;
+         return;
+      end if;
+
+      if Depth > Max_Copy_Depth then
+         --  Backstop only; the message would be caught and mapped to
+         --  error.copy.failed by the function wrapper, never shown to the user.
+         raise Program_Error;
+      end if;
+
       case Ada.Directories.Kind (Source_Path) is
          when Ada.Directories.Directory =>
             Ada.Directories.Create_Directory (Destination_Path);
@@ -4056,7 +4096,8 @@ package body Files.File_System is
                   if Name /= "." and then Name /= ".." then
                      Copy_Tree
                        (Ada.Directories.Full_Name (Dir_Entry),
-                        Join_Path (Destination_Path, Name));
+                        Join_Path (Destination_Path, Name),
+                        Depth + 1);
                   end if;
                end;
             end loop;
