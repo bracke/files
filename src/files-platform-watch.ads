@@ -17,31 +17,31 @@ package Files.Platform.Watch is
 
    type Watch_State is private;
 
-   procedure Watch_Path (State : in out Watch_State; Path : String);
    --  Point the watch at Path, releasing any directory it was watching before.
    --  Watching the same path twice running is a no-op, so this is cheap to call
    --  every frame. An empty Path releases the watch.
    --  @param State the watch
    --  @param Path  the directory to watch
+   procedure Watch_Path (State : in out Watch_State; Path : String);
 
-   procedure Release (State : in out Watch_State);
    --  Drop the watch and its native handles.
    --  @param State the watch
+   procedure Release (State : in out Watch_State);
 
-   function Poll (State : in out Watch_State) return Boolean;
    --  Consume any pending change notifications without blocking.
    --  @param State the watch
    --  @return True when the watched directory changed since the last call
+   function Poll (State : in out Watch_State) return Boolean;
 
-   function Is_Active (State : Watch_State) return Boolean;
    --  Whether a native watch is currently established.
    --  @param State the watch
    --  @return True when the platform is delivering notifications
+   function Is_Active (State : Watch_State) return Boolean;
 
-   function Event_Count (State : Watch_State) return Natural;
    --  How many notifications this watch has consumed, for diagnostics.
    --  @param State the watch
    --  @return the running count
+   function Event_Count (State : Watch_State) return Natural;
 
 private
 

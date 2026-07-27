@@ -100,6 +100,8 @@ package Files.Platform.Metadata is
       Mode : Natural)
       return Boolean;
 
+   --  Whether this platform's body can read and change POSIX permission bits.
+   --  @return True on hosts where Set_Permissions has a real effect
    function Permissions_Supported return Boolean;
 
    --  Return the numeric owner (UID) and group (GID) of Path.

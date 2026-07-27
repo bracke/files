@@ -19,6 +19,10 @@ package Files.Extension_Labels is
    --  Return a cached label for Ext rendered about Height pixels tall in Theme's
    --  Canvas_Color. Width = 0 when no glyphs could be produced (no font, empty
    --  extension, or an unloadable renderer).
+   --  @param Ext    the file extension to render (without a leading dot)
+   --  @param Height the target glyph height in pixels
+   --  @param Theme  the theme whose Canvas_Color tints the glyphs
+   --  @return the cached label, with Width = 0 when nothing could be rendered
    function Label_For
      (Ext    : String;
       Height : Natural;

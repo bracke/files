@@ -16,6 +16,7 @@ package Files_Suite.Support is
    --  following links, so a path built here matches the one the model reports.
    --  A function, not a constant: a spec-level constant cannot call into the
    --  body before that body is elaborated.
+   --  @return the resolved, link-followed scratch directory path
    function Root return String;
 
    --  Does a mode bit decide what runs here? On POSIX, yes: chmod +x makes a file
@@ -27,12 +28,14 @@ package Files_Suite.Support is
    --  and that is the product being right on both, not a gap. Tests that make a
    --  file executable branch on this; the ones that want an executable on Windows
    --  name it .bat.
+   --  @return True on hosts where the executable mode bit governs execution
    function Honours_Executable_Bit return Boolean;
 
    --  A real executable that succeeds and does nothing, for tests that need an
    --  action to actually run. It is NOT /bin/true everywhere: macOS has no
    --  /bin/true at all -- true lives in /usr/bin there -- so the path is probed
    --  rather than assumed.
+   --  @return an absolute path to an executable that exits 0 and does nothing
    function No_Op_Executable return String;
 
    --  Does this path exist? False, rather than an exception, for a name the host
@@ -42,25 +45,31 @@ package Files_Suite.Support is
    --  ':' or '\\', which are ordinary characters on POSIX. Tests that check an
    --  invalid name was REFUSED then ask whether the file exists -- and a path the
    --  operating system cannot name certainly does not.
+   --  @param Path the path to test
+   --  @return True when Path exists; False for a name the host cannot represent
    function Path_Exists (Path : String) return Boolean;
 
    --  The root of the filesystem the scratch root lives on: "/" on POSIX, and the
    --  drive -- "C:\" -- on Windows, where "/" is not a root at all.
+   --  @return the filesystem root containing the scratch root
    function Filesystem_Root return String;
 
    --  A real executable that fails, for tests that check a non-zero exit is not
    --  surfaced. Like true, false lives in /usr/bin on macOS, not /bin.
+   --  @return an absolute path to an executable that exits non-zero
    function Failing_Executable return String;
 
    --  A real executable that records having run, by creating the file named as its
    --  first argument. Lets a test prove an action did not merely *report* that it
    --  was never launched, but genuinely never ran.
+   --  @return an absolute path to an executable that creates its first argument
    function Marker_Executable return String;
 
    --  True when the filesystem under Root treats "A.txt" and "a.txt" as the same
    --  file, as macOS does by default. Fixtures that rely on both existing at once
    --  cannot be built there, and must say so rather than quietly measure the
    --  wrong thing.
+   --  @return True when the filesystem under Root is case-insensitive
    function Case_Insensitive_Filesystem return Boolean;
 
    --  Translate a simulated click against a snapshot into an input action.
