@@ -373,9 +373,8 @@ separate (Files.Rendering)
          Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
          Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Capacity : constant Natural := Draw_W / Cell_W;
-         Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
-         Was_Truncated : constant Boolean := Fit and then To_String (Fitted) /= Raw;
+         Was_Truncated : constant Boolean := Fit and then Fitted /= Text;
       begin
          if Hidden_By_Settings_Pane (X, Y, Draw_W, Draw_H) then
             return;
@@ -411,9 +410,8 @@ separate (Files.Rendering)
          Draw_H : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
          Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
          Capacity : constant Natural := Draw_W / Cell_W;
-         Raw      : constant String := To_String (Text);
          Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
-         Was_Truncated : constant Boolean := Fit and then To_String (Fitted) /= Raw;
+         Was_Truncated : constant Boolean := Fit and then Fitted /= Text;
       begin
          if Draw_W > 0 and then Draw_H > 0 and then Length (Fitted) > 0 then
             Result.Overlay_Text.Append
@@ -3187,7 +3185,6 @@ separate (Files.Rendering)
 
       for Index in 1 .. Natural (Items.Length) loop
          declare
-            Item      : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
             Item_Rect : constant Item_Layout := Items.Element (Positive (Index));
          begin
             --  Layout marks off-screen items with Height = 0 (Details rows that
@@ -3200,7 +3197,7 @@ separate (Files.Rendering)
          end;
 
          declare
-            Item      : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
+            Item      : Item_Snapshot renames Snapshot.Items (Positive (Index));
             Item_Rect : constant Item_Layout := Items.Element (Positive (Index));
             --  Suppress the main-grid item hover highlight while the context
             --  menu is open: the pointer is interacting with the menu, so the
@@ -3217,6 +3214,15 @@ separate (Files.Rendering)
               and then Item.Visible_Index /= Drag_Item_Index
               and then Item.Kind = Files.Types.Directory_Item
               and then Hovered;
+            --  Details mode needs the formatted modified/size text twice -- once
+            --  to draw the row, once for the accessibility description. Format
+            --  each once here; other view modes never touch them.
+            Detail_Modified : constant UString :=
+              (if Snapshot.View_Mode = Files.Types.Details
+               then Detail_Time_Text (Item) else Null_Unbounded_String);
+            Detail_Size : constant UString :=
+              (if Snapshot.View_Mode = Files.Types.Details
+               then Detail_Size_Text (Item) else Null_Unbounded_String);
 
          begin
             --  Grouping band header: a non-selectable caption row. It draws its
@@ -3319,8 +3325,8 @@ separate (Files.Rendering)
                   Clip_Height      => Layout.Height,
                   Cell             => Item_Rect,
                   Line_Height      => Line_Height,
-                  Modified         => Detail_Time_Text (Item),
-                  Size             => Detail_Size_Text (Item),
+                  Modified         => Detail_Modified,
+                  Size             => Detail_Size,
                   Filetype         => Item.Filetype_Detail,
                   Created          => Detail_Created_Text (Item),
                   Permissions      => Item.Permissions,
@@ -3343,9 +3349,9 @@ separate (Files.Rendering)
                  (if Snapshot.View_Mode = Files.Types.Details
                   then To_Unbounded_String
                     (Files.Localization.Text ("details.modified") & ": " &
-                     To_String (Detail_Time_Text (Item)) & ", " &
+                     To_String (Detail_Modified) & ", " &
                      Files.Localization.Text ("details.size") & ": " &
-                     To_String (Detail_Size_Text (Item)) & ", " &
+                     To_String (Detail_Size) & ", " &
                      Files.Localization.Text ("details.filetype") & ": " &
                      To_String (Item.Filetype_Detail))
                   else Item.Filetype_Detail);
@@ -3451,7 +3457,7 @@ separate (Files.Rendering)
       then
          for Index in 1 .. Natural (Snapshot.Items.Length) loop
             declare
-               Item : constant Item_Snapshot := Snapshot.Items.Element (Positive (Index));
+               Item : Item_Snapshot renames Snapshot.Items (Positive (Index));
             begin
                if Item.Visible_Index = Drag_Item_Index then
                   declare
