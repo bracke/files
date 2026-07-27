@@ -1,10 +1,12 @@
 with Ada.Calendar.Formatting;
 with Ada.Containers;
+with Ada.Containers.Hashed_Sets;
 with Ada.Characters.Handling;
 with Ada.Strings;
 with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 
 with Textrender;
 with Util.Dates.Formats;

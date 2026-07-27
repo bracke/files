@@ -572,22 +572,32 @@ separate (Files.Rendering)
          use type Files.Model.Clipboard_Mode;
          Cut_Active : constant Boolean :=
            Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut;
-         Cut_Paths  : constant Files.Types.String_Vectors.Vector :=
-           (if Cut_Active then Files.Model.Clipboard_Paths (Model)
-            else Files.Types.String_Vectors.Empty_Vector);
+
+         --  A set, not a vector: Is_Cut_Pending is asked once per visible item
+         --  every frame, so a linear scan of the cut list is O(items x cut) per
+         --  frame. Hash the cut paths once and test membership in O(1).
+         package Cut_Path_Sets is new Ada.Containers.Hashed_Sets
+           (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
+            Hash                => Ada.Strings.Unbounded.Hash,
+            Equivalent_Elements => Ada.Strings.Unbounded."=");
+
+         function Build_Cut_Set return Cut_Path_Sets.Set is
+            Result : Cut_Path_Sets.Set;
+         begin
+            if Cut_Active then
+               for Path of Files.Model.Clipboard_Paths (Model) loop
+                  Result.Include (Path);
+               end loop;
+            end if;
+            return Result;
+         end Build_Cut_Set;
+
+         Cut_Paths : constant Cut_Path_Sets.Set := Build_Cut_Set;
 
          function Is_Cut_Pending (Full_Path : Ada.Strings.Unbounded.Unbounded_String)
            return Boolean is
          begin
-            if not Cut_Active then
-               return False;
-            end if;
-            for Path of Cut_Paths loop
-               if Path = Full_Path then
-                  return True;
-               end if;
-            end loop;
-            return False;
+            return Cut_Active and then Cut_Paths.Contains (Full_Path);
          end Is_Cut_Pending;
       begin
          for Index in 1 .. Files.Model.Visible_Count (Model) loop
