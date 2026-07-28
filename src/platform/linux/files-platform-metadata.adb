@@ -427,6 +427,46 @@ package body Files.Platform.Metadata is
          Available := False;
    end File_Ownership;
 
+   procedure File_Mode_And_Ownership
+     (Path                : String;
+      Mode_Bits           : out Natural;
+      Mode_Available      : out Boolean;
+      User_Id             : out Natural;
+      Group_Id            : out Natural;
+      Ownership_Available : out Boolean)
+   is
+      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+      Info   : aliased Statx_Record;
+      Status : C_Int;
+   begin
+      Mode_Bits := 0;
+      Mode_Available := False;
+      User_Id := 0;
+      Group_Id := 0;
+      Ownership_Available := False;
+
+      --  One statx fills the fields File_Permission_Bits and File_Ownership
+      --  would each fetch with a separate call; the values are identical.
+      Status := Statx (At_FDCWD, C_Path, 0, Statx_Mode or Statx_Uid or Statx_Gid, Info'Access);
+      Interfaces.C.Strings.Free (C_Path);
+
+      if Status = 0 then
+         Mode_Bits := Natural (Info.Mode and Permission_Mask);
+         Mode_Available := True;
+         User_Id := Natural (Info.User_Id);
+         Group_Id := Natural (Info.Group_Id);
+         Ownership_Available := True;
+      end if;
+   exception
+      when others =>
+         Safe_Free (C_Path);
+         Mode_Bits := 0;
+         Mode_Available := False;
+         User_Id := 0;
+         Group_Id := 0;
+         Ownership_Available := False;
+   end File_Mode_And_Ownership;
+
    function Set_Ownership
      (Path     : String;
       User_Id  : Natural;

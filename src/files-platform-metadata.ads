@@ -118,6 +118,28 @@ package Files.Platform.Metadata is
       Group_Id  : out Natural;
       Available : out Boolean);
 
+   --  Read the permission bits and ownership of Path in a single native call.
+   --
+   --  Behaves exactly like calling File_Permission_Bits and File_Ownership,
+   --  but on hosts that support it (Linux) both are obtained from one statx
+   --  syscall instead of two -- halving the metadata syscalls the directory
+   --  listing pays per file. Non-Linux bodies delegate to the two individual
+   --  functions and are therefore behaviour-identical to them.
+   --
+   --  @param Path Filesystem path to inspect.
+   --  @param Mode_Bits Permission bits in 0 .. 8#7777# when Mode_Available.
+   --  @param Mode_Available Set True when permission bits were obtained.
+   --  @param User_Id Owning user id when Ownership_Available is True.
+   --  @param Group_Id Owning group id when Ownership_Available is True.
+   --  @param Ownership_Available Set True when ownership ids were obtained.
+   procedure File_Mode_And_Ownership
+     (Path                : String;
+      Mode_Bits           : out Natural;
+      Mode_Available      : out Boolean;
+      User_Id             : out Natural;
+      Group_Id            : out Natural;
+      Ownership_Available : out Boolean);
+
    --  Change the owner and group of Path through chown(2).
    --
    --  Changing the owner of a file typically requires root privileges, so this

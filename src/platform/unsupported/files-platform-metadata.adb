@@ -82,6 +82,18 @@ package body Files.Platform.Metadata is
       Available := False;
    end File_Ownership;
 
+   procedure File_Mode_And_Ownership
+     (Path                : String;
+      Mode_Bits           : out Natural;
+      Mode_Available      : out Boolean;
+      User_Id             : out Natural;
+      Group_Id            : out Natural;
+      Ownership_Available : out Boolean) is
+   begin
+      Mode_Bits := File_Permission_Bits (Path, Mode_Available);
+      File_Ownership (Path, User_Id, Group_Id, Ownership_Available);
+   end File_Mode_And_Ownership;
+
    function Set_Ownership
      (Path     : String;
       User_Id  : Natural;

@@ -1559,10 +1559,10 @@ package body Files.File_System is
          Item.Modified_Time := Ada.Directories.Modification_Time (Full);
          Item.Modified_Available := True;
          Item.Permissions := To_Unbounded_String (Permission_String (Full));
-         Item.Mode_Bits :=
-           Files.Platform.Metadata.File_Permission_Bits (Full, Item.Mode_Available);
-         Files.Platform.Metadata.File_Ownership
-           (Full, Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
+         Files.Platform.Metadata.File_Mode_And_Ownership
+           (Full,
+            Item.Mode_Bits, Item.Mode_Available,
+            Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
       exception
          when others =>
             Item.Metadata_Error := True;
