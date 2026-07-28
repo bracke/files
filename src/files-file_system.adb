@@ -31,8 +31,11 @@ with Files.Platform.Windows;
 with Files.UTF8;
 with Files.File_System.Path;
 with Files.File_System.Permissions;
+with Files.File_System.Support;
 
 package body Files.File_System is
+
+   use Files.File_System.Support;
    use Ada.Strings.Unbounded;
    use type Interfaces.C.int;
    use type Interfaces.C.long;
@@ -96,27 +99,8 @@ package body Files.File_System is
 
    Extra_Line_Limit : constant Natural := 20_000;
 
-   procedure Safe_End_Search
-     (Search  : in out Ada.Directories.Search_Type;
-      Started : in out Boolean);
-
-   procedure Safe_Close
-     (File : in out Ada.Text_IO.File_Type);
-
-   procedure Safe_Close
-     (File : in out Ada.Streams.Stream_IO.File_Type);
-
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr);
-
-   function Safe_Environment_Value
-     (Name : String)
-      return String;
-
-   function Environment_Equals
-     (Name     : String;
-      Expected : String)
-      return Boolean;
 
    type Volume_Size_Info is record
       Capacity_Bytes   : Long_Long_Integer := 0;
@@ -140,47 +124,6 @@ package body Files.File_System is
       Found           : Boolean := False;
    end record;
 
-   procedure Safe_End_Search
-     (Search  : in out Ada.Directories.Search_Type;
-      Started : in out Boolean) is
-   begin
-      if Started then
-         begin
-            Ada.Directories.End_Search (Search);
-         exception
-            when others =>
-               null;
-         end;
-         Started := False;
-      end if;
-   end Safe_End_Search;
-
-   procedure Safe_Close
-     (File : in out Ada.Text_IO.File_Type) is
-   begin
-      if Ada.Text_IO.Is_Open (File) then
-         begin
-            Ada.Text_IO.Close (File);
-         exception
-            when others =>
-               null;
-         end;
-      end if;
-   end Safe_Close;
-
-   procedure Safe_Close
-     (File : in out Ada.Streams.Stream_IO.File_Type) is
-   begin
-      if Ada.Streams.Stream_IO.Is_Open (File) then
-         begin
-            Ada.Streams.Stream_IO.Close (File);
-         exception
-            when others =>
-               null;
-         end;
-      end if;
-   end Safe_Close;
-
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr) is
    begin
@@ -193,34 +136,6 @@ package body Files.File_System is
          end;
       end if;
    end Safe_Free;
-
-   function Safe_Environment_Value
-     (Name : String)
-      return String is
-   begin
-      if Ada.Environment_Variables.Exists (Name) then
-         return Ada.Environment_Variables.Value (Name);
-      end if;
-
-      return "";
-   exception
-      when others =>
-         return "";
-   end Safe_Environment_Value;
-
-   function Environment_Equals
-     (Name     : String;
-      Expected : String)
-      return Boolean is
-   begin
-      return Files.Types.To_Lower (Safe_Environment_Value (Name)) = Expected;
-   end Environment_Equals;
-
-   function Image_No_Space (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Image_No_Space;
 
    function Thumbnail_Extension
      (Source_Path : String)
@@ -454,15 +369,6 @@ package body Files.File_System is
       when others =>
          return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
    end Load_Cached_Thumbnail;
-
-   function Starts_With
-     (Value  : String;
-      Prefix : String)
-      return Boolean is
-   begin
-      return Value'Length >= Prefix'Length
-        and then Value (Value'First .. Value'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
 
    function Is_Image_Item
      (Kind     : Files.Types.Item_Kind;
@@ -859,16 +765,6 @@ package body Files.File_System is
       when others =>
          return "";
    end Permission_String;
-
-   function Natural_Text (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      if Image'Length > 0 and then Image (Image'First) = ' ' then
-         return Image (Image'First + 1 .. Image'Last);
-      end if;
-
-      return Image;
-   end Natural_Text;
 
    function Two_Digit_Text (Value : Natural) return String is
       Clean : constant String := Natural_Text (Value);
