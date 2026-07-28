@@ -16,6 +16,7 @@ with Files.Model.Error;
 with Files.Model.Paste_Conflict;
 with Files.Model.Paste_Exec;
 with Files.Model.Label_Picker;
+with Files.Model.Tree_Panel;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -2193,164 +2194,115 @@ package body Files.Model is
       Model.Focus_Value := Files.Types.Focus_None;
    end Cancel_Focus_Or_Edit;
 
+   --  The tree panel operations now live in the
+   --  Files.Model.Tree_Panel child; these renamings keep them on the public API.
    procedure Toggle_Tree_Panel
-     (Model : in out Window_Model) is
-   begin
-      Model.Tree_Panel_Open := not Model.Tree_Panel_Open;
-   end Toggle_Tree_Panel;
+     (Model : in out Window_Model)
+     renames Files.Model.Tree_Panel.Toggle_Tree_Panel;
 
    procedure Open_Tree_Panel
-     (Model : in out Window_Model) is
-   begin
-      Model.Tree_Panel_Open := True;
-   end Open_Tree_Panel;
+     (Model : in out Window_Model)
+     renames Files.Model.Tree_Panel.Open_Tree_Panel;
 
    procedure Close_Tree_Panel
-     (Model : in out Window_Model) is
-   begin
-      Model.Tree_Panel_Open := False;
-      --  Closing the sidebar also abandons any in-flight destination picker so
-      --  a later reopen starts clean.
-      Model.Tree_Pick_Mode_Value := Pick_None;
-      Model.Tree_Pick_Sources_Value.Clear;
-      Model.Tree_Pick_Target_Value := Null_Unbounded_String;
-   end Close_Tree_Panel;
+     (Model : in out Window_Model)
+     renames Files.Model.Tree_Panel.Close_Tree_Panel;
+
+   function Tree_Panel_Is_Open
+     (Model : Window_Model)
+      return Boolean
+     renames Files.Model.Tree_Panel.Tree_Panel_Is_Open;
+
+   function Tree_Is_Seeded
+     (Model : Window_Model)
+      return Boolean
+     renames Files.Model.Tree_Panel.Tree_Is_Seeded;
+
+   procedure Seed_Tree
+     (Model : in out Window_Model;
+      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
+     renames Files.Model.Tree_Panel.Seed_Tree;
+
+   function Tree_Node_Count
+     (Model : Window_Model)
+      return Natural
+     renames Files.Model.Tree_Panel.Tree_Node_Count;
+
+   function Tree_Node_Path
+     (Model : Window_Model;
+      Index : Positive)
+      return String
+     renames Files.Model.Tree_Panel.Tree_Node_Path;
+
+   function Tree_Node_Is_Loaded
+     (Model : Window_Model;
+      Index : Positive)
+      return Boolean
+     renames Files.Model.Tree_Panel.Tree_Node_Is_Loaded;
+
+   function Tree_Node_Is_Expanded
+     (Model : Window_Model;
+      Index : Positive)
+      return Boolean
+     renames Files.Model.Tree_Panel.Tree_Node_Is_Expanded;
+
+   procedure Tree_Set_Children
+     (Model    : in out Window_Model;
+      Index    : Positive;
+      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
+     renames Files.Model.Tree_Panel.Tree_Set_Children;
+
+   procedure Tree_Set_Expanded
+     (Model    : in out Window_Model;
+      Index    : Positive;
+      Expanded : Boolean)
+     renames Files.Model.Tree_Panel.Tree_Set_Expanded;
+
+   procedure Tree_Toggle_Expanded
+     (Model : in out Window_Model;
+      Index : Positive)
+     renames Files.Model.Tree_Panel.Tree_Toggle_Expanded;
+
+   function Tree_Visible_Rows
+     (Model : Window_Model)
+      return Files.Folder_Tree.Visible_Row_Vectors.Vector
+     renames Files.Model.Tree_Panel.Tree_Visible_Rows;
 
    procedure Begin_Tree_Pick
      (Model          : in out Window_Model;
       Mode           : Tree_Pick_Mode;
       Sources        : Files.Types.String_Vectors.Vector;
-      Initial_Target : String) is
-   begin
-      Model.Tree_Pick_Mode_Value := Mode;
-      Model.Tree_Pick_Sources_Value := Sources;
-      Model.Tree_Pick_Target_Value := To_Unbounded_String (Initial_Target);
-   end Begin_Tree_Pick;
+      Initial_Target : String)
+     renames Files.Model.Tree_Panel.Begin_Tree_Pick;
 
    procedure Set_Tree_Pick_Target
      (Model  : in out Window_Model;
-      Target : String) is
-   begin
-      Model.Tree_Pick_Target_Value := To_Unbounded_String (Target);
-   end Set_Tree_Pick_Target;
+      Target : String)
+     renames Files.Model.Tree_Panel.Set_Tree_Pick_Target;
 
    procedure Clear_Tree_Pick
-     (Model : in out Window_Model) is
-   begin
-      Model.Tree_Pick_Mode_Value := Pick_None;
-      Model.Tree_Pick_Sources_Value.Clear;
-      Model.Tree_Pick_Target_Value := Null_Unbounded_String;
-   end Clear_Tree_Pick;
+     (Model : in out Window_Model)
+     renames Files.Model.Tree_Panel.Clear_Tree_Pick;
 
    function Tree_Pick_Mode_Of
      (Model : Window_Model)
-      return Tree_Pick_Mode is
-   begin
-      return Model.Tree_Pick_Mode_Value;
-   end Tree_Pick_Mode_Of;
+      return Tree_Pick_Mode
+     renames Files.Model.Tree_Panel.Tree_Pick_Mode_Of;
 
    function Tree_Pick_Is_Active
      (Model : Window_Model)
-      return Boolean is
-   begin
-      return Model.Tree_Pick_Mode_Value /= Pick_None;
-   end Tree_Pick_Is_Active;
+      return Boolean
+     renames Files.Model.Tree_Panel.Tree_Pick_Is_Active;
 
    function Tree_Pick_Sources
      (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is
-   begin
-      return Model.Tree_Pick_Sources_Value;
-   end Tree_Pick_Sources;
+      return Files.Types.String_Vectors.Vector
+     renames Files.Model.Tree_Panel.Tree_Pick_Sources;
 
    function Tree_Pick_Target
      (Model : Window_Model)
-      return String is
-   begin
-      return To_String (Model.Tree_Pick_Target_Value);
-   end Tree_Pick_Target;
-
-   function Tree_Panel_Is_Open
-     (Model : Window_Model)
-      return Boolean is
-   begin
-      return Model.Tree_Panel_Open;
-   end Tree_Panel_Is_Open;
-
-   function Tree_Is_Seeded
-     (Model : Window_Model)
-      return Boolean is
-   begin
-      return Files.Folder_Tree.Is_Seeded (Model.Folder_Tree_Value);
-   end Tree_Is_Seeded;
-
-   procedure Seed_Tree
-     (Model : in out Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
-   begin
-      Files.Folder_Tree.Seed (Model.Folder_Tree_Value, Roots);
-   end Seed_Tree;
-
-   function Tree_Node_Count
-     (Model : Window_Model)
-      return Natural is
-   begin
-      return Files.Folder_Tree.Node_Count (Model.Folder_Tree_Value);
-   end Tree_Node_Count;
-
-   function Tree_Node_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String is
-   begin
-      return Files.Folder_Tree.Node_Path (Model.Folder_Tree_Value, Index);
-   end Tree_Node_Path;
-
-   function Tree_Node_Is_Loaded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean is
-   begin
-      return Files.Folder_Tree.Node_Is_Loaded (Model.Folder_Tree_Value, Index);
-   end Tree_Node_Is_Loaded;
-
-   function Tree_Node_Is_Expanded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean is
-   begin
-      return Files.Folder_Tree.Node_Is_Expanded (Model.Folder_Tree_Value, Index);
-   end Tree_Node_Is_Expanded;
-
-   procedure Tree_Set_Children
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
-   begin
-      Files.Folder_Tree.Set_Children (Model.Folder_Tree_Value, Index, Children);
-   end Tree_Set_Children;
-
-   procedure Tree_Set_Expanded
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Expanded : Boolean) is
-   begin
-      Files.Folder_Tree.Set_Expanded (Model.Folder_Tree_Value, Index, Expanded);
-   end Tree_Set_Expanded;
-
-   procedure Tree_Toggle_Expanded
-     (Model : in out Window_Model;
-      Index : Positive) is
-   begin
-      Files.Folder_Tree.Toggle_Expanded (Model.Folder_Tree_Value, Index);
-   end Tree_Toggle_Expanded;
-
-   function Tree_Visible_Rows
-     (Model : Window_Model)
-      return Files.Folder_Tree.Visible_Row_Vectors.Vector is
-   begin
-      return Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value);
-   end Tree_Visible_Rows;
+      return String
+     renames Files.Model.Tree_Panel.Tree_Pick_Target;
 
    procedure Toggle_Info_Pane
      (Model : in out Window_Model) is
