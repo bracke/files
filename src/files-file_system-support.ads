@@ -8,64 +8,68 @@ with Interfaces.C;
 --  children and the parent can all use them. A private child.
 private package Files.File_System.Support is
 
-   --  Internal helper: safe end search.
+   --  End a directory search, swallowing any exception and doing nothing when
+   --  it was never started; Started is reset to False.
    --
-   --  @param Search search.
-   --  @param Started started.
+   --  @param Search The directory search to end.
+   --  @param Started Whether Search was started; set to False.
    procedure Safe_End_Search
      (Search  : in out Ada.Directories.Search_Type;
       Started : in out Boolean);
 
-   --  Internal helper: safe close.
+   --  Close a text file if it is open, ignoring any error from the close.
    --
-   --  @param File file.
+   --  @param File The text file to close.
    procedure Safe_Close
      (File : in out Ada.Text_IO.File_Type);
 
-   --  Internal helper: safe close.
+   --  Close a stream file if it is open, ignoring any error from the close.
    --
-   --  @param File file.
+   --  @param File The stream file to close.
    procedure Safe_Close
      (File : in out Ada.Streams.Stream_IO.File_Type);
 
-   --  Internal helper: safe environment value.
+   --  The value of environment variable Name, or "" when it is unset or cannot
+   --  be read.
    --
-   --  @param Name name.
-   --  @return Result of safe environment value.
+   --  @param Name Environment variable name.
+   --  @return Its value, or "" when unset/unreadable.
    function Safe_Environment_Value
      (Name : String)
       return String;
 
-   --  Internal helper: environment equals.
+   --  Whether environment variable Name equals Expected, compared
+   --  case-insensitively.
    --
-   --  @param Name name.
-   --  @param Expected expected.
-   --  @return Result of environment equals.
+   --  @param Name Environment variable name.
+   --  @param Expected Value to compare against.
+   --  @return True when the variable's value equals Expected.
    function Environment_Equals
      (Name     : String;
       Expected : String)
       return Boolean;
 
-   --  Internal helper: image no space.
+   --  Natural'Image with the leading space GNAT prefixes to a non-negative
+   --  number stripped.
    --
-   --  @param Value value.
-   --  @return Result of image no space.
+   --  @param Value Number to format.
+   --  @return Value's decimal text, without a leading space.
    function Image_No_Space (Value : Natural) return String;
 
-   --  Internal helper: starts with.
+   --  Whether Value begins with Prefix.
    --
-   --  @param Value value.
-   --  @param Prefix prefix.
-   --  @return Result of starts with.
+   --  @param Value String to test.
+   --  @param Prefix Candidate leading substring.
+   --  @return True when Value starts with Prefix.
    function Starts_With
      (Value  : String;
       Prefix : String)
       return Boolean;
 
-   --  Internal helper: natural text.
+   --  Decimal text of Value: Natural'Image with the leading space guarded off.
    --
-   --  @param Value value.
-   --  @return Result of natural text.
+   --  @param Value Number to format.
+   --  @return Value's decimal text, without a leading space.
    function Natural_Text (Value : Natural) return String;
 
    --  Recursively copy a file or directory tree from Source_Path to

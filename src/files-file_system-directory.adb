@@ -11,7 +11,6 @@ with Files.File_Types;
 with Files.Fs;
 with Files.Platform.Metadata;
 with Hostkit.Fs;
-with Files.File_System.Directory;
 with Ada.Streams.Stream_IO;
 
 package body Files.File_System.Directory is

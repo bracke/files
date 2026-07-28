@@ -2,7 +2,6 @@ with Files.File_System.Support;
 with Ada.Strings.Unbounded;
 with Ada.Directories;
 with Files.Fs;
-with Files.File_System.Copy_Move;
 
 package body Files.File_System.Copy_Move is
    use Files.File_System.Support;

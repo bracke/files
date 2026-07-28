@@ -8,7 +8,6 @@ with Ada.Streams;
 with System;
 with System.Address_To_Access_Conversions;
 with Files.File_Types;
-with Files.File_System.Thumbnails;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 with Ada.Characters.Handling;
@@ -735,8 +734,6 @@ package body Files.File_System.Thumbnails is
             --  crate (no system libz dependency).
             declare
                use type Zlib.Status_Code;
-   use type Ada.Streams.Stream_Element_Offset;
-   use type Ada.Streams.Stream_Element;
                Raw_Inflated : constant Zlib.Byte_Array :=
                  Zlib.Inflate_With_Header (Source, Zlib.Zlib_Header, Decode_Status);
             begin

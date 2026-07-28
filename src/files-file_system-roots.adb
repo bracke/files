@@ -8,7 +8,6 @@ with Files_Config;
 with Files.Platform.Macos;
 with Files.Platform.Metadata;
 with Files.Platform.Windows;
-with Files.File_System.Roots;
 
 package body Files.File_System.Roots is
    use Files.File_System.Support;
