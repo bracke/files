@@ -12,6 +12,7 @@ with Files.Model.Context_Menu;
 with Files.Model.Undo_Redo;
 with Files.Model.Folder_Sizes;
 with Files.Model.Clipboard;
+with Files.Model.Error;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -3534,19 +3535,17 @@ package body Files.Model is
       return False;
    end Select_By_Name;
 
+   --  The error operations now live in the
+   --  Files.Model.Error child; these renamings keep them on the public API.
    procedure Set_Error
      (Model     : in out Window_Model;
-      Error_Key : String) is
-   begin
-      Model.Last_Error := To_Unbounded_String (Error_Key);
-   end Set_Error;
+      Error_Key : String)
+     renames Files.Model.Error.Set_Error;
 
    function Last_Error_Key
      (Model : Window_Model)
-      return String is
-   begin
-      return To_String (Model.Last_Error);
-   end Last_Error_Key;
+      return String
+     renames Files.Model.Error.Last_Error_Key;
 
    --  The clipboard operations now live in the
    --  Files.Model.Clipboard child; these renamings keep them on the public API.
