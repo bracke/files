@@ -15,6 +15,7 @@ with Files.Model.Clipboard;
 with Files.Model.Error;
 with Files.Model.Paste_Conflict;
 with Files.Model.Paste_Exec;
+with Files.Model.Label_Picker;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -2813,19 +2814,30 @@ package body Files.Model is
         (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
    end Set_Command_Palette_Mode;
 
+   --  The label picker operations now live in the
+   --  Files.Model.Label_Picker child; these renamings keep them on the public API.
    procedure Set_Open_With_Targets
      (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector) is
-   begin
-      Model.Open_With_Targets_Value := Targets;
-   end Set_Open_With_Targets;
+      Targets : Files.Types.String_Vectors.Vector)
+     renames Files.Model.Label_Picker.Set_Open_With_Targets;
 
    function Open_With_Targets
      (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is
-   begin
-      return Model.Open_With_Targets_Value;
-   end Open_With_Targets;
+      return Files.Types.String_Vectors.Vector
+     renames Files.Model.Label_Picker.Open_With_Targets;
+
+   procedure Open_Label_Picker
+     (Model : in out Window_Model)
+     renames Files.Model.Label_Picker.Open_Label_Picker;
+
+   procedure Close_Label_Picker
+     (Model : in out Window_Model)
+     renames Files.Model.Label_Picker.Close_Label_Picker;
+
+   function Label_Picker_Is_Open
+     (Model : Window_Model)
+      return Boolean
+     renames Files.Model.Label_Picker.Label_Picker_Is_Open;
 
    procedure Open_Quick_Look
      (Model   : in out Window_Model;
@@ -2889,25 +2901,6 @@ package body Files.Model is
    begin
       return Model.Quick_Look_Content_Value;
    end Quick_Look_Content_Of;
-
-   procedure Open_Label_Picker
-     (Model : in out Window_Model) is
-   begin
-      Model.Label_Picker_Active := True;
-   end Open_Label_Picker;
-
-   procedure Close_Label_Picker
-     (Model : in out Window_Model) is
-   begin
-      Model.Label_Picker_Active := False;
-   end Close_Label_Picker;
-
-   function Label_Picker_Is_Open
-     (Model : Window_Model)
-      return Boolean is
-   begin
-      return Model.Label_Picker_Active;
-   end Label_Picker_Is_Open;
 
    function Rename_Is_Enabled
      (Model : Window_Model)
