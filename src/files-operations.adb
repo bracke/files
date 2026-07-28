@@ -769,6 +769,24 @@ package body Files.Operations is
          begin
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               --  Record undo for the links already created before this mid-batch
+               --  failure so they stay Ctrl-Z-restorable, and reload so they
+               --  appear instead of staying hidden until the next refresh.
+               if not Undo_From.Is_Empty then
+                  Files.Model.Record_Undo
+                    (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To,
+                     Forward     => Undo_Sources,
+                     Create_Kind =>
+                       (if Hard
+                        then Files.Model.Create_Hard_Link
+                        else Files.Model.Create_Symbolic_Link));
+                  declare
+                     Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                     pragma Unreferenced (Reload);
+                  begin
+                     Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+                  end;
+               end if;
                return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Directory);
             end if;
 
@@ -1652,6 +1670,15 @@ package body Files.Operations is
          begin
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+               --  Record an undo covering whatever was already trashed before this
+               --  mid-batch failure (a race can make a later item fail after
+               --  earlier ones moved), so those items remain Ctrl-Z-restorable
+               --  instead of being stranded in the trash.
+               if not Undo_From.Is_Empty then
+                  Files.Model.Record_Undo
+                    (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To,
+                     Redoable => False);
+               end if;
                declare
                   Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
                   pragma Unreferenced (Reload);
