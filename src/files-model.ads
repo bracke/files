@@ -1845,6 +1845,11 @@ package Files.Model is
       Forward     : Files.Types.String_Vectors.Vector;
       Create_Kind : Undo_Create_Kind := Create_None;
       Redoable    : Boolean := True;
+      --  Trash locations of destinations a paste-replace overwrote. On undo, once
+      --  the main reverse has vacated the destination, these are restored from the
+      --  trash so the overwritten original comes back. Empty for every other
+      --  action. Undo-only (a paste that replaced anything is not redoable).
+      Restore_Trash : Files.Types.String_Vectors.Vector;
    end record;
 
    --  Stack of undo/redo entries; the last element is the top of the stack.
@@ -1863,6 +1868,8 @@ package Files.Model is
    --  @param Forward     Redo payload: source paths or new values; may be empty.
    --  @param Create_Kind Creation kind re-run for Undo_Delete_Created redo.
    --  @param Redoable    False marks the entry undo-only (skipped by redo).
+   --  @param Restore_Trash Trash locations of paste-replace originals to restore
+   --    from the trash after the main reverse; empty for non-replacing actions.
    procedure Record_Undo
      (Model       : in out Window_Model;
       Kind        : Undo_Action_Kind;
@@ -1871,7 +1878,9 @@ package Files.Model is
       Forward     : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
       Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True);
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector);
 
    --  Forget the entire undo and redo history.
    --
@@ -2208,6 +2217,24 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
+   --  Trash locations of destinations this paste overwrote via Replace, so the
+   --  undo entry can restore each overwritten original from the trash.
+   --
+   --  @param Model Model to inspect.
+   --  @return The trash locations of replaced destinations so far.
+   function Paste_Execution_Replaced_Trash
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
+   --  Record that a Replace moved a destination to the trash at Trash_Path, so
+   --  undo can later restore it. Called once per replaced destination.
+   --
+   --  @param Model Model to update.
+   --  @param Trash_Path The overwritten original's location inside the trash.
+   procedure Record_Paste_Execution_Replaced_Trash
+     (Model      : in out Window_Model;
+      Trash_Path : Files.Types.UString);
+
    --  The first destination path written, reported as the operation result path.
    --
    --  @param Model Model to inspect.
@@ -2480,5 +2507,9 @@ private
       Paste_Exec_First_Dest_Value    : UString;
       Paste_Exec_Undo_From_Value     : Files.Types.String_Vectors.Vector;
       Paste_Exec_Undo_To_Value       : Files.Types.String_Vectors.Vector;
+      --  Trash locations of destinations overwritten by a Replace during this
+      --  paste, so the undo entry can restore them (parallel to nothing; each is
+      --  restored to its own recorded original path).
+      Paste_Exec_Replaced_Trash_Value : Files.Types.String_Vectors.Vector;
    end record;
 end Files.Model;

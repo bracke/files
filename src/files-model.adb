@@ -3564,7 +3564,9 @@ package body Files.Model is
       Forward     : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
       Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True) is
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector) is
    begin
       if Kind = Undo_None or else From.Is_Empty then
          return;
@@ -3572,12 +3574,13 @@ package body Files.Model is
 
       Model.Undo_Stack.Append
         (Undo_Entry'
-           (Kind        => Kind,
-            From        => From,
-            To          => To,
-            Forward     => Forward,
-            Create_Kind => Create_Kind,
-            Redoable    => Redoable));
+           (Kind          => Kind,
+            From          => From,
+            To            => To,
+            Forward       => Forward,
+            Create_Kind   => Create_Kind,
+            Redoable      => Redoable,
+            Restore_Trash => Restore_Trash));
       Model.Redo_Stack.Clear;
    end Record_Undo;
 
@@ -3852,6 +3855,7 @@ package body Files.Model is
       Model.Paste_Exec_First_Dest_Value := Null_Unbounded_String;
       Model.Paste_Exec_Undo_From_Value.Clear;
       Model.Paste_Exec_Undo_To_Value.Clear;
+      Model.Paste_Exec_Replaced_Trash_Value.Clear;
    end Begin_Paste_Execution;
 
    function Paste_Execution_Is_Active
@@ -3938,6 +3942,20 @@ package body Files.Model is
    begin
       return Model.Paste_Exec_Undo_To_Value;
    end Paste_Execution_Undo_To;
+
+   function Paste_Execution_Replaced_Trash
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector is
+   begin
+      return Model.Paste_Exec_Replaced_Trash_Value;
+   end Paste_Execution_Replaced_Trash;
+
+   procedure Record_Paste_Execution_Replaced_Trash
+     (Model      : in out Window_Model;
+      Trash_Path : Files.Types.UString) is
+   begin
+      Model.Paste_Exec_Replaced_Trash_Value.Append (Trash_Path);
+   end Record_Paste_Execution_Replaced_Trash;
 
    function Paste_Execution_First_Dest
      (Model : Window_Model)

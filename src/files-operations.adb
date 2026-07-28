@@ -1995,15 +1995,30 @@ package body Files.Operations is
    --  Remove a destination that a Replace decision must overwrite: move it to the
    --  trash when a backend is available, otherwise delete it permanently. Never
    --  touches a destination that is also the source (a paste onto itself).
-   function Clear_Replaced_Destination (Path : String; Source : String) return Boolean is
+   function Clear_Replaced_Destination
+     (Path    : String;
+      Source  : String;
+      Trashed : out Files.Types.UString)
+      return Boolean is
    begin
+      Trashed := Null_Unbounded_String;
       if not Exists_Safely (Path) or else Path = Source then
          return True;
       end if;
 
-      if Files.File_System.Move_To_Trash (Path).Success then
-         return True;
-      end if;
+      declare
+         Result : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Move_To_Trash (Path, Trashed);
+      begin
+         if Result.Success then
+            return True;
+         end if;
+      end;
+
+      --  No trash backend available: fall back to a permanent delete, as before.
+      --  Trashed stays empty, so such a replace is not undo-restorable (an existing
+      --  limitation on trash-less environments, not made worse here).
+      Trashed := Null_Unbounded_String;
       return Files.File_System.Delete_Permanently (Path).Success;
    end Clear_Replaced_Destination;
 
@@ -2029,19 +2044,29 @@ package body Files.Operations is
         Files.Model.Paste_Execution_Undo_From (Model);
       Undo_To    : constant Files.Types.String_Vectors.Vector :=
         Files.Model.Paste_Execution_Undo_To (Model);
+      --  Trash locations of destinations a Replace overwrote; undo restores them,
+      --  and a paste that replaced anything is undo-only (redo is not attempted).
+      Replaced_Trash : constant Files.Types.String_Vectors.Vector :=
+        Files.Model.Paste_Execution_Replaced_Trash (Model);
+      Redoable   : constant Boolean := Replaced_Trash.Is_Empty;
       First_Dest : constant String := Files.Model.Paste_Execution_First_Dest (Model);
    begin
       if not Undo_From.Is_Empty then
          if Mode = Files.File_System.Drop_Move then
-            Files.Model.Record_Undo (Model, Files.Model.Undo_Move, Undo_From, Undo_To);
+            Files.Model.Record_Undo
+              (Model, Files.Model.Undo_Move, Undo_From, Undo_To,
+               Redoable      => Redoable,
+               Restore_Trash => Replaced_Trash);
          else
             --  A copy is reversed by deleting the created copies (Undo_From) and
             --  redone by copying each source (Undo_To) back to its destination.
             Files.Model.Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Undo_From,
                Files.Types.String_Vectors.Empty_Vector,
-               Forward     => Undo_To,
-               Create_Kind => Files.Model.Create_Copy);
+               Forward       => Undo_To,
+               Create_Kind   => Files.Model.Create_Copy,
+               Redoable      => Redoable,
+               Restore_Trash => Replaced_Trash);
          end if;
 
          --  A clipboard cut/move consumes the clipboard once the paste has run
@@ -2103,32 +2128,56 @@ package body Files.Operations is
             if Action.Skip then
                Files.Model.Skip_Paste_Execution_Action (Model);
             else
-               if Action.Replaced
-                 and then not Clear_Replaced_Destination
-                                (To_String (Action.Dest_Path), To_String (Action.Source_Path))
-               then
-                  return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
-               end if;
-
                declare
-                  Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
+                  Replaced_Trash : Files.Types.UString := Null_Unbounded_String;
                begin
-                  Plans.Append
-                    (Files.File_System.Drop_Import_Plan'
-                       (Source_Path      => Action.Source_Path,
-                        Destination_Path => Action.Dest_Path,
-                        Mode             => Files.Model.Paste_Execution_Mode (Model),
-                        Valid            => True,
-                        Error_Key        => Null_Unbounded_String));
+                  if Action.Replaced
+                    and then not Clear_Replaced_Destination
+                                   (To_String (Action.Dest_Path),
+                                    To_String (Action.Source_Path),
+                                    Replaced_Trash)
+                  then
+                     return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
+                  end if;
+
                   declare
-                     Mutation : constant Files.File_System.Mutation_Result :=
-                       Files.File_System.Execute_Drop_Import (Plans);
+                     Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
                   begin
-                     if not Mutation.Success then
-                        return Finalize_Paste_Execution
-                          (Model, Settings, To_String (Mutation.Error_Key));
-                     end if;
+                     Plans.Append
+                       (Files.File_System.Drop_Import_Plan'
+                          (Source_Path      => Action.Source_Path,
+                           Destination_Path => Action.Dest_Path,
+                           Mode             => Files.Model.Paste_Execution_Mode (Model),
+                           Valid            => True,
+                           Error_Key        => Null_Unbounded_String));
+                     declare
+                        Mutation : constant Files.File_System.Mutation_Result :=
+                          Files.File_System.Execute_Drop_Import (Plans);
+                     begin
+                        if not Mutation.Success then
+                           --  The destination was just cleared but the write
+                           --  failed: put the trashed original back so a mid-paste
+                           --  failure never loses the pre-existing file.
+                           if Length (Replaced_Trash) > 0 then
+                              declare
+                                 Restored : constant Files.File_System.Mutation_Result :=
+                                   Files.File_System.Restore_From_Trash (To_String (Replaced_Trash));
+                                 pragma Unreferenced (Restored);
+                              begin
+                                 null;
+                              end;
+                           end if;
+                           return Finalize_Paste_Execution
+                             (Model, Settings, To_String (Mutation.Error_Key));
+                        end if;
+                     end;
                   end;
+
+                  --  Write succeeded: track the overwritten original's trash
+                  --  location so the paste's undo entry can restore it.
+                  if Length (Replaced_Trash) > 0 then
+                     Files.Model.Record_Paste_Execution_Replaced_Trash (Model, Replaced_Trash);
+                  end if;
                end;
 
                Files.Model.Record_Paste_Execution_Write
@@ -2808,6 +2857,18 @@ package body Files.Operations is
          when Files.Model.Undo_None =>
             Succeeded := False;
       end case;
+
+      --  Paste-replace: after the main reverse has vacated each destination
+      --  (deleted the pasted copy / moved the source back), restore the original
+      --  that the Replace moved to the trash, so undo returns the pre-paste state.
+      for Index in Action.Restore_Trash.First_Index .. Action.Restore_Trash.Last_Index loop
+         if not Files.File_System.Restore_From_Trash
+                  (To_String (Action.Restore_Trash.Element (Index))).Success
+         then
+            Succeeded := False;
+         end if;
+      end loop;
+
       return Succeeded;
    end Apply_Reverse;
 
