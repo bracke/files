@@ -11,6 +11,32 @@ package body Files.Settings is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
 
+   function Snapshot_Settings_Key_Of
+     (Settings : Settings_Model)
+      return Snapshot_Settings_Key is
+   begin
+      return
+        (Show_File_Extensions => Settings.Show_File_Extensions,
+         Show_Used_Space      => Settings.Show_Used_Space,
+         Show_Space_Bar       => Settings.Show_Space_Bar,
+         Theme                => Settings.Theme,
+         Icon_Theme_Name      => Settings.Icon_Theme_Name,
+         Column_Visible       => Settings.Column_Visible,
+         Column_Widths        => Settings.Column_Widths,
+         Column_Order         => Settings.Column_Order,
+         Group_By             => Settings.Group_By,
+         Favorite_Paths       => Settings.Favorite_Paths,
+         Labels               => Settings.Labels);
+   end Snapshot_Settings_Key_Of;
+
+   function Same_Snapshot_Settings
+     (Settings : Settings_Model;
+      Key      : Snapshot_Settings_Key)
+      return Boolean is
+   begin
+      return Snapshot_Settings_Key_Of (Settings) = Key;
+   end Same_Snapshot_Settings;
+
    procedure Safe_Close
      (File : in out Ada.Text_IO.File_Type);
 

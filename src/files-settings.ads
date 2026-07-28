@@ -127,6 +127,48 @@ package Files.Settings is
       Shortcut_Overrides     : Shortcut_Override_Vectors.Vector;
    end record;
 
+   --  The exact subset of the settings that Build_Snapshot reads. The render
+   --  layer caches this and reuses the cached view snapshot while it still
+   --  matches, so the snapshot rebuilds automatically on a theme, column,
+   --  visibility, favorite or label change without any explicit invalidation.
+   --  Keep this in step with the Settings.* reads in build_snapshot.adb.
+   type Snapshot_Settings_Key is record
+      Show_File_Extensions : Boolean := False;
+      Show_Used_Space      : Boolean := False;
+      Show_Space_Bar       : Boolean := False;
+      Theme                : Theme_Choice := Theme_Dark;
+      Icon_Theme_Name      : UString;
+      Column_Visible       : Files.Types.Detail_Column_Visibility :=
+        Files.Types.Default_Detail_Column_Visibility;
+      Column_Widths        : Files.Types.Detail_Column_Widths :=
+        Files.Types.Default_Detail_Column_Widths;
+      Column_Order         : Files.Types.Detail_Column_Order :=
+        Files.Types.Default_Detail_Column_Order;
+      Group_By             : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Favorite_Paths       : String_Vectors.Vector;
+      Labels               : Path_Label_Vectors.Vector;
+   end record;
+
+   --  Capture the snapshot-relevant settings for caching.
+   --
+   --  @param Settings Settings model to read.
+   --  @return The snapshot-input key for Settings.
+   function Snapshot_Settings_Key_Of
+     (Settings : Settings_Model)
+      return Snapshot_Settings_Key;
+
+   --  Whether Settings still yields the snapshot-input key Key, i.e. nothing the
+   --  view snapshot depends on has changed. Compares in place without building a
+   --  new key, so it is cheap enough for the per-frame render reuse check.
+   --
+   --  @param Settings Settings model to test.
+   --  @param Key Previously captured snapshot-input key.
+   --  @return True when Settings's snapshot inputs equal Key.
+   function Same_Snapshot_Settings
+     (Settings : Settings_Model;
+      Key      : Snapshot_Settings_Key)
+      return Boolean;
+
    type Settings_Parse_Result is record
       Success   : Boolean := True;
       Settings  : Settings_Model;

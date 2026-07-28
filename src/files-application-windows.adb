@@ -277,10 +277,6 @@ package body Files.Application.Windows is
       --  between two Render_Window calls, skip the expensive layout and
       --  Build_Frame_Commands rebuild and reuse the previously built data.
       Frame_Cache_Valid    : Boolean := False;
-      --  When True, Cached_Snapshot already reflects the current model+settings,
-      --  so the next render reuses it instead of calling Build_Snapshot. Cleared
-      --  by Invalidate_Snapshot at every point the app mutates the model.
-      Snapshot_Fresh       : Boolean := False;
       --  Present-gate state: whether we have presented at least once, and the
       --  overlay open-states of the last presented frame. A frame is re-presented
       --  only when its commands changed, an overlay is (or just was) open, or the
@@ -300,6 +296,11 @@ package body Files.Application.Windows is
       --  background poll (file watch, folder sizes) that changed nothing no
       --  longer forces the O(items) Build_Snapshot.
       Cached_Model_Revision : Natural := 0;
+      --  Snapshot-relevant settings (theme, columns, visibility, favorites,
+      --  labels) the Cached_Snapshot was built with. Together with the model
+      --  revision these are the whole of Build_Snapshot's inputs, so the snapshot
+      --  is reused only while both still match -- no explicit invalidation.
+      Cached_Settings_Key  : Files.Settings.Snapshot_Settings_Key;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       Cached_Frame_W       : Natural := 0;
       Cached_Frame_H       : Natural := 0;
@@ -410,23 +411,10 @@ package body Files.Application.Windows is
    --  Consume the GPU/GLFW/timing follow-up an interaction asks the shell to
    --  perform. Everything touching Runtime_Window's GPU/cache/input state stays
    --  here; Files.Interaction performs the model/settings mutation itself.
-   --  Mark the cached View_Snapshot stale so the next render rebuilds it.
-   --  Build_Snapshot is a pure function of (model, settings). Model changes are
-   --  detected automatically -- every model mutator bumps Window_Model's revision
-   --  and the render reuse gate compares it -- so this only has to cover settings
-   --  changes, which the model's revision does not see. It is still called on the
-   --  model-mutating input paths as a harmless belt-and-suspenders; over-
-   --  invalidation merely rebuilds a snapshot that was already current.
-   procedure Invalidate_Snapshot (Runtime : in out Runtime_Window) is
-   begin
-      Runtime.Snapshot_Fresh := False;
-   end Invalidate_Snapshot;
-
    procedure Apply_Interaction_Result
      (Runtime : in out Runtime_Window;
       Result  : Files.Interaction.Interaction_Result) is
    begin
-      Invalidate_Snapshot (Runtime);
       if Result.Font_Size_Changed then
          Runtime.Font_Pixel_Size := Runtime.Settings.Font_Pixel_Size;
       end if;
@@ -1139,7 +1127,6 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      Invalidate_Snapshot (Runtime);
       Text := Runtime.Handle.Pending_Text;
       Runtime.Handle.Pending_Text := Null_Unbounded_String;
 
@@ -1172,7 +1159,6 @@ package body Files.Application.Windows is
         and then Ada.Calendar.Clock - Runtime.Type_Ahead_Input_At > Type_Ahead_Timeout
       then
          Files.Model.Reset_Type_Ahead (Runtime.Model);
-         Invalidate_Snapshot (Runtime);
       end if;
    end Handle_Type_Ahead_Timeout;
 
@@ -1198,7 +1184,6 @@ package body Files.Application.Windows is
       Files.Drop_Events.Take (Runtime.Handle.Drop_Source, Drops, Mode);
       Result := Files.Controller.Handle_Drop_Import (Runtime.Model, Runtime.Settings, Drops, Mode);
       pragma Unreferenced (Result);
-      Invalidate_Snapshot (Runtime);
    end Handle_Drop_Input;
 
    procedure Handle_All_Drop_Input
@@ -1313,7 +1298,6 @@ package body Files.Application.Windows is
 
       Offset := Runtime.Handle.Pending_Scroll;
       Runtime.Handle.Pending_Scroll := 0;
-      Invalidate_Snapshot (Runtime);
 
       --  Ctrl + scroll: live font-size adjustment (zoom in / out).
       declare
@@ -1575,7 +1559,6 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      Invalidate_Snapshot (Runtime);
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
@@ -1888,13 +1871,13 @@ package body Files.Application.Windows is
             Shown           => True,
             Fallback_Frames => 0,
             Frame_Cache_Valid    => False,
-            Snapshot_Fresh       => False,
             Presented_Once             => False,
             Last_Present_Palette_Open  => False,
             Last_Present_Settings_Open => False,
             Present_Grace              => 0,
             Cached_Snapshot      => <>,
             Cached_Model_Revision => 0,
+            Cached_Settings_Key  => <>,
             Cached_Frame         => <>,
             Cached_Frame_W       => 0,
             Cached_Frame_H       => 0,
@@ -2351,9 +2334,10 @@ package body Files.Application.Windows is
          --  The per-frame animations (paste progress, marquee drag) mutate the
          --  model as they run above, so always rebuild while they are active.
          Reuse_Snapshot : constant Boolean :=
-           Runtime.Snapshot_Fresh
-           and then Runtime.Frame_Cache_Valid
+           Runtime.Frame_Cache_Valid
            and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
+           and then Files.Settings.Same_Snapshot_Settings
+                      (Runtime.Settings, Runtime.Cached_Settings_Key)
            and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
            and then not Runtime.Marquee_Active;
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -2417,12 +2401,13 @@ package body Files.Application.Windows is
             Runtime.Frame_Cache_Valid := True;
          end if;
 
-         --  Cached_Snapshot now reflects the current model at this revision (it
-         --  was reused, or just rebuilt above), so the next render may reuse it
-         --  until a settings change clears Snapshot_Fresh or a model mutation
-         --  bumps the revision.
-         Runtime.Snapshot_Fresh := True;
+         --  Cached_Snapshot now reflects the current model at this revision and
+         --  these settings (it was reused, or just rebuilt above), so the next
+         --  render reuses it until the model revision or a snapshot-relevant
+         --  setting changes -- the whole of Build_Snapshot's inputs.
          Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
+         Runtime.Cached_Settings_Key :=
+           Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
       end;
 
       --  Anything that changes what is on screen -- a rebuilt frame, an open (or
