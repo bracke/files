@@ -18,6 +18,7 @@ with Files.Model.Paste_Exec;
 with Files.Model.Label_Picker;
 with Files.Model.Tree_Panel;
 with Files.Model.Support;
+with Files.Model.View_Sort;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -100,79 +101,51 @@ package body Files.Model is
       return To_String (Model.Home_Path_Value);
    end Home_Path;
 
+   --  The view sort operations now live in the
+   --  Files.Model.View_Sort child; these renamings keep them on the public API.
    function View_Mode_Of
      (Model : Window_Model)
-      return Files.Types.View_Mode is
-   begin
-      return Model.View_Value;
-   end View_Mode_Of;
+      return Files.Types.View_Mode
+     renames Files.Model.View_Sort.View_Mode_Of;
 
    procedure Set_View_Mode
      (Model : in out Window_Model;
-      Mode  : Files.Types.View_Mode) is
-   begin
-      Model.View_Value := Mode;
-      Model.Main_View_Scroll := 0;
-   end Set_View_Mode;
+      Mode  : Files.Types.View_Mode)
+     renames Files.Model.View_Sort.Set_View_Mode;
 
    function Sort_Field_Of
      (Model : Window_Model)
-      return Sort_Field is
-   begin
-      return Model.Sort_Field_Value;
-   end Sort_Field_Of;
+      return Sort_Field
+     renames Files.Model.View_Sort.Sort_Field_Of;
 
    function Sort_Is_Ascending
      (Model : Window_Model)
-      return Boolean is
-   begin
-      return Model.Sort_Ascending;
-   end Sort_Is_Ascending;
+      return Boolean
+     renames Files.Model.View_Sort.Sort_Is_Ascending;
 
    procedure Select_Sort_Field
      (Model : in out Window_Model;
-      Field : Sort_Field) is
-   begin
-      if Model.Sort_Field_Value = Field then
-         Model.Sort_Ascending := not Model.Sort_Ascending;
-      else
-         Model.Sort_Field_Value := Field;
-         Model.Sort_Ascending := True;
-      end if;
-
-      Model.Sort_Menu_Open := False;
-      Model.Main_View_Scroll := 0;
-      Resort_Items (Model);
-   end Select_Sort_Field;
+      Field : Sort_Field)
+     renames Files.Model.View_Sort.Select_Sort_Field;
 
    procedure Apply_Sort
      (Model     : in out Window_Model;
       Field     : Sort_Field;
-      Ascending : Boolean) is
-   begin
-      Model.Sort_Field_Value := Field;
-      Model.Sort_Ascending   := Ascending;
-      Resort_Items (Model);
-   end Apply_Sort;
+      Ascending : Boolean)
+     renames Files.Model.View_Sort.Apply_Sort;
 
    procedure Toggle_Sort_Menu
-     (Model : in out Window_Model) is
-   begin
-      Model.Sort_Menu_Open := not Model.Sort_Menu_Open;
-   end Toggle_Sort_Menu;
+     (Model : in out Window_Model)
+     renames Files.Model.View_Sort.Toggle_Sort_Menu;
 
    procedure Close_Sort_Menu
-     (Model : in out Window_Model) is
-   begin
-      Model.Sort_Menu_Open := False;
-   end Close_Sort_Menu;
+     (Model : in out Window_Model)
+     renames Files.Model.View_Sort.Close_Sort_Menu;
 
    function Sort_Menu_Is_Open
      (Model : Window_Model)
-      return Boolean is
-   begin
-      return Model.Sort_Menu_Open;
-   end Sort_Menu_Is_Open;
+      return Boolean
+     renames Files.Model.View_Sort.Sort_Menu_Is_Open;
 
    function Item_Count
      (Model : Window_Model)
