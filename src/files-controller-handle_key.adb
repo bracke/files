@@ -1,0 +1,505 @@
+separate (Files.Controller)
+   function Handle_Key
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Controller_Result
+   is
+      Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
+
+      function Control_Only return Boolean is
+      begin
+         return Modifiers (Guikit.Input.Control_Key)
+           and then not Modifiers (Guikit.Input.Shift_Key)
+           and then not Modifiers (Guikit.Input.Alt_Key)
+           and then not Modifiers (Guikit.Input.Meta_Key);
+      end Control_Only;
+   begin
+      --  While a long paste is running the progress overlay owns the keyboard:
+      --  Escape requests cancellation (already-copied files are kept) and every
+      --  other key is swallowed so no command runs behind the modal-lite panel.
+      if Files.Model.Paste_Execution_Is_Active (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Operations.Cancel_Paste_Execution (Model);
+            declare
+               Finalized : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+            begin
+               return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Finalized);
+            end;
+         end if;
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      --  While the paste-conflict dialog is open it owns the keyboard: Escape
+      --  cancels the whole paste and every other key is swallowed so no command
+      --  runs behind the modal.
+      if Files.Model.Paste_Conflict_Is_Active (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            declare
+               Cancelled : constant Files.Operations.Operation_Result :=
+                 Files.Operations.Resolve_Paste_Conflict
+                   (Model     => Model,
+                    Settings  => Settings,
+                    Choice    => Files.Operations.Choice_Cancel,
+                    Apply_All => False);
+            begin
+               return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Cancelled);
+            end;
+         end if;
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      --  While the Quick Look overlay is open it owns the keyboard: Escape or
+      --  Space close it; the grid-navigation keys (arrows, Home/End, Page Up/Down)
+      --  move the selection underneath -- just as they would in the file grid --
+      --  and re-preview the newly selected item, so the user can flip through files
+      --  without leaving Quick Look. Every other key is swallowed so nothing behind
+      --  the modal-lite preview reacts.
+      if Files.Model.Quick_Look_Is_Open (Model) then
+         if (Key = Guikit.Input.Key_Escape or else Key = Guikit.Input.Key_Space)
+           and then Modifiers = Guikit.Input.No_Modifiers
+         then
+            Files.Model.Close_Quick_Look (Model);
+            return Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
+         elsif Modifiers = Guikit.Input.No_Modifiers
+           and then (Key = Guikit.Input.Key_Up or else Key = Guikit.Input.Key_Down
+                     or else Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Right
+                     or else Key = Guikit.Input.Key_Home or else Key = Guikit.Input.Key_End
+                     or else Key = Guikit.Input.Key_Page_Up or else Key = Guikit.Input.Key_Page_Down)
+         then
+            declare
+               Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+            begin
+               case Key is
+                  when Guikit.Input.Key_Up =>
+                     Files.Model.Move_Selection (Model, Guikit.Input.Move_Up);
+                  when Guikit.Input.Key_Down =>
+                     Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
+                  when Guikit.Input.Key_Left =>
+                     Files.Model.Move_Selection (Model, Guikit.Input.Move_Left);
+                  when Guikit.Input.Key_Right =>
+                     Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+                  when Guikit.Input.Key_Home =>
+                     Files.Model.Select_First_Visible (Model);
+                  when Guikit.Input.Key_End =>
+                     Files.Model.Select_Last_Visible (Model);
+                  when Guikit.Input.Key_Page_Up =>
+                     Files.Model.Move_Selection_By_Page (Model, Grid_Page_Rows, False);
+                  when Guikit.Input.Key_Page_Down =>
+                     Files.Model.Move_Selection_By_Page (Model, Grid_Page_Rows, True);
+                  when others =>
+                     null;
+               end case;
+               if Files.Model.Selected_Index (Model) = Old_Index then
+                  return Make_Result (Controller_Ignored);
+               end if;
+               Files.Model.Open_Quick_Look
+                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+               return Make_Result (Controller_Selection_Moved);
+            end;
+         end if;
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      if Files.Model.Command_Palette_Is_Open (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Close_Command_Palette (Model);
+            return Make_Result (Controller_Palette_Updated, Files.Commands.Close_Command_Palette_Command);
+         elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
+            return Commit_Focused_Text (Model, Settings, Modifiers);
+         elsif Key = Guikit.Input.Key_Left and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Move_Selection (Model, -1);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_Right and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Move_Selection (Model, 1);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Move_Selection (Model, -1);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_Down and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Move_Selection (Model, 1);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_Home and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Select_First (Model);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_End and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Select_Last (Model);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_Page_Up and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Page (Model, Down => False);
+            return Make_Result (Controller_Palette_Updated);
+         elsif Key = Guikit.Input.Key_Page_Down and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Palette_Page (Model, Down => True);
+            return Make_Result (Controller_Palette_Updated);
+         end if;
+      end if;
+
+      if Files.Model.Root_Selector_Is_Open (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Close_Root_Selector (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
+            return Handle_Root_Click (Model, Settings, Files.Model.Root_Selected_Index (Model));
+         elsif Key = Guikit.Input.Key_Left and then Modifiers = Guikit.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Guikit.Input.Move_Left);
+         elsif Key = Guikit.Input.Key_Right and then Modifiers = Guikit.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Guikit.Input.Move_Right);
+         elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Guikit.Input.Move_Up);
+         elsif Key = Guikit.Input.Key_Down and then Modifiers = Guikit.Input.No_Modifiers then
+            return Root_Selection_Result (Model, Guikit.Input.Move_Down);
+         elsif Key = Guikit.Input.Key_Home and then Modifiers = Guikit.Input.No_Modifiers then
+            return Root_Jump_Result (Model, 1);
+         elsif Key = Guikit.Input.Key_End and then Modifiers = Guikit.Input.No_Modifiers then
+            return Root_Jump_Result (Model, Files.Model.Root_Count (Model));
+         elsif Action.Kind = Files.Events.Command_Input_Action
+           and then Action.Command = Files.Commands.Open_Command_Palette_Command
+         then
+            null;
+         else
+            return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
+      if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
+         if Files.Model.Settings_Is_Capturing (Model) then
+            --  A Shortcut row is armed: every key is a chord to capture, not a
+            --  navigation or shortcut, until the capture ends.
+            return Capture_Settings_Shortcut (Model, Key, Modifiers);
+         elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Toggle_Settings_Pane (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Settings_Move_Focus (Model, -1);
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+         elsif Key = Guikit.Input.Key_Down and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Settings_Move_Focus (Model, 1);
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+         elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Right)
+           and then Modifiers = Guikit.Input.No_Modifiers
+         then
+            --  Left/Right cycle the focused toggle/choice or step a number (a
+            --  no-op on text fields); the emitted change is applied to the draft.
+            Files.Model.Settings_Cycle_Choice (Model, Forward => Key = Guikit.Input.Key_Right);
+            return Applied_Settings_Change (Model);
+         elsif Key = Guikit.Input.Key_Tab
+           and then Modifiers (Guikit.Input.Control_Key)
+           and then not Modifiers (Guikit.Input.Alt_Key)
+           and then not Modifiers (Guikit.Input.Meta_Key)
+         then
+            --  Ctrl+Tab / Ctrl+Shift+Tab switch between the section tabs -- the
+            --  keyboard equivalent of clicking the tab switcher.
+            Cycle_Settings_Section (Model, Forward => not Modifiers (Guikit.Input.Shift_Key));
+            return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+         elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
+            --  Enter on a focused Shortcut row arms press-to-capture (the
+            --  keyboard equivalent of clicking it); otherwise fall through to the
+            --  general Return handling below.
+            Files.Model.Settings_Begin_Capture (Model);
+            if Files.Model.Settings_Is_Capturing (Model) then
+               return Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);
+            end if;
+         end if;
+      end if;
+
+      if Key = Guikit.Input.Key_Return then
+         if Modifiers = Guikit.Input.No_Modifiers then
+            return Commit_Focused_Text (Model, Settings, Modifiers);
+         elsif Files.Model.Focus (Model) = Files.Types.Focus_None then
+            return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+         end if;
+      elsif Key = Guikit.Input.Key_Backspace
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Word_Backward (Model);
+      elsif Key = Guikit.Input.Key_Delete
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Word_Forward (Model);
+      elsif Key = Guikit.Input.Key_Left
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Guikit.Input.Move_Left)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
+            Files.Model.Set_Text_Cursor_Position
+              (Model, Previous_Word_Boundary (Focused_Text (Model), Old_Position));
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Guikit.Input.Key_Right
+        and then Control_Only
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets_Word (Model, Guikit.Input.Move_Right)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
+            Files.Model.Set_Text_Cursor_Position
+              (Model, Next_Word_Boundary (Focused_Text (Model), Old_Position));
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Guikit.Input.Key_Backspace
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Backward (Model);
+      elsif Key = Guikit.Input.Key_Delete
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+      then
+         return Delete_Focused_Text_Forward (Model);
+      elsif Key = Guikit.Input.Key_Left
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Left)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
+            Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Left);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Guikit.Input.Key_Right
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
+            Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Right);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Guikit.Input.Key_Home
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         --  Plain Home in the file grid selects the first visible item. This has
+         --  no modifier, so it never collides with Alt+Home = navigate home.
+         return First_Selection_Result (Model);
+      elsif Key = Guikit.Input.Key_End
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         --  Plain End in the file grid selects the last visible item.
+         return Last_Selection_Result (Model);
+      elsif Key = Guikit.Input.Key_Home
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Set_All_Carets_Home (Model)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
+            Files.Model.Set_Text_Cursor_Position (Model, 0);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Guikit.Input.Key_End
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+        and then Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      then
+         declare
+            Old_Position : constant Natural := Files.Model.Text_Cursor_Position (Model);
+         begin
+            if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
+               return
+                 Make_Result
+                   (if Files.Model.Rename_Set_All_Carets_End (Model)
+                    then Controller_Text_Updated
+                    else Controller_Ignored);
+            end if;
+            Files.Model.Set_Text_Cursor_Position (Model, Focused_Text (Model)'Length);
+            return
+              Make_Result
+                (if Files.Model.Text_Cursor_Position (Model) = Old_Position
+                 then Controller_Ignored
+                 else Controller_Text_Updated);
+         end;
+      elsif Key = Guikit.Input.Key_Page_Up
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         --  With the info pane open Page Up scrolls it; over the file grid it
+         --  pages the selection up by a page (like the arrow keys move it).
+         if Files.Model.Info_Pane_Is_Open (Model) then
+            return Scroll_Info_Result (Model, -10);
+         else
+            return Page_Selection_Result (Model, Down => False);
+         end if;
+      elsif Key = Guikit.Input.Key_Page_Down
+        and then Modifiers = Guikit.Input.No_Modifiers
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then not Files.Model.Settings_Pane_Is_Open (Model)
+      then
+         if Files.Model.Info_Pane_Is_Open (Model) then
+            return Scroll_Info_Result (Model, 10);
+         else
+            return Page_Selection_Result (Model, Down => True);
+         end if;
+      elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+         if Files.Model.Focus (Model) = Files.Types.Focus_None
+           and then not Files.Model.Rename_Is_Active (Model)
+           and then not Files.Model.Temporary_Item_Is_Active (Model)
+         then
+            if Files.Model.Settings_Pane_Is_Open (Model) then
+               Files.Model.Toggle_Settings_Pane (Model);
+               return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+            else
+               return Make_Result (Controller_Ignored, Files.Commands.Close_Command_Palette_Command);
+            end if;
+         else
+            Files.Model.Cancel_Focus_Or_Edit (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         end if;
+      end if;
+
+      case Action.Kind is
+         when Files.Events.Command_Input_Action =>
+            if Action.Command = Files.Commands.Toggle_Quick_Look_Command
+              and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+            then
+               --  Space is the Quick Look shortcut only when the grid owns the
+               --  keyboard. With a text field focused it is a typed space, so
+               --  ignore the shortcut and let the character event handle it.
+               return Make_Result (Controller_Ignored);
+            end if;
+            return Execute_Command (Action.Command, Model, Settings, Modifiers);
+         when Files.Events.Selection_Input_Action =>
+            if Files.Model.Focus (Model) = Files.Types.Focus_None
+              and then not Files.Model.Settings_Pane_Is_Open (Model)
+            then
+               declare
+                  Old_Index : constant Natural := Files.Model.Selected_Index (Model);
+                  Old_Count : constant Natural := Files.Model.Selected_Count (Model);
+                  Anchor    : Natural := Old_Index;
+               begin
+                  if Action.Range_Selection and then Old_Count > 1 then
+                     declare
+                        First_Selected : Natural := 0;
+                        Last_Selected  : Natural := 0;
+                     begin
+                        for Index in 1 .. Files.Model.Visible_Count (Model) loop
+                           if Files.Model.Is_Selected (Model, Positive (Index)) then
+                              if First_Selected = 0 then
+                                 First_Selected := Index;
+                              end if;
+                              Last_Selected := Index;
+                           end if;
+                        end loop;
+
+                        if Old_Index = Last_Selected then
+                           Anchor := First_Selected;
+                        elsif Old_Index = First_Selected then
+                           Anchor := Last_Selected;
+                        end if;
+                     end;
+                  end if;
+
+                  Files.Model.Move_Selection (Model, Action.Direction);
+                  if Action.Range_Selection then
+                     declare
+                        New_Index : constant Natural := Files.Model.Selected_Index (Model);
+                     begin
+                        if Anchor > 0 and then New_Index > 0 then
+                           Files.Model.Select_Visible_Range (Model, Positive (Anchor), Positive (New_Index));
+                        end if;
+                     end;
+                  end if;
+                  return
+                    Make_Result
+                      (if Files.Model.Selected_Index (Model) = Old_Index
+                         and then Files.Model.Selected_Count (Model) = Old_Count
+                       then Controller_Ignored
+                       else Controller_Selection_Moved);
+               end;
+            end if;
+         when Files.Events.Scroll_Input_Action =>
+            return Handle_Scroll (Model, Action.Scroll_Lines);
+         when Files.Events.No_Input_Action
+            | Files.Events.Text_Click_Input_Action
+            | Files.Events.Settings_Click_Input_Action
+            | Files.Events.Item_Click_Input_Action
+            | Files.Events.Root_Click_Input_Action
+            | Files.Events.Breadcrumb_Click_Input_Action
+            | Files.Events.Path_Favorite_Toggle_Input_Action
+            | Files.Events.Tree_Click_Input_Action
+            | Files.Events.Tree_Pick_Confirm_Input_Action
+            | Files.Events.Command_Result_Click_Input_Action
+            | Files.Events.Scrollbar_Drag_Begin_Input_Action
+            | Files.Events.Column_Resize_Begin_Input_Action
+            | Files.Events.Column_Reorder_Begin_Input_Action
+            | Files.Events.Marquee_Begin_Input_Action
+            | Files.Events.Permission_Toggle_Input_Action
+            | Files.Events.Ownership_Edit_Input_Action
+            | Files.Events.Conflict_Click_Input_Action
+            | Files.Events.Label_Picker_Choice_Input_Action
+            | Files.Events.Search_Scope_Toggle_Input_Action
+            | Files.Events.Paste_Cancel_Input_Action =>
+            null;
+      end case;
+
+      return Make_Result (Controller_Ignored);
+   end Handle_Key;
