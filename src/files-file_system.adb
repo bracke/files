@@ -58,7 +58,6 @@ package body Files.File_System is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Item_Kind;
 
-
    --  The thumbnails operations now live in the
    --  Files.File_System.Thumbnails child; these renamings keep them on the public API.
    function Default_Thumbnail_Cache_Directory

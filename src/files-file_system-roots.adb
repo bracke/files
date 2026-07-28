@@ -37,7 +37,6 @@ package body Files.File_System.Roots is
       Found           : Boolean := False;
    end record;
 
-
    procedure Volume_Size_For
      (Path : String;
       Info : out Volume_Size_Info);

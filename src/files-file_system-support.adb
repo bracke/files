@@ -95,7 +95,6 @@ package body Files.File_System.Support is
       return Image;
    end Natural_Text;
 
-
    --  Recursively copy a file/directory tree. Used as the cross-device
    --  fallback when Ada.Directories.Rename fails with EXDEV (it cannot move
    --  across filesystems), by both trashing and drag-and-drop moves.

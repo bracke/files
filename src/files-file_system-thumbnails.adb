@@ -65,7 +65,6 @@ package body Files.File_System.Thumbnails is
      (Object : System.Address)
    with Import, Convention => C, External_Name => "g_object_unref";
 
-
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr);
 

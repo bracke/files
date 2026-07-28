@@ -36,13 +36,6 @@ package body Files.File_System.Directory is
       return Natural (Value);
    end Stream_Byte;
 
-
-
-
-
-
-
-
    Extra_Line_Limit : constant Natural := 20_000;
 
    type Cached_Thumbnail is record
@@ -62,7 +55,6 @@ package body Files.File_System.Directory is
    PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
      [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
                                          --  89 'P' 'N' 'G' CR LF 1A LF
-
 
    function Load_Cached_Thumbnail
      (Path : String)
