@@ -9,6 +9,7 @@ package body Files.Model.Temporary is
       (Model : in out Window_Model;
        Name  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Begin_Create_Temporary (Model, Name, Is_Directory => False);
    end Begin_Create_File;
 
@@ -16,6 +17,7 @@ package body Files.Model.Temporary is
       (Model : in out Window_Model;
        Name  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Begin_Create_Temporary (Model, Name, Is_Directory => True);
    end Begin_Create_Folder;
 
@@ -43,6 +45,7 @@ package body Files.Model.Temporary is
    procedure Cancel_Create_File
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;

@@ -10,6 +10,7 @@ package body Files.Model.Panes is
    procedure Toggle_Info_Pane
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Info_Pane_Open := not Model.Info_Pane_Open;
       Model.Info_Pane_Scroll := 0;
    end Toggle_Info_Pane;
@@ -19,6 +20,7 @@ package body Files.Model.Panes is
    is
       Idx : constant Natural := Model.Selected_Item_Index;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Info_Pane_Open
         or else Idx = 0
         or else Idx > Natural (Model.Items.Length)
@@ -48,6 +50,7 @@ package body Files.Model.Panes is
    procedure Toggle_Settings_Pane
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
       if Model.Settings_Pane_Open then
          Clear_Edit_State (Model);
@@ -74,6 +77,7 @@ package body Files.Model.Panes is
    is
       Normalized_Draft : Files.Settings.Settings_Draft := Draft;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
       Model.Settings_Pane_Open := True;
@@ -98,37 +102,44 @@ package body Files.Model.Panes is
    is
       Normalized_Draft : Files.Settings.Settings_Draft := Draft;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
    end Set_Settings_Draft;
 
    procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Move_Focus (Model.Settings_Panel_View, Delta_Rows);
    end Settings_Move_Focus;
 
    procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Cycle_Choice (Model.Settings_Panel_View, Forward);
    end Settings_Cycle_Choice;
 
    procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Set_Focused_Value (Model.Settings_Panel_View, Text);
    end Settings_Set_Focused_Value;
 
    procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Scroll (Model.Settings_Panel_View, Lines);
    end Settings_Scroll;
 
    function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       return Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);
    end Settings_Click;
 
    function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       return Guikit.Settings_Panel.Take_Change (Model.Settings_Panel_View);
    end Settings_Take_Change;
 
@@ -139,6 +150,7 @@ package body Files.Model.Panes is
 
    procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Set_Active_Section (Model.Settings_Panel_View, Ordinal);
    end Settings_Set_Active_Section;
 
@@ -154,6 +166,7 @@ package body Files.Model.Panes is
 
    procedure Settings_Begin_Capture (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Begin_Capture (Model.Settings_Panel_View);
    end Settings_Begin_Capture;
 
@@ -169,11 +182,13 @@ package body Files.Model.Panes is
 
    procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Set_Captured_Shortcut (Model.Settings_Panel_View, Text);
    end Settings_Set_Captured_Shortcut;
 
    procedure Settings_Cancel_Capture (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Cancel_Capture (Model.Settings_Panel_View);
    end Settings_Cancel_Capture;
 
@@ -195,6 +210,7 @@ package body Files.Model.Panes is
    is
       Config : Guikit.Settings_Panel.Configuration;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Config.Line_Height := Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
@@ -231,6 +247,7 @@ package body Files.Model.Panes is
      (Model : in out Window_Model;
       Lines : Integer) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Info_Pane_Open or else Lines = 0 then
          return;
       elsif Lines < 0 then
@@ -259,6 +276,7 @@ package body Files.Model.Panes is
      (Model : in out Window_Model;
       Lines : Natural) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Info_Pane_Scroll := Lines;
    end Set_Info_Pane_Scroll_Lines;
 
@@ -266,6 +284,7 @@ package body Files.Model.Panes is
      (Model : in out Window_Model;
       Lines : Natural) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Main_View_Scroll := Lines;
    end Set_Main_View_Scroll_Lines;
 
@@ -273,6 +292,7 @@ package body Files.Model.Panes is
      (Model : in out Window_Model;
       Lines : Integer) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Lines = 0 then
          return;
       elsif Lines < 0 then

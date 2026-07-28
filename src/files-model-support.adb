@@ -12,6 +12,7 @@ package body Files.Model.Support is
    procedure Reset_Quick_Look
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Quick_Look_Active        := False;
       Model.Quick_Look_Path_Value    := Null_Unbounded_String;
       Model.Quick_Look_Content_Value := (others => <>);
@@ -103,6 +104,7 @@ package body Files.Model.Support is
    procedure Reset_Rename_State
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Rename_Active := False;
       Model.Rename_Fields.Clear;
    end Reset_Rename_State;
@@ -150,6 +152,7 @@ package body Files.Model.Support is
      (Model : in out Window_Model;
       Field : Rename_Field) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Field.Item_Index = 0 and then Model.Temporary_Active then
          Model.Temporary_Name_Value := Field.Value;
       end if;
@@ -158,6 +161,7 @@ package body Files.Model.Support is
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Root_Selector_Open := False;
       Model.Root_Entries.Clear;
       Model.Root_Selected := 0;
@@ -307,6 +311,7 @@ package body Files.Model.Support is
       Item_Index : Natural)
    is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Item_Index /= 0 and then not Selection_Contains (Model, Item_Index) then
          Model.Selected_Item_Indexes.Append (Item_Index);
       end if;
@@ -317,6 +322,7 @@ package body Files.Model.Support is
       Item_Index : Natural)
    is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Selected_Item_Indexes.Is_Empty then
          for Index in reverse Model.Selected_Item_Indexes.First_Index .. Model.Selected_Item_Indexes.Last_Index loop
             if Model.Selected_Item_Indexes.Element (Index) = Item_Index then
@@ -328,6 +334,7 @@ package body Files.Model.Support is
 
    procedure Mark_Settings_Draft_Edited (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Settings_Draft_Value.Valid := True;
       Model.Settings_Draft_Value.Error_Key := Null_Unbounded_String;
    end Mark_Settings_Draft_Edited;
@@ -345,6 +352,7 @@ package body Files.Model.Support is
 
    procedure Reconcile_Rename_With_Selection (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Rename_Active then
          return;
       end if;
@@ -373,6 +381,7 @@ package body Files.Model.Support is
 
    procedure Reconcile_Selection (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Selected_Item_Indexes.Is_Empty then
          for Index in reverse Model.Selected_Item_Indexes.First_Index .. Model.Selected_Item_Indexes.Last_Index loop
             declare
@@ -518,6 +527,7 @@ package body Files.Model.Support is
          return 0;
       end Index_Of;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Item_Index of Model.Selected_Item_Indexes loop
          if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
             Previous_Selection.Append (Model.Items.Element (Positive (Item_Index)));
@@ -590,6 +600,7 @@ package body Files.Model.Support is
    is
       Item_Index : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Selected_Item_Index := Item_Index;
       Model.Selected_Item_Indexes.Clear;
       if Item_Index = 0
@@ -609,6 +620,7 @@ package body Files.Model.Support is
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
@@ -716,6 +728,7 @@ package body Files.Model.Support is
 
    procedure Reset_Settings_Panel (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
    end Reset_Settings_Panel;
@@ -792,6 +805,7 @@ package body Files.Model.Support is
        Name         : String;
        Is_Directory : Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Clear_Overlay_State_For_Edit (Model);
       Model.Temporary_Active := True;
       Model.Temporary_Is_Directory := Is_Directory;

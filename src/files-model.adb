@@ -41,6 +41,13 @@ package body Files.Model is
 
    use Files.Model.Support;
 
+   function Revision
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Revision_Value;
+   end Revision;
+
    procedure Initialize
      (Model             : out Window_Model;
       Directory_Path    : String;
@@ -48,6 +55,7 @@ package body Files.Model is
       Home_Path         : String;
       Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
@@ -274,6 +282,7 @@ package body Files.Model is
       Directory_Path : String;
       Items          : Files.File_System.Item_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       --  Leaving the virtual recent view does not preserve it in history (its
       --  path is synthetic); an ordinary directory change pushes back history as
       --  usual.
@@ -313,6 +322,7 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       --  Only the initial entry into the view records the departure point; a
       --  refresh or clear re-enters while already active and just swaps items.
       if not Model.Recent_View_Active then
@@ -349,6 +359,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
       Previous : UString;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Can_Go_Back (Model) then
          return;
       end if;
@@ -385,6 +396,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
       Next : UString;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Can_Go_Forward (Model) then
          return;
       end if;
@@ -422,6 +434,7 @@ package body Files.Model is
    is
       Empty_Items : Files.File_System.Item_Vectors.Vector;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Navigate_To (Model, Home_Path (Model), Empty_Items);
    end Go_Home;
 
@@ -674,6 +687,7 @@ package body Files.Model is
       Clamped : constant Natural :=
         Text_Boundary_At_Or_Before (Focused_Text_Value (Model), Position);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
             Model.Path_Input_Cursor := Clamped;
@@ -707,6 +721,7 @@ package body Files.Model is
    is
       Cursor : constant Natural := Text_Cursor_Position (Model);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up then
          if Cursor > 0 then
             Set_Text_Cursor_Position (Model, Previous_Text_Boundary (Focused_Text_Value (Model), Cursor));
@@ -719,6 +734,7 @@ package body Files.Model is
    procedure Cancel_Focus_Or_Edit
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Clear_Root_Selector_State (Model);
 
       if Model.Focus_Value = Files.Types.Focus_Path_Input then
@@ -975,6 +991,7 @@ package body Files.Model is
    procedure Clear_Edit_State
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
@@ -992,6 +1009,7 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Temporary_Active then
          Cancel_Create_File (Model);
       elsif Model.Rename_Active then

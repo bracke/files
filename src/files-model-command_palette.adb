@@ -8,6 +8,7 @@ package body Files.Model.Command_Palette is
    procedure Focus_Command_Palette_Input
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Command_Palette_Open then
          Reset_Type_Ahead (Model);
          Model.Focus_Value := Files.Types.Focus_Command_Palette;
@@ -17,6 +18,7 @@ package body Files.Model.Command_Palette is
    procedure Open_Command_Palette
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Command_Palette_Open := True;
       Model.Command_Palette_Mode := Palette_Commands;
       Model.Open_With_Targets_Value.Clear;
@@ -31,6 +33,7 @@ package body Files.Model.Command_Palette is
    procedure Close_Command_Palette
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Command_Palette_Open := False;
       Model.Command_Palette_Mode := Palette_Commands;
       Model.Open_With_Targets_Value.Clear;
@@ -43,6 +46,7 @@ package body Files.Model.Command_Palette is
    procedure Toggle_Command_Palette
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Command_Palette_Open then
          Close_Command_Palette (Model);
       else
@@ -64,31 +68,37 @@ package body Files.Model.Command_Palette is
 
    procedure Palette_Set_Query (Model : in out Window_Model; Text : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Command_Palette.Set_Query (Model.Command_Palette_View, Text);
    end Palette_Set_Query;
 
    procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Command_Palette.Move_Selection (Model.Command_Palette_View, Delta_Rows);
    end Palette_Move_Selection;
 
    procedure Palette_Select_First (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Command_Palette.Select_First (Model.Command_Palette_View);
    end Palette_Select_First;
 
    procedure Palette_Select_Last (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Command_Palette.Select_Last (Model.Command_Palette_View);
    end Palette_Select_Last;
 
    procedure Palette_Page (Model : in out Window_Model; Down : Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Guikit.Command_Palette.Page (Model.Command_Palette_View, Down);
    end Palette_Page;
 
    function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       return Guikit.Command_Palette.Click (Model.Command_Palette_View, X, Y);
    end Palette_Click;
 
@@ -117,6 +127,7 @@ package body Files.Model.Command_Palette is
       Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       --  Refresh the config (line height) and the command list (fresh enablement)
       --  each frame; the component preserves the query and selection.
       Guikit.Command_Palette.Set_Configuration
@@ -151,6 +162,7 @@ package body Files.Model.Command_Palette is
      (Model : in out Window_Model;
       Mode  : Palette_Mode) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Command_Palette_Mode := Mode;
       --  The command list is mode-specific; reload it and reset the query.
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);

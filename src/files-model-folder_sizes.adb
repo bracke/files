@@ -6,12 +6,14 @@ package body Files.Model.Folder_Sizes is
       Path  : String;
       Value : Files.File_System.Directory_Size_Result) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Folder_Sizes.Include (To_Unbounded_String (Path), Value);
    end Set_Folder_Size;
 
    procedure Clear_Folder_Size
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Folder_Sizes.Clear;
    end Clear_Folder_Size;
 
@@ -20,6 +22,7 @@ package body Files.Model.Folder_Sizes is
       use type Files.Types.Item_Kind;
       Kept : Folder_Size_Maps.Map;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       --  Rebuild the cache keeping only entries for directories still selected.
       for Item of Selected_Items (Model) loop
          if Item.Kind = Files.Types.Directory_Item

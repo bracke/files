@@ -14,6 +14,7 @@ package body Files.Model.View_Sort is
      (Model : in out Window_Model;
       Mode  : Files.Types.View_Mode) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.View_Value := Mode;
       Model.Main_View_Scroll := 0;
    end Set_View_Mode;
@@ -36,6 +37,7 @@ package body Files.Model.View_Sort is
      (Model : in out Window_Model;
       Field : Sort_Field) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Sort_Field_Value = Field then
          Model.Sort_Ascending := not Model.Sort_Ascending;
       else
@@ -53,6 +55,7 @@ package body Files.Model.View_Sort is
       Field     : Sort_Field;
       Ascending : Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Sort_Field_Value := Field;
       Model.Sort_Ascending   := Ascending;
       Resort_Items (Model);
@@ -61,12 +64,14 @@ package body Files.Model.View_Sort is
    procedure Toggle_Sort_Menu
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Sort_Menu_Open := not Model.Sort_Menu_Open;
    end Toggle_Sort_Menu;
 
    procedure Close_Sort_Menu
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Sort_Menu_Open := False;
    end Close_Sort_Menu;
 

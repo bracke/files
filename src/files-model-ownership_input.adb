@@ -11,6 +11,7 @@ package body Files.Model.Ownership_Input is
    is
       Item : constant Files.File_System.Directory_Item := Selected_Item (Model);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Selected_Count (Model) /= 1
         or else Selection_Includes_Temporary (Model)
         or else not Files.File_System.Supports_Ownership
@@ -54,6 +55,7 @@ package body Files.Model.Ownership_Input is
      (Model : in out Window_Model;
       Text  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Ownership_Input_Value := To_Unbounded_String (Text);
       Model.Ownership_Input_Cursor := Text'Length;
    end Set_Ownership_Input_Text;

@@ -12,6 +12,7 @@ package body Files.Model.Undo_Redo is
       Restore_Trash : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Kind = Undo_None or else From.Is_Empty then
          return;
       end if;
@@ -31,6 +32,7 @@ package body Files.Model.Undo_Redo is
    procedure Clear_Undo
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Undo_Stack.Clear;
       Model.Redo_Stack.Clear;
    end Clear_Undo;
@@ -54,6 +56,7 @@ package body Files.Model.Undo_Redo is
       Action : out Undo_Entry;
       Found  : out Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Undo_Stack.Is_Empty then
          Action := (others => <>);
          Found := False;
@@ -70,6 +73,7 @@ package body Files.Model.Undo_Redo is
       Action : out Undo_Entry;
       Found  : out Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Redo_Stack.Is_Empty then
          Action := (others => <>);
          Found := False;
@@ -85,6 +89,7 @@ package body Files.Model.Undo_Redo is
      (Model  : in out Window_Model;
       Action : Undo_Entry) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Redo_Stack.Append (Action);
    end Push_Redo;
 
@@ -92,6 +97,7 @@ package body Files.Model.Undo_Redo is
      (Model  : in out Window_Model;
       Action : Undo_Entry) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Undo_Stack.Append (Action);
    end Push_Undo;
 

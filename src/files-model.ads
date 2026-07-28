@@ -40,6 +40,16 @@ package Files.Model is
       Home_Path         : String;
       Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons);
 
+   --  Return the model's change revision -- a counter bumped by every mutator.
+   --  The render layer compares this against the revision it last built a
+   --  snapshot at to decide whether the cached snapshot is still current.
+   --
+   --  @param Model Model to inspect.
+   --  @return Current change revision.
+   function Revision
+     (Model : Window_Model)
+      return Natural;
+
    --  Return the model current path.
    --
    --  @param Model Model to inspect.
@@ -2535,5 +2545,10 @@ private
       --  paste, so the undo entry can restore them (parallel to nothing; each is
       --  restored to its own recorded original path).
       Paste_Exec_Replaced_Trash_Value : Files.Types.String_Vectors.Vector;
+      --  Monotonic change counter bumped by every model mutator. The render
+      --  layer caches the value it built a snapshot at and rebuilds only when it
+      --  differs, so snapshot invalidation follows the model automatically
+      --  rather than relying on each call site to remember.
+      Revision_Value : Natural := 0;
    end record;
 end Files.Model;

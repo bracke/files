@@ -7,6 +7,7 @@ package body Files.Model.Context_Menu is
       Target     : Context_Menu_Target;
       Item_Index : Natural := 0) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Context_Menu_Open_Value := True;
       Model.Context_Menu_X_Value := X;
       Model.Context_Menu_Y_Value := Y;
@@ -17,6 +18,7 @@ package body Files.Model.Context_Menu is
    procedure Close_Context_Menu
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Context_Menu_Open_Value := False;
       Model.Context_Menu_Target_Value := Context_Menu_None;
       Model.Context_Menu_Item_Index_Value := 0;

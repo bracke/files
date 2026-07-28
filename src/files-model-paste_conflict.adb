@@ -9,6 +9,7 @@ package body Files.Model.Paste_Conflict is
       Index           : Positive;
       Clear_Clipboard : Boolean := True) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Conflict_Active_Value := True;
       Model.Paste_Conflict_Items_Value := Items;
       Model.Paste_Conflict_Existing_Value := Existing;
@@ -105,6 +106,7 @@ package body Files.Model.Paste_Conflict is
    procedure Toggle_Paste_Conflict_Apply_All
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Conflict_Apply_All_Value := not Model.Paste_Conflict_Apply_All_Value;
    end Toggle_Paste_Conflict_Apply_All;
 
@@ -112,6 +114,7 @@ package body Files.Model.Paste_Conflict is
      (Model  : in out Window_Model;
       Policy : Files.Paste.Conflict_Policy) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Conflict_Policy_Value := Policy;
    end Set_Paste_Conflict_Policy;
 
@@ -120,6 +123,7 @@ package body Files.Model.Paste_Conflict is
       Index    : Positive;
       Decision : Files.Paste.Item_Decision) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Index <= Natural (Model.Paste_Conflict_Overrides_Value.Length) then
          Model.Paste_Conflict_Overrides_Value.Replace_Element (Index, Decision);
       end if;
@@ -129,12 +133,14 @@ package body Files.Model.Paste_Conflict is
      (Model : in out Window_Model;
       Index : Positive) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Conflict_Index_Value := Index;
    end Set_Paste_Conflict_Index;
 
    procedure Clear_Paste_Conflict
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Conflict_Active_Value := False;
       Model.Paste_Conflict_Items_Value.Clear;
       Model.Paste_Conflict_Existing_Value.Clear;

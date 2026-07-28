@@ -9,6 +9,7 @@ package body Files.Model.Paste_Exec is
    is
       Writes : Natural := 0;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Action of Actions loop
          if not Action.Skip then
             Writes := Writes + 1;
@@ -126,6 +127,7 @@ package body Files.Model.Paste_Exec is
      (Model      : in out Window_Model;
       Trash_Path : Files.Types.UString) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Exec_Replaced_Trash_Value.Append (Trash_Path);
    end Record_Paste_Execution_Replaced_Trash;
 
@@ -139,6 +141,7 @@ package body Files.Model.Paste_Exec is
    procedure Skip_Paste_Execution_Action
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Exec_Cursor_Value := Model.Paste_Exec_Cursor_Value + 1;
    end Skip_Paste_Execution_Action;
 
@@ -148,6 +151,7 @@ package body Files.Model.Paste_Exec is
       Source_Path : Files.Types.UString;
       Name        : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Exec_Cursor_Value := Model.Paste_Exec_Cursor_Value + 1;
       Model.Paste_Exec_Done_Value := Model.Paste_Exec_Done_Value + 1;
       Model.Paste_Exec_Current_Value := To_Unbounded_String (Name);
@@ -161,12 +165,14 @@ package body Files.Model.Paste_Exec is
    procedure Cancel_Paste_Execution
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Exec_Cancelled_Value := True;
    end Cancel_Paste_Execution;
 
    procedure Clear_Paste_Execution
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Paste_Exec_Active_Value := False;
       Model.Paste_Exec_Actions_Value.Clear;
       Model.Paste_Exec_Cursor_Value := 0;

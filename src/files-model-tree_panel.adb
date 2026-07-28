@@ -4,18 +4,21 @@ package body Files.Model.Tree_Panel is
    procedure Toggle_Tree_Panel
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Tree_Panel_Open := not Model.Tree_Panel_Open;
    end Toggle_Tree_Panel;
 
    procedure Open_Tree_Panel
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Tree_Panel_Open := True;
    end Open_Tree_Panel;
 
    procedure Close_Tree_Panel
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Tree_Panel_Open := False;
       --  Closing the sidebar also abandons any in-flight destination picker so
       --  a later reopen starts clean.
@@ -30,6 +33,7 @@ package body Files.Model.Tree_Panel is
       Sources        : Files.Types.String_Vectors.Vector;
       Initial_Target : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Tree_Pick_Mode_Value := Mode;
       Model.Tree_Pick_Sources_Value := Sources;
       Model.Tree_Pick_Target_Value := To_Unbounded_String (Initial_Target);
@@ -39,12 +43,14 @@ package body Files.Model.Tree_Panel is
      (Model  : in out Window_Model;
       Target : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Tree_Pick_Target_Value := To_Unbounded_String (Target);
    end Set_Tree_Pick_Target;
 
    procedure Clear_Tree_Pick
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Tree_Pick_Mode_Value := Pick_None;
       Model.Tree_Pick_Sources_Value.Clear;
       Model.Tree_Pick_Target_Value := Null_Unbounded_String;
@@ -96,6 +102,7 @@ package body Files.Model.Tree_Panel is
      (Model : in out Window_Model;
       Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Files.Folder_Tree.Seed (Model.Folder_Tree_Value, Roots);
    end Seed_Tree;
 
@@ -135,6 +142,7 @@ package body Files.Model.Tree_Panel is
       Index    : Positive;
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Files.Folder_Tree.Set_Children (Model.Folder_Tree_Value, Index, Children);
    end Tree_Set_Children;
 
@@ -143,6 +151,7 @@ package body Files.Model.Tree_Panel is
       Index    : Positive;
       Expanded : Boolean) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Files.Folder_Tree.Set_Expanded (Model.Folder_Tree_Value, Index, Expanded);
    end Tree_Set_Expanded;
 
@@ -150,6 +159,7 @@ package body Files.Model.Tree_Panel is
      (Model : in out Window_Model;
       Index : Positive) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Files.Folder_Tree.Toggle_Expanded (Model.Folder_Tree_Value, Index);
    end Tree_Toggle_Expanded;
 

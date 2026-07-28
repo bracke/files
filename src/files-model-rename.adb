@@ -10,6 +10,7 @@ package body Files.Model.Rename is
    procedure Focus_Rename_Input
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Rename_Active then
          Reset_Type_Ahead (Model);
          Model.Focus_Value := Files.Types.Focus_Rename_Input;
@@ -38,6 +39,7 @@ package body Files.Model.Rename is
    procedure Toggle_Rename
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Rename_Active then
          if Is_Temporary_Rename (Model) then
             Cancel_Create_File (Model);
@@ -103,6 +105,7 @@ package body Files.Model.Rename is
      (Model : in out Window_Model;
       Text  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Rename_Active and then not Model.Rename_Fields.Is_Empty then
          declare
             Field : Rename_Field := Model.Rename_Fields.First_Element;
@@ -122,6 +125,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Text = "" then
          return False;
       end if;
@@ -149,6 +153,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -177,6 +182,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -204,6 +210,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field    : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -229,6 +236,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field    : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -256,6 +264,7 @@ package body Files.Model.Rename is
         Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up;
       Changed  : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field      : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -290,6 +299,7 @@ package body Files.Model.Rename is
         Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up;
       Changed  : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field      : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -315,6 +325,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -336,6 +347,7 @@ package body Files.Model.Rename is
    is
       Changed : Boolean := False;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          declare
             Field : Rename_Field := Model.Rename_Fields.Element (Index);
@@ -357,6 +369,7 @@ package body Files.Model.Rename is
       Visible_Index : Natural;
       Position      : Natural) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Visible_Index = 0 or else not Model.Rename_Active then
          return;
       end if;
@@ -429,6 +442,7 @@ package body Files.Model.Rename is
      (Model : in out Window_Model;
       Text  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Rename_Is_Enabled (Model) then
          return;
       end if;

@@ -23,6 +23,7 @@ package body Files.Model.Navigation is
      (Model     : in out Window_Model;
       Signature : Files.File_System.Directory_Signature) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Directory_Signature := Signature;
    end Set_Directory_Signature;
 
@@ -172,6 +173,7 @@ package body Files.Model.Navigation is
      (Model : in out Window_Model;
       Path  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Path /= "" then
          Model.Recent_Open_Queue.Append (To_Unbounded_String (Path));
       end if;
@@ -183,6 +185,7 @@ package body Files.Model.Navigation is
    is
       Drained : constant Files.Types.String_Vectors.Vector := Model.Recent_Open_Queue;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Recent_Open_Queue.Clear;
       return Drained;
    end Take_Recent_Opens;

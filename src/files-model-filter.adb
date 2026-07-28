@@ -10,6 +10,7 @@ package body Files.Model.Filter is
      (Model : in out Window_Model;
       Text  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Filter_Value := To_Unbounded_String (Text);
       Model.Filter_Cursor := Text'Length;
       Model.Main_View_Scroll := 0;
@@ -26,6 +27,7 @@ package body Files.Model.Filter is
    procedure Clear_Filter
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Set_Filter (Model, "");
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
@@ -42,6 +44,7 @@ package body Files.Model.Filter is
      (Model : in out Window_Model;
       Scope : Files.Types.Search_Scope) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Search_Scope_Value := Scope;
    end Set_Search_Scope;
 
@@ -56,6 +59,7 @@ package body Files.Model.Filter is
      (Model : in out Window_Model;
       Scope : Files.Types.Search_Scope) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Search_Scope_Value := Scope;
       Model.Search_Results_Active := Scope /= Files.Types.Filter_Here;
    end Note_Search_Results;
@@ -63,6 +67,7 @@ package body Files.Model.Filter is
    procedure Clear_Search_Results
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
    end Clear_Search_Results;
@@ -70,6 +75,7 @@ package body Files.Model.Filter is
    procedure Reset_Type_Ahead
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
    end Reset_Type_Ahead;
 
@@ -93,6 +99,7 @@ package body Files.Model.Filter is
       Start    : Natural;
       Target   : Natural;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Matched := False;
 
       if not Is_Printable_Run (Text) then
@@ -134,6 +141,7 @@ package body Files.Model.Filter is
    procedure Focus_Filter_Input
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       Model.Focus_Value := Files.Types.Focus_Filter_Input;
       Model.Filter_Cursor := Length (Model.Filter_Value);

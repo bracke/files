@@ -8,6 +8,7 @@ package body Files.Model.Selection is
      (Model         : in out Window_Model;
       Visible_Index : Positive) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       Select_Visible_Internal (Model, Visible_Index);
    end Select_Visible;
@@ -18,6 +19,7 @@ package body Files.Model.Selection is
    is
       Item_Index : Natural := Visible_To_Item_Index (Model, Visible_Index);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       if Item_Index = 0
         and then Temporary_Is_Visible (Model)
@@ -66,6 +68,7 @@ package body Files.Model.Selection is
          Add_Selected_Index (Model, Item_Index);
       end Add_Visible_Index;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       if Count = 0
         or else Natural (Anchor_Index) > Count
@@ -97,6 +100,7 @@ package body Files.Model.Selection is
    procedure Select_All_Visible
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       Model.Selected_Item_Indexes.Clear;
       Model.Selected_Item_Index := 0;
@@ -122,6 +126,7 @@ package body Files.Model.Selection is
    procedure Clear_Selection
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
@@ -134,6 +139,7 @@ package body Files.Model.Selection is
    is
       Primary : Natural := 0;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
 
       if Model.Items.Is_Empty then
@@ -167,6 +173,7 @@ package body Files.Model.Selection is
    procedure Deselect_All
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Clear_Selection (Model);
    end Deselect_All;
 
@@ -193,6 +200,7 @@ package body Files.Model.Selection is
          return Candidate;
       end Last_In_Column;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Count = 0 then
          Clear_Selection (Model);
          return;
@@ -240,6 +248,7 @@ package body Files.Model.Selection is
    is
       Count : constant Natural := Visible_Count (Model);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Count = 0 then
          Clear_Selection (Model);
       else
@@ -252,6 +261,7 @@ package body Files.Model.Selection is
    is
       Count : constant Natural := Visible_Count (Model);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Count = 0 then
          Clear_Selection (Model);
       else
@@ -271,6 +281,7 @@ package body Files.Model.Selection is
       Step    : constant Natural := Natural (Page_Rows) * Stride;
       Next    : Natural;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if Count = 0 then
          Clear_Selection (Model);
          return;
@@ -300,6 +311,7 @@ package body Files.Model.Selection is
      (Model   : in out Window_Model;
       Columns : Positive) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Selection_Columns := Columns;
    end Set_Selection_Grid_Columns;
 
@@ -456,6 +468,7 @@ package body Files.Model.Selection is
       Name  : String)
       return Boolean is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Reset_Quick_Look (Model);

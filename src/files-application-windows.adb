@@ -295,6 +295,11 @@ package body Files.Application.Windows is
       --  the present gate may then skip.
       Present_Grace              : Natural := 0;
       Cached_Snapshot      : Files.Rendering.View_Snapshot;
+      --  Model revision the Cached_Snapshot was built at. The next render reuses
+      --  the snapshot only when the model's current revision still matches, so a
+      --  background poll (file watch, folder sizes) that changed nothing no
+      --  longer forces the O(items) Build_Snapshot.
+      Cached_Model_Revision : Natural := 0;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       Cached_Frame_W       : Natural := 0;
       Cached_Frame_H       : Natural := 0;
@@ -405,12 +410,13 @@ package body Files.Application.Windows is
    --  Consume the GPU/GLFW/timing follow-up an interaction asks the shell to
    --  perform. Everything touching Runtime_Window's GPU/cache/input state stays
    --  here; Files.Interaction performs the model/settings mutation itself.
-   --  Mark the cached View_Snapshot stale so the next render rebuilds it. Called
-   --  wherever the app mutates the model or settings. Build_Snapshot is a pure
-   --  function of (model, settings) and the render path never mutates either, so
-   --  a snapshot is stale only when one of these app-layer entry points ran.
-   --  Over-invalidation merely rebuilds a snapshot that was already current, so
-   --  callers err toward calling this.
+   --  Mark the cached View_Snapshot stale so the next render rebuilds it.
+   --  Build_Snapshot is a pure function of (model, settings). Model changes are
+   --  detected automatically -- every model mutator bumps Window_Model's revision
+   --  and the render reuse gate compares it -- so this only has to cover settings
+   --  changes, which the model's revision does not see. It is still called on the
+   --  model-mutating input paths as a harmless belt-and-suspenders; over-
+   --  invalidation merely rebuilds a snapshot that was already current.
    procedure Invalidate_Snapshot (Runtime : in out Runtime_Window) is
    begin
       Runtime.Snapshot_Fresh := False;
@@ -1238,7 +1244,6 @@ package body Files.Application.Windows is
             Native_Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
             pragma Unreferenced (Native_Result);
          end;
-         Invalidate_Snapshot (Runtime);
          return;
       end if;
 
@@ -1249,7 +1254,6 @@ package body Files.Application.Windows is
       Runtime.Last_Watch_Poll := Now;
       Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
       pragma Unreferenced (Result);
-      Invalidate_Snapshot (Runtime);
    end Handle_File_Watch_Poll;
 
    procedure Handle_All_File_Watch_Poll
@@ -1285,7 +1289,6 @@ package body Files.Application.Windows is
             then
                Files.Model.Set_Folder_Size
                  (Runtime.Model, Ada.Strings.Unbounded.To_String (Path), Result);
-               Invalidate_Snapshot (Runtime);
             end if;
          end loop;
       end loop;
@@ -1891,6 +1894,7 @@ package body Files.Application.Windows is
             Last_Present_Settings_Open => False,
             Present_Grace              => 0,
             Cached_Snapshot      => <>,
+            Cached_Model_Revision => 0,
             Cached_Frame         => <>,
             Cached_Frame_W       => 0,
             Cached_Frame_H       => 0,
@@ -2349,6 +2353,7 @@ package body Files.Application.Windows is
          Reuse_Snapshot : constant Boolean :=
            Runtime.Snapshot_Fresh
            and then Runtime.Frame_Cache_Valid
+           and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
            and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
            and then not Runtime.Marquee_Active;
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -2412,10 +2417,12 @@ package body Files.Application.Windows is
             Runtime.Frame_Cache_Valid := True;
          end if;
 
-         --  Cached_Snapshot now reflects the current model (it was reused, or
-         --  just rebuilt above), so the next render may reuse it until the next
-         --  Invalidate_Snapshot.
+         --  Cached_Snapshot now reflects the current model at this revision (it
+         --  was reused, or just rebuilt above), so the next render may reuse it
+         --  until a settings change clears Snapshot_Fresh or a model mutation
+         --  bumps the revision.
          Runtime.Snapshot_Fresh := True;
+         Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
       end;
 
       --  Anything that changes what is on screen -- a rebuilt frame, an open (or

@@ -4,6 +4,7 @@ package body Files.Model.Label_Picker is
      (Model   : in out Window_Model;
       Targets : Files.Types.String_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Open_With_Targets_Value := Targets;
    end Set_Open_With_Targets;
 
@@ -17,12 +18,14 @@ package body Files.Model.Label_Picker is
    procedure Open_Label_Picker
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Label_Picker_Active := True;
    end Open_Label_Picker;
 
    procedure Close_Label_Picker
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Label_Picker_Active := False;
    end Close_Label_Picker;
 

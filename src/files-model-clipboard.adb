@@ -5,6 +5,7 @@ package body Files.Model.Clipboard is
      (Model : in out Window_Model;
       Text  : String) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.System_Clipboard_Request_Value := To_Unbounded_String (Text);
       Model.System_Clipboard_Request_Pending := True;
    end Set_System_Clipboard_Request;
@@ -26,6 +27,7 @@ package body Files.Model.Clipboard is
    procedure Clear_System_Clipboard_Request
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.System_Clipboard_Request_Value := Null_Unbounded_String;
       Model.System_Clipboard_Request_Pending := False;
    end Clear_System_Clipboard_Request;
@@ -35,6 +37,7 @@ package body Files.Model.Clipboard is
       Paths : Files.Types.String_Vectors.Vector;
       Mode  : Clipboard_Mode) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Clipboard_Paths_Value := Paths;
       Model.Clipboard_Mode_Value :=
         (if Paths.Is_Empty then Clipboard_None else Mode);
@@ -43,6 +46,7 @@ package body Files.Model.Clipboard is
    procedure Clear_Clipboard
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Clipboard_Paths_Value.Clear;
       Model.Clipboard_Mode_Value := Clipboard_None;
    end Clear_Clipboard;

@@ -11,6 +11,7 @@ package body Files.Model.Root_Selector is
    is
       Entries : Files.File_System.Root_Entry_Vectors.Vector;
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       for Root of Roots loop
          Entries.Append
            (Files.File_System.Root_Entry'
@@ -29,6 +30,7 @@ package body Files.Model.Root_Selector is
      (Model : in out Window_Model;
       Roots : Files.File_System.Root_Entry_Vectors.Vector) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Model.Root_Entries := Roots;
       Model.Root_Selector_Open := not Roots.Is_Empty;
       Model.Root_Selected := (if Model.Root_Selector_Open then 1 else 0);
@@ -41,6 +43,7 @@ package body Files.Model.Root_Selector is
    procedure Close_Root_Selector
      (Model : in out Window_Model) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       Clear_Root_Selector_State (Model);
    end Close_Root_Selector;
 
@@ -76,6 +79,7 @@ package body Files.Model.Root_Selector is
      (Model : in out Window_Model;
       Index : Natural) is
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Root_Selector_Open or else Root_Count (Model) = 0 then
          Model.Root_Selected := 0;
       elsif Index = 0 then
@@ -92,6 +96,7 @@ package body Files.Model.Root_Selector is
       Count   : constant Natural := Root_Count (Model);
       Current : constant Natural := Root_Selected_Index (Model);
    begin
+      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Root_Selector_Open or else Count = 0 then
          Model.Root_Selected := 0;
       elsif Current = 0 then
