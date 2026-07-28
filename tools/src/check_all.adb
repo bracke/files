@@ -2165,6 +2165,64 @@ procedure Check_All is
       end if;
    end Require_Not_Contains;
 
+   --  Like Require_Not_Contains, but also scans every subunit body of the unit
+   --  whose body is Base_Path -- the sibling files named <stem>-*.adb. A
+   --  guardrail expressed over a unit body therefore keeps covering code that
+   --  has since been moved out into subunits, so splitting a large body never
+   --  silently narrows the guardrail's reach.
+   procedure Require_Not_Contains_In_Unit
+     (Base_Path : String;
+      Pattern   : String;
+      Message   : String)
+   is
+      Dir     : constant String := Ada.Directories.Containing_Directory (Base_Path);
+      Stem    : constant String := Ada.Directories.Base_Name (Base_Path);
+      Ext     : constant String := Ada.Directories.Extension (Base_Path);
+      Prefix  : constant String := Stem & "-";
+      Suffix  : constant String := ".adb";
+      Search  : Ada.Directories.Search_Type;
+      Item    : Ada.Directories.Directory_Entry_Type;
+      Started : Boolean := False;
+   begin
+      Require_Not_Contains (Base_Path, Pattern, Message);
+
+      --  Only a body has subunits; a spec (.ads) is covered on its own.
+      if Ext /= "adb" then
+         return;
+      end if;
+
+      Ada.Directories.Start_Search
+        (Search,
+         Directory => Dir,
+         Pattern   => "*",
+         Filter    =>
+           [Ada.Directories.Ordinary_File => True,
+            Ada.Directories.Directory     => False,
+            Ada.Directories.Special_File  => False]);
+      Started := True;
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         declare
+            Name : constant String := Ada.Directories.Simple_Name (Item);
+         begin
+            if Name'Length > Prefix'Length + Suffix'Length
+              and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+              and then Name (Name'Last - Suffix'Length + 1 .. Name'Last) = Suffix
+            then
+               Require_Not_Contains
+                 (Ada.Directories.Full_Name (Item), Pattern, Message);
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   exception
+      when others =>
+         if Started then
+            Ada.Directories.End_Search (Search);
+         end if;
+         raise;
+   end Require_Not_Contains_In_Unit;
+
    procedure Check_Filetype_Detection_Order is
       File_Types_Body : constant String := Root & "/src/files-file_types.adb";
    begin
@@ -2495,7 +2553,7 @@ procedure Check_All is
       Application_Body : constant String := Root & "/src/files-application.adb";
       Tests            : constant String := Combined_Suite;
    begin
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Root & "/src/files-rendering.adb",
          "Unit_Width - 1",
          "text glyph rendering must not half-shift wide Unicode filename glyphs");
@@ -2537,19 +2595,19 @@ procedure Check_All is
       Windows_Body : constant String := Root & "/src/files-application-windows.adb";
       Tests        : constant String := Combined_Suite;
    begin
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Windows_Body,
          "Glyphs.Missing_Glyph_Count /= 0",
          "headless smoke must not reject otherwise visible frames solely for missing-glyph fallback");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Windows_Body,
          "Glfw.Windows.Context.Make_Current",
          "desktop Vulkan runtime must not make an OpenGL context current");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Windows_Body,
          "Glfw.Windows.Context.Swap_Buffers",
          "desktop Vulkan runtime must not swap OpenGL buffers");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Windows_Body,
          "Glfw.Windows.Context.Set_Swap_Interval",
          "desktop Vulkan runtime must not configure OpenGL swap interval");
@@ -2557,7 +2615,7 @@ procedure Check_All is
         (Combined_Suite,
          "runtime capabilities expose drop event-source automation",
          "desktop runtime tests must cover drop event-source automation");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Windows_Body,
          "Runtime.Last_Missing_Glyph_Count = 0",
          "live smoke must not reject otherwise visible frames solely for missing-glyph fallback");
@@ -2578,183 +2636,183 @@ procedure Check_All is
         (Path  : String;
          Label : String) is
       begin
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "with Ada.Directories;",
             Label & " must not import Ada.Directories for filesystem access");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Ada.Directories.",
             Label & " must not perform filesystem access");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Operations.",
             Label & " must not execute operations");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Controller.",
             Label & " must not route controller actions");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Application.",
             Label & " must not call application startup logic");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Commands.Execute",
             Label & " must not dispatch commands");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Commands.Execute_If_Enabled",
             Label & " must not dispatch commands");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Commands.Execute (",
             Label & " must not execute command handlers");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Commands.Find_By_Shortcut",
             Label & " must not translate input shortcuts");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "with GNAT.OS_Lib;",
             Label & " must not import OS process bindings");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "GNAT.OS_Lib.",
             Label & " must not call OS process bindings");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "GNAT.Expect.",
             Label & " must not call process interaction bindings");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Create_Process",
             Label & " must not create external processes");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Spawn",
             Label & " must not spawn external processes");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Add_Extension_Mapping",
             Label & " must not mutate settings extension mappings");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Add_Icon_Mapping",
             Label & " must not mutate settings icon mappings");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Add_Open_Action",
             Label & " must not mutate settings open-action mappings");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Apply_Draft",
             Label & " must not apply settings drafts");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Save_Draft",
             Label & " must not save settings drafts");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Ensure_Default_File",
             Label & " must not create settings files");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Save_Text",
             Label & " must not write settings text");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Settings.Load_File",
             Label & " must not load settings files");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.File_System.Create_Empty_File",
             Label & " must not invoke filesystem mutations");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.File_System.Load_Directory",
             Label & " must not load directories");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.File_System.Normalize_Path",
             Label & " must not validate or normalize paths");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.File_System.Resolve_Startup",
             Label & " must not resolve startup paths");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.File_System.Rename_Item",
             Label & " must not invoke filesystem mutations");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.File_System.Move_To_Trash",
             Label & " must not invoke filesystem mutations");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Set_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Add_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Begin_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Cancel_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Clear_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Close_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Focus_",
             Label & " must not mutate focus state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Go_",
             Label & " must not mutate path history");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Navigate_",
             Label & " must not mutate path history");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Open_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Remove_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Replace_",
             Label & " must not mutate model state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Resume_",
             Label & " must not mutate rename state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Scroll_",
             Label & " must not mutate scroll state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Select_",
             Label & " must not mutate selection state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Move_Selection",
             Label & " must not mutate selection state");
-         Require_Not_Contains
+         Require_Not_Contains_In_Unit
            (Path,
             "Files.Model.Toggle_",
             Label & " must not mutate model state");
@@ -2812,23 +2870,23 @@ procedure Check_All is
         (Fonts_Body,
          "function Is_Required_Zero_Width_Codepoint",
          "font discovery must not keep a local required zero-width glyph classifier");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Windows_Body,
          "Glyphs.Missing_Glyph_Count > 0",
          "live rendering must not reload fonts during every frame with missing glyphs");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Rendering_Body,
          "/usr/share/fonts",
          "rendering body must not hard-code system font paths");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Rendering_Body,
          "Add_Border (X, Y, Draw_Size, Draw_Size, Border_Color);",
          "main-section icon assets must not draw an extra outer square border");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Rendering_Body,
          "procedure Add_Pixel_Icon",
          "toolbar icon rendering must not use enlarged 7x7 pixel glyphs");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Rendering_Body,
          "Item_State_Inset",
          "main-view hover and selection blocks must include the item padding area");
@@ -2836,15 +2894,15 @@ procedure Check_All is
         (Vulkan_Body,
          "Renderer.Command_Buffers (Positive (Image_Index) + 1)",
          "Vulkan presentation must not convert zero image indexes to Positive before adding one");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Root & "/src/files-rendering.adb",
          "Prefix & ""...""",
          "rendering fitted text must not append three ASCII dots");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Rendering_Body,
          "function Is_Required_Zero_Width_Codepoint",
          "text glyph rendering must not keep a local required zero-width glyph classifier");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Root & "/src/files-rendering.adb",
          "procedure Decode_Next_Codepoint" & ASCII.LF
          & "           (Content   : String;",
