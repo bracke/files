@@ -1361,6 +1361,24 @@ package body Files.Settings is
          System_Fallback => False);
    end Lookup_Open_Action;
 
+   --  Parse a boolean setting value. Target is set on "true"/"false"; Valid is
+   --  False for anything else (callers turn that into error.settings.invalid_boolean).
+   --  Callers that accept mixed case pass a lower-cased value.
+   procedure Parse_Boolean
+     (Literal : String;
+      Target  : in out Boolean;
+      Valid   : out Boolean) is
+   begin
+      Valid := True;
+      if Literal = "true" then
+         Target := True;
+      elsif Literal = "false" then
+         Target := False;
+      else
+         Valid := False;
+      end if;
+   end Parse_Boolean;
+
    function Parse
      (Text : String)
       return Settings_Parse_Result
@@ -1599,13 +1617,10 @@ package body Files.Settings is
                            end;
                         elsif Setting_Key = "show_hidden_files" then
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Settings.Show_Hidden_Files := True;
-                              elsif Boolean_Value = "false" then
-                                 Settings.Show_Hidden_Files := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_Hidden_Files, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
@@ -1614,13 +1629,10 @@ package body Files.Settings is
                            end;
                         elsif Setting_Key = "show_file_extensions" then
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Settings.Show_File_Extensions := True;
-                              elsif Boolean_Value = "false" then
-                                 Settings.Show_File_Extensions := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_File_Extensions, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
@@ -1629,13 +1641,10 @@ package body Files.Settings is
                            end;
                         elsif Setting_Key = "show_used_space" then
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Settings.Show_Used_Space := True;
-                              elsif Boolean_Value = "false" then
-                                 Settings.Show_Used_Space := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_Used_Space, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
@@ -1644,13 +1653,10 @@ package body Files.Settings is
                            end;
                         elsif Setting_Key = "show_space_bar" then
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Settings.Show_Space_Bar := True;
-                              elsif Boolean_Value = "false" then
-                                 Settings.Show_Space_Bar := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_Space_Bar, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
@@ -1680,13 +1686,10 @@ package body Files.Settings is
                            end;
                         elsif Setting_Key = "sort_ascending" then
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Settings.Sort_Ascending := True;
-                              elsif Boolean_Value = "false" then
-                                 Settings.Sort_Ascending := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Settings.Sort_Ascending, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
@@ -1714,29 +1717,23 @@ package body Files.Settings is
                         elsif Setting_Key = "high_contrast_theme" then
                            --  Legacy key: resolved into Settings.Theme after the loop.
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Legacy_High := True;
-                              elsif Boolean_Value = "false" then
-                                 Legacy_High := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Legacy_High, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
-                                     Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
                               end if;
                            end;
                         elsif Setting_Key = "light_theme" then
                            --  Legacy key: resolved into Settings.Theme after the loop.
                            declare
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              OK : Boolean;
                            begin
-                              if Boolean_Value = "true" then
-                                 Legacy_Light := True;
-                              elsif Boolean_Value = "false" then
-                                 Legacy_Light := False;
-                              else
+                              Parse_Boolean (Files.Types.To_Lower (Value), Legacy_Light, OK);
+                              if not OK then
                                  return
                                    (Success   => False,
                                     Settings  => Settings,
@@ -1788,27 +1785,29 @@ package body Files.Settings is
                                  Settings.Window_Height := 0;
                            end;
                         elsif Setting_Key = "info_pane_open" then
-                           if Value = "true" then
-                              Settings.Info_Pane_Open := True;
-                           elsif Value = "false" then
-                              Settings.Info_Pane_Open := False;
-                           else
-                              return
-                                (Success   => False,
-                                 Settings  => Settings,
-                                 Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
-                           end if;
+                           declare
+                              OK : Boolean;
+                           begin
+                              Parse_Boolean (Value, Settings.Info_Pane_Open, OK);
+                              if not OK then
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                              end if;
+                           end;
                         elsif Setting_Key = "use_system_default_opener" then
-                           if Value = "true" then
-                              Settings.Use_System_Default_Opener := True;
-                           elsif Value = "false" then
-                              Settings.Use_System_Default_Opener := False;
-                           else
-                              return
-                                (Success   => False,
-                                 Settings  => Settings,
-                                 Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
-                           end if;
+                           declare
+                              OK : Boolean;
+                           begin
+                              Parse_Boolean (Value, Settings.Use_System_Default_Opener, OK);
+                              if not OK then
+                                 return
+                                   (Success   => False,
+                                    Settings  => Settings,
+                                    Error_Key => To_Unbounded_String ("error.settings.invalid_boolean"));
+                              end if;
+                           end;
                         elsif Setting_Key = "group_by" then
                            declare
                               Mode : constant String := Files.Types.To_Lower (Value);
@@ -1876,15 +1875,13 @@ package body Files.Settings is
                            declare
                               Suffix : constant String :=
                                 Setting_Key (Setting_Key'First + 14 .. Setting_Key'Last);
-                              Column        : Files.Types.Optional_Detail_Column;
-                              Boolean_Value : constant String := Files.Types.To_Lower (Value);
+                              Column : Files.Types.Optional_Detail_Column;
+                              OK     : Boolean;
                            begin
                               if Detail_Column_For_Key (Suffix, Column) then
-                                 if Boolean_Value = "true" then
-                                    Settings.Column_Visible (Column) := True;
-                                 elsif Boolean_Value = "false" then
-                                    Settings.Column_Visible (Column) := False;
-                                 else
+                                 Parse_Boolean
+                                   (Files.Types.To_Lower (Value), Settings.Column_Visible (Column), OK);
+                                 if not OK then
                                     return
                                       (Success   => False,
                                        Settings  => Settings,
