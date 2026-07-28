@@ -176,6 +176,21 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/awklib.git" awklib
           git clone --depth 1 "https://github.com/${owner}/regexp.git" regexp
 
+      - name: Cache the i18n CLDR upstream tree (CI-only; avoids the flaky 82 MB download)
+        # The transitive i18n build regenerates its data, downloading the 82 MB
+        # cldr-json release from the GitHub CDN. That fetch reaches Windows runners
+        # only intermittently, while ubuntu/macOS get it reliably. An OS-independent
+        # cross-OS cache (cldr-json is portable JSON) lets a reliable runner seed a
+        # tree the Windows leg restores, taking Windows out of the download path.
+        # This repo checks out siblings by hand rather than via project_tools'
+        # checkout-ada-siblings action, so the cache step is inlined here.
+        if: hashFiles('i18n/cldr/upstream/source_manifest.txt') != ''
+        uses: actions/cache@v4
+        with:
+          path: i18n/cldr/upstream/cldr-json
+          key: cldr-json-${{ hashFiles('i18n/cldr/upstream/source_manifest.txt') }}
+          enableCrossOsArchive: true
+
       - name: Set up Alire
         # v5 defaults to alr 2.1.0, whose index carries gnat_native 15.2.1.
         # v4 pins alr 2.0.2, whose older index cannot resolve it.
