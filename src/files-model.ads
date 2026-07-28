@@ -185,6 +185,30 @@ package Files.Model is
       Visible_Index : Positive)
       return Files.File_System.Directory_Item;
 
+   --  One visible row: the directory item plus whether it is selected.
+   type Visible_Row is record
+      Item     : Files.File_System.Directory_Item;
+      Selected : Boolean := False;
+   end record;
+
+   package Visible_Row_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Visible_Row);
+
+   --  Return every visible row in display order in a single pass.
+   --
+   --  Equivalent to reading Visible_Item and Is_Selected over
+   --  1 .. Visible_Count, but resolves the visible sequence and selection
+   --  membership once (O(N)) instead of rescanning the item list per row.
+   --  The sequence is the filtered items in order followed by the temporary
+   --  placeholder item when one is active.
+   --
+   --  @param Model Model to inspect.
+   --  @return Visible items in display order, each flagged selected or not.
+   function Visible_Rows
+     (Model : Window_Model)
+      return Visible_Row_Vectors.Vector;
+
    --  Set filter text and reconcile selection.
    --
    --  @param Model Model to update.

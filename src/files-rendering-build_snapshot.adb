@@ -599,10 +599,12 @@ separate (Files.Rendering)
          begin
             return Cut_Active and then Cut_Paths.Contains (Full_Path);
          end Is_Cut_Pending;
+         Rows : constant Files.Model.Visible_Row_Vectors.Vector := Files.Model.Visible_Rows (Model);
       begin
-         for Index in 1 .. Files.Model.Visible_Count (Model) loop
+         for Index in Rows.First_Index .. Rows.Last_Index loop
             declare
-               Item : constant Files.File_System.Directory_Item := Files.Model.Visible_Item (Model, Index);
+               Row  : Files.Model.Visible_Row renames Rows (Index);
+               Item : Files.File_System.Directory_Item renames Row.Item;
                Rename_On     : Boolean;
                Rename_Value  : Ada.Strings.Unbounded.Unbounded_String;
                Rename_Cursor : Natural;
@@ -633,7 +635,7 @@ separate (Files.Rendering)
                      Thumbnail           => (Pixels => Item.Thumbnail_Pixels),
                      Metadata_Error     => Item.Metadata_Error,
                      Error_Key          => Item.Error_Key,
-                     Selected           => Files.Model.Is_Selected (Model, Index),
+                     Selected           => Row.Selected,
                      Visible_Index      => Index,
                      Cut_Pending        => Is_Cut_Pending (Item.Full_Path),
                      Renaming           => Rename_On,
