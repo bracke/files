@@ -9,6 +9,7 @@ with Files.Type_Ahead;
 with Files.UTF8;
 
 with Files.Model.Context_Menu;
+with Files.Model.Undo_Redo;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -3613,6 +3614,8 @@ package body Files.Model is
         and then Model.Clipboard_Mode_Value /= Clipboard_None;
    end Clipboard_Has_Items;
 
+   --  The undo redo operations now live in the
+   --  Files.Model.Undo_Redo child; these renamings keep them on the public API.
    procedure Record_Undo
      (Model       : in out Window_Model;
       Kind        : Undo_Action_Kind;
@@ -3623,123 +3626,59 @@ package body Files.Model is
       Create_Kind : Undo_Create_Kind := Create_None;
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector) is
-   begin
-      if Kind = Undo_None or else From.Is_Empty then
-         return;
-      end if;
-
-      Model.Undo_Stack.Append
-        (Undo_Entry'
-           (Kind          => Kind,
-            From          => From,
-            To            => To,
-            Forward       => Forward,
-            Create_Kind   => Create_Kind,
-            Redoable      => Redoable,
-            Restore_Trash => Restore_Trash));
-      Model.Redo_Stack.Clear;
-   end Record_Undo;
+        Files.Types.String_Vectors.Empty_Vector)
+     renames Files.Model.Undo_Redo.Record_Undo;
 
    procedure Clear_Undo
-     (Model : in out Window_Model) is
-   begin
-      Model.Undo_Stack.Clear;
-      Model.Redo_Stack.Clear;
-   end Clear_Undo;
+     (Model : in out Window_Model)
+     renames Files.Model.Undo_Redo.Clear_Undo;
 
    function Undo_Available
      (Model : Window_Model)
-      return Boolean is
-   begin
-      return not Model.Undo_Stack.Is_Empty;
-   end Undo_Available;
+      return Boolean
+     renames Files.Model.Undo_Redo.Undo_Available;
 
    function Redo_Available
      (Model : Window_Model)
-      return Boolean is
-   begin
-      return not Model.Redo_Stack.Is_Empty;
-   end Redo_Available;
+      return Boolean
+     renames Files.Model.Undo_Redo.Redo_Available;
 
    procedure Take_Undo
      (Model  : in out Window_Model;
       Action : out Undo_Entry;
-      Found  : out Boolean) is
-   begin
-      if Model.Undo_Stack.Is_Empty then
-         Action := (others => <>);
-         Found := False;
-         return;
-      end if;
-
-      Action := Model.Undo_Stack.Last_Element;
-      Model.Undo_Stack.Delete_Last;
-      Found := True;
-   end Take_Undo;
+      Found  : out Boolean)
+     renames Files.Model.Undo_Redo.Take_Undo;
 
    procedure Take_Redo
      (Model  : in out Window_Model;
       Action : out Undo_Entry;
-      Found  : out Boolean) is
-   begin
-      if Model.Redo_Stack.Is_Empty then
-         Action := (others => <>);
-         Found := False;
-         return;
-      end if;
-
-      Action := Model.Redo_Stack.Last_Element;
-      Model.Redo_Stack.Delete_Last;
-      Found := True;
-   end Take_Redo;
+      Found  : out Boolean)
+     renames Files.Model.Undo_Redo.Take_Redo;
 
    procedure Push_Redo
      (Model  : in out Window_Model;
-      Action : Undo_Entry) is
-   begin
-      Model.Redo_Stack.Append (Action);
-   end Push_Redo;
+      Action : Undo_Entry)
+     renames Files.Model.Undo_Redo.Push_Redo;
 
    procedure Push_Undo
      (Model  : in out Window_Model;
-      Action : Undo_Entry) is
-   begin
-      Model.Undo_Stack.Append (Action);
-   end Push_Undo;
+      Action : Undo_Entry)
+     renames Files.Model.Undo_Redo.Push_Undo;
 
    function Undo_Kind_Of
      (Model : Window_Model)
-      return Undo_Action_Kind is
-   begin
-      if Model.Undo_Stack.Is_Empty then
-         return Undo_None;
-      end if;
-
-      return Model.Undo_Stack.Last_Element.Kind;
-   end Undo_Kind_Of;
+      return Undo_Action_Kind
+     renames Files.Model.Undo_Redo.Undo_Kind_Of;
 
    function Undo_From_Paths
      (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is
-   begin
-      if Model.Undo_Stack.Is_Empty then
-         return Files.Types.String_Vectors.Empty_Vector;
-      end if;
-
-      return Model.Undo_Stack.Last_Element.From;
-   end Undo_From_Paths;
+      return Files.Types.String_Vectors.Vector
+     renames Files.Model.Undo_Redo.Undo_From_Paths;
 
    function Undo_To_Paths
      (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is
-   begin
-      if Model.Undo_Stack.Is_Empty then
-         return Files.Types.String_Vectors.Empty_Vector;
-      end if;
-
-      return Model.Undo_Stack.Last_Element.To;
-   end Undo_To_Paths;
+      return Files.Types.String_Vectors.Vector
+     renames Files.Model.Undo_Redo.Undo_To_Paths;
 
    procedure Begin_Paste_Conflict
      (Model           : in out Window_Model;
