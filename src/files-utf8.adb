@@ -1,3 +1,11 @@
+with Guikit.Utf8;
+
+--  The Unicode primitives shared with Guikit.Utf8 (display width, codepoint
+--  decoding, the zero-width classification and the whitespace/encode helpers)
+--  are not reimplemented here: they delegate to the guikit library so the two
+--  copies cannot drift. Only the file-manager-specific helpers below (validity,
+--  text/word boundaries, range removal, the legacy-byte display decoder) live
+--  in this package.
 package body Files.UTF8 is
 
    function Saturating_Add
@@ -85,13 +93,7 @@ package body Files.UTF8 is
    function Is_Required_Zero_Width_Codepoint
      (Codepoint : Natural)
       return Boolean is
-   begin
-      return Codepoint in 16#0300# .. 16#036F#
-        or else Codepoint in 16#1AB0# .. 16#1AFF#
-        or else Codepoint in 16#1DC0# .. 16#1DFF#
-        or else Codepoint in 16#20D0# .. 16#20FF#
-        or else Codepoint in 16#FE20# .. 16#FE2F#;
-   end Is_Required_Zero_Width_Codepoint;
+     (Guikit.Utf8.Is_Required_Zero_Width_Codepoint (Codepoint));
 
    function Is_Wide_Codepoint
      (Codepoint : Natural)
@@ -201,82 +203,20 @@ package body Files.UTF8 is
 
    function Display_Units
      (Content : String)
-      return Natural
-   is
-      Index     : Integer := Content'First;
-      Units     : Natural := 0;
-      Codepoint : Natural := 0;
-   begin
-      while Index <= Content'Last loop
-         Decode_Next_Codepoint (Content, Index, Codepoint);
-         Units := Saturating_Add (Units, Codepoint_Display_Units (Codepoint));
-      end loop;
-
-      return Units;
-   end Display_Units;
+      return Natural is
+     (Guikit.Utf8.Display_Units (Content));
 
    function Prefix_By_Units
      (Content   : String;
       Max_Units : Natural)
-      return String
-   is
-      Index     : Integer := Content'First;
-      Last      : Integer := Content'First - 1;
-      Units     : Natural := 0;
-      Codepoint : Natural := 0;
-      Width     : Natural := 0;
-   begin
-      if Max_Units = 0 or else Content'Length = 0 then
-         return "";
-      end if;
-
-      while Index <= Content'Last loop
-         declare
-            Start : constant Integer := Index;
-         begin
-            Decode_Next_Codepoint (Content, Index, Codepoint);
-            Width := Codepoint_Display_Units (Codepoint);
-            exit when Saturating_Add (Units, Width) > Max_Units;
-
-            Units := Saturating_Add (Units, Width);
-            Last := Index - 1;
-         exception
-            when Constraint_Error =>
-               Index := Start + 1;
-               exit when Saturating_Add (Units, 1) > Max_Units;
-               Units := Saturating_Add (Units, 1);
-               Last := Start;
-         end;
-      end loop;
-
-      if Last < Content'First then
-         return "";
-      end if;
-
-      return Content (Content'First .. Last);
-   end Prefix_By_Units;
+      return String is
+     (Guikit.Utf8.Prefix_By_Units (Content, Max_Units));
 
    function Display_Units_Before
      (Content : String;
       Cursor  : Natural)
-      return Natural
-   is
-      Limit     : constant Natural := Natural'Min (Cursor, Content'Length);
-      Index     : Integer := Content'First;
-      Units     : Natural := 0;
-      Codepoint : Natural := 0;
-   begin
-      if Limit = 0 then
-         return 0;
-      end if;
-
-      while Index <= Content'Last and then Natural (Index - Content'First) < Limit loop
-         Decode_Next_Codepoint (Content, Index, Codepoint);
-         Units := Saturating_Add (Units, Codepoint_Display_Units (Codepoint));
-      end loop;
-
-      return Units;
-   end Display_Units_Before;
+      return Natural is
+     (Guikit.Utf8.Display_Units_Before (Content, Cursor));
 
    function Byte_Offset_For_Display_Column
      (Content : String;
@@ -337,65 +277,9 @@ package body Files.UTF8 is
      (Content               : String;
       Index                 : in out Integer;
       Codepoint             : out Natural;
-      Replacement_Codepoint : Natural := 16#FFFD#)
-   is
-      B1 : constant Natural := Byte_At (Content, Index);
-      B2 : Natural := 0;
-      B3 : Natural := 0;
-      B4 : Natural := 0;
+      Replacement_Codepoint : Natural := 16#FFFD#) is
    begin
-      if B1 <= 16#7F# then
-         Codepoint := B1;
-         Index := Index + 1;
-      elsif B1 in 16#C2# .. 16#DF#
-        and then Index <= Content'Last - 1
-        and then Is_Continuation (Content (Index + 1))
-      then
-         B2 := Byte_At (Content, Index + 1);
-         Codepoint := ((B1 mod 32) * 64) + (B2 mod 64);
-         Index := Index + 2;
-      elsif B1 in 16#E0# .. 16#EF#
-        and then Index <= Content'Last - 2
-        and then Is_Continuation (Content (Index + 1))
-        and then Is_Continuation (Content (Index + 2))
-      then
-         B2 := Byte_At (Content, Index + 1);
-         B3 := Byte_At (Content, Index + 2);
-         if (B1 = 16#E0# and then B2 < 16#A0#)
-           or else (B1 = 16#ED# and then B2 > 16#9F#)
-         then
-            Codepoint := Replacement_Codepoint;
-            Index := Index + 1;
-         else
-            Codepoint := ((B1 mod 16) * 4096) + ((B2 mod 64) * 64) + (B3 mod 64);
-            Index := Index + 3;
-         end if;
-      elsif B1 in 16#F0# .. 16#F4#
-        and then Index <= Content'Last - 3
-        and then Is_Continuation (Content (Index + 1))
-        and then Is_Continuation (Content (Index + 2))
-        and then Is_Continuation (Content (Index + 3))
-      then
-         B2 := Byte_At (Content, Index + 1);
-         B3 := Byte_At (Content, Index + 2);
-         B4 := Byte_At (Content, Index + 3);
-         if (B1 = 16#F0# and then B2 < 16#90#)
-           or else (B1 = 16#F4# and then B2 > 16#8F#)
-         then
-            Codepoint := Replacement_Codepoint;
-            Index := Index + 1;
-         else
-            Codepoint :=
-              ((B1 mod 8) * 262_144)
-              + ((B2 mod 64) * 4096)
-              + ((B3 mod 64) * 64)
-              + (B4 mod 64);
-            Index := Index + 4;
-         end if;
-      else
-         Codepoint := Replacement_Codepoint;
-         Index := Index + 1;
-      end if;
+      Guikit.Utf8.Decode_Next_Codepoint (Content, Index, Codepoint, Replacement_Codepoint);
    end Decode_Next_Codepoint;
 
    procedure Decode_Next_Display_Codepoint
@@ -441,38 +325,8 @@ package body Files.UTF8 is
 
    function Encode_Codepoint
      (Codepoint : Natural)
-      return String
-   is
-      Value : constant Natural :=
-        (if Codepoint <= 16#10FFFF#
-           and then not (Codepoint in 16#D800# .. 16#DFFF#)
-         then Codepoint
-         else 16#FFFD#);
-
-      function Byte (V : Natural) return Character is
-      begin
-         return Character'Val (V);
-      end Byte;
-   begin
-      if Value <= 16#7F# then
-         return [1 => Byte (Value)];
-      elsif Value <= 16#7FF# then
-         return
-           [1 => Byte (16#C0# + Value / 64),
-            2 => Byte (16#80# + Value mod 64)];
-      elsif Value <= 16#FFFF# then
-         return
-           [1 => Byte (16#E0# + Value / 4096),
-            2 => Byte (16#80# + (Value / 64) mod 64),
-            3 => Byte (16#80# + Value mod 64)];
-      else
-         return
-           [1 => Byte (16#F0# + Value / 262_144),
-            2 => Byte (16#80# + (Value / 4096) mod 64),
-            3 => Byte (16#80# + (Value / 64) mod 64),
-            4 => Byte (16#80# + Value mod 64)];
-      end if;
-   end Encode_Codepoint;
+      return String is
+     (Guikit.Utf8.Encode (Codepoint));
 
    function Previous_Boundary
      (Content : String;
@@ -542,27 +396,6 @@ package body Files.UTF8 is
       return Position;
    end Boundary_At_Or_Before;
 
-   function Is_Whitespace_Separator_Codepoint
-     (Codepoint : Natural)
-      return Boolean is
-   begin
-      return Codepoint = Character'Pos (' ')
-        or else Codepoint = 9
-        or else Codepoint = 10
-        or else Codepoint = 11
-        or else Codepoint = 12
-        or else Codepoint = 13
-        or else Codepoint = 16#85#
-        or else Codepoint = 16#00A0#
-        or else Codepoint = 16#1680#
-        or else Codepoint in 16#2000# .. 16#200A#
-        or else Codepoint = 16#2028#
-        or else Codepoint = 16#2029#
-        or else Codepoint = 16#202F#
-        or else Codepoint = 16#205F#
-        or else Codepoint = 16#3000#;
-   end Is_Whitespace_Separator_Codepoint;
-
    function Is_Word_Punctuation (Codepoint : Natural) return Boolean is
    begin
       return Codepoint = Character'Pos ('/')
@@ -575,29 +408,8 @@ package body Files.UTF8 is
    function Whitespace_Separator_Length
      (Content  : String;
       Position : Natural)
-      return Natural
-   is
-      Index     : constant Natural := Content'First + Position;
-      Next      : Integer := Index;
-      Codepoint : Natural := 0;
-   begin
-      if Position >= Content'Length then
-         return 0;
-      elsif Byte_At (Content, Index) = 16#85# then
-         return 1;
-      end if;
-
-      Decode_Next_Codepoint
-        (Content,
-         Next,
-         Codepoint,
-         Replacement_Codepoint => 16#110000#);
-      if Is_Whitespace_Separator_Codepoint (Codepoint) then
-         return Natural (Next - Index);
-      end if;
-
-      return 0;
-   end Whitespace_Separator_Length;
+      return Natural is
+     (Guikit.Utf8.Whitespace_Separator_Length (Content, Position));
 
    function Word_Separator_Length
      (Content  : String;
