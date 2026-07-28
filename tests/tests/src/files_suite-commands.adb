@@ -941,6 +941,9 @@ package body Files_Suite.Commands is
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Z, Ctrl_Shift) = Files.Commands.Redo_Command,
          "Ctrl+Shift+Z dispatches the redo command distinct from undo");
       Assert
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Y, Ctrl) = Files.Commands.Redo_Command,
+         "Ctrl+Y is a secondary redo accelerator alongside Ctrl+Shift+Z");
+      Assert
         (Files.Commands.Placement_For (Files.Commands.Select_Drive_Command) = Files.Commands.Toolbar_Left,
          "drive selector is placed in left toolbar");
       Assert

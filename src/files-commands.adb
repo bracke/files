@@ -675,6 +675,7 @@ package body Files.Commands is
    function Secondary_Shortcut_For
      (Id : Command_Id)
       return Shortcut is
+      Ctrl : constant Guikit.Input.Modifier_Set := Control_Modifier;
    begin
       case Id is
          when Delete_Selected_Items_Command =>
@@ -683,6 +684,10 @@ package body Files.Commands is
             --  F5 is the universal refresh accelerator, offered in addition to
             --  the displayed Control+R primary shortcut.
             return (True, Guikit.Input.Key_F5, Guikit.Input.No_Modifiers);
+         when Redo_Command =>
+            --  Control+Y is the Windows/Office redo accelerator, offered
+            --  alongside the displayed Control+Shift+Z primary shortcut.
+            return (True, Guikit.Input.Key_Y, Ctrl);
          when others =>
             return (False, Guikit.Input.Key_Unknown, Guikit.Input.No_Modifiers);
       end case;
