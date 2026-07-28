@@ -3007,9 +3007,15 @@ package body Files.Operations is
 
       Succeeded := Apply_Reverse (Action);
 
-      --  A reversed action moves onto the redo stack, unless it is undo-only or
-      --  its reverse could not be fully applied.
-      if Succeeded and then Action.Redoable then
+      --  A fully reversed, redoable action moves onto the redo stack. If the
+      --  reverse only partially applied, the entry goes back onto the undo
+      --  stack instead of vanishing from history: re-running is safe (missing
+      --  paths count as already undone and mode/owner restores are idempotent)
+      --  and lets the user retry the items that did not revert. An undo-only
+      --  action that fully succeeded is simply consumed.
+      if not Succeeded then
+         Files.Model.Push_Undo (Model, Action);
+      elsif Action.Redoable then
          Files.Model.Push_Redo (Model, Action);
       end if;
 
@@ -3049,10 +3055,15 @@ package body Files.Operations is
 
       Succeeded := Apply_Forward (Action);
 
-      --  A re-applied action returns to the undo stack without disturbing the
-      --  rest of the redo history.
+      --  A fully re-applied action returns to the undo stack without disturbing
+      --  the rest of the redo history. If it only partially applied, it goes
+      --  back onto the redo stack rather than being dropped, so the redo stays
+      --  available for a retry (Apply_Forward's Exists_Safely guards keep a
+      --  retry from overwriting the items that already re-applied).
       if Succeeded then
          Files.Model.Push_Undo (Model, Action);
+      else
+         Files.Model.Push_Redo (Model, Action);
       end if;
 
       declare
