@@ -86,301 +86,187 @@ package body Files.Model is
 
    --  The navigation operations now live in the
    --  Files.Model.Navigation child; these renamings keep them on the public API.
-   function Current_Path
-     (Model : Window_Model)
-      return String
+   function Current_Path (Model : Window_Model) return String
      renames Files.Model.Navigation.Current_Path;
 
-   function Directory_Signature_Of
-     (Model : Window_Model)
-      return Files.File_System.Directory_Signature
+   function Directory_Signature_Of (Model : Window_Model) return Files.File_System.Directory_Signature
      renames Files.Model.Navigation.Directory_Signature_Of;
 
-   procedure Set_Directory_Signature
-     (Model     : in out Window_Model;
-      Signature : Files.File_System.Directory_Signature)
+   procedure Set_Directory_Signature (Model : in out Window_Model; Signature : Files.File_System.Directory_Signature)
      renames Files.Model.Navigation.Set_Directory_Signature;
 
-   function Home_Path
-     (Model : Window_Model)
-      return String
+   function Home_Path (Model : Window_Model) return String
      renames Files.Model.Navigation.Home_Path;
 
-   function Item_Count
-     (Model : Window_Model)
-      return Natural
+   function Item_Count (Model : Window_Model) return Natural
      renames Files.Model.Navigation.Item_Count;
 
-   function Visible_Count
-     (Model : Window_Model)
-      return Natural
+   function Visible_Count (Model : Window_Model) return Natural
      renames Files.Model.Navigation.Visible_Count;
 
-   function Hidden_Item_Count
-     (Model : Window_Model)
-      return Natural
+   function Hidden_Item_Count (Model : Window_Model) return Natural
      renames Files.Model.Navigation.Hidden_Item_Count;
 
-   function Visible_Item
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Files.File_System.Directory_Item
+   function Visible_Item (Model : Window_Model; Visible_Index : Positive) return Files.File_System.Directory_Item
      renames Files.Model.Navigation.Visible_Item;
 
-   function Visible_Rows
-     (Model : Window_Model)
-      return Visible_Row_Vectors.Vector
+   function Visible_Rows (Model : Window_Model) return Visible_Row_Vectors.Vector
      renames Files.Model.Navigation.Visible_Rows;
 
-   function In_Recent_View
-     (Model : Window_Model)
-      return Boolean
+   function In_Recent_View (Model : Window_Model) return Boolean
      renames Files.Model.Navigation.In_Recent_View;
 
-   procedure Note_Recent_Open
-     (Model : in out Window_Model;
-      Path  : String)
+   procedure Note_Recent_Open (Model : in out Window_Model; Path : String)
      renames Files.Model.Navigation.Note_Recent_Open;
 
-   function Take_Recent_Opens
-     (Model : in out Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Take_Recent_Opens (Model : in out Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Navigation.Take_Recent_Opens;
 
-   function Can_Go_Back
-     (Model : Window_Model)
-      return Boolean
+   function Can_Go_Back (Model : Window_Model) return Boolean
      renames Files.Model.Navigation.Can_Go_Back;
 
-   function Can_Go_Forward
-     (Model : Window_Model)
-      return Boolean
+   function Can_Go_Forward (Model : Window_Model) return Boolean
      renames Files.Model.Navigation.Can_Go_Forward;
 
    --  The view sort operations now live in the
    --  Files.Model.View_Sort child; these renamings keep them on the public API.
-   function View_Mode_Of
-     (Model : Window_Model)
-      return Files.Types.View_Mode
+   function View_Mode_Of (Model : Window_Model) return Files.Types.View_Mode
      renames Files.Model.View_Sort.View_Mode_Of;
 
-   procedure Set_View_Mode
-     (Model : in out Window_Model;
-      Mode  : Files.Types.View_Mode)
+   procedure Set_View_Mode (Model : in out Window_Model; Mode : Files.Types.View_Mode)
      renames Files.Model.View_Sort.Set_View_Mode;
 
-   function Sort_Field_Of
-     (Model : Window_Model)
-      return Sort_Field
+   function Sort_Field_Of (Model : Window_Model) return Sort_Field
      renames Files.Model.View_Sort.Sort_Field_Of;
 
-   function Sort_Is_Ascending
-     (Model : Window_Model)
-      return Boolean
+   function Sort_Is_Ascending (Model : Window_Model) return Boolean
      renames Files.Model.View_Sort.Sort_Is_Ascending;
 
-   procedure Select_Sort_Field
-     (Model : in out Window_Model;
-      Field : Sort_Field)
+   procedure Select_Sort_Field (Model : in out Window_Model; Field : Sort_Field)
      renames Files.Model.View_Sort.Select_Sort_Field;
 
-   procedure Apply_Sort
-     (Model     : in out Window_Model;
-      Field     : Sort_Field;
-      Ascending : Boolean)
+   procedure Apply_Sort (Model : in out Window_Model; Field : Sort_Field; Ascending : Boolean)
      renames Files.Model.View_Sort.Apply_Sort;
 
-   procedure Toggle_Sort_Menu
-     (Model : in out Window_Model)
+   procedure Toggle_Sort_Menu (Model : in out Window_Model)
      renames Files.Model.View_Sort.Toggle_Sort_Menu;
 
-   procedure Close_Sort_Menu
-     (Model : in out Window_Model)
+   procedure Close_Sort_Menu (Model : in out Window_Model)
      renames Files.Model.View_Sort.Close_Sort_Menu;
 
-   function Sort_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Sort_Menu_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.View_Sort.Sort_Menu_Is_Open;
 
    --  The filter operations now live in the
    --  Files.Model.Filter child; these renamings keep them on the public API.
-   procedure Set_Filter
-     (Model : in out Window_Model;
-      Text  : String)
+   procedure Set_Filter (Model : in out Window_Model; Text : String)
      renames Files.Model.Filter.Set_Filter;
 
-   function Filter_Text
-     (Model : Window_Model)
-      return String
+   function Filter_Text (Model : Window_Model) return String
      renames Files.Model.Filter.Filter_Text;
 
-   procedure Clear_Filter
-     (Model : in out Window_Model)
+   procedure Clear_Filter (Model : in out Window_Model)
      renames Files.Model.Filter.Clear_Filter;
 
-   function Search_Scope_Of
-     (Model : Window_Model)
-      return Files.Types.Search_Scope
+   function Search_Scope_Of (Model : Window_Model) return Files.Types.Search_Scope
      renames Files.Model.Filter.Search_Scope_Of;
 
-   procedure Set_Search_Scope
-     (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope)
+   procedure Set_Search_Scope (Model : in out Window_Model; Scope : Files.Types.Search_Scope)
      renames Files.Model.Filter.Set_Search_Scope;
 
-   function Search_Results_Are_Active
-     (Model : Window_Model)
-      return Boolean
+   function Search_Results_Are_Active (Model : Window_Model) return Boolean
      renames Files.Model.Filter.Search_Results_Are_Active;
 
-   procedure Note_Search_Results
-     (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope)
+   procedure Note_Search_Results (Model : in out Window_Model; Scope : Files.Types.Search_Scope)
      renames Files.Model.Filter.Note_Search_Results;
 
-   procedure Clear_Search_Results
-     (Model : in out Window_Model)
+   procedure Clear_Search_Results (Model : in out Window_Model)
      renames Files.Model.Filter.Clear_Search_Results;
 
-   procedure Type_Ahead_Input
-     (Model   : in out Window_Model;
-      Text    : String;
-      Matched : out Boolean)
+   procedure Type_Ahead_Input (Model : in out Window_Model; Text : String; Matched : out Boolean)
      renames Files.Model.Filter.Type_Ahead_Input;
 
-   procedure Reset_Type_Ahead
-     (Model : in out Window_Model)
+   procedure Reset_Type_Ahead (Model : in out Window_Model)
      renames Files.Model.Filter.Reset_Type_Ahead;
 
-   function Type_Ahead_Buffer
-     (Model : Window_Model)
-      return String
+   function Type_Ahead_Buffer (Model : Window_Model) return String
      renames Files.Model.Filter.Type_Ahead_Buffer;
 
-   procedure Focus_Filter_Input
-     (Model : in out Window_Model)
+   procedure Focus_Filter_Input (Model : in out Window_Model)
      renames Files.Model.Filter.Focus_Filter_Input;
 
    --  The selection operations now live in the
    --  Files.Model.Selection child; these renamings keep them on the public API.
-   procedure Select_Visible
-     (Model         : in out Window_Model;
-      Visible_Index : Positive)
+   procedure Select_Visible (Model : in out Window_Model; Visible_Index : Positive)
      renames Files.Model.Selection.Select_Visible;
 
-   procedure Toggle_Visible_Selection
-     (Model         : in out Window_Model;
-      Visible_Index : Positive)
+   procedure Toggle_Visible_Selection (Model : in out Window_Model; Visible_Index : Positive)
      renames Files.Model.Selection.Toggle_Visible_Selection;
 
-   procedure Select_Visible_Range
-     (Model        : in out Window_Model;
-      Anchor_Index : Positive;
-      Target_Index : Positive)
+   procedure Select_Visible_Range (Model : in out Window_Model; Anchor_Index : Positive; Target_Index : Positive)
      renames Files.Model.Selection.Select_Visible_Range;
 
-   procedure Select_All_Visible
-     (Model : in out Window_Model)
+   procedure Select_All_Visible (Model : in out Window_Model)
      renames Files.Model.Selection.Select_All_Visible;
 
-   procedure Clear_Selection
-     (Model : in out Window_Model)
+   procedure Clear_Selection (Model : in out Window_Model)
      renames Files.Model.Selection.Clear_Selection;
 
-   procedure Invert_Selection
-     (Model : in out Window_Model)
+   procedure Invert_Selection (Model : in out Window_Model)
      renames Files.Model.Selection.Invert_Selection;
 
-   procedure Deselect_All
-     (Model : in out Window_Model)
+   procedure Deselect_All (Model : in out Window_Model)
      renames Files.Model.Selection.Deselect_All;
 
-   procedure Move_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+   procedure Move_Selection (Model : in out Window_Model; Direction : Guikit.Input.Navigation_Direction)
      renames Files.Model.Selection.Move_Selection;
 
-   procedure Select_First_Visible
-     (Model : in out Window_Model)
+   procedure Select_First_Visible (Model : in out Window_Model)
      renames Files.Model.Selection.Select_First_Visible;
 
-   procedure Select_Last_Visible
-     (Model : in out Window_Model)
+   procedure Select_Last_Visible (Model : in out Window_Model)
      renames Files.Model.Selection.Select_Last_Visible;
 
-   procedure Move_Selection_By_Page
-     (Model     : in out Window_Model;
-      Page_Rows : Positive;
-      Down      : Boolean)
+   procedure Move_Selection_By_Page (Model : in out Window_Model; Page_Rows : Positive; Down : Boolean)
      renames Files.Model.Selection.Move_Selection_By_Page;
 
-   procedure Set_Selection_Grid_Columns
-     (Model   : in out Window_Model;
-      Columns : Positive)
+   procedure Set_Selection_Grid_Columns (Model : in out Window_Model; Columns : Positive)
      renames Files.Model.Selection.Set_Selection_Grid_Columns;
 
-   function Selection_Grid_Columns
-     (Model : Window_Model)
-      return Positive
+   function Selection_Grid_Columns (Model : Window_Model) return Positive
      renames Files.Model.Selection.Selection_Grid_Columns;
 
-   function Is_Selected
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Boolean
+   function Is_Selected (Model : Window_Model; Visible_Index : Positive) return Boolean
      renames Files.Model.Selection.Is_Selected;
 
-   function Selected_Index
-     (Model : Window_Model)
-      return Natural
+   function Selected_Index (Model : Window_Model) return Natural
      renames Files.Model.Selection.Selected_Index;
 
-   function Selected_Count
-     (Model : Window_Model)
-      return Natural
+   function Selected_Count (Model : Window_Model) return Natural
      renames Files.Model.Selection.Selected_Count;
 
-   function Selected_Name
-     (Model : Window_Model)
-      return String
+   function Selected_Name (Model : Window_Model) return String
      renames Files.Model.Selection.Selected_Name;
 
-   function Selected_Item
-     (Model : Window_Model)
-      return Files.File_System.Directory_Item
+   function Selected_Item (Model : Window_Model) return Files.File_System.Directory_Item
      renames Files.Model.Selection.Selected_Item;
 
-   function Selected_Items
-     (Model : Window_Model)
-      return Files.File_System.Item_Vectors.Vector
+   function Selected_Items (Model : Window_Model) return Files.File_System.Item_Vectors.Vector
      renames Files.Model.Selection.Selected_Items;
 
-   function Selected_Item_Is_Temporary
-     (Model : Window_Model)
-      return Boolean
+   function Selected_Item_Is_Temporary (Model : Window_Model) return Boolean
      renames Files.Model.Selection.Selected_Item_Is_Temporary;
 
-   function Selection_Includes_Temporary
-     (Model : Window_Model)
-      return Boolean
+   function Selection_Includes_Temporary (Model : Window_Model) return Boolean
      renames Files.Model.Selection.Selection_Includes_Temporary;
 
-   function Focus
-     (Model : Window_Model)
-      return Files.Types.Focus_Target
+   function Focus (Model : Window_Model) return Files.Types.Focus_Target
      renames Files.Model.Selection.Focus;
 
-   function Select_By_Name
-     (Model : in out Window_Model;
-      Name  : String)
-      return Boolean
+   function Select_By_Name (Model : in out Window_Model; Name : String) return Boolean
      renames Files.Model.Selection.Select_By_Name;
 
-   function Is_Selected_Directory
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean
+   function Is_Selected_Directory (Model : Window_Model; Path : String) return Boolean
      renames Files.Model.Selection.Is_Selected_Directory;
 
    procedure Navigate_To
@@ -541,18 +427,13 @@ package body Files.Model is
 
    --  The path input operations now live in the
    --  Files.Model.Path_Input child; these renamings keep them on the public API.
-   procedure Focus_Path_Input
-     (Model : in out Window_Model)
+   procedure Focus_Path_Input (Model : in out Window_Model)
      renames Files.Model.Path_Input.Focus_Path_Input;
 
-   procedure Set_Path_Input_Text
-     (Model : in out Window_Model;
-      Text  : String)
+   procedure Set_Path_Input_Text (Model : in out Window_Model; Text : String)
      renames Files.Model.Path_Input.Set_Path_Input_Text;
 
-   function Path_Input_Text
-     (Model : Window_Model)
-      return String
+   function Path_Input_Text (Model : Window_Model) return String
      renames Files.Model.Path_Input.Path_Input_Text;
 
    procedure Commit_Path_Input
@@ -561,37 +442,27 @@ package body Files.Model is
       Items  : Files.File_System.Item_Vectors.Vector)
      renames Files.Model.Path_Input.Commit_Path_Input;
 
-   function Path_Input_Is_Valid
-     (Model : Window_Model)
-      return Boolean
+   function Path_Input_Is_Valid (Model : Window_Model) return Boolean
      renames Files.Model.Path_Input.Path_Input_Is_Valid;
 
-   function Path_Input_Error_Key
-     (Model : Window_Model)
-      return String
+   function Path_Input_Error_Key (Model : Window_Model) return String
      renames Files.Model.Path_Input.Path_Input_Error_Key;
 
    --  The command palette operations now live in the
    --  Files.Model.Command_Palette child; these renamings keep them on the public API.
-   procedure Focus_Command_Palette_Input
-     (Model : in out Window_Model)
+   procedure Focus_Command_Palette_Input (Model : in out Window_Model)
      renames Files.Model.Command_Palette.Focus_Command_Palette_Input;
 
-   procedure Open_Command_Palette
-     (Model : in out Window_Model)
+   procedure Open_Command_Palette (Model : in out Window_Model)
      renames Files.Model.Command_Palette.Open_Command_Palette;
 
-   procedure Close_Command_Palette
-     (Model : in out Window_Model)
+   procedure Close_Command_Palette (Model : in out Window_Model)
      renames Files.Model.Command_Palette.Close_Command_Palette;
 
-   procedure Toggle_Command_Palette
-     (Model : in out Window_Model)
+   procedure Toggle_Command_Palette (Model : in out Window_Model)
      renames Files.Model.Command_Palette.Toggle_Command_Palette;
 
-   function Command_Palette_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Command_Palette_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Command_Palette.Command_Palette_Is_Open;
 
    function Palette_Query (Model : Window_Model) return String
@@ -637,78 +508,51 @@ package body Files.Model is
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
      renames Files.Model.Command_Palette.Palette_Build_Frame;
 
-   function Command_Palette_Mode_Of
-     (Model : Window_Model)
-      return Palette_Mode
+   function Command_Palette_Mode_Of (Model : Window_Model) return Palette_Mode
      renames Files.Model.Command_Palette.Command_Palette_Mode_Of;
 
-   procedure Set_Command_Palette_Mode
-     (Model : in out Window_Model;
-      Mode  : Palette_Mode)
+   procedure Set_Command_Palette_Mode (Model : in out Window_Model; Mode : Palette_Mode)
      renames Files.Model.Command_Palette.Set_Command_Palette_Mode;
 
    --  The rename operations now live in the
    --  Files.Model.Rename child; these renamings keep them on the public API.
-   procedure Focus_Rename_Input
-     (Model : in out Window_Model)
+   procedure Focus_Rename_Input (Model : in out Window_Model)
      renames Files.Model.Rename.Focus_Rename_Input;
 
-   function Rename_Is_Enabled
-     (Model : Window_Model)
-      return Boolean
+   function Rename_Is_Enabled (Model : Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Is_Enabled;
 
    function Rename_Behavior return Rename_Policy
      renames Files.Model.Rename.Rename_Behavior;
 
-   procedure Toggle_Rename
-     (Model : in out Window_Model)
+   procedure Toggle_Rename (Model : in out Window_Model)
      renames Files.Model.Rename.Toggle_Rename;
 
-   function Rename_Is_Active
-     (Model : Window_Model)
-      return Boolean
+   function Rename_Is_Active (Model : Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Is_Active;
 
-   function Rename_Field_Count
-     (Model : Window_Model)
-      return Natural
+   function Rename_Field_Count (Model : Window_Model) return Natural
      renames Files.Model.Rename.Rename_Field_Count;
 
-   function Rename_Text
-     (Model : Window_Model)
-      return String
+   function Rename_Text (Model : Window_Model) return String
      renames Files.Model.Rename.Rename_Text;
 
-   procedure Set_Rename_Text
-     (Model : in out Window_Model;
-      Text  : String)
+   procedure Set_Rename_Text (Model : in out Window_Model; Text : String)
      renames Files.Model.Rename.Set_Rename_Text;
 
-   function Rename_Insert_At_Carets
-     (Model : in out Window_Model;
-      Text  : String)
-      return Boolean
+   function Rename_Insert_At_Carets (Model : in out Window_Model; Text : String) return Boolean
      renames Files.Model.Rename.Rename_Insert_At_Carets;
 
-   function Rename_Delete_Backward
-     (Model : in out Window_Model)
-      return Boolean
+   function Rename_Delete_Backward (Model : in out Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Delete_Backward;
 
-   function Rename_Delete_Forward
-     (Model : in out Window_Model)
-      return Boolean
+   function Rename_Delete_Forward (Model : in out Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Delete_Forward;
 
-   function Rename_Delete_Word_Backward
-     (Model : in out Window_Model)
-      return Boolean
+   function Rename_Delete_Word_Backward (Model : in out Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Delete_Word_Backward;
 
-   function Rename_Delete_Word_Forward
-     (Model : in out Window_Model)
-      return Boolean
+   function Rename_Delete_Word_Forward (Model : in out Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Delete_Word_Forward;
 
    function Rename_Move_All_Carets
@@ -723,20 +567,13 @@ package body Files.Model is
       return Boolean
      renames Files.Model.Rename.Rename_Move_All_Carets_Word;
 
-   function Rename_Set_All_Carets_Home
-     (Model : in out Window_Model)
-      return Boolean
+   function Rename_Set_All_Carets_Home (Model : in out Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Set_All_Carets_Home;
 
-   function Rename_Set_All_Carets_End
-     (Model : in out Window_Model)
-      return Boolean
+   function Rename_Set_All_Carets_End (Model : in out Window_Model) return Boolean
      renames Files.Model.Rename.Rename_Set_All_Carets_End;
 
-   procedure Set_Rename_Caret
-     (Model         : in out Window_Model;
-      Visible_Index : Natural;
-      Position      : Natural)
+   procedure Set_Rename_Caret (Model : in out Window_Model; Visible_Index : Natural; Position : Natural)
      renames Files.Model.Rename.Set_Rename_Caret;
 
    procedure Rename_State_For_Visible
@@ -747,101 +584,62 @@ package body Files.Model is
       Cursor        : out Natural)
      renames Files.Model.Rename.Rename_State_For_Visible;
 
-   function Rename_Targets
-     (Model : Window_Model)
-      return Rename_Target_Vectors.Vector
+   function Rename_Targets (Model : Window_Model) return Rename_Target_Vectors.Vector
      renames Files.Model.Rename.Rename_Targets;
 
-   procedure Resume_Rename
-     (Model : in out Window_Model;
-      Text  : String)
+   procedure Resume_Rename (Model : in out Window_Model; Text : String)
      renames Files.Model.Rename.Resume_Rename;
 
    --  The ownership input operations now live in the
    --  Files.Model.Ownership_Input child; these renamings keep them on the public API.
-   procedure Focus_Ownership_Input
-     (Model         : in out Window_Model;
-      Editing_Group : Boolean)
+   procedure Focus_Ownership_Input (Model : in out Window_Model; Editing_Group : Boolean)
      renames Files.Model.Ownership_Input.Focus_Ownership_Input;
 
-   function Ownership_Input_Text
-     (Model : Window_Model)
-      return String
+   function Ownership_Input_Text (Model : Window_Model) return String
      renames Files.Model.Ownership_Input.Ownership_Input_Text;
 
-   procedure Set_Ownership_Input_Text
-     (Model : in out Window_Model;
-      Text  : String)
+   procedure Set_Ownership_Input_Text (Model : in out Window_Model; Text : String)
      renames Files.Model.Ownership_Input.Set_Ownership_Input_Text;
 
-   function Ownership_Editing_Group
-     (Model : Window_Model)
-      return Boolean
+   function Ownership_Editing_Group (Model : Window_Model) return Boolean
      renames Files.Model.Ownership_Input.Ownership_Editing_Group;
 
    --  The root selector operations now live in the
    --  Files.Model.Root_Selector child; these renamings keep them on the public API.
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.Types.String_Vectors.Vector)
+   procedure Open_Root_Selector (Model : in out Window_Model; Roots : Files.Types.String_Vectors.Vector)
      renames Files.Model.Root_Selector.Open_Root_Selector;
 
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.File_System.Root_Entry_Vectors.Vector)
+   procedure Open_Root_Selector (Model : in out Window_Model; Roots : Files.File_System.Root_Entry_Vectors.Vector)
      renames Files.Model.Root_Selector.Open_Root_Selector;
 
-   procedure Close_Root_Selector
-     (Model : in out Window_Model)
+   procedure Close_Root_Selector (Model : in out Window_Model)
      renames Files.Model.Root_Selector.Close_Root_Selector;
 
-   function Root_Selector_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Root_Selector_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Root_Selector.Root_Selector_Is_Open;
 
-   function Root_Count
-     (Model : Window_Model)
-      return Natural
+   function Root_Count (Model : Window_Model) return Natural
      renames Files.Model.Root_Selector.Root_Count;
 
-   function Root_Selected_Index
-     (Model : Window_Model)
-      return Natural
+   function Root_Selected_Index (Model : Window_Model) return Natural
      renames Files.Model.Root_Selector.Root_Selected_Index;
 
-   procedure Set_Root_Selected_Index
-     (Model : in out Window_Model;
-      Index : Natural)
+   procedure Set_Root_Selected_Index (Model : in out Window_Model; Index : Natural)
      renames Files.Model.Root_Selector.Set_Root_Selected_Index;
 
-   procedure Move_Root_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+   procedure Move_Root_Selection (Model : in out Window_Model; Direction : Guikit.Input.Navigation_Direction)
      renames Files.Model.Root_Selector.Move_Root_Selection;
 
-   function Root_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String
+   function Root_Path (Model : Window_Model; Index : Positive) return String
      renames Files.Model.Root_Selector.Root_Path;
 
-   function Root_Label
-     (Model : Window_Model;
-      Index : Positive)
-      return String
+   function Root_Label (Model : Window_Model; Index : Positive) return String
      renames Files.Model.Root_Selector.Root_Label;
 
-   function Root_Kind
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.File_System.Root_Kind
+   function Root_Kind (Model : Window_Model; Index : Positive) return Files.File_System.Root_Kind
      renames Files.Model.Root_Selector.Root_Kind;
 
-   function Root_Is_Removable
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean
+   function Root_Is_Removable (Model : Window_Model; Index : Positive) return Boolean
      renames Files.Model.Root_Selector.Root_Is_Removable;
 
    function Text_Cursor_Position
@@ -941,54 +739,34 @@ package body Files.Model is
 
    --  The tree panel operations now live in the
    --  Files.Model.Tree_Panel child; these renamings keep them on the public API.
-   procedure Toggle_Tree_Panel
-     (Model : in out Window_Model)
+   procedure Toggle_Tree_Panel (Model : in out Window_Model)
      renames Files.Model.Tree_Panel.Toggle_Tree_Panel;
 
-   procedure Open_Tree_Panel
-     (Model : in out Window_Model)
+   procedure Open_Tree_Panel (Model : in out Window_Model)
      renames Files.Model.Tree_Panel.Open_Tree_Panel;
 
-   procedure Close_Tree_Panel
-     (Model : in out Window_Model)
+   procedure Close_Tree_Panel (Model : in out Window_Model)
      renames Files.Model.Tree_Panel.Close_Tree_Panel;
 
-   function Tree_Panel_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Tree_Panel_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Tree_Panel.Tree_Panel_Is_Open;
 
-   function Tree_Is_Seeded
-     (Model : Window_Model)
-      return Boolean
+   function Tree_Is_Seeded (Model : Window_Model) return Boolean
      renames Files.Model.Tree_Panel.Tree_Is_Seeded;
 
-   procedure Seed_Tree
-     (Model : in out Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
+   procedure Seed_Tree (Model : in out Window_Model; Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
      renames Files.Model.Tree_Panel.Seed_Tree;
 
-   function Tree_Node_Count
-     (Model : Window_Model)
-      return Natural
+   function Tree_Node_Count (Model : Window_Model) return Natural
      renames Files.Model.Tree_Panel.Tree_Node_Count;
 
-   function Tree_Node_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String
+   function Tree_Node_Path (Model : Window_Model; Index : Positive) return String
      renames Files.Model.Tree_Panel.Tree_Node_Path;
 
-   function Tree_Node_Is_Loaded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean
+   function Tree_Node_Is_Loaded (Model : Window_Model; Index : Positive) return Boolean
      renames Files.Model.Tree_Panel.Tree_Node_Is_Loaded;
 
-   function Tree_Node_Is_Expanded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean
+   function Tree_Node_Is_Expanded (Model : Window_Model; Index : Positive) return Boolean
      renames Files.Model.Tree_Panel.Tree_Node_Is_Expanded;
 
    procedure Tree_Set_Children
@@ -997,20 +775,13 @@ package body Files.Model is
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
      renames Files.Model.Tree_Panel.Tree_Set_Children;
 
-   procedure Tree_Set_Expanded
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Expanded : Boolean)
+   procedure Tree_Set_Expanded (Model : in out Window_Model; Index : Positive; Expanded : Boolean)
      renames Files.Model.Tree_Panel.Tree_Set_Expanded;
 
-   procedure Tree_Toggle_Expanded
-     (Model : in out Window_Model;
-      Index : Positive)
+   procedure Tree_Toggle_Expanded (Model : in out Window_Model; Index : Positive)
      renames Files.Model.Tree_Panel.Tree_Toggle_Expanded;
 
-   function Tree_Visible_Rows
-     (Model : Window_Model)
-      return Files.Folder_Tree.Visible_Row_Vectors.Vector
+   function Tree_Visible_Rows (Model : Window_Model) return Files.Folder_Tree.Visible_Row_Vectors.Vector
      renames Files.Model.Tree_Panel.Tree_Visible_Rows;
 
    procedure Begin_Tree_Pick
@@ -1020,72 +791,48 @@ package body Files.Model is
       Initial_Target : String)
      renames Files.Model.Tree_Panel.Begin_Tree_Pick;
 
-   procedure Set_Tree_Pick_Target
-     (Model  : in out Window_Model;
-      Target : String)
+   procedure Set_Tree_Pick_Target (Model : in out Window_Model; Target : String)
      renames Files.Model.Tree_Panel.Set_Tree_Pick_Target;
 
-   procedure Clear_Tree_Pick
-     (Model : in out Window_Model)
+   procedure Clear_Tree_Pick (Model : in out Window_Model)
      renames Files.Model.Tree_Panel.Clear_Tree_Pick;
 
-   function Tree_Pick_Mode_Of
-     (Model : Window_Model)
-      return Tree_Pick_Mode
+   function Tree_Pick_Mode_Of (Model : Window_Model) return Tree_Pick_Mode
      renames Files.Model.Tree_Panel.Tree_Pick_Mode_Of;
 
-   function Tree_Pick_Is_Active
-     (Model : Window_Model)
-      return Boolean
+   function Tree_Pick_Is_Active (Model : Window_Model) return Boolean
      renames Files.Model.Tree_Panel.Tree_Pick_Is_Active;
 
-   function Tree_Pick_Sources
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Tree_Pick_Sources (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Tree_Panel.Tree_Pick_Sources;
 
-   function Tree_Pick_Target
-     (Model : Window_Model)
-      return String
+   function Tree_Pick_Target (Model : Window_Model) return String
      renames Files.Model.Tree_Panel.Tree_Pick_Target;
 
    --  The panes operations now live in the
    --  Files.Model.Panes child; these renamings keep them on the public API.
-   procedure Toggle_Info_Pane
-     (Model : in out Window_Model)
+   procedure Toggle_Info_Pane (Model : in out Window_Model)
      renames Files.Model.Panes.Toggle_Info_Pane;
 
-   function Info_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Info_Pane_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Panes.Info_Pane_Is_Open;
 
-   procedure Ensure_Selected_Item_Extra
-     (Model : in out Window_Model)
+   procedure Ensure_Selected_Item_Extra (Model : in out Window_Model)
      renames Files.Model.Panes.Ensure_Selected_Item_Extra;
 
-   procedure Toggle_Settings_Pane
-     (Model : in out Window_Model)
+   procedure Toggle_Settings_Pane (Model : in out Window_Model)
      renames Files.Model.Panes.Toggle_Settings_Pane;
 
-   function Settings_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Settings_Pane_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Panes.Settings_Pane_Is_Open;
 
-   procedure Begin_Settings_Edit
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft)
+   procedure Begin_Settings_Edit (Model : in out Window_Model; Draft : Files.Settings.Settings_Draft)
      renames Files.Model.Panes.Begin_Settings_Edit;
 
-   function Settings_Draft_Of
-     (Model : Window_Model)
-      return Files.Settings.Settings_Draft
+   function Settings_Draft_Of (Model : Window_Model) return Files.Settings.Settings_Draft
      renames Files.Model.Panes.Settings_Draft_Of;
 
-   procedure Set_Settings_Draft
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft)
+   procedure Set_Settings_Draft (Model : in out Window_Model; Draft : Files.Settings.Settings_Draft)
      renames Files.Model.Panes.Set_Settings_Draft;
 
    procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer)
@@ -1150,120 +897,79 @@ package body Files.Model is
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
      renames Files.Model.Panes.Settings_Build_Frame;
 
-   procedure Scroll_Info_Pane
-     (Model : in out Window_Model;
-      Lines : Integer)
+   procedure Scroll_Info_Pane (Model : in out Window_Model; Lines : Integer)
      renames Files.Model.Panes.Scroll_Info_Pane;
 
-   function Info_Pane_Scroll_Lines
-     (Model : Window_Model)
-      return Natural
+   function Info_Pane_Scroll_Lines (Model : Window_Model) return Natural
      renames Files.Model.Panes.Info_Pane_Scroll_Lines;
 
-   procedure Scroll_Main_View
-     (Model : in out Window_Model;
-      Lines : Integer)
+   procedure Scroll_Main_View (Model : in out Window_Model; Lines : Integer)
      renames Files.Model.Panes.Scroll_Main_View;
 
-   function Main_View_Scroll_Lines
-     (Model : Window_Model)
-      return Natural
+   function Main_View_Scroll_Lines (Model : Window_Model) return Natural
      renames Files.Model.Panes.Main_View_Scroll_Lines;
 
-   procedure Set_Main_View_Scroll_Lines
-     (Model : in out Window_Model;
-      Lines : Natural)
+   procedure Set_Main_View_Scroll_Lines (Model : in out Window_Model; Lines : Natural)
      renames Files.Model.Panes.Set_Main_View_Scroll_Lines;
 
-   procedure Set_Info_Pane_Scroll_Lines
-     (Model : in out Window_Model;
-      Lines : Natural)
+   procedure Set_Info_Pane_Scroll_Lines (Model : in out Window_Model; Lines : Natural)
      renames Files.Model.Panes.Set_Info_Pane_Scroll_Lines;
 
    --  The label picker operations now live in the
    --  Files.Model.Label_Picker child; these renamings keep them on the public API.
-   procedure Set_Open_With_Targets
-     (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector)
+   procedure Set_Open_With_Targets (Model : in out Window_Model; Targets : Files.Types.String_Vectors.Vector)
      renames Files.Model.Label_Picker.Set_Open_With_Targets;
 
-   function Open_With_Targets
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Open_With_Targets (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Label_Picker.Open_With_Targets;
 
-   procedure Open_Label_Picker
-     (Model : in out Window_Model)
+   procedure Open_Label_Picker (Model : in out Window_Model)
      renames Files.Model.Label_Picker.Open_Label_Picker;
 
-   procedure Close_Label_Picker
-     (Model : in out Window_Model)
+   procedure Close_Label_Picker (Model : in out Window_Model)
      renames Files.Model.Label_Picker.Close_Label_Picker;
 
-   function Label_Picker_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Label_Picker_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Label_Picker.Label_Picker_Is_Open;
 
    --  The quick look operations now live in the
    --  Files.Model.Quick_Look child; these renamings keep them on the public API.
-   procedure Open_Quick_Look
-     (Model   : in out Window_Model;
-      Content : Files.Quick_Look.Quick_Look_Content)
+   procedure Open_Quick_Look (Model : in out Window_Model; Content : Files.Quick_Look.Quick_Look_Content)
      renames Files.Model.Quick_Look.Open_Quick_Look;
 
-   procedure Close_Quick_Look
-     (Model : in out Window_Model)
+   procedure Close_Quick_Look (Model : in out Window_Model)
      renames Files.Model.Quick_Look.Close_Quick_Look;
 
-   procedure Toggle_Quick_Look
-     (Model : in out Window_Model)
+   procedure Toggle_Quick_Look (Model : in out Window_Model)
      renames Files.Model.Quick_Look.Toggle_Quick_Look;
 
-   function Quick_Look_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Quick_Look_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Quick_Look.Quick_Look_Is_Open;
 
-   function Quick_Look_Path
-     (Model : Window_Model)
-      return String
+   function Quick_Look_Path (Model : Window_Model) return String
      renames Files.Model.Quick_Look.Quick_Look_Path;
 
-   function Quick_Look_Content_Of
-     (Model : Window_Model)
-      return Files.Quick_Look.Quick_Look_Content
+   function Quick_Look_Content_Of (Model : Window_Model) return Files.Quick_Look.Quick_Look_Content
      renames Files.Model.Quick_Look.Quick_Look_Content_Of;
 
    --  The temporary operations now live in the
    --  Files.Model.Temporary child; these renamings keep them on the public API.
-   procedure Begin_Create_File
-     (Model : in out Window_Model;
-      Name  : String)
+   procedure Begin_Create_File (Model : in out Window_Model; Name : String)
      renames Files.Model.Temporary.Begin_Create_File;
 
-   procedure Begin_Create_Folder
-     (Model : in out Window_Model;
-      Name  : String)
+   procedure Begin_Create_Folder (Model : in out Window_Model; Name : String)
      renames Files.Model.Temporary.Begin_Create_Folder;
 
-   function Temporary_Item_Is_Active
-     (Model : Window_Model)
-      return Boolean
+   function Temporary_Item_Is_Active (Model : Window_Model) return Boolean
      renames Files.Model.Temporary.Temporary_Item_Is_Active;
 
-   function Temporary_Item_Is_Directory
-     (Model : Window_Model)
-      return Boolean
+   function Temporary_Item_Is_Directory (Model : Window_Model) return Boolean
      renames Files.Model.Temporary.Temporary_Item_Is_Directory;
 
-   function Temporary_Item_Name
-     (Model : Window_Model)
-      return String
+   function Temporary_Item_Name (Model : Window_Model) return String
      renames Files.Model.Temporary.Temporary_Item_Name;
 
-   procedure Cancel_Create_File
-     (Model : in out Window_Model)
+   procedure Cancel_Create_File (Model : in out Window_Model)
      renames Files.Model.Temporary.Cancel_Create_File;
 
    procedure Clear_Edit_State
@@ -1318,14 +1024,10 @@ package body Files.Model is
 
    --  The error operations now live in the
    --  Files.Model.Error child; these renamings keep them on the public API.
-   procedure Set_Error
-     (Model     : in out Window_Model;
-      Error_Key : String)
+   procedure Set_Error (Model : in out Window_Model; Error_Key : String)
      renames Files.Model.Error.Set_Error;
 
-   function Last_Error_Key
-     (Model : Window_Model)
-      return String
+   function Last_Error_Key (Model : Window_Model) return String
      renames Files.Model.Error.Last_Error_Key;
 
    --  The clipboard operations now live in the
@@ -1336,42 +1038,28 @@ package body Files.Model is
       Mode  : Clipboard_Mode)
      renames Files.Model.Clipboard.Set_Clipboard;
 
-   procedure Clear_Clipboard
-     (Model : in out Window_Model)
+   procedure Clear_Clipboard (Model : in out Window_Model)
      renames Files.Model.Clipboard.Clear_Clipboard;
 
-   function Clipboard_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Clipboard_Paths (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Clipboard.Clipboard_Paths;
 
-   function Clipboard_Mode_Of
-     (Model : Window_Model)
-      return Clipboard_Mode
+   function Clipboard_Mode_Of (Model : Window_Model) return Clipboard_Mode
      renames Files.Model.Clipboard.Clipboard_Mode_Of;
 
-   function Clipboard_Has_Items
-     (Model : Window_Model)
-      return Boolean
+   function Clipboard_Has_Items (Model : Window_Model) return Boolean
      renames Files.Model.Clipboard.Clipboard_Has_Items;
 
-   procedure Set_System_Clipboard_Request
-     (Model : in out Window_Model;
-      Text  : String)
+   procedure Set_System_Clipboard_Request (Model : in out Window_Model; Text : String)
      renames Files.Model.Clipboard.Set_System_Clipboard_Request;
 
-   function System_Clipboard_Request_Pending
-     (Model : Window_Model)
-      return Boolean
+   function System_Clipboard_Request_Pending (Model : Window_Model) return Boolean
      renames Files.Model.Clipboard.System_Clipboard_Request_Pending;
 
-   function System_Clipboard_Request_Text
-     (Model : Window_Model)
-      return String
+   function System_Clipboard_Request_Text (Model : Window_Model) return String
      renames Files.Model.Clipboard.System_Clipboard_Request_Text;
 
-   procedure Clear_System_Clipboard_Request
-     (Model : in out Window_Model)
+   procedure Clear_System_Clipboard_Request (Model : in out Window_Model)
      renames Files.Model.Clipboard.Clear_System_Clipboard_Request;
 
    --  The undo redo operations now live in the
@@ -1389,55 +1077,34 @@ package body Files.Model is
         Files.Types.String_Vectors.Empty_Vector)
      renames Files.Model.Undo_Redo.Record_Undo;
 
-   procedure Clear_Undo
-     (Model : in out Window_Model)
+   procedure Clear_Undo (Model : in out Window_Model)
      renames Files.Model.Undo_Redo.Clear_Undo;
 
-   function Undo_Available
-     (Model : Window_Model)
-      return Boolean
+   function Undo_Available (Model : Window_Model) return Boolean
      renames Files.Model.Undo_Redo.Undo_Available;
 
-   function Redo_Available
-     (Model : Window_Model)
-      return Boolean
+   function Redo_Available (Model : Window_Model) return Boolean
      renames Files.Model.Undo_Redo.Redo_Available;
 
-   procedure Take_Undo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean)
+   procedure Take_Undo (Model : in out Window_Model; Action : out Undo_Entry; Found : out Boolean)
      renames Files.Model.Undo_Redo.Take_Undo;
 
-   procedure Take_Redo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean)
+   procedure Take_Redo (Model : in out Window_Model; Action : out Undo_Entry; Found : out Boolean)
      renames Files.Model.Undo_Redo.Take_Redo;
 
-   procedure Push_Redo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry)
+   procedure Push_Redo (Model : in out Window_Model; Action : Undo_Entry)
      renames Files.Model.Undo_Redo.Push_Redo;
 
-   procedure Push_Undo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry)
+   procedure Push_Undo (Model : in out Window_Model; Action : Undo_Entry)
      renames Files.Model.Undo_Redo.Push_Undo;
 
-   function Undo_Kind_Of
-     (Model : Window_Model)
-      return Undo_Action_Kind
+   function Undo_Kind_Of (Model : Window_Model) return Undo_Action_Kind
      renames Files.Model.Undo_Redo.Undo_Kind_Of;
 
-   function Undo_From_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Undo_From_Paths (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Undo_Redo.Undo_From_Paths;
 
-   function Undo_To_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Undo_To_Paths (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Undo_Redo.Undo_To_Paths;
 
    --  The paste conflict operations now live in the
@@ -1451,63 +1118,40 @@ package body Files.Model is
       Clear_Clipboard : Boolean := True)
      renames Files.Model.Paste_Conflict.Begin_Paste_Conflict;
 
-   function Paste_Conflict_Is_Active
-     (Model : Window_Model)
-      return Boolean
+   function Paste_Conflict_Is_Active (Model : Window_Model) return Boolean
      renames Files.Model.Paste_Conflict.Paste_Conflict_Is_Active;
 
-   function Paste_Conflict_Items
-     (Model : Window_Model)
-      return Files.Paste.Work_Item_Vectors.Vector
+   function Paste_Conflict_Items (Model : Window_Model) return Files.Paste.Work_Item_Vectors.Vector
      renames Files.Model.Paste_Conflict.Paste_Conflict_Items;
 
-   function Paste_Conflict_Existing
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Paste_Conflict_Existing (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Paste_Conflict.Paste_Conflict_Existing;
 
-   function Paste_Conflict_Overrides
-     (Model : Window_Model)
-      return Files.Paste.Item_Decision_Vectors.Vector
+   function Paste_Conflict_Overrides (Model : Window_Model) return Files.Paste.Item_Decision_Vectors.Vector
      renames Files.Model.Paste_Conflict.Paste_Conflict_Overrides;
 
-   function Paste_Conflict_Policy
-     (Model : Window_Model)
-      return Files.Paste.Conflict_Policy
+   function Paste_Conflict_Policy (Model : Window_Model) return Files.Paste.Conflict_Policy
      renames Files.Model.Paste_Conflict.Paste_Conflict_Policy;
 
-   function Paste_Conflict_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode
+   function Paste_Conflict_Mode (Model : Window_Model) return Files.File_System.Drop_Import_Mode
      renames Files.Model.Paste_Conflict.Paste_Conflict_Mode;
 
-   function Paste_Conflict_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean
+   function Paste_Conflict_Clears_Clipboard (Model : Window_Model) return Boolean
      renames Files.Model.Paste_Conflict.Paste_Conflict_Clears_Clipboard;
 
-   function Paste_Conflict_Index
-     (Model : Window_Model)
-      return Natural
+   function Paste_Conflict_Index (Model : Window_Model) return Natural
      renames Files.Model.Paste_Conflict.Paste_Conflict_Index;
 
-   function Paste_Conflict_Name
-     (Model : Window_Model)
-      return String
+   function Paste_Conflict_Name (Model : Window_Model) return String
      renames Files.Model.Paste_Conflict.Paste_Conflict_Name;
 
-   function Paste_Conflict_Apply_All
-     (Model : Window_Model)
-      return Boolean
+   function Paste_Conflict_Apply_All (Model : Window_Model) return Boolean
      renames Files.Model.Paste_Conflict.Paste_Conflict_Apply_All;
 
-   procedure Toggle_Paste_Conflict_Apply_All
-     (Model : in out Window_Model)
+   procedure Toggle_Paste_Conflict_Apply_All (Model : in out Window_Model)
      renames Files.Model.Paste_Conflict.Toggle_Paste_Conflict_Apply_All;
 
-   procedure Set_Paste_Conflict_Policy
-     (Model  : in out Window_Model;
-      Policy : Files.Paste.Conflict_Policy)
+   procedure Set_Paste_Conflict_Policy (Model : in out Window_Model; Policy : Files.Paste.Conflict_Policy)
      renames Files.Model.Paste_Conflict.Set_Paste_Conflict_Policy;
 
    procedure Set_Paste_Conflict_Override
@@ -1516,13 +1160,10 @@ package body Files.Model is
       Decision : Files.Paste.Item_Decision)
      renames Files.Model.Paste_Conflict.Set_Paste_Conflict_Override;
 
-   procedure Set_Paste_Conflict_Index
-     (Model : in out Window_Model;
-      Index : Positive)
+   procedure Set_Paste_Conflict_Index (Model : in out Window_Model; Index : Positive)
      renames Files.Model.Paste_Conflict.Set_Paste_Conflict_Index;
 
-   procedure Clear_Paste_Conflict
-     (Model : in out Window_Model)
+   procedure Clear_Paste_Conflict (Model : in out Window_Model)
      renames Files.Model.Paste_Conflict.Clear_Paste_Conflict;
 
    --  The paste exec operations now live in the
@@ -1534,84 +1175,52 @@ package body Files.Model is
       Clear_Clipboard : Boolean := True)
      renames Files.Model.Paste_Exec.Begin_Paste_Execution;
 
-   function Paste_Execution_Is_Active
-     (Model : Window_Model)
-      return Boolean
+   function Paste_Execution_Is_Active (Model : Window_Model) return Boolean
      renames Files.Model.Paste_Exec.Paste_Execution_Is_Active;
 
-   function Paste_Execution_Done
-     (Model : Window_Model)
-      return Natural
+   function Paste_Execution_Done (Model : Window_Model) return Natural
      renames Files.Model.Paste_Exec.Paste_Execution_Done;
 
-   function Paste_Execution_Total
-     (Model : Window_Model)
-      return Natural
+   function Paste_Execution_Total (Model : Window_Model) return Natural
      renames Files.Model.Paste_Exec.Paste_Execution_Total;
 
-   function Paste_Execution_Current_Name
-     (Model : Window_Model)
-      return String
+   function Paste_Execution_Current_Name (Model : Window_Model) return String
      renames Files.Model.Paste_Exec.Paste_Execution_Current_Name;
 
-   function Paste_Execution_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode
+   function Paste_Execution_Mode (Model : Window_Model) return Files.File_System.Drop_Import_Mode
      renames Files.Model.Paste_Exec.Paste_Execution_Mode;
 
-   function Paste_Execution_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean
+   function Paste_Execution_Clears_Clipboard (Model : Window_Model) return Boolean
      renames Files.Model.Paste_Exec.Paste_Execution_Clears_Clipboard;
 
-   function Paste_Execution_Cancelled
-     (Model : Window_Model)
-      return Boolean
+   function Paste_Execution_Cancelled (Model : Window_Model) return Boolean
      renames Files.Model.Paste_Exec.Paste_Execution_Cancelled;
 
-   function Paste_Execution_Cursor
-     (Model : Window_Model)
-      return Natural
+   function Paste_Execution_Cursor (Model : Window_Model) return Natural
      renames Files.Model.Paste_Exec.Paste_Execution_Cursor;
 
-   function Paste_Execution_Action_Count
-     (Model : Window_Model)
-      return Natural
+   function Paste_Execution_Action_Count (Model : Window_Model) return Natural
      renames Files.Model.Paste_Exec.Paste_Execution_Action_Count;
 
-   function Paste_Execution_Action
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.Paste.Resolved_Action
+   function Paste_Execution_Action (Model : Window_Model; Index : Positive) return Files.Paste.Resolved_Action
      renames Files.Model.Paste_Exec.Paste_Execution_Action;
 
-   function Paste_Execution_Undo_From
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Paste_Execution_Undo_From (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Paste_Exec.Paste_Execution_Undo_From;
 
-   function Paste_Execution_Undo_To
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Paste_Execution_Undo_To (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Paste_Exec.Paste_Execution_Undo_To;
 
-   function Paste_Execution_Replaced_Trash
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector
+   function Paste_Execution_Replaced_Trash (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Files.Model.Paste_Exec.Paste_Execution_Replaced_Trash;
 
-   procedure Record_Paste_Execution_Replaced_Trash
-     (Model      : in out Window_Model;
-      Trash_Path : Files.Types.UString)
+   procedure Record_Paste_Execution_Replaced_Trash (Model : in out Window_Model; Trash_Path : Files.Types.UString)
      renames Files.Model.Paste_Exec.Record_Paste_Execution_Replaced_Trash;
 
-   function Paste_Execution_First_Dest
-     (Model : Window_Model)
-      return String
+   function Paste_Execution_First_Dest (Model : Window_Model) return String
      renames Files.Model.Paste_Exec.Paste_Execution_First_Dest;
 
-   procedure Skip_Paste_Execution_Action
-     (Model : in out Window_Model)
+   procedure Skip_Paste_Execution_Action (Model : in out Window_Model)
      renames Files.Model.Paste_Exec.Skip_Paste_Execution_Action;
 
    procedure Record_Paste_Execution_Write
@@ -1621,12 +1230,10 @@ package body Files.Model is
       Name        : String)
      renames Files.Model.Paste_Exec.Record_Paste_Execution_Write;
 
-   procedure Cancel_Paste_Execution
-     (Model : in out Window_Model)
+   procedure Cancel_Paste_Execution (Model : in out Window_Model)
      renames Files.Model.Paste_Exec.Cancel_Paste_Execution;
 
-   procedure Clear_Paste_Execution
-     (Model : in out Window_Model)
+   procedure Clear_Paste_Execution (Model : in out Window_Model)
      renames Files.Model.Paste_Exec.Clear_Paste_Execution;
 
    --  The folder sizes operations now live in the
@@ -1637,24 +1244,16 @@ package body Files.Model is
       Value : Files.File_System.Directory_Size_Result)
      renames Files.Model.Folder_Sizes.Set_Folder_Size;
 
-   procedure Clear_Folder_Size
-     (Model : in out Window_Model)
+   procedure Clear_Folder_Size (Model : in out Window_Model)
      renames Files.Model.Folder_Sizes.Clear_Folder_Size;
 
-   procedure Prune_Folder_Sizes_To_Selection
-     (Model : in out Window_Model)
+   procedure Prune_Folder_Sizes_To_Selection (Model : in out Window_Model)
      renames Files.Model.Folder_Sizes.Prune_Folder_Sizes_To_Selection;
 
-   function Folder_Size_Cached_For
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean
+   function Folder_Size_Cached_For (Model : Window_Model; Path : String) return Boolean
      renames Files.Model.Folder_Sizes.Folder_Size_Cached_For;
 
-   function Folder_Size_Value
-     (Model : Window_Model;
-      Path  : String)
-      return Files.File_System.Directory_Size_Result
+   function Folder_Size_Value (Model : Window_Model; Path : String) return Files.File_System.Directory_Size_Result
      renames Files.Model.Folder_Sizes.Folder_Size_Value;
 
    --  The context menu operations now live in the
@@ -1667,33 +1266,22 @@ package body Files.Model is
       Item_Index : Natural := 0)
      renames Files.Model.Context_Menu.Open_Context_Menu;
 
-   procedure Close_Context_Menu
-     (Model : in out Window_Model)
+   procedure Close_Context_Menu (Model : in out Window_Model)
      renames Files.Model.Context_Menu.Close_Context_Menu;
 
-   function Context_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean
+   function Context_Menu_Is_Open (Model : Window_Model) return Boolean
      renames Files.Model.Context_Menu.Context_Menu_Is_Open;
 
-   function Context_Menu_X
-     (Model : Window_Model)
-      return Natural
+   function Context_Menu_X (Model : Window_Model) return Natural
      renames Files.Model.Context_Menu.Context_Menu_X;
 
-   function Context_Menu_Y
-     (Model : Window_Model)
-      return Natural
+   function Context_Menu_Y (Model : Window_Model) return Natural
      renames Files.Model.Context_Menu.Context_Menu_Y;
 
-   function Context_Menu_Target_Of
-     (Model : Window_Model)
-      return Context_Menu_Target
+   function Context_Menu_Target_Of (Model : Window_Model) return Context_Menu_Target
      renames Files.Model.Context_Menu.Context_Menu_Target_Of;
 
-   function Context_Menu_Item_Index
-     (Model : Window_Model)
-      return Natural
+   function Context_Menu_Item_Index (Model : Window_Model) return Natural
      renames Files.Model.Context_Menu.Context_Menu_Item_Index;
 
 end Files.Model;
