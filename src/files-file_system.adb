@@ -56,12 +56,6 @@ package body Files.File_System is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Item_Kind;
 
-   subtype C_Int is Interfaces.C.int;
-   subtype C_U32 is Interfaces.C.unsigned;
-   subtype C_U64 is Interfaces.C.unsigned_long;
-   subtype C_S64 is Interfaces.C.long;
-   subtype C_Size is Interfaces.C.size_t;
-   subtype C_ULong is Interfaces.C.unsigned_long;
 
    function Gdk_Pixbuf_New_From_File_At_Size
      (Filename : Interfaces.C.Strings.chars_ptr;
@@ -100,7 +94,6 @@ package body Files.File_System is
      (Object : System.Address)
    with Import, Convention => C, External_Name => "g_object_unref";
 
-   subtype C_Char is Interfaces.C.char;
 
    Extra_Line_Limit : constant Natural := 20_000;
 
@@ -460,8 +453,6 @@ package body Files.File_System is
          return Loaded;
    end Thumbnail_For_Item;
 
-   type U64_Array is array (Positive range <>) of C_U64
-     with Convention => C;
 
    function Is_Directory (Item : Directory_Item) return Boolean is
    begin

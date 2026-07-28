@@ -1,6 +1,7 @@
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
+with Interfaces.C;
 
 --  Shared low-level helpers of Files.File_System (safe close / end-search,
 --  environment access, small text formatting), extracted so the concern
@@ -79,5 +80,16 @@ private package Files.File_System.Support is
      (Source_Path      : String;
       Destination_Path : String;
       Depth            : Natural := 0);
+
+   --  Shared Interfaces.C aliases for the native (statvfs / gdk-pixbuf) bindings.
+   subtype C_Int is Interfaces.C.int;
+   subtype C_U32 is Interfaces.C.unsigned;
+   subtype C_U64 is Interfaces.C.unsigned_long;
+   subtype C_S64 is Interfaces.C.long;
+   subtype C_Size is Interfaces.C.size_t;
+   subtype C_ULong is Interfaces.C.unsigned_long;
+   subtype C_Char is Interfaces.C.char;
+   type U64_Array is array (Positive range <>) of C_U64
+     with Convention => C;
 
 end Files.File_System.Support;
