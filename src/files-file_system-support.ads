@@ -67,4 +67,17 @@ private package Files.File_System.Support is
    --  @return Result of natural text.
    function Natural_Text (Value : Natural) return String;
 
+   --  Recursively copy a file or directory tree from Source_Path to
+   --  Destination_Path (Depth guards against symlink cycles). The shared
+   --  worker behind the public Copy_Tree function and the cross-device
+   --  trash/restore fallbacks.
+   --
+   --  @param Source_Path Source file or directory.
+   --  @param Destination_Path Destination path to create.
+   --  @param Depth Current recursion depth (0 at the top).
+   procedure Copy_Tree
+     (Source_Path      : String;
+      Destination_Path : String;
+      Depth            : Natural := 0);
+
 end Files.File_System.Support;
