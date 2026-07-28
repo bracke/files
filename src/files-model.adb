@@ -11,6 +11,7 @@ with Files.UTF8;
 with Files.Model.Context_Menu;
 with Files.Model.Undo_Redo;
 with Files.Model.Folder_Sizes;
+with Files.Model.Clipboard;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
@@ -3547,73 +3548,51 @@ package body Files.Model is
       return To_String (Model.Last_Error);
    end Last_Error_Key;
 
-   procedure Set_System_Clipboard_Request
-     (Model : in out Window_Model;
-      Text  : String) is
-   begin
-      Model.System_Clipboard_Request_Value := To_Unbounded_String (Text);
-      Model.System_Clipboard_Request_Pending := True;
-   end Set_System_Clipboard_Request;
-
-   function System_Clipboard_Request_Pending
-     (Model : Window_Model)
-      return Boolean is
-   begin
-      return Model.System_Clipboard_Request_Pending;
-   end System_Clipboard_Request_Pending;
-
-   function System_Clipboard_Request_Text
-     (Model : Window_Model)
-      return String is
-   begin
-      return To_String (Model.System_Clipboard_Request_Value);
-   end System_Clipboard_Request_Text;
-
-   procedure Clear_System_Clipboard_Request
-     (Model : in out Window_Model) is
-   begin
-      Model.System_Clipboard_Request_Value := Null_Unbounded_String;
-      Model.System_Clipboard_Request_Pending := False;
-   end Clear_System_Clipboard_Request;
-
+   --  The clipboard operations now live in the
+   --  Files.Model.Clipboard child; these renamings keep them on the public API.
    procedure Set_Clipboard
      (Model : in out Window_Model;
       Paths : Files.Types.String_Vectors.Vector;
-      Mode  : Clipboard_Mode) is
-   begin
-      Model.Clipboard_Paths_Value := Paths;
-      Model.Clipboard_Mode_Value :=
-        (if Paths.Is_Empty then Clipboard_None else Mode);
-   end Set_Clipboard;
+      Mode  : Clipboard_Mode)
+     renames Files.Model.Clipboard.Set_Clipboard;
 
    procedure Clear_Clipboard
-     (Model : in out Window_Model) is
-   begin
-      Model.Clipboard_Paths_Value.Clear;
-      Model.Clipboard_Mode_Value := Clipboard_None;
-   end Clear_Clipboard;
+     (Model : in out Window_Model)
+     renames Files.Model.Clipboard.Clear_Clipboard;
 
    function Clipboard_Paths
      (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is
-   begin
-      return Model.Clipboard_Paths_Value;
-   end Clipboard_Paths;
+      return Files.Types.String_Vectors.Vector
+     renames Files.Model.Clipboard.Clipboard_Paths;
 
    function Clipboard_Mode_Of
      (Model : Window_Model)
-      return Clipboard_Mode is
-   begin
-      return Model.Clipboard_Mode_Value;
-   end Clipboard_Mode_Of;
+      return Clipboard_Mode
+     renames Files.Model.Clipboard.Clipboard_Mode_Of;
 
    function Clipboard_Has_Items
      (Model : Window_Model)
-      return Boolean is
-   begin
-      return not Model.Clipboard_Paths_Value.Is_Empty
-        and then Model.Clipboard_Mode_Value /= Clipboard_None;
-   end Clipboard_Has_Items;
+      return Boolean
+     renames Files.Model.Clipboard.Clipboard_Has_Items;
+
+   procedure Set_System_Clipboard_Request
+     (Model : in out Window_Model;
+      Text  : String)
+     renames Files.Model.Clipboard.Set_System_Clipboard_Request;
+
+   function System_Clipboard_Request_Pending
+     (Model : Window_Model)
+      return Boolean
+     renames Files.Model.Clipboard.System_Clipboard_Request_Pending;
+
+   function System_Clipboard_Request_Text
+     (Model : Window_Model)
+      return String
+     renames Files.Model.Clipboard.System_Clipboard_Request_Text;
+
+   procedure Clear_System_Clipboard_Request
+     (Model : in out Window_Model)
+     renames Files.Model.Clipboard.Clear_System_Clipboard_Request;
 
    --  The undo redo operations now live in the
    --  Files.Model.Undo_Redo child; these renamings keep them on the public API.
