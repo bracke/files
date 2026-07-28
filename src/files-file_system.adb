@@ -3698,9 +3698,35 @@ package body Files.File_System is
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.rename.failed"));
+         --  Ada.Directories.Rename cannot move across filesystems (EXDEV). Fall
+         --  back to copy + delete, exactly as Execute_Drop_Import and
+         --  Move_To_Trash do, so a cross-device move -- and, crucially, the undo
+         --  of one (Move_Back routes through here) -- still succeeds instead of
+         --  failing and stranding the file at the destination.
+         declare
+            Copied : constant Mutation_Result := Copy_Tree (From_Path, To_Path);
+         begin
+            if not Copied.Success then
+               return
+                 (Success   => False,
+                  Error_Key => To_Unbounded_String ("error.rename.failed"));
+            end if;
+
+            declare
+               Deleted : constant Mutation_Result := Delete_Permanently (From_Path);
+            begin
+               if not Deleted.Success then
+                  return Deleted;
+               end if;
+            end;
+
+            return (Success => True, Error_Key => Null_Unbounded_String);
+         exception
+            when others =>
+               return
+                 (Success   => False,
+                  Error_Key => To_Unbounded_String ("error.rename.failed"));
+         end;
    end Rename_Item;
 
    function Supports_Permissions return Boolean is
