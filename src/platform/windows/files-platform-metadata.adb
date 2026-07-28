@@ -1,3 +1,5 @@
+with Ada.Characters.Handling;
+with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Ada.Containers.Vectors;
 
@@ -1031,6 +1033,20 @@ package body Files.Platform.Metadata is
       Mode_Bits := File_Permission_Bits (Path, Mode_Available);
       File_Ownership (Path, User_Id, Group_Id, Ownership_Available);
    end File_Mode_And_Ownership;
+
+   function Same_File (Left : String; Right : String) return Boolean is
+      --  Windows filesystems are case-insensitive, so two paths that normalise
+      --  to the same absolute string ignoring case name the same file.
+      function Normalized (Path : String) return String is
+        (Ada.Characters.Handling.To_Lower (Ada.Directories.Full_Name (Path)));
+   begin
+      return Ada.Directories.Exists (Left)
+        and then Ada.Directories.Exists (Right)
+        and then Normalized (Left) = Normalized (Right);
+   exception
+      when others =>
+         return False;
+   end Same_File;
 
    function Set_Ownership
      (Path     : String;

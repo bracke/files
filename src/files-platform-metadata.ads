@@ -140,6 +140,20 @@ package Files.Platform.Metadata is
       Group_Id            : out Natural;
       Ownership_Available : out Boolean);
 
+   --  Whether Left and Right name the same underlying file.
+   --
+   --  On a case-insensitive host two spellings that differ only in case name
+   --  the same file; callers use this to tell a case-only rename apart from a
+   --  collision with a genuinely distinct file. Linux and macOS compare the
+   --  device and inode; Windows compares the normalised path case-insensitively
+   --  (its filesystem is case-insensitive); the unsupported stub compares the
+   --  path strings exactly. Returns False unless both paths currently exist.
+   --
+   --  @param Left First path to compare.
+   --  @param Right Second path to compare.
+   --  @return True when both exist and refer to the same file.
+   function Same_File (Left : String; Right : String) return Boolean;
+
    --  Change the owner and group of Path through chown(2).
    --
    --  Changing the owner of a file typically requires root privileges, so this

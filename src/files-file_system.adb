@@ -3689,13 +3689,87 @@ package body Files.File_System is
             return False;
          end if;
 
+         --  A no-op rename: the destination is the very same file AND its leaf
+         --  is spelled identically, so there is nothing to change. A case-only
+         --  rename (same file on a case-insensitive filesystem, but a different
+         --  leaf case) deliberately fails this and is handled separately, no
+         --  matter whether Full_Name canonicalises case on the host.
          return Exists_Safely (From_Path)
            and then Exists_Safely (To_Path)
-           and then Ada.Directories.Full_Name (From_Path) = Ada.Directories.Full_Name (To_Path);
+           and then Files.Platform.Metadata.Same_File (From_Path, To_Path)
+           and then Mutation_Leaf_Name (From_Path) = Mutation_Leaf_Name (To_Path);
       exception
          when others =>
             return From_Path = To_Path and then Exists_Safely (From_Path);
       end Same_Existing_Path;
+
+      --  A case-only rename of a single file: the destination exists but is the
+      --  very same file as the source (a case-insensitive filesystem reports the
+      --  two case-differing spellings as one file), and the leaves match only
+      --  when case is ignored. This must NOT be treated as a collision.
+      function Is_Case_Only_Rename return Boolean is
+      begin
+         return Exists_Safely (To_Path)
+           and then Files.Platform.Metadata.Same_File (From_Path, To_Path)
+           and then Files.Types.To_Lower (Mutation_Leaf_Name (From_Path))
+                    = Files.Types.To_Lower (Mutation_Leaf_Name (To_Path))
+           and then Mutation_Leaf_Name (From_Path) /= Mutation_Leaf_Name (To_Path);
+      exception
+         when others =>
+            return False;
+      end Is_Case_Only_Rename;
+
+      --  Perform a case-only rename through a scratch name: From -> Temp -> To.
+      --  On a case-insensitive filesystem the first hop frees the old spelling so
+      --  the second lands on a now-vacant destination. Crucially there is NO
+      --  Copy_Tree + delete fallback here: on any failure the file is put back
+      --  under its original name, so a case-only rename can never lose data.
+      function Rename_Case_Only return Mutation_Result is
+         function Temp_Candidate (Index : Natural) return String is
+           (From_Path & ".files-case-rename-"
+            & Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both));
+
+         Temp : Unbounded_String := Null_Unbounded_String;
+      begin
+         for Index in 0 .. 4095 loop
+            if not Exists_Safely (Temp_Candidate (Index)) then
+               Temp := To_Unbounded_String (Temp_Candidate (Index));
+               exit;
+            end if;
+         end loop;
+
+         if Temp = Null_Unbounded_String then
+            return
+              (Success   => False,
+               Error_Key => To_Unbounded_String ("error.rename.failed"));
+         end if;
+
+         Ada.Directories.Rename (From_Path, To_String (Temp));
+
+         begin
+            Ada.Directories.Rename (To_String (Temp), To_Path);
+            return (Success => True, Error_Key => Null_Unbounded_String);
+         exception
+            when others =>
+               --  Second hop failed: restore the original name so the file is
+               --  never stranded at the scratch name.
+               begin
+                  Ada.Directories.Rename (To_String (Temp), From_Path);
+               exception
+                  when others =>
+                     null;
+               end;
+               return
+                 (Success   => False,
+                  Error_Key => To_Unbounded_String ("error.rename.failed"));
+         end;
+      exception
+         when others =>
+            --  First hop failed: nothing moved.
+            return
+              (Success   => False,
+               Error_Key => To_Unbounded_String ("error.rename.failed"));
+      end Rename_Case_Only;
 
       function Parent_Directory return String is
       begin
@@ -3722,14 +3796,25 @@ package body Files.File_System is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.name.invalid"));
-      elsif Exists_Safely (To_Path)
+      elsif (Exists_Safely (To_Path) and then not Is_Case_Only_Rename)
         or else Parent = ""
         or else not Ada.Directories.Exists (Parent)
         or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
       then
+         --  The destination exists as a genuinely distinct file (a case-only
+         --  rename of the source onto itself is excluded), or its parent is
+         --  missing or not a directory.
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.rename.invalid_destination"));
+      end if;
+
+      if Is_Case_Only_Rename then
+         --  Same file, different leaf case: rename through a scratch name with
+         --  no destructive fallback, rather than letting Ada.Directories.Rename
+         --  raise on the existing destination and drop into the copy + delete
+         --  path below.
+         return Rename_Case_Only;
       end if;
 
       Ada.Directories.Rename (From_Path, To_Path);

@@ -161,6 +161,7 @@ package body Files_Suite.Operations is
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failed_Undo_Keeps_Entry (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Case_Only_Rename_Is_Safe (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -298,6 +299,9 @@ package body Files_Suite.Operations is
         (T, Test_Set_Permissions_And_Undo'Access, "chmod changes selected item mode and undo restores it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Failed_Undo_Keeps_Entry'Access, "a partially failed undo keeps its entry instead of dropping it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Case_Only_Rename_Is_Safe'Access,
+         "a case-only rename never loses data and distinct collisions stay refused");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Permission_Grid_Click'Access, "info-pane permission cell click toggles the mode bit");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -5117,6 +5121,57 @@ package body Files_Suite.Operations is
         (not Files.Model.Redo_Available (Model),
          "a failed undo does not leak the entry onto the redo stack");
    end Test_Failed_Undo_Keeps_Entry;
+
+   procedure Test_Case_Only_Rename_Is_Safe (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Plain    : constant String := Join (Root, "plain.txt");
+      Cased    : constant String := Join (Root, "Plain.txt");
+      Lower    : constant String := Join (Root, "data.txt");
+      Upper    : constant String := Join (Root, "DATA.txt");
+      Other    : constant String := Join (Root, "other.txt");
+      Link     : Files.File_System.Mutation_Result;
+      Mutation : Files.File_System.Mutation_Result;
+   begin
+      Reset_Root;
+
+      --  A case-changing rename with no existing destination takes the ordinary
+      --  path and succeeds: the case flip works whenever nothing aliases it (the
+      --  only case-only shape reproducible on a case-sensitive filesystem).
+      Write_File (Plain, "hello");
+      Mutation := Files.File_System.Rename_Item (Plain, Cased);
+      Assert (Mutation.Success, "a case change with a free destination renames normally");
+      Assert (not Ada.Directories.Exists (Plain), "the old-case source name no longer exists");
+      Assert (Ada.Directories.Exists (Cased), "the case-changed destination exists");
+
+      --  The hazardous shape: data.txt and DATA.txt as two hard links to one
+      --  inode reproduce the identity a case-insensitive filesystem reports for a
+      --  case-only rename. On this case-sensitive host they are two independent
+      --  directory entries, so the scratch-name second hop cannot land -- but the
+      --  two-step must roll back cleanly and NEVER lose the file (the earlier
+      --  naive fix dropped into Copy_Tree + delete here and destroyed the source).
+      Write_File (Lower, "payload");
+      Link := Files.File_System.Create_Hard_Link (Lower, Upper);
+      Assert (Link.Success, "hard link creation succeeds on the test filesystem");
+
+      Mutation := Files.File_System.Rename_Item (Lower, Upper);
+      Assert (Ada.Directories.Exists (Lower), "the case-only rename leaves the source intact on rollback");
+      Assert (Ada.Directories.Exists (Upper), "the case-only rename leaves the aliased name intact");
+      Assert
+        (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Lower), "payload") > 0,
+         "no data is lost when the case-only rename rolls back");
+      Assert
+        (not Path_Exists (Lower & ".files-case-rename-0"),
+         "the scratch rename name is not left behind");
+
+      --  A genuinely distinct existing destination is still refused as a collision.
+      Write_File (Other, "distinct");
+      Mutation := Files.File_System.Rename_Item (Other, Lower);
+      Assert (not Mutation.Success, "renaming onto a distinct existing file is still refused");
+      Assert
+        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+         "the distinct-destination collision reports invalid destination");
+      Assert (Ada.Directories.Exists (Other), "the refused collision leaves the source in place");
+   end Test_Case_Only_Rename_Is_Safe;
 
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

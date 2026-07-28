@@ -427,6 +427,32 @@ package body Files.Platform.Metadata is
          Available := False;
    end File_Ownership;
 
+   Statx_Ino : constant C_Unsigned := 16#100#;
+
+   function Same_File (Left : String; Right : String) return Boolean is
+      L_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Left);
+      R_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Right);
+      L_Info : aliased Statx_Record;
+      R_Info : aliased Statx_Record;
+      L_Status : C_Int;
+      R_Status : C_Int;
+   begin
+      L_Status := Statx (At_FDCWD, L_Path, 0, Statx_Ino, L_Info'Access);
+      R_Status := Statx (At_FDCWD, R_Path, 0, Statx_Ino, R_Info'Access);
+      Interfaces.C.Strings.Free (L_Path);
+      Interfaces.C.Strings.Free (R_Path);
+
+      return L_Status = 0 and then R_Status = 0
+        and then L_Info.Inode = R_Info.Inode
+        and then L_Info.Device_Major = R_Info.Device_Major
+        and then L_Info.Device_Minor = R_Info.Device_Minor;
+   exception
+      when others =>
+         Safe_Free (L_Path);
+         Safe_Free (R_Path);
+         return False;
+   end Same_File;
+
    procedure File_Mode_And_Ownership
      (Path                : String;
       Mode_Bits           : out Natural;

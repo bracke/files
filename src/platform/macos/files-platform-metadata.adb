@@ -433,6 +433,22 @@ package body Files.Platform.Metadata is
       File_Ownership (Path, User_Id, Group_Id, Ownership_Available);
    end File_Mode_And_Ownership;
 
+   function Same_File (Left : String; Right : String) return Boolean is
+      L_Buffer : aliased Stat_Record;
+      R_Buffer : aliased Stat_Record;
+   begin
+      if not Stat_Of (Left, L_Buffer'Access)
+        or else not Stat_Of (Right, R_Buffer'Access)
+      then
+         return False;
+      end if;
+
+      return L_Buffer.Inode = R_Buffer.Inode and then L_Buffer.Device = R_Buffer.Device;
+   exception
+      when others =>
+         return False;
+   end Same_File;
+
    function Set_Ownership
      (Path     : String;
       User_Id  : Natural;

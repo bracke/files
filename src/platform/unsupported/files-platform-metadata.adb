@@ -94,6 +94,11 @@ package body Files.Platform.Metadata is
       File_Ownership (Path, User_Id, Group_Id, Ownership_Available);
    end File_Mode_And_Ownership;
 
+   function Same_File (Left : String; Right : String) return Boolean is
+   begin
+      return Left /= "" and then Left = Right;
+   end Same_File;
+
    function Set_Ownership
      (Path     : String;
       User_Id  : Natural;
