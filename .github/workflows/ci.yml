@@ -225,6 +225,17 @@ jobs:
         with:
           toolchain: gnat_native=15.2.1 gprbuild
 
+      - name: Give Alire's dependency solver room to finish (slow runners drop deps)
+        # The default solver.timeout is 5 s (+10 s grace). On the slower macOS
+        # runner the solve for files' large graph (df_vulkan, openglada_glfw,
+        # utilada, plus the path-pinned siblings) does not finish in that window,
+        # so Alire ships an INCOMPLETE solution -- silently dropping openglada and
+        # libglfw3, after which the build dies with "opengl.gpr not found". The
+        # graph is solvable (Linux and Windows solve it in time), so a generous
+        # timeout just lets macOS return the same complete solution.
+        shell: bash
+        run: alr settings --global --set solver.timeout 600
+
       - name: Build the application
         shell: bash
         working-directory: files
