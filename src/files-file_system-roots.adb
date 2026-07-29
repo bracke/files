@@ -246,7 +246,11 @@ package body Roots is
             Ada.Text_IO.Get_Line (File, Buffer, Last);
             declare
                Line        : constant String := Buffer (1 .. Last);
-               Mount_Point : constant String := Field_From (Line, 2);
+               --  Decode the mount point's octal escapes (/proc/mounts stores a
+               --  space as \040 etc.); comparing the raw field against a real
+               --  Full_Name path never matched for mounts under paths with
+               --  spaces, so those shares lost their network/type classification.
+               Mount_Point : constant String := Mount_Field (Line, 2);
             begin
                if Mount_Point = Path then
                   Ada.Text_IO.Close (File);
