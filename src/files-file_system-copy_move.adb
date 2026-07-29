@@ -238,6 +238,17 @@ package body Copy_Move is
          declare
             Source_Path      : constant String := To_String (Plan.Source_Path);
             Destination_Path : constant String := To_String (Plan.Destination_Path);
+
+            --  Drop whatever a failed step left at this plan's destination, so a
+            --  failure leaves the source as the single canonical copy -- not a
+            --  partial tree stranded at the destination, and not a duplicate when
+            --  the source delete fails after a completed cross-device copy.
+            procedure Discard_Destination is
+               Removed : constant Mutation_Result := Delete_Permanently (Destination_Path);
+               pragma Unreferenced (Removed);
+            begin
+               null;
+            end Discard_Destination;
          begin
             if Plan.Mode = Drop_Move then
                if Source_Path /= Destination_Path then
@@ -250,6 +261,7 @@ package body Copy_Move is
                            Delete_Result : constant Mutation_Result := Delete_Permanently (Source_Path);
                         begin
                            if not Delete_Result.Success then
+                              Discard_Destination;
                               return Delete_Result;
                            end if;
                         end;
@@ -258,15 +270,18 @@ package body Copy_Move is
             else
                Copy_Tree (Source_Path, Destination_Path);
             end if;
+         exception
+            when others =>
+               --  A copy raised partway (e.g. out of space); remove the partial
+               --  destination before reporting failure. The source is untouched.
+               Discard_Destination;
+               return
+                 (Success   => False,
+                  Error_Key => To_Unbounded_String ("error.drop.failed"));
          end;
       end loop;
 
       return (Success => True, Error_Key => Null_Unbounded_String);
-   exception
-      when others =>
-         return
-           (Success   => False,
-           Error_Key => To_Unbounded_String ("error.drop.failed"));
    end Execute_Drop_Import;
 
 end Copy_Move;
