@@ -455,6 +455,40 @@ package body Files.Interaction is
          end;
       end if;
 
+      --  A keyboard Enter with the destination-pick tree active confirms it: copy
+      --  or move the captured sources into the highlighted directory, then close
+      --  the sidebar, exactly as the picker's Confirm button does. Needs the
+      --  settings the read-only controller cannot pass.
+      if Files.Model.Tree_Pick_Is_Active (Model)
+        and then Key = Guikit.Input.Key_Return
+      then
+         declare
+            Mode    : constant Files.Model.Tree_Pick_Mode := Files.Model.Tree_Pick_Mode_Of (Model);
+            Sources : constant Files.Types.String_Vectors.Vector :=
+              Files.Model.Tree_Pick_Sources (Model);
+            Target  : constant String := Files.Model.Tree_Pick_Target (Model);
+         begin
+            if Mode /= Files.Model.Pick_None and then Target /= "" then
+               declare
+                  Op : constant Files.Operations.Operation_Result :=
+                    Files.Operations.Begin_Paste_To
+                      (Model, Settings, Sources, Target,
+                       (if Mode = Files.Model.Pick_Move
+                        then Files.File_System.Drop_Move
+                        else Files.File_System.Drop_Copy));
+               begin
+                  Files.Model.Close_Tree_Panel (Model);
+                  Result.Directory_Reloaded :=
+                    Op.Status = Files.Operations.Operation_Success
+                    and then not Files.Model.Paste_Conflict_Is_Active (Model)
+                    and then not Files.Model.Paste_Execution_Is_Active (Model);
+               end;
+            else
+               Files.Model.Close_Tree_Panel (Model);
+            end if;
+         end;
+      end if;
+
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
       --  character: when the grid owns the keyboard, drop the parallel space
       --  character event so it never leaks into type-ahead. A space typed into a

@@ -150,6 +150,7 @@ package body Files_Suite.Interaction is
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Space_Seam (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -314,6 +315,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Toggle_Command_And_Click'Access,
          "the tree toggle command flips the panel and a label click navigates through the reducer");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Pick_Keyboard'Access,
+         "the destination-pick tree navigates by arrows, expands/collapses, and confirms on Enter");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Quick_Look_Space_Seam'Access,
          "Space opens and closes Quick Look for a single selection and types into a focused field");
@@ -3621,6 +3625,76 @@ package body Files_Suite.Interaction is
          Assert (Row_Named (Rows2, ".secret") /= 0, "hidden directories appear when Show_Hidden_Files is on");
       end;
    end Test_Tree_Expand_Collapse_And_Hidden;
+
+   procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use Ada.Strings.Unbounded;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      CResult  : Files.Controller.Controller_Result;
+      Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "pick-tree");
+      Alpha    : constant String := Files_Suite.Support.Join (Tree_Dir, "alpha");
+      Beta     : constant String := Files_Suite.Support.Join (Tree_Dir, "beta");
+      A1       : constant String := Files_Suite.Support.Join (Alpha, "a1");
+      Src_File : constant String := Files_Suite.Support.Join (Tree_Dir, "src.txt");
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+      Sources  : Files.Types.String_Vectors.Vector;
+      Rows     : Files.Folder_Tree.Visible_Row_Vectors.Vector;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Beta);
+      Ada.Directories.Create_Path (A1);
+      Files_Suite.Support.Write_File (Src_File, "x");
+
+      Seeds.Append
+        (Files.Folder_Tree.Entry_Seed'
+           (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
+      Files.Model.Seed_Tree (Model, Seeds);
+      Files.Model.Open_Tree_Panel (Model);
+      --  Expand the root so alpha and beta are visible rows.
+      CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+
+      Sources.Append (To_Unbounded_String (Src_File));
+      Files.Model.Begin_Tree_Pick (Model, Files.Model.Pick_Copy, Sources, "");
+      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the copy-to pick is active");
+
+      --  The first Down lands on the first row; the next moves down one.
+      Rows := Files.Model.Tree_Visible_Rows (Model);
+      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Assert
+        (Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (1).Path),
+         "the first arrow highlights the first tree row");
+      CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Assert
+        (Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (2).Path),
+         "Down moves the highlight to the next row");
+
+      --  Right on the alpha folder (which has a child) expands it; Left collapses.
+      Files.Model.Set_Tree_Pick_Target (Model, Alpha);
+      declare
+         Before : constant Natural := Natural (Files.Model.Tree_Visible_Rows (Model).Length);
+      begin
+         CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         Assert
+           (Natural (Files.Model.Tree_Visible_Rows (Model).Length) > Before,
+            "Right expands the highlighted folder");
+         CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+         Assert
+           (Natural (Files.Model.Tree_Visible_Rows (Model).Length) = Before,
+            "Left collapses it again");
+      end;
+
+      --  Enter confirms the pick: copy the source into the highlighted folder
+      --  (alpha) and close the sidebar.
+      Files.Model.Set_Tree_Pick_Target (Model, Alpha);
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
+      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "Enter closes the pick tree");
+      Assert
+        (Ada.Directories.Exists (Files_Suite.Support.Join (Alpha, "src.txt")),
+         "Enter copies the source into the highlighted destination");
+   end Test_Tree_Pick_Keyboard;
 
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

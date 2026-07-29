@@ -274,7 +274,76 @@ separate (Files.Controller)
             Files.Model.Clear_Tree_Pick (Model);
             Files.Model.Close_Tree_Panel (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif Key in Guikit.Input.Key_Up | Guikit.Input.Key_Down
+                    | Guikit.Input.Key_Left | Guikit.Input.Key_Right
+           and then Modifiers = Guikit.Input.No_Modifiers
+         then
+            declare
+               Rows    : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
+                 Files.Model.Tree_Visible_Rows (Model);
+               Target  : constant String := Files.Model.Tree_Pick_Target (Model);
+               Current : Natural := 0;
+            begin
+               if Rows.Is_Empty then
+                  return Make_Result (Controller_Ignored);
+               end if;
+               for Idx in Rows.First_Index .. Rows.Last_Index loop
+                  if To_String (Rows (Idx).Path) = Target then
+                     Current := Idx;
+                     exit;
+                  end if;
+               end loop;
+               if Current = 0 then
+                  --  No destination highlighted yet: the first arrow lands on the
+                  --  first row so the rest of the navigation has an anchor.
+                  Files.Model.Set_Tree_Pick_Target
+                    (Model, To_String (Rows (Rows.First_Index).Path));
+                  return Make_Result (Controller_Selection_Moved);
+               end if;
+
+               case Key is
+                  when Guikit.Input.Key_Up =>
+                     if Current > Rows.First_Index then
+                        Files.Model.Set_Tree_Pick_Target
+                          (Model, To_String (Rows (Current - 1).Path));
+                     end if;
+                  when Guikit.Input.Key_Down =>
+                     if Current < Rows.Last_Index then
+                        Files.Model.Set_Tree_Pick_Target
+                          (Model, To_String (Rows (Current + 1).Path));
+                     end if;
+                  when Guikit.Input.Key_Right =>
+                     if Rows (Current).Has_Children and then not Rows (Current).Expanded then
+                        --  Expand the folder (loading its children if needed),
+                        --  reusing the mouse toggle path.
+                        return Handle_Tree_Click
+                          (Model, Settings, Rows (Current).Node_Index, Toggle => True);
+                     elsif Rows (Current).Expanded and then Current < Rows.Last_Index then
+                        Files.Model.Set_Tree_Pick_Target
+                          (Model, To_String (Rows (Current + 1).Path));
+                     end if;
+                  when Guikit.Input.Key_Left =>
+                     if Rows (Current).Expanded then
+                        return Handle_Tree_Click
+                          (Model, Settings, Rows (Current).Node_Index, Toggle => True);
+                     else
+                        --  Step out to the parent: the nearest earlier, shallower row.
+                        for Up_Idx in reverse Rows.First_Index .. Current - 1 loop
+                           if Rows (Up_Idx).Depth < Rows (Current).Depth then
+                              Files.Model.Set_Tree_Pick_Target
+                                (Model, To_String (Rows (Up_Idx).Path));
+                              exit;
+                           end if;
+                        end loop;
+                     end if;
+                  when others =>
+                     null;
+               end case;
+               return Make_Result (Controller_Selection_Moved);
+            end;
          else
+            --  Enter confirms the pick on the Interaction seam (running the copy or
+            --  move needs the settings path); every other key is consumed.
             return Make_Result (Controller_Ignored);
          end if;
       end if;
