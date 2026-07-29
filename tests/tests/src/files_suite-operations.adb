@@ -50,6 +50,7 @@ with Files.Operations;
 with Files.Paste;
 with Files.Platform;
 with Hostkit.Fs;
+with Hostkit.Metadata;
 with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
@@ -3158,9 +3159,18 @@ package body Files_Suite.Operations is
          Assert
            (Execute_Bit (Runnable) = (if Hostkit.Fs.Is_Executable (Runnable) then 'x' else '-'),
             "a file the host will run matches the host");
-         Assert
-           (Execute_Bit (Runnable) = 'x',
-            "and on a host with mode bits, chmod +x really does show as executable");
+
+         --  Set_Permissions succeeding is not the same as this host deciding
+         --  executability by mode: on Windows it writes an ACL and succeeds,
+         --  while what may be run is decided by the extension, so a chmod +x
+         --  .sh file is correctly not executable there. Mode_Bits_Are_Native is
+         --  the question that was meant, and asking the other one asserted POSIX
+         --  of a host that never claimed it.
+         if Hostkit.Metadata.Mode_Bits_Are_Native then
+            Assert
+              (Execute_Bit (Runnable) = 'x',
+               "and where mode decides it, chmod +x really does show as executable");
+         end if;
       end if;
 
       --  The read and write positions, across the mode matrix, against the same
