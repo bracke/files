@@ -882,6 +882,18 @@ package body Files.Platform.Metadata is
 
       Everyone      : aliased Sid_Buffer := [others => Interfaces.C.nul];
       Everyone_Size : aliased C_DWord := C_DWord (Sid_Buffer'Length);
+
+      --  Get_Named_Security_Info hands back a LocalAlloc'd descriptor the caller
+      --  owns; every exit after it succeeds must release it, not just the happy
+      --  path.
+      procedure Free_Descriptor is
+         Freed : System.Address;
+         pragma Unreferenced (Freed);
+      begin
+         if Descriptor /= System.Null_Address then
+            Freed := Local_Free (Descriptor);
+         end if;
+      end Free_Descriptor;
    begin
       Status :=
         Get_Named_Security_Info
@@ -900,6 +912,7 @@ package body Files.Platform.Metadata is
             Everyone (1)'Address, Everyone_Size'Access) = 0
       then
          Interfaces.C.Strings.Free (C_Path);
+         Free_Descriptor;
          return False;
       end if;
 
@@ -932,6 +945,7 @@ package body Files.Platform.Metadata is
 
       if Status /= Success or else New_Acl = System.Null_Address then
          Interfaces.C.Strings.Free (C_Path);
+         Free_Descriptor;
          return False;
       end if;
 
@@ -948,10 +962,8 @@ package body Files.Platform.Metadata is
          pragma Unreferenced (Freed);
       begin
          Freed := Local_Free (New_Acl);
-         if Descriptor /= System.Null_Address then
-            Freed := Local_Free (Descriptor);
-         end if;
       end;
+      Free_Descriptor;
 
       return Status = Success;
 
