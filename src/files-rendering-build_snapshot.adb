@@ -63,12 +63,16 @@ separate (Files.Rendering)
          --  scroll (same directory) does not re-run the syscall every frame;
          --  navigating to another directory refreshes it.
          Path : constant String := Files.Model.Current_Path (Model);
+         Now  : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+         use type Ada.Calendar.Time;
       begin
          if not Cached_Free_Ready
            or else Ada.Strings.Unbounded.To_String (Cached_Free_Path) /= Path
+           or else Now - Cached_Free_Time > Free_Space_Refresh_Interval
          then
             Cached_Free_Cap := Files.Platform.Metadata.Volume_Capacity_Of (Path);
             Cached_Free_Path := Ada.Strings.Unbounded.To_Unbounded_String (Path);
+            Cached_Free_Time := Now;
             Cached_Free_Ready := True;
          end if;
 

@@ -3,11 +3,18 @@ separate (Files.Rendering.Build_Snapshot)
      (Item : Files.File_System.Directory_Item)
       return UString
    is
+      --  Upper-case only ASCII letters. A byte-wise To_Upper would corrupt a
+      --  UTF-8 extension: a 3-byte lead (0xE0..0xEF) falls in Latin-1's lowercase
+      --  range and would be mapped, mojibaking a CJK or emoji extension.
       function Upper_Extension (Extension : String) return String is
          Result : String (Extension'Range);
       begin
          for Index in Extension'Range loop
-            Result (Index) := Ada.Characters.Handling.To_Upper (Extension (Index));
+            if Extension (Index) in 'a' .. 'z' then
+               Result (Index) := Ada.Characters.Handling.To_Upper (Extension (Index));
+            else
+               Result (Index) := Extension (Index);
+            end if;
          end loop;
 
          return Result;

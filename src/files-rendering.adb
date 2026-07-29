@@ -37,10 +37,15 @@ package body Files.Rendering is
    --  on every rebuild -- i.e. every scroll frame that bumps the model revision,
    --  though free space does not change at that cadence. Cache it per current
    --  path so scrolling reuses it; navigating to another directory re-queries.
-   --  Single-threaded render, so package-level state is safe.
+   --  It also expires after a few seconds so the readout follows an in-place
+   --  change (a delete or paste in the same directory leaves the path unchanged,
+   --  and another process can change free space at any time) rather than sticking
+   --  until the user navigates away. Single-threaded render, so state is safe.
+   Free_Space_Refresh_Interval : constant Duration := 3.0;
    Cached_Free_Path  : Ada.Strings.Unbounded.Unbounded_String;
    Cached_Free_Cap   : Files.Platform.Metadata.Volume_Capacity;
    Cached_Free_Ready : Boolean := False;
+   Cached_Free_Time  : Ada.Calendar.Time;  --  meaningful only once Ready
 
    --  Text rendering is provided by the guikit toolkit; this process-wide
    --  renderer holds the shared font/atlas the whole app draws through.
