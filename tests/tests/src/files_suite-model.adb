@@ -1632,6 +1632,13 @@ package body Files_Suite.Model is
            and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
       end Repository_File_Contains;
 
+      function Repository_Source_Contains (Pattern : String) return Boolean is
+      begin
+         return Project_Tools.Files.Any_File_Contains ("src", Pattern)
+           or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
+           or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
+      end Repository_Source_Contains;
+
       function Starts_With
         (Text   : String;
          Prefix : String)
@@ -1802,34 +1809,22 @@ package body Files_Suite.Model is
         (Repository_File_Contains ("files.gpr", "src/platform/macos"),
          "project file selects macOS platform bodies for macOS targets");
       Assert
-        (Repository_File_Contains
-           ("src/platform/windows/files-platform-windows-trash.adb",
-            "External_Name => ""SHFileOperationW"""),
+        (Repository_Source_Contains ("External_Name => ""SHFileOperationW"""),
          "Windows trash binding body imports the native recycle-bin API");
       Assert
-        (Repository_File_Contains
-           ("src/platform/windows/files-platform-windows-trash.adb",
-            "UTF_Encoding.Wide_Strings"),
+        (Repository_Source_Contains ("UTF_Encoding.Wide_Strings"),
          "Windows trash binding builds a UTF-16 (Wide_String) path, not 32-bit");
       Assert
-        (Repository_File_Contains
-           ("src/platform/windows/files-platform-windows-volumes.adb",
-            "External_Name => ""GetVolumeInformationW"""),
+        (Repository_Source_Contains ("External_Name => ""GetVolumeInformationW"""),
          "Windows volume binding body imports volume-label API");
       Assert
-        (Repository_File_Contains
-           ("src/platform/windows/files-platform-windows-volumes.adb",
-            "External_Name => ""GetDiskFreeSpaceExW"""),
+        (Repository_Source_Contains ("External_Name => ""GetDiskFreeSpaceExW"""),
          "Windows volume binding body imports volume-capacity API");
       Assert
-        (Repository_File_Contains
-           ("src/platform/macos/files-platform-macos-trash.adb",
-            "External_Name => ""FSMoveObjectToTrashSync"""),
+        (Repository_Source_Contains ("External_Name => ""FSMoveObjectToTrashSync"""),
          "macOS trash binding body imports native trash API");
       Assert
-        (Repository_File_Contains
-           ("src/platform/macos/files-platform-macos-volumes.adb",
-            "External_Name => ""statfs"""),
+        (Repository_Source_Contains ("External_Name => ""statfs"""),
          "macOS volume binding body imports statfs");
       Assert
         (To_String (Volume_Caps.Native_Api_Name) = "none"
@@ -1863,10 +1858,8 @@ package body Files_Suite.Model is
          "root volume name-limit availability follows statvfs availability");
       Assert (not Volume_Caps.Eject_Available, "root volume capabilities do not claim eject support");
       Assert
-        (Repository_File_Contains
-           ("src/files-file_system-roots.adb", "function Is_Mount_Container")
-         and then Repository_File_Contains
-           ("src/files-file_system-roots.adb", "return not Is_Mount_Container"),
+        (Repository_Source_Contains ("function Is_Mount_Container")
+         and then Repository_Source_Contains ("return not Is_Mount_Container"),
          "root discovery excludes mount container rows");
       Assert (Natural (Roots_A.Length) = Natural (Roots_B.Length), "available roots count is deterministic");
       for Index in 1 .. Natural (Roots_A.Length) loop

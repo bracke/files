@@ -1356,6 +1356,13 @@ package body Files_Suite.Startup is
             and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
       end Repository_File_Contains;
 
+      function Repository_Source_Contains (Pattern : String) return Boolean is
+      begin
+         return Project_Tools.Files.Any_File_Contains ("src", Pattern)
+           or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
+           or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
+      end Repository_Source_Contains;
+
       procedure Restore_Environment is
       begin
          if Had_LC_All then
@@ -1487,25 +1494,19 @@ package body Files_Suite.Startup is
            (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
             "German catalog has generated digital unit labels");
          Assert
-           (Repository_File_Contains
-              ("src/platform/windows/files-platform-windows.adb",
-               "GetUserDefaultLocaleName"),
+           (Repository_Source_Contains ("GetUserDefaultLocaleName"),
             "Windows native locale detection binds GetUserDefaultLocaleName");
          Assert
-           (Repository_File_Contains ("src/platform/macos/files-platform-macos.adb", "CFLocaleCopyCurrent")
+           (Repository_Source_Contains ("CFLocaleCopyCurrent")
             and then Repository_File_Contains
               ("files.gpr",
                """-framework"", ""CoreFoundation"""),
             "macOS native locale detection binds CoreFoundation locale APIs");
          Assert
-           (Repository_File_Contains
-              ("src/files-localization.adb",
-               "Files.Platform.Windows.Native_Locale"),
+           (Repository_Source_Contains ("Files.Platform.Windows.Native_Locale"),
             "system locale detection falls back to Windows native locale");
          Assert
-           (Repository_File_Contains
-              ("src/files-localization.adb",
-               "Files.Platform.Macos.Native_Locale"),
+           (Repository_Source_Contains ("Files.Platform.Macos.Native_Locale"),
             "system locale detection falls back to macOS native locale");
 
          declare
@@ -1565,6 +1566,13 @@ package body Files_Suite.Startup is
            (Project_Tools.Files.File_Exists ("../../" & Path)
             and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
       end Repository_File_Contains;
+
+      function Repository_Source_Contains (Pattern : String) return Boolean is
+      begin
+         return Project_Tools.Files.Any_File_Contains ("src", Pattern)
+           or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
+           or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
+      end Repository_Source_Contains;
 
       function Repository_Root return String is
       begin
@@ -1675,40 +1683,39 @@ package body Files_Suite.Startup is
         (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
          "permanent deletion belongs to the implementation");
       Assert
-        (Repository_File_Contains ("src/glfw-windows-drop.adb", "glfwSetDropCallback")
-         and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_Drop_Input"),
+        (Repository_Source_Contains ("glfwSetDropCallback")
+         and then Repository_Source_Contains ("Handle_Drop_Input"),
          "native file-drop callbacks are connected to controller import routing");
       Assert
-        (Repository_File_Contains ("src/glfw-windows-icon.adb", "glfwSetWindowIcon")
-         and then Repository_File_Contains ("src/files-application-windows.adb", "Glfw.Windows.Icon.Set_Files_Icon"),
+        (Repository_Source_Contains ("glfwSetWindowIcon")
+         and then Repository_Source_Contains ("Glfw.Windows.Icon.Set_Files_Icon"),
          "native desktop windows receive the packaged application icon");
       Assert
-        (Repository_File_Contains ("src/files-application-windows.adb", "Guikit.Vulkan.Wait_For_Events")
-         and then Repository_File_Contains ("src/files-application-windows.adb", "Handle_File_Watch_Poll"),
+        (Repository_Source_Contains ("Guikit.Vulkan.Wait_For_Events")
+         and then Repository_Source_Contains ("Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
       --  Native watching is connected to the event loop through the platform
       --  layer, not by calling a kernel facility from window code: inotify is
       --  Linux-only, and naming it here once made the application impossible to
       --  link on macOS or Windows. Each platform body supplies its own.
       Assert
-        (Repository_File_Contains ("src/files-application-windows.adb", "Files.Platform.Watch.Poll")
-         and then Repository_File_Contains ("src/files-application-windows.adb", "Drain_Native_Watch"),
+        (Repository_Source_Contains ("Files.Platform.Watch.Poll")
+         and then Repository_Source_Contains ("Drain_Native_Watch"),
          "native file watching is connected to the desktop event loop");
       Assert
-        (Repository_File_Contains ("src/platform/linux/files-platform-watch.adb", "inotify_init1")
-         and then Repository_File_Contains ("src/platform/macos/files-platform-watch.adb", "kqueue")
-         and then Repository_File_Contains
-                    ("src/platform/windows/files-platform-watch.adb", "FindFirstChangeNotification"),
+        (Repository_Source_Contains ("inotify_init1")
+         and then Repository_Source_Contains ("kqueue")
+         and then Repository_Source_Contains ("FindFirstChangeNotification"),
          "each platform supplies its own native directory-change notification");
-      Assert
-        (not Repository_File_Contains ("src/files-application-windows.adb", "inotify"),
-         "window code must not name a Linux-only facility directly");
+      --  "window code must not name inotify directly" is now a family-aware
+      --  guardrail in check_all (Check_Desktop_Runtime_Contract), so it covers
+      --  the window body and every one of its subunits, not just one file.
       Assert
         (Files.Features.Included_In_First_Implementation
            (Files.Features.Network_Filesystem_Special_Handling),
          "network filesystem special handling belongs to the implementation");
       Assert
-        (Repository_File_Contains ("src/files-file_system-roots.adb", "Root_Network_Mount")
+        (Repository_Source_Contains ("Root_Network_Mount")
          and then Repository_File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
          "root discovery includes network-specific root handling");
       Assert

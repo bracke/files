@@ -2619,6 +2619,10 @@ procedure Check_All is
         (Windows_Body,
          "Runtime.Last_Missing_Glyph_Count = 0",
          "live smoke must not reject otherwise visible frames solely for missing-glyph fallback");
+      Require_Not_Contains_In_Unit
+        (Windows_Body,
+         "inotify",
+         "window code must not name a Linux-only facility directly; go through Files.Platform.Watch");
    end Check_Desktop_Runtime_Contract;
 
    procedure Check_Rendering_Architecture is
