@@ -117,28 +117,60 @@ package body Files.Operations.Support is
       Select_Name : String := "")
       return Operation_Result
    is
-      Load : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Directory (Files.Model.Current_Path (Model), Settings);
    begin
-      if not Load.Success then
-         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-         return Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
+      --  The Recent view has no backing directory (Current_Path is empty), so a
+      --  directory load would spuriously fail and a mutation performed from
+      --  Recent would be reported as failed with the view left stale. Rebuild it
+      --  from the recorded recent paths instead, dropping any that no longer
+      --  resolve. Mirrors Navigation.Navigate_Recent, which this lower-level
+      --  shared helper cannot call.
+      if Files.Model.In_Recent_View (Model) then
+         declare
+            Recent : constant Files.Types.String_Vectors.Vector :=
+              Files.Settings.Recent_Paths (Settings);
+            Items  : Files.File_System.Item_Vectors.Vector;
+         begin
+            for Path of Recent loop
+               declare
+                  Loaded : constant Files.File_System.Item_Load_Result :=
+                    Files.File_System.Load_Item (To_String (Path), Settings);
+               begin
+                  if Loaded.Success then
+                     Items.Append (Loaded.Item);
+                  end if;
+               end;
+            end loop;
+            Files.Model.Navigate_Recent (Model, Items);
+            Files.Model.Set_Error (Model, "");
+         end;
+         return Make_Result (Operation_Success);
       end if;
 
-      Files.Model.Replace_Items (Model, Load.Items);
-      Files.Model.Set_Directory_Signature
-        (Model,
-         Files.File_System.Directory_State (Files.Model.Current_Path (Model)));
-      if Select_Name /= "" then
-         declare
-            Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
-            pragma Unreferenced (Selection_Restored);
-         begin
-            null;
-         end;
-      end if;
-      Files.Model.Set_Error (Model, "");
-      return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+      declare
+         Load : constant Files.File_System.Directory_Load_Result :=
+           Files.File_System.Load_Directory (Files.Model.Current_Path (Model), Settings);
+      begin
+         if not Load.Success then
+            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+            return
+              Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
+         end if;
+
+         Files.Model.Replace_Items (Model, Load.Items);
+         Files.Model.Set_Directory_Signature
+           (Model,
+            Files.File_System.Directory_State (Files.Model.Current_Path (Model)));
+         if Select_Name /= "" then
+            declare
+               Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
+               pragma Unreferenced (Selection_Restored);
+            begin
+               null;
+            end;
+         end if;
+         Files.Model.Set_Error (Model, "");
+         return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+      end;
    end Reload_Current_Directory;
 
 end Files.Operations.Support;
