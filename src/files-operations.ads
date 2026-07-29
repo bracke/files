@@ -222,9 +222,12 @@ package Files.Operations is
 
    --  Return the terminal-emulator executable that Open_Terminal would launch.
    --
-   --  The TERMINAL environment variable is preferred; otherwise the first of a
-   --  fixed list of common Linux emulators found on PATH is returned. The result
-   --  is empty when no terminal emulator is available.
+   --  The TERMINAL environment variable is preferred on every host: it is the
+   --  user naming the one they want. Otherwise the answer is the host's --
+   --  the first of a list of common emulators found on PATH on Linux, of
+   --  Windows Terminal, PowerShell and cmd on Windows, and `open` on macOS,
+   --  where a terminal is an application bundle rather than a program on PATH.
+   --  The result is empty when no terminal emulator is available.
    --
    --  @return Terminal executable name or path, or an empty string when none.
    function Detected_Terminal return String;

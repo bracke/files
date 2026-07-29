@@ -6,6 +6,7 @@ with Files.File_System;
 with Files.Types;
 
 with Hostkit;
+with Hostkit.Host;
 with Hostkit.Process;
 with Hostkit.Shell;
 
@@ -166,12 +167,18 @@ package body Open is
    end Open_Action_Executable_Is_Available;
 
    function Detected_Terminal return String is
+      type Terminal_List is array (Positive range <>) of Unbounded_String;
+
       Configured : constant String := Safe_Environment_Value ("TERMINAL");
-      --  Ordered most- to least-preferred: the Debian alternatives shim and the
-      --  desktop-environment defaults first, then popular standalone and modern
-      --  GPU terminals, with the near-universal xterm as the last resort. Each
-      --  is a bare executable expected on PATH; unknown ones simply never match.
-      Candidates : constant array (Positive range <>) of Unbounded_String :=
+
+      --  Ordered most- to least-preferred, per host. Each entry is a bare
+      --  executable expected on PATH, so an unknown one simply never matches
+      --  and the list costs nothing on a host that has none of them.
+      --
+      --  POSIX: the Debian alternatives shim and the desktop-environment
+      --  defaults first, then popular standalone and modern GPU terminals, with
+      --  the near-universal xterm as the last resort.
+      Posix_Candidates : constant Terminal_List :=
         [To_Unbounded_String ("x-terminal-emulator"),
          To_Unbounded_String ("gnome-terminal"),
          To_Unbounded_String ("konsole"),
@@ -185,18 +192,49 @@ package body Open is
          To_Unbounded_String ("foot"),
          To_Unbounded_String ("urxvt"),
          To_Unbounded_String ("xterm")];
+
+      --  Windows: Windows Terminal is the modern one and ships with the system
+      --  from Windows 11; PowerShell 7 (pwsh) is the modern shell, Windows
+      --  PowerShell and cmd are the ones that are always there.
+      Windows_Candidates : constant Terminal_List :=
+        [To_Unbounded_String ("wt"),
+         To_Unbounded_String ("pwsh"),
+         To_Unbounded_String ("powershell"),
+         To_Unbounded_String ("cmd")];
+
+      function First_Available
+        (Candidates : Terminal_List)
+         return String is
+      begin
+         for Candidate of Candidates loop
+            if Executable_Is_Available (To_String (Candidate)) then
+               return To_String (Candidate);
+            end if;
+         end loop;
+
+         return "";
+      end First_Available;
    begin
+      --  TERMINAL is honoured first on every host: it is the user saying which
+      --  one they want, and a name they put there that this host cannot run is
+      --  ignored rather than launched.
       if Configured /= "" and then Executable_Is_Available (Configured) then
          return Configured;
       end if;
 
-      for Candidate of Candidates loop
-         if Executable_Is_Available (To_String (Candidate)) then
-            return To_String (Candidate);
-         end if;
-      end loop;
+      case Hostkit.Host.Current is
+         when Hostkit.Host.Windows =>
+            return First_Available (Windows_Candidates);
 
-      return "";
+         when Hostkit.Host.MacOS =>
+            --  A macOS terminal is an application bundle, not a program on
+            --  PATH, so there is no list to search: `open` launches it, and
+            --  Terminal.app is part of the system.
+            return (if Executable_Is_Available ("open") then "open" else "");
+
+         when Hostkit.Host.Linux | Hostkit.Host.Unsupported =>
+            return First_Available (Posix_Candidates);
+      end case;
    exception
       when others =>
          return "";
@@ -217,14 +255,40 @@ package body Open is
       end if;
 
       declare
-         --  Change into the viewed directory, then start the terminal there. "cd /d" on
-         --  cmd, because plain cd will not cross to another drive.
-         Change_Dir : constant String :=
-           (if Hostkit.Shell.Is_Command_Shell then "cd /d " else "cd ");
+         --  Most terminals take their working directory from whoever starts
+         --  them, so the command changes into the viewed directory first. Two
+         --  do not, and both would silently open somewhere else instead.
+         function Terminal_Command return String is
+         begin
+            case Hostkit.Host.Current is
+               when Hostkit.Host.MacOS =>
+                  --  A macOS terminal is an application bundle: `open` hands it
+                  --  the directory, which Terminal.app opens a window in. It has
+                  --  no working directory of its own to inherit.
+                  if Terminal = "open" then
+                     return "open -a Terminal " & Hostkit.Shell.Quote (Directory);
+                  end if;
 
-         Command : constant String :=
-           Change_Dir & Hostkit.Shell.Quote (Directory)
-           & " && " & Hostkit.Shell.Quote (Terminal);
+               when Hostkit.Host.Windows =>
+                  --  Windows Terminal ignores the cwd it was started in and uses
+                  --  the starting directory configured in its profile -- usually
+                  --  the user's home. -d is how it is told otherwise.
+                  if Terminal = "wt" then
+                     return "wt -d " & Hostkit.Shell.Quote (Directory);
+                  end if;
+
+               when Hostkit.Host.Linux | Hostkit.Host.Unsupported =>
+                  null;
+            end case;
+
+            --  "cd /d" on cmd, because plain cd will not cross to another drive.
+            return
+              (if Hostkit.Shell.Is_Command_Shell then "cd /d " else "cd ")
+              & Hostkit.Shell.Quote (Directory)
+              & " && " & Hostkit.Shell.Quote (Terminal);
+         end Terminal_Command;
+
+         Command : constant String := Terminal_Command;
 
          Exit_Status : Integer := -1;
          Started     : Boolean;

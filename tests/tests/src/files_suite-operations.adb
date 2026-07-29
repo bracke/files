@@ -6594,6 +6594,16 @@ package body Files_Suite.Operations is
         (Files.Operations.Detected_Terminal /= Missing_Path,
          "an unavailable TERMINAL override is ignored");
 
+      --  Windows and macOS always have one, and used to be offered none: the
+      --  candidate list held Linux emulators only, so Open Terminal could not
+      --  succeed on either. Not asserted on Linux, where a headless CI box
+      --  legitimately has no terminal emulator installed at all.
+      if Hostkit.Host.Current in Hostkit.Host.Windows | Hostkit.Host.MacOS then
+         Assert
+           (Files.Operations.Detected_Terminal /= "",
+            "this host always has a terminal to open, and one is found");
+      end if;
+
       if Had_Terminal then
          Ada.Environment_Variables.Set ("TERMINAL", To_String (Old_Terminal));
       else
