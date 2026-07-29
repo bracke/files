@@ -25,6 +25,8 @@ with Textrender.Fonts;
 
 with Zlib;
 
+with Hostkit.Host;
+
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
@@ -125,6 +127,7 @@ package body Files_Suite.Operations is
    procedure Test_Commit_Create_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -227,6 +230,9 @@ package body Files_Suite.Operations is
         (T, Test_Create_File_Does_Not_Overwrite'Access, "create-file refuses existing destination");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Advanced_Filesystem_Operations'Access, "advanced filesystem operations");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Cache_Is_Per_User'Access,
+         "the thumbnail cache lands in this host's user cache, not the browsed folder");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -2985,6 +2991,85 @@ package body Files_Suite.Operations is
          Restore_Cache;
          raise;
    end Test_Advanced_Filesystem_Operations;
+
+   --  Thumbnails are a regenerable per-user cache and belong in the user's cache
+   --  area. The resolver consulted only XDG_CACHE_HOME and HOME, and on Windows
+   --  neither is normally set, so it fell through to its last resort: a hidden
+   --  .files-thumbnails directory written into whichever folder was being
+   --  browsed -- in the user's own data, and listed back to them. The guard that
+   --  matters on every host is the last assertion: given somewhere to put a
+   --  cache, it never picks the browsed folder.
+   procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Hostkit.Host.Kind;
+
+      Browsed    : constant String := Join (Root, "pictures");
+      Cache_Home : constant String := Join (Root, "cache-home");
+
+      --  The variable this host keeps its per-user cache root in, and what the
+      --  resolver should make of it once XDG_CACHE_HOME is out of the way.
+      Host_Variable : constant String :=
+        (if Hostkit.Host.Current = Hostkit.Host.Windows then "LOCALAPPDATA" else "HOME");
+      Host_Cache_Root : constant String :=
+        (case Hostkit.Host.Current is
+            when Hostkit.Host.Windows => Cache_Home,
+            when Hostkit.Host.MacOS   => Join (Cache_Home, "Library/Caches"),
+            when others               => Join (Cache_Home, ".cache"));
+
+      Had_Xdg   : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CACHE_HOME");
+      Had_Host  : constant Boolean := Ada.Environment_Variables.Exists (Host_Variable);
+      Old_Xdg   : Unbounded_String;
+      Old_Host  : Unbounded_String;
+
+      procedure Restore is
+      begin
+         if Had_Xdg then
+            Ada.Environment_Variables.Set ("XDG_CACHE_HOME", To_String (Old_Xdg));
+         else
+            Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
+         end if;
+
+         if Had_Host then
+            Ada.Environment_Variables.Set (Host_Variable, To_String (Old_Host));
+         else
+            Ada.Environment_Variables.Clear (Host_Variable);
+         end if;
+      end Restore;
+
+      function Cache_Directory return String is
+        (Files.File_System.Default_Thumbnail_Cache_Directory (Browsed));
+   begin
+      if Had_Xdg then
+         Old_Xdg := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CACHE_HOME"));
+      end if;
+
+      if Had_Host then
+         Old_Host := To_Unbounded_String (Ada.Environment_Variables.Value (Host_Variable));
+      end if;
+
+      Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
+      Assert
+        (Cache_Directory = Join (Join (Cache_Home, "files"), "thumbnails"),
+         "an explicit XDG_CACHE_HOME is honoured on every host, got " & Cache_Directory);
+
+      Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
+      Ada.Environment_Variables.Set (Host_Variable, Cache_Home);
+      Assert
+        (Cache_Directory = Join (Join (Host_Cache_Root, "files"), "thumbnails"),
+         "without XDG_CACHE_HOME the cache follows this host's convention, got " & Cache_Directory);
+
+      Assert
+        (Cache_Directory'Length < Browsed'Length
+           or else Cache_Directory (Cache_Directory'First .. Cache_Directory'First + Browsed'Length - 1)
+                     /= Browsed,
+         "the thumbnail cache is never written into the folder being browsed, got " & Cache_Directory);
+
+      Restore;
+   exception
+      when others =>
+         Restore;
+         raise;
+   end Test_Thumbnail_Cache_Is_Per_User;
 
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
