@@ -3,6 +3,7 @@ with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Files.UTF8;
 with GNAT.OS_Lib;
+with Hostkit.Fs;
 with Hostkit.Host;
 
 separate (Files.File_System)
@@ -259,6 +260,17 @@ package body Path is
 
       return True;
    end Valid_Leaf_Name;
+
+   function Valid_Leaf_Name_At
+     (Name      : String;
+      Directory : String)
+      return Boolean
+   is
+     (Valid_Leaf_Name
+        (Name,
+         (if Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)
+          then Windows_Rules
+          else Posix_Rules)));
 
    function Next_Untitled_Name
      (Directory_Path : String)

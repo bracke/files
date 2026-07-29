@@ -558,6 +558,22 @@ package Files.File_System is
       Rules : Name_Rules := Host_Rules)
       return Boolean;
 
+   --  As Valid_Leaf_Name, but choosing the rules from the filesystem that holds
+   --  Directory -- the place the file is about to be created or renamed. A FAT,
+   --  exFAT or NTFS destination is validated against Windows rules even on a
+   --  POSIX host (a colon is fine on the ext4 disk but not on the FAT stick),
+   --  and a POSIX destination against POSIX rules. Use this at create and rename
+   --  sites; the plain Valid_Leaf_Name is for tests and callers without a
+   --  destination in hand.
+   --
+   --  @param Name Candidate filename without parent path components.
+   --  @param Directory The directory the name will live in.
+   --  @return True when Name can be used as a direct child filename there.
+   function Valid_Leaf_Name_At
+     (Name      : String;
+      Directory : String)
+      return Boolean;
+
    --  Return a deterministic available untitled file name in Directory_Path.
    --
    --  @param Directory_Path Directory to inspect.

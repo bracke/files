@@ -1194,7 +1194,9 @@ package body Transfer is
    begin
       if not Files.Model.Temporary_Item_Is_Active (Model) then
          return Disabled (Model, "error.create.no_temporary_item");
-      elsif not Files.File_System.Valid_Leaf_Name (Name) then
+      elsif not Files.File_System.Valid_Leaf_Name_At
+                  (Name, Files.Model.Current_Path (Model))
+      then
          Files.Model.Set_Error (Model, "error.name.invalid");
          return Make_Result (Operation_Invalid_Name, "error.name.invalid");
       end if;
@@ -1268,7 +1270,7 @@ package body Transfer is
             Old_Name : constant String := To_String (Target.Old_Name);
             New_Name : constant String := To_String (Target.New_Name);
          begin
-            if not Files.File_System.Valid_Leaf_Name (New_Name) then
+            if not Files.File_System.Valid_Leaf_Name_At (New_Name, Current_Dir) then
                Failure := Failure + 1;
                Record_First_Error ("error.name.invalid", Old_Full);
             elsif New_Name = Old_Name then

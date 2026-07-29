@@ -63,7 +63,7 @@ package body Create is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.file.parent_missing"));
-      elsif not Valid_Leaf_Name (Name) then
+      elsif not Valid_Leaf_Name_At (Name, Parent) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.name.invalid"));
@@ -112,7 +112,7 @@ package body Create is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.file.parent_missing"));
-      elsif not Valid_Leaf_Name (Name) then
+      elsif not Valid_Leaf_Name_At (Name, Parent) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.name.invalid"));
@@ -260,7 +260,7 @@ package body Create is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.rename.invalid_destination"));
-      elsif not Valid_Leaf_Name (Name) then
+      elsif not Valid_Leaf_Name_At (Name, Parent) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.name.invalid"));
@@ -354,7 +354,7 @@ package body Create is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.link.failed"));
-      elsif not Valid_Leaf_Name (Name) then
+      elsif not Valid_Leaf_Name_At (Name, Parent) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.name.invalid"));

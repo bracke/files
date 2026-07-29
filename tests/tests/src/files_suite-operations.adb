@@ -3259,6 +3259,27 @@ package body Files_Suite.Operations is
               and then not Files.File_System.Valid_Leaf_Name ("   ", Rules),
             "no rule set accepts trailing or all whitespace");
       end loop;
+
+      --  Resolved against a real destination, Valid_Leaf_Name_At follows that
+      --  destination's filesystem: a colon name is accepted exactly when the
+      --  filesystem holding the directory is not DOS-ruled. This ties the wiring
+      --  to Hostkit's detection and holds on any host (POSIX test root -> valid,
+      --  a Windows NTFS root -> not), while the universal rejections stand
+      --  regardless of the destination.
+      Reset_Root;
+      declare
+         Dos_Root : constant Boolean := Hostkit.Fs.Uses_Dos_Filename_Rules (Root);
+      begin
+         Assert
+           (Files.File_System.Valid_Leaf_Name_At ("my:notes.txt", Root) = not Dos_Root,
+            "a colon name is valid at a destination iff its filesystem is not DOS-ruled");
+         Assert
+           (Files.File_System.Valid_Leaf_Name_At ("ordinary.txt", Root),
+            "an ordinary name is valid at any destination");
+         Assert
+           (not Files.File_System.Valid_Leaf_Name_At ("a/b.txt", Root),
+            "a path separator is rejected at any destination");
+      end;
    end Test_Leaf_Name_Rules;
 
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
