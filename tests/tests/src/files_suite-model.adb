@@ -366,6 +366,7 @@ package body Files_Suite.Model is
       Utf8_Path : constant String := Join (Root, "utf8.txt");
       Binary_Text_Path : constant String := Join (Root, "binary.txt");
       Late_Binary_Text_Path : constant String := Join (Root, "late-binary.txt");
+      Sampled_Text_Path : constant String := Join (Root, "sampled.txt");
       Split_Utf8_Path : constant String := Join (Root, "split-utf8.txt");
       Overlong_Text_Path : constant String := Join (Root, "overlong.txt");
       Surrogate_Text_Path : constant String := Join (Root, "surrogate.txt");
@@ -397,6 +398,7 @@ package body Files_Suite.Model is
       Found_Utf8 : Boolean := False;
       Found_Binary_Text : Boolean := False;
       Found_Late_Binary_Text : Boolean := False;
+      Found_Sampled_Text : Boolean := False;
       Found_Split_Utf8 : Boolean := False;
       Found_Overlong_Text : Boolean := False;
       Found_Surrogate_Text : Boolean := False;
@@ -437,6 +439,9 @@ package body Files_Suite.Model is
       Write_Binary_File (Utf8_Path, "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
       Write_Binary_File (Binary_Text_Path, "bad" & Character'Val (16#C3#));
       Write_Binary_File (Late_Binary_Text_Path, String'(1 .. 4096 => 'x') & Character'Val (0));
+      --  A binary byte only past the 128 KiB encoding sample window: a bounded
+      --  scan classifies this by its clean prefix and never reads the NUL.
+      Write_Binary_File (Sampled_Text_Path, String'(1 .. 131_072 => 'x') & Character'Val (0));
       Write_Binary_File
         (Split_Utf8_Path,
          String'(1 .. 4095 => 'x') & Character'Val (16#C3#) & Character'Val (16#A9#));
@@ -562,6 +567,11 @@ package body Files_Suite.Model is
             Assert
               (Item_Extra (Item) = "text.lines_encoding|1|binary",
                "text encoding metadata scans beyond the first read buffer");
+         elsif To_String (Item.Name) = "sampled.txt" then
+            Found_Sampled_Text := True;
+            Assert
+              (Item_Extra (Item) = "text.lines_encoding|1|ascii",
+               "text encoding sampling stops at a bounded prefix, not the whole file");
          elsif To_String (Item.Name) = "split-utf8.txt" then
             Found_Split_Utf8 := True;
             Assert
@@ -689,6 +699,7 @@ package body Files_Suite.Model is
       Assert (Found_Utf8, "UTF-8 text item was loaded");
       Assert (Found_Binary_Text, "binary text item was loaded");
       Assert (Found_Late_Binary_Text, "late binary text item was loaded");
+      Assert (Found_Sampled_Text, "sampled text item was loaded");
       Assert (Found_Split_Utf8, "split UTF-8 text item was loaded");
       Assert (Found_Overlong_Text, "overlong UTF-8 text item was loaded");
       Assert (Found_Surrogate_Text, "surrogate UTF-8 text item was loaded");

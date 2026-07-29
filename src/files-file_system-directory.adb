@@ -510,6 +510,13 @@ package body Directory is
    end Count_Text_Lines;
 
    function Text_Encoding_Name (Path : String) return String is
+      --  Classify by sampling a bounded prefix, the way file(1) does. Scanning
+      --  the whole file would turn a passive directory browse into an
+      --  unbounded read: this runs per regular text file via Extra_Info_Token,
+      --  so a multi-GB all-valid-text file (a big log or SQL dump) would
+      --  otherwise be read end to end just to render its metadata line.
+      Encoding_Sample_Limit : constant := 131_072;
+
       File       : Ada.Streams.Stream_IO.File_Type;
       Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
       Last       : Ada.Streams.Stream_Element_Offset;
@@ -518,6 +525,7 @@ package body Directory is
       Pending    : Natural := 0;
       First_Byte : Natural := 0;
       Step       : Natural := 0;
+      Scanned    : Natural := 0;
 
       function Valid_First_Continuation
         (Byte_Value : Natural;
@@ -584,6 +592,16 @@ package body Directory is
                else
                   Ada.Streams.Stream_IO.Close (File);
                   return "binary";
+               end if;
+
+               Scanned := Scanned + 1;
+               if Scanned >= Encoding_Sample_Limit then
+                  --  Enough of a clean prefix to classify. A partial multi-byte
+                  --  sequence straddling the cap is not a defect here (Ascii_Only
+                  --  is already cleared), so do not fall through to the binary
+                  --  verdict the way a genuine mid-sequence EOF would.
+                  Ada.Streams.Stream_IO.Close (File);
+                  return (if Ascii_Only then "ascii" else "utf8");
                end if;
             end loop;
          end if;
