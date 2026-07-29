@@ -56,17 +56,25 @@ separate (Files.Rendering)
       Snapshot.Hidden_Count := Files.Model.Hidden_Item_Count (Model);
       Snapshot.Selected_Count := Files.Model.Selected_Count (Model);
       declare
-         --  Free-space is derived per snapshot from the current directory's
-         --  filesystem, mirroring how the hidden count is queried above. The
-         --  platform accessor reports Available = False when the volume cannot
-         --  be measured (non-Linux stubs, unreadable paths), so a bogus zero is
-         --  never shown as a known value.
-         Capacity : constant Files.Platform.Metadata.Volume_Capacity :=
-           Files.Platform.Metadata.Volume_Capacity_Of (Files.Model.Current_Path (Model));
+         --  Free-space comes from the current directory's filesystem via a
+         --  statvfs syscall. The platform accessor reports Available = False when
+         --  the volume cannot be measured (non-Linux stubs, unreadable paths), so
+         --  a bogus zero is never shown as a known value. Cache it per path so a
+         --  scroll (same directory) does not re-run the syscall every frame;
+         --  navigating to another directory refreshes it.
+         Path : constant String := Files.Model.Current_Path (Model);
       begin
-         Snapshot.Free_Space_Known := Capacity.Available;
-         Snapshot.Free_Space_Bytes := Capacity.Free_Bytes;
-         Snapshot.Total_Space_Bytes := Capacity.Capacity_Bytes;
+         if not Cached_Free_Ready
+           or else Ada.Strings.Unbounded.To_String (Cached_Free_Path) /= Path
+         then
+            Cached_Free_Cap := Files.Platform.Metadata.Volume_Capacity_Of (Path);
+            Cached_Free_Path := Ada.Strings.Unbounded.To_Unbounded_String (Path);
+            Cached_Free_Ready := True;
+         end if;
+
+         Snapshot.Free_Space_Known := Cached_Free_Cap.Available;
+         Snapshot.Free_Space_Bytes := Cached_Free_Cap.Free_Bytes;
+         Snapshot.Total_Space_Bytes := Cached_Free_Cap.Capacity_Bytes;
       end;
       Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filter_Text (Model));
       Snapshot.Search_Scope := Files.Model.Search_Scope_Of (Model);

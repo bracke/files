@@ -33,6 +33,15 @@ package body Files.Rendering is
       return True;
    end "=";
 
+   --  Build_Snapshot queries the current volume's free space (a statvfs syscall)
+   --  on every rebuild -- i.e. every scroll frame that bumps the model revision,
+   --  though free space does not change at that cadence. Cache it per current
+   --  path so scrolling reuses it; navigating to another directory re-queries.
+   --  Single-threaded render, so package-level state is safe.
+   Cached_Free_Path  : Ada.Strings.Unbounded.Unbounded_String;
+   Cached_Free_Cap   : Files.Platform.Metadata.Volume_Capacity;
+   Cached_Free_Ready : Boolean := False;
+
    --  Text rendering is provided by the guikit toolkit; this process-wide
    --  renderer holds the shared font/atlas the whole app draws through.
    The_Renderer : Guikit.Text.Renderer;
