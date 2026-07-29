@@ -99,6 +99,7 @@ separate (Files.Rendering)
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
       Snapshot.Context_Menu_Open := Files.Model.Context_Menu_Is_Open (Model);
+      Snapshot.Context_Menu_Highlight := Files.Model.Context_Menu_Highlight (Model);
       Snapshot.Context_Menu_X := Files.Model.Context_Menu_X (Model);
       Snapshot.Context_Menu_Y := Files.Model.Context_Menu_Y (Model);
       Snapshot.Context_Menu_Target := Files.Model.Context_Menu_Target_Of (Model);

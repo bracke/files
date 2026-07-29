@@ -208,6 +208,7 @@ package Files.Rendering is
       Selection_Total_Bytes          : Long_Long_Integer := 0;
       Selection_Total_Pending        : Boolean := False;
       Context_Menu_Open              : Boolean := False;
+      Context_Menu_Highlight         : Natural := 0;
       Context_Menu_X                 : Natural := 0;
       Context_Menu_Y                 : Natural := 0;
       Context_Menu_Target            : Files.Model.Context_Menu_Target :=

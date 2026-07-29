@@ -429,6 +429,32 @@ package body Files.Interaction is
          end;
       end if;
 
+      --  A keyboard Enter on the open context menu runs the highlighted command,
+      --  routed through Apply_Context_Menu_Command (which needs the settings path
+      --  the read-only controller lacks), exactly as clicking that row does.
+      if Files.Model.Context_Menu_Is_Open (Model)
+        and then Key = Guikit.Input.Key_Return
+      then
+         declare
+            use type Files.Commands.Context_Menu_Row_Kind;
+            Rows      : constant Files.Commands.Context_Menu_Rows :=
+              Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu_Target_Of (Model));
+            Highlight : constant Natural := Files.Model.Context_Menu_Highlight (Model);
+         begin
+            if Highlight in 1 .. Rows.Count
+              and then Rows.Rows (Highlight).Kind = Files.Commands.Menu_Command
+            then
+               Apply_Context_Menu_Command
+                 (Model, Settings, Settings_Path, Rows.Rows (Highlight).Command,
+                  Current_Font_Size, Modifiers, Result);
+            else
+               --  Nothing highlighted (a mouse-opened menu not yet arrowed): a
+               --  bare Enter just dismisses it.
+               Files.Model.Close_Context_Menu (Model);
+            end if;
+         end;
+      end if;
+
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
       --  character: when the grid owns the keyboard, drop the parallel space
       --  character event so it never leaks into type-ahead. A space typed into a

@@ -1852,6 +1852,25 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Set the one-based index of the keyboard-highlighted context-menu row (0
+   --  for none). The controller resolves which row is a selectable command via
+   --  Files.Commands.Context_Menu_Rows_For and stores the result here.
+   --
+   --  @param Model Model to update.
+   --  @param Row Highlighted row index, or 0 for none.
+   procedure Set_Context_Menu_Highlight
+     (Model : in out Window_Model;
+      Row   : Natural);
+
+   --  The one-based index of the keyboard-highlighted context-menu row, or 0
+   --  when none is highlighted (e.g. a menu opened by mouse and not yet arrowed).
+   --
+   --  @param Model Model to inspect.
+   --  @return Highlighted row index, or 0.
+   function Context_Menu_Highlight
+     (Model : Window_Model)
+      return Natural;
+
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
 
    --  Record a clipboard snapshot of source paths and a copy/cut mode.
@@ -2573,6 +2592,7 @@ private
       Context_Menu_Y_Value          : Natural := 0;
       Context_Menu_Target_Value     : Context_Menu_Target := Context_Menu_None;
       Context_Menu_Item_Index_Value : Natural := 0;
+      Context_Menu_Highlight_Value  : Natural := 0;
       Paste_Conflict_Active_Value    : Boolean := False;
       Paste_Conflict_Items_Value     : Files.Paste.Work_Item_Vectors.Vector;
       Paste_Conflict_Existing_Value  : Files.Types.String_Vectors.Vector;

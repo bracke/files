@@ -195,7 +195,42 @@ separate (Files.Controller)
          if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
             Files.Model.Close_Context_Menu (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif (Key = Guikit.Input.Key_Up or else Key = Guikit.Input.Key_Down)
+           and then Modifiers = Guikit.Input.No_Modifiers
+         then
+            declare
+               use type Files.Commands.Context_Menu_Row_Kind;
+               Rows : constant Files.Commands.Context_Menu_Rows :=
+                 Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu_Target_Of (Model));
+               Direction : constant Integer := (if Key = Guikit.Input.Key_Up then -1 else 1);
+               Current   : constant Natural := Files.Model.Context_Menu_Highlight (Model);
+               Index     : Integer :=
+                 (if Current /= 0 then Current
+                  elsif Direction > 0 then 0
+                  else Rows.Count + 1);
+               Landed    : Natural := 0;
+            begin
+               --  Step to the next enabled command row, skipping separators and
+               --  disabled entries; stop (leaving the highlight put) at the ends.
+               loop
+                  Index := Index + Direction;
+                  exit when Index < 1 or else Index > Rows.Count;
+                  if Rows.Rows (Index).Kind = Files.Commands.Menu_Command
+                    and then Files.Commands.Is_Enabled (Rows.Rows (Index).Command, Model)
+                  then
+                     Landed := Index;
+                     exit;
+                  end if;
+               end loop;
+               if Landed /= 0 then
+                  Files.Model.Set_Context_Menu_Highlight (Model, Landed);
+               end if;
+               return Make_Result (Controller_Selection_Moved);
+            end;
          else
+            --  Enter is applied on the Interaction seam (running a menu command
+            --  needs the settings path); every other key is consumed so the grid
+            --  behind the menu stays put.
             return Make_Result (Controller_Ignored);
          end if;
       end if;
@@ -242,6 +277,23 @@ separate (Files.Controller)
          else
             return Make_Result (Controller_Ignored);
          end if;
+      end if;
+
+      --  Shift+F10 opens the context menu on the current selection -- the
+      --  keyboard equivalent of a right-click -- so its rows are reachable and
+      --  navigable without a mouse. (The Menu/Application key is not in the key
+      --  set; Shift+F10 is its universal stand-in.)
+      if Key = Guikit.Input.Key_F10
+        and then Modifiers (Guikit.Input.Shift_Key)
+        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+      then
+         if Files.Model.Selected_Count (Model) > 0 then
+            Files.Model.Open_Context_Menu
+              (Model, 0, 0, Files.Model.Context_Menu_Item, Files.Model.Selected_Index (Model));
+         else
+            Files.Model.Open_Context_Menu (Model, 0, 0, Files.Model.Context_Menu_Empty);
+         end if;
+         return Make_Result (Controller_Selection_Moved);
       end if;
 
       if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then

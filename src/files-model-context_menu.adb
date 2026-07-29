@@ -14,6 +14,9 @@ package body Context_Menu is
       Model.Context_Menu_Y_Value := Y;
       Model.Context_Menu_Target_Value := Target;
       Model.Context_Menu_Item_Index_Value := Item_Index;
+      --  No keyboard highlight until the user arrows; a mouse-opened menu shows
+      --  none pre-selected.
+      Model.Context_Menu_Highlight_Value := 0;
    end Open_Context_Menu;
 
    procedure Close_Context_Menu
@@ -23,7 +26,23 @@ package body Context_Menu is
       Model.Context_Menu_Open_Value := False;
       Model.Context_Menu_Target_Value := Context_Menu_None;
       Model.Context_Menu_Item_Index_Value := 0;
+      Model.Context_Menu_Highlight_Value := 0;
    end Close_Context_Menu;
+
+   procedure Set_Context_Menu_Highlight
+     (Model : in out Window_Model;
+      Row   : Natural) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Context_Menu_Highlight_Value := Row;
+   end Set_Context_Menu_Highlight;
+
+   function Context_Menu_Highlight
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Context_Menu_Highlight_Value;
+   end Context_Menu_Highlight;
 
    function Context_Menu_Is_Open
      (Model : Window_Model)

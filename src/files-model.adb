@@ -2380,6 +2380,14 @@ package body Files.Model is
       function Context_Menu_Item_Index
         (Model : Window_Model)
          return Natural;
+
+      procedure Set_Context_Menu_Highlight
+        (Model : in out Window_Model;
+         Row   : Natural);
+
+      function Context_Menu_Highlight
+        (Model : Window_Model)
+         return Natural;
    end Context_Menu;
    package body Context_Menu is separate;
 
@@ -2410,5 +2418,11 @@ package body Files.Model is
 
    function Context_Menu_Item_Index (Model : Window_Model) return Natural
      renames Context_Menu.Context_Menu_Item_Index;
+
+   procedure Set_Context_Menu_Highlight (Model : in out Window_Model; Row : Natural)
+     renames Context_Menu.Set_Context_Menu_Highlight;
+
+   function Context_Menu_Highlight (Model : Window_Model) return Natural
+     renames Context_Menu.Context_Menu_Highlight;
 
 end Files.Model;

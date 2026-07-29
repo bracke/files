@@ -380,11 +380,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                            Raw_Label : constant UString := Command_Label (Command);
                            Fitted    : constant UString :=
                              Fitted_Text_For (Raw_Label, Capacity);
-                           --  Highlight fires on press, else on an enabled hover;
-                           --  a pressed row wins the color, matching the former
-                           --  if/elsif chain.
+                           --  Highlight fires on press, on an enabled hover, or on
+                           --  the keyboard-highlighted row (arrow navigation), so
+                           --  a keyboard user sees which command Enter will run.
                            Highlight : constant Boolean :=
-                             Pressed or else (Hovered and then Enabled);
+                             Pressed
+                             or else (Hovered and then Enabled)
+                             or else Row = Snapshot.Context_Menu_Highlight;
                         begin
                            Guikit.Widgets.Draw_Menu_Row
                              (Rectangles      => Result.Overlay_Rectangles,

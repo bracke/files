@@ -278,6 +278,35 @@ package Files.Commands is
       Model : Files.Model.Window_Model)
       return Boolean;
 
+   --  The rows the right-click context menu shows for a target, in order --
+   --  command rows interleaved with separator dividers. Shared by the renderer
+   --  (which lays them out and hit-tests them) and the controller (which
+   --  navigates and activates them by keyboard) so both agree on the set.
+   Max_Context_Menu_Rows : constant := 26;
+
+   type Context_Menu_Row_Kind is (Menu_Command, Menu_Separator);
+
+   type Context_Menu_Row is record
+      Kind    : Context_Menu_Row_Kind := Menu_Separator;
+      Command : Command_Id := No_Command;
+   end record;
+
+   type Context_Menu_Row_Array is
+     array (1 .. Max_Context_Menu_Rows) of Context_Menu_Row;
+
+   type Context_Menu_Rows is record
+      Rows  : Context_Menu_Row_Array;
+      Count : Natural := 0;
+   end record;
+
+   --  Return the ordered rows for a context-menu target.
+   --
+   --  @param Target Which context menu (item / empty area / column header).
+   --  @return The rows for that target (Count is zero for Context_Menu_None).
+   function Context_Menu_Rows_For
+     (Target : Files.Model.Context_Menu_Target)
+      return Context_Menu_Rows;
+
    --  Return whether a command may execute while the root selector is open.
    --
    --  @param Id Command identifier.

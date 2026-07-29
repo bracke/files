@@ -7,95 +7,32 @@ separate (Files.Rendering)
       return Context_Menu_Layout
    is
       Result : Context_Menu_Layout;
-      Next   : Natural := 0;
 
-      --  Append a selectable command row.
-      procedure Add_Command (Command : Files.Commands.Command_Id) is
-      begin
-         Next := Next + 1;
-         Result.Commands (Next) := Command;
-         Result.Row_Kinds (Next) := Command_Row;
-      end Add_Command;
-
-      --  Append a non-selectable divider row between two command groups.
-      procedure Add_Separator is
-      begin
-         Next := Next + 1;
-         Result.Commands (Next) := Files.Commands.No_Command;
-         Result.Row_Kinds (Next) := Separator_Row;
-      end Add_Separator;
+      use type Files.Commands.Context_Menu_Row_Kind;
+      use type Files.Model.Context_Menu_Target;
    begin
-      if not Snapshot.Context_Menu_Open then
+      if not Snapshot.Context_Menu_Open
+        or else Snapshot.Context_Menu_Target = Files.Model.Context_Menu_None
+      then
          return Result;
       end if;
 
-      case Snapshot.Context_Menu_Target is
-         when Files.Model.Context_Menu_Item =>
-            --  Group 1: open actions, including revealing a search result in its
-            --  containing folder.
-            Add_Command (Files.Commands.Open_Selected_Items_Command);
-            Add_Command (Files.Commands.Open_With_Command);
-            Add_Command (Files.Commands.Open_Containing_Folder_Command);
-            Add_Separator;
-            --  Group 2: favorite the current selection and set its color label
-            --  (tagging verbs grouped together).
-            Add_Command (Files.Commands.Toggle_Favorite_Command);
-            Add_Command (Files.Commands.Set_Color_Label_Command);
-            Add_Separator;
-            --  Group 3: clipboard / duplication, including the copy-to and
-            --  move-to destination pickers next to the plain clipboard verbs.
-            Add_Command (Files.Commands.Copy_Selected_Items_Command);
-            Add_Command (Files.Commands.Cut_Selected_Items_Command);
-            Add_Command (Files.Commands.Copy_Path_Command);
-            Add_Command (Files.Commands.Copy_To_Command);
-            Add_Command (Files.Commands.Move_To_Command);
-            Add_Command (Files.Commands.Duplicate_Selected_Command);
-            Add_Separator;
-            --  Group 4: archive actions.
-            Add_Command (Files.Commands.Compress_Zip_Command);
-            Add_Command (Files.Commands.Compress_7z_Command);
-            Add_Command (Files.Commands.Extract_Archive_Command);
-            Add_Separator;
-            --  Group 5: link creation.
-            Add_Command (Files.Commands.Create_Symlink_Command);
-            Add_Command (Files.Commands.Create_Hardlink_Command);
-            Add_Separator;
-            --  Group 6: destructive / recovery actions.
-            Add_Command (Files.Commands.Rename_Selected_Items_Command);
-            Add_Command (Files.Commands.Delete_Selected_Items_Command);
-            Add_Command (Files.Commands.Restore_From_Trash_Command);
-            Result.Row_Count := Next;
-         when Files.Model.Context_Menu_Empty =>
-            Add_Command (Files.Commands.Create_File_Command);
-            Add_Command (Files.Commands.New_Folder_Command);
-            Add_Command (Files.Commands.Paste_Items_Command);
-            Add_Separator;
-            --  Background directory actions: open a terminal here and refresh.
-            Add_Command (Files.Commands.Open_Terminal_Command);
-            Add_Command (Files.Commands.Refresh_Directory_Command);
-            Add_Separator;
-            --  Trash-view action: permanently purge every trashed entry. Enabled
-            --  only while the trash payload directory is shown and non-empty.
-            Add_Command (Files.Commands.Empty_Trash_Command);
-            --  Recent-view action: empty the recent list. Enabled only while the
-            --  virtual recent view is shown and non-empty.
-            Add_Command (Files.Commands.Clear_Recent_Command);
-            Result.Row_Count := Next;
-         when Files.Model.Context_Menu_Header =>
-            --  Details-view column configuration: toggle each optional column,
-            --  then cycle the grouping mode. Reuses the same layout/hit-test the
-            --  item and empty-area menus draw with.
-            Add_Command (Files.Commands.Toggle_Column_Modified_Command);
-            Add_Command (Files.Commands.Toggle_Column_Size_Command);
-            Add_Command (Files.Commands.Toggle_Column_Type_Command);
-            Add_Command (Files.Commands.Toggle_Column_Created_Command);
-            Add_Command (Files.Commands.Toggle_Column_Permissions_Command);
-            Add_Separator;
-            Add_Command (Files.Commands.Cycle_Group_By_Command);
-            Result.Row_Count := Next;
-         when Files.Model.Context_Menu_None =>
-            return Result;
-      end case;
+      --  The row set (which commands, and where the separators fall) is shared
+      --  with the controller's keyboard navigation via Files.Commands so both
+      --  agree on the menu; here it is only laid out and hit-tested.
+      declare
+         Rows : constant Files.Commands.Context_Menu_Rows :=
+           Files.Commands.Context_Menu_Rows_For (Snapshot.Context_Menu_Target);
+      begin
+         Result.Row_Count := Rows.Count;
+         for Row in 1 .. Rows.Count loop
+            Result.Commands (Row) := Rows.Rows (Row).Command;
+            Result.Row_Kinds (Row) :=
+              (if Rows.Rows (Row).Kind = Files.Commands.Menu_Command
+               then Command_Row
+               else Separator_Row);
+         end loop;
+      end;
 
       Result.Padding := 4;
       Result.Row_Height :=
