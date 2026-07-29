@@ -245,6 +245,19 @@ jobs:
         working-directory: files
         run: alr --non-interactive build
 
+      - name: Enforce style checks (development profile, Linux)
+        # The -gnaty style switches (layout/-gnatyl, casing, spacing, blank
+        # lines) live only in the development profile's config; the release
+        # build above does not apply them. A clean development build on the
+        # fresh checkout is therefore what actually catches a style regression
+        # -- e.g. mis-indented code that a stale object file would otherwise
+        # hide from an incremental build. Style is OS-independent, so run it
+        # once on Linux.
+        if: runner.os == 'Linux'
+        shell: bash
+        working-directory: files
+        run: alr --non-interactive build --profiles=*=development
+
       - name: Headless render smoke (all platforms)
         # Runs the SHIPPED app binary's headless render path on every OS:
         # snapshot -> frame commands -> text/glyph batching, with no window or
