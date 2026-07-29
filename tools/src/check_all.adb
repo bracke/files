@@ -2850,7 +2850,6 @@ procedure Check_All is
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
           To_Unbounded_String ("Files.Localization"),
-          To_Unbounded_String ("Files.Platform.Metadata"),
           To_Unbounded_String ("Files.UTF8"),
           To_Unbounded_String ("Files.UI")]);
 

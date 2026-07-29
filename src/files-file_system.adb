@@ -23,7 +23,7 @@ with Files.Fs;
 with Files_Config;
 
 with Files.Platform.Macos;
-with Files.Platform.Metadata;
+with Hostkit.Metadata;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Files.Platform.Macos.Trash;

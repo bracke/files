@@ -1,7 +1,8 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Strings.Unbounded;
 with Files.Fs;
-with Files.Platform.Metadata;
+with Hostkit.Fs;
+with Hostkit.Metadata;
 
 separate (Files.File_System)
 package body Permissions is
@@ -17,7 +18,7 @@ package body Permissions is
 
    function Supports_Permissions return Boolean is
    begin
-      return Files.Platform.Metadata.Permissions_Supported;
+      return Hostkit.Metadata.Permissions_Supported;
    end Supports_Permissions;
 
    function Permission_Bits_Of
@@ -25,7 +26,7 @@ package body Permissions is
       Available : out Boolean)
       return Natural is
    begin
-      return Files.Platform.Metadata.File_Permission_Bits (Path, Available);
+      return Hostkit.Metadata.File_Permission_Bits (Path, Available);
    end Permission_Bits_Of;
 
    function Set_Permissions
@@ -41,7 +42,7 @@ package body Permissions is
             return False;
       end Exists_Safely;
    begin
-      if not Files.Platform.Metadata.Permissions_Supported then
+      if not Hostkit.Metadata.Permissions_Supported then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.permissions.unsupported"));
@@ -49,7 +50,7 @@ package body Permissions is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.permissions.failed"));
-      elsif Files.Platform.Metadata.Set_Permissions (Path, Mode) then
+      elsif Hostkit.Metadata.Set_Permissions (Path, Mode) then
          return (Success => True, Error_Key => Null_Unbounded_String);
       else
          return
@@ -65,7 +66,7 @@ package body Permissions is
 
    function Supports_Ownership return Boolean is
    begin
-      return Files.Platform.Metadata.Ownership_Supported;
+      return Hostkit.Metadata.Ownership_Supported;
    end Supports_Ownership;
 
    procedure Ownership_Of
@@ -74,7 +75,7 @@ package body Permissions is
       Group_Id  : out Natural;
       Available : out Boolean) is
    begin
-      Files.Platform.Metadata.File_Ownership (Path, User_Id, Group_Id, Available);
+      Hostkit.Metadata.File_Ownership (Path, User_Id, Group_Id, Available);
    end Ownership_Of;
 
    function Set_Ownership
@@ -91,7 +92,7 @@ package body Permissions is
             return False;
       end Exists_Safely;
    begin
-      if not Files.Platform.Metadata.Ownership_Supported then
+      if not Hostkit.Metadata.Ownership_Supported then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.ownership.unsupported"));
@@ -99,7 +100,7 @@ package body Permissions is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.ownership.denied"));
-      elsif Files.Platform.Metadata.Set_Ownership (Path, User_Id, Group_Id) then
+      elsif Hostkit.Fs.Set_Owner (Path, User_Id, Group_Id) then
          return (Success => True, Error_Key => Null_Unbounded_String);
       else
          return
@@ -118,7 +119,7 @@ package body Permissions is
       Found : out Boolean)
       return Natural is
    begin
-      return Files.Platform.Metadata.User_Id_For_Name (Name, Found);
+      return Hostkit.Metadata.User_Id_For_Name (Name, Found);
    end User_Id_For_Name;
 
    function Group_Id_For_Name
@@ -126,7 +127,7 @@ package body Permissions is
       Found : out Boolean)
       return Natural is
    begin
-      return Files.Platform.Metadata.Group_Id_For_Name (Name, Found);
+      return Hostkit.Metadata.Group_Id_For_Name (Name, Found);
    end Group_Id_For_Name;
 
    function User_Name_For_Id (Id : Natural) return String is
@@ -136,7 +137,7 @@ package body Permissions is
          return To_String (Id_Name_Maps.Element (Position));
       end if;
       declare
-         Name : constant String := Files.Platform.Metadata.User_Name_For_Id (Id);
+         Name : constant String := Hostkit.Metadata.User_Name_For_Id (Id);
       begin
          User_Name_Cache.Insert (Id, To_Unbounded_String (Name));
          return Name;
@@ -150,7 +151,7 @@ package body Permissions is
          return To_String (Id_Name_Maps.Element (Position));
       end if;
       declare
-         Name : constant String := Files.Platform.Metadata.Group_Name_For_Id (Id);
+         Name : constant String := Hostkit.Metadata.Group_Name_For_Id (Id);
       begin
          Group_Name_Cache.Insert (Id, To_Unbounded_String (Name));
          return Name;

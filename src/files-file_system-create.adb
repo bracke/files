@@ -5,7 +5,8 @@ with Ada.Text_IO;
 with Files.Fs;
 with Files.Platform;
 with Ada.Strings.Fixed;
-with Files.Platform.Metadata;
+with Hostkit.Fs;
+with Hostkit.Metadata;
 
 separate (Files.File_System)
 package body Create is
@@ -164,7 +165,7 @@ package body Create is
          --  matter whether Full_Name canonicalises case on the host.
          return Exists_Safely (From_Path)
            and then Exists_Safely (To_Path)
-           and then Files.Platform.Metadata.Same_File (From_Path, To_Path)
+           and then Hostkit.Metadata.Same_File (From_Path, To_Path)
            and then Mutation_Leaf_Name (From_Path) = Mutation_Leaf_Name (To_Path);
       exception
          when others =>
@@ -178,7 +179,7 @@ package body Create is
       function Is_Case_Only_Rename return Boolean is
       begin
          return Exists_Safely (To_Path)
-           and then Files.Platform.Metadata.Same_File (From_Path, To_Path)
+           and then Hostkit.Metadata.Same_File (From_Path, To_Path)
            and then Files.Types.To_Lower (Mutation_Leaf_Name (From_Path))
                     = Files.Types.To_Lower (Mutation_Leaf_Name (To_Path))
            and then Mutation_Leaf_Name (From_Path) /= Mutation_Leaf_Name (To_Path);
@@ -387,7 +388,7 @@ package body Create is
             Error_Key => To_Unbounded_String ("error.link.failed"));
       elsif not Validation.Success then
          return Validation;
-      elsif Files.Platform.Metadata.Create_Symbolic_Link (Source_Path, Link_Path) then
+      elsif Hostkit.Fs.Create_Link (Source_Path, Link_Path) then
          return (Success => True, Error_Key => Null_Unbounded_String);
       else
          return
@@ -417,7 +418,7 @@ package body Create is
             Error_Key => To_Unbounded_String ("error.link.failed"));
       elsif not Validation.Success then
          return Validation;
-      elsif Files.Platform.Metadata.Create_Hard_Link (Source_Path, Link_Path) then
+      elsif Hostkit.Fs.Create_Hard_Link (Source_Path, Link_Path) then
          return (Success => True, Error_Key => Null_Unbounded_String);
       else
          return

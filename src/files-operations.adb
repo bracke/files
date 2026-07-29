@@ -11,7 +11,7 @@ with Files_Config;
 with Files.Folder_Size;
 with Files.Fs;
 with Files.Paste;
-with Files.Platform.Metadata;
+with Hostkit.Metadata;
 
 with Hostkit;
 with Hostkit.Fs;

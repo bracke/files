@@ -9,7 +9,7 @@ with Ada.Text_IO;
 with Ada.Strings.Fixed;
 with Files.File_Types;
 with Files.Fs;
-with Files.Platform.Metadata;
+with Hostkit.Metadata;
 with Hostkit.Fs;
 with Ada.Streams.Stream_IO;
 
@@ -109,6 +109,11 @@ package body Directory is
    function Executable_Format_Token (Path : String) return String;
 
    function Directory_Count_Token (Path : String) return String;
+
+   --  The detail line's symlink entry. The "symlink.target|" prefix is this
+   --  application's own token format, not a host fact, so it is written here
+   --  over Hostkit's reader rather than asked of the host.
+   function Symlink_Target_Token (Path : String) return String;
 
    function U16_BE
      (Buffer : Ada.Streams.Stream_Element_Array;
@@ -813,6 +818,23 @@ package body Directory is
          return "";
    end Executable_Format_Token;
 
+   function Symlink_Target_Token (Path : String) return String is
+      Target : Ada.Strings.Unbounded.Unbounded_String;
+   begin
+      --  The link's own stored text, not what it resolves to: a link written as
+      --  "plain.txt" is shown as "plain.txt", which is the fact the detail line
+      --  is reporting. Hostkit reads it -- readlink on POSIX, the reparse point
+      --  on Windows, where there is no readlink to call.
+      if not Hostkit.Fs.Read_Link_Target (Path, Target) then
+         return "";
+      end if;
+
+      return "symlink.target|" & Ada.Strings.Unbounded.To_String (Target);
+   exception
+      when others =>
+         return "";
+   end Symlink_Target_Token;
+
    function Directory_Count_Token (Path : String) return String is
       Search    : Ada.Directories.Search_Type;
       Dir_Entry : Ada.Directories.Directory_Entry_Type;
@@ -1004,7 +1026,7 @@ package body Directory is
          when Files.Types.Executable_Item =>
             return Executable_Format_Token (Path);
          when Files.Types.Symlink_Item =>
-            return Files.Platform.Metadata.Symlink_Target_Token (Path);
+            return Symlink_Target_Token (Path);
          when Files.Types.Regular_File_Item =>
             if Filetype = "text/plain" then
                return Text_Metadata_Token ("text", Path);
@@ -1142,11 +1164,11 @@ package body Directory is
             end if;
          end if;
          Item.Creation_Time :=
-           Files.Platform.Metadata.File_Creation_Time (Full, Item.Creation_Available);
+           Hostkit.Metadata.File_Creation_Time (Full, Item.Creation_Available);
          Item.Modified_Time := Ada.Directories.Modification_Time (Full);
          Item.Modified_Available := True;
          Item.Permissions := To_Unbounded_String (Permission_String (Full));
-         Files.Platform.Metadata.File_Mode_And_Ownership
+         Hostkit.Metadata.File_Mode_And_Ownership
            (Full,
             Item.Mode_Bits, Item.Mode_Available,
             Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
@@ -1562,7 +1584,7 @@ package body Directory is
 
       function Is_Symlink (Candidate : String) return Boolean is
       begin
-         return Files.Platform.Metadata.Symlink_Target_Token (Candidate) /= "";
+         return Hostkit.Fs.Is_Link (Candidate);
       exception
          when others =>
             return False;

@@ -19,7 +19,7 @@ with Guikit.Segmented;
 with Guikit.Text;
 with Guikit.Widgets;
 with Files.Localization;
-with Files.Platform.Metadata;
+with Hostkit.Metadata;
 with Files.UTF8;
 with Files.UI;
 
@@ -43,7 +43,7 @@ package body Files.Rendering is
    --  until the user navigates away. Single-threaded render, so state is safe.
    Free_Space_Refresh_Interval : constant Duration := 3.0;
    Cached_Free_Path  : Ada.Strings.Unbounded.Unbounded_String;
-   Cached_Free_Cap   : Files.Platform.Metadata.Volume_Capacity;
+   Cached_Free_Cap   : Hostkit.Metadata.Volume_Capacity;
    Cached_Free_Ready : Boolean := False;
    Cached_Free_Time  : Ada.Calendar.Time;  --  meaningful only once Ready
 

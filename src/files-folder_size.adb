@@ -1,6 +1,6 @@
 with Ada.Directories;
 
-with Files.Platform.Metadata;
+with Hostkit.Fs;
 
 package body Files.Folder_Size is
 
@@ -65,7 +65,7 @@ package body Files.Folder_Size is
 
    function Is_Symlink (Candidate : String) return Boolean is
    begin
-      return Files.Platform.Metadata.Symlink_Target_Token (Candidate) /= "";
+      return Hostkit.Fs.Is_Link (Candidate);
    exception
       when others =>
          return False;

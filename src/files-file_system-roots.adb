@@ -6,7 +6,7 @@ with Ada.Strings.Fixed;
 with Files.Fs;
 with Files_Config;
 with Files.Platform.Macos;
-with Files.Platform.Metadata;
+with Hostkit.Metadata;
 with Files.Platform.Windows;
 
 separate (Files.File_System)
@@ -599,7 +599,7 @@ package body Roots is
       Has_Proc_Mounts : constant Boolean := Ada.Directories.Exists ("/proc/mounts");
       Has_Sys_Block   : constant Boolean := Ada.Directories.Exists ("/sys/block");
       Has_Statvfs     : constant Boolean :=
-        Files.Platform.Metadata.Volume_Capacity_Of ("/").Available;
+        Hostkit.Metadata.Volume_Capacity_Of ("/").Available;
    begin
       return
         (Labels_From_Platform_Api    => False,
@@ -702,8 +702,8 @@ package body Roots is
      (Path : String;
       Info : out Volume_Size_Info)
    is
-      Capacity : constant Files.Platform.Metadata.Volume_Capacity :=
-        Files.Platform.Metadata.Volume_Capacity_Of (Path);
+      Capacity : constant Hostkit.Metadata.Volume_Capacity :=
+        Hostkit.Metadata.Volume_Capacity_Of (Path);
    begin
       Info :=
         (Capacity_Bytes   => Capacity.Capacity_Bytes,
