@@ -618,6 +618,17 @@ package body Trash is
                   Removed : constant Mutation_Result := Delete_Permanently (Path);
                begin
                   if not Removed.Success then
+                     --  The source could not be removed after the copy, so the
+                     --  move failed and the source is kept. Roll back the copy we
+                     --  just made into the trash -- both payload and sidecar --
+                     --  so no orphaned trash entry is left behind.
+                     declare
+                        Rolled_Back : constant Mutation_Result :=
+                          Delete_Permanently (To_String (Target));
+                        pragma Unreferenced (Rolled_Back);
+                     begin
+                        null;
+                     end;
                      Delete_Info_File_If_Present;
                      return Removed;
                   end if;
@@ -816,14 +827,16 @@ package body Trash is
                        (Success   => False,
                         Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
                end;
+               --  The restore itself is done (the copy succeeded); removing the
+               --  now-redundant trash copy is best-effort. Reporting failure here
+               --  told the user the restore failed when their file is actually
+               --  back, and skipped the sidecar cleanup below, leaving a stale
+               --  trash entry. At worst we now leave a rare orphaned payload.
                declare
                   Removed : constant Mutation_Result := Delete_Permanently (Trashed_Path);
+                  pragma Unreferenced (Removed);
                begin
-                  if not Removed.Success then
-                     return
-                       (Success   => False,
-                        Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
-                  end if;
+                  null;
                end;
          end;
 
