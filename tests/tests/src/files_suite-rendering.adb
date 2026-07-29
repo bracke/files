@@ -17,6 +17,8 @@ with Files.UTF8;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Files.Rendering;
+with Files.Accessibility;
+with A11ykit.Tree;
 with Guikit.Vulkan;
 with Files.Types;
 with Guikit.Layout;
@@ -60,6 +62,7 @@ package body Files_Suite.Rendering is
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -140,6 +143,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Free_Space'Access,
          "bottom bar shows filesystem free space when known and omits it when unknown");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A11ykit_Tree_Mapping'Access,
+         "a frame's accessibility nodes map into a well-formed hierarchical a11ykit tree");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Selection_Summary'Access,
          "bottom bar shows the selection count and summed size when items are selected");
@@ -1189,6 +1195,31 @@ package body Files_Suite.Rendering is
       Assert (not Frame_Has_Text (Frame, Free_Word),
               "the bottom bar omits the free-space indicator when the value is unknown");
    end Test_Bottom_Bar_Free_Space;
+
+   procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
+      Frame    : constant Frame_Commands :=
+        Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
+      Tree     : constant A11ykit.Tree.Accessibility_Tree :=
+        Files.Accessibility.To_A11ykit_Tree (Frame);
+      Roots    : Natural := 0;
+   begin
+      Assert
+        (not Tree.Nodes.Is_Empty,
+         "the frame's accessibility nodes map to a non-empty a11ykit tree");
+      for Index in Tree.Nodes.First_Index .. Tree.Nodes.Last_Index loop
+         --  A well-formed tree: every parent index is 0 (a root) or points at a
+         --  real node in the tree.
+         Assert
+           (Tree.Nodes (Index).Parent <= Natural (Tree.Nodes.Length),
+            "every node's parent index is within the tree");
+         if Tree.Nodes (Index).Parent = 0 then
+            Roots := Roots + 1;
+         end if;
+      end loop;
+      Assert (Roots >= 1, "the mapped tree has at least one root node");
+   end Test_A11ykit_Tree_Mapping;
 
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

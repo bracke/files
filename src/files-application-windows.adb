@@ -19,6 +19,7 @@ with Glfw.Windows.Hints;
 with Glfw.Windows.Icon;
 with Glfw.Windows.Vulkan;
 
+with Files.Accessibility;
 with Files.Commands;
 with Files.Drop_Events;
 with Files.Events;
