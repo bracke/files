@@ -10,6 +10,7 @@ package body Files.Platform.Metadata is
    use type Interfaces.C.int;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
+   use type Interfaces.C.unsigned_long;
    use type Interfaces.C.unsigned_short;
    use type Interfaces.C.Strings.chars_ptr;
 
