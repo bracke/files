@@ -138,6 +138,7 @@ package Files.Rendering is
       Sort_Field           : Files.Model.Sort_Field := Files.Model.Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu_Open       : Boolean := False;
+      Sort_Menu_Highlight  : Natural := 0;
       Item_Count           : Natural := 0;
       Visible_Count        : Natural := 0;
       Hidden_Count         : Natural := 0;

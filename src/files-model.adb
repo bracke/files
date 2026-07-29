@@ -210,6 +210,18 @@ package body Files.Model is
       function Sort_Menu_Is_Open
         (Model : Window_Model)
          return Boolean;
+
+      procedure Move_Sort_Menu_Highlight
+        (Model : in out Window_Model;
+         Delta_Value : Integer);
+
+      function Sort_Menu_Highlight
+        (Model : Window_Model)
+         return Natural;
+
+      function Sort_Menu_Highlight_Field
+        (Model : Window_Model)
+         return Sort_Field;
    end View_Sort;
    package body View_Sort is separate;
 
@@ -241,6 +253,15 @@ package body Files.Model is
 
    function Sort_Menu_Is_Open (Model : Window_Model) return Boolean
      renames View_Sort.Sort_Menu_Is_Open;
+
+   procedure Move_Sort_Menu_Highlight (Model : in out Window_Model; Delta_Value : Integer)
+     renames View_Sort.Move_Sort_Menu_Highlight;
+
+   function Sort_Menu_Highlight (Model : Window_Model) return Natural
+     renames View_Sort.Sort_Menu_Highlight;
+
+   function Sort_Menu_Highlight_Field (Model : Window_Model) return Sort_Field
+     renames View_Sort.Sort_Menu_Highlight_Field;
 
    package Filter is
       procedure Set_Filter

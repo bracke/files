@@ -3242,6 +3242,7 @@ separate (Files.Rendering)
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
                      Hovered  : constant Boolean :=
                        Has_Hover and then Contains_Point (Menu_X, Row_Y, Menu_W, Row_H, Hover_X, Hover_Y);
+                     Highlighted : constant Boolean := Row = Snapshot.Sort_Menu_Highlight;
                      Pressed  : constant Boolean := Is_Pressed (Menu_X, Row_Y, Menu_W, Row_H);
                      Enabled  : constant Boolean := Snapshot.Command_Enabled (Sort_Field_Command (Field));
                      Label    : constant UString :=
@@ -3259,7 +3260,7 @@ separate (Files.Rendering)
                            Has_Background   => not Selected,
                            Background_Color =>
                              (if Pressed then Pressed_Color
-                              elsif Hovered then Hover_Color
+                              elsif Hovered or else Highlighted then Hover_Color
                               else Overlay_Color),
                            others           => <>));
                   end;

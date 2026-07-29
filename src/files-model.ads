@@ -158,6 +158,33 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  Move the keyboard highlight across the sort menu's five rows (1 .. 5,
+   --  mirroring the sort fields), clamped to that range.
+   --
+   --  @param Model Model to update.
+   --  @param Delta_Value Signed number of rows to move.
+   procedure Move_Sort_Menu_Highlight
+     (Model : in out Window_Model;
+      Delta_Value : Integer);
+
+   --  The one-based index of the highlighted sort-menu row (0 when none), for
+   --  rendering.
+   --
+   --  @param Model Model to inspect.
+   --  @return Highlighted row index, 0 or 1 .. 5.
+   function Sort_Menu_Highlight
+     (Model : Window_Model)
+      return Natural;
+
+   --  The sort field the highlighted sort-menu row selects, for applying a
+   --  keyboard confirmation.
+   --
+   --  @param Model Model to inspect.
+   --  @return Sort field under the highlight.
+   function Sort_Menu_Highlight_Field
+     (Model : Window_Model)
+      return Sort_Field;
+
    --  Return the number of loaded directory items.
    --
    --  @param Model Model to inspect.
@@ -2493,6 +2520,7 @@ private
       Sort_Field_Value     : Sort_Field := Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu_Open       : Boolean := False;
+      Sort_Menu_Highlight_Value : Natural := 0;
       Back_History         : Files.Types.String_Vectors.Vector;
       Forward_History      : Files.Types.String_Vectors.Vector;
       Focus_Value          : Files.Types.Focus_Target := Files.Types.Focus_None;

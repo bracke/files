@@ -44,6 +44,7 @@ separate (Files.Rendering)
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
       Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
+      Snapshot.Sort_Menu_Highlight := Files.Model.Sort_Menu_Highlight (Model);
       Snapshot.Show_Extensions := Settings.Show_File_Extensions;
       Snapshot.Show_Used_Space := Settings.Show_Used_Space;
       Snapshot.Show_Space_Bar := Settings.Show_Space_Bar;
