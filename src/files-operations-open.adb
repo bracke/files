@@ -258,7 +258,29 @@ package body Open is
          --  Most terminals take their working directory from whoever starts
          --  them, so the command changes into the viewed directory first. Two
          --  do not, and both would silently open somewhere else instead.
+         --  A command line for a terminal that has to be told the directory,
+         --  quoted by Hostkit for whichever shell will read it back.
+         function Launch_Command
+           (Program   : String;
+            Options   : Hostkit.String_Vectors.Vector;
+            Directory : String)
+            return String
+         is
+            Arguments : Hostkit.String_Vectors.Vector;
+         begin
+            for Option of Options loop
+               Arguments.Append (Option);
+            end loop;
+
+            Arguments.Append (To_Unbounded_String (Directory));
+            return Hostkit.Shell.Command_Line (Program, Arguments);
+         end Launch_Command;
+
          function Terminal_Command return String is
+            Open_Options : constant Hostkit.String_Vectors.Vector :=
+              [To_Unbounded_String ("-a"), To_Unbounded_String ("Terminal")];
+            Wt_Options   : constant Hostkit.String_Vectors.Vector :=
+              [To_Unbounded_String ("-d")];
          begin
             case Hostkit.Host.Current is
                when Hostkit.Host.MacOS =>
@@ -266,7 +288,7 @@ package body Open is
                   --  the directory, which Terminal.app opens a window in. It has
                   --  no working directory of its own to inherit.
                   if Terminal = "open" then
-                     return "open -a Terminal " & Hostkit.Shell.Quote (Directory);
+                     return Launch_Command ("open", Open_Options, Directory);
                   end if;
 
                when Hostkit.Host.Windows =>
@@ -274,7 +296,7 @@ package body Open is
                   --  the starting directory configured in its profile -- usually
                   --  the user's home. -d is how it is told otherwise.
                   if Terminal = "wt" then
-                     return "wt -d " & Hostkit.Shell.Quote (Directory);
+                     return Launch_Command ("wt", Wt_Options, Directory);
                   end if;
 
                when Hostkit.Host.Linux | Hostkit.Host.Unsupported =>
