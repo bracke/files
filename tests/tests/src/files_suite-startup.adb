@@ -294,10 +294,19 @@ package body Files_Suite.Startup is
       Legacy_File  : constant String :=
         Files.File_System.Join_Path (Legacy_Dir, "settings.conf");
 
-      Had_Home : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Xdg  : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CONFIG_HOME");
-      Old_Home : Unbounded_String;
-      Old_Xdg  : Unbounded_String;
+      --  Default_Settings_Path only uses the host's configuration directory when
+      --  the home it is asked about is the one Hostkit resolves. Making that true
+      --  means setting whichever variable THIS host derives the home from, and
+      --  they are not the same: POSIX reads HOME, and Windows reads USERPROFILE
+      --  first, with HOME as its last resort. Setting HOME alone left Hostkit
+      --  pointing at the real profile on Windows, so the function correctly
+      --  declined the host location and the test failed for the wrong reason.
+      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_Profile : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
+      Had_Xdg     : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CONFIG_HOME");
+      Old_Home    : Unbounded_String;
+      Old_Profile : Unbounded_String;
+      Old_Xdg     : Unbounded_String;
 
       procedure Restore is
       begin
@@ -305,6 +314,12 @@ package body Files_Suite.Startup is
             Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
          else
             Ada.Environment_Variables.Clear ("HOME");
+         end if;
+
+         if Had_Profile then
+            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_Profile));
+         else
+            Ada.Environment_Variables.Clear ("USERPROFILE");
          end if;
 
          if Had_Xdg then
@@ -318,6 +333,10 @@ package body Files_Suite.Startup is
          Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
       end if;
 
+      if Had_Profile then
+         Old_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
+      end if;
+
       if Had_Xdg then
          Old_Xdg := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CONFIG_HOME"));
       end if;
@@ -328,7 +347,10 @@ package body Files_Suite.Startup is
       --  XDG_CONFIG_HOME out of the way: it is an override that wins over both
       --  branches and would hide what is being tested.
       Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
+
+      --  Both, so Hostkit resolves the scratch home whichever host this is.
       Ada.Environment_Variables.Set ("HOME", Scratch_Home);
+      Ada.Environment_Variables.Set ("USERPROFILE", Scratch_Home);
 
       --  A fresh install goes where this host says configuration goes.
       declare
