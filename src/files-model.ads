@@ -1472,6 +1472,32 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  Move the keyboard highlight across the label picker's swatches (1 .. 7 are
+   --  the colors, 8 is the clear/None swatch), clamped to that range.
+   --
+   --  @param Model Model to update.
+   --  @param Delta_Value Signed number of swatches to move.
+   procedure Move_Label_Picker_Highlight
+     (Model : in out Window_Model;
+      Delta_Value : Integer);
+
+   --  The one-based index of the highlighted label-picker swatch, for rendering.
+   --
+   --  @param Model Model to inspect.
+   --  @return Highlighted swatch index in 1 .. 8.
+   function Label_Picker_Highlight
+     (Model : Window_Model)
+      return Positive;
+
+   --  The color label the highlighted swatch chooses (No_Label for the clear
+   --  swatch), for applying a keyboard confirmation.
+   --
+   --  @param Model Model to inspect.
+   --  @return Color label under the highlight.
+   function Label_Picker_Highlight_Color
+     (Model : Window_Model)
+      return Files.Types.Color_Label;
+
    --  Return whether rename can start for the current selection.
    --
    --  @param Model Model to inspect.
@@ -2498,6 +2524,7 @@ private
       Quick_Look_Path_Value    : UString;
       Quick_Look_Content_Value : Files.Quick_Look.Quick_Look_Content;
       Label_Picker_Active      : Boolean := False;
+      Label_Picker_Swatch_Value : Positive := 8;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Rename_Active            : Boolean := False;
       Rename_Fields            : Rename_Field_Vectors.Vector;

@@ -173,7 +173,20 @@ separate (Files.Controller)
          if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
             Files.Model.Close_Label_Picker (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Up)
+           and then Modifiers = Guikit.Input.No_Modifiers
+         then
+            Files.Model.Move_Label_Picker_Highlight (Model, -1);
+            return Make_Result (Controller_Selection_Moved);
+         elsif (Key = Guikit.Input.Key_Right or else Key = Guikit.Input.Key_Down)
+           and then Modifiers = Guikit.Input.No_Modifiers
+         then
+            Files.Model.Move_Label_Picker_Highlight (Model, 1);
+            return Make_Result (Controller_Selection_Moved);
          else
+            --  Enter is applied on the Interaction seam (choosing a label writes
+            --  settings, which the read-only controller cannot); every other key
+            --  is consumed so the grid behind the picker stays put.
             return Make_Result (Controller_Ignored);
          end if;
       end if;

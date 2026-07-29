@@ -1627,6 +1627,18 @@ package body Files.Model is
       function Label_Picker_Is_Open
         (Model : Window_Model)
          return Boolean;
+
+      procedure Move_Label_Picker_Highlight
+        (Model : in out Window_Model;
+         Delta_Value : Integer);
+
+      function Label_Picker_Highlight
+        (Model : Window_Model)
+         return Positive;
+
+      function Label_Picker_Highlight_Color
+        (Model : Window_Model)
+         return Files.Types.Color_Label;
    end Label_Picker;
    package body Label_Picker is separate;
 
@@ -1646,6 +1658,15 @@ package body Files.Model is
 
    function Label_Picker_Is_Open (Model : Window_Model) return Boolean
      renames Label_Picker.Label_Picker_Is_Open;
+
+   procedure Move_Label_Picker_Highlight (Model : in out Window_Model; Delta_Value : Integer)
+     renames Label_Picker.Move_Label_Picker_Highlight;
+
+   function Label_Picker_Highlight (Model : Window_Model) return Positive
+     renames Label_Picker.Label_Picker_Highlight;
+
+   function Label_Picker_Highlight_Color (Model : Window_Model) return Files.Types.Color_Label
+     renames Label_Picker.Label_Picker_Highlight_Color;
 
    package Quick_Look is
       procedure Open_Quick_Look

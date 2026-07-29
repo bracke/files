@@ -405,6 +405,30 @@ package body Files.Interaction is
          end if;
       end;
 
+      --  A keyboard Enter on the open label picker applies the highlighted
+      --  swatch to the selection. The read-only controller cannot write settings,
+      --  so it is applied here on the in-out seam, exactly as the mouse
+      --  Label_Picker_Choice action does.
+      if Files.Model.Label_Picker_Is_Open (Model)
+        and then Key = Guikit.Input.Key_Return
+      then
+         declare
+            Label    : constant Files.Types.Color_Label :=
+              Files.Model.Label_Picker_Highlight_Color (Model);
+            Selected : constant Files.File_System.Item_Vectors.Vector :=
+              Files.Model.Selected_Items (Model);
+         begin
+            for Item of Selected loop
+               Files.Settings.Set_Label (Settings, To_String (Item.Full_Path), Label);
+            end loop;
+            Files.Model.Close_Label_Picker (Model);
+            if not Selected.Is_Empty then
+               Persist_Settings (Settings, Settings_Path);
+               Result.Settings_Changed := True;
+            end if;
+         end;
+      end if;
+
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
       --  character: when the grid owns the keyboard, drop the parallel space
       --  character event so it never leaks into type-ahead. A space typed into a

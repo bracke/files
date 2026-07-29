@@ -112,6 +112,7 @@ package body Files_Suite.Interaction is
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Star_Click_Toggles_Current_Dir (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -214,6 +215,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Color_Label_Picker_Applies_To_Selection'Access,
          "the label picker opens and applies/clears a color label across the selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Color_Label_Picker_Keyboard'Access,
+         "the color-label picker navigates by arrows and applies on Enter");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Selector_Star_And_Clicks'Access,
          "the selector stars favorites; a folder favorite navigates in and a file favorite opens its parent selected");
@@ -3923,6 +3927,45 @@ package body Files_Suite.Interaction is
               "the previously red item is overwritten to blue");
       Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Blue, "the third item becomes blue");
    end Test_Color_Label_Picker_Applies_To_Selection;
+
+   procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "label-kbd");
+      One      : constant String := Files_Suite.Support.Join (Dir, "a.txt");
+      Model    : Files.Model.Window_Model;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (One, "a");
+      Model := Loaded_Model (Dir);
+      Files.Model.Select_All_Visible (Model);
+
+      Files.Model.Open_Label_Picker (Model);
+      Assert (Files.Model.Label_Picker_Highlight (Model) = 8, "the picker opens on the clear swatch");
+
+      --  Arrows move the highlight, clamped to the 1 .. 8 swatch range.
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_Right, Guikit.Input.No_Modifiers, Base_Font, Result);
+      Assert (Files.Model.Label_Picker_Highlight (Model) = 8, "Right stays clamped at the last swatch");
+      for Step in 1 .. 4 loop
+         Files.Interaction.Handle_Key
+           (Model, Settings, "", Guikit.Input.Key_Left, Guikit.Input.No_Modifiers, Base_Font, Result);
+      end loop;
+      Assert (Files.Model.Label_Picker_Highlight (Model) = 4, "four Lefts land on swatch 4");
+      Assert
+        (Files.Model.Label_Picker_Highlight_Color (Model) = Files.Types.Green,
+         "swatch 4 chooses Green");
+
+      --  Enter applies the highlighted color to the whole selection and closes.
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
+      Assert (not Files.Model.Label_Picker_Is_Open (Model), "Enter closes the picker");
+      Assert
+        (Files.Settings.Label_Of (Settings, One) = Files.Types.Green,
+         "Enter applies the highlighted color to the selection");
+   end Test_Color_Label_Picker_Keyboard;
 
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

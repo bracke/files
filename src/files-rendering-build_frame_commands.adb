@@ -3146,6 +3146,7 @@ separate (Files.Rendering)
                   Hovered : constant Boolean :=
                     Has_Hover
                     and then Contains_Point (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Hover_X, Hover_Y);
+                  Highlighted : constant Boolean := Index = Snapshot.Label_Picker_Highlight;
                   Name    : constant UString :=
                     Localized
                       ((case Label is
@@ -3167,7 +3168,14 @@ separate (Files.Rendering)
                   end if;
                   Add_Border
                     (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height,
-                     (if Hovered then Selection_Color else Border_Color));
+                     (if Hovered or else Highlighted then Selection_Color else Border_Color));
+                  if Highlighted and then Swatch.Width > 4 and then Swatch.Height > 4 then
+                     --  A second inset ring so the keyboard highlight reads
+                     --  distinctly from a plain mouse hover.
+                     Add_Border
+                       (Swatch.X + 2, Swatch.Y + 2, Swatch.Width - 4, Swatch.Height - 4,
+                        Selection_Color);
+                  end if;
                   Add_Accessibility_Node
                     (Role_Button, Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Name);
                end;

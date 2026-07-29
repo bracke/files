@@ -132,6 +132,7 @@ separate (Files.Rendering)
       Snapshot.Command_Palette_Open := Files.Model.Command_Palette_Is_Open (Model);
 
       Snapshot.Label_Picker_Open := Files.Model.Label_Picker_Is_Open (Model);
+      Snapshot.Label_Picker_Highlight := Files.Model.Label_Picker_Highlight (Model);
       Snapshot.Quick_Look_Open := Files.Model.Quick_Look_Is_Open (Model);
       if Snapshot.Quick_Look_Open then
          declare

@@ -255,6 +255,7 @@ package Files.Rendering is
       --  Color-label swatch picker overlay: open when the user is choosing a
       --  label for the current selection.
       Label_Picker_Open              : Boolean := False;
+      Label_Picker_Highlight         : Positive := 8;
    end record;
 
    --  A context-menu row is either a selectable command or a non-selectable
