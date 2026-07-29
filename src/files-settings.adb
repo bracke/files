@@ -72,29 +72,7 @@ package body Files.Settings is
      (Text  : String;
       Label : out Files.Types.Color_Label)
       return Boolean
-   is
-      Lower : constant String := Files.Types.To_Lower (Text);
-   begin
-      if Lower = "red" then
-         Label := Files.Types.Red;
-      elsif Lower = "orange" then
-         Label := Files.Types.Orange;
-      elsif Lower = "yellow" then
-         Label := Files.Types.Yellow;
-      elsif Lower = "green" then
-         Label := Files.Types.Green;
-      elsif Lower = "blue" then
-         Label := Files.Types.Blue;
-      elsif Lower = "purple" then
-         Label := Files.Types.Purple;
-      elsif Lower = "gray" or else Lower = "grey" then
-         Label := Files.Types.Gray;
-      else
-         Label := Files.Types.No_Label;
-         return False;
-      end if;
-      return True;
-   end Color_Label_From_Name;
+ is separate;
 
    procedure Safe_Close
      (File : in out Ada.Text_IO.File_Type) is
@@ -144,39 +122,7 @@ package body Files.Settings is
       return Ada.Strings.Fixed.Index (Text, Pattern) > 0;
    end Contains;
 
-   function Contains_Line_Break (Text : String) return Boolean is
-      Index     : Integer := Text'First;
-      Codepoint : Natural := 0;
-   begin
-      while Index <= Text'Last loop
-         declare
-            Byte_Value : constant Natural := Character'Pos (Text (Index));
-         begin
-            if Byte_Value = Character'Pos (ASCII.LF)
-              or else Byte_Value = Character'Pos (ASCII.CR)
-              or else Byte_Value = Character'Pos (ASCII.VT)
-              or else Byte_Value = Character'Pos (ASCII.FF)
-              or else Byte_Value = 133
-            then
-               return True;
-            end if;
-         end;
-
-         Files.UTF8.Decode_Next_Codepoint (Text, Index, Codepoint);
-         if Codepoint = Character'Pos (ASCII.LF)
-           or else Codepoint = Character'Pos (ASCII.CR)
-           or else Codepoint = Character'Pos (ASCII.VT)
-           or else Codepoint = Character'Pos (ASCII.FF)
-           or else Codepoint = 16#0085#
-           or else Codepoint = 16#2028#
-           or else Codepoint = 16#2029#
-         then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Contains_Line_Break;
+   function Contains_Line_Break (Text : String) return Boolean is separate;
 
    function Mapping_Key_Is_Valid (Text : String) return Boolean is
    begin
@@ -211,62 +157,9 @@ package body Files.Settings is
         or else Contains (Text, "{extension}");
    end Contains_Known_Placeholder;
 
-   function Strip_Quotes (Text : String) return String is
-      Clean : constant String := Trim (Text);
-      Value : Unbounded_String := Null_Unbounded_String;
-      Index : Natural;
-   begin
-      if Clean'Length >= 2
-        and then Clean (Clean'First) = '"'
-        and then Clean (Clean'Last) = '"'
-      then
-         Index := Clean'First + 1;
-         while Index < Clean'Last loop
-            if Clean (Index) = '"'
-              and then Index + 1 < Clean'Last
-              and then Clean (Index + 1) = '"'
-            then
-               Append (Value, '"');
-               Index := Index + 2;
-            else
-               Append (Value, Clean (Index));
-               Index := Index + 1;
-            end if;
-         end loop;
+   function Strip_Quotes (Text : String) return String is separate;
 
-         return To_String (Value);
-      end if;
-
-      return Clean;
-   end Strip_Quotes;
-
-   function Quoted_Value_Is_Valid (Text : String) return Boolean is
-      Clean : constant String := Trim (Text);
-      Index : Natural;
-   begin
-      if Clean = "" then
-         return True;
-      elsif Clean (Clean'First) /= '"' then
-         return Ada.Strings.Fixed.Index (Clean, """") = 0;
-      elsif Clean'Length < 2 or else Clean (Clean'Last) /= '"' then
-         return False;
-      end if;
-
-      Index := Clean'First + 1;
-      while Index < Clean'Last loop
-         if Clean (Index) = '"' then
-            if Index + 1 < Clean'Last and then Clean (Index + 1) = '"' then
-               Index := Index + 2;
-            else
-               return False;
-            end if;
-         else
-            Index := Index + 1;
-         end if;
-      end loop;
-
-      return True;
-   end Quoted_Value_Is_Valid;
+   function Quoted_Value_Is_Valid (Text : String) return Boolean is separate;
 
    function Parent_Directory (Path : String) return String is
    begin
@@ -514,31 +407,7 @@ package body Files.Settings is
    procedure Note_Recent
      (Settings : in out Settings_Model;
       Path     : String)
-   is
-      Index : Natural;
-   begin
-      if Path = "" then
-         return;
-      end if;
-
-      --  Drop any earlier occurrence so the freshest position wins and the list
-      --  stays duplicate-free.
-      Index := Settings.Recent_Paths_Value.First_Index;
-      while Index <= Settings.Recent_Paths_Value.Last_Index loop
-         if To_String (Settings.Recent_Paths_Value.Element (Index)) = Path then
-            Settings.Recent_Paths_Value.Delete (Index);
-         else
-            Index := Index + 1;
-         end if;
-      end loop;
-
-      Settings.Recent_Paths_Value.Prepend (To_Unbounded_String (Path));
-
-      --  Enforce the cap by discarding the oldest (tail) entries.
-      while Natural (Settings.Recent_Paths_Value.Length) > Max_Recent_Items loop
-         Settings.Recent_Paths_Value.Delete_Last;
-      end loop;
-   end Note_Recent;
+ is separate;
 
    procedure Clear_Recent
      (Settings : in out Settings_Model) is
@@ -566,33 +435,7 @@ package body Files.Settings is
      (Settings : in out Settings_Model;
       Path     : String;
       Label    : Files.Types.Color_Label)
-   is
-      use type Files.Types.Color_Label;
-      Existing : Natural := 0;
-   begin
-      if Path = "" then
-         return;
-      end if;
-      for Index in
-        Settings.Labels.First_Index .. Settings.Labels.Last_Index
-      loop
-         if To_String (Settings.Labels.Element (Index).Path) = Path then
-            Existing := Index;
-            exit;
-         end if;
-      end loop;
-      if Label = Files.Types.No_Label then
-         if Existing /= 0 then
-            Settings.Labels.Delete (Existing);
-         end if;
-      elsif Existing /= 0 then
-         Settings.Labels.Replace_Element
-           (Existing, (Path => To_Unbounded_String (Path), Label => Label));
-      else
-         Settings.Labels.Append
-           (Path_Label'(Path => To_Unbounded_String (Path), Label => Label));
-      end if;
-   end Set_Label;
+ is separate;
 
    function Has_Embedded_Placeholder
      (Argument : String)
@@ -712,154 +555,11 @@ package body Files.Settings is
         and then Structured_Filetype_Suffix_Is_Known (Clean (Plus + 1 .. Clean'Last));
    end Plus_Suffix_Is_Structured_Filetype;
 
-   function Modifier_Suffix_Start (Token : String) return Natural is
-      Clean     : constant String := Trim (Token);
-      Candidate : Natural := Ada.Strings.Fixed.Index (Clean, "+");
-   begin
-      while Candidate /= 0 loop
-         declare
-            Position : Natural := Candidate + 1;
-            Valid    : Boolean :=
-              Candidate > Clean'First
-              and then Candidate < Clean'Last
-              and then Clean (Candidate - 1) /= '+';
-         begin
-            while Valid and then Position <= Clean'Last loop
-               declare
-                  Last : Natural := Position;
-               begin
-                  while Last <= Clean'Last and then Clean (Last) /= '+' loop
-                     Last := Last + 1;
-                  end loop;
+   function Modifier_Suffix_Start (Token : String) return Natural is separate;
 
-                  if Last = Position
-                    or else not Modifier_Name_Is_Known (Clean (Position .. Last - 1))
-                  then
-                     Valid := False;
-                  end if;
+   function Normalize_Action_Token (Token : String) return String is separate;
 
-                  Position := Last + 1;
-               end;
-            end loop;
-
-            if Valid then
-               return Candidate;
-            end if;
-         end;
-
-         if Candidate = Clean'Last then
-            return 0;
-         end if;
-
-         declare
-            Next : Natural := 0;
-         begin
-            for Index in Candidate + 1 .. Clean'Last loop
-               if Clean (Index) = '+' then
-                  Next := Index;
-                  exit;
-               end if;
-            end loop;
-            Candidate := Next;
-         end;
-      end loop;
-
-      return 0;
-   end Modifier_Suffix_Start;
-
-   function Normalize_Action_Token (Token : String) return String is
-      Clean : constant String := Trim (Token);
-      Plus  : constant Natural := Modifier_Suffix_Start (Clean);
-   begin
-      if Plus = 0 then
-         return Clean;
-      end if;
-
-      declare
-         Filetype  : constant String := Trim (Clean (Clean'First .. Plus - 1));
-         Position  : Natural := Plus + 1;
-         Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-         Unknowns  : Unbounded_String := Null_Unbounded_String;
-
-         procedure Add_Modifier (Text : String) is
-            Name : constant String := Files.Types.To_Lower (Trim (Text));
-         begin
-            if Name = "shift" then
-               Modifiers (Guikit.Input.Shift_Key) := True;
-            elsif Name = "control" then
-               Modifiers (Guikit.Input.Control_Key) := True;
-            elsif Name = "alt" then
-               Modifiers (Guikit.Input.Alt_Key) := True;
-            elsif Name = "meta" then
-               Modifiers (Guikit.Input.Meta_Key) := True;
-            elsif Name /= "" then
-               Append (Unknowns, "+");
-               Append (Unknowns, Name);
-            end if;
-         end Add_Modifier;
-      begin
-         while Position <= Clean'Last loop
-            declare
-               Last : Natural := Position;
-            begin
-               while Last <= Clean'Last and then Clean (Last) /= '+' loop
-                  Last := Last + 1;
-               end loop;
-
-               if Last > Position then
-                  Add_Modifier (Clean (Position .. Last - 1));
-               end if;
-
-               Position := Last + 1;
-            end;
-         end loop;
-
-         return Filetype & Modifier_Token (Modifiers) & To_String (Unknowns);
-      end;
-   end Normalize_Action_Token;
-
-   function Action_Token_Modifiers_Are_Known (Token : String) return Boolean is
-      Clean    : constant String := Trim (Token);
-      Plus     : constant Natural := Modifier_Suffix_Start (Clean);
-      Position : Natural := Plus + 1;
-   begin
-      if Plus = 0 then
-         return Ada.Strings.Fixed.Index (Clean, "+") = 0
-           or else Plus_Suffix_Is_Structured_Filetype (Clean);
-      elsif Plus = Clean'Last or else Clean (Clean'Last) = '+' then
-         return False;
-      end if;
-
-      while Position <= Clean'Last loop
-         declare
-            Last : Natural := Position;
-         begin
-            while Last <= Clean'Last and then Clean (Last) /= '+' loop
-               Last := Last + 1;
-            end loop;
-
-            if Last = Position then
-               return False;
-            else
-               declare
-                  Name : constant String := Files.Types.To_Lower (Trim (Clean (Position .. Last - 1)));
-               begin
-                  if Name /= "shift"
-                    and then Name /= "control"
-                    and then Name /= "alt"
-                    and then Name /= "meta"
-                  then
-                     return False;
-                  end if;
-               end;
-            end if;
-
-            Position := Last + 1;
-         end;
-      end loop;
-
-      return True;
-   end Action_Token_Modifiers_Are_Known;
+   function Action_Token_Modifiers_Are_Known (Token : String) return Boolean is separate;
 
    function Open_Action_Base_Key_Is_Valid (Text : String) return Boolean is
       Clean : constant String := Trim (Text);
@@ -886,30 +586,7 @@ package body Files.Settings is
      (Settings : in out Settings_Model;
       Token    : String;
       Action   : Open_Action)
-   is
-      Key : constant String := Normalize_Action_Token (Token);
-      Plus : constant Natural := Modifier_Suffix_Start (Key);
-      Clean_Action : Open_Action := Action;
-   begin
-      if Key = ""
-        or else (Plus = Key'First)
-        or else not Open_Action_Base_Key_Is_Valid ((if Plus = 0 then Key else Key (Key'First .. Plus - 1)))
-        or else not Action_Token_Modifiers_Are_Known (Token)
-        or else Trim (To_String (Action.Executable)) = ""
-        or else Has_Unsafe_Placeholder_Usage (Action)
-        or else not Action_Text_Is_Serializable (Action)
-      then
-         return;
-      end if;
-
-      Clean_Action.Executable := To_Unbounded_String (Trim (To_String (Action.Executable)));
-
-      if Settings.Open_Actions.Contains (Key) then
-         Settings.Open_Actions.Replace (Key, Clean_Action);
-      else
-         Settings.Open_Actions.Insert (Key, Clean_Action);
-      end if;
-   end Add_Open_Action;
+ is separate;
 
    function Filetype_For_Extension
      (Settings  : Settings_Model;
@@ -942,30 +619,7 @@ package body Files.Settings is
    function Modifier_Token
      (Modifiers : Guikit.Input.Modifier_Set)
       return String
-   is
-      Result : Unbounded_String := Null_Unbounded_String;
-
-      procedure Add (Name : String) is
-      begin
-         Append (Result, "+");
-         Append (Result, Name);
-      end Add;
-   begin
-      if Modifiers (Guikit.Input.Shift_Key) then
-         Add ("shift");
-      end if;
-      if Modifiers (Guikit.Input.Control_Key) then
-         Add ("control");
-      end if;
-      if Modifiers (Guikit.Input.Alt_Key) then
-         Add ("alt");
-      end if;
-      if Modifiers (Guikit.Input.Meta_Key) then
-         Add ("meta");
-      end if;
-
-      return To_String (Result);
-   end Modifier_Token;
+ is separate;
 
    --  Build an Open_Action that defers to the host system's default opener.
    --  Returns Found => False when no opener can be located, so callers can
@@ -1014,44 +668,7 @@ package body Files.Settings is
    function Load_File
      (Path : String)
       return Settings_Parse_Result
-   is
-      File : Ada.Text_IO.File_Type;
-      Text : Unbounded_String := Null_Unbounded_String;
-   begin
-      if Path = "" then
-         return
-           (Success   => False,
-            Settings  => Default_Settings,
-            Error_Key => To_Unbounded_String ("error.settings.load"));
-      elsif not Ada.Directories.Exists (Path) then
-         return
-           (Success   => True,
-            Settings  => Default_Settings,
-            Error_Key => Null_Unbounded_String);
-      elsif Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File then
-         return
-           (Success   => False,
-            Settings  => Default_Settings,
-            Error_Key => To_Unbounded_String ("error.settings.not_file"));
-      end if;
-
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
-      while not Ada.Text_IO.End_Of_File (File) loop
-         Append (Text, Ada.Text_IO.Get_Line (File));
-         Append (Text, ASCII.LF);
-      end loop;
-      Safe_Close (File);
-
-      return Parse (To_String (Text));
-   exception
-      when others =>
-         Safe_Close (File);
-
-         return
-           (Success   => False,
-            Settings  => Default_Settings,
-            Error_Key => To_Unbounded_String ("error.settings.load"));
-   end Load_File;
+ is separate;
 
    function Default_Settings_Text return String is
    begin
@@ -1103,33 +720,7 @@ package body Files.Settings is
       end case;
    end Theme_Name;
 
-   function Action_Token_Text (Value : String) return String is
-      Needs_Quotes : Boolean := Value = "";
-      Result       : Unbounded_String := Null_Unbounded_String;
-   begin
-      for Character_Value of Value loop
-         if Character_Value = ' ' or else Character_Value = ASCII.HT then
-            Needs_Quotes := True;
-         elsif Character_Value = '"' then
-            Needs_Quotes := True;
-         end if;
-      end loop;
-
-      if not Needs_Quotes then
-         return Value;
-      end if;
-
-      Append (Result, '"');
-      for Character_Value of Value loop
-         if Character_Value = '"' then
-            Append (Result, """""");
-         else
-            Append (Result, Character_Value);
-         end if;
-      end loop;
-      Append (Result, '"');
-      return To_String (Result);
-   end Action_Token_Text;
+   function Action_Token_Text (Value : String) return String is separate;
 
    function Action_Text (Action : Open_Action) return String is
       Result : Unbounded_String := Null_Unbounded_String;
@@ -1182,46 +773,7 @@ package body Files.Settings is
 
    function Draft_Mapping_Value_Error
      (Draft : Settings_Draft)
-      return String is
-   begin
-      if (Length (Draft.Filetype_Extension) > 0 or else Length (Draft.Filetype_Value) > 0)
-        and then not Mapping_Value_Is_Valid (Trim (To_String (Draft.Filetype_Value)))
-      then
-         return "error.settings.invalid_mapping";
-      end if;
-
-      for Value of Draft.Filetype_Values loop
-         if not Mapping_Value_Is_Valid (Trim (To_String (Value))) then
-            return "error.settings.invalid_mapping";
-         end if;
-      end loop;
-
-      if (Length (Draft.Icon_Filetype) > 0 or else Length (Draft.Icon_Value) > 0)
-        and then not Mapping_Value_Is_Valid (Trim (To_String (Draft.Icon_Value)))
-      then
-         return "error.settings.invalid_mapping";
-      end if;
-
-      for Value of Draft.Icon_Values loop
-         if not Mapping_Value_Is_Valid (Trim (To_String (Value))) then
-            return "error.settings.invalid_mapping";
-         end if;
-      end loop;
-
-      if (Length (Draft.Open_Action_Token) > 0 or else Length (Draft.Open_Action_Command) > 0)
-        and then Contains_Line_Break (To_String (Draft.Open_Action_Command))
-      then
-         return "error.settings.invalid_open_action";
-      end if;
-
-      for Value of Draft.Open_Action_Commands loop
-         if Contains_Line_Break (To_String (Value)) then
-            return "error.settings.invalid_open_action";
-         end if;
-      end loop;
-
-      return "";
-   end Draft_Mapping_Value_Error;
+      return String is separate;
 
    type Draft_Mapping_Kind is
      (Draft_Filetype_Mapping,
@@ -1250,39 +802,7 @@ package body Files.Settings is
 
    function Validate_Draft
      (Draft : Settings_Draft)
-      return Settings_Parse_Result is
-   begin
-      if not Draft_Mapping_Vectors_Are_Aligned (Draft) then
-         return
-           (Success   => False,
-            Settings  => Default_Settings,
-            Error_Key => To_Unbounded_String ("error.settings.invalid"));
-      end if;
-
-      declare
-         Key_Error : constant String := Draft_Mapping_Key_Error (Draft);
-      begin
-         if Key_Error /= "" then
-            return
-              (Success   => False,
-               Settings  => Default_Settings,
-               Error_Key => To_Unbounded_String (Key_Error));
-         end if;
-      end;
-
-      declare
-         Value_Error : constant String := Draft_Mapping_Value_Error (Draft);
-      begin
-         if Value_Error /= "" then
-            return
-              (Success   => False,
-               Settings  => Default_Settings,
-               Error_Key => To_Unbounded_String (Value_Error));
-         end if;
-      end;
-
-      return Parse (Draft_Settings_Text (Draft));
-   end Validate_Draft;
+      return Settings_Parse_Result is separate;
 
    function Field_Diagnostic
      (Field : Natural;
@@ -1323,86 +843,12 @@ package body Files.Settings is
      (Path : String;
       Text : String)
       return Settings_Write_Result
-   is
-      File   : Ada.Text_IO.File_Type;
-      Parent : constant String := Parent_Directory (Path);
-   begin
-      if Path = "" then
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.save"));
-      elsif Ada.Directories.Exists (Path)
-        and then Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
-      then
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.not_file"));
-      end if;
-
-      if Parent /= "" then
-         if Ada.Directories.Exists (Parent) then
-            if Ada.Directories.Kind (Parent) /= Ada.Directories.Directory then
-               return
-                 (Success   => False,
-                  Path      => To_Unbounded_String (Path),
-                  Error_Key => To_Unbounded_String ("error.settings.not_file"));
-            end if;
-         else
-            Ada.Directories.Create_Path (Parent);
-         end if;
-      end if;
-
-      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Path);
-      Ada.Text_IO.Put (File, Text);
-      Ada.Text_IO.Close (File);
-      return
-        (Success   => True,
-         Path      => To_Unbounded_String (Path),
-         Error_Key => Null_Unbounded_String);
-   exception
-      when others =>
-         Safe_Close (File);
-
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.save"));
-   end Save_Text;
+ is separate;
 
    function Ensure_Default_File
      (Path : String)
       return Settings_Write_Result
-   is
-   begin
-      if Path = "" then
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.save"));
-      elsif Ada.Directories.Exists (Path) then
-         if Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File then
-            return
-              (Success   => True,
-               Path      => To_Unbounded_String (Path),
-               Error_Key => Null_Unbounded_String);
-         else
-            return
-              (Success   => False,
-               Path      => To_Unbounded_String (Path),
-               Error_Key => To_Unbounded_String ("error.settings.not_file"));
-         end if;
-      end if;
-
-      return Save_Text (Path, Default_Settings_Text);
-   exception
-      when others =>
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.save"));
-   end Ensure_Default_File;
+ is separate;
 
    function Normalize_Extension
      (Extension : String)
