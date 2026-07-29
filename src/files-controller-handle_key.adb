@@ -163,6 +163,52 @@ separate (Files.Controller)
          end if;
       end if;
 
+      --  These grid popups own the keyboard while open: Escape closes them, and
+      --  every other key is consumed so it does not leak through to move the
+      --  selection on the grid behind. Without this a keyboard user who opened
+      --  one from the command palette was trapped -- Escape did nothing and the
+      --  arrows moved the hidden grid. (They are still mouse-driven for choosing
+      --  a row; per-overlay arrow navigation is a separate enhancement.)
+      if Files.Model.Label_Picker_Is_Open (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Close_Label_Picker (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         else
+            return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
+      if Files.Model.Context_Menu_Is_Open (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Close_Context_Menu (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         else
+            return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
+      if Files.Model.Sort_Menu_Is_Open (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Close_Sort_Menu (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         else
+            return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
+      --  Only the modal destination-pick tree owns the keyboard; the tree shown
+      --  as an ordinary side panel leaves grid navigation alone. Escape cancels
+      --  the pick and closes the panel the Copy/Move-To command opened.
+      if Files.Model.Tree_Pick_Is_Active (Model) then
+         if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+            Files.Model.Clear_Tree_Pick (Model);
+            Files.Model.Close_Tree_Panel (Model);
+            return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         else
+            return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
       if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
          if Files.Model.Settings_Is_Capturing (Model) then
             --  A Shortcut row is armed: every key is a chord to capture, not a
