@@ -87,6 +87,7 @@ package body Files_Suite.Rendering is
    procedure Test_Favorite_Star_Indicators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Marquee_Auto_Scroll_Step (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -229,6 +230,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Marquee_Items_In_Rect'Access,
          "a marquee rectangle intersects exactly the item cells it touches and normalizes any drag direction");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Marquee_Auto_Scroll_Step'Access,
+         "a marquee drag past the rows region auto-scrolls, accelerating with distance and capped");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Marquee_Frame_Draws_Rectangle'Access,
          "an active marquee draws a translucent selection rectangle over the grid");
@@ -2959,6 +2963,35 @@ package body Files_Suite.Rendering is
          Assert (Exactly (Hits, Two), "an up-left drag selects the same two cells as down-right");
       end;
    end Test_Marquee_Items_In_Rect;
+
+   procedure Test_Marquee_Auto_Scroll_Step (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      --  A rows region from y=100 to y=500, rows 20px tall (so a 20px edge zone).
+      Top    : constant Integer := 100;
+      Bottom : constant Integer := 500;
+      LH     : constant Positive := 20;
+
+      function Step (Cursor_Y : Integer) return Integer is
+        (Marquee_Auto_Scroll_Step (Cursor_Y, Top, Bottom, LH));
+   begin
+      --  Comfortably inside the region: no scroll.
+      Assert (Step (300) = 0, "a pointer well inside the region does not scroll");
+      Assert (Step (Top + LH) = 0, "the pointer just past the top edge zone does not scroll");
+      Assert (Step (Bottom - LH) = 0, "the pointer just past the bottom edge zone does not scroll");
+
+      --  Within the edge zone or beyond: scroll toward that edge, accelerating.
+      Assert (Step (Top + LH - 1) = -1, "entering the top edge zone scrolls up by one line");
+      Assert (Step (Top) = -2, "at the top edge the upward step grows");
+      Assert (Step (Bottom - LH + 1) = 1, "entering the bottom edge zone scrolls down by one line");
+      Assert (Step (Bottom) = 2, "at the bottom edge the downward step grows");
+
+      --  Far past an edge (pointer dragged outside the window): capped at 4.
+      Assert (Step (-1000) = -4, "far above the region the upward step is capped");
+      Assert (Step (5000) = 4, "far below the region the downward step is capped");
+
+      --  Directions are opposite and symmetric about the region.
+      Assert (Step (50) < 0 and then Step (600) > 0, "above scrolls up, below scrolls down");
+   end Test_Marquee_Auto_Scroll_Step;
 
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

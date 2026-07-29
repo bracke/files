@@ -45,36 +45,92 @@ separate (Files.Application.Windows)
 
       declare
          Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-         Snapshot    : constant Files.Rendering.View_Snapshot :=
+
+         Snapshot  : Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-         Layout      : constant Files.Rendering.Layout_Metrics :=
+         Layout    : Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout
              (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-         Items       : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
-         Rect_X      : Natural;
-         Rect_Y      : Natural;
-         Rect_W      : Natural;
-         Rect_H      : Natural;
+         Main_View : Files.Rendering.Main_View_Layout :=
+           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
       begin
-         Files.Rendering.Marquee_Rect
-           (Start_X   => Natural'Max (0, Runtime.Marquee_Origin_X),
-            Start_Y   => Natural'Max (0, Runtime.Marquee_Origin_Y),
-            Current_X => Natural'Max (0, X_Frame),
-            Current_Y => Natural'Max (0, Y_Frame),
-            X         => Rect_X,
-            Y         => Rect_Y,
-            Width     => Rect_W,
-            Height    => Rect_H);
-         Files.Interaction.Apply_Marquee_Selection
-           (Model    => Runtime.Model,
-            Hits     =>
-              Files.Rendering.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H),
-            Additive => Runtime.Marquee_Additive,
-            Base     => Runtime.Marquee_Base);
-         Runtime.Marquee_Rect_X := Rect_X;
-         Runtime.Marquee_Rect_Y := Rect_Y;
-         Runtime.Marquee_Rect_W := Rect_W;
-         Runtime.Marquee_Rect_H := Rect_H;
+         --  Auto-scroll: while the cursor is dragged to (or past) the top or
+         --  bottom of the scrollable rows area, scroll the list so items beyond
+         --  the current view can be rubber-banded in one gesture. The origin is
+         --  kept anchored to the content it started on by shifting it opposite
+         --  the actual scroll, so items already inside the band are not dropped
+         --  as they move off screen. Nothing to do when it all fits (no bar).
+         if Main_View.Scrollbar_Visible then
+            declare
+               Viewport_H : constant Natural := Main_View.Scrollbar_Track_Height;
+               Content_H  : constant Natural := Main_View.Content_Height;
+               Max_Lines  : constant Natural :=
+                 (if Content_H > Viewport_H
+                  then (Content_H - Viewport_H + Line_Height - 1) / Line_Height
+                  else 0);
+               Current    : constant Natural := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
+               Old_Px     : constant Natural := Main_View.Scroll_Pixels;
+               Step       : constant Integer :=
+                 Files.Rendering.Marquee_Auto_Scroll_Step
+                   (Cursor_Y      => Y_Frame,
+                    Region_Top    => Integer (Main_View.Scrollbar_Y),
+                    Region_Bottom =>
+                      Integer (Main_View.Scrollbar_Y) + Integer (Main_View.Scrollbar_Track_Height),
+                    Line_Height   => Line_Height);
+            begin
+               if Step /= 0 then
+                  declare
+                     New_Lines : constant Natural :=
+                       Natural
+                         (Integer'Max
+                            (0, Integer'Min (Integer (Current) + Step, Integer (Max_Lines))));
+                  begin
+                     if New_Lines /= Current then
+                        Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
+                        --  Rebuild against the new scroll, then re-anchor the
+                        --  origin by the scroll's actual pixel shift (which the
+                        --  renderer may snap to a row period, so measure it).
+                        Snapshot := Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+                        Layout := Files.Rendering.Calculate_Layout
+                          (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+                        Main_View :=
+                          Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+                        Runtime.Marquee_Origin_Y :=
+                          Runtime.Marquee_Origin_Y
+                          - (Integer (Main_View.Scroll_Pixels) - Integer (Old_Px));
+                     end if;
+                  end;
+               end if;
+            end;
+         end if;
+
+         declare
+            Items  : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+              Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+            Rect_X : Natural;
+            Rect_Y : Natural;
+            Rect_W : Natural;
+            Rect_H : Natural;
+         begin
+            Files.Rendering.Marquee_Rect
+              (Start_X   => Natural'Max (0, Runtime.Marquee_Origin_X),
+               Start_Y   => Natural'Max (0, Runtime.Marquee_Origin_Y),
+               Current_X => Natural'Max (0, X_Frame),
+               Current_Y => Natural'Max (0, Y_Frame),
+               X         => Rect_X,
+               Y         => Rect_Y,
+               Width     => Rect_W,
+               Height    => Rect_H);
+            Files.Interaction.Apply_Marquee_Selection
+              (Model    => Runtime.Model,
+               Hits     =>
+                 Files.Rendering.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H),
+               Additive => Runtime.Marquee_Additive,
+               Base     => Runtime.Marquee_Base);
+            Runtime.Marquee_Rect_X := Rect_X;
+            Runtime.Marquee_Rect_Y := Rect_Y;
+            Runtime.Marquee_Rect_W := Rect_W;
+            Runtime.Marquee_Rect_H := Rect_H;
+         end;
       end;
    end Update_Marquee_Drag;

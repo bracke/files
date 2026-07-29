@@ -1065,6 +1065,27 @@ package body Files.Rendering is
       Height    : out Natural)
       renames Guikit.Item_Grid.Marquee_Rect;
 
+   function Marquee_Auto_Scroll_Step
+     (Cursor_Y      : Integer;
+      Region_Top    : Integer;
+      Region_Bottom : Integer;
+      Line_Height   : Positive;
+      Max_Step      : Positive := 4)
+      return Integer
+   is
+      Edge : constant Integer := Line_Height;
+   begin
+      if Cursor_Y < Region_Top + Edge then
+         return Integer'Max
+           (-Max_Step, -(1 + (Region_Top + Edge - Cursor_Y) / Line_Height));
+      elsif Cursor_Y > Region_Bottom - Edge then
+         return Integer'Min
+           (Max_Step, 1 + (Cursor_Y - (Region_Bottom - Edge)) / Line_Height);
+      else
+         return 0;
+      end if;
+   end Marquee_Auto_Scroll_Step;
+
    function Items_In_Rect
      (Items  : Item_Layout_Vectors.Vector;
       X      : Natural;

@@ -926,6 +926,28 @@ package Files.Rendering is
       Width     : out Natural;
       Height    : out Natural);
 
+   --  How many text lines to auto-scroll the item view during a marquee drag,
+   --  given the pointer's y and the scrollable rows region. Negative scrolls up,
+   --  positive scrolls down, zero holds. It engages within one Line_Height of the
+   --  region's top or bottom edge (so the pointer need not leave the window to
+   --  reach beyond the fold), and accelerates with distance past the edge up to
+   --  Max_Step lines per call. Lets a rubber-band gesture reach items above or
+   --  below the current view.
+   --
+   --  @param Cursor_Y Pointer y in framebuffer pixels.
+   --  @param Region_Top Top of the scrollable rows region in framebuffer pixels.
+   --  @param Region_Bottom Bottom of that region in framebuffer pixels.
+   --  @param Line_Height Row height in pixels; also the edge-zone thickness.
+   --  @param Max_Step Largest step magnitude in lines.
+   --  @return Signed line delta (negative up, positive down, zero none).
+   function Marquee_Auto_Scroll_Step
+     (Cursor_Y      : Integer;
+      Region_Top    : Integer;
+      Region_Bottom : Integer;
+      Line_Height   : Positive;
+      Max_Step      : Positive := 4)
+      return Integer;
+
    --  Return, in ascending order, the one-based visible indices of every item
    --  whose layout rectangle intersects the given (already normalized) marquee
    --  rectangle. Any overlap counts as a hit; a zero-area rectangle (Width or
