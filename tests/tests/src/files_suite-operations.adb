@@ -3162,6 +3162,56 @@ package body Files_Suite.Operations is
            (Execute_Bit (Runnable) = 'x',
             "and on a host with mode bits, chmod +x really does show as executable");
       end if;
+
+      --  The read and write positions, across the mode matrix, against the same
+      --  host calls the column is built from. This is what says whether those
+      --  two answers may be taken from mode bits already read for the item
+      --  instead of asked for separately: if the two ever disagreed, the column
+      --  would go quietly wrong rather than fail.
+      declare
+         Probe : constant String := Join (Root, "rw-probe.txt");
+
+         procedure Check_At (Mode : Natural) is
+            Applied : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Set_Permissions (Probe, Mode);
+         begin
+            if not Applied.Success then
+               return;
+            end if;
+
+            declare
+               Loaded : constant Files.File_System.Item_Load_Result :=
+                 Files.File_System.Load_Item (Probe, Settings);
+               Text   : constant String := To_String (Loaded.Item.Permissions);
+               Label  : constant String := Natural'Image (Mode);
+            begin
+               Assert (Loaded.Success and then Text'Length = 3, "the probe loads at mode" & Label);
+               Assert
+                 (Text (Text'First) = (if GNAT.OS_Lib.Is_Owner_Readable_File (Probe) then 'r' else '-'),
+                  "the read position matches the host at mode" & Label);
+               Assert
+                 (Text (Text'First + 1) = (if GNAT.OS_Lib.Is_Owner_Writable_File (Probe) then 'w' else '-'),
+                  "the write position matches the host at mode" & Label);
+            end;
+         end Check_At;
+      begin
+         Write_File (Probe, "probe");
+         Check_At (8#644#);
+         Check_At (8#600#);
+         Check_At (8#400#);
+         Check_At (8#200#);
+         Check_At (8#444#);
+         Check_At (8#000#);
+
+         --  Leave it removable for Reset_Root.
+         declare
+            Restored : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Set_Permissions (Probe, 8#644#);
+            pragma Unreferenced (Restored);
+         begin
+            null;
+         end;
+      end;
    end Test_Permission_String_Agrees_With_The_Host;
 
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is

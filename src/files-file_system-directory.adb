@@ -119,9 +119,13 @@ package body Directory is
    --  @param Path The item's full path.
    --  @param Kind How the item was already classified, which for most kinds
    --              settles executability without asking the host again.
+   --  @param Mode_Bits POSIX mode already read for this item, when Mode_Known.
+   --  @param Mode_Known True when Mode_Bits are the host's own bits.
    function Permission_String
-     (Path : String;
-      Kind : Files.Types.Item_Kind)
+     (Path       : String;
+      Kind       : Files.Types.Item_Kind;
+      Mode_Bits  : Natural;
+      Mode_Known : Boolean)
       return String;
 
    function Count_Text_Lines (Path : String) return Natural;
@@ -668,8 +672,10 @@ package body Directory is
    end Sort_Items;
 
    function Permission_String
-     (Path : String;
-      Kind : Files.Types.Item_Kind)
+     (Path       : String;
+      Kind       : Files.Types.Item_Kind;
+      Mode_Bits  : Natural;
+      Mode_Known : Boolean)
       return String
    is
       Result : String (1 .. 3) := "---";
@@ -699,11 +705,36 @@ package body Directory is
          then Hostkit.Fs.Is_Executable (Path)
          else Kind = Files.Types.Executable_Item);
    begin
-      if GNAT.OS_Lib.Is_Owner_Readable_File (Path) then
-         Result (1) := 'r';
-      end if;
-      if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
-         Result (2) := 'w';
+      --  Read and write come out of the mode already read for this item, where
+      --  that mode is the host's own bits. Asking
+      --  GNAT.OS_Lib.Is_Owner_Readable_File and Is_Owner_Writable_File is two
+      --  more stats of a path just stat-ed, for two bits that stat returned.
+      --
+      --  Mode_Known is what keeps it honest: on Windows the mode is Hostkit
+      --  rendering an ACL into POSIX shape rather than a field the filesystem
+      --  stores, and GNAT answers these from something else again, so there the
+      --  host keeps being asked.
+      --
+      --  Test_Permission_String_Agrees_With_The_Host walks the mode matrix
+      --  asserting both positions against those same GNAT calls, so a host where
+      --  this disagrees with them fails rather than showing a quietly wrong
+      --  column.
+      if Mode_Known then
+         if (Mode_Bits / 8#400#) mod 2 = 1 then
+            Result (1) := 'r';
+         end if;
+
+         if (Mode_Bits / 8#200#) mod 2 = 1 then
+            Result (2) := 'w';
+         end if;
+      else
+         if GNAT.OS_Lib.Is_Owner_Readable_File (Path) then
+            Result (1) := 'r';
+         end if;
+
+         if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
+            Result (2) := 'w';
+         end if;
       end if;
       if Executable then
          Result (3) := 'x';
@@ -1399,11 +1430,16 @@ package body Directory is
            Hostkit.Metadata.File_Creation_Time (Full, Item.Creation_Available);
          Item.Modified_Time := Ada.Directories.Modification_Time (Full);
          Item.Modified_Available := True;
-         Item.Permissions := To_Unbounded_String (Permission_String (Full, Kind));
+         --  Mode first: the permission column is built out of what this returns.
          Hostkit.Metadata.File_Mode_And_Ownership
            (Full,
             Item.Mode_Bits, Item.Mode_Available,
             Item.Owner_Id, Item.Group_Id, Item.Ownership_Available);
+         Item.Permissions :=
+           To_Unbounded_String
+             (Permission_String
+                (Full, Kind, Item.Mode_Bits,
+                 Item.Mode_Available and then Hostkit.Metadata.Mode_Bits_Are_Native));
       exception
          when others =>
             Item.Metadata_Error := True;
