@@ -368,7 +368,8 @@ package body Files.File_System is
          return String;
 
       function Valid_Leaf_Name
-        (Name : String)
+        (Name  : String;
+         Rules : Name_Rules := Host_Rules)
          return Boolean;
 
       function Next_Untitled_Name
@@ -396,7 +397,8 @@ package body Files.File_System is
      renames Path.Join_Path;
 
    function Valid_Leaf_Name
-     (Name : String)
+     (Name  : String;
+      Rules : Name_Rules := Host_Rules)
       return Boolean
      renames Path.Valid_Leaf_Name;
 

@@ -537,12 +537,25 @@ package Files.File_System is
       Name        : String)
       return String;
 
+   --  Which host's filesystem naming rules Valid_Leaf_Name enforces. Host_Rules
+   --  follows the operating system this build runs on: a POSIX host allows any
+   --  visible character except '/', while Windows additionally forbids
+   --  \ : < > " | ? *, the reserved device names (CON, LPT1, ...) and a trailing
+   --  dot. The explicit variants let the rules be checked independently of the
+   --  host. Names that are merely confusing -- empty, "." / "..", control
+   --  characters, invalid UTF-8, and all- or trailing-whitespace -- are rejected
+   --  under every rule set.
+   type Name_Rules is (Host_Rules, Posix_Rules, Windows_Rules);
+
    --  Return whether Name is a safe leaf filename for create or rename.
    --
    --  @param Name Candidate filename without parent path components.
+   --  @param Rules Which host's naming rules to apply (the running host by
+   --    default).
    --  @return True when Name can be used as a direct child filename.
    function Valid_Leaf_Name
-     (Name : String)
+     (Name  : String;
+      Rules : Name_Rules := Host_Rules)
       return Boolean;
 
    --  Return a deterministic available untitled file name in Directory_Path.

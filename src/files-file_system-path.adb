@@ -3,6 +3,7 @@ with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Files.UTF8;
 with GNAT.OS_Lib;
+with Hostkit.Host;
 
 separate (Files.File_System)
 package body Path is
@@ -188,19 +189,40 @@ package body Path is
       return Last;
    end Ends_With_Whitespace;
 
-   function Valid_Leaf_Name (Name : String) return Boolean is
+   function Valid_Leaf_Name
+     (Name  : String;
+      Rules : Name_Rules := Host_Rules)
+      return Boolean
+   is
+      use type Hostkit.Host.Kind;
+
+      Windows_Rules_Apply : constant Boolean :=
+        (case Rules is
+            when Windows_Rules => True,
+            when Posix_Rules   => False,
+            when Host_Rules    => Hostkit.Host.Current = Hostkit.Host.Windows);
+
       Index     : Integer := Name'First;
       Codepoint : Natural := 0;
    begin
+      --  Broken or purely confusing on every host: the special entries, the
+      --  POSIX path separator (checked per character below), malformed UTF-8,
+      --  and names that are only or trail in whitespace (invisible, ambiguous).
       if Name = ""
         or else Name = "."
         or else Name = ".."
-        or else Name (Name'Last) = ' '
-        or else Name (Name'Last) = '.'
-        or else Is_Windows_Device_Name (Name)
         or else not Files.UTF8.Is_Valid (Name)
         or else Is_All_Whitespace (Name)
         or else Ends_With_Whitespace (Name)
+      then
+         return False;
+      end if;
+
+      --  Windows strips or forbids these, so a name carrying them cannot
+      --  round-trip there; a POSIX host accepts them as ordinary filenames.
+      if Windows_Rules_Apply
+        and then (Name (Name'Last) = '.'
+                  or else Is_Windows_Device_Name (Name))
       then
          return False;
       end if;
@@ -217,15 +239,17 @@ package body Path is
             declare
                Character_Value : constant Character := Character'Val (Codepoint);
             begin
-               if Character_Value = '/'
-                 or else Character_Value = '\'
-                 or else Character_Value = '<'
-                 or else Character_Value = '>'
-                 or else Character_Value = ':'
-                 or else Character_Value = Character'Val (34)
-                 or else Character_Value = '|'
-                 or else Character_Value = '?'
-                 or else Character_Value = '*'
+               if Character_Value = '/' then
+                  return False;
+               elsif Windows_Rules_Apply
+                 and then (Character_Value = '\'
+                           or else Character_Value = '<'
+                           or else Character_Value = '>'
+                           or else Character_Value = ':'
+                           or else Character_Value = Character'Val (34)
+                           or else Character_Value = '|'
+                           or else Character_Value = '?'
+                           or else Character_Value = '*')
                then
                   return False;
                end if;

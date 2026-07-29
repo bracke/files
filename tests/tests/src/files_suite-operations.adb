@@ -126,6 +126,7 @@ package body Files_Suite.Operations is
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -227,6 +228,8 @@ package body Files_Suite.Operations is
         (T, Test_Advanced_Filesystem_Operations'Access, "advanced filesystem operations");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Leaf_Name_Rules'Access, "leaf-name rules are host-gated");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Commit_Rename'Access, "commit rename mode");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -2316,13 +2319,14 @@ package body Files_Suite.Operations is
       Assert
         (To_String (Mutation.Error_Key) = "error.file.parent_missing",
          "non-directory parent create reports parent diagnostic");
-      Mutation := Files.File_System.Create_Empty_File (Join (Root, "bad:name.txt"));
+      Mutation :=
+        Files.File_System.Create_Empty_File (Join (Root, "bad" & Character'Val (9) & "name.txt"));
       Assert (not Mutation.Success, "direct create rejects invalid leaf names");
       Assert
         (To_String (Mutation.Error_Key) = "error.name.invalid",
          "direct invalid-name create reports invalid-name diagnostic");
       Assert
-        (not Path_Exists (Join (Root, "bad:name.txt")),
+        (not Path_Exists (Join (Root, "bad" & Character'Val (9) & "name.txt")),
          "direct invalid-name create writes no file");
       Mutation := Files.File_System.Create_Empty_File (Direct_Path);
       Assert (Mutation.Success, "direct create mutation succeeds");
@@ -3025,32 +3029,10 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid create keeps temporary item active");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid create keeps rename active");
 
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "bad\name.txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects backslash names");
-      Assert (not Path_Exists (Join (Root, "bad\name.txt")), "invalid backslash create writes no file");
-
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "bad:name.txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects Windows-reserved names");
-      Assert (not Path_Exists (Join (Root, "bad:name.txt")), "invalid reserved create writes no file");
-
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "bad*name.txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects wildcard names");
-      Assert (not Path_Exists (Join (Root, "bad*name.txt")), "invalid wildcard create writes no file");
-
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "trailing-dot.txt.");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects trailing-dot names");
-      Assert
-        (not Ada.Directories.Exists (Join (Root, "trailing-dot.txt.")),
-         "invalid trailing-dot create writes no file");
-
+      --  Backslash, colon, wildcard, and trailing-dot names are rejected only
+      --  under Windows rules; on a POSIX host they are ordinary filenames, so
+      --  the host-gated behaviour is covered directly in Test_Leaf_Name_Rules
+      --  rather than through the create operation here.
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, "trailing-space.txt ");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
@@ -3083,32 +3065,8 @@ package body Files_Suite.Operations is
         (not Ada.Directories.Exists (Join (Root, Trailing_Ideographic_Name)),
          "invalid trailing ideographic-space create writes no file");
 
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "CON.txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects reserved device names");
-      Assert (not Ada.Directories.Exists (Join (Root, "CON.txt")), "invalid device-name create writes no file");
-
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "CON .txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects padded device names");
-      Assert (not Ada.Directories.Exists (Join (Root, "CON .txt")), "invalid padded-device create writes no file");
-
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "lPt1 .txt");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects mixed-case padded device names");
-      Assert
-        (not Ada.Directories.Exists (Join (Root, "lPt1 .txt")),
-         "invalid mixed-case padded-device create writes no file");
-
-      Files.Model.Cancel_Create_File (Model);
-      Files.Model.Begin_Create_File (Model, "CONIN$");
-      Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "create rejects console device names");
-      Assert (not Ada.Directories.Exists (Join (Root, "CONIN$")), "invalid console-device create writes no file");
-
+      --  Reserved device names (CON, LPT1, CONIN$ and space-padded variants) are
+      --  rejected only under Windows rules; Test_Leaf_Name_Rules covers that.
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Begin_Create_File (Model, Nul_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
@@ -3171,30 +3129,9 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Rename_Is_Active (Model), "invalid rename keeps rename active");
       Assert (Files.Model.Selected_Name (Model) = "old.txt", "invalid rename keeps selected item");
 
-      Files.Model.Set_Rename_Text (Model, "bad\name.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects backslash names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "backslash rename leaves source in place");
-      Assert (not Path_Exists (Join (Root, "bad\name.txt")), "invalid backslash rename writes no file");
-
-      Files.Model.Set_Rename_Text (Model, "bad:name.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects Windows-reserved names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "reserved-character rename leaves source in place");
-      Assert (not Path_Exists (Join (Root, "bad:name.txt")), "invalid reserved rename writes no file");
-
-      Files.Model.Set_Rename_Text (Model, "bad*name.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects wildcard names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "wildcard rename leaves source in place");
-      Assert (not Path_Exists (Join (Root, "bad*name.txt")), "invalid wildcard rename writes no file");
-
-      Files.Model.Set_Rename_Text (Model, "renamed.");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects trailing-dot names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "trailing-dot rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "renamed.")), "invalid trailing-dot rename writes no file");
-
+      --  Backslash, colon, wildcard, and trailing-dot names are Windows-only
+      --  rejections -- ordinary filenames on a POSIX host -- so the POSIX/Windows
+      --  split is covered directly in Test_Leaf_Name_Rules, not through rename.
       Files.Model.Set_Rename_Text (Model, "renamed ");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects trailing-space names");
@@ -3227,34 +3164,9 @@ package body Files_Suite.Operations is
         (Ada.Directories.Exists (Join (Root, "old.txt")),
          "trailing ideographic-space rename leaves source in place");
 
-      Files.Model.Set_Rename_Text (Model, "NUL.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects reserved device names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "device-name rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "NUL.txt")), "invalid device-name rename writes no file");
-
-      Files.Model.Set_Rename_Text (Model, "NUL .txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects padded device names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "padded-device rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "NUL .txt")), "invalid padded-device rename writes no file");
-
-      Files.Model.Set_Rename_Text (Model, "cOm9 .txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects mixed-case padded device names");
-      Assert
-        (Ada.Directories.Exists (Join (Root, "old.txt")),
-         "mixed-case padded-device rename leaves source in place");
-      Assert
-        (not Ada.Directories.Exists (Join (Root, "cOm9 .txt")),
-         "invalid mixed-case padded-device rename writes no file");
-
-      Files.Model.Set_Rename_Text (Model, "CONOUT$.txt");
-      Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects console device names");
-      Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "console-device rename leaves source in place");
-      Assert (not Ada.Directories.Exists (Join (Root, "CONOUT$.txt")), "invalid console-device rename writes no file");
-
+      --  Reserved device names (NUL, COM9, CONOUT$ and space-padded variants) are
+      --  a Windows-only rejection; the POSIX/Windows split lives in
+      --  Test_Leaf_Name_Rules.
       Files.Model.Set_Rename_Text (Model, Nul_Name);
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects embedded NUL names");
@@ -3289,6 +3201,65 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects overlong UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "overlong UTF-8 rename leaves source in place");
    end Test_Invalid_File_Operation_Names;
+
+   procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Posix (Name : String) return Boolean is
+        (Files.File_System.Valid_Leaf_Name (Name, Files.File_System.Posix_Rules));
+
+      function Win (Name : String) return Boolean is
+        (Files.File_System.Valid_Leaf_Name (Name, Files.File_System.Windows_Rules));
+
+      Tab : constant String := "bad" & Character'Val (9) & "name";
+   begin
+      --  Visible characters, reserved device names and a trailing dot are
+      --  ordinary on a POSIX filesystem but forbidden on Windows: accepted under
+      --  Posix_Rules, rejected under Windows_Rules. Checked directly so both rule
+      --  sets are exercised whichever host runs the suite (Host_Rules resolves to
+      --  one or the other and cannot exercise the absent one).
+      Assert (Posix ("bad\name.txt"), "POSIX allows a backslash in a name");
+      Assert (not Win ("bad\name.txt"), "Windows rejects a backslash in a name");
+      Assert (Posix ("my:notes.txt"), "POSIX allows a colon in a name");
+      Assert (not Win ("my:notes.txt"), "Windows rejects a colon in a name");
+      Assert (Posix ("track01?.flac"), "POSIX allows a wildcard character in a name");
+      Assert (not Win ("track01?.flac"), "Windows rejects a wildcard character in a name");
+      Assert (Posix ("ch*.txt"), "POSIX allows an asterisk in a name");
+      Assert (not Win ("ch*.txt"), "Windows rejects an asterisk in a name");
+      Assert (Posix ("a|b.txt") and then Posix ("a<b>.txt"), "POSIX allows pipe and angle brackets");
+      Assert (not Win ("a|b.txt") and then not Win ("a<b>.txt"), "Windows rejects pipe and angle brackets");
+      Assert (Posix ("aux") and then Posix ("CON.txt") and then Posix ("CONIN$"),
+              "POSIX allows reserved-device-style names");
+      Assert (not Win ("aux") and then not Win ("CON.txt") and then not Win ("CONIN$"),
+              "Windows rejects reserved device names");
+      Assert (Posix ("ends-with-dot."), "POSIX allows a trailing dot");
+      Assert (not Win ("ends-with-dot."), "Windows rejects a trailing dot");
+
+      --  A plain filename is valid under every rule set; the confusing or broken
+      --  names are rejected under every rule set, host included.
+      for Rules in Files.File_System.Name_Rules loop
+         Assert
+           (Files.File_System.Valid_Leaf_Name ("ordinary-name.txt", Rules),
+            "every rule set accepts an ordinary filename");
+         Assert
+           (not Files.File_System.Valid_Leaf_Name ("", Rules),
+            "no rule set accepts an empty name");
+         Assert
+           (not Files.File_System.Valid_Leaf_Name (".", Rules)
+              and then not Files.File_System.Valid_Leaf_Name ("..", Rules),
+            "no rule set accepts the special directory entries");
+         Assert
+           (not Files.File_System.Valid_Leaf_Name ("a/b.txt", Rules),
+            "no rule set accepts a path separator");
+         Assert
+           (not Files.File_System.Valid_Leaf_Name (Tab, Rules),
+            "no rule set accepts a control character");
+         Assert
+           (not Files.File_System.Valid_Leaf_Name ("trailing ", Rules)
+              and then not Files.File_System.Valid_Leaf_Name ("   ", Rules),
+            "no rule set accepts trailing or all whitespace");
+      end loop;
+   end Test_Leaf_Name_Rules;
 
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -3361,14 +3332,15 @@ package body Files_Suite.Operations is
         (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
          "non-directory destination parent reports invalid destination");
       Assert (Ada.Directories.Exists (Non_Directory_Source), "non-directory parent rename leaves source in place");
-      Mutation := Files.File_System.Rename_Item (Direct_Source, Join (Root, "bad:name.txt"));
+      Mutation :=
+        Files.File_System.Rename_Item (Direct_Source, Join (Root, "bad" & Character'Val (9) & "name.txt"));
       Assert (not Mutation.Success, "direct rename rejects invalid leaf names");
       Assert
         (To_String (Mutation.Error_Key) = "error.name.invalid",
          "direct invalid-name rename reports invalid-name diagnostic");
       Assert (Ada.Directories.Exists (Direct_Source), "direct invalid-name rename leaves source in place");
       Assert
-        (not Path_Exists (Join (Root, "bad:name.txt")),
+        (not Path_Exists (Join (Root, "bad" & Character'Val (9) & "name.txt")),
          "direct invalid-name rename writes no target");
       Mutation := Files.File_System.Rename_Item (Direct_Source, Direct_Target);
       Assert (Mutation.Success, "direct rename mutation succeeds");
