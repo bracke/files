@@ -343,6 +343,24 @@ package body Thumbnails is
             return 0;
       end File_Size_Signal;
 
+      --  Cap the input given to the pure-Ada PNG/PPM decoders, which read the
+      --  whole file into memory before validating its magic bytes. A valid
+      --  image within the 2048x2048 decode cap is at most a few MB, so 32 MiB is
+      --  generous; a larger (or unreadable-size) file skips the slurping fast
+      --  path and falls through to the streaming gdk-pixbuf loader, so a huge
+      --  non-image named *.png can no longer be read into RAM on a directory
+      --  browse (a memory/CPU denial of service).
+      Max_Fast_Decode_Source_Bytes : constant Long_Long_Integer := 33_554_432;
+
+      function Source_Fits_Fast_Decode return Boolean is
+      begin
+         return Long_Long_Integer (Ada.Directories.Size (Source_Path))
+                  <= Max_Fast_Decode_Source_Bytes;
+      exception
+         when others =>
+            return False;
+      end Source_Fits_Fast_Decode;
+
       type Rgb_Pixel is record
          Red   : Natural := 0;
          Green : Natural := 0;
@@ -908,8 +926,9 @@ package body Thumbnails is
 
       Ada.Directories.Create_Path (Cache_Directory);
       Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
-      if Try_Write_Decoded_Png_Thumbnail (To_String (Target))
-        or else Try_Write_Decoded_P3_Thumbnail (To_String (Target))
+      if (Source_Fits_Fast_Decode
+          and then (Try_Write_Decoded_Png_Thumbnail (To_String (Target))
+                    or else Try_Write_Decoded_P3_Thumbnail (To_String (Target))))
         or else Try_Write_Gdk_Pixbuf_Thumbnail (To_String (Target))
       then
          return
