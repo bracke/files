@@ -100,9 +100,6 @@ separate (Files.Application.Windows)
                       (Runtime.Settings, Runtime.Cached_Settings_Key)
            and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
            and then not Runtime.Marquee_Active;
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           (if Reuse_Snapshot then Runtime.Cached_Snapshot
-            else Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings));
          Inputs_Match : constant Boolean :=
            Runtime.Frame_Cache_Valid
            and then Runtime.Cached_Frame_W = Natural (Width)
@@ -119,10 +116,13 @@ separate (Files.Application.Windows)
            and then Runtime.Cached_Marquee_Y = Runtime.Marquee_Rect_Y
            and then Runtime.Cached_Marquee_W = Runtime.Marquee_Rect_W
            and then Runtime.Cached_Marquee_H = Runtime.Marquee_Rect_H;
-      begin
-         if not Inputs_Match or else Snapshot /= Runtime.Cached_Snapshot then
+
+         --  Rebuild the cached frame from Snapshot and record the input keys it
+         --  was built for. Snapshot is an in-parameter (passed by reference, not
+         --  copied here).
+         procedure Rebuild_Frame (Snapshot : Files.Rendering.View_Snapshot) is
+         begin
             Frame_Rebuilt := True;
-            Runtime.Cached_Snapshot := Snapshot;
             Runtime.Cached_Frame :=
               Files.Rendering.Build_Frame_Commands
                 (Snapshot    => Snapshot,
@@ -159,6 +159,27 @@ separate (Files.Application.Windows)
             Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Frame_Cache_Valid := True;
+         end Rebuild_Frame;
+      begin
+         if Reuse_Snapshot then
+            --  Model + snapshot-relevant settings unchanged: the cached snapshot
+            --  is still current, so reuse it in place -- no per-frame deep copy
+            --  or deep compare of the whole snapshot (thumbnail pixels and all).
+            --  Rebuild the frame only if a non-model input (size, hover, drag,
+            --  marquee) changed.
+            if not Inputs_Match then
+               Rebuild_Frame (Runtime.Cached_Snapshot);
+            end if;
+         else
+            declare
+               Fresh : constant Files.Rendering.View_Snapshot :=
+                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            begin
+               if not Inputs_Match or else Fresh /= Runtime.Cached_Snapshot then
+                  Runtime.Cached_Snapshot := Fresh;
+                  Rebuild_Frame (Fresh);
+               end if;
+            end;
          end if;
 
          --  Cached_Snapshot now reflects the current model at this revision and
