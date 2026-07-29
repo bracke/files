@@ -26,7 +26,18 @@ package body History is
                if not Files.File_System.Rename_Item (Source, Target).Success then
                   Succeeded := False;
                end if;
+            elsif not Exists_Safely (Source) and then Exists_Safely (Target) then
+               --  Already moved back by an earlier, partially-applied pass: the
+               --  source is gone and the target is in place. Treat it as an
+               --  idempotent success (this is the "missing paths count as
+               --  already undone" invariant Undo_Last documents) so that
+               --  re-running a partially-applied multi-item undo can finish the
+               --  items that were previously blocked, instead of the
+               --  already-restored ones forcing failure forever.
+               null;
             else
+               --  Source still present with the target occupied, or both gone:
+               --  this item cannot be moved back right now.
                Succeeded := False;
             end if;
          end;
@@ -74,54 +85,64 @@ package body History is
             --  Restore the previous mode recorded before the chmod. From holds
             --  the path and To holds the decimal image of the old mode bits.
             for Index in Action.From.First_Index .. Action.From.Last_Index loop
-               declare
-                  Target   : constant String := To_String (Action.From.Element (Index));
-                  Old_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
-                  Old_Mode : Natural := 0;
-               begin
+               if Index > Action.To.Last_Index then
+                  --  Malformed entry: To shorter than From. Fail this item
+                  --  rather than index out of range (mirrors the forward guard).
+                  Succeeded := False;
+               else
+                  declare
+                     Target   : constant String := To_String (Action.From.Element (Index));
+                     Old_Text : constant String :=
+                       Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
+                     Old_Mode : Natural := 0;
                   begin
-                     Old_Mode := Natural'Value (Old_Text);
-                  exception
-                     when others =>
-                        Succeeded := False;
-                  end;
+                     begin
+                        Old_Mode := Natural'Value (Old_Text);
+                     exception
+                        when others =>
+                           Succeeded := False;
+                     end;
 
-                  if Old_Mode > 0 or else Old_Text = "0" then
-                     if not Files.File_System.Set_Permissions (Target, Old_Mode).Success then
-                        Succeeded := False;
+                     if Old_Mode > 0 or else Old_Text = "0" then
+                        if not Files.File_System.Set_Permissions (Target, Old_Mode).Success then
+                           Succeeded := False;
+                        end if;
                      end if;
-                  end if;
-               end;
+                  end;
+               end if;
             end loop;
 
          when Files.Model.Undo_Set_Ownership =>
             --  Restore the previous owner/group recorded before the chown.
             --  From holds the path and To holds "uid gid" decimal images.
             for Index in Action.From.First_Index .. Action.From.Last_Index loop
-               declare
-                  Target   : constant String := To_String (Action.From.Element (Index));
-                  Old_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
-                  Space    : constant Natural := Ada.Strings.Fixed.Index (Old_Text, " ");
-                  Old_Uid  : Natural := 0;
-                  Old_Gid  : Natural := 0;
-               begin
-                  if Space > 0 then
-                     begin
-                        Old_Uid := Natural'Value (Old_Text (Old_Text'First .. Space - 1));
-                        Old_Gid := Natural'Value (Old_Text (Space + 1 .. Old_Text'Last));
-                        if not Files.File_System.Set_Ownership (Target, Old_Uid, Old_Gid).Success then
-                           Succeeded := False;
-                        end if;
-                     exception
-                        when others =>
-                           Succeeded := False;
-                     end;
-                  else
-                     Succeeded := False;
-                  end if;
-               end;
+               if Index > Action.To.Last_Index then
+                  Succeeded := False;
+               else
+                  declare
+                     Target   : constant String := To_String (Action.From.Element (Index));
+                     Old_Text : constant String :=
+                       Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
+                     Space    : constant Natural := Ada.Strings.Fixed.Index (Old_Text, " ");
+                     Old_Uid  : Natural := 0;
+                     Old_Gid  : Natural := 0;
+                  begin
+                     if Space > 0 then
+                        begin
+                           Old_Uid := Natural'Value (Old_Text (Old_Text'First .. Space - 1));
+                           Old_Gid := Natural'Value (Old_Text (Space + 1 .. Old_Text'Last));
+                           if not Files.File_System.Set_Ownership (Target, Old_Uid, Old_Gid).Success then
+                              Succeeded := False;
+                           end if;
+                        exception
+                           when others =>
+                              Succeeded := False;
+                        end;
+                     else
+                        Succeeded := False;
+                     end if;
+                  end;
+               end if;
             end loop;
 
          when Files.Model.Undo_None =>
