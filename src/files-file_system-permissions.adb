@@ -1,7 +1,6 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Strings.Unbounded;
 with Files.Fs;
-with Hostkit.Fs;
 with Hostkit.Metadata;
 
 separate (Files.File_System)
@@ -100,7 +99,7 @@ package body Permissions is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.ownership.denied"));
-      elsif Hostkit.Fs.Set_Owner (Path, User_Id, Group_Id) then
+      elsif Hostkit.Metadata.Set_Ownership (Path, User_Id, Group_Id) then
          return (Success => True, Error_Key => Null_Unbounded_String);
       else
          return
