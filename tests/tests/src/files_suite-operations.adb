@@ -5141,30 +5141,45 @@ package body Files_Suite.Operations is
       Write_File (Plain, "hello");
       Mutation := Files.File_System.Rename_Item (Plain, Cased);
       Assert (Mutation.Success, "a case change with a free destination renames normally");
-      Assert (not Ada.Directories.Exists (Plain), "the old-case source name no longer exists");
+      if not Case_Insensitive_Filesystem then
+         --  On a case-insensitive filesystem plain.txt and Plain.txt name the
+         --  same entry, so the old-case name still resolves after the flip; the
+         --  "source is gone" invariant only holds where case distinguishes names.
+         Assert (not Ada.Directories.Exists (Plain), "the old-case source name no longer exists");
+      end if;
       Assert (Ada.Directories.Exists (Cased), "the case-changed destination exists");
 
       --  The hazardous shape: data.txt and DATA.txt as two hard links to one
       --  inode reproduce the identity a case-insensitive filesystem reports for a
-      --  case-only rename. On this case-sensitive host they are two independent
+      --  case-only rename. On a case-sensitive host they are two independent
       --  directory entries, so the scratch-name second hop cannot land -- but the
       --  two-step must roll back cleanly and NEVER lose the file (the earlier
       --  naive fix dropped into Copy_Tree + delete here and destroyed the source).
-      Write_File (Lower, "payload");
-      Link := Files.File_System.Create_Hard_Link (Lower, Upper);
-      Assert (Link.Success, "hard link creation succeeds on the test filesystem");
+      --  A case-insensitive filesystem cannot hold two such entries at once, and
+      --  the free-destination flip above is already its native case-only rename,
+      --  so this hand-built simulation only runs where case distinguishes names.
+      if not Case_Insensitive_Filesystem then
+         Write_File (Lower, "payload");
+         Link := Files.File_System.Create_Hard_Link (Lower, Upper);
+         Assert (Link.Success, "hard link creation succeeds on the test filesystem");
 
-      Mutation := Files.File_System.Rename_Item (Lower, Upper);
-      Assert (Ada.Directories.Exists (Lower), "the case-only rename leaves the source intact on rollback");
-      Assert (Ada.Directories.Exists (Upper), "the case-only rename leaves the aliased name intact");
-      Assert
-        (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Lower), "payload") > 0,
-         "no data is lost when the case-only rename rolls back");
-      Assert
-        (not Path_Exists (Lower & ".files-case-rename-0"),
-         "the scratch rename name is not left behind");
+         Mutation := Files.File_System.Rename_Item (Lower, Upper);
+         Assert (Ada.Directories.Exists (Lower), "the case-only rename leaves the source intact on rollback");
+         Assert (Ada.Directories.Exists (Upper), "the case-only rename leaves the aliased name intact");
+         Assert
+           (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Lower), "payload") > 0,
+            "no data is lost when the case-only rename rolls back");
+         Assert
+           (not Path_Exists (Lower & ".files-case-rename-0"),
+            "the scratch rename name is not left behind");
+      end if;
 
       --  A genuinely distinct existing destination is still refused as a collision.
+      --  Ensure that destination exists first: on a case-insensitive filesystem
+      --  the simulation above is skipped, so it did not leave data.txt behind.
+      if not Ada.Directories.Exists (Lower) then
+         Write_File (Lower, "payload");
+      end if;
       Write_File (Other, "distinct");
       Mutation := Files.File_System.Rename_Item (Other, Lower);
       Assert (not Mutation.Success, "renaming onto a distinct existing file is still refused");
