@@ -36,6 +36,13 @@ package body Directory is
 
    Extra_Line_Limit : constant Natural := 20_000;
 
+   --  These metadata readers run synchronously on the UI thread every time the
+   --  selection changes with the info pane open, so none of them may scale their
+   --  work with file size: a multi-GB file (crafted, or simply large) would
+   --  freeze the whole app. Each caps the bytes it will scan; past the cap the
+   --  counts are approximate, which a metadata line can live with.
+   Extra_Scan_Byte_Limit : constant Long_Long_Integer := 8_388_608;
+
    type Cached_Thumbnail is record
       Loaded : Boolean := False;
       Width  : Natural := 0;
@@ -481,9 +488,16 @@ package body Directory is
       Count       : Natural := 0;
       Saw_Byte    : Boolean := False;
       Last_Was_LF : Boolean := False;
+      Scanned     : Long_Long_Integer := 0;
    begin
       Stream_IO.Open (File, Stream_IO.In_File, Path);
-      while not Stream_IO.End_Of_File (File) and then Count < Extra_Line_Limit loop
+      --  The line cap alone does not bound the read: a file with few or no
+      --  newlines (a multi-GB single-line log) never reaches it, so cap the
+      --  bytes scanned too.
+      while not Stream_IO.End_Of_File (File)
+        and then Count < Extra_Line_Limit
+        and then Scanned < Extra_Scan_Byte_Limit
+      loop
          Stream_IO.Read (File, Buffer, Last);
          if Last >= Buffer'First then
             for Index in Buffer'First .. Last loop
@@ -494,6 +508,7 @@ package body Directory is
                   exit when Count >= Extra_Line_Limit;
                end if;
             end loop;
+            Scanned := Scanned + Long_Long_Integer (Last - Buffer'First + 1);
          end if;
       end loop;
 
@@ -628,10 +643,11 @@ package body Directory is
    end Text_Metadata_Token;
 
    function Pdf_Page_Count_Token (Path : String) return String is
-      File   : Ada.Text_IO.File_Type;
-      Buffer : String (1 .. 4096);
-      Last   : Natural;
-      Count  : Natural := 0;
+      File    : Ada.Text_IO.File_Type;
+      Buffer  : String (1 .. 4096);
+      Last    : Natural;
+      Count   : Natural := 0;
+      Scanned : Long_Long_Integer := 0;
 
       function Page_Marker_At
         (Line : String;
@@ -666,8 +682,14 @@ package body Directory is
       end Page_Marker_At;
    begin
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
-      while not Ada.Text_IO.End_Of_File (File) loop
+      --  Stop once enough bytes have been scanned: a huge (or huge-and-crafted)
+      --  .pdf must not read to the end on the UI thread. The page count is then
+      --  a lower bound, which the metadata line tolerates.
+      while not Ada.Text_IO.End_Of_File (File)
+        and then Scanned < Extra_Scan_Byte_Limit
+      loop
          Ada.Text_IO.Get_Line (File, Buffer, Last);
+         Scanned := Scanned + Long_Long_Integer (Last) + 1;
          if Last > 0 then
             declare
                Line : constant String := Buffer (1 .. Last);
@@ -707,8 +729,19 @@ package body Directory is
       Byte_2 : Ada.Streams.Stream_Element := 0;
       Byte_3 : Ada.Streams.Stream_Element := 0;
       Seen   : Natural := 0;
+      Total  : Long_Long_Integer;
    begin
       Stream_IO.Open (File, Stream_IO.In_File, Path);
+      --  The central-directory records this counts sit at the end of the
+      --  archive, so on a large file scan only its tail rather than reading
+      --  gigabytes from the front on the UI thread. The count then omits any
+      --  entries whose directory record falls before the window -- a lower
+      --  bound the metadata line tolerates.
+      Total := Long_Long_Integer (Stream_IO.Size (File));
+      if Total > Extra_Scan_Byte_Limit then
+         Stream_IO.Set_Index
+           (File, Stream_IO.Positive_Count (Total - Extra_Scan_Byte_Limit + 1));
+      end if;
       while not Stream_IO.End_Of_File (File) loop
          Stream_IO.Read (File, Buffer, Last);
          if Last >= Buffer'First then

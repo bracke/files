@@ -116,6 +116,21 @@ package Files_Suite.Support is
    --  @param Content Raw bytes represented as String characters.
    procedure Write_Binary_File (Path : String; Content : String);
 
+   --  Create a file of Filler_Count copies of one byte followed by Trailer,
+   --  written in chunks so the caller need not build a multi-megabyte String.
+   --  For exercising the metadata readers' byte-scan caps, which only engage on
+   --  files larger than several megabytes.
+   --
+   --  @param Path File to create.
+   --  @param Filler Byte repeated Filler_Count times.
+   --  @param Filler_Count How many copies of Filler to write first.
+   --  @param Trailer Bytes written after the filler run.
+   procedure Write_Filler_File
+     (Path         : String;
+      Filler       : Character;
+      Filler_Count : Natural;
+      Trailer      : String := "");
+
    --  Convert a byte value to its Character.
    --
    --  @param Value Byte value (0 .. 255).

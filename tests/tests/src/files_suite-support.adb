@@ -147,6 +147,43 @@ package body Files_Suite.Support is
          raise;
    end Write_Binary_File;
 
+   procedure Write_Filler_File
+     (Path         : String;
+      Filler       : Character;
+      Filler_Count : Natural;
+      Trailer      : String := "")
+   is
+      File      : Ada.Streams.Stream_IO.File_Type;
+      Chunk     : constant Ada.Streams.Stream_Element_Array (1 .. 4096) :=
+        [others => Ada.Streams.Stream_Element (Character'Pos (Filler))];
+      Remaining : Natural := Filler_Count;
+      Tail      : Ada.Streams.Stream_Element_Array (1 .. Trailer'Length);
+   begin
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      while Remaining > 0 loop
+         declare
+            This : constant Natural := Natural'Min (Remaining, Chunk'Length);
+         begin
+            Ada.Streams.Stream_IO.Write
+              (File, Chunk (1 .. Ada.Streams.Stream_Element_Offset (This)));
+            Remaining := Remaining - This;
+         end;
+      end loop;
+
+      for Index in Trailer'Range loop
+         Tail (Ada.Streams.Stream_Element_Offset (Index - Trailer'First + 1)) :=
+           Ada.Streams.Stream_Element (Character'Pos (Trailer (Index)));
+      end loop;
+      Ada.Streams.Stream_IO.Write (File, Tail);
+      Ada.Streams.Stream_IO.Close (File);
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Write_Filler_File;
+
    function Byte (Value : Natural) return Character is
    begin
       return Character'Val (Value);

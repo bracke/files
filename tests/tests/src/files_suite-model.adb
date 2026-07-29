@@ -367,6 +367,7 @@ package body Files_Suite.Model is
       Binary_Text_Path : constant String := Join (Root, "binary.txt");
       Late_Binary_Text_Path : constant String := Join (Root, "late-binary.txt");
       Sampled_Text_Path : constant String := Join (Root, "sampled.txt");
+      Huge_Oneline_Path : constant String := Join (Root, "huge-oneline.txt");
       Split_Utf8_Path : constant String := Join (Root, "split-utf8.txt");
       Overlong_Text_Path : constant String := Join (Root, "overlong.txt");
       Surrogate_Text_Path : constant String := Join (Root, "surrogate.txt");
@@ -399,6 +400,7 @@ package body Files_Suite.Model is
       Found_Binary_Text : Boolean := False;
       Found_Late_Binary_Text : Boolean := False;
       Found_Sampled_Text : Boolean := False;
+      Found_Huge_Oneline : Boolean := False;
       Found_Split_Utf8 : Boolean := False;
       Found_Overlong_Text : Boolean := False;
       Found_Surrogate_Text : Boolean := False;
@@ -442,6 +444,12 @@ package body Files_Suite.Model is
       --  A binary byte only past the 128 KiB encoding sample window: a bounded
       --  scan classifies this by its clean prefix and never reads the NUL.
       Write_Binary_File (Sampled_Text_Path, String'(1 .. 131_072 => 'x') & Character'Val (0));
+      --  Bigger than the metadata readers' 8 MiB scan cap and newline-free until
+      --  past it: a correctly capped line count stops early and reports the one
+      --  trailing partial line (1), rather than reading the whole file to find
+      --  the two newlines near its end.
+      Write_Filler_File
+        (Huge_Oneline_Path, 'x', 8_388_610, Character'Val (10) & "A" & Character'Val (10));
       Write_Binary_File
         (Split_Utf8_Path,
          String'(1 .. 4095 => 'x') & Character'Val (16#C3#) & Character'Val (16#A9#));
@@ -572,6 +580,11 @@ package body Files_Suite.Model is
             Assert
               (Item_Extra (Item) = "text.lines_encoding|1|ascii",
                "text encoding sampling stops at a bounded prefix, not the whole file");
+         elsif To_String (Item.Name) = "huge-oneline.txt" then
+            Found_Huge_Oneline := True;
+            Assert
+              (Item_Extra (Item) = "text.lines_encoding|1|ascii",
+               "line counting stops at the byte-scan cap instead of reading a huge file");
          elsif To_String (Item.Name) = "split-utf8.txt" then
             Found_Split_Utf8 := True;
             Assert
@@ -700,6 +713,7 @@ package body Files_Suite.Model is
       Assert (Found_Binary_Text, "binary text item was loaded");
       Assert (Found_Late_Binary_Text, "late binary text item was loaded");
       Assert (Found_Sampled_Text, "sampled text item was loaded");
+      Assert (Found_Huge_Oneline, "huge single-line text item was loaded");
       Assert (Found_Split_Utf8, "split UTF-8 text item was loaded");
       Assert (Found_Overlong_Text, "overlong UTF-8 text item was loaded");
       Assert (Found_Surrogate_Text, "surrogate UTF-8 text item was loaded");
