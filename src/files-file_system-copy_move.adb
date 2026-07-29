@@ -56,13 +56,12 @@ package body Copy_Move is
             Error_Key => To_Unbounded_String ("error.rename.source_missing"));
       end if;
 
-      --  Files.Fs.Delete_Tree removes a directory tree; a single
-      --  file must go through Delete_File.
-      if Files.Fs.Directory_Exists (Path) then
-         Files.Fs.Delete_Tree (Path);
-      else
-         Ada.Directories.Delete_File (Path);
-      end if;
+      --  Symlink-aware recursive delete: a symlink -- even one whose target is
+      --  a directory -- is unlinked as a link and never followed, so deleting a
+      --  link (or a folder that merely contains one) can never reach through
+      --  into the link target's real contents. Ada.Directories.Delete_Tree,
+      --  used previously via Files.Fs, follows links and would.
+      Support.Delete_Tree (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>

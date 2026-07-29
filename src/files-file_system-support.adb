@@ -183,4 +183,54 @@ package body Files.File_System.Support is
          raise;
    end Copy_Tree;
 
+   procedure Delete_Tree (Path : String) is
+      Search    : Ada.Directories.Search_Type;
+      Dir_Entry : Ada.Directories.Directory_Entry_Type;
+      Started   : Boolean := False;
+   begin
+      --  Unlink a symlink as a link, never following it: Ada.Directories.Kind
+      --  and Delete_Tree dereference links, so classifying by Kind would let a
+      --  recursive delete walk into and wipe the link target's real contents
+      --  (e.g. Shift-Delete of a symlink to ~/Pictures). Mirrors Copy_Tree.
+      if Hostkit.Fs.Is_Link (Path) then
+         if not Hostkit.Fs.Delete_Link (Path) then
+            raise Program_Error;
+         end if;
+         return;
+      end if;
+
+      case Ada.Directories.Kind (Path) is
+         when Ada.Directories.Directory =>
+            Ada.Directories.Start_Search
+              (Search,
+               Directory => Path,
+               Pattern   => "*",
+               Filter    =>
+                 [Ada.Directories.Ordinary_File => True,
+                  Ada.Directories.Directory     => True,
+                  Ada.Directories.Special_File  => True]);
+            Started := True;
+            while Ada.Directories.More_Entries (Search) loop
+               Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
+               declare
+                  Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
+               begin
+                  if Name /= "." and then Name /= ".." then
+                     --  Recurse by path so the link check above re-applies to
+                     --  every entry, guarding nested symlinks too.
+                     Delete_Tree (Ada.Directories.Full_Name (Dir_Entry));
+                  end if;
+               end;
+            end loop;
+            Safe_End_Search (Search, Started);
+            Ada.Directories.Delete_Directory (Path);
+         when Ada.Directories.Ordinary_File | Ada.Directories.Special_File =>
+            Ada.Directories.Delete_File (Path);
+      end case;
+   exception
+      when others =>
+         Safe_End_Search (Search, Started);
+         raise;
+   end Delete_Tree;
+
 end Files.File_System.Support;

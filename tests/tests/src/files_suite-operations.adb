@@ -2501,6 +2501,44 @@ package body Files_Suite.Operations is
         (To_String (Mutation.Error_Key) = "error.permanent_delete.refused",
          "permanent delete reports unsafe target diagnostic");
 
+      --  Regression: permanent-delete of a symlink to a directory must unlink
+      --  the LINK, never follow it and recursively wipe the target's real
+      --  contents (the previous Directory_Exists + Delete_Tree path did).
+      declare
+         Link_Target   : constant String := Join (Root, "sym-del-target");
+         Kept_File     : constant String := Join (Link_Target, "precious.txt");
+         Dir_Link      : constant String := Join (Root, "sym-del-link");
+         Link_Result   : Files.File_System.Mutation_Result;
+         Target_Kept   : Boolean := False;
+         Content_Kept  : Boolean := False;
+         Link_Gone     : Boolean := False;
+      begin
+         Ada.Directories.Create_Path (Link_Target);
+         Write_File (Kept_File, "precious");
+         if Files_Suite.Support.Create_Symlink (Link_Target, Dir_Link) then
+            Link_Result := Files.File_System.Delete_Permanently (Dir_Link);
+            --  Capture before cleanup so a failure cannot leave fixtures behind.
+            Target_Kept  := Ada.Directories.Exists (Link_Target);
+            Content_Kept := Ada.Directories.Exists (Kept_File);
+            Link_Gone    := not Hostkit.Fs.Is_Link (Dir_Link);
+            if Hostkit.Fs.Is_Link (Dir_Link) then
+               declare
+                  Removed : constant Boolean := Hostkit.Fs.Delete_Link (Dir_Link);
+                  pragma Unreferenced (Removed);
+               begin
+                  null;
+               end;
+            end if;
+            if Ada.Directories.Exists (Link_Target) then
+               Project_Tools.Files.Delete_Tree (Link_Target);
+            end if;
+            Assert (Link_Result.Success, "permanent delete of a directory symlink succeeds");
+            Assert (Link_Gone, "permanent delete removes the symlink itself");
+            Assert (Target_Kept, "permanent delete of a symlink does not delete the link target directory");
+            Assert (Content_Kept, "permanent delete of a symlink preserves the target's real contents");
+         end if;
+      end;
+
       Write_Binary_File (Thumbnail_Source, Minimal_Png_Header (48, 32));
       Thumbnail := Files.File_System.Generate_Thumbnail (Thumbnail_Source, Thumbnail_Cache, Size => 8);
       Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "thumbnail generation succeeds");

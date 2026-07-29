@@ -85,6 +85,16 @@ private package Files.File_System.Support is
       Destination_Path : String;
       Depth            : Natural := 0);
 
+   --  Recursively delete a file, directory, or symlink. A symlink -- even one
+   --  whose target is a directory -- is unlinked as a link and never followed,
+   --  so deleting a link (or a folder that merely contains one) can never
+   --  reach through into the link target's real contents. This is the safe
+   --  replacement for Ada.Directories.Delete_Tree, which follows links; it
+   --  mirrors Copy_Tree's link handling.
+   --
+   --  @param Path File, directory, or symlink to remove.
+   procedure Delete_Tree (Path : String);
+
    --  Shared Interfaces.C aliases for the native (statvfs / gdk-pixbuf) bindings.
    subtype C_Int is Interfaces.C.int;
    subtype C_U32 is Interfaces.C.unsigned;
