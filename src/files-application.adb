@@ -6,6 +6,8 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Interfaces;
 
+with Hostkit.Fs;
+
 with Files.Commands;
 with Files.File_System;
 with Files.Fs;
@@ -113,13 +115,25 @@ package body Files.Application is
    end Safe_Environment_Value;
 
    function Home_Directory return String is
-      Home            : constant String := Safe_Environment_Value ("HOME");
-      User_Profile    : constant String := Safe_Environment_Value ("USERPROFILE");
-      Home_Drive      : constant String := Safe_Environment_Value ("HOMEDRIVE");
-      Home_Path       : constant String := Safe_Environment_Value ("HOMEPATH");
-      Home_Share      : constant String := Safe_Environment_Value ("HOMESHARE");
-      Drive_Profile   : constant String :=
+      --  Which directory is this user's home is a host fact, and Hostkit answers
+      --  it: HOME then the password file on POSIX, USERPROFILE then HOMEDRIVE
+      --  and HOMEPATH on Windows. This used to spell that cascade out itself,
+      --  including consulting Windows variables on hosts that have none -- and
+      --  it had no equivalent of the password file, so a POSIX session started
+      --  without HOME fell through to the current directory.
+      From_Host : constant String := Hostkit.Fs.Home_Directory;
+
+      --  Hostkit returns the first candidate that is set, not the first that
+      --  exists. Preferring one that exists is this application's policy -- a
+      --  stale profile variable should not strand the user in a directory that
+      --  is not there -- so its answer is filtered, and these remain as further
+      --  candidates for when it does not survive that filter. They are Windows
+      --  spellings and simply never match elsewhere.
+      Home_Drive : constant String := Safe_Environment_Value ("HOMEDRIVE");
+      Home_Path  : constant String := Safe_Environment_Value ("HOMEPATH");
+      Drive_Profile : constant String :=
         (if Home_Drive /= "" and then Home_Path /= "" then Home_Drive & Home_Path else "");
+      Home_Share : constant String := Safe_Environment_Value ("HOMESHARE");
 
       function Existing_Directory (Path : String) return Boolean is
       begin
@@ -129,17 +143,19 @@ package body Files.Application is
             return False;
       end Existing_Directory;
    begin
-      if Existing_Directory (Home) then
-         return Home;
-      elsif Existing_Directory (User_Profile) then
-         return User_Profile;
+      if Existing_Directory (From_Host) then
+         return From_Host;
       elsif Existing_Directory (Drive_Profile) then
          return Drive_Profile;
       elsif Existing_Directory (Home_Share) then
          return Home_Share;
-      else
-         return Ada.Directories.Current_Directory;
       end if;
+
+      --  Hostkit answers "" when neither the environment nor the host's own
+      --  record will say, and keeps that distinct from "the home directory is
+      --  the current directory". Deciding that last step is this application's
+      --  business: a file manager has to open somewhere.
+      return Ada.Directories.Current_Directory;
    end Home_Directory;
 
    function Default_Settings_Path

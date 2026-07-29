@@ -260,45 +260,26 @@ package body Thumbnails is
       return String
    is
       Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
-      Home      : constant String := Safe_Environment_Value ("HOME");
 
       function In_Cache_Root (Root : String) return String is
         (Join_Path (Join_Path (Root, "files"), "thumbnails"));
 
-      --  Where this host keeps a per-user cache. XDG_CACHE_HOME comes first
-      --  everywhere: a user who set it meant it, including on macOS.
+      --  Where this host keeps a per-user cache is Hostkit's question --
+      --  LOCALAPPDATA rather than the roaming APPDATA, ~/Library/Caches rather
+      --  than Application Support, $XDG_CACHE_HOME or ~/.cache -- and it used to
+      --  be spelled out here.
+      --
+      --  XDG_CACHE_HOME is checked first, before asking, because honouring it on
+      --  every host is this application's policy rather than a host fact: macOS
+      --  and Windows do not read it, and Hostkit says what the host does. A user
+      --  who exported it meant it.
       function Host_Cache_Root return String is
       begin
          if Xdg_Cache /= "" then
             return Xdg_Cache;
          end if;
 
-         case Hostkit.Host.Current is
-            when Hostkit.Host.Windows =>
-               --  LOCALAPPDATA is the per-machine, non-roaming half of the
-               --  profile, which is what a regenerable thumbnail cache wants:
-               --  APPDATA roams, and nobody wants thumbnails copied between
-               --  machines at login. HOME is normally unset on Windows, which
-               --  is how this used to end up in the browsed folder.
-               declare
-                  Local_App_Data : constant String := Safe_Environment_Value ("LOCALAPPDATA");
-                  User_Profile   : constant String := Safe_Environment_Value ("USERPROFILE");
-               begin
-                  if Local_App_Data /= "" then
-                     return Local_App_Data;
-                  elsif User_Profile /= "" then
-                     return Join_Path (Join_Path (User_Profile, "AppData"), "Local");
-                  else
-                     return "";
-                  end if;
-               end;
-
-            when Hostkit.Host.MacOS =>
-               return (if Home /= "" then Join_Path (Home, "Library/Caches") else "");
-
-            when Hostkit.Host.Linux | Hostkit.Host.Unsupported =>
-               return (if Home /= "" then Join_Path (Home, ".cache") else "");
-         end case;
+         return Hostkit.Fs.Cache_Directory;
       end Host_Cache_Root;
 
       Cache_Root : constant String := Host_Cache_Root;

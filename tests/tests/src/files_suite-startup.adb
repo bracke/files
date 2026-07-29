@@ -23,6 +23,8 @@ with Glfw.Input.Mouse;
 with GNAT.OS_Lib;
 with Textrender.Fonts;
 
+with Hostkit.Host;
+
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
@@ -32,6 +34,7 @@ with Files.Controller;
 with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
+with Files.Fs;
 with Files.File_Types;
 with Files.Features;
 with Files.Fonts;
@@ -53,6 +56,7 @@ package body Files_Suite.Startup is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
+   use type Hostkit.Host.Kind;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Interfaces.Unsigned_32;
@@ -369,34 +373,48 @@ package body Files_Suite.Startup is
       Ada.Environment_Variables.Clear ("HOMEDRIVE");
       Ada.Environment_Variables.Clear ("HOMEPATH");
       Ada.Environment_Variables.Clear ("HOMESHARE");
-      Assert
-        (Files.Application.Home_Directory = Join (Root, "profile-home"),
-         "USERPROFILE is used when HOME is empty");
+      --  What an empty HOME means is the host's answer, not a fixed cascade of
+      --  Windows variable names tried everywhere. On Windows USERPROFILE is the
+      --  profile folder and is used; on a POSIX host it is a stray variable and
+      --  the password file is the real record, which is what Hostkit consults
+      --  and what this used to have no equivalent of.
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Assert
+           (Files.Application.Home_Directory = Join (Root, "profile-home"),
+            "USERPROFILE is the home on the host whose profile folder it names");
+      else
+         Assert
+           (Files.Application.Home_Directory /= Join (Root, "profile-home"),
+            "a Windows profile variable does not decide the home on a POSIX host");
+         Assert
+           (Files.Fs.Directory_Exists (Files.Application.Home_Directory),
+            "and what the password file reports is a directory that exists");
+      end if;
+
       Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
       Assert (Natural (Startup.Windows.Length) = 1, "no args resolves one path");
-      Assert (Startup.Errors.Is_Empty, "valid USERPROFILE default path reports no startup error");
-      Assert
-        (To_String (Startup.Windows.Element (1).Path) = Ada.Directories.Full_Name (Join (Root, "profile-home")),
-         "no args opens valid USERPROFILE directory");
+      Assert (Startup.Errors.Is_Empty, "valid default home path reports no startup error");
+
+      --  A home that is set but is not there falls past it. Hostkit answers with
+      --  the first candidate that is *set*; preferring one that *exists* is this
+      --  application's policy, and these are the candidates it still tries.
       Ada.Environment_Variables.Set ("HOME", Join (Root, "missing-home-env"));
-      Assert
-        (Files.Application.Home_Directory = Join (Root, "profile-home"),
-         "invalid HOME falls back to valid USERPROFILE");
       Ada.Environment_Variables.Set ("USERPROFILE", Join (Root, "missing-profile-env"));
       Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
       --  HOMEDRIVE and HOMEPATH are concatenated as they stand, so the separator
-      --  between them has to be the one this host writes -- '\\' on Windows.
+      --  between them has to be the one this host writes.
       Ada.Environment_Variables.Set
         ("HOMEPATH", GNAT.OS_Lib.Directory_Separator & "drive-profile");
       Assert
         (Files.Application.Home_Directory = Join (Root, "drive-profile"),
-         "HOMEDRIVE and HOMEPATH are used when USERPROFILE is invalid");
+         "a home that does not exist falls through to the drive profile");
       Ada.Environment_Variables.Set ("HOMEPATH", "/missing-drive-profile");
       Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "share-profile"));
       Assert
         (Files.Application.Home_Directory = Join (Root, "share-profile"),
-         "HOMESHARE is used when drive profile is invalid");
+         "HOMESHARE is used when the drive profile is not there either");
       Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "missing-share-profile"));
+
       Assert
         (Files.Application.Home_Directory = Ada.Directories.Current_Directory,
          "invalid home environment falls back to current directory");
