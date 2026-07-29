@@ -2570,11 +2570,11 @@ package body Files_Suite.Operations is
       end;
       Assert
         (Project_Tools.Files.File_Contains
-           ("src/files-file_system-thumbnails.adb", "gdk_pixbuf_new_from_file_at_size")
+           ("src/files-file_system.adb", "gdk_pixbuf_new_from_file_at_size")
          or else Project_Tools.Files.File_Contains
-                   ("../src/files-file_system-thumbnails.adb", "gdk_pixbuf_new_from_file_at_size")
+                   ("../src/files-file_system.adb", "gdk_pixbuf_new_from_file_at_size")
          or else Project_Tools.Files.File_Contains
-                   ("../../src/files-file_system-thumbnails.adb", "gdk_pixbuf_new_from_file_at_size"),
+                   ("../../src/files-file_system.adb", "gdk_pixbuf_new_from_file_at_size"),
          "JPEG thumbnail decoding is routed through the native image loader binding");
 
       Write_File
