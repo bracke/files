@@ -236,7 +236,13 @@ package body Directory is
            or else Width = 0
            or else Height = 0
            or else Max_Value = 0
-           or else Natural (Values.Length) < 4 + Width * Height * 3
+           --  Reject headers whose declared pixel count needs more bytes than
+           --  are present, computed without overflowing Integer for adversarial
+           --  dimensions: Width * Height * 3 can exceed Integer'Last, so compare
+           --  in Long_Long_Integer via the division form (equivalent to
+           --  Length < 4 + Width * Height * 3 for the reject decision).
+           or else Long_Long_Integer (Width) * Long_Long_Integer (Height)
+                     > (Long_Long_Integer (Values.Length) - 4) / 3
          then
             return Result;
          end if;
