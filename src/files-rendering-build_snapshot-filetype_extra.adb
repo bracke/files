@@ -236,8 +236,9 @@ separate (Files.Rendering.Build_Snapshot)
                   Suffix : constant String :=
                     Ada.Strings.Fixed.Trim
                       (Files.Localization.Text ("info.extra.executable.size.suffix"), Ada.Strings.Left);
-                  Size_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (Long_Long_Integer'Image (Item.Size), Ada.Strings.Both);
+                  --  Group the digits with the locale separator, like every
+                  --  other size on screen, instead of a bare Image.
+                  Size_Text : constant String := Grouped_Integer_Text (Item.Size);
                begin
                   if Suffix'Length > 0
                     and then Ada.Characters.Handling.Is_Alphanumeric (Suffix (Suffix'First))

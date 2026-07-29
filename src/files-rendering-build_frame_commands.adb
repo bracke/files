@@ -774,14 +774,12 @@ separate (Files.Rendering)
          return (if Snapshot.Command_Enabled (Id) then Text_Color else Disabled_Text_Color);
       end Command_Color;
 
+      --  Group counts with the locale's separator (12.345, not 12345), the same
+      --  way sizes and paste-progress counts are shown, so no on-screen number
+      --  is formatted inconsistently with the rest.
       function Natural_Text (Value : Natural) return String is
-         Image : constant String := Natural'Image (Value);
       begin
-         if Image'Length > 0 and then Image (Image'First) = ' ' then
-            return Image (Image'First + 1 .. Image'Last);
-         end if;
-
-         return Image;
+         return Grouped_Integer_Text (Long_Long_Integer (Value));
       end Natural_Text;
 
       function View_Mode_Label return String is
