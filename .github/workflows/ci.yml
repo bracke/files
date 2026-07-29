@@ -4,7 +4,8 @@ name: CI
 # Windows (full cross-platform support is a project goal).
 #
 # PREREQUISITE: this project pins sibling crates by local path in alire.toml
-# (project_tools, i18n, messages, textrender, zlib, guikit, hostkit, cryptolib).
+# (project_tools, i18n, messages, textrender, zlib, guikit, hostkit, cryptolib,
+#  a11ykit).
 # CI clones them next to the checkout. They must therefore exist as fetchable
 # GitHub repos under the same owner. As of writing, `textrender` is published
 # but the rest are NOT — push them to github.com/<owner>/<name> (or adjust the
@@ -173,6 +174,10 @@ jobs:
           git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
           git clone --depth 1 "https://github.com/${owner}/hostkit.git" hostkit
           git clone --depth 1 "https://github.com/${owner}/cryptolib.git" cryptolib
+          # a11ykit publishes the frame's accessibility tree (Files.Accessibility).
+          # It is pinned in all three roots, so a checkout without it fails at
+          # "Build the application" on every OS, not just one.
+          git clone --depth 1 "https://github.com/${owner}/a11ykit.git" a11ykit
           # i18n's pre-build regeneration builds download_tzdb (httpclient, tarlib,
           # awklib-on-regexp) and the CLDR import (httpclient); clone those too.
           git clone --depth 1 "https://github.com/${owner}/httpclient.git" httpclient
