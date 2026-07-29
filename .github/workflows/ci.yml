@@ -328,3 +328,18 @@ jobs:
             echo "::error::live-smoke failed the structural analysis (exit $code)"
             exit "$code"
           fi
+
+      - name: Repository lint and architecture guardrails (check_all, Linux)
+        # Source-level validation that build+test do not cover: style, format,
+        # GNATdoc, hard-coded user-visible text, localization-key existence, and
+        # the architecture guardrails (rendering/window/events must-not-do-X,
+        # applied across each unit and its subunits). These are OS-independent,
+        # so check_all runs once on Linux. It shells out to `alr` to compile
+        # every unit and run the nested contract suite; the application build and
+        # the i18n upstream cache above mean it re-downloads nothing.
+        if: runner.os == 'Linux'
+        shell: bash
+        working-directory: files
+        run: |
+          (cd tools && alr --non-interactive build)
+          ./tools/bin/check_all
