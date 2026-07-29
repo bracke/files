@@ -21,6 +21,11 @@ with Hostkit.Shell;
 with Zlib;
 
 with Files.Operations.Support;
+with Files.Model;
+with Files.Settings;
+with Guikit.Input;
+with Files.File_System;
+with Files.Types;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
@@ -37,40 +42,40 @@ package body Files.Operations is
    use Files.Operations.Support;
 
    package Open is
-   function Open_Action_Policy return Open_Action_Execution_Policy;
+      function Open_Action_Policy return Open_Action_Execution_Policy;
 
-   function Open_Action_Lifecycle_Of
-     (Result : Operation_Result)
-      return Open_Action_Lifecycle;
+      function Open_Action_Lifecycle_Of
+        (Result : Operation_Result)
+         return Open_Action_Lifecycle;
 
-   function Shell_Executable return String;
+      function Shell_Executable return String;
 
-   function Shell_Command_Option return String;
+      function Shell_Command_Option return String;
 
-   function Execute_Open_Action
-     (Action      : Files.Settings.Open_Action;
-      Exit_Status : out Integer;
-      Detach      : Boolean := False)
-      return Boolean;
+      function Execute_Open_Action
+        (Action      : Files.Settings.Open_Action;
+         Exit_Status : out Integer;
+         Detach      : Boolean := False)
+         return Boolean;
 
-   function Detected_Terminal return String;
+      function Detected_Terminal return String;
 
-   function Open_Terminal
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Open_Terminal
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Prepare_Open_Selected_Action
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Operation_Result;
+      function Prepare_Open_Selected_Action
+        (Model     : in out Files.Model.Window_Model;
+         Settings  : Files.Settings.Settings_Model;
+         Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+         return Operation_Result;
 
-   function Open_Selected
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Operation_Result;
+      function Open_Selected
+        (Model     : in out Files.Model.Window_Model;
+         Settings  : Files.Settings.Settings_Model;
+         Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+         return Operation_Result;
    end Open;
    package body Open is separate;
 
@@ -121,20 +126,20 @@ package body Files.Operations is
      renames Open.Open_Selected;
 
    package Search is
-   function Run_Recursive_Search
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Run_Recursive_Search
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Content_Matches
-     (Bytes : String;
-      Query : String)
-      return Boolean;
+      function Content_Matches
+        (Bytes : String;
+         Query : String)
+         return Boolean;
 
-   function Run_Content_Search
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Run_Content_Search
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
    end Search;
    package body Search is separate;
 
@@ -159,64 +164,64 @@ package body Files.Operations is
      renames Search.Run_Content_Search;
 
    package Navigation is
-   procedure Apply_Ui_State
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model);
+      procedure Apply_Ui_State
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model);
 
-   function Refresh
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Refresh
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Refresh_If_Changed
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Refresh_If_Changed
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Commit_Path_Input
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Commit_Path_Input
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Navigate_Home
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Navigate_Home
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Navigate_Back
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Navigate_Back
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Navigate_Forward
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Navigate_Forward
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Navigate_Parent
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Navigate_Parent
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Navigate_Trash
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Navigate_Trash
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Navigate_Recent
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Navigate_Recent
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Select_Root
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Root_Path : String)
-      return Operation_Result;
+      function Select_Root
+        (Model     : in out Files.Model.Window_Model;
+         Settings  : Files.Settings.Settings_Model;
+         Root_Path : String)
+         return Operation_Result;
 
-   function Eject_Selected_Root
-     (Model : in out Files.Model.Window_Model)
-      return Operation_Result;
+      function Eject_Selected_Root
+        (Model : in out Files.Model.Window_Model)
+         return Operation_Result;
    end Navigation;
    package body Navigation is separate;
 
@@ -294,94 +299,94 @@ package body Files.Operations is
       renames Navigation.Eject_Selected_Root;
 
    package Transfer is
-   function Compress_Selected
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Format   : Archive_Format)
-      return Operation_Result;
+      function Compress_Selected
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model;
+         Format   : Archive_Format)
+         return Operation_Result;
 
-   function Extract_Selected
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Extract_Selected
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Duplicate_Selected
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Duplicate_Selected
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Create_Symlink_Selected
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Create_Symlink_Selected
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Create_Hardlink_Selected
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Create_Hardlink_Selected
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Delete_Selected
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Delete_Selected
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Delete_Selected_Permanently
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Delete_Selected_Permanently
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Restore_Selected_From_Trash
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Restore_Selected_From_Trash
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Empty_Trash
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Empty_Trash
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Advance_Paste_Execution
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Max_Items : Positive)
-      return Operation_Result;
+      function Advance_Paste_Execution
+        (Model     : in out Files.Model.Window_Model;
+         Settings  : Files.Settings.Settings_Model;
+         Max_Items : Positive)
+         return Operation_Result;
 
-   procedure Cancel_Paste_Execution
-     (Model : in out Files.Model.Window_Model);
+      procedure Cancel_Paste_Execution
+        (Model : in out Files.Model.Window_Model);
 
-   function Begin_Paste
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : Files.Settings.Settings_Model;
-      Source_Paths   : Files.Types.String_Vectors.Vector;
-      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
-      From_Clipboard : Boolean := True)
-      return Operation_Result;
+      function Begin_Paste
+        (Model          : in out Files.Model.Window_Model;
+         Settings       : Files.Settings.Settings_Model;
+         Source_Paths   : Files.Types.String_Vectors.Vector;
+         Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+         From_Clipboard : Boolean := True)
+         return Operation_Result;
 
-   function Begin_Paste_To
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : Files.Settings.Settings_Model;
-      Source_Paths   : Files.Types.String_Vectors.Vector;
-      Destination    : String;
-      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
-      From_Clipboard : Boolean := True)
-      return Operation_Result;
+      function Begin_Paste_To
+        (Model          : in out Files.Model.Window_Model;
+         Settings       : Files.Settings.Settings_Model;
+         Source_Paths   : Files.Types.String_Vectors.Vector;
+         Destination    : String;
+         Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+         From_Clipboard : Boolean := True)
+         return Operation_Result;
 
-   function Resolve_Paste_Conflict
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Choice    : Conflict_Choice;
-      Apply_All : Boolean)
-      return Operation_Result;
+      function Resolve_Paste_Conflict
+        (Model     : in out Files.Model.Window_Model;
+         Settings  : Files.Settings.Settings_Model;
+         Choice    : Conflict_Choice;
+         Apply_All : Boolean)
+         return Operation_Result;
 
-   function Commit_Create_File
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Commit_Create_File
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Commit_Rename
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Commit_Rename
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
    end Transfer;
    package body Transfer is separate;
 
@@ -547,24 +552,24 @@ package body Files.Operations is
    end Generate_Selected_Thumbnails;
 
    package Metadata is
-   function Set_Permissions_For
-     (Model    : in out Files.Model.Window_Model;
-      New_Mode : Natural;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Set_Permissions_For
+        (Model    : in out Files.Model.Window_Model;
+         New_Mode : Natural;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Toggle_Permission_Bit
-     (Model    : in out Files.Model.Window_Model;
-      Bit      : Natural;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Toggle_Permission_Bit
+        (Model    : in out Files.Model.Window_Model;
+         Bit      : Natural;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Set_Ownership_For
-     (Model    : in out Files.Model.Window_Model;
-      User_Id  : Natural;
-      Group_Id : Natural;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Set_Ownership_For
+        (Model    : in out Files.Model.Window_Model;
+         User_Id  : Natural;
+         Group_Id : Natural;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
    end Metadata;
    package body Metadata is separate;
 
@@ -631,15 +636,15 @@ package body Files.Operations is
    end Update_Folder_Size;
 
    package History is
-   function Undo_Last
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Undo_Last
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
 
-   function Redo_Last
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
+      function Redo_Last
+        (Model    : in out Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model)
+         return Operation_Result;
    end History;
    package body History is separate;
 

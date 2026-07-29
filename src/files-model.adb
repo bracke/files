@@ -72,62 +72,62 @@ package body Files.Model is
    end Initialize;
 
    package Navigation is
-   function Current_Path
-     (Model : Window_Model)
-      return String;
+      function Current_Path
+        (Model : Window_Model)
+         return String;
 
-   function Directory_Signature_Of
-     (Model : Window_Model)
-      return Files.File_System.Directory_Signature;
+      function Directory_Signature_Of
+        (Model : Window_Model)
+         return Files.File_System.Directory_Signature;
 
-   procedure Set_Directory_Signature
-     (Model     : in out Window_Model;
-      Signature : Files.File_System.Directory_Signature);
+      procedure Set_Directory_Signature
+        (Model     : in out Window_Model;
+         Signature : Files.File_System.Directory_Signature);
 
-   function Home_Path
-     (Model : Window_Model)
-      return String;
+      function Home_Path
+        (Model : Window_Model)
+         return String;
 
-   function Item_Count
-     (Model : Window_Model)
-      return Natural;
+      function Item_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Visible_Count
-     (Model : Window_Model)
-      return Natural;
+      function Visible_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Hidden_Item_Count
-     (Model : Window_Model)
-      return Natural;
+      function Hidden_Item_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Visible_Item
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Files.File_System.Directory_Item;
+      function Visible_Item
+        (Model         : Window_Model;
+         Visible_Index : Positive)
+         return Files.File_System.Directory_Item;
 
-   function Visible_Rows
-     (Model : Window_Model)
-      return Visible_Row_Vectors.Vector;
+      function Visible_Rows
+        (Model : Window_Model)
+         return Visible_Row_Vectors.Vector;
 
-   function In_Recent_View
-     (Model : Window_Model)
-      return Boolean;
+      function In_Recent_View
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Note_Recent_Open
-     (Model : in out Window_Model;
-      Path  : String);
+      procedure Note_Recent_Open
+        (Model : in out Window_Model;
+         Path  : String);
 
-   function Take_Recent_Opens
-     (Model : in out Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Take_Recent_Opens
+        (Model : in out Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Can_Go_Back
-     (Model : Window_Model)
-      return Boolean;
+      function Can_Go_Back
+        (Model : Window_Model)
+         return Boolean;
 
-   function Can_Go_Forward
-     (Model : Window_Model)
-      return Boolean;
+      function Can_Go_Forward
+        (Model : Window_Model)
+         return Boolean;
    end Navigation;
    package body Navigation is separate;
 
@@ -176,40 +176,40 @@ package body Files.Model is
      renames Navigation.Can_Go_Forward;
 
    package View_Sort is
-   function View_Mode_Of
-     (Model : Window_Model)
-      return Files.Types.View_Mode;
+      function View_Mode_Of
+        (Model : Window_Model)
+         return Files.Types.View_Mode;
 
-   procedure Set_View_Mode
-     (Model : in out Window_Model;
-      Mode  : Files.Types.View_Mode);
+      procedure Set_View_Mode
+        (Model : in out Window_Model;
+         Mode  : Files.Types.View_Mode);
 
-   function Sort_Field_Of
-     (Model : Window_Model)
-      return Sort_Field;
+      function Sort_Field_Of
+        (Model : Window_Model)
+         return Sort_Field;
 
-   function Sort_Is_Ascending
-     (Model : Window_Model)
-      return Boolean;
+      function Sort_Is_Ascending
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Select_Sort_Field
-     (Model : in out Window_Model;
-      Field : Sort_Field);
+      procedure Select_Sort_Field
+        (Model : in out Window_Model;
+         Field : Sort_Field);
 
-   procedure Apply_Sort
-     (Model     : in out Window_Model;
-      Field     : Sort_Field;
-      Ascending : Boolean);
+      procedure Apply_Sort
+        (Model     : in out Window_Model;
+         Field     : Sort_Field;
+         Ascending : Boolean);
 
-   procedure Toggle_Sort_Menu
-     (Model : in out Window_Model);
+      procedure Toggle_Sort_Menu
+        (Model : in out Window_Model);
 
-   procedure Close_Sort_Menu
-     (Model : in out Window_Model);
+      procedure Close_Sort_Menu
+        (Model : in out Window_Model);
 
-   function Sort_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Sort_Menu_Is_Open
+        (Model : Window_Model)
+         return Boolean;
    end View_Sort;
    package body View_Sort is separate;
 
@@ -243,50 +243,50 @@ package body Files.Model is
      renames View_Sort.Sort_Menu_Is_Open;
 
    package Filter is
-   procedure Set_Filter
-     (Model : in out Window_Model;
-      Text  : String);
+      procedure Set_Filter
+        (Model : in out Window_Model;
+         Text  : String);
 
-   function Filter_Text
-     (Model : Window_Model)
-      return String;
+      function Filter_Text
+        (Model : Window_Model)
+         return String;
 
-   procedure Clear_Filter
-     (Model : in out Window_Model);
+      procedure Clear_Filter
+        (Model : in out Window_Model);
 
-   function Search_Scope_Of
-     (Model : Window_Model)
-      return Files.Types.Search_Scope;
+      function Search_Scope_Of
+        (Model : Window_Model)
+         return Files.Types.Search_Scope;
 
-   procedure Set_Search_Scope
-     (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope);
+      procedure Set_Search_Scope
+        (Model : in out Window_Model;
+         Scope : Files.Types.Search_Scope);
 
-   function Search_Results_Are_Active
-     (Model : Window_Model)
-      return Boolean;
+      function Search_Results_Are_Active
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Note_Search_Results
-     (Model : in out Window_Model;
-      Scope : Files.Types.Search_Scope);
+      procedure Note_Search_Results
+        (Model : in out Window_Model;
+         Scope : Files.Types.Search_Scope);
 
-   procedure Clear_Search_Results
-     (Model : in out Window_Model);
+      procedure Clear_Search_Results
+        (Model : in out Window_Model);
 
-   procedure Type_Ahead_Input
-     (Model   : in out Window_Model;
-      Text    : String;
-      Matched : out Boolean);
+      procedure Type_Ahead_Input
+        (Model   : in out Window_Model;
+         Text    : String;
+         Matched : out Boolean);
 
-   procedure Reset_Type_Ahead
-     (Model : in out Window_Model);
+      procedure Reset_Type_Ahead
+        (Model : in out Window_Model);
 
-   function Type_Ahead_Buffer
-     (Model : Window_Model)
-      return String;
+      function Type_Ahead_Buffer
+        (Model : Window_Model)
+         return String;
 
-   procedure Focus_Filter_Input
-     (Model : in out Window_Model);
+      procedure Focus_Filter_Input
+        (Model : in out Window_Model);
    end Filter;
    package body Filter is separate;
 
@@ -329,100 +329,100 @@ package body Files.Model is
      renames Filter.Focus_Filter_Input;
 
    package Selection is
-   procedure Select_Visible
-     (Model         : in out Window_Model;
-      Visible_Index : Positive);
+      procedure Select_Visible
+        (Model         : in out Window_Model;
+         Visible_Index : Positive);
 
-   procedure Toggle_Visible_Selection
-     (Model         : in out Window_Model;
-      Visible_Index : Positive);
+      procedure Toggle_Visible_Selection
+        (Model         : in out Window_Model;
+         Visible_Index : Positive);
 
-   procedure Select_Visible_Range
-     (Model        : in out Window_Model;
-      Anchor_Index : Positive;
-      Target_Index : Positive);
+      procedure Select_Visible_Range
+        (Model        : in out Window_Model;
+         Anchor_Index : Positive;
+         Target_Index : Positive);
 
-   procedure Select_All_Visible
-     (Model : in out Window_Model);
+      procedure Select_All_Visible
+        (Model : in out Window_Model);
 
-   procedure Clear_Selection
-     (Model : in out Window_Model);
+      procedure Clear_Selection
+        (Model : in out Window_Model);
 
-   procedure Invert_Selection
-     (Model : in out Window_Model);
+      procedure Invert_Selection
+        (Model : in out Window_Model);
 
-   procedure Deselect_All
-     (Model : in out Window_Model);
+      procedure Deselect_All
+        (Model : in out Window_Model);
 
-   procedure Move_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction);
+      procedure Move_Selection
+        (Model     : in out Window_Model;
+         Direction : Guikit.Input.Navigation_Direction);
 
-   procedure Select_First_Visible
-     (Model : in out Window_Model);
+      procedure Select_First_Visible
+        (Model : in out Window_Model);
 
-   procedure Select_Last_Visible
-     (Model : in out Window_Model);
+      procedure Select_Last_Visible
+        (Model : in out Window_Model);
 
-   procedure Move_Selection_By_Page
-     (Model     : in out Window_Model;
-      Page_Rows : Positive;
-      Down      : Boolean);
+      procedure Move_Selection_By_Page
+        (Model     : in out Window_Model;
+         Page_Rows : Positive;
+         Down      : Boolean);
 
-   procedure Set_Selection_Grid_Columns
-     (Model   : in out Window_Model;
-      Columns : Positive);
+      procedure Set_Selection_Grid_Columns
+        (Model   : in out Window_Model;
+         Columns : Positive);
 
-   function Selection_Grid_Columns
-     (Model : Window_Model)
-      return Positive;
+      function Selection_Grid_Columns
+        (Model : Window_Model)
+         return Positive;
 
-   function Is_Selected
-     (Model         : Window_Model;
-      Visible_Index : Positive)
-      return Boolean;
+      function Is_Selected
+        (Model         : Window_Model;
+         Visible_Index : Positive)
+         return Boolean;
 
-   function Selected_Index
-     (Model : Window_Model)
-      return Natural;
+      function Selected_Index
+        (Model : Window_Model)
+         return Natural;
 
-   function Selected_Count
-     (Model : Window_Model)
-      return Natural;
+      function Selected_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Selected_Name
-     (Model : Window_Model)
-      return String;
+      function Selected_Name
+        (Model : Window_Model)
+         return String;
 
-   function Selected_Item
-     (Model : Window_Model)
-      return Files.File_System.Directory_Item;
+      function Selected_Item
+        (Model : Window_Model)
+         return Files.File_System.Directory_Item;
 
-   function Selected_Items
-     (Model : Window_Model)
-      return Files.File_System.Item_Vectors.Vector;
+      function Selected_Items
+        (Model : Window_Model)
+         return Files.File_System.Item_Vectors.Vector;
 
-   function Selected_Item_Is_Temporary
-     (Model : Window_Model)
-      return Boolean;
+      function Selected_Item_Is_Temporary
+        (Model : Window_Model)
+         return Boolean;
 
-   function Selection_Includes_Temporary
-     (Model : Window_Model)
-      return Boolean;
+      function Selection_Includes_Temporary
+        (Model : Window_Model)
+         return Boolean;
 
-   function Focus
-     (Model : Window_Model)
-      return Files.Types.Focus_Target;
+      function Focus
+        (Model : Window_Model)
+         return Files.Types.Focus_Target;
 
-   function Select_By_Name
-     (Model : in out Window_Model;
-      Name  : String)
-      return Boolean;
+      function Select_By_Name
+        (Model : in out Window_Model;
+         Name  : String)
+         return Boolean;
 
-   function Is_Selected_Directory
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean;
+      function Is_Selected_Directory
+        (Model : Window_Model;
+         Path  : String)
+         return Boolean;
    end Selection;
    package body Selection is separate;
 
@@ -662,29 +662,29 @@ package body Files.Model is
    end Go_Home;
 
    package Path_Input is
-   procedure Focus_Path_Input
-     (Model : in out Window_Model);
+      procedure Focus_Path_Input
+        (Model : in out Window_Model);
 
-   procedure Set_Path_Input_Text
-     (Model : in out Window_Model;
-      Text  : String);
+      procedure Set_Path_Input_Text
+        (Model : in out Window_Model;
+         Text  : String);
 
-   function Path_Input_Text
-     (Model : Window_Model)
-      return String;
+      function Path_Input_Text
+        (Model : Window_Model)
+         return String;
 
-   procedure Commit_Path_Input
-     (Model  : in out Window_Model;
-      Result : Files.File_System.Path_Result;
-      Items  : Files.File_System.Item_Vectors.Vector);
+      procedure Commit_Path_Input
+        (Model  : in out Window_Model;
+         Result : Files.File_System.Path_Result;
+         Items  : Files.File_System.Item_Vectors.Vector);
 
-   function Path_Input_Is_Valid
-     (Model : Window_Model)
-      return Boolean;
+      function Path_Input_Is_Valid
+        (Model : Window_Model)
+         return Boolean;
 
-   function Path_Input_Error_Key
-     (Model : Window_Model)
-      return String;
+      function Path_Input_Error_Key
+        (Model : Window_Model)
+         return String;
    end Path_Input;
    package body Path_Input is separate;
 
@@ -712,62 +712,62 @@ package body Files.Model is
      renames Path_Input.Path_Input_Error_Key;
 
    package Command_Palette is
-   procedure Focus_Command_Palette_Input
-     (Model : in out Window_Model);
+      procedure Focus_Command_Palette_Input
+        (Model : in out Window_Model);
 
-   procedure Open_Command_Palette
-     (Model : in out Window_Model);
+      procedure Open_Command_Palette
+        (Model : in out Window_Model);
 
-   procedure Close_Command_Palette
-     (Model : in out Window_Model);
+      procedure Close_Command_Palette
+        (Model : in out Window_Model);
 
-   procedure Toggle_Command_Palette
-     (Model : in out Window_Model);
+      procedure Toggle_Command_Palette
+        (Model : in out Window_Model);
 
-   function Command_Palette_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Command_Palette_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   function Palette_Query (Model : Window_Model) return String;
+      function Palette_Query (Model : Window_Model) return String;
 
-   procedure Palette_Set_Query (Model : in out Window_Model; Text : String);
+      procedure Palette_Set_Query (Model : in out Window_Model; Text : String);
 
-   procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer);
+      procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer);
 
-   procedure Palette_Select_First (Model : in out Window_Model);
+      procedure Palette_Select_First (Model : in out Window_Model);
 
-   procedure Palette_Select_Last (Model : in out Window_Model);
+      procedure Palette_Select_Last (Model : in out Window_Model);
 
-   procedure Palette_Page (Model : in out Window_Model; Down : Boolean);
+      procedure Palette_Page (Model : in out Window_Model; Down : Boolean);
 
-   function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
+      function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
 
-   function Palette_Selected_Id (Model : Window_Model) return Natural;
+      function Palette_Selected_Id (Model : Window_Model) return Natural;
 
-   function Palette_Result_Count (Model : Window_Model) return Natural;
+      function Palette_Result_Count (Model : Window_Model) return Natural;
 
-   procedure Palette_Build_Frame
-     (Model         : in out Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
-      Focused       : Boolean;
-      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
-      Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
-      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
+      procedure Palette_Build_Frame
+        (Model         : in out Window_Model;
+         Region_X      : Natural;
+         Region_Y      : Natural;
+         Region_Width  : Natural;
+         Region_Height : Natural;
+         Clip_Width    : Natural;
+         Clip_Height   : Natural;
+         Line_Height   : Positive;
+         Focused       : Boolean;
+         Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+         Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+         Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
+         Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
-   function Command_Palette_Mode_Of
-     (Model : Window_Model)
-      return Palette_Mode;
+      function Command_Palette_Mode_Of
+        (Model : Window_Model)
+         return Palette_Mode;
 
-   procedure Set_Command_Palette_Mode
-     (Model : in out Window_Model;
-      Mode  : Palette_Mode);
+      procedure Set_Command_Palette_Mode
+        (Model : in out Window_Model;
+         Mode  : Palette_Mode);
    end Command_Palette;
    package body Command_Palette is separate;
 
@@ -838,92 +838,92 @@ package body Files.Model is
      renames Command_Palette.Set_Command_Palette_Mode;
 
    package Rename is
-   procedure Focus_Rename_Input
-     (Model : in out Window_Model);
+      procedure Focus_Rename_Input
+        (Model : in out Window_Model);
 
-   function Rename_Is_Enabled
-     (Model : Window_Model)
-      return Boolean;
+      function Rename_Is_Enabled
+        (Model : Window_Model)
+         return Boolean;
 
-   function Rename_Behavior return Rename_Policy;
+      function Rename_Behavior return Rename_Policy;
 
-   procedure Toggle_Rename
-     (Model : in out Window_Model);
+      procedure Toggle_Rename
+        (Model : in out Window_Model);
 
-   function Rename_Is_Active
-     (Model : Window_Model)
-      return Boolean;
+      function Rename_Is_Active
+        (Model : Window_Model)
+         return Boolean;
 
-   function Rename_Field_Count
-     (Model : Window_Model)
-      return Natural;
+      function Rename_Field_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Rename_Text
-     (Model : Window_Model)
-      return String;
+      function Rename_Text
+        (Model : Window_Model)
+         return String;
 
-   procedure Set_Rename_Text
-     (Model : in out Window_Model;
-      Text  : String);
+      procedure Set_Rename_Text
+        (Model : in out Window_Model;
+         Text  : String);
 
-   function Rename_Insert_At_Carets
-     (Model : in out Window_Model;
-      Text  : String)
-      return Boolean;
+      function Rename_Insert_At_Carets
+        (Model : in out Window_Model;
+         Text  : String)
+         return Boolean;
 
-   function Rename_Delete_Backward
-     (Model : in out Window_Model)
-      return Boolean;
+      function Rename_Delete_Backward
+        (Model : in out Window_Model)
+         return Boolean;
 
-   function Rename_Delete_Forward
-     (Model : in out Window_Model)
-      return Boolean;
+      function Rename_Delete_Forward
+        (Model : in out Window_Model)
+         return Boolean;
 
-   function Rename_Delete_Word_Backward
-     (Model : in out Window_Model)
-      return Boolean;
+      function Rename_Delete_Word_Backward
+        (Model : in out Window_Model)
+         return Boolean;
 
-   function Rename_Delete_Word_Forward
-     (Model : in out Window_Model)
-      return Boolean;
+      function Rename_Delete_Word_Forward
+        (Model : in out Window_Model)
+         return Boolean;
 
-   function Rename_Move_All_Carets
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-      return Boolean;
+      function Rename_Move_All_Carets
+        (Model     : in out Window_Model;
+         Direction : Guikit.Input.Navigation_Direction)
+         return Boolean;
 
-   function Rename_Move_All_Carets_Word
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-      return Boolean;
+      function Rename_Move_All_Carets_Word
+        (Model     : in out Window_Model;
+         Direction : Guikit.Input.Navigation_Direction)
+         return Boolean;
 
-   function Rename_Set_All_Carets_Home
-     (Model : in out Window_Model)
-      return Boolean;
+      function Rename_Set_All_Carets_Home
+        (Model : in out Window_Model)
+         return Boolean;
 
-   function Rename_Set_All_Carets_End
-     (Model : in out Window_Model)
-      return Boolean;
+      function Rename_Set_All_Carets_End
+        (Model : in out Window_Model)
+         return Boolean;
 
-   procedure Set_Rename_Caret
-     (Model         : in out Window_Model;
-      Visible_Index : Natural;
-      Position      : Natural);
+      procedure Set_Rename_Caret
+        (Model         : in out Window_Model;
+         Visible_Index : Natural;
+         Position      : Natural);
 
-   procedure Rename_State_For_Visible
-     (Model         : Window_Model;
-      Visible_Index : Positive;
-      Active        : out Boolean;
-      Value         : out UString;
-      Cursor        : out Natural);
+      procedure Rename_State_For_Visible
+        (Model         : Window_Model;
+         Visible_Index : Positive;
+         Active        : out Boolean;
+         Value         : out UString;
+         Cursor        : out Natural);
 
-   function Rename_Targets
-     (Model : Window_Model)
-      return Rename_Target_Vectors.Vector;
+      function Rename_Targets
+        (Model : Window_Model)
+         return Rename_Target_Vectors.Vector;
 
-   procedure Resume_Rename
-     (Model : in out Window_Model;
-      Text  : String);
+      procedure Resume_Rename
+        (Model : in out Window_Model;
+         Text  : String);
    end Rename;
    package body Rename is separate;
 
@@ -1004,21 +1004,21 @@ package body Files.Model is
      renames Rename.Resume_Rename;
 
    package Ownership_Input is
-   procedure Focus_Ownership_Input
-     (Model         : in out Window_Model;
-      Editing_Group : Boolean);
+      procedure Focus_Ownership_Input
+        (Model         : in out Window_Model;
+         Editing_Group : Boolean);
 
-   function Ownership_Input_Text
-     (Model : Window_Model)
-      return String;
+      function Ownership_Input_Text
+        (Model : Window_Model)
+         return String;
 
-   procedure Set_Ownership_Input_Text
-     (Model : in out Window_Model;
-      Text  : String);
+      procedure Set_Ownership_Input_Text
+        (Model : in out Window_Model;
+         Text  : String);
 
-   function Ownership_Editing_Group
-     (Model : Window_Model)
-      return Boolean;
+      function Ownership_Editing_Group
+        (Model : Window_Model)
+         return Boolean;
    end Ownership_Input;
    package body Ownership_Input is separate;
 
@@ -1037,56 +1037,56 @@ package body Files.Model is
      renames Ownership_Input.Ownership_Editing_Group;
 
    package Root_Selector is
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.Types.String_Vectors.Vector);
+      procedure Open_Root_Selector
+        (Model : in out Window_Model;
+         Roots : Files.Types.String_Vectors.Vector);
 
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.File_System.Root_Entry_Vectors.Vector);
+      procedure Open_Root_Selector
+        (Model : in out Window_Model;
+         Roots : Files.File_System.Root_Entry_Vectors.Vector);
 
-   procedure Close_Root_Selector
-     (Model : in out Window_Model);
+      procedure Close_Root_Selector
+        (Model : in out Window_Model);
 
-   function Root_Selector_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Root_Selector_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   function Root_Count
-     (Model : Window_Model)
-      return Natural;
+      function Root_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Root_Selected_Index
-     (Model : Window_Model)
-      return Natural;
+      function Root_Selected_Index
+        (Model : Window_Model)
+         return Natural;
 
-   procedure Set_Root_Selected_Index
-     (Model : in out Window_Model;
-      Index : Natural);
+      procedure Set_Root_Selected_Index
+        (Model : in out Window_Model;
+         Index : Natural);
 
-   procedure Move_Root_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction);
+      procedure Move_Root_Selection
+        (Model     : in out Window_Model;
+         Direction : Guikit.Input.Navigation_Direction);
 
-   function Root_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
+      function Root_Path
+        (Model : Window_Model;
+         Index : Positive)
+         return String;
 
-   function Root_Label
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
+      function Root_Label
+        (Model : Window_Model;
+         Index : Positive)
+         return String;
 
-   function Root_Kind
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.File_System.Root_Kind;
+      function Root_Kind
+        (Model : Window_Model;
+         Index : Positive)
+         return Files.File_System.Root_Kind;
 
-   function Root_Is_Removable
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean;
+      function Root_Is_Removable
+        (Model : Window_Model;
+         Index : Positive)
+         return Boolean;
    end Root_Selector;
    package body Root_Selector is separate;
 
@@ -1227,92 +1227,92 @@ package body Files.Model is
    end Cancel_Focus_Or_Edit;
 
    package Tree_Panel is
-   procedure Toggle_Tree_Panel
-     (Model : in out Window_Model);
+      procedure Toggle_Tree_Panel
+        (Model : in out Window_Model);
 
-   procedure Open_Tree_Panel
-     (Model : in out Window_Model);
+      procedure Open_Tree_Panel
+        (Model : in out Window_Model);
 
-   procedure Close_Tree_Panel
-     (Model : in out Window_Model);
+      procedure Close_Tree_Panel
+        (Model : in out Window_Model);
 
-   function Tree_Panel_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Tree_Panel_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   function Tree_Is_Seeded
-     (Model : Window_Model)
-      return Boolean;
+      function Tree_Is_Seeded
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Seed_Tree
-     (Model : in out Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
+      procedure Seed_Tree
+        (Model : in out Window_Model;
+         Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
 
-   function Tree_Node_Count
-     (Model : Window_Model)
-      return Natural;
+      function Tree_Node_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Tree_Node_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
+      function Tree_Node_Path
+        (Model : Window_Model;
+         Index : Positive)
+         return String;
 
-   function Tree_Node_Is_Loaded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean;
+      function Tree_Node_Is_Loaded
+        (Model : Window_Model;
+         Index : Positive)
+         return Boolean;
 
-   function Tree_Node_Is_Expanded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean;
+      function Tree_Node_Is_Expanded
+        (Model : Window_Model;
+         Index : Positive)
+         return Boolean;
 
-   procedure Tree_Set_Children
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
+      procedure Tree_Set_Children
+        (Model    : in out Window_Model;
+         Index    : Positive;
+         Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
 
-   procedure Tree_Set_Expanded
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Expanded : Boolean);
+      procedure Tree_Set_Expanded
+        (Model    : in out Window_Model;
+         Index    : Positive;
+         Expanded : Boolean);
 
-   procedure Tree_Toggle_Expanded
-     (Model : in out Window_Model;
-      Index : Positive);
+      procedure Tree_Toggle_Expanded
+        (Model : in out Window_Model;
+         Index : Positive);
 
-   function Tree_Visible_Rows
-     (Model : Window_Model)
-      return Files.Folder_Tree.Visible_Row_Vectors.Vector;
+      function Tree_Visible_Rows
+        (Model : Window_Model)
+         return Files.Folder_Tree.Visible_Row_Vectors.Vector;
 
-   procedure Begin_Tree_Pick
-     (Model          : in out Window_Model;
-      Mode           : Tree_Pick_Mode;
-      Sources        : Files.Types.String_Vectors.Vector;
-      Initial_Target : String);
+      procedure Begin_Tree_Pick
+        (Model          : in out Window_Model;
+         Mode           : Tree_Pick_Mode;
+         Sources        : Files.Types.String_Vectors.Vector;
+         Initial_Target : String);
 
-   procedure Set_Tree_Pick_Target
-     (Model  : in out Window_Model;
-      Target : String);
+      procedure Set_Tree_Pick_Target
+        (Model  : in out Window_Model;
+         Target : String);
 
-   procedure Clear_Tree_Pick
-     (Model : in out Window_Model);
+      procedure Clear_Tree_Pick
+        (Model : in out Window_Model);
 
-   function Tree_Pick_Mode_Of
-     (Model : Window_Model)
-      return Tree_Pick_Mode;
+      function Tree_Pick_Mode_Of
+        (Model : Window_Model)
+         return Tree_Pick_Mode;
 
-   function Tree_Pick_Is_Active
-     (Model : Window_Model)
-      return Boolean;
+      function Tree_Pick_Is_Active
+        (Model : Window_Model)
+         return Boolean;
 
-   function Tree_Pick_Sources
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Tree_Pick_Sources
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Tree_Pick_Target
-     (Model : Window_Model)
-      return String;
+      function Tree_Pick_Target
+        (Model : Window_Model)
+         return String;
    end Tree_Panel;
    package body Tree_Panel is separate;
 
@@ -1389,104 +1389,104 @@ package body Files.Model is
      renames Tree_Panel.Tree_Pick_Target;
 
    package Panes is
-   procedure Toggle_Info_Pane
-     (Model : in out Window_Model);
+      procedure Toggle_Info_Pane
+        (Model : in out Window_Model);
 
-   function Info_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Info_Pane_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Ensure_Selected_Item_Extra
-     (Model : in out Window_Model);
+      procedure Ensure_Selected_Item_Extra
+        (Model : in out Window_Model);
 
-   procedure Toggle_Settings_Pane
-     (Model : in out Window_Model);
+      procedure Toggle_Settings_Pane
+        (Model : in out Window_Model);
 
-   function Settings_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Settings_Pane_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Begin_Settings_Edit
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft);
+      procedure Begin_Settings_Edit
+        (Model : in out Window_Model;
+         Draft : Files.Settings.Settings_Draft);
 
-   function Settings_Draft_Of
-     (Model : Window_Model)
-      return Files.Settings.Settings_Draft;
+      function Settings_Draft_Of
+        (Model : Window_Model)
+         return Files.Settings.Settings_Draft;
 
-   procedure Set_Settings_Draft
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft);
+      procedure Set_Settings_Draft
+        (Model : in out Window_Model;
+         Draft : Files.Settings.Settings_Draft);
 
-   procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer);
+      procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer);
 
-   procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean);
+      procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean);
 
-   procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String);
+      procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String);
 
-   procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer);
+      procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer);
 
-   function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
+      function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
 
-   function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change;
+      function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change;
 
-   function Settings_Focused_Value (Model : Window_Model) return String;
+      function Settings_Focused_Value (Model : Window_Model) return String;
 
-   procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural);
+      procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural);
 
-   function Settings_Section_Count (Model : Window_Model) return Natural;
+      function Settings_Section_Count (Model : Window_Model) return Natural;
 
-   function Settings_Active_Section (Model : Window_Model) return Natural;
+      function Settings_Active_Section (Model : Window_Model) return Natural;
 
-   procedure Settings_Begin_Capture (Model : in out Window_Model);
+      procedure Settings_Begin_Capture (Model : in out Window_Model);
 
-   function Settings_Is_Capturing (Model : Window_Model) return Boolean;
+      function Settings_Is_Capturing (Model : Window_Model) return Boolean;
 
-   function Settings_Capturing_Key (Model : Window_Model) return String;
+      function Settings_Capturing_Key (Model : Window_Model) return String;
 
-   procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String);
+      procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String);
 
-   procedure Settings_Cancel_Capture (Model : in out Window_Model);
+      procedure Settings_Cancel_Capture (Model : in out Window_Model);
 
-   procedure Settings_Build_Frame
-     (Model         : in out Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
-      Focused       : Boolean;
-      Hover_X       : Integer := -1;
-      Hover_Y       : Integer := -1;
-      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
-      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
+      procedure Settings_Build_Frame
+        (Model         : in out Window_Model;
+         Region_X      : Natural;
+         Region_Y      : Natural;
+         Region_Width  : Natural;
+         Region_Height : Natural;
+         Clip_Width    : Natural;
+         Clip_Height   : Natural;
+         Line_Height   : Positive;
+         Focused       : Boolean;
+         Hover_X       : Integer := -1;
+         Hover_Y       : Integer := -1;
+         Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
+         Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
+         Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
-   procedure Scroll_Info_Pane
-     (Model : in out Window_Model;
-      Lines : Integer);
+      procedure Scroll_Info_Pane
+        (Model : in out Window_Model;
+         Lines : Integer);
 
-   function Info_Pane_Scroll_Lines
-     (Model : Window_Model)
-      return Natural;
+      function Info_Pane_Scroll_Lines
+        (Model : Window_Model)
+         return Natural;
 
-   procedure Scroll_Main_View
-     (Model : in out Window_Model;
-      Lines : Integer);
+      procedure Scroll_Main_View
+        (Model : in out Window_Model;
+         Lines : Integer);
 
-   function Main_View_Scroll_Lines
-     (Model : Window_Model)
-      return Natural;
+      function Main_View_Scroll_Lines
+        (Model : Window_Model)
+         return Natural;
 
-   procedure Set_Main_View_Scroll_Lines
-     (Model : in out Window_Model;
-      Lines : Natural);
+      procedure Set_Main_View_Scroll_Lines
+        (Model : in out Window_Model;
+         Lines : Natural);
 
-   procedure Set_Info_Pane_Scroll_Lines
-     (Model : in out Window_Model;
-      Lines : Natural);
+      procedure Set_Info_Pane_Scroll_Lines
+        (Model : in out Window_Model;
+         Lines : Natural);
    end Panes;
    package body Panes is separate;
 
@@ -1597,23 +1597,23 @@ package body Files.Model is
      renames Panes.Set_Info_Pane_Scroll_Lines;
 
    package Label_Picker is
-   procedure Set_Open_With_Targets
-     (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector);
+      procedure Set_Open_With_Targets
+        (Model   : in out Window_Model;
+         Targets : Files.Types.String_Vectors.Vector);
 
-   function Open_With_Targets
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Open_With_Targets
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   procedure Open_Label_Picker
-     (Model : in out Window_Model);
+      procedure Open_Label_Picker
+        (Model : in out Window_Model);
 
-   procedure Close_Label_Picker
-     (Model : in out Window_Model);
+      procedure Close_Label_Picker
+        (Model : in out Window_Model);
 
-   function Label_Picker_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Label_Picker_Is_Open
+        (Model : Window_Model)
+         return Boolean;
    end Label_Picker;
    package body Label_Picker is separate;
 
@@ -1635,27 +1635,27 @@ package body Files.Model is
      renames Label_Picker.Label_Picker_Is_Open;
 
    package Quick_Look is
-   procedure Open_Quick_Look
-     (Model   : in out Window_Model;
-      Content : Files.Quick_Look.Quick_Look_Content);
+      procedure Open_Quick_Look
+        (Model   : in out Window_Model;
+         Content : Files.Quick_Look.Quick_Look_Content);
 
-   procedure Close_Quick_Look
-     (Model : in out Window_Model);
+      procedure Close_Quick_Look
+        (Model : in out Window_Model);
 
-   procedure Toggle_Quick_Look
-     (Model : in out Window_Model);
+      procedure Toggle_Quick_Look
+        (Model : in out Window_Model);
 
-   function Quick_Look_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Quick_Look_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   function Quick_Look_Path
-     (Model : Window_Model)
-      return String;
+      function Quick_Look_Path
+        (Model : Window_Model)
+         return String;
 
-   function Quick_Look_Content_Of
-     (Model : Window_Model)
-      return Files.Quick_Look.Quick_Look_Content;
+      function Quick_Look_Content_Of
+        (Model : Window_Model)
+         return Files.Quick_Look.Quick_Look_Content;
    end Quick_Look;
    package body Quick_Look is separate;
 
@@ -1680,28 +1680,28 @@ package body Files.Model is
      renames Quick_Look.Quick_Look_Content_Of;
 
    package Temporary is
-   procedure Begin_Create_File
-     (Model : in out Window_Model;
-      Name  : String);
+      procedure Begin_Create_File
+        (Model : in out Window_Model;
+         Name  : String);
 
-   procedure Begin_Create_Folder
-     (Model : in out Window_Model;
-      Name  : String);
+      procedure Begin_Create_Folder
+        (Model : in out Window_Model;
+         Name  : String);
 
-   function Temporary_Item_Is_Active
-     (Model : Window_Model)
-      return Boolean;
+      function Temporary_Item_Is_Active
+        (Model : Window_Model)
+         return Boolean;
 
-   function Temporary_Item_Is_Directory
-     (Model : Window_Model)
-      return Boolean;
+      function Temporary_Item_Is_Directory
+        (Model : Window_Model)
+         return Boolean;
 
-   function Temporary_Item_Name
-     (Model : Window_Model)
-      return String;
+      function Temporary_Item_Name
+        (Model : Window_Model)
+         return String;
 
-   procedure Cancel_Create_File
-     (Model : in out Window_Model);
+      procedure Cancel_Create_File
+        (Model : in out Window_Model);
    end Temporary;
    package body Temporary is separate;
 
@@ -1778,13 +1778,13 @@ package body Files.Model is
    end Replace_Items;
 
    package Error is
-   procedure Set_Error
-     (Model     : in out Window_Model;
-      Error_Key : String);
+      procedure Set_Error
+        (Model     : in out Window_Model;
+         Error_Key : String);
 
-   function Last_Error_Key
-     (Model : Window_Model)
-      return String;
+      function Last_Error_Key
+        (Model : Window_Model)
+         return String;
    end Error;
    package body Error is separate;
 
@@ -1797,40 +1797,40 @@ package body Files.Model is
      renames Error.Last_Error_Key;
 
    package Clipboard is
-   procedure Set_Clipboard
-     (Model : in out Window_Model;
-      Paths : Files.Types.String_Vectors.Vector;
-      Mode  : Clipboard_Mode);
+      procedure Set_Clipboard
+        (Model : in out Window_Model;
+         Paths : Files.Types.String_Vectors.Vector;
+         Mode  : Clipboard_Mode);
 
-   procedure Clear_Clipboard
-     (Model : in out Window_Model);
+      procedure Clear_Clipboard
+        (Model : in out Window_Model);
 
-   function Clipboard_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Clipboard_Paths
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Clipboard_Mode_Of
-     (Model : Window_Model)
-      return Clipboard_Mode;
+      function Clipboard_Mode_Of
+        (Model : Window_Model)
+         return Clipboard_Mode;
 
-   function Clipboard_Has_Items
-     (Model : Window_Model)
-      return Boolean;
+      function Clipboard_Has_Items
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Set_System_Clipboard_Request
-     (Model : in out Window_Model;
-      Text  : String);
+      procedure Set_System_Clipboard_Request
+        (Model : in out Window_Model;
+         Text  : String);
 
-   function System_Clipboard_Request_Pending
-     (Model : Window_Model)
-      return Boolean;
+      function System_Clipboard_Request_Pending
+        (Model : Window_Model)
+         return Boolean;
 
-   function System_Clipboard_Request_Text
-     (Model : Window_Model)
-      return String;
+      function System_Clipboard_Request_Text
+        (Model : Window_Model)
+         return String;
 
-   procedure Clear_System_Clipboard_Request
-     (Model : in out Window_Model);
+      procedure Clear_System_Clipboard_Request
+        (Model : in out Window_Model);
    end Clipboard;
    package body Clipboard is separate;
 
@@ -1867,58 +1867,58 @@ package body Files.Model is
      renames Clipboard.Clear_System_Clipboard_Request;
 
    package Undo_Redo is
-   procedure Record_Undo
-     (Model       : in out Window_Model;
-      Kind        : Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector);
+      procedure Record_Undo
+        (Model       : in out Window_Model;
+         Kind        : Undo_Action_Kind;
+         From        : Files.Types.String_Vectors.Vector;
+         To          : Files.Types.String_Vectors.Vector;
+         Forward     : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Create_Kind : Undo_Create_Kind := Create_None;
+         Redoable    : Boolean := True;
+         Restore_Trash : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector);
 
-   procedure Clear_Undo
-     (Model : in out Window_Model);
+      procedure Clear_Undo
+        (Model : in out Window_Model);
 
-   function Undo_Available
-     (Model : Window_Model)
-      return Boolean;
+      function Undo_Available
+        (Model : Window_Model)
+         return Boolean;
 
-   function Redo_Available
-     (Model : Window_Model)
-      return Boolean;
+      function Redo_Available
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Take_Undo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean);
+      procedure Take_Undo
+        (Model  : in out Window_Model;
+         Action : out Undo_Entry;
+         Found  : out Boolean);
 
-   procedure Take_Redo
-     (Model  : in out Window_Model;
-      Action : out Undo_Entry;
-      Found  : out Boolean);
+      procedure Take_Redo
+        (Model  : in out Window_Model;
+         Action : out Undo_Entry;
+         Found  : out Boolean);
 
-   procedure Push_Redo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry);
+      procedure Push_Redo
+        (Model  : in out Window_Model;
+         Action : Undo_Entry);
 
-   procedure Push_Undo
-     (Model  : in out Window_Model;
-      Action : Undo_Entry);
+      procedure Push_Undo
+        (Model  : in out Window_Model;
+         Action : Undo_Entry);
 
-   function Undo_Kind_Of
-     (Model : Window_Model)
-      return Undo_Action_Kind;
+      function Undo_Kind_Of
+        (Model : Window_Model)
+         return Undo_Action_Kind;
 
-   function Undo_From_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Undo_From_Paths
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Undo_To_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Undo_To_Paths
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
    end Undo_Redo;
    package body Undo_Redo is separate;
 
@@ -1968,72 +1968,72 @@ package body Files.Model is
      renames Undo_Redo.Undo_To_Paths;
 
    package Paste_Conflict is
-   procedure Begin_Paste_Conflict
-     (Model           : in out Window_Model;
-      Items           : Files.Paste.Work_Item_Vectors.Vector;
-      Existing        : Files.Types.String_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
-      Index           : Positive;
-      Clear_Clipboard : Boolean := True);
+      procedure Begin_Paste_Conflict
+        (Model           : in out Window_Model;
+         Items           : Files.Paste.Work_Item_Vectors.Vector;
+         Existing        : Files.Types.String_Vectors.Vector;
+         Mode            : Files.File_System.Drop_Import_Mode;
+         Index           : Positive;
+         Clear_Clipboard : Boolean := True);
 
-   function Paste_Conflict_Is_Active
-     (Model : Window_Model)
-      return Boolean;
+      function Paste_Conflict_Is_Active
+        (Model : Window_Model)
+         return Boolean;
 
-   function Paste_Conflict_Items
-     (Model : Window_Model)
-      return Files.Paste.Work_Item_Vectors.Vector;
+      function Paste_Conflict_Items
+        (Model : Window_Model)
+         return Files.Paste.Work_Item_Vectors.Vector;
 
-   function Paste_Conflict_Existing
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Paste_Conflict_Existing
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Paste_Conflict_Overrides
-     (Model : Window_Model)
-      return Files.Paste.Item_Decision_Vectors.Vector;
+      function Paste_Conflict_Overrides
+        (Model : Window_Model)
+         return Files.Paste.Item_Decision_Vectors.Vector;
 
-   function Paste_Conflict_Policy
-     (Model : Window_Model)
-      return Files.Paste.Conflict_Policy;
+      function Paste_Conflict_Policy
+        (Model : Window_Model)
+         return Files.Paste.Conflict_Policy;
 
-   function Paste_Conflict_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode;
+      function Paste_Conflict_Mode
+        (Model : Window_Model)
+         return Files.File_System.Drop_Import_Mode;
 
-   function Paste_Conflict_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean;
+      function Paste_Conflict_Clears_Clipboard
+        (Model : Window_Model)
+         return Boolean;
 
-   function Paste_Conflict_Index
-     (Model : Window_Model)
-      return Natural;
+      function Paste_Conflict_Index
+        (Model : Window_Model)
+         return Natural;
 
-   function Paste_Conflict_Name
-     (Model : Window_Model)
-      return String;
+      function Paste_Conflict_Name
+        (Model : Window_Model)
+         return String;
 
-   function Paste_Conflict_Apply_All
-     (Model : Window_Model)
-      return Boolean;
+      function Paste_Conflict_Apply_All
+        (Model : Window_Model)
+         return Boolean;
 
-   procedure Toggle_Paste_Conflict_Apply_All
-     (Model : in out Window_Model);
+      procedure Toggle_Paste_Conflict_Apply_All
+        (Model : in out Window_Model);
 
-   procedure Set_Paste_Conflict_Policy
-     (Model  : in out Window_Model;
-      Policy : Files.Paste.Conflict_Policy);
+      procedure Set_Paste_Conflict_Policy
+        (Model  : in out Window_Model;
+         Policy : Files.Paste.Conflict_Policy);
 
-   procedure Set_Paste_Conflict_Override
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Decision : Files.Paste.Item_Decision);
+      procedure Set_Paste_Conflict_Override
+        (Model    : in out Window_Model;
+         Index    : Positive;
+         Decision : Files.Paste.Item_Decision);
 
-   procedure Set_Paste_Conflict_Index
-     (Model : in out Window_Model;
-      Index : Positive);
+      procedure Set_Paste_Conflict_Index
+        (Model : in out Window_Model;
+         Index : Positive);
 
-   procedure Clear_Paste_Conflict
-     (Model : in out Window_Model);
+      procedure Clear_Paste_Conflict
+        (Model : in out Window_Model);
    end Paste_Conflict;
    package body Paste_Conflict is separate;
 
@@ -2097,87 +2097,87 @@ package body Files.Model is
      renames Paste_Conflict.Clear_Paste_Conflict;
 
    package Paste_Exec is
-   procedure Begin_Paste_Execution
-     (Model           : in out Window_Model;
-      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
-      Clear_Clipboard : Boolean := True);
+      procedure Begin_Paste_Execution
+        (Model           : in out Window_Model;
+         Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
+         Mode            : Files.File_System.Drop_Import_Mode;
+         Clear_Clipboard : Boolean := True);
 
-   function Paste_Execution_Is_Active
-     (Model : Window_Model)
-      return Boolean;
+      function Paste_Execution_Is_Active
+        (Model : Window_Model)
+         return Boolean;
 
-   function Paste_Execution_Done
-     (Model : Window_Model)
-      return Natural;
+      function Paste_Execution_Done
+        (Model : Window_Model)
+         return Natural;
 
-   function Paste_Execution_Total
-     (Model : Window_Model)
-      return Natural;
+      function Paste_Execution_Total
+        (Model : Window_Model)
+         return Natural;
 
-   function Paste_Execution_Current_Name
-     (Model : Window_Model)
-      return String;
+      function Paste_Execution_Current_Name
+        (Model : Window_Model)
+         return String;
 
-   function Paste_Execution_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode;
+      function Paste_Execution_Mode
+        (Model : Window_Model)
+         return Files.File_System.Drop_Import_Mode;
 
-   function Paste_Execution_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean;
+      function Paste_Execution_Clears_Clipboard
+        (Model : Window_Model)
+         return Boolean;
 
-   function Paste_Execution_Cancelled
-     (Model : Window_Model)
-      return Boolean;
+      function Paste_Execution_Cancelled
+        (Model : Window_Model)
+         return Boolean;
 
-   function Paste_Execution_Cursor
-     (Model : Window_Model)
-      return Natural;
+      function Paste_Execution_Cursor
+        (Model : Window_Model)
+         return Natural;
 
-   function Paste_Execution_Action_Count
-     (Model : Window_Model)
-      return Natural;
+      function Paste_Execution_Action_Count
+        (Model : Window_Model)
+         return Natural;
 
-   function Paste_Execution_Action
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.Paste.Resolved_Action;
+      function Paste_Execution_Action
+        (Model : Window_Model;
+         Index : Positive)
+         return Files.Paste.Resolved_Action;
 
-   function Paste_Execution_Undo_From
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Paste_Execution_Undo_From
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Paste_Execution_Undo_To
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Paste_Execution_Undo_To
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   function Paste_Execution_Replaced_Trash
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
+      function Paste_Execution_Replaced_Trash
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
 
-   procedure Record_Paste_Execution_Replaced_Trash
-     (Model      : in out Window_Model;
-      Trash_Path : Files.Types.UString);
+      procedure Record_Paste_Execution_Replaced_Trash
+        (Model      : in out Window_Model;
+         Trash_Path : Files.Types.UString);
 
-   function Paste_Execution_First_Dest
-     (Model : Window_Model)
-      return String;
+      function Paste_Execution_First_Dest
+        (Model : Window_Model)
+         return String;
 
-   procedure Skip_Paste_Execution_Action
-     (Model : in out Window_Model);
+      procedure Skip_Paste_Execution_Action
+        (Model : in out Window_Model);
 
-   procedure Record_Paste_Execution_Write
-     (Model       : in out Window_Model;
-      Dest_Path   : Files.Types.UString;
-      Source_Path : Files.Types.UString;
-      Name        : String);
+      procedure Record_Paste_Execution_Write
+        (Model       : in out Window_Model;
+         Dest_Path   : Files.Types.UString;
+         Source_Path : Files.Types.UString;
+         Name        : String);
 
-   procedure Cancel_Paste_Execution
-     (Model : in out Window_Model);
+      procedure Cancel_Paste_Execution
+        (Model : in out Window_Model);
 
-   procedure Clear_Paste_Execution
-     (Model : in out Window_Model);
+      procedure Clear_Paste_Execution
+        (Model : in out Window_Model);
    end Paste_Exec;
    package body Paste_Exec is separate;
 
@@ -2252,26 +2252,26 @@ package body Files.Model is
      renames Paste_Exec.Clear_Paste_Execution;
 
    package Folder_Sizes is
-   procedure Set_Folder_Size
-     (Model : in out Window_Model;
-      Path  : String;
-      Value : Files.File_System.Directory_Size_Result);
+      procedure Set_Folder_Size
+        (Model : in out Window_Model;
+         Path  : String;
+         Value : Files.File_System.Directory_Size_Result);
 
-   procedure Clear_Folder_Size
-     (Model : in out Window_Model);
+      procedure Clear_Folder_Size
+        (Model : in out Window_Model);
 
-   procedure Prune_Folder_Sizes_To_Selection
-     (Model : in out Window_Model);
+      procedure Prune_Folder_Sizes_To_Selection
+        (Model : in out Window_Model);
 
-   function Folder_Size_Cached_For
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean;
+      function Folder_Size_Cached_For
+        (Model : Window_Model;
+         Path  : String)
+         return Boolean;
 
-   function Folder_Size_Value
-     (Model : Window_Model;
-      Path  : String)
-      return Files.File_System.Directory_Size_Result;
+      function Folder_Size_Value
+        (Model : Window_Model;
+         Path  : String)
+         return Files.File_System.Directory_Size_Result;
    end Folder_Sizes;
    package body Folder_Sizes is separate;
 
@@ -2296,35 +2296,35 @@ package body Files.Model is
      renames Folder_Sizes.Folder_Size_Value;
 
    package Context_Menu is
-   procedure Open_Context_Menu
-     (Model      : in out Window_Model;
-      X          : Natural;
-      Y          : Natural;
-      Target     : Context_Menu_Target;
-      Item_Index : Natural := 0);
+      procedure Open_Context_Menu
+        (Model      : in out Window_Model;
+         X          : Natural;
+         Y          : Natural;
+         Target     : Context_Menu_Target;
+         Item_Index : Natural := 0);
 
-   procedure Close_Context_Menu
-     (Model : in out Window_Model);
+      procedure Close_Context_Menu
+        (Model : in out Window_Model);
 
-   function Context_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean;
+      function Context_Menu_Is_Open
+        (Model : Window_Model)
+         return Boolean;
 
-   function Context_Menu_X
-     (Model : Window_Model)
-      return Natural;
+      function Context_Menu_X
+        (Model : Window_Model)
+         return Natural;
 
-   function Context_Menu_Y
-     (Model : Window_Model)
-      return Natural;
+      function Context_Menu_Y
+        (Model : Window_Model)
+         return Natural;
 
-   function Context_Menu_Target_Of
-     (Model : Window_Model)
-      return Context_Menu_Target;
+      function Context_Menu_Target_Of
+        (Model : Window_Model)
+         return Context_Menu_Target;
 
-   function Context_Menu_Item_Index
-     (Model : Window_Model)
-      return Natural;
+      function Context_Menu_Item_Index
+        (Model : Window_Model)
+         return Natural;
    end Context_Menu;
    package body Context_Menu is separate;
 

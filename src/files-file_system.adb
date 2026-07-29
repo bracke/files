@@ -50,38 +50,38 @@ package body Files.File_System is
    use type Files.Types.Item_Kind;
 
    package Thumbnails is
-   function Default_Thumbnail_Cache_Directory
-     (Fallback_Directory : String)
-      return String;
+      function Default_Thumbnail_Cache_Directory
+        (Fallback_Directory : String)
+         return String;
 
-   function Thumbnail_Path_For
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return String;
+      function Thumbnail_Path_For
+        (Source_Path      : String;
+         Cache_Directory : String;
+         Size            : Positive := 64)
+         return String;
 
-   function Generate_Thumbnail
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return Thumbnail_Result;
+      function Generate_Thumbnail
+        (Source_Path      : String;
+         Cache_Directory : String;
+         Size            : Positive := 64)
+         return Thumbnail_Result;
 
-   function Decode_Image_To_Pixels
-     (Path     : String;
-      Max_Size : Positive)
-      return Decoded_Image;
+      function Decode_Image_To_Pixels
+        (Path     : String;
+         Max_Size : Positive)
+         return Decoded_Image;
 
-   function Is_Image_Item
-     (Kind     : Files.Types.Item_Kind;
-      Filetype : String;
-      Name     : String;
-      Icon_Id  : String)
-      return Boolean;
+      function Is_Image_Item
+        (Kind     : Files.Types.Item_Kind;
+         Filetype : String;
+         Name     : String;
+         Icon_Id  : String)
+         return Boolean;
 
-   function Read_Preview_Text
-     (Path      : String;
-      Max_Bytes : Natural)
-      return String;
+      function Read_Preview_Text
+        (Path      : String;
+         Max_Bytes : Natural)
+         return String;
    end Thumbnails;
    package body Thumbnails is separate;
 
@@ -127,55 +127,55 @@ package body Files.File_System is
      renames Thumbnails.Read_Preview_Text;
 
    package Directory is
-   function Load_Directory
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
-      return Directory_Load_Result;
+      function Load_Directory
+        (Path     : String;
+         Settings : Files.Settings.Settings_Model)
+         return Directory_Load_Result;
 
-   function Load_Item
-     (Full_Path : String;
-      Settings  : Files.Settings.Settings_Model)
-      return Item_Load_Result;
+      function Load_Item
+        (Full_Path : String;
+         Settings  : Files.Settings.Settings_Model)
+         return Item_Load_Result;
 
-   function Extra_Info_Token
-     (Path     : String;
-      Kind     : Files.Types.Item_Kind;
-      Filetype : String)
-      return String;
+      function Extra_Info_Token
+        (Path     : String;
+         Kind     : Files.Types.Item_Kind;
+         Filetype : String)
+         return String;
 
-   procedure Sort_Items
-     (Items     : in out Item_Vectors.Vector;
-      Field     : Files.Settings.Sort_Field;
-      Ascending : Boolean);
+      procedure Sort_Items
+        (Items     : in out Item_Vectors.Vector;
+         Field     : Files.Settings.Sort_Field;
+         Ascending : Boolean);
 
-   function Directory_State
-     (Path : String)
-      return Directory_Signature;
+      function Directory_State
+        (Path : String)
+         return Directory_Signature;
 
-   function Detect_Directory_Change
-     (Before_State : Directory_Signature;
-      Path         : String)
-      return Directory_Change_Result;
+      function Detect_Directory_Change
+        (Before_State : Directory_Signature;
+         Path         : String)
+         return Directory_Change_Result;
 
-   function Directory_Size
-     (Path        : String;
-      Max_Entries : Natural := 50_000;
-      Max_Depth   : Natural := 64)
-      return Directory_Size_Result;
+      function Directory_Size
+        (Path        : String;
+         Max_Entries : Natural := 50_000;
+         Max_Depth   : Natural := 64)
+         return Directory_Size_Result;
 
-   function Make_Item
-     (Parent_Path : String;
-      Name        : String;
-      Kind        : Files.Types.Item_Kind;
-      Filetype    : String := "")
-      return Directory_Item;
+      function Make_Item
+        (Parent_Path : String;
+         Name        : String;
+         Kind        : Files.Types.Item_Kind;
+         Filetype    : String := "")
+         return Directory_Item;
 
-   function Make_Item
-     (Parent_Path : String;
-      Name        : String;
-      Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model)
-      return Directory_Item;
+      function Make_Item
+        (Parent_Path : String;
+         Name        : String;
+         Kind        : Files.Types.Item_Kind;
+         Settings    : Files.Settings.Settings_Model)
+         return Directory_Item;
    end Directory;
    package body Directory is separate;
 
@@ -246,50 +246,50 @@ package body Files.File_System is
    end Is_Directory;
 
    package Trash is
-   function Trash_Is_Available return Boolean;
+      function Trash_Is_Available return Boolean;
 
-   function Trash_Backend_Of_Current_Environment return Trash_Backend;
+      function Trash_Backend_Of_Current_Environment return Trash_Backend;
 
-   function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities;
+      function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities;
 
-   function Native_Trash_Request_For
-     (Path : String)
-      return Native_Trash_Request;
+      function Native_Trash_Request_For
+        (Path : String)
+         return Native_Trash_Request;
 
-   function Evaluate_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
+      function Evaluate_Native_Trash
+        (Request : Native_Trash_Request)
+         return Native_Trash_Result;
 
-   function Execute_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
+      function Execute_Native_Trash
+        (Request : Native_Trash_Request)
+         return Native_Trash_Result;
 
-   function Move_To_Trash_Preflight
-     (Path : String)
-      return Mutation_Result;
+      function Move_To_Trash_Preflight
+        (Path : String)
+         return Mutation_Result;
 
-   function Trash_Deletion_Date
-     (Value : Ada.Calendar.Time)
-      return String;
+      function Trash_Deletion_Date
+        (Value : Ada.Calendar.Time)
+         return String;
 
-   function Trash_Files_Directory return String;
+      function Trash_Files_Directory return String;
 
-   function Restore_From_Trash
-     (Trashed_Path : String)
-      return Mutation_Result;
+      function Restore_From_Trash
+        (Trashed_Path : String)
+         return Mutation_Result;
 
-   function Move_To_Trash
-     (Path : String)
-      return Mutation_Result;
+      function Move_To_Trash
+        (Path : String)
+         return Mutation_Result;
 
-   function Move_To_Trash
-     (Path         : String;
-      Trashed_Path : out Files.Types.UString)
-      return Mutation_Result;
+      function Move_To_Trash
+        (Path         : String;
+         Trashed_Path : out Files.Types.UString)
+         return Mutation_Result;
 
-   function Delete_Trashed_Item
-     (Trashed_Path : String)
-      return Mutation_Result;
+      function Delete_Trashed_Item
+        (Trashed_Path : String)
+         return Mutation_Result;
    end Trash;
    package body Trash is separate;
 
@@ -354,26 +354,26 @@ package body Files.File_System is
      renames Trash.Delete_Trashed_Item;
 
    package Path is
-   function Normalize_Path
-     (Path : String)
-      return Path_Result;
+      function Normalize_Path
+        (Path : String)
+         return Path_Result;
 
-   function Parent_Directory
-     (Path : String)
-      return String;
+      function Parent_Directory
+        (Path : String)
+         return String;
 
-   function Join_Path
-     (Parent_Path : String;
-      Name        : String)
-      return String;
+      function Join_Path
+        (Parent_Path : String;
+         Name        : String)
+         return String;
 
-   function Valid_Leaf_Name
-     (Name : String)
-      return Boolean;
+      function Valid_Leaf_Name
+        (Name : String)
+         return Boolean;
 
-   function Next_Untitled_Name
-     (Directory_Path : String)
-      return String;
+      function Next_Untitled_Name
+        (Directory_Path : String)
+         return String;
    end Path;
    package body Path is separate;
 
@@ -406,12 +406,12 @@ package body Files.File_System is
      renames Path.Next_Untitled_Name;
 
    package Search is
-   function Search_Recursive
-     (Root_Path : String;
-      Query     : String;
-      Settings  : Files.Settings.Settings_Model;
-      Max_Items : Natural := 1_000)
-      return Recursive_Search_Result;
+      function Search_Recursive
+        (Root_Path : String;
+         Query     : String;
+         Settings  : Files.Settings.Settings_Model;
+         Max_Items : Natural := 1_000)
+         return Recursive_Search_Result;
    end Search;
    package body Search is separate;
 
@@ -426,30 +426,30 @@ package body Files.File_System is
      renames Search.Search_Recursive;
 
    package Roots is
-   function Available_Roots return Files.Types.String_Vectors.Vector;
+      function Available_Roots return Files.Types.String_Vectors.Vector;
 
-   function Available_Root_Entries return Root_Entry_Vectors.Vector;
+      function Available_Root_Entries return Root_Entry_Vectors.Vector;
 
-   function Root_Label (Path : String; Kind : Root_Kind) return String;
+      function Root_Label (Path : String; Kind : Root_Kind) return String;
 
-   function Root_Discovery_Status return Root_Discovery_Diagnostics;
+      function Root_Discovery_Status return Root_Discovery_Diagnostics;
 
-   function Root_Volume_Capabilities_Of_Current_Environment
-      return Root_Volume_Capabilities;
+      function Root_Volume_Capabilities_Of_Current_Environment
+         return Root_Volume_Capabilities;
 
-   function Filesystem_Edge_Case_Profile_Of_Current_Environment
-      return Filesystem_Edge_Case_Profile;
+      function Filesystem_Edge_Case_Profile_Of_Current_Environment
+         return Filesystem_Edge_Case_Profile;
 
-   function Native_Platform_API_Profile_For
-     (Adapter : Native_Platform_Adapter)
-      return Native_Platform_API_Profile;
+      function Native_Platform_API_Profile_For
+        (Adapter : Native_Platform_Adapter)
+         return Native_Platform_API_Profile;
 
-   function Root_Volume_Details_For
-     (Root : Root_Entry)
-      return Root_Volume_Details;
+      function Root_Volume_Details_For
+        (Root : Root_Entry)
+         return Root_Volume_Details;
 
-   function Filetype_Metadata_Policy_Of_Current_Implementation
-      return Filetype_Metadata_Policy;
+      function Filetype_Metadata_Policy_Of_Current_Implementation
+         return Filetype_Metadata_Policy;
    end Roots;
    package body Roots is separate;
 
@@ -490,28 +490,28 @@ package body Files.File_System is
      renames Roots.Filetype_Metadata_Policy_Of_Current_Implementation;
 
    package Create is
-   function Create_Empty_File
-     (Path : String)
-      return Mutation_Result;
+      function Create_Empty_File
+        (Path : String)
+         return Mutation_Result;
 
-   function Create_Directory
-     (Path : String)
-      return Mutation_Result;
+      function Create_Directory
+        (Path : String)
+         return Mutation_Result;
 
-   function Rename_Item
-     (From_Path : String;
-      To_Path   : String)
-      return Mutation_Result;
+      function Rename_Item
+        (From_Path : String;
+         To_Path   : String)
+         return Mutation_Result;
 
-   function Create_Symbolic_Link
-     (Source_Path : String;
-      Link_Path   : String)
-      return Mutation_Result;
+      function Create_Symbolic_Link
+        (Source_Path : String;
+         Link_Path   : String)
+         return Mutation_Result;
 
-   function Create_Hard_Link
-     (Source_Path : String;
-      Link_Path   : String)
-      return Mutation_Result;
+      function Create_Hard_Link
+        (Source_Path : String;
+         Link_Path   : String)
+         return Mutation_Result;
    end Create;
    package body Create is separate;
 
@@ -546,45 +546,45 @@ package body Files.File_System is
      renames Create.Create_Hard_Link;
 
    package Permissions is
-   function Supports_Permissions return Boolean;
+      function Supports_Permissions return Boolean;
 
-   function Permission_Bits_Of
-     (Path      : String;
-      Available : out Boolean)
-      return Natural;
+      function Permission_Bits_Of
+        (Path      : String;
+         Available : out Boolean)
+         return Natural;
 
-   function Set_Permissions
-     (Path : String;
-      Mode : Natural)
-      return Mutation_Result;
+      function Set_Permissions
+        (Path : String;
+         Mode : Natural)
+         return Mutation_Result;
 
-   function Supports_Ownership return Boolean;
+      function Supports_Ownership return Boolean;
 
-   procedure Ownership_Of
-     (Path      : String;
-      User_Id   : out Natural;
-      Group_Id  : out Natural;
-      Available : out Boolean);
+      procedure Ownership_Of
+        (Path      : String;
+         User_Id   : out Natural;
+         Group_Id  : out Natural;
+         Available : out Boolean);
 
-   function Set_Ownership
-     (Path     : String;
-      User_Id  : Natural;
-      Group_Id : Natural)
-      return Mutation_Result;
+      function Set_Ownership
+        (Path     : String;
+         User_Id  : Natural;
+         Group_Id : Natural)
+         return Mutation_Result;
 
-   function User_Id_For_Name
-     (Name  : String;
-      Found : out Boolean)
-      return Natural;
+      function User_Id_For_Name
+        (Name  : String;
+         Found : out Boolean)
+         return Natural;
 
-   function Group_Id_For_Name
-     (Name  : String;
-      Found : out Boolean)
-      return Natural;
+      function Group_Id_For_Name
+        (Name  : String;
+         Found : out Boolean)
+         return Natural;
 
-   function User_Name_For_Id (Id : Natural) return String;
+      function User_Name_For_Id (Id : Natural) return String;
 
-   function Group_Name_For_Id (Id : Natural) return String;
+      function Group_Name_For_Id (Id : Natural) return String;
    end Permissions;
    package body Permissions is separate;
 
@@ -641,24 +641,24 @@ package body Files.File_System is
      renames Permissions.Group_Name_For_Id;
 
    package Copy_Move is
-   function Copy_Tree
-     (Source_Path      : String;
-      Destination_Path : String)
-      return Mutation_Result;
+      function Copy_Tree
+        (Source_Path      : String;
+         Destination_Path : String)
+         return Mutation_Result;
 
-   function Delete_Permanently
-     (Path : String)
-      return Mutation_Result;
+      function Delete_Permanently
+        (Path : String)
+         return Mutation_Result;
 
-   function Plan_Drop_Import
-     (Source_Paths          : Files.Types.String_Vectors.Vector;
-      Destination_Directory : String;
-      Mode                  : Drop_Import_Mode := Drop_Copy)
-      return Drop_Import_Result;
+      function Plan_Drop_Import
+        (Source_Paths          : Files.Types.String_Vectors.Vector;
+         Destination_Directory : String;
+         Mode                  : Drop_Import_Mode := Drop_Copy)
+         return Drop_Import_Result;
 
-   function Execute_Drop_Import
-     (Plans : Drop_Import_Plan_Vectors.Vector)
-      return Mutation_Result;
+      function Execute_Drop_Import
+        (Plans : Drop_Import_Plan_Vectors.Vector)
+         return Mutation_Result;
    end Copy_Move;
    package body Copy_Move is separate;
 
