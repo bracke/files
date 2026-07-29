@@ -500,6 +500,21 @@ package body Files.Model is
    function Is_Selected_Directory (Model : Window_Model; Path : String) return Boolean
      renames Selection.Is_Selected_Directory;
 
+   --  Cap on the back-navigation history so a session that keeps navigating does
+   --  not grow it without bound. Forward history is already bounded (cleared on
+   --  every forward navigation); this bounds the back list the same way a
+   --  browser does, dropping the oldest (least likely to be revisited) entry.
+   Max_Back_History : constant := 200;
+
+   procedure Push_Back_History (Model : in out Window_Model) is
+   begin
+      Model.Back_History.Append (Model.Current_Path_Value);
+      while Natural (Model.Back_History.Length) > Max_Back_History loop
+         Model.Back_History.Delete_First;
+      end loop;
+      Model.Forward_History.Clear;
+   end Push_Back_History;
+
    procedure Navigate_To
      (Model          : in out Window_Model;
       Directory_Path : String;
@@ -510,8 +525,7 @@ package body Files.Model is
       --  path is synthetic); an ordinary directory change pushes back history as
       --  usual.
       if not Model.Recent_View_Active and then Current_Path (Model) /= Directory_Path then
-         Model.Back_History.Append (Model.Current_Path_Value);
-         Model.Forward_History.Clear;
+         Push_Back_History (Model);
       end if;
 
       Model.Recent_View_Active := False;
@@ -549,8 +563,7 @@ package body Files.Model is
       --  Only the initial entry into the view records the departure point; a
       --  refresh or clear re-enters while already active and just swaps items.
       if not Model.Recent_View_Active then
-         Model.Back_History.Append (Model.Current_Path_Value);
-         Model.Forward_History.Clear;
+         Push_Back_History (Model);
       end if;
 
       Model.Recent_View_Active := True;

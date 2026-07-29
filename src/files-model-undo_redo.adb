@@ -1,6 +1,14 @@
 separate (Files.Model)
 package body Undo_Redo is
 
+   --  Cap the undo history so a session doing thousands of operations does not
+   --  grow it without bound: each entry retains the full source and destination
+   --  path lists (and permission/ownership images), so an unbounded stack pins
+   --  that data for the life of the window. Past the cap the oldest entry --
+   --  least likely to ever be undone -- is dropped; LIFO undo only touches the
+   --  newest, so the reachable history is unaffected.
+   Max_Undo_Depth : constant := 200;
+
    procedure Record_Undo
      (Model       : in out Window_Model;
       Kind        : Undo_Action_Kind;
@@ -27,6 +35,9 @@ package body Undo_Redo is
             Create_Kind   => Create_Kind,
             Redoable      => Redoable,
             Restore_Trash => Restore_Trash));
+      while Natural (Model.Undo_Stack.Length) > Max_Undo_Depth loop
+         Model.Undo_Stack.Delete_First;
+      end loop;
       Model.Redo_Stack.Clear;
    end Record_Undo;
 

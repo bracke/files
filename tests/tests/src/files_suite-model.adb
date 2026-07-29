@@ -103,6 +103,7 @@ package body Files_Suite.Model is
 
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Accent_Folding_Sort (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -135,6 +136,8 @@ package body Files_Suite.Model is
         (T, Test_Directory_Sorting'Access, "directory sorting");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Accent_Folding_Sort'Access, "accented names sort next to their base letter");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Bounds'Access, "undo and back-navigation history are bounded over a long session");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Directory_Projection_Settings'Access, "directory projection settings");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -271,6 +274,49 @@ package body Files_Suite.Model is
            Character'Val (16#CE#) & Character'Val (16#A9#),
          "a non-Latin codepoint keeps its own bytes");
    end Test_Accent_Folding_Sort;
+
+   procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model : Files.Model.Window_Model;
+      Empty : Files.File_System.Item_Vectors.Vector;
+   begin
+      --  Recording far more undo entries than the cap keeps only the most recent
+      --  ones; the reachable LIFO history is bounded rather than growing forever.
+      for Index in 1 .. 260 loop
+         declare
+            From : Files.Types.String_Vectors.Vector;
+         begin
+            From.Append (To_Unbounded_String ("/from/" & Integer'Image (Index)));
+            Files.Model.Record_Undo (Model, Files.Model.Undo_Rename, From => From, To => From);
+         end;
+      end loop;
+      declare
+         Count  : Natural := 0;
+         Action : Files.Model.Undo_Entry;
+         Found  : Boolean;
+      begin
+         loop
+            Files.Model.Take_Undo (Model, Action, Found);
+            exit when not Found;
+            Count := Count + 1;
+         end loop;
+         Assert (Count = 200, "the undo stack is capped at 200 entries; kept" & Count'Image);
+      end;
+
+      --  Back-navigation history is bounded the same way.
+      for Index in 1 .. 260 loop
+         Files.Model.Navigate_To (Model, "/dir/" & Integer'Image (Index), Empty);
+      end loop;
+      declare
+         Count : Natural := 0;
+      begin
+         while Files.Model.Can_Go_Back (Model) loop
+            Files.Model.Go_Back (Model);
+            Count := Count + 1;
+         end loop;
+         Assert (Count = 200, "back-navigation history is capped at 200; went back" & Count'Image);
+      end;
+   end Test_History_Bounds;
 
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
