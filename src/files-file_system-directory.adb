@@ -341,11 +341,11 @@ package body Directory is
       end if;
 
       declare
-         --  Decorate-sort: the case-insensitive comparison recomputed To_Lower
-         --  on both names for every one of the sort's O(N log N) comparisons.
-         --  Here each item's lowercase keys are built once (N times), the sort
-         --  reorders a cheap index permutation reading those keys, and the
-         --  items are moved into place a single time at the end.
+         --  Decorate-sort: a case-insensitive comparison would recompute the
+         --  fold key on both names for every one of the sort's O(N log N)
+         --  comparisons. Here each item's accent-folded key is built once
+         --  (N times), the sort reorders a cheap index permutation reading those
+         --  keys, and the items are moved into place a single time at the end.
          type Sort_Key is record
             Name_Lower     : Unbounded_String;
             Filetype_Lower : Unbounded_String;
@@ -436,10 +436,11 @@ package body Directory is
                Key : Sort_Key;
             begin
                Key.Name_Lower :=
-                 To_Unbounded_String (Files.Types.To_Lower (To_String (Items (Index).Name)));
+                 To_Unbounded_String (Files.Types.Fold_For_Sort (To_String (Items (Index).Name)));
                if Field = Files.Settings.Sort_By_Filetype then
                   Key.Filetype_Lower :=
-                    To_Unbounded_String (Files.Types.To_Lower (To_String (Items (Index).Filetype)));
+                    To_Unbounded_String
+                      (Files.Types.Fold_For_Sort (To_String (Items (Index).Filetype)));
                end if;
                Keys.Append (Key);
             end;

@@ -166,6 +166,19 @@ package Files.Types is
    --  @return Lower-case version of Text.
    function To_Lower (Text : String) return String;
 
+   --  Return a case-insensitive, accent-folded sort key for Text: an
+   --  ASCII-lowercased copy in which the accented Latin letters are reduced to
+   --  their base letter (a-with-umlaut becomes a, sharp-s becomes ss, and so
+   --  on). Ordering two names by String "<" on these keys sorts an accented name
+   --  next to its base letter, the way a reader expects, instead of by raw UTF-8
+   --  byte -- where every non-ASCII name lands after all of a..z. Non-Latin
+   --  scripts keep their codepoint order. Deterministic and self-contained: no
+   --  locale data is consulted, so the order never depends on the environment.
+   --
+   --  @param Text Text to build a sort key for.
+   --  @return Folded key; compare keys with String "<".
+   function Fold_For_Sort (Text : String) return String;
+
    --  Return whether Needle occurs in Haystack after case folding.
    --
    --  @param Haystack Text to search.

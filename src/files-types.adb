@@ -1,5 +1,8 @@
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
+
+with Files.UTF8;
 
 package body Files.Types is
 
@@ -82,6 +85,69 @@ package body Files.Types is
 
       return Result;
    end To_Lower;
+
+   function Fold_For_Sort (Text : String) return String is
+      Result    : Ada.Strings.Unbounded.Unbounded_String;
+      Index     : Integer := Text'First;
+      Start     : Integer;
+      Codepoint : Natural := 0;
+
+      --  The base ASCII letter(s) for a codepoint, or "" when it has none (a
+      --  non-letter, or a script with no Latin base -- the caller keeps those
+      --  as they are). Upper and lower case fold to the same lowercase base.
+      function Base_Letter (Value : Natural) return String is
+      begin
+         case Value is
+            when 16#41# .. 16#5A#           => return (1 => Character'Val (Value + 16#20#));
+            when 16#C0# .. 16#C5# | 16#E0# .. 16#E5# | 16#100# .. 16#105# => return "a";
+            when 16#C6# | 16#E6#            => return "ae";
+            when 16#C7# | 16#E7# | 16#106# .. 16#10D# => return "c";
+            when 16#D0# | 16#F0# | 16#10E# .. 16#111# => return "d";
+            when 16#C8# .. 16#CB# | 16#E8# .. 16#EB# | 16#112# .. 16#11B# => return "e";
+            when 16#11C# .. 16#123#         => return "g";
+            when 16#124# .. 16#127#         => return "h";
+            when 16#CC# .. 16#CF# | 16#EC# .. 16#EF# | 16#128# .. 16#131# => return "i";
+            when 16#134# | 16#135#          => return "j";
+            when 16#136# | 16#137#          => return "k";
+            when 16#139# .. 16#142#         => return "l";
+            when 16#D1# | 16#F1# | 16#143# .. 16#14B# => return "n";
+            when 16#D2# .. 16#D6# | 16#F2# .. 16#F6# | 16#D8# | 16#F8#
+               | 16#14C# .. 16#151#         => return "o";
+            when 16#152# | 16#153#          => return "oe";
+            when 16#154# .. 16#159#         => return "r";
+            when 16#15A# .. 16#161#         => return "s";
+            when 16#162# .. 16#167#         => return "t";
+            when 16#DE# | 16#FE#            => return "th";
+            when 16#D9# .. 16#DC# | 16#F9# .. 16#FC# | 16#168# .. 16#173# => return "u";
+            when 16#174# | 16#175#          => return "w";
+            when 16#DD# | 16#FD# | 16#FF# | 16#176# .. 16#178# => return "y";
+            when 16#179# .. 16#17E#         => return "z";
+            when 16#DF#                     => return "ss";
+            when others                     => return "";
+         end case;
+      end Base_Letter;
+   begin
+      while Index <= Text'Last loop
+         Start := Index;
+         Files.UTF8.Decode_Next_Codepoint (Text, Index, Codepoint);
+
+         declare
+            Folded : constant String := Base_Letter (Codepoint);
+         begin
+            if Folded /= "" then
+               Ada.Strings.Unbounded.Append (Result, Folded);
+            elsif Codepoint < 16#80# then
+               Ada.Strings.Unbounded.Append
+                 (Result, Ada.Characters.Handling.To_Lower (Text (Start)));
+            else
+               --  Unmapped non-ASCII: keep its own bytes so its order is stable.
+               Ada.Strings.Unbounded.Append (Result, Text (Start .. Index - 1));
+            end if;
+         end;
+      end loop;
+
+      return Ada.Strings.Unbounded.To_String (Result);
+   end Fold_For_Sort;
 
    function Contains_Case_Insensitive
      (Haystack : String;
