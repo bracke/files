@@ -1708,7 +1708,7 @@ package body Files_Suite.Startup is
            (Files.Features.Network_Filesystem_Special_Handling),
          "network filesystem special handling belongs to the implementation");
       Assert
-        (Repository_File_Contains ("src/files-file_system-root_label.adb", "Root_Network_Mount")
+        (Repository_File_Contains ("src/files-file_system-roots.adb", "Root_Network_Mount")
          and then Repository_File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
          "root discovery includes network-specific root handling");
       Assert

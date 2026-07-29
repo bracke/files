@@ -21,9 +21,11 @@ with Hostkit.Shell;
 with Zlib;
 
 with Files.Operations.Support;
+with Files.Model;
+with Files.Settings;
+with Guikit.Input;
 with Files.File_System;
 with Files.Types;
-with Files.Quick_Look;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
@@ -39,380 +41,423 @@ package body Files.Operations is
 
    use Files.Operations.Support;
 
-   --  The open/launch/terminal operations are subunits of Files.Operations.
-   --  Hoisted from the former History child (now subunits).
-   use Ada.Strings.Unbounded;
-   use type Files.Model.Undo_Action_Kind;
-   use Files.Operations.Support;
+   package Open is
+   function Open_Action_Policy return Open_Action_Execution_Policy;
 
-   --  Hoisted from the former Metadata child (now subunits).
-   use Ada.Strings.Unbounded;
-   use Files.Operations.Support;
+   function Open_Action_Lifecycle_Of
+     (Result : Operation_Result)
+      return Open_Action_Lifecycle;
 
-   --  Hoisted from the former Search child (now subunits).
-   use Ada.Strings.Unbounded;
-   use type Files.Types.Item_Kind;
-   use Files.Operations.Support;
+   function Shell_Executable return String;
 
-   --  Bounded content-search guards. Bytes read per file mirror the Quick Look
-   --  text preview cap; the file and depth caps mirror Directory_Size so the walk
-   --  cannot run away on huge or deeply nested trees.
-   Content_Search_Max_Bytes   : constant := 64 * 1024;
-   Content_Search_Max_Matches : constant := 1_000;
-   Content_Search_Max_Files   : constant := 20_000;
-   Content_Search_Max_Depth   : constant := 64;
+   function Shell_Command_Option return String;
 
-   --  Hoisted from the former Navigation child (now subunits).
-   use Ada.Strings.Unbounded;
-   use type Files.File_System.Path_Status;
-   use type Files.Types.Item_Kind;
-   use Files.Operations.Support;
+   function Execute_Open_Action
+     (Action      : Files.Settings.Open_Action;
+      Exit_Status : out Integer;
+      Detach      : Boolean := False)
+      return Boolean;
 
-   --  Shared normalize -> load -> navigate tail for the absolute-destination
-   --  navigations (Home, Parent, Trash, Select_Root). Path is the raw requested
-   --  path; on a normalize failure the error is reported against it, on a load
-   --  failure against the normalized path. Close_Selector closes the root selector
-   --  after a successful navigation (used only by Select_Root).
-   --  Hoisted from the former Open child (now subunits).
-   use Ada.Strings.Unbounded;
-   use type Files.Types.Item_Kind;
-   use type GNAT.OS_Lib.Argument_List_Access;
-   use type GNAT.OS_Lib.String_Access;
-   use Files.Operations.Support;
+   function Detected_Terminal return String;
 
-   --  Hoisted from the former Transfer child (now subunits).
-   use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
-   use type Files.File_System.Drop_Import_Mode;
-   use type Zlib.Status_Code;
-   use Files.Operations.Support;
-
-   --  Shared implementation for the create-symlink and create-hard-link
-   --  commands. Each selected item gets a uniquely named link in the current
-   --  directory; the created links are recorded so Undo can delete them.
-   function Create_Links
+   function Open_Terminal
      (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Hard     : Boolean)
-      return Operation_Result
- is separate;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
 
-   --  Full paths of every entry directly inside Directory (hidden entries
-   --  included). Used as the "already exists" set for conflict detection and for
-   --  rename uniquification, so a renamed paste avoids any existing name, not
-   --  just the colliding one. Falls back to an empty set when the directory
-   --  cannot be scanned; Execute_Drop_Import then still refuses to clobber.
-   function Existing_Destination_Paths
-     (Directory : String)
-      return Files.Types.String_Vectors.Vector
- is separate;
-
-   --  Build the paste work-list from validated plans: one item per valid plan,
-   --  skipping a move whose destination equals its source (moving an item into
-   --  the directory it already lives in is a no-op).
-   function Paste_Work_List
-     (Plans     : Files.File_System.Drop_Import_Plan_Vectors.Vector;
-      Directory : String)
-      return Files.Paste.Work_Item_Vectors.Vector
- is separate;
-
-   --  Remove a destination that a Replace decision must overwrite: move it to the
-   --  trash when a backend is available, otherwise delete it permanently. Never
-   --  touches a destination that is also the source (a paste onto itself).
-   function Clear_Replaced_Destination
-     (Path    : String;
-      Source  : String;
-      Trashed : out Files.Types.UString)
-      return Boolean is separate;
-
-   --  Batch size for the first advance driven from Begin_Paste /
-   --  Resolve_Paste_Conflict: large enough that ordinary interactive pastes
-   --  finish in one step (so no progress overlay ever flickers), while larger
-   --  batches keep animating through the per-frame render-loop advances.
-   Paste_Execution_First_Batch : constant := 32;
-
-   --  Finalize an armed paste execution: record one undo covering the items
-   --  actually completed (move reversed by moving back; copy by deleting the
-   --  created copies), clear the move-mode clipboard, reload, and clear the
-   --  execution state. A non-empty Error_Key reports a mid-run write failure.
-   function Finalize_Paste_Execution
+   function Prepare_Open_Selected_Action
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Error_Key : String)
-      return Operation_Result
- is separate;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Operation_Result;
 
-   function Unsafe_Open_Action
-     (Model : in out Files.Model.Window_Model;
-      Path  : String)
-      return Operation_Result is separate;
-
-   --  These stay public because callers and tests ask for them, but the answer is
-   --  Hostkit's: which shell, and how it wants a command introduced, is one question
-   --  asked in one place, not re-derived per crate.
-
-   --  An open action's arguments, in the vector Hostkit speaks.
-   function Host_Arguments
-     (Arguments : Files.Types.String_Vectors.Vector)
-      return Hostkit.String_Vectors.Vector
- is separate;
-
-   function Open_Action_Executable_Is_Available
-     (Action : Files.Settings.Open_Action)
-      return Boolean is separate;
-
-   function Load_And_Navigate
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : Files.Settings.Settings_Model;
-      Path           : String;
-      Close_Selector : Boolean := False)
-      return Operation_Result
- is separate;
-
-   type History_Direction is (History_Back, History_Forward);
-
-   --  History navigation shared by Navigate_Back and Navigate_Forward: mirror
-   --  images differing only in the availability check, the error key, the move,
-   --  and which way the rollback moves on a failed reload.
-   function Navigate_History
+   function Open_Selected
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Direction : History_Direction)
-      return Operation_Result
- is separate;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Operation_Result;
+   end Open;
+   package body Open is separate;
 
-   function Permissions_Editable_Selection
-     (Model : Files.Model.Window_Model)
-      return Boolean
- is separate;
-
-   function Ownership_Editable_Selection
-     (Model : Files.Model.Window_Model)
-      return Boolean
- is separate;
-
-   function Move_Back
-     (Sources : Files.Types.String_Vectors.Vector;
-      Targets : Files.Types.String_Vectors.Vector)
-      return Boolean
- is separate;
-
-   --  Apply the reverse (undo) direction of Action. Returns True on full
-   --  success. Mirrors the pre-existing single-level undo behaviour.
-   function Apply_Reverse
-     (Action : Files.Model.Undo_Entry)
-      return Boolean
- is separate;
-
-   --  Apply the forward (redo) direction of Action. Returns True on full
-   --  success. Undo_Restore_Trash is undo-only and never reaches here.
-   function Apply_Forward
-     (Action : Files.Model.Undo_Entry)
-      return Boolean
- is separate;
-
+   --  The open/launch/terminal operations now live in the
+   --  Files.Operations.Open child; these renamings keep them on the public API.
    function Open_Action_Policy return Open_Action_Execution_Policy
-     is separate;
+     renames Open.Open_Action_Policy;
 
    function Open_Action_Lifecycle_Of
      (Result : Operation_Result)
       return Open_Action_Lifecycle
-     is separate;
+     renames Open.Open_Action_Lifecycle_Of;
 
    function Shell_Executable return String
-     is separate;
+     renames Open.Shell_Executable;
 
    function Shell_Command_Option return String
-     is separate;
+     renames Open.Shell_Command_Option;
 
    function Execute_Open_Action
      (Action      : Files.Settings.Open_Action;
       Exit_Status : out Integer;
       Detach      : Boolean := False)
       return Boolean
-     is separate;
+     renames Open.Execute_Open_Action;
 
    function Detected_Terminal return String
-     is separate;
+     renames Open.Detected_Terminal;
 
    function Open_Terminal
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Open.Open_Terminal;
 
    function Prepare_Open_Selected_Action
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Operation_Result
-     is separate;
+     renames Open.Prepare_Open_Selected_Action;
 
    function Open_Selected
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Operation_Result
-     is separate;
+     renames Open.Open_Selected;
 
-   --  The recursive name/content search operations are subunits of Files.Operations.
+   package Search is
+   function Run_Recursive_Search
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Content_Matches
+     (Bytes : String;
+      Query : String)
+      return Boolean;
+
+   function Run_Content_Search
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+   end Search;
+   package body Search is separate;
+
+   --  The recursive name/content search operations now live in the
+   --  Files.Operations.Search child; these renamings keep them on the public API.
    function Run_Recursive_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Search.Run_Recursive_Search;
 
    function Content_Matches
      (Bytes : String;
       Query : String)
       return Boolean
-     is separate;
+     renames Search.Content_Matches;
 
    function Run_Content_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Search.Run_Content_Search;
 
-   --  The directory-navigation operations are subunits of Files.Operations.
+   package Navigation is
+   procedure Apply_Ui_State
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
+   function Refresh
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Refresh_If_Changed
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Commit_Path_Input
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Navigate_Home
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Navigate_Back
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Navigate_Forward
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Navigate_Parent
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Navigate_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Navigate_Recent
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Select_Root
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Root_Path : String)
+      return Operation_Result;
+
+   function Eject_Selected_Root
+     (Model : in out Files.Model.Window_Model)
+      return Operation_Result;
+   end Navigation;
+   package body Navigation is separate;
+
+   --  The directory-navigation operations now live in the
+   --  Files.Operations.Navigation child; these renamings keep them on the public API.
    procedure Apply_Ui_State
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
-      is separate;
+      renames Navigation.Apply_Ui_State;
 
    function Refresh
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Refresh;
 
    function Refresh_If_Changed
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Refresh_If_Changed;
 
    function Commit_Path_Input
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Commit_Path_Input;
 
    function Navigate_Home
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Navigate_Home;
 
    function Navigate_Back
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Navigate_Back;
 
    function Navigate_Forward
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Navigate_Forward;
 
    function Navigate_Parent
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Navigate_Parent;
 
    function Navigate_Trash
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Navigate_Trash;
 
    function Navigate_Recent
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Navigate_Recent;
 
    function Select_Root
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Root_Path : String)
       return Operation_Result
-      is separate;
+      renames Navigation.Select_Root;
 
    function Eject_Selected_Root
      (Model : in out Files.Model.Window_Model)
       return Operation_Result
-      is separate;
+      renames Navigation.Eject_Selected_Root;
+
+   package Transfer is
+   function Compress_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Format   : Archive_Format)
+      return Operation_Result;
+
+   function Extract_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Duplicate_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Create_Symlink_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Create_Hardlink_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Delete_Selected
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Delete_Selected_Permanently
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Restore_Selected_From_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Empty_Trash
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Advance_Paste_Execution
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Max_Items : Positive)
+      return Operation_Result;
+
+   procedure Cancel_Paste_Execution
+     (Model : in out Files.Model.Window_Model);
+
+   function Begin_Paste
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Source_Paths   : Files.Types.String_Vectors.Vector;
+      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      From_Clipboard : Boolean := True)
+      return Operation_Result;
+
+   function Begin_Paste_To
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : Files.Settings.Settings_Model;
+      Source_Paths   : Files.Types.String_Vectors.Vector;
+      Destination    : String;
+      Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      From_Clipboard : Boolean := True)
+      return Operation_Result;
+
+   function Resolve_Paste_Conflict
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Choice    : Conflict_Choice;
+      Apply_All : Boolean)
+      return Operation_Result;
+
+   function Commit_Create_File
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Commit_Rename
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+   end Transfer;
+   package body Transfer is separate;
 
    --  The archive / link / delete / trash / paste transfer operations now live
-   --  The clipboard/paste/trash transfer operations are subunits of Files.Operations.
+   --  in the Files.Operations.Transfer child; these renamings keep them on the
+   --  parent's public API.
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Format   : Archive_Format)
       return Operation_Result
-     is separate;
+     renames Transfer.Compress_Selected;
 
    function Extract_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Extract_Selected;
 
    function Duplicate_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Duplicate_Selected;
 
    function Create_Symlink_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Create_Symlink_Selected;
 
    function Create_Hardlink_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Create_Hardlink_Selected;
 
    function Delete_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Delete_Selected;
 
    function Delete_Selected_Permanently
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Delete_Selected_Permanently;
 
    function Restore_Selected_From_Trash
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Restore_Selected_From_Trash;
 
    function Empty_Trash
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Empty_Trash;
 
    function Advance_Paste_Execution
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Max_Items : Positive)
       return Operation_Result
-     is separate;
+     renames Transfer.Advance_Paste_Execution;
 
    procedure Cancel_Paste_Execution
      (Model : in out Files.Model.Window_Model)
-     is separate;
+     renames Transfer.Cancel_Paste_Execution;
 
    function Begin_Paste
      (Model          : in out Files.Model.Window_Model;
@@ -421,7 +466,7 @@ package body Files.Operations is
       Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
       From_Clipboard : Boolean := True)
       return Operation_Result
-     is separate;
+     renames Transfer.Begin_Paste;
 
    function Begin_Paste_To
      (Model          : in out Files.Model.Window_Model;
@@ -431,7 +476,7 @@ package body Files.Operations is
       Mode           : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
       From_Clipboard : Boolean := True)
       return Operation_Result
-     is separate;
+     renames Transfer.Begin_Paste_To;
 
    function Resolve_Paste_Conflict
      (Model     : in out Files.Model.Window_Model;
@@ -439,19 +484,19 @@ package body Files.Operations is
       Choice    : Conflict_Choice;
       Apply_All : Boolean)
       return Operation_Result
-     is separate;
+     renames Transfer.Resolve_Paste_Conflict;
 
    function Commit_Create_File
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Commit_Create_File;
 
    function Commit_Rename
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-     is separate;
+     renames Transfer.Commit_Rename;
 
    function Generate_Selected_Thumbnails
      (Model    : in out Files.Model.Window_Model;
@@ -506,20 +551,43 @@ package body Files.Operations is
       return Make_Result (Operation_Success, Path => To_String (First_Path));
    end Generate_Selected_Thumbnails;
 
-   --  The permission/ownership operations are subunits of Files.Operations.
+   package Metadata is
+   function Set_Permissions_For
+     (Model    : in out Files.Model.Window_Model;
+      New_Mode : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Toggle_Permission_Bit
+     (Model    : in out Files.Model.Window_Model;
+      Bit      : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Set_Ownership_For
+     (Model    : in out Files.Model.Window_Model;
+      User_Id  : Natural;
+      Group_Id : Natural;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+   end Metadata;
+   package body Metadata is separate;
+
+   --  The permission/ownership operations now live in the Files.Operations.Metadata
+   --  child; these renamings keep them on the parent's public API.
    function Set_Permissions_For
      (Model    : in out Files.Model.Window_Model;
       New_Mode : Natural;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Metadata.Set_Permissions_For;
 
    function Toggle_Permission_Bit
      (Model    : in out Files.Model.Window_Model;
       Bit      : Natural;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Metadata.Toggle_Permission_Bit;
 
    function Set_Ownership_For
      (Model    : in out Files.Model.Window_Model;
@@ -527,7 +595,7 @@ package body Files.Operations is
       Group_Id : Natural;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames Metadata.Set_Ownership_For;
 
    procedure Update_Folder_Size
      (Model    : in out Files.Model.Window_Model;
@@ -567,18 +635,32 @@ package body Files.Operations is
       end if;
    end Update_Folder_Size;
 
-   --  The undo/redo history operations are subunits of Files.Operations.
+   package History is
+   function Undo_Last
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+
+   function Redo_Last
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
+   end History;
+   package body History is separate;
+
+   --  The undo/redo history operations now live in the Files.Operations.History
+   --  child; these renamings keep public Undo_Last/Redo_Last on the parent.
    function Undo_Last
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames History.Undo_Last;
 
    function Redo_Last
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
-      is separate;
+      renames History.Redo_Last;
 
    function Prepare_Quick_Look
      (Item : Files.File_System.Directory_Item)
