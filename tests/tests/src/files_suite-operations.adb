@@ -2553,6 +2553,46 @@ package body Files_Suite.Operations is
         (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "8 8"),
          "thumbnail artifact records requested image dimensions");
 
+      --  Decode a COMPLETE PNG (IHDR + a real IDAT + IEND) through the pure-Ada
+      --  fast path. The other cases use an IDAT-less header, so this is the only
+      --  test that actually drives inflate + unfilter + pixel decode -- and thus
+      --  the heap-backed raster buffer. A solid colour must survive the decode
+      --  and downscale, so its distinctive red value appears in the P3 output.
+      declare
+         Png_W   : constant := 60;
+         Png_H   : constant := 60;
+         --  A well-formed PNG: signature, then an IHDR chunk (with a CRC slot,
+         --  unlike Minimal_Png_Header) declaring 8-bit truecolour, non-interlaced.
+         Signature : constant String :=
+           Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) & Byte (16#1A#) & Byte (16#0A#);
+         Ihdr    : constant String :=
+           Byte (0) & Byte (0) & Byte (0) & Byte (Png_W)
+           & Byte (0) & Byte (0) & Byte (0) & Byte (Png_H)
+           & Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0);
+         Raster  : Unbounded_String;
+         Png_Src : constant String := Join (Root, "decodable-rgb.png");
+         Decoded : Files.File_System.Thumbnail_Result;
+      begin
+         for Row in 1 .. Png_H loop
+            Append (Raster, Byte (0));  -- PNG row filter type 0 (None)
+            for Col in 1 .. Png_W loop
+               Append (Raster, Byte (173) & Byte (89) & Byte (211));
+            end loop;
+         end loop;
+         Write_Binary_File
+           (Png_Src,
+            Signature & Chunk ("IHDR", Ihdr)
+            & Chunk ("IDAT", Stored_Zlib_Stream (To_String (Raster)))
+            & Chunk ("IEND", ""));
+         Decoded := Files.File_System.Generate_Thumbnail (Png_Src, Thumbnail_Cache, Size => 8);
+         Assert
+           (Decoded.Status = Files.File_System.Thumbnail_Generated,
+            "a complete PNG decodes through the pure-Ada fast path");
+         Assert
+           (Project_Tools.Files.File_Contains (To_String (Decoded.Thumbnail_Path), "173"),
+            "the decoded solid colour survives inflate/unfilter/downscale");
+      end;
+
       Write_Binary_File
         (Decoded_Png_Source,
          Minimal_Png_RGB

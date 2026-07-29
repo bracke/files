@@ -619,18 +619,6 @@ package body Thumbnails is
               & Character'Val (Byte_At (Bytes, Index + 3));
          end Chunk_Type;
 
-         function Raw_Byte
-           (Data  : Ada.Streams.Stream_Element_Array;
-            Index : Natural)
-            return Natural is
-         begin
-            if Ada.Streams.Stream_Element_Offset (Index) not in Data'Range then
-               return 0;
-            end if;
-
-            return Natural (Data (Ada.Streams.Stream_Element_Offset (Index)));
-         end Raw_Byte;
-
          function Paeth
            (Left  : Natural;
             Up    : Natural;
@@ -702,14 +690,9 @@ package body Thumbnails is
            or else Height = 0
            or else Width > 4096
            or else Height > 4096
-           --  The pure-Ada decoder holds the full inflated raster (plus the
-           --  zlib output) in stack/secondary-stack arrays; at 2048x2048 RGBA
-           --  that is tens of MB and overflowed smaller worker-task stacks
-           --  (Storage_Error -> fallback), so the fast path was unreliable for
-           --  exactly the large images near the old cap. Bound it to 1024x1024
-           --  so it is reliable within range; larger PNGs use the gdk-pixbuf
-           --  fallback, which streams and does not.
-           or else Width * Height > 1_048_576
+           --  Guard against absurd dimensions (the inflated raster is bounded by
+           --  RAM, not the stack -- see the heap-backed raster vector below).
+           or else Width * Height > 4_194_304
            or else Bit_Depth /= 8
            or else Interlace /= 0
            or else Idat.Is_Empty
@@ -731,8 +714,10 @@ package body Thumbnails is
             Needed     : constant Natural := Height * (Row_Stride + 1);
             Compressed : constant Ada.Streams.Stream_Element_Array := Bytes_To_Stream_Array (Idat);
             Source     : Zlib.Byte_Array (0 .. Natural (Compressed'Length) - 1);
-            Inflated   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Needed - 1)) :=
-              [others => 0];
+            --  The full inflated raster lives in a heap-backed vector, not a
+            --  stack/secondary-stack array, so a large image cannot exhaust the
+            --  stack -- it is bounded by RAM instead.
+            Inflated   : Thumbnail_Byte_Vectors.Vector;
             Decode_Status : Zlib.Status_Code := Zlib.Ok;
             Previous   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
               [others => 0];
@@ -753,15 +738,16 @@ package body Thumbnails is
                if Decode_Status /= Zlib.Ok or else Raw_Inflated'Length < Needed then
                   return False;
                end if;
+               Inflated.Reserve_Capacity (Ada.Containers.Count_Type (Needed));
                for I in 0 .. Needed - 1 loop
-                  Inflated (Ada.Streams.Stream_Element_Offset (I)) :=
-                    Ada.Streams.Stream_Element (Raw_Inflated (Raw_Inflated'First + I));
+                  Inflated.Append
+                    (Ada.Streams.Stream_Element (Raw_Inflated (Raw_Inflated'First + I)));
                end loop;
             end;
 
             for Row in 0 .. Height - 1 loop
                declare
-                  Filter : constant Natural := Raw_Byte (Inflated, Row * (Row_Stride + 1));
+                  Filter : constant Natural := Byte_At (Inflated, Row * (Row_Stride + 1));
                   Base   : constant Natural := Row * (Row_Stride + 1) + 1;
                begin
                   if Filter > 4 then
@@ -770,7 +756,7 @@ package body Thumbnails is
 
                   for Column in 0 .. Row_Stride - 1 loop
                      declare
-                        Raw   : constant Natural := Raw_Byte (Inflated, Base + Column);
+                        Raw   : constant Natural := Byte_At (Inflated, Base + Column);
                         Left  : constant Natural :=
                           (if Column >= Channels
                            then Natural (Current (Ada.Streams.Stream_Element_Offset (Column - Channels)))
