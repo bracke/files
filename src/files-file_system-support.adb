@@ -123,18 +123,23 @@ package body Files.File_System.Support is
       --  mirrors the search/size walkers, which also skip links via Hostkit.Fs.
       if Hostkit.Fs.Is_Link (Source_Path) then
          declare
-            Target : Ada.Strings.Unbounded.Unbounded_String;
+            Target  : Ada.Strings.Unbounded.Unbounded_String;
+            Created : Boolean := False;
          begin
             if Hostkit.Fs.Read_Link_Target (Source_Path, Target) then
-               --  A host that refuses to create the link (e.g. Windows without the
-               --  privilege) leaves it out rather than dereferencing it.
-               declare
-                  Created : constant Boolean :=
-                    Hostkit.Fs.Create_Link (To_String (Target), Destination_Path);
-                  pragma Unreferenced (Created);
-               begin
-                  null;
-               end;
+               Created := Hostkit.Fs.Create_Link (To_String (Target), Destination_Path);
+            end if;
+
+            --  If the link cannot be recreated (unreadable target, or a host
+            --  that refuses link creation, e.g. Windows without the privilege),
+            --  raise rather than silently omit it. Copy_Tree is the copy step of
+            --  the cross-device MOVE fallback, which deletes the source only
+            --  after it returns: silently dropping the link and then deleting
+            --  the original would lose it. Raising aborts the copy so the move
+            --  keeps the source; the function wrapper maps this to
+            --  error.copy.failed.
+            if not Created then
+               raise Program_Error;
             end if;
          end;
          return;
