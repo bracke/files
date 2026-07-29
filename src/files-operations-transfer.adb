@@ -37,6 +37,13 @@ package body Transfer is
       begin
          if not Ada.Directories.Exists (Full) then
             return;
+         elsif Hostkit.Fs.Is_Link (Full) then
+            --  Skip symlinks instead of following them: Ada.Directories.Kind
+            --  dereferences a link, so a link to an ancestor would recurse
+            --  unbounded (Storage_Error) and a link to a directory would archive
+            --  the target's contents under the link's name. Mirrors Copy_Tree /
+            --  Directory_Size, which also skip links via Hostkit.Fs.
+            return;
          elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
             Ada.Directories.Start_Search
               (Search,
