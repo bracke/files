@@ -129,6 +129,7 @@ package body Files_Suite.Operations is
    procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -237,6 +238,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Is_Bounded'Access,
          "the thumbnail cache is pruned to its budget, oldest first");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Permission_String_Agrees_With_The_Host'Access,
+         "the permission column's execute bit matches what the host says");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3050,6 +3054,50 @@ package body Files_Suite.Operations is
    --  The cache used to grow without limit: nothing ever deleted a thumbnail,
    --  so it kept one file per image ever browsed, plus every orphan whose source
    --  had since been renamed or deleted.
+   --  The permission column takes the execute bit from the item's Kind instead
+   --  of asking the host a second time, which is only sound while the
+   --  classifiers keep implying it. This is what notices if that stops being
+   --  true: without it the column would quietly disagree with the filesystem.
+   procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Plain      : constant String := Join (Root, "plain-file.txt");
+      Runnable   : constant String := Join (Root, "runnable.sh");
+      Sub_Dir    : constant String := Join (Root, "a-directory");
+
+      function Execute_Bit (Path : String) return Character is
+         Loaded : constant Files.File_System.Item_Load_Result :=
+           Files.File_System.Load_Item (Path, Settings);
+         Text   : constant String := To_String (Loaded.Item.Permissions);
+      begin
+         Assert (Loaded.Success, "the item loads: " & Path);
+         Assert (Text'Length = 3, "the permission column has three positions: " & Text);
+         return Text (Text'First + 2);
+      end Execute_Bit;
+   begin
+      Reset_Root;
+      Write_File (Plain, "not runnable");
+      Write_File (Runnable, "#!/bin/sh" & ASCII.LF & "exit 0");
+      Ada.Directories.Create_Directory (Sub_Dir);
+
+      --  Whatever the host says about each path is what the column must show.
+      Assert
+        (Execute_Bit (Plain) = (if Hostkit.Fs.Is_Executable (Plain) then 'x' else '-'),
+         "a plain file's execute bit matches the host");
+      Assert
+        (Execute_Bit (Sub_Dir) = (if Hostkit.Fs.Is_Executable (Sub_Dir) then 'x' else '-'),
+         "a directory's execute bit matches the host");
+
+      if Files.File_System.Set_Permissions (Runnable, 8#755#).Success then
+         Assert
+           (Execute_Bit (Runnable) = (if Hostkit.Fs.Is_Executable (Runnable) then 'x' else '-'),
+            "a file the host will run matches the host");
+         Assert
+           (Execute_Bit (Runnable) = 'x',
+            "and on a host with mode bits, chmod +x really does show as executable");
+      end if;
+   end Test_Permission_String_Agrees_With_The_Host;
+
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Cache : constant String := Join (Root, "prune-cache");

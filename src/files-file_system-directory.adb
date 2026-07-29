@@ -82,7 +82,13 @@ package body Directory is
       Thumbnail_Path  : String)
       return Cached_Thumbnail;
 
-   function Permission_String (Path : String) return String;
+   --  @param Path The item's full path.
+   --  @param Kind How the item was already classified, which for most kinds
+   --              settles executability without asking the host again.
+   function Permission_String
+     (Path : String;
+      Kind : Files.Types.Item_Kind)
+      return String;
 
    function Count_Text_Lines (Path : String) return Natural;
 
@@ -582,8 +588,37 @@ package body Directory is
       end;
    end Sort_Items;
 
-   function Permission_String (Path : String) return String is
+   function Permission_String
+     (Path : String;
+      Kind : Files.Types.Item_Kind)
+      return String
+   is
       Result : String (1 .. 3) := "---";
+
+      --  Both classifiers -- Kind_From_Directory_Entry and the one in Load_Item
+      --  -- reach Executable_Item by asking Hostkit.Fs.Is_Executable and
+      --  Regular_File_Item by the same question answering False, so for those
+      --  two the answer is already in Kind. A directory and a special file are
+      --  not ordinary files, which is what Is_Executable requires, so it answers False
+      --  for them without being asked.
+      --
+      --  A symlink is the case the classifiers never ask about: they stop at
+      --  Symlink_Item before reaching the executable test, and Is_Executable
+      --  follows the link. Unknown_Item comes from a classifier that raised, so
+      --  it settles nothing either. Both still ask.
+      --
+      --  Worth the coupling because Is_Executable is three stats on Linux
+      --  (Exists, Kind, Is_Executable_File) and this made it six per listed
+      --  file. Test_Permission_String_Agrees_With_The_Host pins it: if a
+      --  classifier ever stops implying the answer, that fails rather than the
+      --  permission column quietly going wrong.
+      Ask_The_Host : constant Boolean :=
+        Kind in Files.Types.Symlink_Item | Files.Types.Unknown_Item;
+
+      Executable : constant Boolean :=
+        (if Ask_The_Host
+         then Hostkit.Fs.Is_Executable (Path)
+         else Kind = Files.Types.Executable_Item);
    begin
       if GNAT.OS_Lib.Is_Owner_Readable_File (Path) then
          Result (1) := 'r';
@@ -591,7 +626,7 @@ package body Directory is
       if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
          Result (2) := 'w';
       end if;
-      if Hostkit.Fs.Is_Executable (Path) then
+      if Executable then
          Result (3) := 'x';
       end if;
 
@@ -1283,7 +1318,7 @@ package body Directory is
            Hostkit.Metadata.File_Creation_Time (Full, Item.Creation_Available);
          Item.Modified_Time := Ada.Directories.Modification_Time (Full);
          Item.Modified_Available := True;
-         Item.Permissions := To_Unbounded_String (Permission_String (Full));
+         Item.Permissions := To_Unbounded_String (Permission_String (Full, Kind));
          Hostkit.Metadata.File_Mode_And_Ownership
            (Full,
             Item.Mode_Bits, Item.Mode_Available,
