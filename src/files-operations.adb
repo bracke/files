@@ -21,11 +21,6 @@ with Hostkit.Shell;
 with Zlib;
 
 with Files.Operations.Support;
-with Files.Model;
-with Files.Settings;
-with Guikit.Input;
-with Files.File_System;
-with Files.Types;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
