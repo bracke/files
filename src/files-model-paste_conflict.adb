@@ -1,6 +1,5 @@
 separate (Files.Model)
 package body Paste_Conflict is
-   use Ada.Strings.Unbounded;
 
    procedure Begin_Paste_Conflict
      (Model           : in out Window_Model;

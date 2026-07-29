@@ -3,9 +3,7 @@ with Files.Type_Ahead;
 
 separate (Files.Model)
 package body Filter is
-   use Files.Model.Support;
    use type Files.Types.Search_Scope;
-   use Ada.Strings.Unbounded;
 
    procedure Set_Filter
      (Model : in out Window_Model;

@@ -15,8 +15,6 @@ with Ada.Streams.Stream_IO;
 
 separate (Files.File_System)
 package body Directory is
-   use Files.File_System.Support;
-   use Ada.Strings.Unbounded;
    use type Interfaces.C.int;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;

@@ -6,7 +6,6 @@ with GNAT.OS_Lib;
 
 separate (Files.File_System)
 package body Path is
-   use Ada.Strings.Unbounded;
 
    function Parent_Directory (Path : String) return String is
    begin

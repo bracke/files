@@ -11,11 +11,9 @@ with Files.Operations.Support;
 
 separate (Files.Operations)
 package body Transfer is
-   use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
    use type Files.File_System.Drop_Import_Mode;
    use type Zlib.Status_Code;
-   use Files.Operations.Support;
 
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;

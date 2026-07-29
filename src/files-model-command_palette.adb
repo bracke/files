@@ -3,7 +3,6 @@ with Files.Command_Palette;
 
 separate (Files.Model)
 package body Command_Palette is
-   use Files.Model.Support;
    use type Files.Types.Focus_Target;
 
    procedure Focus_Command_Palette_Input

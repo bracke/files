@@ -1,6 +1,5 @@
 separate (Files.Model)
 package body Clipboard is
-   use Ada.Strings.Unbounded;
 
    procedure Set_System_Clipboard_Request
      (Model : in out Window_Model;

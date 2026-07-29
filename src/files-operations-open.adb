@@ -13,11 +13,9 @@ with Files.Operations.Support;
 
 separate (Files.Operations)
 package body Open is
-   use Ada.Strings.Unbounded;
    use type Files.Types.Item_Kind;
    use type GNAT.OS_Lib.Argument_List_Access;
    use type GNAT.OS_Lib.String_Access;
-   use Files.Operations.Support;
 
    function Open_Action_Policy return Open_Action_Execution_Policy is
    begin

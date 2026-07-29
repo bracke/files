@@ -7,10 +7,8 @@ with Files.Operations.Support;
 
 separate (Files.Operations)
 package body Navigation is
-   use Ada.Strings.Unbounded;
    use type Files.File_System.Path_Status;
    use type Files.Types.Item_Kind;
-   use Files.Operations.Support;
 
    procedure Apply_Ui_State
      (Model    : in out Files.Model.Window_Model;

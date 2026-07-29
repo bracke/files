@@ -4,9 +4,7 @@ with Files.Settings_Form;
 
 separate (Files.Model)
 package body Panes is
-   use Files.Model.Support;
    use type Files.Types.Focus_Target;
-   use Ada.Strings.Unbounded;
 
    procedure Toggle_Info_Pane
      (Model : in out Window_Model) is

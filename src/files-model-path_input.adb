@@ -2,9 +2,7 @@ with Files.Model.Support;
 
 separate (Files.Model)
 package body Path_Input is
-   use Files.Model.Support;
    use type Files.File_System.Path_Status;
-   use Ada.Strings.Unbounded;
 
    procedure Focus_Path_Input
      (Model : in out Window_Model) is

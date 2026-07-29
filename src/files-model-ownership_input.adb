@@ -3,8 +3,6 @@ with Ada.Strings.Fixed;
 
 separate (Files.Model)
 package body Ownership_Input is
-   use Files.Model.Support;
-   use Ada.Strings.Unbounded;
 
    procedure Focus_Ownership_Input
      (Model         : in out Window_Model;

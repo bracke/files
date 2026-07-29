@@ -5,7 +5,6 @@ with Files.Platform.Metadata;
 
 separate (Files.File_System)
 package body Permissions is
-   use Ada.Strings.Unbounded;
 
    --  Session cache for numeric-id -> name resolution. Build_Snapshot resolves
    --  the selected items' owner/group names every frame, so memoize each id's

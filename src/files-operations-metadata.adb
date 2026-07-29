@@ -8,8 +8,6 @@ with Files.Operations.Support;
 
 separate (Files.Operations)
 package body Metadata is
-   use Ada.Strings.Unbounded;
-   use Files.Operations.Support;
 
    function Permissions_Editable_Selection
      (Model : Files.Model.Window_Model)

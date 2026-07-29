@@ -2,9 +2,7 @@ with Files.Model.Support;
 
 separate (Files.Model)
 package body Temporary is
-   use Files.Model.Support;
    use type Files.Types.Focus_Target;
-   use Ada.Strings.Unbounded;
 
    procedure Begin_Create_File
       (Model : in out Window_Model;

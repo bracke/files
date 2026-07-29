@@ -3,10 +3,8 @@ with Files.UTF8;
 
 separate (Files.Model)
 package body Rename is
-   use Files.Model.Support;
    use type Guikit.Input.Navigation_Direction;
    use type Files.Types.Focus_Target;
-   use Ada.Strings.Unbounded;
 
    procedure Focus_Rename_Input
      (Model : in out Window_Model) is

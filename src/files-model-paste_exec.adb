@@ -1,6 +1,5 @@
 separate (Files.Model)
 package body Paste_Exec is
-   use Ada.Strings.Unbounded;
 
    procedure Begin_Paste_Execution
      (Model           : in out Window_Model;

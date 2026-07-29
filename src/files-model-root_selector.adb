@@ -2,8 +2,6 @@ with Files.Model.Support;
 
 separate (Files.Model)
 package body Root_Selector is
-   use Files.Model.Support;
-   use Ada.Strings.Unbounded;
    use type Guikit.Input.Navigation_Direction;
 
    procedure Open_Root_Selector

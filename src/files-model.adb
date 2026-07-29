@@ -9,7 +9,6 @@ with Files.Type_Ahead;
 with Files.UTF8;
 
 with Files.Model.Support;
-with Files.Types;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;

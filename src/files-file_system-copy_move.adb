@@ -5,8 +5,6 @@ with Files.Fs;
 
 separate (Files.File_System)
 package body Copy_Move is
-   use Files.File_System.Support;
-   use Ada.Strings.Unbounded;
 
    function Copy_Tree
      (Source_Path      : String;

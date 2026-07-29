@@ -2,8 +2,6 @@ with Files.Model.Support;
 
 separate (Files.Model)
 package body Selection is
-   use Files.Model.Support;
-   use Ada.Strings.Unbounded;
 
    procedure Select_Visible
      (Model         : in out Window_Model;

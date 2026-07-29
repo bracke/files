@@ -1,6 +1,5 @@
 separate (Files.Model)
 package body Error is
-   use Ada.Strings.Unbounded;
 
    procedure Set_Error
      (Model     : in out Window_Model;

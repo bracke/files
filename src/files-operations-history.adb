@@ -8,9 +8,7 @@ with Files.Operations.Support;
 
 separate (Files.Operations)
 package body History is
-   use Ada.Strings.Unbounded;
    use type Files.Model.Undo_Action_Kind;
-   use Files.Operations.Support;
 
    function Move_Back
      (Sources : Files.Types.String_Vectors.Vector;

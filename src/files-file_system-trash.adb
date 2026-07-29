@@ -11,8 +11,6 @@ with Files.Platform.Macos.Trash;
 
 separate (Files.File_System)
 package body Trash is
-   use Files.File_System.Support;
-   use Ada.Strings.Unbounded;
 
    use type Ada.Directories.File_Kind;
    function Trash_Base_Path return String;

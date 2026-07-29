@@ -9,8 +9,6 @@ with Files.Platform.Metadata;
 
 separate (Files.File_System)
 package body Create is
-   use Files.File_System.Support;
-   use Ada.Strings.Unbounded;
 
    use type Ada.Directories.File_Kind;
    function Mutation_Leaf_Name (Path : String) return String;

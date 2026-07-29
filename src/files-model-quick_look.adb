@@ -2,8 +2,6 @@ with Files.Model.Support;
 
 separate (Files.Model)
 package body Quick_Look is
-   use Files.Model.Support;
-   use Ada.Strings.Unbounded;
 
    procedure Open_Quick_Look
      (Model   : in out Window_Model;

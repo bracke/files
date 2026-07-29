@@ -2,7 +2,6 @@ with Files.Model.Support;
 
 separate (Files.Model)
 package body View_Sort is
-   use Files.Model.Support;
 
    function View_Mode_Of
      (Model : Window_Model)

@@ -1,6 +1,5 @@
 separate (Files.Model)
 package body Tree_Panel is
-   use Ada.Strings.Unbounded;
 
    procedure Toggle_Tree_Panel
      (Model : in out Window_Model) is

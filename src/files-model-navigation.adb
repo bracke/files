@@ -3,8 +3,6 @@ with Ada.Containers.Ordered_Sets;
 
 separate (Files.Model)
 package body Navigation is
-   use Files.Model.Support;
-   use Ada.Strings.Unbounded;
 
    function Current_Path
      (Model : Window_Model)

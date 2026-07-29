@@ -9,9 +9,7 @@ with Files.Operations.Support;
 
 separate (Files.Operations)
 package body Search is
-   use Ada.Strings.Unbounded;
    use type Files.Types.Item_Kind;
-   use Files.Operations.Support;
 
    function Run_Recursive_Search
      (Model    : in out Files.Model.Window_Model;

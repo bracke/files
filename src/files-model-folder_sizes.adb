@@ -1,6 +1,5 @@
 separate (Files.Model)
 package body Folder_Sizes is
-   use Ada.Strings.Unbounded;
 
    procedure Set_Folder_Size
      (Model : in out Window_Model;

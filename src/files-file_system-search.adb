@@ -5,7 +5,6 @@ with Files.Fs;
 
 separate (Files.File_System)
 package body Search is
-   use Ada.Strings.Unbounded;
 
    use type Files.Types.Item_Kind;
    function Search_Recursive
