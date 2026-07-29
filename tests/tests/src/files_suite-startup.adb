@@ -993,9 +993,10 @@ package body Files_Suite.Startup is
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings"));
       Config := Files.Application.Parse_Run_Configuration (Args);
-      Assert (To_String (Config.Settings_Path) = "", "missing settings value leaves default settings path");
-      Assert (Natural (Config.Paths.Length) = 1, "missing settings value preserves flag as path");
-      Assert (To_String (Config.Paths.Element (1)) = "--settings", "missing settings value is not dropped");
+      Assert (To_String (Config.Settings_Path) = "", "a dangling --settings leaves the default settings path");
+      Assert
+        (Config.Paths.Is_Empty,
+         "a dangling --settings is dropped rather than becoming a bogus --settings startup path");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings="));
@@ -1230,6 +1231,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.path.missing");
       Add_Error_Key ("error.path.inaccessible");
       Add_Error_Key ("error.directory.load");
+      Add_Error_Key ("error.startup.too_many_windows");
       Add_Error_Key ("error.metadata.read");
       Add_Error_Key ("error.file.create");
       Add_Error_Key ("error.file.exists");

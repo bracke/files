@@ -66,9 +66,10 @@ package body Files.Application is
          end;
       end loop;
 
-      if Need_Settings_Path then
-         Result.Paths.Append (To_Unbounded_String ("--settings"));
-      end if;
+      --  A dangling "--settings" with no value after it is simply dropped (the
+      --  app falls back to the default settings file). Appending the literal flag
+      --  text as a path -- the old behaviour -- produced a confusing
+      --  "path does not exist: --settings" startup error instead.
 
       return Result;
    end Parse_Run_Configuration;
@@ -265,6 +266,12 @@ package body Files.Application is
       Candidates : String_Vectors.Vector := Arguments;
       Home       : constant String := Home_Directory;
 
+      --  Bound how many windows a single launch opens: each is a full directory
+      --  load, so a command line naming a great many distinct directories should
+      --  not open (and pin the memory of) an unbounded number of them. Excess
+      --  paths past the cap are reported rather than opened.
+      Max_Startup_Windows : constant := 16;
+
       function Already_Has_Window (Directory_Path : String) return Boolean is
       begin
          for Window of Result.Windows loop
@@ -292,7 +299,14 @@ package body Files.Application is
                declare
                   Directory_Path : constant String := To_String (Path_Check.Directory_Path);
                begin
-                  if not Already_Has_Window (Directory_Path) then
+                  if not Already_Has_Window (Directory_Path)
+                    and then Natural (Result.Windows.Length) >= Max_Startup_Windows
+                  then
+                     Result.Errors.Append
+                       (Startup_Error'
+                          (Input_Path => To_Unbounded_String (Input),
+                           Error_Key  => To_Unbounded_String ("error.startup.too_many_windows")));
+                  elsif not Already_Has_Window (Directory_Path) then
                      declare
                         Load   : constant Files.File_System.Directory_Load_Result :=
                           Files.File_System.Load_Directory (Directory_Path, Settings);

@@ -578,6 +578,7 @@ en.dialog.paste_progress.of = of
 en.dialog.paste_progress.button.cancel = Cancel
 en.error.path.missing = Path does not exist.
 en.error.path.inaccessible = Path cannot be accessed.
+en.error.startup.too_many_windows = Too many folders on the command line; this one was not opened.
 en.error.directory.load = Directory could not be loaded.
 en.error.metadata.read = Metadata could not be read.
 en.error.file.create = File could not be created.
