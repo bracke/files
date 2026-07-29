@@ -2088,18 +2088,14 @@ procedure Check_All is
         (Combined_Suite,
          "detected Danish locale loads translated app catalog resources",
          "localization tests must cover translated locale resource loading");
-      Project_Tools.Files.Require_Contains
-        (Root & "/files.gpr",
-         """-framework"", ""CoreFoundation""",
-         "macOS locale detection must link CoreFoundation");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "Windows native locale detection binds GetUserDefaultLocaleName",
-         "locale tests must cover Windows native locale binding");
+      --  The per-host locale calls, and the frameworks they need, are Hostkit's
+      --  now and are guarded in that crate. What has to stay true here is that
+      --  files asks the host one question rather than branching per OS on its
+      --  way to the environment fallbacks.
       Project_Tools.Files.Require_Contains
         (Combined_Suite,
-         "macOS native locale detection binds CoreFoundation locale APIs",
-         "locale tests must cover macOS native locale binding");
+         "the system locale is asked of the host, not detected per OS here",
+         "locale tests must cover asking the host for its locale");
       Project_Tools.Files.Require_Contains
         (Combined_Suite,
          "unknown localization key falls back to key text",
@@ -2408,16 +2404,8 @@ procedure Check_All is
          "files must depend on openglada_glfw for windowing");
       Project_Tools.Files.Require_Contains
         (Main_Project,
-         "for Source_Dirs use (""src/"", ""config/"", ""src/platform/windows"");",
-         "files project must include Windows platform source directories");
-      Project_Tools.Files.Require_Contains
-        (Main_Project,
-         "for Source_Dirs use (""src/"", ""config/"", ""src/platform/macos"");",
-         "files project must include macOS platform source directories");
-      Project_Tools.Files.Require_Contains
-        (Main_Project,
-         "for Source_Dirs use (""src/"", ""config/"", ""src/platform/unsupported"");",
-         "files project must include unsupported-platform fallback sources");
+         "for Source_Dirs use (""src/"", ""config/"");",
+         "files project must build one source list for every host");
       Project_Tools.Files.Require_Contains
         (Main_Project,
          "for Main use (""files-main.adb"");",
@@ -2444,8 +2432,8 @@ procedure Check_All is
          "first-implementation policy tests must cover the textrender local pin");
       Project_Tools.Files.Require_Contains
         (Combined_Suite,
-         "files project keeps platform-specific source directories wired",
-         "first-implementation policy tests must cover platform-specific source directories");
+         "files project builds one source list for every host",
+         "first-implementation policy tests must cover the single per-host source list");
       Project_Tools.Files.Require_Contains
         (Combined_Suite,
          "files project builds the expected binary entry point",
@@ -3171,35 +3159,26 @@ procedure Check_All is
       Require_Valid_Icon_Asset (Root & "/share/files/icons/high-contrast/markdown.icon", "markdown");
    end Check_Icon_Assets;
 
+   --  files used to carry a per-OS body tree of its own -- trash, volumes,
+   --  metadata syscalls, the directory watch, the host locale -- selected by a
+   --  Source_Dirs case per host. All of it differs only because the host
+   --  differs, which is hostkit's charter, and it lives there now; hostkit's own
+   --  checker guards those bodies on the hosts where they are real.
+   --
+   --  What is left to guard here is that the tree does not come back: a per-OS
+   --  directory reappearing in files means the split is being re-litigated one
+   --  file at a time, which is how there came to be two of them in one
+   --  application in the first place.
    procedure Check_Platform_Bodies is
-      Tests : constant String := Combined_Suite;
    begin
-      Project_Tools.Files.Require_Files
-        ([To_Unbounded_String (Root & "/src/platform/windows/files-platform-windows.adb"),
-          To_Unbounded_String (Root & "/src/platform/windows/files-platform-windows-trash.adb"),
-          To_Unbounded_String (Root & "/src/platform/windows/files-platform-windows-volumes.adb"),
-          To_Unbounded_String (Root & "/src/platform/macos/files-platform-macos.adb"),
-          To_Unbounded_String (Root & "/src/platform/macos/files-platform-macos-trash.adb"),
-          To_Unbounded_String (Root & "/src/platform/macos/files-platform-macos-volumes.adb"),
-          To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-windows.adb"),
-          To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-windows-trash.adb"),
-          To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-windows-volumes.adb"),
-          To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-macos.adb"),
-          To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-macos-trash.adb"),
-          To_Unbounded_String (Root & "/src/platform/unsupported/files-platform-macos-volumes.adb")],
-         "files platform-specific and unsupported fallback bodies must be present");
-      Project_Tools.Files.Require_Contains
+      Require_Not_Contains
         (Root & "/files.gpr",
-         "src/platform/windows",
-         "files.gpr must select Windows platform bodies for Windows targets");
+         "src/platform/",
+         "files.gpr must not reintroduce a per-OS source directory; per-host code is hostkit's");
       Project_Tools.Files.Require_Contains
-        (Root & "/files.gpr",
-         "src/platform/macos",
-         "files.gpr must select macOS platform bodies for macOS targets");
-      Project_Tools.Files.Require_Contains
-        (Root & "/files.gpr",
-         "src/platform/unsupported",
-         "files.gpr must select unsupported fallback bodies for other targets");
+        (Root & "/alire.toml",
+         "hostkit = ",
+         "files must depend on hostkit, which owns every per-host body it used to carry");
    end Check_Platform_Bodies;
 
    procedure Check_Packaging_Metadata is

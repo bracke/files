@@ -1502,21 +1502,14 @@ package body Files_Suite.Startup is
          Assert
            (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
             "German catalog has generated digital unit labels");
+         --  The host locale calls -- GetUserDefaultLocaleName, CFLocaleCopyCurrent
+         --  -- and the frameworks they need went to Hostkit.Host with the rest of
+         --  the per-OS bodies, and are asserted there. What files owns, and what
+         --  this checks, is that it asks one question instead of branching on the
+         --  host itself before it even gets to the environment.
          Assert
-           (Repository_Source_Contains ("GetUserDefaultLocaleName"),
-            "Windows native locale detection binds GetUserDefaultLocaleName");
-         Assert
-           (Repository_Source_Contains ("CFLocaleCopyCurrent")
-            and then Repository_File_Contains
-              ("files.gpr",
-               """-framework"", ""CoreFoundation"""),
-            "macOS native locale detection binds CoreFoundation locale APIs");
-         Assert
-           (Repository_Source_Contains ("Files.Platform.Windows.Native_Locale"),
-            "system locale detection falls back to Windows native locale");
-         Assert
-           (Repository_Source_Contains ("Files.Platform.Macos.Native_Locale"),
-            "system locale detection falls back to macOS native locale");
+           (Repository_Source_Contains ("Hostkit.Host.Native_Locale"),
+            "the system locale is asked of the host, not detected per OS here");
 
          declare
             Fake_Home   : constant String := Join (Root, "locale-home");
@@ -1831,11 +1824,14 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("tests/tests.gpr", "failing.adb"),
          "the suite ships the programs its open-action tests launch, rather than "
          & "borrowing one from the host that may not exist or may never exit");
+      --  There used to be four source lists here, one per host, each selecting a
+      --  src/platform/<os> directory. Everything in those that was genuinely
+      --  per-host belongs to Hostkit now, so there is one list and no platform
+      --  tree -- and this guards against a per-OS directory quietly reappearing.
       Assert
-        (Repository_File_Contains ("files.gpr", "src/platform/windows")
-         and then Repository_File_Contains ("files.gpr", "src/platform/macos")
-         and then Repository_File_Contains ("files.gpr", "src/platform/unsupported"),
-         "files project keeps platform-specific source directories wired");
+        (Repository_File_Contains ("files.gpr", "for Source_Dirs use (""src/"", ""config/"");")
+         and then not Repository_File_Contains ("files.gpr", "src/platform/"),
+         "files project builds one source list for every host");
       Assert
         (Repository_File_Contains ("files.gpr", "for Main use (""files-main.adb"")")
          and then Repository_File_Contains ("files.gpr", "use ""files"""),

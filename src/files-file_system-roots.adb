@@ -5,9 +5,8 @@ with Ada.Text_IO;
 with Ada.Strings.Fixed;
 with Files.Fs;
 with Files_Config;
-with Files.Platform.Macos;
 with Hostkit.Metadata;
-with Files.Platform.Windows;
+with Hostkit.Trash;
 
 separate (Files.File_System)
 package body Roots is
@@ -677,10 +676,59 @@ package body Roots is
                Current_Target        => Files_Config.Alire_Host_OS = "linux",
                Trash_Can_Execute     => Trash_Is_Available,
                Volume_Can_Query      => Caps.Capacity_Bytes_Known or else Caps.Filesystem_Type_Available);
-         when Native_Adapter_Windows =>
-            return Files.Platform.Windows.API_Profile;
-         when Native_Adapter_Macos =>
-            return Files.Platform.Macos.API_Profile;
+         when Native_Adapter_Windows | Native_Adapter_Macos =>
+            --  These were two per-OS bodies each, in four platform directories,
+            --  to express one thing: whether this adapter is the build's target
+            --  and whether its bindings are present. Both are answerable here --
+            --  the target from the same config the project file selects sources
+            --  with, the bindings from Hostkit, which owns them now.
+            declare
+               Windows_Adapter : constant Boolean := Adapter = Native_Adapter_Windows;
+               Is_Target       : constant Boolean :=
+                 Files_Config.Alire_Host_OS = (if Windows_Adapter then "windows" else "macos");
+               Facility        : constant Hostkit.Trash.Facility := Hostkit.Trash.Current;
+
+               --  Only the host this was built for has the bindings compiled in;
+               --  for the other adapter the honest answer is "not the target",
+               --  which is what Native_API_Not_Target says.
+               Binding : constant Native_API_Binding_Status :=
+                 (if not Is_Target then Native_API_Not_Target
+                  elsif Facility.Available then Native_API_Binding_Available
+                  else Native_API_Binding_Missing);
+            begin
+               return
+                 (Adapter               => Adapter,
+                  Trash_Binding_Status  => Binding,
+                  Volume_Binding_Status => Binding,
+                  --  Named by the host rather than by us. This used to say
+                  --  IFileOperation on Windows while the code called
+                  --  SHFileOperationW.
+                  Trash_API_Name        =>
+                    (if Is_Target and then Facility.Api_Name /= Null_Unbounded_String
+                     then Facility.Api_Name
+                     elsif Windows_Adapter then To_Unbounded_String ("SHFileOperationW")
+                     else To_Unbounded_String ("FSMoveObjectToTrashSync")),
+                  Volume_API_Name       =>
+                    To_Unbounded_String
+                      ((if Windows_Adapter
+                        then "GetVolumeInformationW+GetDiskFreeSpaceExW"
+                        else "statfs")),
+                  Trash_Binding_Unit    => To_Unbounded_String ("Hostkit.Trash"),
+                  Volume_Binding_Unit   => To_Unbounded_String ("Hostkit.Metadata"),
+                  Required_Library      =>
+                    (if Windows_Adapter
+                     then To_Unbounded_String ("shell32;ole32;kernel32")
+                     else Null_Unbounded_String),
+                  Required_Framework    =>
+                    (if Windows_Adapter
+                     then Null_Unbounded_String
+                     else To_Unbounded_String ("CoreServices")),
+                  Current_Target        => Is_Target,
+                  Trash_Can_Execute     => Is_Target and then Facility.Available,
+                  Volume_Can_Query      =>
+                    Is_Target
+                      and then (Caps.Capacity_Bytes_Known or else Caps.Filesystem_Type_Available));
+            end;
          when Native_Adapter_None =>
             return
               (Adapter               => Native_Adapter_None,

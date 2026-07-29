@@ -11,9 +11,9 @@ with Messages.Arguments;
 with Messages.Result;
 with Messages.Runtime;
 
-with Files.Platform.Macos;
-with Files.Platform.Windows;
 with Files_Config;
+
+with Hostkit.Host;
 
 package body Files.Localization is
    use Ada.Strings.Unbounded;
@@ -31,7 +31,6 @@ package body Files.Localization is
    function Environment_Locale (Name : String) return String;
    function Environment_Portable_Locale (Name : String) return Boolean;
    function Configured_Category_Locale (Category_Key : String) return String;
-   function Host_OS return String;
    function Native_System_Locale return String;
    function Render_Text
      (Key    : String;
@@ -203,19 +202,11 @@ package body Files.Localization is
         and then Portable_Locale (Ada.Environment_Variables.Value (Name));
    end Environment_Portable_Locale;
 
-   function Host_OS return String is
-   begin
-      return Files_Config.Alire_Host_OS;
-   end Host_OS;
-   pragma No_Inline (Host_OS);
-
    function Native_System_Locale return String is
-      Raw : constant String :=
-        (if Host_OS = "windows" then
-            Files.Platform.Windows.Native_Locale
-         elsif Host_OS = "macos" then
-            Files.Platform.Macos.Native_Locale
-         else "");
+      --  One question for every host: Hostkit reads the Windows and macOS
+      --  settings and answers "" on POSIX, where the locale lives in the
+      --  environment that the callers below read.
+      Raw : constant String := Hostkit.Host.Native_Locale;
    begin
       if Raw = "" then
          return "";

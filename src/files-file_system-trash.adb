@@ -4,10 +4,7 @@ with Ada.Directories;
 with Ada.Text_IO;
 with Files.Platform;
 with Files_Config;
-with Files.Platform.Windows;
-with Files.Platform.Macos;
-with Files.Platform.Windows.Trash;
-with Files.Platform.Macos.Trash;
+with Hostkit.Trash;
 
 separate (Files.File_System)
 package body Trash is
@@ -248,10 +245,61 @@ package body Trash is
       return Native_Trash_Result is
    begin
       case Request.Backend is
-         when Trash_Windows_Recycle_Bin =>
-            return Files.Platform.Windows.Evaluate_Trash (Request);
-         when Trash_Macos_Native =>
-            return Files.Platform.Macos.Evaluate_Trash (Request);
+         when Trash_Windows_Recycle_Bin | Trash_Macos_Native =>
+            --  The desktop's own trash, described by the host rather than by a
+            --  per-OS body of ours: Hostkit says whether there is one here, what
+            --  call is behind it and what it does to the item.
+            declare
+               --  "This host has no trash" and "this adapter is not what the
+               --  build targets" are different answers, and only the second one
+               --  is true of the Recycle Bin on a Linux build. Keep them apart:
+               --  the per-OS stubs used to, by existing separately.
+               Is_Target : constant Boolean :=
+                 Files_Config.Alire_Host_OS =
+                   (if Request.Backend = Trash_Windows_Recycle_Bin then "windows" else "macos");
+               Facility : constant Hostkit.Trash.Facility := Hostkit.Trash.Current;
+               Usable   : constant Boolean := Is_Target and then Facility.Available;
+            begin
+               return
+                 (Supported        => Usable,
+                  Attempted        => False,
+                  Completed        => False,
+                  Native_Binding_Available => Usable,
+                  Native_Binding_Status =>
+                    (if not Is_Target then Native_API_Not_Target
+                     elsif Facility.Available then Native_API_Binding_Available
+                     else Native_API_Binding_Missing),
+                  Binding_Unit    => To_Unbounded_String ("Hostkit.Trash"),
+                  Desktop_Standard => False,
+                  Would_Delete     => False,
+                  Uses_Recycle_Bin => Request.Backend = Trash_Windows_Recycle_Bin,
+                  Adapter_Name     =>
+                    To_Unbounded_String
+                      ((if Request.Backend = Trash_Windows_Recycle_Bin
+                        then "windows.recycle_bin" else "macos.native_trash")),
+                  Native_Api_Name  =>
+                    (if Is_Target and then Facility.Api_Name /= Null_Unbounded_String
+                     then Facility.Api_Name
+                     elsif Request.Backend = Trash_Windows_Recycle_Bin
+                     then To_Unbounded_String ("SHFileOperationW")
+                     else To_Unbounded_String ("FSMoveObjectToTrashSync")),
+                  Operation_Name   => To_Unbounded_String ("move_to_trash"),
+                  --  What that trash does to an item is a property of the trash,
+                  --  not of whether this build targets it -- the report describes
+                  --  the adapter on every host, and only Api_Name below comes from
+                  --  the live facility. Both desktop trashes keep the item intact
+                  --  and neither puts a prompt in front of the user.
+                  Requires_User_Consent => False,
+                  Preserves_Metadata    => True,
+                  --  "native_unavailable" and not "unavailable": the desktop
+                  --  trash is not reachable in this build, which is a different
+                  --  thing from this environment having no trash at all -- the
+                  --  caller still has the freedesktop path.
+                  Error_Key        =>
+                    (if Usable
+                     then Null_Unbounded_String
+                     else To_Unbounded_String ("error.trash.native_unavailable")));
+            end;
          when Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home =>
             return
               (Supported        => True,
@@ -301,10 +349,26 @@ package body Trash is
       Mutation   : Mutation_Result;
    begin
       case Request.Backend is
-         when Trash_Windows_Recycle_Bin =>
-            return Files.Platform.Windows.Move_To_Recycle_Bin (Request);
-         when Trash_Macos_Native =>
-            return Files.Platform.Macos.Move_To_Trash (Request);
+         when Trash_Windows_Recycle_Bin | Trash_Macos_Native =>
+            declare
+               Result : Native_Trash_Result := Evaluation;
+            begin
+               --  Nothing is attempted on a build that does not target this
+               --  desktop: the evaluation already said so, and Attempted must
+               --  stay False so a caller can tell "we tried and it refused" from
+               --  "there was nothing here to try".
+               if not Evaluation.Supported then
+                  return Result;
+               end if;
+
+               Result.Attempted := True;
+               Result.Completed := Hostkit.Trash.Move_To_Trash (To_String (Request.Path));
+               if not Result.Completed then
+                  Result.Error_Key := To_Unbounded_String ("error.trash.failed");
+               end if;
+
+               return Result;
+            end;
          when others =>
             null;
       end case;
@@ -568,10 +632,7 @@ package body Trash is
                Requires_Native_Api     => True,
                Can_Use_Current_Process => True);
 
-            Native : constant Native_Trash_Result :=
-              (if Backend = Trash_Windows_Recycle_Bin
-               then Files.Platform.Windows.Trash.Move (Request)
-               else Files.Platform.Macos.Trash.Move (Request));
+            Native : constant Native_Trash_Result := Execute_Native_Trash (Request);
          begin
             if Native.Completed then
                return (Success => True, Error_Key => Null_Unbounded_String);

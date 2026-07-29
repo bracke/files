@@ -601,8 +601,8 @@ package body Files_Suite.Operations is
          Assert (not Native_Result.Attempted, "native trash evaluation does not attempt mutation");
          Assert (not Native_Result.Completed, "native trash evaluation does not complete mutation");
          Assert
-           (To_String (Native_Result.Binding_Unit) = "Files.Platform.Windows.Trash",
-            "Windows native trash result records binding unit");
+           (To_String (Native_Result.Binding_Unit) = "Hostkit.Trash",
+            "Windows native trash result records the unit that owns the binding");
          Assert (not Native_Result.Desktop_Standard, "Windows native trash is not a desktop-standard fallback");
          Assert (Native_Result.Uses_Recycle_Bin, "Windows native trash result records recycle-bin target");
          Assert

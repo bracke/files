@@ -1900,8 +1900,8 @@ package body Files_Suite.Model is
          or else Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
          "Windows native profile is not active off Windows");
       Assert
-        (To_String (Windows_Profile.Trash_Binding_Unit) = "Files.Platform.Windows.Trash",
-         "Windows native profile records trash binding unit");
+        (To_String (Windows_Profile.Trash_Binding_Unit) = "Hostkit.Trash",
+         "Windows native profile records the unit that owns the trash binding");
       Assert
         (To_String (Windows_Profile.Volume_API_Name) = "GetVolumeInformationW+GetDiskFreeSpaceExW",
          "Windows native profile records volume APIs");
@@ -1910,32 +1910,19 @@ package body Files_Suite.Model is
          or else Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
          "macOS native profile is not active off macOS");
       Assert
-        (To_String (Macos_Profile.Required_Framework) = "Foundation",
-         "macOS native profile records required framework");
-      Assert
-        (Repository_File_Contains ("files.gpr", "src/platform/windows"),
-         "project file selects Windows platform bodies for Windows targets");
-      Assert
-        (Repository_File_Contains ("files.gpr", "src/platform/macos"),
-         "project file selects macOS platform bodies for macOS targets");
-      Assert
-        (Repository_Source_Contains ("External_Name => ""SHFileOperationW"""),
-         "Windows trash binding body imports the native recycle-bin API");
-      Assert
-        (Repository_Source_Contains ("UTF_Encoding.Wide_Strings"),
-         "Windows trash binding builds a UTF-16 (Wide_String) path, not 32-bit");
-      Assert
-        (Repository_Source_Contains ("External_Name => ""GetVolumeInformationW"""),
-         "Windows volume binding body imports volume-label API");
-      Assert
-        (Repository_Source_Contains ("External_Name => ""GetDiskFreeSpaceExW"""),
-         "Windows volume binding body imports volume-capacity API");
-      Assert
-        (Repository_Source_Contains ("External_Name => ""FSMoveObjectToTrashSync"""),
-         "macOS trash binding body imports native trash API");
-      Assert
-        (Repository_Source_Contains ("External_Name => ""statfs"""),
-         "macOS volume binding body imports statfs");
+        (To_String (Macos_Profile.Required_Framework) = "CoreServices",
+         "macOS native profile names the framework its trash binding actually needs");
+      --  The project file no longer selects per-OS bodies -- there are none left
+      --  to select. files_suite-startup asserts the single source list.
+      --  The Windows and macOS trash bindings, and the C imports behind them,
+      --  are Hostkit.Trash's and are asserted in that crate's own suite. What is
+      --  checkable here is that files reports which unit owns them, above.
+      --  The C imports these used to check -- SHFileOperationW, the UTF-16 path
+      --  it needs, FSMoveObjectToTrashSync, statfs -- moved with the bindings and
+      --  are asserted in hostkit's own suite, on the hosts where they are real.
+      --  (The two volume imports named here were never called: the volumes bodies
+      --  declared them and then pragma Unreferenced'd them. The volume query has
+      --  always been the metadata one, which is Hostkit.Metadata now.)
       Assert
         (To_String (Volume_Caps.Native_Api_Name) = "none"
          or else To_String (Volume_Caps.Native_Api_Name) = "proc.mounts"

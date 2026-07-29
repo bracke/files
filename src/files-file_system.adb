@@ -22,13 +22,9 @@ with Files.File_Types;
 with Files.Fs;
 with Files_Config;
 
-with Files.Platform.Macos;
 with Hostkit.Metadata;
 with Hostkit.Fs;
 with Hostkit.Host;
-with Files.Platform.Macos.Trash;
-with Files.Platform.Windows.Trash;
-with Files.Platform.Windows;
 with Files.UTF8;
 with Files.File_System.Support;
 
