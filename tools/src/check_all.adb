@@ -2089,7 +2089,9 @@ procedure Check_All is
          "detected Danish locale loads translated app catalog resources",
          "localization tests must cover translated locale resource loading");
       --  The per-host locale calls, and the frameworks they need, are Hostkit's
-      --  now and are guarded in that crate. What has to stay true here is that
+      --  now and are guarded by check_hostkit's Require_Binding (verified there
+      --  by a negative test, after this comment was written while that guard did
+      --  not yet exist). What has to stay true here is that
       --  files asks the host one question rather than branching per OS on its
       --  way to the environment fallbacks.
       Project_Tools.Files.Require_Contains

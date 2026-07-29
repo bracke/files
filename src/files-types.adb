@@ -1,7 +1,5 @@
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
-
 with Files.UTF8;
 
 package body Files.Types is
@@ -98,7 +96,7 @@ package body Files.Types is
       function Base_Letter (Value : Natural) return String is
       begin
          case Value is
-            when 16#41# .. 16#5A#           => return (1 => Character'Val (Value + 16#20#));
+            when 16#41# .. 16#5A#           => return [1 => Character'Val (Value + 16#20#)];
             when 16#C0# .. 16#C5# | 16#E0# .. 16#E5# | 16#100# .. 16#105# => return "a";
             when 16#C6# | 16#E6#            => return "ae";
             when 16#C7# | 16#E7# | 16#106# .. 16#10D# => return "c";

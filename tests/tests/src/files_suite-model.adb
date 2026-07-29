@@ -1914,12 +1914,14 @@ package body Files_Suite.Model is
          "macOS native profile names the framework its trash binding actually needs");
       --  The project file no longer selects per-OS bodies -- there are none left
       --  to select. files_suite-startup asserts the single source list.
-      --  The Windows and macOS trash bindings, and the C imports behind them,
-      --  are Hostkit.Trash's and are asserted in that crate's own suite. What is
-      --  checkable here is that files reports which unit owns them, above.
-      --  The C imports these used to check -- SHFileOperationW, the UTF-16 path
-      --  it needs, FSMoveObjectToTrashSync, statfs -- moved with the bindings and
-      --  are asserted in hostkit's own suite, on the hosts where they are real.
+      --  The Windows and macOS trash bindings, and the C imports behind them --
+      --  SHFileOperationW, the UTF-16 path it needs, FSMoveObjectToTrashSync --
+      --  moved to Hostkit.Trash, and hostkit's release checker asserts each body
+      --  still binds its host's call (check_hostkit's Require_Binding). It did
+      --  not when these assertions were first removed from here, which is worth
+      --  remembering: "the other crate checks it" is a claim to verify, not to
+      --  make. What stays checkable here is that files reports which unit owns
+      --  the binding, above.
       --  (The two volume imports named here were never called: the volumes bodies
       --  declared them and then pragma Unreferenced'd them. The volume query has
       --  always been the metadata one, which is Hostkit.Metadata now.)
