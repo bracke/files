@@ -36,16 +36,14 @@ separate (Files.Rendering)
          Columns (As_Grid_Column (C)) := (X => Geometry (C).X, Width => Geometry (C).Width);
       end loop;
 
-      for Index in 1 .. Natural (Snapshot.Items.Length) loop
-         declare
-            It : Item_Snapshot renames Snapshot.Items.Element (Positive (Index));
-         begin
-            Items.Append
-              (Guikit.Item_Grid.Layout_Item'
-                 (Visible_Index => It.Visible_Index,
-                  Group_Header  => It.Is_Group_Header,
-                  Label         => It.Name));
-         end;
+      --  Iterate by cursor reference: .Element returns Item_Snapshot by value,
+      --  copying each item (thumbnail pixels included) just to read three fields.
+      for It of Snapshot.Items loop
+         Items.Append
+           (Guikit.Item_Grid.Layout_Item'
+              (Visible_Index => It.Visible_Index,
+               Group_Header  => It.Is_Group_Header,
+               Label         => It.Name));
       end loop;
 
       return Guikit.Item_Grid.Calculate_Layout

@@ -124,7 +124,11 @@ package body Navigation is
       if not Model.Items.Is_Empty then
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
             declare
-               Item : constant Files.File_System.Directory_Item := Model.Items.Element (Index);
+               --  Reference the element in place: .Element copied the whole
+               --  Directory_Item (thumbnail pixels included) once for the filter
+               --  test and Append copied it again. The reference tests the filter
+               --  with no copy; only the retained Rows entry copies it.
+               Item : Files.File_System.Directory_Item renames Model.Items (Index);
             begin
                if Filter = ""
                  or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), Filter)
