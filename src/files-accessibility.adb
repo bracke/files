@@ -80,6 +80,16 @@ package body Files.Accessibility is
       return A11ykit.Tree.Build (Flat);
    end To_A11ykit_Tree;
 
+   procedure Start is
+   begin
+      A11ykit.Provider.Start;
+   end Start;
+
+   procedure Stop is
+   begin
+      A11ykit.Provider.Stop;
+   end Stop;
+
    procedure Publish (Frame : Files.Rendering.Frame_Commands) is
    begin
       if A11ykit.Provider.Available then

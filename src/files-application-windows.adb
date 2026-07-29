@@ -1987,6 +1987,13 @@ package body Files.Application.Windows is
       Initialized := True;
       Guikit.Vulkan.Configure_Window_Hints;
 
+      --  Register with the host screen reader for the lifetime of this session.
+      --  Render_Window publishes a tree every time it rebuilds a frame, but a
+      --  provider only listens once the application has registered with it, so
+      --  without this every one of those trees goes nowhere. A no-op on a host
+      --  with no provider, which today is all of them.
+      Files.Accessibility.Start;
+
       for Startup_Window of Startup.Windows loop
          Append_Runtime_Window
            (Runtime_Windows => Runtime_Windows,
@@ -2038,16 +2045,19 @@ package body Files.Application.Windows is
          end;
       end loop;
 
+      Files.Accessibility.Stop;
       Release_All (Runtime_Windows);
       Glfw.Shutdown;
    exception
       when Desktop_Error =>
+         Files.Accessibility.Stop;
          Release_All (Runtime_Windows);
          if Initialized then
             Glfw.Shutdown;
          end if;
          raise;
       when others =>
+         Files.Accessibility.Stop;
          Release_All (Runtime_Windows);
          if Initialized then
             Glfw.Shutdown;

@@ -1219,6 +1219,21 @@ package body Files_Suite.Rendering is
          end if;
       end loop;
       Assert (Roots >= 1, "the mapped tree has at least one root node");
+
+      --  Publishing only reaches a provider the application has registered
+      --  with, and the windowed session registers once at startup. Both calls
+      --  are idempotent no-ops until a host provider exists, so what is
+      --  checkable here is that the lifetime pair is callable in any order and
+      --  that publishing between them stays harmless.
+      Files.Accessibility.Start;
+      Files.Accessibility.Start;
+      Files.Accessibility.Publish (Frame);
+      Files.Accessibility.Stop;
+      Files.Accessibility.Stop;
+      Files.Accessibility.Publish (Frame);
+      Assert
+        (not Files.Accessibility.To_A11ykit_Tree (Frame).Nodes.Is_Empty,
+         "the frame still maps after the provider lifetime has been started and stopped");
    end Test_A11ykit_Tree_Mapping;
 
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is
