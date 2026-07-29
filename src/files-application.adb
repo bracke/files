@@ -158,7 +158,11 @@ package body Files.Application is
       return Ada.Directories.Current_Directory;
    end Home_Directory;
 
-   function Default_Settings_Path
+   --  ~/.config/files/settings.conf -- correct on Linux and what every host got,
+   --  because this used to hard-code it. Kept as a name of its own because a
+   --  settings file already written there has to keep being found: see
+   --  Default_Settings_Path.
+   function Legacy_Settings_Path
      (Home_Path : String)
       return String is
    begin
@@ -167,6 +171,50 @@ package body Files.Application is
           (Files.File_System.Join_Path
              (Files.File_System.Join_Path (Home_Path, ".config"), "files"),
            "settings.conf");
+   end Legacy_Settings_Path;
+
+   function Default_Settings_Path
+     (Home_Path : String)
+      return String
+   is
+      --  Honouring XDG_CONFIG_HOME on every host is this application's policy,
+      --  the same policy the thumbnail cache applies to XDG_CACHE_HOME: macOS and
+      --  Windows do not read it, and Hostkit says what the host does, but a user
+      --  who exported it meant it. It is a user-level override, so it applies
+      --  whichever home is being asked about.
+      Xdg_Config : constant String := Safe_Environment_Value ("XDG_CONFIG_HOME");
+
+      Legacy : constant String := Legacy_Settings_Path (Home_Path);
+
+      --  Hostkit answers where configuration goes for THIS user -- it resolves
+      --  the home itself -- so its answer applies only when the home being asked
+      --  about is that user's. Asked about another home (a test fixture, or the
+      --  fallback this application picked when the host's own home did not
+      --  exist), the only layout that can be applied to it is the POSIX one.
+      Host_Config : constant String :=
+        (if Home_Path /= "" and then Home_Path = Hostkit.Fs.Home_Directory
+         then Hostkit.Fs.Config_Directory
+         else "");
+
+      function In_Config_Root (Root : String) return String is
+        (Files.File_System.Join_Path
+           (Files.File_System.Join_Path (Root, "files"), "settings.conf"));
+   begin
+      if Xdg_Config /= "" then
+         return In_Config_Root (Xdg_Config);
+      end if;
+
+      --  An existing settings file wins over relocating it. Configuration used
+      --  to go in ~/.config on every host: right on Linux, neither convention on
+      --  the other two. Asking Hostkit fixes that for a new install, but moving
+      --  the path for an existing one would orphan the file -- Ensure_Default_File
+      --  would find nothing at the new location and write a fresh default,
+      --  silently, over choices that cannot be regenerated from anything.
+      if Files.Fs.File_Exists (Legacy) or else Host_Config = "" then
+         return Legacy;
+      end if;
+
+      return In_Config_Root (Host_Config);
    end Default_Settings_Path;
 
    function Configured_Settings_Path
@@ -174,18 +222,17 @@ package body Files.Application is
       return String
    is
       Files_Settings : constant String := Safe_Environment_Value ("FILES_SETTINGS");
-      Xdg_Config     : constant String := Safe_Environment_Value ("XDG_CONFIG_HOME");
    begin
+      --  FILES_SETTINGS is this application's own override and stays here.
+      --  XDG_CONFIG_HOME used to be read a second time at this level; it is part
+      --  of what "where does configuration go" means on Linux, so it is Hostkit's
+      --  answer now and reaching for it here would answer for hosts that do not
+      --  have it.
       if Files_Settings /= "" then
          return Files_Settings;
-      elsif Xdg_Config /= "" then
-         return
-           Files.File_System.Join_Path
-             (Files.File_System.Join_Path (Xdg_Config, "files"),
-              "settings.conf");
-      else
-         return Default_Settings_Path (Home_Path);
       end if;
+
+      return Default_Settings_Path (Home_Path);
    end Configured_Settings_Path;
 
    procedure Apply_Shortcut_Overrides
