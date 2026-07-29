@@ -116,6 +116,17 @@ package Files_Suite.Support is
    --  @param Content Raw bytes represented as String characters.
    procedure Write_Binary_File (Path : String; Content : String);
 
+   --  Does the file hold this exact byte sequence anywhere in it?
+   --
+   --  Byte-exact, so it works on binary artifacts that a line- and
+   --  encoding-aware text search cannot read: the thumbnail cache is binary P6,
+   --  where a pixel is three raw bytes rather than three ASCII numbers.
+   --
+   --  @param Path File to search.
+   --  @param Bytes Sequence to look for, one Character per byte.
+   --  @return True when the sequence appears.
+   function File_Has_Bytes (Path : String; Bytes : String) return Boolean;
+
    --  Create a file of Filler_Count copies of one byte followed by Trailer,
    --  written in chunks so the caller need not build a multi-megabyte String.
    --  For exercising the metadata readers' byte-scan caps, which only engage on

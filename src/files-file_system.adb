@@ -79,6 +79,10 @@ package body Files.File_System is
         (Path      : String;
          Max_Bytes : Natural)
          return String;
+
+      procedure Prune_Thumbnail_Cache
+        (Cache_Directory : String;
+         Budget_Bytes    : Long_Long_Integer);
    end Thumbnails;
    package body Thumbnails is separate;
 
@@ -122,6 +126,11 @@ package body Files.File_System is
       Max_Bytes : Natural)
       return String
      renames Thumbnails.Read_Preview_Text;
+
+   procedure Prune_Thumbnail_Cache
+     (Cache_Directory : String;
+      Budget_Bytes    : Long_Long_Integer)
+     renames Thumbnails.Prune_Thumbnail_Cache;
 
    package Directory is
       function Load_Directory

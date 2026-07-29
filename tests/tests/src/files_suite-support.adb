@@ -124,6 +124,48 @@ package body Files_Suite.Support is
       Project_Tools.Files.Write_Text_File (Path, Content);
    end Write_File;
 
+   function File_Has_Bytes (Path : String; Bytes : String) return Boolean is
+      use type Ada.Streams.Stream_Element_Offset;
+
+      File   : Ada.Streams.Stream_IO.File_Type;
+      Buffer : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
+      Last   : Ada.Streams.Stream_Element_Offset;
+      Whole  : Unbounded_String;
+   begin
+      if Bytes = "" or else not Ada.Directories.Exists (Path) then
+         return False;
+      end if;
+
+      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
+
+      while not Ada.Streams.Stream_IO.End_Of_File (File) loop
+         Ada.Streams.Stream_IO.Read (File, Buffer, Last);
+         exit when Last < Buffer'First;
+
+         declare
+            Chunk : String (1 .. Natural (Last - Buffer'First + 1));
+         begin
+            for Index in Chunk'Range loop
+               Chunk (Index) :=
+                 Character'Val
+                   (Buffer (Ada.Streams.Stream_Element_Offset (Index) + Buffer'First - 1));
+            end loop;
+
+            Append (Whole, Chunk);
+         end;
+      end loop;
+
+      Ada.Streams.Stream_IO.Close (File);
+      return Ada.Strings.Fixed.Index (To_String (Whole), Bytes) > 0;
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+
+         return False;
+   end File_Has_Bytes;
+
    procedure Write_Binary_File
      (Path    : String;
       Content : String)

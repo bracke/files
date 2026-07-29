@@ -212,6 +212,46 @@ package body Directory is
          return True;
       end Natural_Value;
 
+      --  Byte-exact, which Files.Fs.Read_Text_File is not: it reads by line and
+      --  re-appends LF, and with -gnatW8 Text_IO decodes its input as UTF-8, so
+      --  a pixel byte above 127 would not survive the trip.
+      function Read_Bytes (From : String) return Unbounded_String is
+         use Ada.Streams;
+
+         Input  : Ada.Streams.Stream_IO.File_Type;
+         Buffer : Stream_Element_Array (1 .. 64 * 1024);
+         Last   : Stream_Element_Offset;
+         Bytes  : Unbounded_String;
+      begin
+         Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, From);
+
+         while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
+            Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
+            exit when Last < Buffer'First;
+
+            declare
+               Chunk : String (1 .. Natural (Last - Buffer'First + 1));
+            begin
+               for Index in Chunk'Range loop
+                  Chunk (Index) :=
+                    Character'Val (Buffer (Stream_Element_Offset (Index) + Buffer'First - 1));
+               end loop;
+
+               Append (Bytes, Chunk);
+            end;
+         end loop;
+
+         Ada.Streams.Stream_IO.Close (Input);
+         return Bytes;
+      exception
+         when others =>
+            if Ada.Streams.Stream_IO.Is_Open (Input) then
+               Ada.Streams.Stream_IO.Close (Input);
+            end if;
+
+            return Null_Unbounded_String;
+      end Read_Bytes;
+
       function Channel
         (Value     : Natural;
          Max_Value : Natural)
@@ -232,7 +272,83 @@ package body Directory is
          return Result;
       end if;
 
-      Content := Files.Fs.Read_Text_File (Path);
+      Content := Read_Bytes (Path);
+      if Length (Content) = 0 then
+         return Result;
+      end if;
+
+      --  Binary P6 first: it is what this writes now, and reading it is a
+      --  bounded header scan plus a copy, with none of the per-number string
+      --  building the ASCII form below needs. P3 stays because caches written
+      --  before the format changed are still on disk and still valid.
+      declare
+         Raw       : constant String := To_String (Content);
+         At_Byte   : Natural := Raw'First;
+         Width     : Natural := 0;
+         Height    : Natural := 0;
+         Max_Value : Natural := 0;
+
+         --  One header field: skip blanks and # comments, then take the run of
+         --  non-blank bytes. Leaves At_Byte on the delimiter that ended it.
+         function Header_Field return String is
+            First : Natural;
+         begin
+            while At_Byte <= Raw'Last loop
+               exit when Raw (At_Byte) not in ' ' | ASCII.HT | ASCII.LF | ASCII.CR;
+
+               if Raw (At_Byte) = '#' then
+                  while At_Byte <= Raw'Last and then Raw (At_Byte) /= ASCII.LF loop
+                     At_Byte := At_Byte + 1;
+                  end loop;
+               else
+                  At_Byte := At_Byte + 1;
+               end if;
+            end loop;
+
+            First := At_Byte;
+            while At_Byte <= Raw'Last
+              and then Raw (At_Byte) not in ' ' | ASCII.HT | ASCII.LF | ASCII.CR
+            loop
+               At_Byte := At_Byte + 1;
+            end loop;
+
+            return Raw (First .. Natural'Min (At_Byte, Raw'Last + 1) - 1);
+         end Header_Field;
+      begin
+         if Header_Field = "P6"
+           and then Natural_Value (Header_Field, Width)
+           and then Natural_Value (Header_Field, Height)
+           and then Natural_Value (Header_Field, Max_Value)
+           and then Width > 0 and then Height > 0 and then Max_Value > 0
+         then
+            --  Exactly one whitespace byte separates the header from the pixels.
+            At_Byte := At_Byte + 1;
+
+            declare
+               Needed : constant Long_Long_Integer :=
+                 Long_Long_Integer (Width) * Long_Long_Integer (Height) * 3;
+            begin
+               if Needed > Long_Long_Integer (Raw'Last - At_Byte + 1) then
+                  return Result;
+               end if;
+
+               for Pixel in 0 .. Width * Height - 1 loop
+                  Result.Pixels.Append
+                    (Channel (Character'Pos (Raw (At_Byte + Pixel * 3)), Max_Value));
+                  Result.Pixels.Append
+                    (Channel (Character'Pos (Raw (At_Byte + Pixel * 3 + 1)), Max_Value));
+                  Result.Pixels.Append
+                    (Channel (Character'Pos (Raw (At_Byte + Pixel * 3 + 2)), Max_Value));
+                  Result.Pixels.Append (255);
+               end loop;
+            end;
+
+            Result.Loaded := True;
+            Result.Width := Width;
+            Result.Height := Height;
+            return Result;
+         end if;
+      end;
 
       declare
          Values    : constant Files.Types.String_Vectors.Vector := Tokens;

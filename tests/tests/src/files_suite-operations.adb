@@ -128,6 +128,7 @@ package body Files_Suite.Operations is
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -233,6 +234,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Is_Per_User'Access,
          "the thumbnail cache lands in this host's user cache, not the browsed folder");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Cache_Is_Bounded'Access,
+         "the thumbnail cache is pruned to its budget, oldest first");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -2727,8 +2731,8 @@ package body Files_Suite.Operations is
         (Ada.Directories.Exists (To_String (Thumbnail.Thumbnail_Path)),
          "thumbnail generation writes a cache artifact");
       Assert
-        (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "P3"),
-         "thumbnail artifact is a plain PPM image");
+        (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "P6"),
+         "thumbnail artifact is a binary PPM image");
       Assert
         (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "8 8"),
          "thumbnail artifact records requested image dimensions");
@@ -2737,7 +2741,7 @@ package body Files_Suite.Operations is
       --  fast path. The other cases use an IDAT-less header, so this is the only
       --  test that actually drives inflate + unfilter + pixel decode -- and thus
       --  the heap-backed raster buffer. A solid colour must survive the decode
-      --  and downscale, so its distinctive red value appears in the P3 output.
+      --  and downscale, so its distinctive red value appears in the written pixels.
       declare
          Png_W   : constant := 60;
          Png_H   : constant := 60;
@@ -2769,7 +2773,7 @@ package body Files_Suite.Operations is
            (Decoded.Status = Files.File_System.Thumbnail_Generated,
             "a complete PNG decodes through the pure-Ada fast path");
          Assert
-           (Project_Tools.Files.File_Contains (To_String (Decoded.Thumbnail_Path), "173"),
+           (File_Has_Bytes (To_String (Decoded.Thumbnail_Path), Byte (173) & Byte (89) & Byte (211)),
             "the decoded solid colour survives inflate/unfilter/downscale");
       end;
 
@@ -2783,9 +2787,9 @@ package body Files_Suite.Operations is
       Thumbnail := Files.File_System.Generate_Thumbnail (Decoded_Png_Source, Thumbnail_Cache, Size => 2);
       Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "decoded PNG thumbnail succeeds");
       Assert
-        (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "255 0 0")
-         and then Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "0 255 0")
-         and then Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "0 0 255"),
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0))
+         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0))
+         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
          "decoded PNG thumbnail preserves source pixel colors");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
       Load := Files.File_System.Load_Directory (Root, Settings);
@@ -2825,6 +2829,50 @@ package body Files_Suite.Operations is
          end loop;
 
          Assert (Found_Auto_Thumbnail, "image-extension thumbnail item is loaded");
+
+         --  A cache written before the format changed must still load. The
+         --  thumbnails are keyed on the source path and nothing invalidates
+         --  them, so a user upgrading has a directory full of ASCII P3 files
+         --  that the loader has to keep reading -- otherwise every one of them
+         --  silently stops rendering until its source happens to be
+         --  re-thumbnailed. Put one there by hand and read it back.
+         declare
+            Legacy_Source : constant String := Join (Root, "legacy-cached.png");
+            Legacy_Cache  : constant String :=
+              Files.File_System.Thumbnail_Path_For
+                (Legacy_Source,
+                 Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+                 64);
+            Legacy_Load   : Files.File_System.Directory_Load_Result;
+            Found_Legacy  : Boolean := False;
+            Ascii_Pixels  : Unbounded_String;
+         begin
+            Write_Binary_File (Legacy_Source, Minimal_Png_Header (8, 8));
+
+            --  2x2 of red, green, blue, white in the old ASCII form.
+            Append (Ascii_Pixels, "P3" & ASCII.LF & "2 2" & ASCII.LF & "255" & ASCII.LF);
+            Append (Ascii_Pixels, "255 0 0 0 255 0" & ASCII.LF & "0 0 255 255 255 255" & ASCII.LF);
+            Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Legacy_Cache));
+            Write_File (Legacy_Cache, To_String (Ascii_Pixels));
+
+            Legacy_Load := Files.File_System.Load_Directory (Root, Settings);
+            for Item of Legacy_Load.Items loop
+               if To_String (Item.Name) = "legacy-cached.png" then
+                  Found_Legacy := True;
+                  Assert
+                    (Item.Thumbnail_Available,
+                     "a thumbnail cached in the old ASCII format still loads");
+                  Assert
+                    (Item.Thumbnail_Width = 2 and then Item.Thumbnail_Height = 2,
+                     "and reports the dimensions its own header declares");
+                  Assert
+                    (Natural (Item.Thumbnail_Pixels.Length) = 2 * 2 * 4,
+                     "and yields renderable pixels");
+               end if;
+            end loop;
+
+            Assert (Found_Legacy, "the legacy-cached item is listed");
+         end;
       end;
       Assert
         (Project_Tools.Files.Any_File_Contains ("src", "gdk_pixbuf_new_from_file_at_size")
@@ -2843,9 +2891,9 @@ package body Files_Suite.Operations is
       Thumbnail := Files.File_System.Generate_Thumbnail (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
       Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "decoded PPM thumbnail succeeds");
       Assert
-        (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "255 0 0")
-         and then Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "0 255 0")
-         and then Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "0 0 255"),
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0))
+         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0))
+         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
          "decoded PPM thumbnail preserves source pixel colors");
 
       Thumbnail := Files.File_System.Generate_Thumbnail (Join (Root, "missing.png"), Thumbnail_Cache, Size => 8);
@@ -2898,7 +2946,7 @@ package body Files_Suite.Operations is
         (Ada.Directories.Exists (To_String (Routed.Operation.Path)),
          "thumbnail command writes a cache artifact");
       Assert
-        (Project_Tools.Files.File_Contains (To_String (Routed.Operation.Path), "P3"),
+        (Project_Tools.Files.File_Contains (To_String (Routed.Operation.Path), "P6"),
          "thumbnail command writes PPM thumbnail content");
       Assert
         (Files.Model.Selected_Item (Model).Thumbnail_Available,
@@ -2999,6 +3047,52 @@ package body Files_Suite.Operations is
    --  browsed -- in the user's own data, and listed back to them. The guard that
    --  matters on every host is the last assertion: given somewhere to put a
    --  cache, it never picks the browsed folder.
+   --  The cache used to grow without limit: nothing ever deleted a thumbnail,
+   --  so it kept one file per image ever browsed, plus every orphan whose source
+   --  had since been renamed or deleted.
+   procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Cache : constant String := Join (Root, "prune-cache");
+
+      --  Distinct sizes so the totals are unambiguous, and written oldest first
+      --  with a delay between them so the modification times genuinely order.
+      Old_One : constant String := Join (Cache, "thumb_a.ppm");
+      Old_Two : constant String := Join (Cache, "thumb_b.ppm");
+      Newest  : constant String := Join (Cache, "thumb_c.ppm");
+
+      function Filler (Count : Natural) return String is
+         Text : constant String (1 .. Count) := [others => 'x'];
+      begin
+         return Text;
+      end Filler;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Cache);
+
+      Write_File (Old_One, Filler (4_000));
+      delay 1.1;
+      Write_File (Old_Two, Filler (4_000));
+      delay 1.1;
+      Write_File (Newest, Filler (4_000));
+
+      --  Comfortably above the total: nothing is touched.
+      Files.File_System.Prune_Thumbnail_Cache (Cache, 1_000_000);
+      Assert
+        (Path_Exists (Old_One) and then Path_Exists (Old_Two) and then Path_Exists (Newest),
+         "a cache inside its budget is left alone");
+
+      --  Room for roughly one file: the two oldest go, the newest stays.
+      Files.File_System.Prune_Thumbnail_Cache (Cache, 5_000);
+      Assert (Path_Exists (Newest), "the most recently written thumbnail survives");
+      Assert
+        (not Path_Exists (Old_One) and then not Path_Exists (Old_Two),
+         "and the older ones are the ones evicted");
+
+      --  Housekeeping must never be a precondition for anything.
+      Files.File_System.Prune_Thumbnail_Cache (Join (Root, "no-such-cache"), 1);
+      Assert (True, "pruning a cache directory that does not exist is harmless");
+   end Test_Thumbnail_Cache_Is_Bounded;
+
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Hostkit.Host.Kind;

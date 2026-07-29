@@ -15,6 +15,8 @@ with Zlib;
 
 separate (Files.File_System)
 package body Thumbnails is
+   package Stream_IO renames Ada.Streams.Stream_IO;
+
    use type Interfaces.C.int;
    use type Interfaces.C.long;
    use type Interfaces.C.unsigned;
@@ -145,6 +147,114 @@ package body Thumbnails is
       return Natural (Result);
    end Thumbnail_Path_Checksum;
 
+   --  The cache had no bound and nothing ever removed anything from it, so it
+   --  accumulated one file per image ever browsed, for as long as the account
+   --  existed -- including thumbnails whose source was renamed or deleted long
+   --  ago, which nothing could ever match again.
+   --
+   --  Pruned once per run rather than per write: a directory listing generates
+   --  many thumbnails in a row, and scanning the whole cache on each of them
+   --  would put a walk of every cached file in the middle of opening a folder.
+   --  Once per run keeps growth bounded across sessions and costs one scan.
+   --
+   --  Oldest first, by modification time, which is also what clears the
+   --  orphans: a thumbnail nothing looks at is never rewritten, so it ages out.
+   Cache_Byte_Budget : constant Long_Long_Integer := 64 * 1024 * 1024;
+
+   Cache_Pruned_This_Run : Boolean := False;
+
+   procedure Prune_Thumbnail_Cache
+     (Cache_Directory : String;
+      Budget_Bytes    : Long_Long_Integer)
+   is
+      type Cached_File is record
+         Path     : Unbounded_String;
+         Size     : Long_Long_Integer := 0;
+         Modified : Ada.Calendar.Time;
+      end record;
+
+      package Cached_File_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Cached_File);
+
+      function Older (Left : Cached_File; Right : Cached_File) return Boolean is
+        (Left.Modified < Right.Modified);
+
+      package Sorting is new Cached_File_Vectors.Generic_Sorting ("<" => Older);
+
+      Files_Found : Cached_File_Vectors.Vector;
+      Total       : Long_Long_Integer := 0;
+      Search      : Ada.Directories.Search_Type;
+      Item        : Ada.Directories.Directory_Entry_Type;
+   begin
+      if not Files.Fs.Directory_Exists (Cache_Directory) then
+         return;
+      end if;
+
+      Ada.Directories.Start_Search
+        (Search, Cache_Directory, "*",
+         Filter => [Ada.Directories.Ordinary_File => True, others => False]);
+
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+
+         begin
+            declare
+               Full : constant String := Ada.Directories.Full_Name (Item);
+               Size : constant Long_Long_Integer :=
+                 Long_Long_Integer (Ada.Directories.Size (Item));
+            begin
+               Files_Found.Append
+                 (Cached_File'
+                    (Path     => To_Unbounded_String (Full),
+                     Size     => Size,
+                     Modified => Ada.Directories.Modification_Time (Item)));
+               Total := Total + Size;
+            end;
+         exception
+            --  A file that vanished mid-scan, or whose size the host will not
+            --  report, simply is not counted. Pruning is housekeeping: it must
+            --  never be the reason a thumbnail fails to be written.
+            when others =>
+               null;
+         end;
+      end loop;
+
+      Ada.Directories.End_Search (Search);
+
+      if Total <= Budget_Bytes then
+         return;
+      end if;
+
+      Sorting.Sort (Files_Found);
+
+      for Candidate of Files_Found loop
+         exit when Total <= Budget_Bytes;
+
+         begin
+            Ada.Directories.Delete_File (To_String (Candidate.Path));
+            Total := Total - Candidate.Size;
+         exception
+            when others =>
+               null;
+         end;
+      end loop;
+   exception
+      when others =>
+         null;
+   end Prune_Thumbnail_Cache;
+
+   --  Once per run, at the default budget. See the note above for why not per
+   --  write.
+   procedure Prune_Cache_Once (Cache_Directory : String) is
+   begin
+      if Cache_Pruned_This_Run then
+         return;
+      end if;
+
+      Cache_Pruned_This_Run := True;
+      Prune_Thumbnail_Cache (Cache_Directory, Cache_Byte_Budget);
+   end Prune_Cache_Once;
+
    function Default_Thumbnail_Cache_Directory
      (Fallback_Directory : String)
       return String
@@ -256,8 +366,6 @@ package body Thumbnails is
       Max_Bytes : Natural)
       return String
    is
-      package Stream_IO renames Ada.Streams.Stream_IO;
-
       File   : Stream_IO.File_Type;
       Result : Ada.Strings.Unbounded.Unbounded_String;
       Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
@@ -372,7 +480,7 @@ package body Thumbnails is
       Size            : Positive := 64)
       return Thumbnail_Result
    is
-      File : Ada.Text_IO.File_Type;
+      File : Stream_IO.File_Type;
 
       function Clamp_Channel (Value : Natural) return Natural is
       begin
@@ -469,18 +577,46 @@ package body Thumbnails is
          return Result;
       end Bytes_To_Stream_Array;
 
+      --  Binary P6, not the ASCII P3 this used to write.
+      --
+      --  Identical pixels either way, but a 64x64 thumbnail is 12 KB here and
+      --  was 43 KB as text, and the loader on the directory-listing path had to
+      --  turn some twelve thousand ASCII numbers per thumbnail into as many
+      --  strings to read one back.
+      --
+      --  Stream_IO rather than Text_IO, and not only for the line endings:
+      --  Alire's switches carry -gnatW8, so Text_IO would try to encode every
+      --  pixel byte above 127 as UTF-8 on the way out and corrupt the image.
+      --  Load_Cached_Thumbnail reads both formats, so caches written before
+      --  this keep working rather than being silently discarded.
       procedure Write_Pixels_As_Ppm
         (Target_Path   : String;
          Pixels        : Pixel_Vectors.Vector;
          Source_Width  : Natural;
          Source_Height : Natural)
       is
-         Output : Ada.Text_IO.File_Type;
+         use Ada.Streams;
+
+         Output : Stream_IO.File_Type;
+         Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
+
+         procedure Put_Header (Text : String) is
+            Buffer : Stream_Element_Array (1 .. Text'Length);
+         begin
+            for Index in Text'Range loop
+               Buffer (Stream_Element_Offset (Index - Text'First + 1)) :=
+                 Stream_Element (Character'Pos (Text (Index)));
+            end loop;
+
+            Stream_IO.Write (Output, Buffer);
+         end Put_Header;
       begin
-         Ada.Text_IO.Create (Output, Ada.Text_IO.Out_File, Target_Path);
-         Ada.Text_IO.Put_Line (Output, "P3");
-         Ada.Text_IO.Put_Line (Output, Image_No_Space (Size) & " " & Image_No_Space (Size));
-         Ada.Text_IO.Put_Line (Output, "255");
+         Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path);
+         Put_Header
+           ("P6" & ASCII.LF
+            & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF
+            & "255" & ASCII.LF);
+
          for Row in 0 .. Size - 1 loop
             for Column in 0 .. Size - 1 loop
                declare
@@ -488,23 +624,24 @@ package body Thumbnails is
                   Source_Column : constant Natural := Column * Source_Width / Size;
                   Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
                   Pixel         : constant Rgb_Pixel := Pixels.Element (Source_Index);
+                  At_Byte       : constant Stream_Element_Offset :=
+                    Stream_Element_Offset (Column) * 3 + 1;
                begin
-                  Ada.Text_IO.Put
-                    (Output,
-                     Image_No_Space (Pixel.Red) & " "
-                     & Image_No_Space (Pixel.Green) & " "
-                     & Image_No_Space (Pixel.Blue));
-                  if Column < Size - 1 then
-                     Ada.Text_IO.Put (Output, " ");
-                  end if;
+                  Row_Bytes (At_Byte)     := Stream_Element (Pixel.Red mod 256);
+                  Row_Bytes (At_Byte + 1) := Stream_Element (Pixel.Green mod 256);
+                  Row_Bytes (At_Byte + 2) := Stream_Element (Pixel.Blue mod 256);
                end;
             end loop;
-            Ada.Text_IO.New_Line (Output);
+
+            Stream_IO.Write (Output, Row_Bytes);
          end loop;
-         Ada.Text_IO.Close (Output);
+
+         Stream_IO.Close (Output);
       exception
          when others =>
-            Safe_Close (Output);
+            if Stream_IO.Is_Open (Output) then
+               Stream_IO.Close (Output);
+            end if;
             raise;
       end Write_Pixels_As_Ppm;
 
@@ -968,6 +1105,7 @@ package body Thumbnails is
             Error_Key      => To_Unbounded_String ("error.thumbnail.unsupported"));
       end if;
 
+      Prune_Cache_Once (Cache_Directory);
       Ada.Directories.Create_Path (Cache_Directory);
       Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
       if (Source_Fits_Fast_Decode
@@ -987,32 +1125,52 @@ package body Thumbnails is
       Checksum := Thumbnail_Path_Checksum (Source_Path);
       Size_Bias := File_Size_Signal;
 
-      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, To_String (Target));
-      Ada.Text_IO.Put_Line (File, "P3");
-      Ada.Text_IO.Put_Line (File, Image_No_Space (Size) & " " & Image_No_Space (Size));
-      Ada.Text_IO.Put_Line (File, "255");
-      for Row in 0 .. Size - 1 loop
-         for Column in 0 .. Size - 1 loop
-            declare
-               Cell   : constant Natural := Natural'Max (1, Size / 8);
-               Stripe : constant Natural := (Row / Cell + Column / Cell) mod 2;
-               Red    : constant Natural := Clamp_Channel (Checksum + Row * 5 + Size_Bias / 7 + Stripe * 28);
-               Green  : constant Natural := Clamp_Channel (Checksum / 257 + Column * 7 + Size_Bias / 11);
-               Blue   : constant Natural := Clamp_Channel (Checksum / 65_521 + Row + Column * 3 + Size_Bias / 13);
-            begin
-               Ada.Text_IO.Put
-                 (File,
-                  Image_No_Space (Red) & " "
-                  & Image_No_Space (Green) & " "
-                  & Image_No_Space (Blue));
-               if Column < Size - 1 then
-                  Ada.Text_IO.Put (File, " ");
-               end if;
-            end;
+      --  The deterministic stand-in, written in the same binary P6 the decoded
+      --  thumbnails use, through Stream_IO for the same reason: -gnatW8 would
+      --  have Text_IO re-encode every byte above 127 on the way out.
+      declare
+         use Ada.Streams;
+
+         Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
+
+         procedure Put_Header (Text : String) is
+            Buffer : Stream_Element_Array (1 .. Text'Length);
+         begin
+            for Index in Text'Range loop
+               Buffer (Stream_Element_Offset (Index - Text'First + 1)) :=
+                 Stream_Element (Character'Pos (Text (Index)));
+            end loop;
+
+            Stream_IO.Write (File, Buffer);
+         end Put_Header;
+      begin
+         Stream_IO.Create (File, Stream_IO.Out_File, To_String (Target));
+         Put_Header
+           ("P6" & ASCII.LF
+            & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF
+            & "255" & ASCII.LF);
+
+         for Row in 0 .. Size - 1 loop
+            for Column in 0 .. Size - 1 loop
+               declare
+                  Cell    : constant Natural := Natural'Max (1, Size / 8);
+                  Stripe  : constant Natural := (Row / Cell + Column / Cell) mod 2;
+                  Red     : constant Natural := Clamp_Channel (Checksum + Row * 5 + Size_Bias / 7 + Stripe * 28);
+                  Green   : constant Natural := Clamp_Channel (Checksum / 257 + Column * 7 + Size_Bias / 11);
+                  Blue    : constant Natural := Clamp_Channel (Checksum / 65_521 + Row + Column * 3 + Size_Bias / 13);
+                  At_Byte : constant Stream_Element_Offset := Stream_Element_Offset (Column) * 3 + 1;
+               begin
+                  Row_Bytes (At_Byte)     := Stream_Element (Red mod 256);
+                  Row_Bytes (At_Byte + 1) := Stream_Element (Green mod 256);
+                  Row_Bytes (At_Byte + 2) := Stream_Element (Blue mod 256);
+               end;
+            end loop;
+
+            Stream_IO.Write (File, Row_Bytes);
          end loop;
-         Ada.Text_IO.New_Line (File);
-      end loop;
-      Ada.Text_IO.Close (File);
+
+         Stream_IO.Close (File);
+      end;
 
       return
         (Status         => Thumbnail_Generated,
@@ -1023,7 +1181,10 @@ package body Thumbnails is
          Error_Key      => Null_Unbounded_String);
    exception
       when others =>
-         Safe_Close (File);
+         if Stream_IO.Is_Open (File) then
+            Stream_IO.Close (File);
+         end if;
+
          return
            (Status         => Thumbnail_Failed,
             Source_Path    => To_Unbounded_String (Source_Path),
