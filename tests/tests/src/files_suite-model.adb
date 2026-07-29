@@ -1863,8 +1863,10 @@ package body Files_Suite.Model is
          "root volume name-limit availability follows statvfs availability");
       Assert (not Volume_Caps.Eject_Available, "root volume capabilities do not claim eject support");
       Assert
-        (Repository_File_Contains ("src/files-file_system-roots.adb", "function Is_Mount_Container")
-         and then Repository_File_Contains ("src/files-file_system-roots.adb", "return not Is_Mount_Container"),
+        (Repository_File_Contains
+           ("src/files-file_system-roots-available_root_entries.adb", "function Is_Mount_Container")
+         and then Repository_File_Contains
+           ("src/files-file_system-roots-available_root_entries.adb", "return not Is_Mount_Container"),
          "root discovery excludes mount container rows");
       Assert (Natural (Roots_A.Length) = Natural (Roots_B.Length), "available roots count is deterministic");
       for Index in 1 .. Natural (Roots_A.Length) loop
