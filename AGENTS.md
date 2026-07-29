@@ -12,7 +12,7 @@ Preferred validation:
 ```sh
 alr exec -- gnatls --version
 alr build
-alr test
+(cd tests && alr test)   # the suite lives here; `alr test` at the root runs none
 alr exec -- gprbuild -P tools/files_check_all.gpr
 tools/bin/release_check
 tools/bin/check_all

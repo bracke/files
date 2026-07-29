@@ -17,11 +17,11 @@ Do not run plain system `gnat*`, `gnatmake`, `gnatls`, `gnatprove`, or
 commands.
 
 - `alr build` — compile the main app. Style is checked at compile time, so a clean build also passes style.
-- `alr test` — run the AUnit suite (lives in `tests/`, its own `alire.toml`/`.gpr`).
+- `cd tests && alr test` — run the AUnit suite (it lives in `tests/`, with its own `alire.toml`/`.gpr`, and builds before it runs). `alr test` from the repo root runs *no tests*: with no test action defined there it falls back to a release build and reports success.
 - check_all — `tools/files_check_all.gpr` builds the `check_all` utility for file-format validation and full GNAT compiles.
 - `bin/files [PATH...]` — run the built app (defaults to home dir). `--runtime-smoke` / `--live-smoke` for headless/live validation (needs Vulkan + display).
 
-Verify non-trivial changes with the full chain: `alr build` → `alr test` → check_all. Or run `/verify-deep`.
+Verify non-trivial changes with the full chain: `alr build` → `cd tests && alr test` → check_all. Or run `/verify-deep`.
 
 ## Dependencies need sibling checkouts
 

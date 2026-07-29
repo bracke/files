@@ -49,6 +49,22 @@ cryptolib = { path = "../../cryptolib" }
 [[depends-on]]
 aunit = "^26.0.0"
 
+# `alr test` with no test action defined does not run anything: it falls back to
+# `alr build --release` and reports success, which is how the documented
+# verification chain came to build the suite at -O3 and never run a single case.
+#
+# Two actions, in order, because a test action replaces the build rather than
+# following it -- without the first, `alr test` would run whatever binary was
+# lying in bin/ and call a stale pass a pass. The development profile matches
+# the one below, so this shares object files rather than forcing a rebuild.
+[[actions]]
+type = "test"
+command = ["alr", "-n", "build", "--profiles=*=development"]
+
+[[actions]]
+type = "test"
+command = ["bin/tests"]
+
 # Build dependencies in the development profile (-Og) too, not the default
 # release (-O3). guikit is shared by files and launcher, and the profile lives in
 # its generated config gpr: if one root built it at -O3 and the other at -Og, each
