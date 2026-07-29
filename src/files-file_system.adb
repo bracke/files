@@ -1,10 +1,12 @@
 with Ada.Characters.Handling;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 

@@ -72,6 +72,39 @@ package body Directory is
       Icon_Id  : String)
       return Boolean;
 
+   package Thumbnail_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   --  Which thumbnails the cache already holds, listed once for a whole
+   --  directory rather than asked file by file.
+   --
+   --  Thumbnail_For_Item used to stat the cache path for every entry in the
+   --  listing before it knew whether the entry could have a thumbnail at all --
+   --  one failed stat per file, 20,000 of them on a 20,000-file directory, none
+   --  of which could ever succeed for a text file.
+   --
+   --  Simply asking "is this an image?" first would be wrong:
+   --  Generate_Selected_Thumbnails has no image gate, so a user can point the
+   --  thumbnail command at anything and the listing has to keep showing what it
+   --  produced. Reading the cache's own directory answers for every entry at
+   --  once and keeps that case working, because it asks what is actually there
+   --  rather than what ought to be.
+   --
+   --  Listed is False for the single-item path, where one stat is cheaper than
+   --  reading the whole cache directory; the lookup falls back to asking the
+   --  filesystem, exactly as before.
+   type Cache_Index is record
+      Listed : Boolean := False;
+      Names  : Thumbnail_Name_Sets.Set;
+   end record;
+
+   --  Read the cache directory once. A cache that does not exist yet, or cannot
+   --  be read, yields an empty listing rather than an error: a missing
+   --  thumbnail is not a missing file.
+   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index;
+
    function Thumbnail_For_Item
      (Full_Path       : String;
       Kind            : Files.Types.Item_Kind;
@@ -79,7 +112,8 @@ package body Directory is
       Name            : String;
       Icon_Id         : String;
       Cache_Directory : String;
-      Thumbnail_Path  : String)
+      Thumbnail_Path  : String;
+      Cached          : Cache_Index)
       return Cached_Thumbnail;
 
    --  @param Path The item's full path.
@@ -150,7 +184,8 @@ package body Directory is
       Name        : String;
       Parent_Path : String;
       Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model)
+      Settings    : Files.Settings.Settings_Model;
+      Cached      : Cache_Index)
       return Directory_Item;
 
    function Load_Cached_Thumbnail
@@ -423,6 +458,33 @@ package body Directory is
       return Is_Image_Item (Kind, Filetype, Name, Icon_Id);
    end Should_Auto_Generate_Thumbnail;
 
+   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
+      Result : Cache_Index;
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+   begin
+      Result.Listed := True;
+
+      if Cache_Directory = "" or else not Files.Fs.Directory_Exists (Cache_Directory) then
+         return Result;
+      end if;
+
+      Ada.Directories.Start_Search
+        (Search, Cache_Directory, "*",
+         Filter => [Ada.Directories.Ordinary_File => True, others => False]);
+
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         Result.Names.Include (Ada.Directories.Simple_Name (Item));
+      end loop;
+
+      Ada.Directories.End_Search (Search);
+      return Result;
+   exception
+      when others =>
+         return (Listed => True, Names => Thumbnail_Name_Sets.Empty_Set);
+   end Index_Thumbnail_Cache;
+
    function Thumbnail_For_Item
      (Full_Path       : String;
       Kind            : Files.Types.Item_Kind;
@@ -430,10 +492,27 @@ package body Directory is
       Name            : String;
       Icon_Id         : String;
       Cache_Directory : String;
-      Thumbnail_Path  : String)
+      Thumbnail_Path  : String;
+      Cached          : Cache_Index)
       return Cached_Thumbnail
    is
-      Loaded : Cached_Thumbnail := Load_Cached_Thumbnail (Thumbnail_Path);
+      --  With a listing in hand this costs no syscall at all. Without one it is
+      --  the stat it always was.
+      --
+      --  A thumbnail another process writes while this listing runs is missed
+      --  and picked up by the next one, which is what a stat per file bought
+      --  and is not worth 20,000 of them.
+      Present : constant Boolean :=
+        (if Cached.Listed
+         then Thumbnail_Path /= ""
+              and then Cached.Names.Contains (Ada.Directories.Simple_Name (Thumbnail_Path))
+         else True);
+
+      Loaded : Cached_Thumbnail :=
+        (if Present
+         then Load_Cached_Thumbnail (Thumbnail_Path)
+         else (Loaded => False, Width => 0, Height => 0,
+               Pixels => Files.Types.Byte_Vectors.Empty_Vector));
    begin
       if Loaded.Loaded
         or else not Should_Auto_Generate_Thumbnail (Kind, Filetype, Name, Icon_Id)
@@ -1253,7 +1332,8 @@ package body Directory is
       Name        : String;
       Parent_Path : String;
       Kind        : Files.Types.Item_Kind;
-      Settings    : Files.Settings.Settings_Model)
+      Settings    : Files.Settings.Settings_Model;
+      Cached      : Cache_Index)
       return Directory_Item
    is
       Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
@@ -1268,7 +1348,8 @@ package body Directory is
            Name            => Name,
            Icon_Id         => Icon_Id,
            Cache_Directory => Thumbnail_Cache,
-           Thumbnail_Path  => Thumbnail_Path);
+           Thumbnail_Path  => Thumbnail_Path,
+           Cached          => Cached);
       Item : Directory_Item :=
         (Name               => To_Unbounded_String (Name),
          Full_Path          => To_Unbounded_String (Full),
@@ -1342,6 +1423,11 @@ package body Directory is
       Items  : Item_Vectors.Vector;
       Normalized_Path : Unbounded_String;
       Started : Boolean := False;
+
+      --  One read of the thumbnail cache for the whole listing, in place of one
+      --  failed stat per entry.
+      Cached : constant Cache_Index :=
+        Index_Thumbnail_Cache (Default_Thumbnail_Cache_Directory (Path));
    begin
       if not Files.Fs.Directory_Exists (Path)
       then
@@ -1404,7 +1490,8 @@ package body Directory is
                         Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
                      begin
                         Items.Append
-                          (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings));
+                          (Item_For_Path
+                             (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached));
                      end;
                   exception
                      when others =>
@@ -1415,7 +1502,8 @@ package body Directory is
                                  Name,
                                  To_String (Normalized_Path),
                                  Files.Types.Other_Item,
-                                 Settings));
+                                 Settings,
+                                 Cached));
                         exception
                            when others =>
                               null;
@@ -1487,7 +1575,7 @@ package body Directory is
 
          return
            (Success   => True,
-            Item      => Item_For_Path (Full, Name, Parent, Kind, Settings),
+            Item      => Item_For_Path (Full, Name, Parent, Kind, Settings, (others => <>)),
             Error_Key => Null_Unbounded_String);
       end;
    exception
