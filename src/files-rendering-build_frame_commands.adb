@@ -910,6 +910,12 @@ separate (Files.Rendering)
       function Permission_Text (Permissions : String) return String is separate;
 
       procedure Draw_Overlay_Commands is separate;
+
+      --  Details-view accessibility row labels are identical for every row;
+      --  look them up once here rather than three times per visible row.
+      Detail_Modified_Label : constant String := Files.Localization.Text ("details.modified");
+      Detail_Size_Label     : constant String := Files.Localization.Text ("details.size");
+      Detail_Filetype_Label : constant String := Files.Localization.Text ("details.filetype");
    begin
       Result.Layout := Layout;
       Result.Theme_Palette := Snapshot.Theme_Palette;
@@ -2098,11 +2104,11 @@ separate (Files.Rendering)
                Row_Description : constant UString :=
                  (if Snapshot.View_Mode = Files.Types.Details
                   then To_Unbounded_String
-                    (Files.Localization.Text ("details.modified") & ": " &
+                    (Detail_Modified_Label & ": " &
                      To_String (Detail_Modified) & ", " &
-                     Files.Localization.Text ("details.size") & ": " &
+                     Detail_Size_Label & ": " &
                      To_String (Detail_Size) & ", " &
-                     Files.Localization.Text ("details.filetype") & ": " &
+                     Detail_Filetype_Label & ": " &
                      To_String (Item.Filetype_Detail))
                   else Item.Filetype_Detail);
             begin
