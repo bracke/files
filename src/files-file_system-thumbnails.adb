@@ -702,7 +702,14 @@ package body Thumbnails is
            or else Height = 0
            or else Width > 4096
            or else Height > 4096
-           or else Width * Height > 4_194_304
+           --  The pure-Ada decoder holds the full inflated raster (plus the
+           --  zlib output) in stack/secondary-stack arrays; at 2048x2048 RGBA
+           --  that is tens of MB and overflowed smaller worker-task stacks
+           --  (Storage_Error -> fallback), so the fast path was unreliable for
+           --  exactly the large images near the old cap. Bound it to 1024x1024
+           --  so it is reliable within range; larger PNGs use the gdk-pixbuf
+           --  fallback, which streams and does not.
+           or else Width * Height > 1_048_576
            or else Bit_Depth /= 8
            or else Interlace /= 0
            or else Idat.Is_Empty
