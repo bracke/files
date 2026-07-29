@@ -2,6 +2,8 @@ separate (Files.Settings)
    function System_Default_Opener_Action
      (Filetype : String) return Action_Lookup_Result
    is
+      use type Hostkit.Host.Kind;
+
       Args : String_Vectors.Vector;
 
       Smart_Open_Script : constant String :=
@@ -27,31 +29,22 @@ separate (Files.Settings)
         & "fi; "
         & "exec xdg-open ""$file""";
 
-      function Is_Windows return Boolean is
+      function Command_Shell return String is
       begin
-         --  COMSPEC alone is not reliable — some Linux users set it for Wine
-         --  compatibility. Cross-check with the platform's path separator,
-         --  which GNAT sets to '\' only on Windows hosts.
-         return GNAT.OS_Lib.Directory_Separator = '\'
-           and then Ada.Environment_Variables.Exists ("COMSPEC")
-           and then Ada.Environment_Variables.Value ("COMSPEC") /= "";
+         --  COMSPEC names the host's command interpreter and is what a Windows
+         --  install sets it to; cmd is on PATH regardless, so a missing or
+         --  emptied COMSPEC is not a reason to give up on opening anything.
+         if Ada.Environment_Variables.Exists ("COMSPEC")
+           and then Ada.Environment_Variables.Value ("COMSPEC") /= ""
+         then
+            return Ada.Environment_Variables.Value ("COMSPEC");
+         else
+            return "cmd";
+         end if;
       exception
          when others =>
-            return False;
-      end Is_Windows;
-
-      function Is_Macos return Boolean is
-      begin
-         --  `open` on macOS is the canonical opener, but on most Linux
-         --  distributions /usr/bin/open exists too (from util-linux) and does
-         --  unrelated things. Use the presence of /System to identify a real
-         --  macOS host before preferring `open`.
-         return Ada.Directories.Exists ("/System")
-           and then Ada.Directories.Kind ("/System") = Ada.Directories.Directory;
-      exception
-         when others =>
-            return False;
-      end Is_Macos;
+            return "cmd";
+      end Command_Shell;
 
       function Path_Find (Name : String) return Boolean is
          use type GNAT.OS_Lib.String_Access;
@@ -64,19 +57,23 @@ separate (Files.Settings)
          return Found;
       end Path_Find;
    begin
-      if Is_Windows then
+      --  Which host this is comes from Hostkit, which answers from the body the
+      --  build selected. The environment cannot say: COMSPEC is set on Linux
+      --  machines that run Wine, /usr/bin/open exists on Linux too (util-linux)
+      --  and means something else entirely, and a Windows host that had COMSPEC
+      --  cleared was being sent down the POSIX path to look for xdg-open.
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
          Args.Append (To_Unbounded_String ("/c"));
          Args.Append (To_Unbounded_String ("start"));
          Args.Append (To_Unbounded_String (""));
          Args.Append (To_Unbounded_String ("{path}"));
          return
            (Found            => True,
-            Action           => Make_Action
-              (Ada.Environment_Variables.Value ("COMSPEC"), Args),
+            Action           => Make_Action (Command_Shell, Args),
             Token            => To_Unbounded_String ("system.default"),
             Error_Key        => Null_Unbounded_String,
             System_Fallback  => True);
-      elsif Is_Macos and then Path_Find ("open") then
+      elsif Hostkit.Host.Current = Hostkit.Host.MacOS and then Path_Find ("open") then
          Args.Append (To_Unbounded_String ("{path}"));
          return
            (Found            => True,

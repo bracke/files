@@ -23,6 +23,8 @@ with Glfw.Input.Mouse;
 with GNAT.OS_Lib;
 with Textrender.Fonts;
 
+with Hostkit.Host;
+
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
@@ -103,6 +105,7 @@ package body Files_Suite.Settings is
    overriding procedure Register_Tests (T : in out Settings_Test_Case);
 
    procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Default_Open_Action_Suits_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -122,6 +125,9 @@ package body Files_Suite.Settings is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Parsing_And_Open_Actions'Access, "settings parsing and open actions");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Default_Open_Action_Suits_The_Host'Access,
+         "the seeded default open action names a program this host has");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Load_File'Access, "settings load file");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1522,6 +1528,38 @@ package body Files_Suite.Settings is
             "empty open-action command reports deterministic diagnostic");
       end;
    end Test_Settings_Parsing_And_Open_Actions;
+
+   --  A fresh install's one seeded open action has to name a program the host
+   --  running it actually has. It named xdg-open on every host, and since a
+   --  configured action wins over the system default, that entry did not just
+   --  fail on Windows and macOS -- it shadowed the working `start` and `open`
+   --  fallbacks, so text files did not open at all. Runs on each CI host, so
+   --  each branch is checked where it applies.
+   procedure Test_Default_Open_Action_Suits_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Defaults : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Lookup   : constant Files.Settings.Action_Lookup_Result :=
+        Files.Settings.Lookup_Open_Action (Defaults, "text/plain", Guikit.Input.No_Modifiers);
+      Expected : constant String :=
+        (case Hostkit.Host.Current is
+            when Hostkit.Host.Windows => "cmd",
+            when Hostkit.Host.MacOS   => "open",
+            when others               => "xdg-open");
+      Found_Executable : constant String := To_String (Lookup.Action.Executable);
+   begin
+      Assert (Lookup.Found, "a fresh install seeds an open action for text/plain");
+      Assert
+        (not Lookup.System_Fallback,
+         "the seeded text/plain action is a configured action, not the system fallback");
+      Assert
+        (Found_Executable = Expected,
+         "the seeded text/plain opener names a program this host has: expected "
+         & Expected & ", found " & Found_Executable);
+      Assert
+        (Natural (Lookup.Action.Arguments.Length) > 0
+           and then To_String (Lookup.Action.Arguments.Last_Element) = "{path}",
+         "the seeded text/plain opener is handed the file to open");
+   end Test_Default_Open_Action_Suits_The_Host;
 
    procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

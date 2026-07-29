@@ -49,7 +49,34 @@ separate (Files.Settings)
       Add_Icon_Mapping (Settings, "video/mp4", "unknown");
       Add_Icon_Mapping (Settings, "application/octet-stream", "unknown");
 
-      Args.Append (To_Unbounded_String ("{path}"));
-      Add_Open_Action (Settings, "text/plain", Make_Action ("xdg-open", Args));
+      --  The one seeded open action, and it has to name a program this host
+      --  actually has. It used to be xdg-open everywhere, which no Windows or
+      --  macOS box has -- and because Lookup_Open_Action prefers a configured
+      --  action over the system default, that entry did not merely fail to
+      --  help: it shadowed the working `start` and `open` fallbacks, so a text
+      --  file would not open at all. Worse, Ensure_Default_File writes these
+      --  defaults out, so the dead entry was persisted into the user's
+      --  settings file for them to find and delete by hand.
+      case Hostkit.Host.Current is
+         when Hostkit.Host.Windows =>
+            --  cmd's `start`, whose empty first argument is the window title it
+            --  otherwise takes the quoted path for. Named rather than taken from
+            --  COMSPEC because this is written to a settings file that should not
+            --  carry one machine's absolute paths.
+            Args.Append (To_Unbounded_String ("/c"));
+            Args.Append (To_Unbounded_String ("start"));
+            Args.Append (To_Unbounded_String (""));
+            Args.Append (To_Unbounded_String ("{path}"));
+            Add_Open_Action (Settings, "text/plain", Make_Action ("cmd", Args));
+
+         when Hostkit.Host.MacOS =>
+            Args.Append (To_Unbounded_String ("{path}"));
+            Add_Open_Action (Settings, "text/plain", Make_Action ("open", Args));
+
+         when Hostkit.Host.Linux | Hostkit.Host.Unsupported =>
+            Args.Append (To_Unbounded_String ("{path}"));
+            Add_Open_Action (Settings, "text/plain", Make_Action ("xdg-open", Args));
+      end case;
+
       return Settings;
    end Default_Settings;

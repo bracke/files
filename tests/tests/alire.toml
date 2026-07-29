@@ -35,6 +35,14 @@ cryptolib = { path = "../../../cryptolib" }
 [[pins]]
 a11ykit = { path = "../../../a11ykit" }
 
+# Hostkit answers which host this is, which a test of the host-appropriate
+# defaults has to ask directly rather than lean on transitively.
+[[depends-on]]
+hostkit = "*"
+
+[[pins]]
+hostkit = { path = "../../../hostkit" }
+
 [[depends-on]]
 aunit = "^26.0.0"
 
