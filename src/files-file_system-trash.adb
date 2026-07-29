@@ -18,56 +18,84 @@ package body Trash is
 
    function Two_Digit_Text (Value : Natural) return String;
 
-   function Trash_Base_Path return String is
+   --  Where the trash is and which implementation owns it, decided once.
+   --
+   --  These were two functions reading the same three inputs and re-deriving the
+   --  same answer separately, with nothing making them agree --
+   --  Trash_Files_Directory combines a base from one with a backend from the
+   --  other, so a branch changed in one and not the other would have put deleted
+   --  files somewhere the backend does not expect. They now read one decision,
+   --  which also means one ~/.Trash probe rather than one per function.
+   --
+   --  Deliberately NOT Hostkit.Fs.Application_Data_Directory, which looks like
+   --  the same question and is not. $XDG_DATA_HOME here is part of the
+   --  freedesktop trash specification -- a layout this program implements, not a
+   --  host directory it looks up -- and on macOS the host's data directory is
+   --  ~/Library/Application Support, which is emphatically not where a trash
+   --  goes. The layout is ours; only what differs *because the host differs*
+   --  belongs to Hostkit.
+   type Trash_Location is record
+      Backend : Trash_Backend := Trash_Unavailable;
+      Base    : Unbounded_String := Null_Unbounded_String;
+   end record;
+
+   function Trash_Location_For_Environment return Trash_Location is
       Xdg_Data_Home : constant String := Safe_Environment_Value ("XDG_DATA_HOME");
       Home          : constant String := Safe_Environment_Value ("HOME");
+
+      Result : Trash_Location;
    begin
+      --  The desktop's own trash: asked for explicitly. Both leave Base empty --
+      --  the shell owns the location and there is no path of ours to hand back.
       if Environment_Equals ("FILES_TRASH_BACKEND", "windows") then
-         return "";
+         return (Backend => Trash_Windows_Recycle_Bin, Base => Null_Unbounded_String);
       elsif Environment_Equals ("FILES_TRASH_BACKEND", "macos") then
-         return "";
+         return (Backend => Trash_Macos_Native, Base => Null_Unbounded_String);
       end if;
 
+      --  The freedesktop layout. The ~/.Trash probe is only reached when
+      --  XDG_DATA_HOME is empty, as before, so setting it costs no filesystem
+      --  check.
       if Xdg_Data_Home /= "" then
-         return Join_Path (Xdg_Data_Home, "Trash");
+         Result :=
+           (Backend => Trash_Xdg_Data_Home,
+            Base    => To_Unbounded_String (Join_Path (Xdg_Data_Home, "Trash")));
       elsif Home /= "" then
          if Ada.Directories.Exists (Join_Path (Home, ".Trash")) then
-            return Join_Path (Home, ".Trash");
+            Result :=
+              (Backend => Trash_Macos_Home,
+               Base    => To_Unbounded_String (Join_Path (Home, ".Trash")));
+         else
+            Result :=
+              (Backend => Trash_Home_Data,
+               Base    =>
+                 To_Unbounded_String
+                   (Join_Path (Join_Path (Join_Path (Home, ".local"), "share"), "Trash")));
          end if;
-
-         return Join_Path (Join_Path (Join_Path (Home, ".local"), "share"), "Trash");
       end if;
 
-      return "";
+      --  Windows has no HOME/XDG trash, so the shell Recycle Bin is the default
+      --  there; "xdg" forces the freedesktop implementation on any host, which is
+      --  what lets it be exercised where it is not the default. Only the backend
+      --  changes -- the base keeps whatever the layout above worked out, which is
+      --  what the previous pair of functions did.
+      if Files_Config.Alire_Host_OS = "windows"
+        and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
+      then
+         Result.Backend := Trash_Windows_Recycle_Bin;
+      end if;
+
+      return Result;
+   end Trash_Location_For_Environment;
+
+   function Trash_Base_Path return String is
+   begin
+      return To_String (Trash_Location_For_Environment.Base);
    end Trash_Base_Path;
 
    function Trash_Backend_For_Base return Trash_Backend is
-      Xdg_Data_Home : constant String := Safe_Environment_Value ("XDG_DATA_HOME");
-      Home          : constant String := Safe_Environment_Value ("HOME");
    begin
-      if Environment_Equals ("FILES_TRASH_BACKEND", "windows") then
-         return Trash_Windows_Recycle_Bin;
-      elsif Environment_Equals ("FILES_TRASH_BACKEND", "macos") then
-         return Trash_Macos_Native;
-      elsif Files_Config.Alire_Host_OS = "windows"
-        and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
-      then
-         --  Windows has no HOME/XDG trash; use the shell Recycle Bin by default.
-         --  "xdg" forces the freedesktop implementation regardless of host, which
-         --  is what lets it be exercised on every platform rather than only where
-         --  it happens to be the default.
-         return Trash_Windows_Recycle_Bin;
-      elsif Xdg_Data_Home /= "" then
-         return Trash_Xdg_Data_Home;
-      elsif Home /= "" then
-         if Ada.Directories.Exists (Join_Path (Home, ".Trash")) then
-            return Trash_Macos_Home;
-         else
-            return Trash_Home_Data;
-         end if;
-      end if;
-
-      return Trash_Unavailable;
+      return Trash_Location_For_Environment.Backend;
    end Trash_Backend_For_Base;
 
    function Trash_Files_Directory return String is
