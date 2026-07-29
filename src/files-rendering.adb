@@ -92,7 +92,11 @@ package body Files.Rendering is
    Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
    Command_Result_Row_Padding : constant Natural := Guikit.Layout.Palette_Result_Row_Padding;
    Command_Palette_Scrollbar_Gap : constant Natural := 8;
-   Scrollbar_Width : constant Natural := 12;
+   --  The main-view scrollbar is an overlay drawn over the content's right
+   --  margin (Main_Content_Padding), not a reserved gutter, so it must be no
+   --  wider than that margin or it paints over -- and steals clicks from -- the
+   --  rightmost column of items. Keep it equal to the margin.
+   Scrollbar_Width : constant Natural := Main_Content_Padding;
    Root_Selector_Padding : constant Natural := 8;
 
    --  Building the Util date bundle costs ~43 localization catalog lookups plus
