@@ -296,8 +296,19 @@ package body Create is
          --  failing and stranding the file at the destination.
          declare
             Copied : constant Mutation_Result := Copy_Tree (From_Path, To_Path);
+
+            --  On any failure once the copy has started, drop whatever it left at
+            --  the destination so the source stays the single canonical copy: no
+            --  partial tree stranded, and no duplicate if the source delete fails.
+            procedure Discard_Destination is
+               Removed : constant Mutation_Result := Delete_Permanently (To_Path);
+               pragma Unreferenced (Removed);
+            begin
+               null;
+            end Discard_Destination;
          begin
             if not Copied.Success then
+               Discard_Destination;
                return
                  (Success   => False,
                   Error_Key => To_Unbounded_String ("error.rename.failed"));
@@ -307,6 +318,7 @@ package body Create is
                Deleted : constant Mutation_Result := Delete_Permanently (From_Path);
             begin
                if not Deleted.Success then
+                  Discard_Destination;
                   return Deleted;
                end if;
             end;
@@ -314,6 +326,7 @@ package body Create is
             return (Success => True, Error_Key => Null_Unbounded_String);
          exception
             when others =>
+               Discard_Destination;
                return
                  (Success   => False,
                   Error_Key => To_Unbounded_String ("error.rename.failed"));

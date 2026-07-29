@@ -185,6 +185,7 @@ package body Paste_Exec is
       Model.Paste_Exec_First_Dest_Value := Null_Unbounded_String;
       Model.Paste_Exec_Undo_From_Value.Clear;
       Model.Paste_Exec_Undo_To_Value.Clear;
+      Model.Paste_Exec_Replaced_Trash_Value.Clear;
    end Clear_Paste_Execution;
 
 end Paste_Exec;

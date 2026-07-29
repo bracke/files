@@ -635,6 +635,18 @@ package body Trash is
                end;
             exception
                when others =>
+                  --  Copy_Tree raised partway through (e.g. out of space on the
+                  --  trash filesystem), leaving a partial payload behind. Remove
+                  --  it and the sidecar so no orphaned trash entry remains --
+                  --  the same rollback the delete-failed branch above does. The
+                  --  source is untouched, so the move simply failed.
+                  declare
+                     Rolled_Back : constant Mutation_Result :=
+                       Delete_Permanently (To_String (Target));
+                     pragma Unreferenced (Rolled_Back);
+                  begin
+                     null;
+                  end;
                   Delete_Info_File_If_Present;
                   return
                     (Success   => False,
