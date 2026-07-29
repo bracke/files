@@ -28,7 +28,7 @@ with Files.Folder_Size;
 with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Operations;
-with Files.Platform.Watch;
+with Hostkit.Watch;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Guikit.Layout;
@@ -322,7 +322,7 @@ package body Files.Application.Windows is
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
-      Watch : Files.Platform.Watch.Watch_State;
+      Watch : Hostkit.Watch.Watch_State;
    end record;
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
@@ -840,7 +840,7 @@ package body Files.Application.Windows is
    procedure Release_Native_Watch
      (Runtime : in out Runtime_Window) is
    begin
-      Files.Platform.Watch.Release (Runtime.Watch);
+      Hostkit.Watch.Release (Runtime.Watch);
    end Release_Native_Watch;
 
    function Drain_Native_Watch
@@ -849,10 +849,10 @@ package body Files.Application.Windows is
    begin
       --  Re-pointing the watch at the directory currently on screen is a no-op
       --  once it is already there, so this is cheap to do every frame.
-      Files.Platform.Watch.Watch_Path
+      Hostkit.Watch.Watch_Path
         (Runtime.Watch, Files.Model.Current_Path (Runtime.Model));
 
-      return Files.Platform.Watch.Poll (Runtime.Watch);
+      return Hostkit.Watch.Poll (Runtime.Watch);
    end Drain_Native_Watch;
 
    procedure Handle_File_Watch_Poll

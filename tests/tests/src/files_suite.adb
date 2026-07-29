@@ -6,7 +6,6 @@ with Files_Suite.Settings;
 with Files_Suite.Operations;
 with Files_Suite.Rendering;
 with Files_Suite.Interaction;
-with Files_Suite.Watch;
 
 package body Files_Suite is
 
@@ -20,7 +19,6 @@ package body Files_Suite is
       Result.Add_Test (Files_Suite.Operations.Suite);
       Result.Add_Test (Files_Suite.Rendering.Suite);
       Result.Add_Test (Files_Suite.Interaction.Suite);
-      Result.Add_Test (Files_Suite.Watch.Suite);
       return Result;
    end Suite;
 

@@ -2622,7 +2622,7 @@ procedure Check_All is
       Require_Not_Contains_In_Unit
         (Windows_Body,
          "inotify",
-         "window code must not name a Linux-only facility directly; go through Files.Platform.Watch");
+         "window code must not name a Linux-only facility directly; go through Hostkit.Watch");
    end Check_Desktop_Runtime_Contract;
 
    procedure Check_Rendering_Architecture is

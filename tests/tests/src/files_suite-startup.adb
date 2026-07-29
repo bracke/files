@@ -1703,19 +1703,17 @@ package body Files_Suite.Startup is
         (Repository_Source_Contains ("Guikit.Vulkan.Wait_For_Events")
          and then Repository_Source_Contains ("Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
-      --  Native watching is connected to the event loop through the platform
-      --  layer, not by calling a kernel facility from window code: inotify is
+      --  Native watching is connected to the event loop through a per-host
+      --  seam, not by calling a kernel facility from window code: inotify is
       --  Linux-only, and naming it here once made the application impossible to
-      --  link on macOS or Windows. Each platform body supplies its own.
+      --  link on macOS or Windows. That seam is now Hostkit.Watch, so the
+      --  per-host bodies -- and the assertion that each host supplies its own
+      --  inotify/kqueue/FindFirstChangeNotification -- live in hostkit with
+      --  them. What files still owns, and what this checks, is the wiring.
       Assert
-        (Repository_Source_Contains ("Files.Platform.Watch.Poll")
+        (Repository_Source_Contains ("Hostkit.Watch.Poll")
          and then Repository_Source_Contains ("Drain_Native_Watch"),
          "native file watching is connected to the desktop event loop");
-      Assert
-        (Repository_Source_Contains ("inotify_init1")
-         and then Repository_Source_Contains ("kqueue")
-         and then Repository_Source_Contains ("FindFirstChangeNotification"),
-         "each platform supplies its own native directory-change notification");
       --  "window code must not name inotify directly" is now a family-aware
       --  guardrail in check_all (Check_Desktop_Runtime_Contract), so it covers
       --  the window body and every one of its subunits, not just one file.
