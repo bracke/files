@@ -296,6 +296,49 @@ separate (Files.Controller)
          return Make_Result (Controller_Selection_Moved);
       end if;
 
+      --  Tab / Shift+Tab cycle keyboard focus around the main-view controls:
+      --  grid -> path input -> filter -> grid, and Shift+Tab reverses. Each field
+      --  keeps its direct shortcut (Ctrl+L, Ctrl+F, Escape back to the grid); this
+      --  adds the conventional ring. Only these three focus states take part --
+      --  rename, palette, settings and ownership focus have their own handling,
+      --  and the settings pane's Ctrl+Tab is untouched (this ignores Ctrl/Alt).
+      if Key = Guikit.Input.Key_Tab
+        and then not Modifiers (Guikit.Input.Control_Key)
+        and then not Modifiers (Guikit.Input.Alt_Key)
+        and then Files.Model.Focus (Model) in
+          Files.Types.Focus_None
+            | Files.Types.Focus_Path_Input
+            | Files.Types.Focus_Filter_Input
+      then
+         declare
+            Backward : constant Boolean := Modifiers (Guikit.Input.Shift_Key);
+         begin
+            case Files.Model.Focus (Model) is
+               when Files.Types.Focus_None =>
+                  if Backward then
+                     Files.Model.Focus_Filter_Input (Model);
+                  else
+                     Files.Model.Focus_Path_Input (Model);
+                  end if;
+               when Files.Types.Focus_Path_Input =>
+                  if Backward then
+                     Files.Model.Cancel_Focus_Or_Edit (Model);
+                  else
+                     Files.Model.Focus_Filter_Input (Model);
+                  end if;
+               when Files.Types.Focus_Filter_Input =>
+                  if Backward then
+                     Files.Model.Focus_Path_Input (Model);
+                  else
+                     Files.Model.Cancel_Focus_Or_Edit (Model);
+                  end if;
+               when others =>
+                  null;
+            end case;
+            return Make_Result (Controller_Text_Updated);
+         end;
+      end if;
+
       if Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input then
          if Files.Model.Settings_Is_Capturing (Model) then
             --  A Shortcut row is armed: every key is a chord to capture, not a

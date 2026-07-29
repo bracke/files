@@ -113,6 +113,7 @@ package body Files_Suite.Commands is
    procedure Test_Escape_Dismisses_Grid_Popups (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Command_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -150,6 +151,8 @@ package body Files_Suite.Commands is
         (T, Test_Sort_Menu_Keyboard'Access, "the sort menu navigates by arrows and applies on Enter");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Keyboard'Access, "the context menu opens with Shift+F10 and navigates by arrows");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tab_Focus_Ring'Access, "Tab and Shift+Tab cycle focus around grid, path input, and filter");
    end Register_Tests;
 
    procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1850,6 +1853,38 @@ package body Files_Suite.Commands is
         (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size,
          "Enter applies the highlighted sort field");
    end Test_Sort_Menu_Keyboard;
+
+   procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Focus_Target;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Controller.Controller_Result;
+      Shift    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+   begin
+      Reset_Root;
+      Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Shift (Guikit.Input.Shift_Key) := True;
+
+      --  Forward ring: grid -> path input -> filter -> grid.
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "focus starts on the grid");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "Tab focuses the path input");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "Tab focuses the filter input");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Tab returns focus to the grid");
+
+      --  Backward ring: grid -> filter -> path -> grid.
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "Shift+Tab focuses the filter input");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "Shift+Tab focuses the path input");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
+      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Shift+Tab returns focus to the grid");
+   end Test_Tab_Focus_Ring;
 
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
