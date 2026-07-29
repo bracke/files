@@ -27,6 +27,13 @@ package body Files.Extension_Labels is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
 
+   --  Bound the cache so browsing directories full of arbitrary distinct
+   --  suffixes (hex hashes, numbered .0001 parts) cannot grow it without limit --
+   --  each entry holds a rasterized alpha bitmap. Real use (a few dozen
+   --  extensions x three themes) stays well under this; only the pathological
+   --  case reaches it, and then re-rasterizes on demand after a reset.
+   Max_Cached_Labels : constant := 512;
+
    Cache          : Label_Maps.Map;
    R              : Guikit.Text.Renderer;
    R_Pixel_Height : Natural := 0;
@@ -222,6 +229,9 @@ package body Files.Extension_Labels is
          return (Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
       end if;
       if not Cache.Contains (Key) then
+         if Natural (Cache.Length) >= Max_Cached_Labels then
+            Cache.Clear;
+         end if;
          Cache.Insert (Key, Rasterize (Ext, Height, Theme));
       end if;
       return Cache.Element (Key);
