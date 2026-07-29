@@ -1657,6 +1657,20 @@ package body Files_Suite.Settings is
       Loaded := Files.Settings.Load_File (Saved_Path);
       Assert (Loaded.Success, "saved settings file loads");
       Assert (Loaded.Settings.Default_View = Files.Types.Large_Icons, "saved settings text is persisted");
+      --  Saving over an existing file goes through the atomic temp+rename path:
+      --  the new content replaces the old and no temporary file is left behind.
+      Saved :=
+        Files.Settings.Save_Text
+          (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
+      Assert (Saved.Success, "settings text can be saved over an existing file");
+      Assert
+        (not Ada.Directories.Exists (Saved_Path & ".tmp"),
+         "a successful settings save leaves no temporary file behind");
+      Loaded := Files.Settings.Load_File (Saved_Path);
+      Assert (Loaded.Success, "resaved settings file loads");
+      Assert
+        (Loaded.Settings.Default_View = Files.Types.Details,
+         "resaved settings text replaces the previous content");
       Write_File (Blocked_Parent, "not a directory");
       Saved := Files.Settings.Save_Text (Blocked_Path, "[settings]" & ASCII.LF);
       Assert (not Saved.Success, "settings save rejects a file used as parent directory");
