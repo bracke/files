@@ -81,43 +81,67 @@ package body Files.Rendering is
    Scrollbar_Width : constant Natural := 12;
    Root_Selector_Padding : constant Natural := 8;
 
+   --  Building the Util date bundle costs ~43 localization catalog lookups plus
+   --  environment reads (System_Time_Locale). It depends only on the time
+   --  locale, which is invariant across a frame (effectively across a session),
+   --  yet Formatted_Time_Text used to rebuild it on every call -- i.e. several
+   --  times per visible details row per frame while scrolling. Cache it and
+   --  rebuild only when the locale actually changes. Single-threaded render, so
+   --  package-level state is safe here.
+   Cached_Bundle        : Util.Properties.Manager;
+   Cached_Bundle_Locale : Ada.Strings.Unbounded.Unbounded_String;
+   Cached_Bundle_Ready  : Boolean := False;
+
    function Date_Bundle return Util.Properties.Manager is
-      Result : Util.Properties.Manager;
       Locale : constant String := Files.Localization.System_Time_Locale;
-
-      procedure Set_Text
-        (Util_Key : String;
-         Text_Key : String)
-      is
-      begin
-         Result.Set (Util_Key, Files.Localization.Text (Text_Key, Locale));
-      end Set_Text;
    begin
-      Set_Text (Util.Dates.Formats.DATE_TIME_LOCALE_NAME, "time.locale.datetime_pattern");
-      Set_Text (Util.Dates.Formats.DATE_LOCALE_NAME, "time.locale.date_pattern");
-      Set_Text (Util.Dates.Formats.TIME_LOCALE_NAME, "time.locale.time_pattern");
-      Set_Text (Util.Dates.Formats.AM_NAME, "time.locale.am");
-      Set_Text (Util.Dates.Formats.PM_NAME, "time.locale.pm");
+      if Cached_Bundle_Ready
+        and then Ada.Strings.Unbounded.To_String (Cached_Bundle_Locale) = Locale
+      then
+         return Cached_Bundle;
+      end if;
 
-      for Index in 1 .. 12 loop
-         declare
-            Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+      declare
+         Result : Util.Properties.Manager;
+
+         procedure Set_Text
+           (Util_Key : String;
+            Text_Key : String)
+         is
          begin
-            Set_Text ("util.month" & Image & ".short", "time.month" & Image & ".short");
-            Set_Text ("util.month" & Image & ".long", "time.month" & Image & ".long");
-         end;
-      end loop;
+            Result.Set (Util_Key, Files.Localization.Text (Text_Key, Locale));
+         end Set_Text;
+      begin
+         Set_Text (Util.Dates.Formats.DATE_TIME_LOCALE_NAME, "time.locale.datetime_pattern");
+         Set_Text (Util.Dates.Formats.DATE_LOCALE_NAME, "time.locale.date_pattern");
+         Set_Text (Util.Dates.Formats.TIME_LOCALE_NAME, "time.locale.time_pattern");
+         Set_Text (Util.Dates.Formats.AM_NAME, "time.locale.am");
+         Set_Text (Util.Dates.Formats.PM_NAME, "time.locale.pm");
 
-      for Index in 0 .. 6 loop
-         declare
-            Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
-         begin
-            Set_Text ("util.day" & Image & ".short", "time.day" & Image & ".short");
-            Set_Text ("util.day" & Image & ".long", "time.day" & Image & ".long");
-         end;
-      end loop;
+         for Index in 1 .. 12 loop
+            declare
+               Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+            begin
+               Set_Text ("util.month" & Image & ".short", "time.month" & Image & ".short");
+               Set_Text ("util.month" & Image & ".long", "time.month" & Image & ".long");
+            end;
+         end loop;
 
-      return Result;
+         for Index in 0 .. 6 loop
+            declare
+               Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+            begin
+               Set_Text ("util.day" & Image & ".short", "time.day" & Image & ".short");
+               Set_Text ("util.day" & Image & ".long", "time.day" & Image & ".long");
+            end;
+         end loop;
+
+         Cached_Bundle := Result;
+      end;
+
+      Cached_Bundle_Locale := Ada.Strings.Unbounded.To_Unbounded_String (Locale);
+      Cached_Bundle_Ready := True;
+      return Cached_Bundle;
    end Date_Bundle;
 
    function Formatted_Time_Text
@@ -177,7 +201,6 @@ package body Files.Rendering is
       Now   : Ada.Calendar.Time := Ada.Calendar.Clock)
       return String
    is
-      Full_Text : constant String := Full_Time_Text (Value);
       Today    : constant Ada.Calendar.Time := Day_Start (Now);
       Date     : constant Ada.Calendar.Time := Day_Start (Value);
       Locale   : constant String := Files.Localization.System_Time_Locale;
@@ -196,7 +219,9 @@ package body Files.Rendering is
          end loop;
       end if;
 
-      return Full_Text;
+      --  Older than a week: fall back to the full absolute date. Computed here
+      --  (lazily) so recent files, which return above, never build it.
+      return Full_Time_Text (Value);
    end Humanized_Time_Text;
 
    function Contains_Rectangle_Point
