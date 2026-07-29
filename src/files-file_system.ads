@@ -341,6 +341,15 @@ package Files.File_System is
      (Path : String)
       return Path_Result;
 
+   --  Expand a leading "~" or "~/" in a user-typed path against $HOME, the way a
+   --  shell does, so the path field accepts "~", "~/Downloads", etc. A "~" that
+   --  is not the whole path or its first component is left alone (it can be a
+   --  real filename), and when $HOME is unset the path is returned unchanged.
+   --
+   --  @param Path Path as typed by the user.
+   --  @return Path with a leading tilde expanded to the home directory.
+   function Expand_User_Path (Path : String) return String;
+
    --  Return the parent directory of Path.
    --
    --  @param Path Directory path whose parent is requested.

@@ -358,6 +358,8 @@ package body Files.File_System is
         (Path : String)
          return Path_Result;
 
+      function Expand_User_Path (Path : String) return String;
+
       function Parent_Directory
         (Path : String)
          return String;
@@ -389,6 +391,9 @@ package body Files.File_System is
      (Path : String)
       return Path_Result
      renames Path.Normalize_Path;
+
+   function Expand_User_Path (Path : String) return String
+     renames Path.Expand_User_Path;
 
    function Parent_Directory
      (Path : String)

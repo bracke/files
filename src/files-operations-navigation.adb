@@ -71,7 +71,8 @@ package body Navigation is
       return Operation_Result
    is
       Path_Result : constant Files.File_System.Path_Result :=
-        Files.File_System.Normalize_Path (Files.Model.Path_Input_Text (Model));
+        Files.File_System.Normalize_Path
+          (Files.File_System.Expand_User_Path (Files.Model.Path_Input_Text (Model)));
       Empty_Items : Files.File_System.Item_Vectors.Vector;
    begin
       if Path_Result.Status /= Files.File_System.Path_Valid then

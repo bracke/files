@@ -127,6 +127,7 @@ package body Files_Suite.Operations is
    procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -230,6 +231,8 @@ package body Files_Suite.Operations is
         (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Leaf_Name_Rules'Access, "leaf-name rules are host-gated");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Expand_User_Path'Access, "a leading tilde in the path field expands to home");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Commit_Rename'Access, "commit rename mode");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -3201,6 +3204,25 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Invalid_Name, "rename rejects overlong UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "overlong UTF-8 rename leaves source in place");
    end Test_Invalid_File_Operation_Names;
+
+   procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      function E (S : String) return String renames Files.File_System.Expand_User_Path;
+      Home : constant String :=
+        (if Ada.Environment_Variables.Exists ("HOME")
+         then Ada.Environment_Variables.Value ("HOME")
+         else "");
+   begin
+      if Home /= "" then
+         Assert (E ("~") = Home, "a bare tilde expands to the home directory");
+         Assert (E ("~/Downloads") = Home & "/Downloads", "a leading ~/ expands to home");
+      end if;
+      Assert (E ("/absolute/dir") = "/absolute/dir", "an absolute path is left unchanged");
+      Assert (E ("relative/dir") = "relative/dir", "a relative path without a tilde is unchanged");
+      Assert (E ("/data/~") = "/data/~", "a tilde that is not the first component is left alone");
+      Assert (E ("~user/x") = "~user/x", "a ~user other-home reference is not expanded");
+      Assert (E ("") = "", "empty stays empty");
+   end Test_Expand_User_Path;
 
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
