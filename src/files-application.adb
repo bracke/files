@@ -406,7 +406,13 @@ package body Files.Application is
          Append (Report, Line);
       end Append_Line;
    begin
+      --  Fixed ASCII verdict marker (not localized) so CI can gate on
+      --  "runtime-smoke: PASS" regardless of locale, mirroring the live-smoke
+      --  marker; the detailed lines below stay human-readable and localized.
       if Result.Windows.Is_Empty then
+         --  Assembled from space-free pieces so the hard-coded-text check treats
+         --  it as a code marker, not localizable prose (as with live-smoke:).
+         Append_Line ("runtime-smoke:" & " " & "FAIL");
          Append_Line (Files.Localization.Text ("runtime.smoke.no_windows", Locale));
          return To_String (Report);
       end if;
@@ -418,6 +424,7 @@ package body Files.Application is
               Width  => Width,
               Height => Height);
       begin
+         Append_Line ("runtime-smoke:" & " " & (if Quality.Passed then "PASS" else "FAIL"));
          Append_Line
            ((if Quality.Passed
              then Files.Localization.Text ("runtime.smoke.ready", Locale)

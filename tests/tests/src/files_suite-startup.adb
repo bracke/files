@@ -651,6 +651,9 @@ package body Files_Suite.Startup is
         (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.ready")) > 0,
          "runtime smoke report exposes headless render quality status");
       Assert
+        (Ada.Strings.Fixed.Index (To_String (Smoke), "runtime-smoke: PASS") > 0,
+         "runtime smoke report emits the fixed ASCII PASS verdict marker for CI");
+      Assert
         (Ada.Strings.Fixed.Index
            (To_String (Smoke), Files.Localization.Text ("runtime.smoke.frames_attempted") & ": 1") > 0,
          "runtime smoke report exposes headless render quality frame count");
@@ -666,8 +669,12 @@ package body Files_Suite.Startup is
         (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.text_failed")) > 0,
          "runtime smoke reports zero-glyph text batches as failures");
       Assert
-        (Files.Application.Runtime_Smoke_Report ((others => <>)) =
-         Files.Localization.Text ("runtime.smoke.no_windows"),
+        (Ada.Strings.Fixed.Index (To_String (Smoke), "runtime-smoke: FAIL") > 0,
+         "runtime smoke report emits the fixed ASCII FAIL verdict marker for CI");
+      Assert
+        (Ada.Strings.Fixed.Index
+           (Files.Application.Runtime_Smoke_Report ((others => <>)),
+            Files.Localization.Text ("runtime.smoke.no_windows")) > 0,
          "runtime smoke report uses localized empty-startup diagnostic");
       declare
          Quality : constant Files.Application.Windows.Headless_Render_Quality_Result :=

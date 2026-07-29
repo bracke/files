@@ -10,9 +10,13 @@ name: CI
 # but the rest are NOT — push them to github.com/<owner>/<name> (or adjust the
 # clone URLs below) before this workflow can succeed.
 #
-# The Linux job also runs a live GPU smoke: the full GLFW + Vulkan render path
-# under Xvfb with the Mesa lavapipe software ICD, structurally analysing the
-# read-back framebuffer (exit 77 = skipped, non-fatal).
+# Every job runs a headless render smoke on the shipped binary
+# (files --runtime-smoke): the snapshot -> frame-commands -> text/glyph path
+# with no window or GPU, so the cross-platform render pipeline is validated
+# end-to-end on macOS and Windows, not only through the in-process unit test.
+# The Linux job additionally runs a live GPU smoke: the full GLFW + Vulkan
+# render path under Xvfb with the Mesa lavapipe software ICD, structurally
+# analysing the read-back framebuffer (exit 77 = skipped, non-fatal).
 #
 # All three jobs now build, link and run the suite on real runners. Getting
 # there needed a platform abstraction for anything Linux-only that portable code
@@ -240,6 +244,37 @@ jobs:
         shell: bash
         working-directory: files
         run: alr --non-interactive build
+
+      - name: Headless render smoke (all platforms)
+        # Runs the SHIPPED app binary's headless render path on every OS:
+        # snapshot -> frame commands -> text/glyph batching, with no window or
+        # GPU. This validates the cross-platform render pipeline end-to-end on
+        # the real executable (not only through the in-process unit assertion).
+        # The binary still links GLFW/Vulkan/gdk-pixbuf, so a missing dylib/DLL
+        # at app startup on macOS or Windows fails here too. The verdict is the
+        # fixed ASCII marker "runtime-smoke: PASS" (locale-independent).
+        shell: bash
+        working-directory: files
+        env:
+          FILES_FONT_PATH: >-
+            ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
+            || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
+            || '' }}
+        run: |
+          if [ -f ./bin/files.exe ]; then
+            export PATH="/c/msys64/mingw64/bin:$PATH"
+            bin=./bin/files.exe
+          else
+            bin=./bin/files
+          fi
+          out="$("$bin" --runtime-smoke . 2>&1)" || true
+          echo "$out"
+          if echo "$out" | grep -q "runtime-smoke: PASS"; then
+            echo "headless render pipeline is healthy on ${{ matrix.os }}"
+          else
+            echo "::error::headless render smoke did not report PASS on ${{ matrix.os }}"
+            exit 1
+          fi
 
       - name: Build and run the test suite
         shell: bash
