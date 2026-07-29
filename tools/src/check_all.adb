@@ -2304,11 +2304,11 @@ procedure Check_All is
       Events_Body : constant String := Root & "/src/files-events.adb";
       Tests       : constant String := Combined_Suite;
    begin
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Events_Body,
          "with Ada.Directories;",
          "event translation must not import Ada.Directories for filesystem access");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Events_Body,
          "with GNAT.OS_Lib;",
          "event translation must not import process execution APIs");
@@ -2320,19 +2320,19 @@ procedure Check_All is
          "Files.",
          [To_Unbounded_String ("Files.UTF8"),
           To_Unbounded_String ("Files.UI")]);
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Events_Body,
          "Files.Commands.Execute",
          "event translation must not directly execute commands");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Events_Body,
          "Files.Operations.",
          "event translation must not route through operation execution");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Events_Body,
          "Files.File_System.",
          "event translation must not inspect or mutate the filesystem");
-      Require_Not_Contains
+      Require_Not_Contains_In_Unit
         (Events_Body,
          "Files.Model.",
          "event translation must not mutate or inspect live model state");
