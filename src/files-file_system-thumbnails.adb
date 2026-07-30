@@ -376,6 +376,191 @@ package body Thumbnails is
          return Ada.Strings.Unbounded.To_String (Result);
    end Read_Preview_Text;
 
+   function Image_Bytes_Extent
+     (Data   : Ada.Streams.Stream_Element_Array;
+      Width  : out Natural;
+      Height : out Natural)
+      return Boolean
+   is
+      use type Ada.Streams.Stream_Element;
+      use type Ada.Streams.Stream_Element_Offset;
+
+      --  PNG: an 8-byte signature, then IHDR's length and type, then width and
+      --  height as big-endian 32-bit values at fixed offsets 16 and 20.
+      Signature : constant Ada.Streams.Stream_Element_Array (0 .. 7) :=
+        [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
+
+      function U32_At (Offset : Ada.Streams.Stream_Element_Offset) return Natural is
+        (Natural (Data (Data'First + Offset)) * 16#100_0000#
+         + Natural (Data (Data'First + Offset + 1)) * 16#1_0000#
+         + Natural (Data (Data'First + Offset + 2)) * 16#100#
+         + Natural (Data (Data'First + Offset + 3)));
+   begin
+      Width := 0;
+      Height := 0;
+
+      if Data'Length < 24 then
+         return False;
+      end if;
+
+      for Index in Signature'Range loop
+         if Data (Data'First + Index) /= Signature (Index) then
+            return False;
+         end if;
+      end loop;
+
+      declare
+         W : constant Natural := U32_At (16);
+         H : constant Natural := U32_At (20);
+      begin
+         --  A declared dimension is not a promise. Refuse anything that could not
+         --  be an image before a caller allocates four bytes per pixel for it.
+         if W = 0 or else H = 0 or else W > 16_384 or else H > 16_384 then
+            return False;
+         end if;
+
+         Width := W;
+         Height := H;
+         return True;
+      end;
+   exception
+      when others =>
+         Width := 0;
+         Height := 0;
+         return False;
+   end Image_Bytes_Extent;
+
+   function Decode_Image_Bytes
+     (Data : Ada.Streams.Stream_Element_Array)
+      return Decoded_Image
+   is
+      --  gdk-pixbuf's incremental loader, which takes bytes rather than a path.
+      --  files already links gdk-pixbuf on every host for thumbnails, so this
+      --  costs no new dependency and handles what a minimal reader would not:
+      --  interlaced PNG, 16-bit channels, palettes with transparency.
+      function Loader_New return System.Address
+        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_new";
+
+      function Loader_Write
+        (Loader : System.Address;
+         Buffer : System.Address;
+         Count  : Interfaces.C.size_t;
+         Error  : System.Address)
+         return Interfaces.C.int
+        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_write";
+
+      function Loader_Close
+        (Loader : System.Address;
+         Error  : System.Address)
+         return Interfaces.C.int
+        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_close";
+
+      function Loader_Get_Pixbuf (Loader : System.Address) return System.Address
+        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_get_pixbuf";
+
+      type Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
+      pragma Convention (C, Pixel_Array);
+      package Pixel_Pointers is new System.Address_To_Access_Conversions (Pixel_Array);
+      use type Pixel_Pointers.Object_Pointer;
+
+      Result : Decoded_Image;
+      Loader : System.Address := System.Null_Address;
+      Local  : Ada.Streams.Stream_Element_Array := Data;
+   begin
+      if Data'Length = 0 then
+         return Result;
+      end if;
+
+      Loader := Loader_New;
+
+      if Loader = System.Null_Address then
+         return Result;
+      end if;
+
+      if Loader_Write
+           (Loader, Local (Local'First)'Address,
+            Interfaces.C.size_t (Local'Length), System.Null_Address) = 0
+      then
+         --  Close before giving up: the loader owns a partial image otherwise.
+         declare
+            Ignored : constant Interfaces.C.int := Loader_Close (Loader, System.Null_Address);
+            pragma Unreferenced (Ignored);
+         begin
+            G_Object_Unref (Loader);
+            return Result;
+         end;
+      end if;
+
+      declare
+         Closed : constant Interfaces.C.int := Loader_Close (Loader, System.Null_Address);
+         pragma Unreferenced (Closed);
+
+         Pixbuf : constant System.Address := Loader_Get_Pixbuf (Loader);
+      begin
+         if Pixbuf = System.Null_Address then
+            G_Object_Unref (Loader);
+            return Result;
+         end if;
+
+         declare
+            Width     : constant Natural := Natural (Gdk_Pixbuf_Get_Width (Pixbuf));
+            Height    : constant Natural := Natural (Gdk_Pixbuf_Get_Height (Pixbuf));
+            Channels  : constant Natural := Natural (Gdk_Pixbuf_Get_N_Channels (Pixbuf));
+            Rowstride : constant Natural := Natural (Gdk_Pixbuf_Get_Rowstride (Pixbuf));
+            Address   : constant System.Address := Gdk_Pixbuf_Get_Pixels (Pixbuf);
+            Raw       : constant Pixel_Pointers.Object_Pointer :=
+              Pixel_Pointers.To_Pointer (Address);
+         begin
+            if Width = 0
+              or else Height = 0
+              or else Channels < 3
+              or else Rowstride < Width * Channels
+              or else Address = System.Null_Address
+              or else Raw = null
+            then
+               G_Object_Unref (Loader);
+               return Result;
+            end if;
+
+            Result.Width := Width;
+            Result.Height := Height;
+            Result.Pixels.Reserve_Capacity
+              (Ada.Containers.Count_Type (Width * Height * 4));
+
+            for Row in 0 .. Height - 1 loop
+               for Column in 0 .. Width - 1 loop
+                  declare
+                     At_Source : constant Natural := Row * Rowstride + Column * Channels;
+                  begin
+                     Result.Pixels.Append (Raw.all (At_Source));
+                     Result.Pixels.Append (Raw.all (At_Source + 1));
+                     Result.Pixels.Append (Raw.all (At_Source + 2));
+
+                     --  Three channels means no alpha in the source; an emoji
+                     --  without alpha is opaque, not invisible.
+                     Result.Pixels.Append
+                       (if Channels >= 4 then Raw.all (At_Source + 3) else 255);
+                  end;
+               end loop;
+            end loop;
+
+            Result.Available := True;
+         end;
+
+         G_Object_Unref (Loader);
+      end;
+
+      return Result;
+   exception
+      when others =>
+         if Loader /= System.Null_Address then
+            G_Object_Unref (Loader);
+         end if;
+
+         return (Available => False, Width => 0, Height => 0,
+                 Pixels => Files.Types.Byte_Vectors.Empty_Vector);
+   end Decode_Image_Bytes;
+
    function Decode_Image_To_Pixels
      (Path     : String;
       Max_Size : Positive)

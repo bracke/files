@@ -82,6 +82,16 @@ package body Files.File_System is
          Max_Bytes : Natural)
          return String;
 
+      function Image_Bytes_Extent
+        (Data   : Ada.Streams.Stream_Element_Array;
+         Width  : out Natural;
+         Height : out Natural)
+         return Boolean;
+
+      function Decode_Image_Bytes
+        (Data : Ada.Streams.Stream_Element_Array)
+         return Decoded_Image;
+
       procedure Prune_Thumbnail_Cache
         (Cache_Directory : String;
          Budget_Bytes    : Long_Long_Integer);
@@ -128,6 +138,18 @@ package body Files.File_System is
       Max_Bytes : Natural)
       return String
      renames Thumbnails.Read_Preview_Text;
+
+   function Image_Bytes_Extent
+     (Data   : Ada.Streams.Stream_Element_Array;
+      Width  : out Natural;
+      Height : out Natural)
+      return Boolean
+     renames Thumbnails.Image_Bytes_Extent;
+
+   function Decode_Image_Bytes
+     (Data : Ada.Streams.Stream_Element_Array)
+      return Decoded_Image
+     renames Thumbnails.Decode_Image_Bytes;
 
    procedure Prune_Thumbnail_Cache
      (Cache_Directory : String;

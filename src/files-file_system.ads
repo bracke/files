@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Streams;
 with Ada.Containers.Vectors;
 
 with Files.Settings;
@@ -963,6 +964,35 @@ package Files.File_System is
       Cache_Directory : String;
       Size            : Positive := 64)
       return Thumbnail_Result;
+
+   --  The pixel dimensions an encoded image declares, without decoding it.
+   --
+   --  For PNG this reads IHDR, which is at a fixed offset, so a caller can size a
+   --  buffer before paying for a decode. Available is False when the bytes are
+   --  not an image this can measure.
+   --
+   --  @param Data Encoded image bytes.
+   --  @param Width Image width when Available.
+   --  @param Height Image height when Available.
+   --  @return True when the dimensions were read.
+   function Image_Bytes_Extent
+     (Data   : Ada.Streams.Stream_Element_Array;
+      Width  : out Natural;
+      Height : out Natural)
+      return Boolean;
+
+   --  Decode an encoded image held in memory rather than in a file.
+   --
+   --  The case this exists for is a picture inside a font: colour emoji glyphs
+   --  are PNGs in the font file, and Textrender hands out their bytes rather than
+   --  decoding them itself. Pixels come back four bytes each in R, G, B, A order,
+   --  which is what an RGBA atlas wants, whatever channel count the source had.
+   --
+   --  @param Data Encoded image bytes.
+   --  @return Decoded image; Available is False when the bytes could not be read.
+   function Decode_Image_Bytes
+     (Data : Ada.Streams.Stream_Element_Array)
+      return Decoded_Image;
 
    --  Decode an image file directly to RGBA pixels, scaled to fit within
    --  Max_Size x Max_Size while preserving aspect ratio. Used for the Quick Look
