@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
@@ -60,6 +61,7 @@ package body Files_Suite.Rendering is
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Emoji_Draws_As_Colour_Icons (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -138,6 +140,9 @@ package body Files_Suite.Rendering is
         (T, Test_Text_Glyph_Rasterization'Access, "frame text rasterizes through textrender");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Vulkan_Submission'Access, "frame builds a vulkan submission batch");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Emoji_Draws_As_Colour_Icons'Access,
+         "an emoji becomes a colour icon in both the main and overlay layers");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Count'Access, "bottom bar reflects the hidden count and exposes a toggle button");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1044,6 +1049,93 @@ package body Files_Suite.Rendering is
       Assert (Natural (Result.Glyphs.Length) > 0, "the text renderer emits glyph draw commands");
       Assert (Result.Atlas_Pixels /= System.Null_Address, "the text renderer exposes an atlas");
    end Test_Text_Glyph_Rasterization;
+
+   --  An emoji in a filename draws as a picture, in both layers.
+   --
+   --  It cannot be a glyph quad: those read the alpha atlas, where a pixel is one
+   --  coverage value with nowhere to keep a colour. So it leaves the text layer
+   --  as an icon and joins the icon pass. This checks that seam end to end --
+   --  decoder installed, font in the chain, picture produced -- because each part
+   --  of it lives in a different crate and nothing else in CI renders an emoji.
+   --
+   --  The overlay layer is the half that had never been exercised: an emoji in a
+   --  Quick Look title has to composite above the panel rather than under it.
+   --
+   --  Skipped where no colour font is installed, which is not a defect in files.
+   procedure Test_Emoji_Draws_As_Colour_Icons (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      Emoji_Font : constant String :=
+        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf";
+
+      --  U+1F389 PARTY POPPER, spelled out so the file stays plain ASCII.
+      Party : constant String :=
+        Character'Val (16#F0#) & Character'Val (16#9F#)
+        & Character'Val (16#8E#) & Character'Val (16#89#);
+
+      Renderer : Text_Renderer;
+      Frame    : Frame_Commands;
+      Text     : Guikit.Draw.Text_Render_Result;
+
+      function Line (Content : String) return Guikit.Draw.Text_Command is
+         Cmd : Guikit.Draw.Text_Command;
+      begin
+         Cmd.X := 0;
+         Cmd.Y := 0;
+         Cmd.Width := 400;
+         Cmd.Height := 20;
+         Cmd.Text := To_Unbounded_String (Content);
+         return Cmd;
+      end Line;
+
+      Main_Layer    : Natural := 0;
+      Overlay_Layer : Natural := 0;
+   begin
+      if not Ada.Directories.Exists (Emoji_Font) then
+         return;
+      end if;
+
+      Assert
+        (Initialize_Text (Renderer, Files.Fonts.Default_Font_Path, 16, 10, 20)
+         = Guikit.Draw.Text_Render_Success,
+         "the text renderer initialises");
+
+      Frame.Text.Append (Line ("a " & Party & " b"));
+      Frame.Overlay_Text.Append (Line ("c " & Party & " d"));
+
+      Text := Build_Text_Glyphs (Renderer, Frame);
+
+      Assert (Text.Status = Guikit.Draw.Text_Render_Success, "the text builds");
+      Assert (Natural (Text.Colour_Icons.Length) = 2,
+              "both emoji become colour icons, got"
+              & Natural'Image (Natural (Text.Colour_Icons.Length)));
+
+      for Icon of Text.Colour_Icons loop
+         Assert (Icon.Thumbnail_Width > 0 and then Icon.Thumbnail_Height > 0,
+                 "the picture has a size");
+         Assert
+           (Natural (Icon.Thumbnail_Pixels.Length)
+              = Icon.Thumbnail_Width * Icon.Thumbnail_Height * 4,
+            "with four bytes for each of its pixels");
+         Assert (Icon.Shared_Tile_Id /= Null_Unbounded_String,
+                 "and names an identity so repeats share one atlas tile");
+
+         if Icon.Overlay then
+            Overlay_Layer := Overlay_Layer + 1;
+         else
+            Main_Layer := Main_Layer + 1;
+         end if;
+      end loop;
+
+      --  One from each layer: an emoji in an overlay must stay in the overlay,
+      --  or it draws underneath the panel it belongs to.
+      Assert (Main_Layer = 1 and then Overlay_Layer = 1,
+              "one icon per layer, got" & Natural'Image (Main_Layer)
+              & " main and" & Natural'Image (Overlay_Layer) & " overlay");
+
+      --  Missing glyphs would mean it fell through to the '?' path instead.
+      Assert (Text.Missing_Glyph_Count = 0, "and nothing was reported missing");
+   end Test_Emoji_Draws_As_Colour_Icons;
 
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

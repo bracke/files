@@ -64,6 +64,7 @@ jobs:
             libglib2.0-dev \
             libgtk-3-dev \
             fonts-dejavu-core \
+            fonts-noto-color-emoji \
             mesa-vulkan-drivers \
             xvfb \
             libxcursor-dev \
