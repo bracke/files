@@ -379,13 +379,18 @@ package body Files.Fonts is
       end if;
 
       --  A colour font is judged on different evidence. The ASCII sample below
-      --  asks whether outlines can be drawn, and an emoji font has none at all
-      --  -- no glyf, no loca, only pictures -- so every one of those lookups
-      --  fails however sound the font is. What it has to have instead is the
-      --  pictures.
-      if Textrender.Fonts.Is_Bitmap_Only (Font) then
+      --  asks whether outlines can be drawn for ordinary text, and a colour
+      --  emoji font cannot: a bitmap font has no outlines at all, and a layered
+      --  one has plenty but none for 'f' or '0'. Either way every lookup in that
+      --  sample fails however sound the font is, so what counts instead is
+      --  whether it has the colour glyphs it exists for.
+      if Textrender.Fonts.Is_Bitmap_Only (Font)
+        or else Textrender.Fonts.Has_Colour_Layers (Font)
+      then
          declare
-            Usable : constant Boolean := Textrender.Fonts.Has_Colour_Bitmaps (Font);
+            Usable : constant Boolean :=
+              Textrender.Fonts.Has_Colour_Bitmaps (Font)
+              or else Textrender.Fonts.Has_Colour_Layers (Font);
          begin
             Textrender.Fonts.Reset (Font);
             return Usable;
