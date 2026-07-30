@@ -58,8 +58,8 @@ package body Directory is
    Script_Magic : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
      [16#23#, 16#21#];                   --  '#' '!'
    PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
+     --  89 'P' 'N' 'G' CR LF 1A LF
      [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
-                                         --  89 'P' 'N' 'G' CR LF 1A LF
 
    function Load_Cached_Thumbnail
      (Path : String)
