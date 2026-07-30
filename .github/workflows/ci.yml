@@ -362,3 +362,14 @@ jobs:
         run: |
           (cd tools && alr --non-interactive build)
           ./tools/bin/check_all
+      # A catalogue can be well-formed and still have drifted from the
+      # messages it translates: a key with no original, an argument dropped so
+      # the text renders without the value it was about, an option name
+      # translated into a word the program rejects. The rule lives with the
+      # catalogue format, in the messages crate.
+      - name: Check the message catalogue
+        working-directory: messages/tools/catalog_check
+        run: |
+          alr --non-interactive build
+          ./bin/catalog_check ../../../files/share/files.catalog \
+            --verbatim=files
