@@ -552,7 +552,31 @@ package body Files.Fonts is
          --  they draw perfectly well today.
          To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"),
          To_Unbounded_String ("/System/Library/Fonts/Apple Color Emoji.ttc"),
-         To_Unbounded_String ("C:\Windows\Fonts\seguiemj.ttf")];
+
+         --  The layered kind, which costs a reader nothing: a COLR/CPAL emoji is
+         --  outlines and a palette, both of which Textrender reads on its own,
+         --  where the two above are PNGs and need the decoder this application
+         --  installs. Listed because not every application sharing this chain has
+         --  one -- the desktop search front end builds its renderer straight from
+         --  Guikit.Text, and these are the only emoji fonts it can draw.
+         To_Unbounded_String ("C:\Windows\Fonts\seguiemj.ttf"),
+         To_Unbounded_String ("/usr/share/fonts/truetype/twemoji/TwemojiMozilla.ttf"),
+         To_Unbounded_String ("/usr/share/fonts/TTF/TwemojiMozilla.ttf")];
+
+      --  A font the user installed for themselves, which is where one lands on a
+      --  machine without root. Skipped when HOME is unset.
+      function User_Font (Leaf : String) return String is
+      begin
+         if not Ada.Environment_Variables.Exists ("HOME") then
+            return "";
+         end if;
+
+         return Ada.Environment_Variables.Value ("HOME")
+           & "/.local/share/fonts/" & Leaf;
+      exception
+         when others =>
+            return "";
+      end User_Font;
 
       procedure Consider (Path : String) is
       begin
@@ -574,6 +598,8 @@ package body Files.Fonts is
       for Path of Fallback_Candidate_Paths loop
          Consider (To_String (Path));
       end loop;
+
+      Consider (User_Font ("TwemojiMozilla.ttf"));
 
       return Result;
    exception
