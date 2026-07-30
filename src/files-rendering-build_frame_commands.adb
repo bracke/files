@@ -3048,7 +3048,8 @@ separate (Files.Rendering)
                                  Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels,
                                  Overlay          => True,
                                  Draw_Width       => Draw_W,
-                                 Draw_Height      => Draw_H));
+                                 Draw_Height      => Draw_H,
+                                 others           => <>));
                         end if;
                      end;
                   else
@@ -3103,7 +3104,8 @@ separate (Files.Rendering)
                               Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
                               Overlay          => True,
                               Draw_Width       => 0,
-                              Draw_Height      => 0));
+                              Draw_Height      => 0,
+                              others           => <>));
                      end if;
                      Add_Overlay_Text
                        (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,

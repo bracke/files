@@ -230,7 +230,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Thumbnail_Pixels => Lbl.Pixels,
                      Overlay          => True,
                      Draw_Width       => Lbl.Width,
-                     Draw_Height      => Lbl.Height));
+                     Draw_Height      => Lbl.Height,
+                     others           => <>));
             end if;
          end;
       end Add_Extension_Badge;
@@ -259,7 +260,8 @@ separate (Files.Rendering.Build_Frame_Commands)
               (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Types.Byte_Vectors.Empty_Vector),
             Overlay          => False,
             Draw_Width       => 0,
-            Draw_Height      => 0));
+            Draw_Height      => 0,
+            others           => <>));
 
       if Use_Thumbnail
         and then Item.Thumbnail_Available

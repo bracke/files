@@ -975,6 +975,13 @@ procedure Check_All is
          end if;
       end loop;
 
+      --  An absolute filesystem path is not prose. Font files force the point:
+      --  "/System/Library/Fonts/Apple Color Emoji.ttc" is a name Apple chose,
+      --  spaces and capitals and all, and there is nothing in it to translate.
+      if Literal'Length > 1 and then Literal (Literal'First) = '/' then
+         return False;
+      end if;
+
       --  Shell verbs assembled into the terminal command line. They carry no
       --  metacharacter of their own -- "cd /d " is cmd's change-directory form,
       --  "cd " every POSIX shell's -- but they are shell syntax, not localizable

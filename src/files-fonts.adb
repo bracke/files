@@ -1,11 +1,14 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Directories;
+with Ada.Streams;
 with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Textrender.Fonts;
+
+with Files.File_System;
 
 with Files.Fs;
 
@@ -136,9 +139,13 @@ package body Files.Fonts is
 
       Lower : constant String := To_Lower (Simple_Name);
    begin
+      --  Noto Color Emoji was on this list because the renderer could not read
+      --  it: it carries no outlines at all, and loading a font without them
+      --  failed outright. It can be read now -- the pictures inside it are
+      --  decoded and drawn as colour glyphs -- so the exclusion has become the
+      --  only thing keeping emoji off the screen.
       return Ada.Strings.Fixed.Index (Lower, "droidsansfallbackfull.ttf") > 0
         or else Ada.Strings.Fixed.Index (Lower, "liberation") > 0
-        or else Ada.Strings.Fixed.Index (Lower, "notocoloremoji.ttf") > 0
         or else Ada.Strings.Fixed.Index (Lower, "unifont.ttf") > 0;
    end Is_Known_Unsupported_Renderer_Font;
 
@@ -266,6 +273,72 @@ package body Files.Fonts is
       return Paths;
    end Candidate_Fonts;
 
+   --  The two halves of Textrender's colour glyph seam, in the shape it asks
+   --  for. A colour emoji is a PNG inside the font file; Textrender hands out
+   --  the bytes and will not decode them, because decoding PNG means an inflate
+   --  implementation and several applications link it without wanting one.
+   --  files already decodes images for thumbnails, so it has the answer.
+
+   function As_Stream_Elements
+     (Data : Textrender.Encoded_Image)
+      return Ada.Streams.Stream_Element_Array;
+
+   function As_Stream_Elements
+     (Data : Textrender.Encoded_Image)
+      return Ada.Streams.Stream_Element_Array
+   is
+      Bytes : Ada.Streams.Stream_Element_Array
+        (1 .. Ada.Streams.Stream_Element_Offset (Data'Length));
+   begin
+      for Index in Data'Range loop
+         Bytes (Ada.Streams.Stream_Element_Offset (Index - Data'First + 1)) :=
+           Ada.Streams.Stream_Element (Data (Index));
+      end loop;
+
+      return Bytes;
+   end As_Stream_Elements;
+
+   function Colour_Glyph_Image_Extent
+     (Data   : Textrender.Encoded_Image;
+      Width  : out Natural;
+      Height : out Natural)
+      return Boolean is
+   begin
+      return Files.File_System.Image_Bytes_Extent (As_Stream_Elements (Data), Width, Height);
+   end Colour_Glyph_Image_Extent;
+
+   function Decode_Colour_Glyph_Image
+     (Data   : Textrender.Encoded_Image;
+      Width  : Natural;
+      Height : Natural;
+      Pixels : out Textrender.Rgba_Buffer)
+      return Boolean
+   is
+      Decoded : constant Files.File_System.Decoded_Image :=
+        Files.File_System.Decode_Image_Bytes (As_Stream_Elements (Data));
+   begin
+      Pixels := [others => 0];
+
+      --  The size was promised by Colour_Glyph_Image_Extent before the buffer was sized, so
+      --  a decode that disagrees with it would write off the end.
+      if not Decoded.Available
+        or else Decoded.Width /= Width
+        or else Decoded.Height /= Height
+        or else Natural (Decoded.Pixels.Length) /= Width * Height * 4
+      then
+         return False;
+      end if;
+
+      --  Byte_Vectors is indexed from 1, the buffer from 0.
+      for Offset in 0 .. Natural (Decoded.Pixels.Length) - 1 loop
+         exit when Pixels'First + Offset > Pixels'Last;
+         Pixels (Pixels'First + Offset) :=
+           Textrender.Alpha (Decoded.Pixels.Element (Offset + 1));
+      end loop;
+
+      return True;
+   end Decode_Colour_Glyph_Image;
+
    function Is_Loadable_Font
      (Path : String)
       return Boolean
@@ -303,6 +376,20 @@ package body Files.Fonts is
       if Textrender.Fonts.Load (Font, Path) /= Textrender.Fonts.Loaded then
          Textrender.Fonts.Reset (Font);
          return False;
+      end if;
+
+      --  A colour font is judged on different evidence. The ASCII sample below
+      --  asks whether outlines can be drawn, and an emoji font has none at all
+      --  -- no glyf, no loca, only pictures -- so every one of those lookups
+      --  fails however sound the font is. What it has to have instead is the
+      --  pictures.
+      if Textrender.Fonts.Is_Bitmap_Only (Font) then
+         declare
+            Usable : constant Boolean := Textrender.Fonts.Has_Colour_Bitmaps (Font);
+         begin
+            Textrender.Fonts.Reset (Font);
+            return Usable;
+         end;
       end if;
 
       if not Has_Drawable_ASCII_Sample
@@ -451,7 +538,16 @@ package body Files.Fonts is
          To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
          To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf"),
          To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf")];
+         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"),
+
+         --  Colour emoji, and last on purpose. The chain is resolved by asking
+         --  each font whether it maps a codepoint and taking the first that
+         --  says yes, and these fonts map far more than emoji -- arrows, stars,
+         --  the check mark. Ahead of the text fonts it would capture characters
+         --  they draw perfectly well today.
+         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"),
+         To_Unbounded_String ("/System/Library/Fonts/Apple Color Emoji.ttc"),
+         To_Unbounded_String ("C:\Windows\Fonts\seguiemj.ttf")];
 
       procedure Consider (Path : String) is
       begin

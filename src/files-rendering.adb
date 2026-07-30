@@ -1917,6 +1917,16 @@ package body Files.Rendering is
            Atlas_Width    => Atlas_Width,
            Atlas_Height   => Atlas_Height);
       Renderer.Loaded       := Status = Text_Render_Success;
+
+      --  With this installed the emoji font in the fallback chain can be drawn
+      --  in colour; without it those codepoints fall back as they always did.
+      if Renderer.Loaded then
+         Guikit.Text.Set_Image_Decoder
+           (The_Renderer,
+            Files.Fonts.Colour_Glyph_Image_Extent'Access,
+            Files.Fonts.Decode_Colour_Glyph_Image'Access);
+      end if;
+
       Renderer.Font_Path    := To_Unbounded_String ((if Renderer.Loaded then Font_Path else ""));
       Renderer.Cell_Width   := Cell_Width;
       Renderer.Cell_Height  := Cell_Height;

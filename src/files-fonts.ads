@@ -1,3 +1,4 @@
+with Textrender;
 with Files.Types;
 
 --  Font discovery for text rendering startup.
@@ -23,5 +24,36 @@ package Files.Fonts is
    --
    --  @return Ordered, de-duplicated fallback font paths.
    function Fallback_Font_Paths return Files.Types.String_Vectors.Vector;
+
+   --  The two halves of Textrender's colour glyph seam.
+   --
+   --  A colour emoji is a PNG inside the font file. Textrender reads where it is
+   --  but will not decode it -- that needs an inflate implementation, and other
+   --  applications link the crate without wanting one -- so the decoding is
+   --  supplied from here, where files already decodes images for thumbnails.
+   --
+   --  @param Data The encoded image, as it sits in the font.
+   --  @param Width Image width when it could be read.
+   --  @param Height Image height when it could be read.
+   --  @return True when the dimensions were read.
+   function Colour_Glyph_Image_Extent
+     (Data   : Textrender.Encoded_Image;
+      Width  : out Natural;
+      Height : out Natural)
+      return Boolean;
+
+   --  Decode a colour glyph's picture into RGBA pixels.
+   --
+   --  @param Data The encoded image, as it sits in the font.
+   --  @param Width The width the extent reader reported.
+   --  @param Height The height the extent reader reported.
+   --  @param Pixels Four bytes per pixel, R, G, B, A.
+   --  @return True when the picture decoded at exactly that size.
+   function Decode_Colour_Glyph_Image
+     (Data   : Textrender.Encoded_Image;
+      Width  : Natural;
+      Height : Natural;
+      Pixels : out Textrender.Rgba_Buffer)
+      return Boolean;
 
 end Files.Fonts;

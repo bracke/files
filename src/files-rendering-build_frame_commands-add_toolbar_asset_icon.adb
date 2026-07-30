@@ -108,7 +108,8 @@ separate (Files.Rendering.Build_Frame_Commands)
             Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
             Overlay          => False,
             Draw_Width       => 0,
-            Draw_Height      => 0));
+            Draw_Height      => 0,
+            others           => <>));
 
       if Id = Files.Commands.Navigate_Home_Command then
          Draw_Home;
