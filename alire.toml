@@ -7,6 +7,7 @@ maintainers = ["Bent Bracke <bent@bracke.dk>"]
 maintainers-logins = ["bracke"]
 licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
 website = "https://github.com/bracke/files"
+long-description = "files is a desktop file manager written in Ada 2022 and rendered with Vulkan and GLFW rather than a toolkit binding. Linux, Windows and macOS are all supported targets, with per-OS platform layers built through files.gpr and Linux the validated one. It ships a live smoke check that opens a real window and reports PASS, FAIL or SKIP with distinct exit statuses, so a degenerate frame fails CI rather than passing quietly."
 tags = ["filemanager"]
 
 executables = ["files"]
