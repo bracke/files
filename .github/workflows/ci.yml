@@ -368,6 +368,13 @@ jobs:
       # translated into a word the program rejects. The rule lives with the
       # catalogue format, in the messages crate.
       - name: Check the message catalogue
+        # Linux-only, with an explicit shell, for the same two reasons as
+        # check_all above: a catalogue is data, so the answer cannot differ by
+        # host, and PowerShell -- the default shell on the Windows runner --
+        # reads the leading "--" of an option as its own decrement operator and
+        # refuses to parse the line.
+        if: runner.os == 'Linux'
+        shell: bash
         working-directory: messages/tools/catalog_check
         run: |
           alr --non-interactive build
