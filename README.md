@@ -8,7 +8,7 @@ On Debian/Ubuntu (Linux; see below for macOS/Windows deps):
 
 ```sh
 # 1. Sibling crates must sit next to this repo (see "Sibling crate dependencies")
-#    <parent>/{files, project_tools, i18n, textrender, zlib}
+#    See the complete sibling list below, including a11ykit (crate name a11y).
 # 2. System libraries
 sudo apt-get install -y libvulkan-dev libgdk-pixbuf-2.0-dev libglib2.0-dev \
   libgtk-3-dev fonts-dejavu-core
@@ -26,16 +26,34 @@ on the bottom bar and in the settings pane.
 
 ## Platform status
 
+Long transfers, duplicate, compress/extract, and recursive searches run in helper
+processes so the window keeps rendering. Escape or Cancel stops the operation;
+completed creations are kept and can be undone. Closing a window stops its helper
+without waiting for filesystem I/O. Copies and archives are staged privately and
+published only when complete, preserving any destination created concurrently.
+
+Directory refreshes and file watching also run in helpers. The current listing
+stays usable while a refresh is pending, and results apply only to the view
+that requested them. Paste completion and cancellation do not wait for a reload.
+
+Replace keeps the overwritten item available for rollback and Undo. On native
+trash backends this uses an adjacent `.files-recovery-*` directory containing the
+original as `payload` and its pathname in `original`. A failed rollback leaves
+that recovery payload in place and records a recovery Undo action. If the
+original name is occupied, preserve the occupying item elsewhere and retry Undo.
+After a crash, use `files --list-recoveries DIRECTORY`, `files --recover PAYLOAD`,
+or `files --discard-recovery PAYLOAD` to resolve retained payloads explicitly.
+
 Linux, Windows, and macOS are all supported targets. Linux is the validated
-platform today; the Windows and macOS platform bodies (`src/platform/windows`,
-`src/platform/macos`) build per-OS via `files.gpr` and are exercised by the
+platform today; the Windows and macOS adapters live in the `hostkit` sibling
+and are exercised by the
 cross-platform CI matrix (`.github/workflows/ci.yml`), but have not yet been
 fully runtime-validated on those operating systems.
 
 ## Building
 
 The project is built with [Alire](https://alire.ada.dev/) (`alr`) and must use
-Alire GNAT 15. The development, release, tests, nested tests, and tools manifests
+Alire GNAT 15. The development, release, tests, and tools manifests
 pin `gnat_native = "=15.2.1"`. Confirm with:
 
 ```sh
@@ -48,20 +66,26 @@ commands so PATH cannot select a different GNAT installation.
 
 ### Sibling crate dependencies
 
-`alire.toml` pins four crates by **local path**, so they must be checked out as
+`alire.toml` pins runtime crates by **local path**, so they must be checked out as
 siblings next to this repository:
 
 ```
 <parent>/
   files/          ← this repository
   project_tools/
+  hostkit/
+  messages/
   i18n/
   textrender/
   zlib/
+  cryptolib/
+  guikit/
+  a11ykit/        ← Alire crate name: a11y
 ```
 
-These are not published Alire crates; clone each one next to `files/` before
-building. (`textrender` is at https://github.com/bracke/textrender.)
+Clone each pinned crate next to `files/` before building. `project_tools` is
+needed by tests and repository checks. The i18n regeneration tools also need
+the `httpclient`, `tarlib`, `awklib`, and `regexp` siblings, as checked out by CI.
 
 ### System libraries (Linux)
 
@@ -159,7 +183,7 @@ UTF-8 source encoding, and Ada 2022.
 The crate uses two Alire manifests:
 
 - `alire.toml` — the **development** manifest, with local-path pins to the
-  sibling crates (`project_tools`, `i18n`, `textrender`, `zlib`).
+  runtime sibling crates listed above.
 - `alire.release.toml` — the **publishable** manifest: identical metadata but
   **no local pins** (it depends on the published crates by wildcard version).
 
@@ -177,7 +201,7 @@ It bumps both manifests, rolls `share/doc/files/release-notes.md` (a
 [Keep a Changelog](https://keepachangelog.com/) changelog), runs the full
 verification chain plus `release_check`, and tags `v<version>`.
 
-Publishing to the Alire community index additionally requires that the four
+Publishing to the Alire community index additionally requires that the runtime
 sibling crates are themselves published (the released `files` depends on them
 by version, not by path), and is done from `alire.release.toml`.
 

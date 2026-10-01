@@ -24,3 +24,21 @@ Common keyboard commands:
 
 The command palette exposes the same central command identifiers as toolbar,
 bottom-bar, mouse, and keyboard routes.
+
+## Recovery payloads
+
+When an overwrite cannot use a trash backend that supports programmatic
+restore, Files retains the previous destination beside it in a private
+`.files-recovery-*` directory. These payloads normally disappear when their
+Undo entry is used, cleared, or expires. After a crash, inspect and resolve any
+remaining payload explicitly:
+
+```sh
+files --list-recoveries DIRECTORY
+files --recover DIRECTORY/.files-recovery-N/payload
+files --discard-recovery DIRECTORY/.files-recovery-N/payload
+```
+
+Listing prints the payload and its recorded original path, separated by a tab.
+Recovery refuses to replace an existing destination. Discard is permanent and
+accepts only a recognized Files recovery payload.

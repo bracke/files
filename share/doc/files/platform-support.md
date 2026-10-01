@@ -17,3 +17,6 @@ Supported local integrations:
 Known platform limits:
 
 1. Windows and macOS native bindings need validation on those operating systems.
+2. Permission and ownership changes require the native handle-safe metadata
+   adapter. Linux and macOS provide it; Windows currently fails the operation
+   rather than using a pathname sequence that could modify a replaced entry.

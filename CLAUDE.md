@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build, test, verify
 
 Built with Alire (`alr`), which wraps GNAT and the `.gpr` project files.
-Use Alire GNAT 15 only. The development, release, tests, nested tests, and tools
+Use Alire GNAT 15 only. The development, release, tests, and tools
 manifests pin `gnat_native = "=15.2.1"`. Validate with
 `alr exec -- gnatls --version`.
 Do not run plain system `gnat*`, `gnatmake`, `gnatls`, `gnatprove`, or
@@ -25,7 +25,8 @@ Verify non-trivial changes with the full chain: `alr build` → `cd tests && alr
 
 ## Dependencies need sibling checkouts
 
-`alire.toml` pins `i18n`, `textrender`, `zlib`, and `guikit` to relative
+`alire.toml` pins the sibling runtime crates (`i18n`, `messages`, `hostkit`,
+`textrender`, `zlib`, `cryptolib`, `guikit`, and `a11y`) to relative
 paths (`../i18n`, etc.), not published crates. The tooling crate pins
 `project_tools` under `tools/alire.toml`; the runtime crate should not depend
 on it. Builds fail unless those sibling directories exist next to this repo.
@@ -41,7 +42,9 @@ These come from `config/files_config.gpr` and will **fail the build** if violate
 
 ## Platform-specific sources
 
-Source dirs are selected by OS: `src/platform/{windows,macos,unsupported}`. Only Linux is validated; treat Windows/macOS bindings as present-but-unverified.
+Files uses one source list on every OS; platform-specific services live in the
+`hostkit` sibling. Only Linux is validated locally; treat Windows/macOS bindings
+as present-but-unverified.
 
 ## Rendering and UI components
 
