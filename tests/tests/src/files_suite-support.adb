@@ -115,7 +115,10 @@ package body Files_Suite.Support is
 
    procedure Reset_Root is
    begin
-      Project_Tools.Files.Delete_Tree (Root);
+      if Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root) then
+         Assert (Files.File_System.Delete_Permanently (Root).Success,
+                 "test fixture cleanup removes links without following targets");
+      end if;
       Ada.Directories.Create_Path (Root);
    end Reset_Root;
 
@@ -356,6 +359,11 @@ package body Files_Suite.Support is
         GNAT.OS_Lib.Normalize_Pathname
           (System_Temp, Resolve_Links => True);
    begin
+      if Ada.Environment_Variables.Exists ("FILES_TEST_ROOT")
+        and then Ada.Environment_Variables.Value ("FILES_TEST_ROOT") /= ""
+      then
+         return Ada.Environment_Variables.Value ("FILES_TEST_ROOT");
+      end if;
       return Files.File_System.Join_Path (Resolved, "files_aunit");
 
    exception

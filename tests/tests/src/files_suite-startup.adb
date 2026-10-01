@@ -1391,6 +1391,7 @@ package body Files_Suite.Startup is
            /= "accessibility.favorite_toggle.off",
          "path-bar favorite-toggle off-state label is localized");
       Add_Error_Key ("error.path.missing");
+      Add_Error_Key ("error.recovery.unsafe_transport");
       Add_Error_Key ("error.path.inaccessible");
       Add_Error_Key ("error.directory.load");
       Add_Error_Key ("error.startup.too_many_windows");
@@ -1947,15 +1948,15 @@ package body Files_Suite.Startup is
         (Repository_File_Exists ("share/files/icons/markdown.icon"),
          "desktop packaging includes the complete bundled icon set");
       Assert
-        (Repository_File_Contains ("alire.toml", "guikit = ""*""")
+        (Repository_File_Contains ("alire.toml", "guikit = ""^0.1.0""")
          and then Repository_File_Contains ("alire.toml", "guikit = { path = ""../guikit"" }"),
          "files crate pins guikit to the local relative path");
       Assert
-        (Repository_File_Contains ("alire.toml", "i18n = ""*""")
+        (Repository_File_Contains ("alire.toml", "i18n = ""^1.1.0""")
          and then Repository_File_Contains ("alire.toml", "i18n = { path = ""../i18n"" }"),
          "files crate pins i18n to the local relative path");
       Assert
-        (Repository_File_Contains ("alire.toml", "textrender = ""*""")
+        (Repository_File_Contains ("alire.toml", "textrender = ""^1.0.0""")
          and then Repository_File_Contains ("alire.toml", "textrender = { path = ""../textrender"" }"),
          "files crate pins textrender to the local relative path");
       Assert
@@ -1964,14 +1965,7 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("alire.toml", "textrender"),
          "files crate declares required windowing, rendering, and text-rendering dependencies");
       Assert
-        (Repository_File_Contains ("tests/tests/alire.toml", "files = ""*""")
-         and then Repository_File_Contains ("tests/tests/alire.toml", "files = { path = ""../.."" }"),
-         "tests crate pins the parent files crate by local relative path");
-      Assert
-        (Repository_File_Contains ("tests/tests/alire.toml", "aunit"),
-         "tests crate declares the AUnit dependency");
-      Assert
-        (Repository_File_Contains ("tests/alire.toml", "files = ""*""")
+        (Repository_File_Contains ("tests/alire.toml", "files = ""^0.1.0""")
          and then Repository_File_Contains ("tests/alire.toml", "files = { path = "".."" }"),
          "top-level tests sub-crate pins the parent files crate by local relative path");
       Assert
@@ -1999,14 +1993,6 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("files.gpr", "use ""files"""),
          "files project builds the expected binary entry point");
       Assert
-        (Repository_File_Contains ("tests/tests/tests.gpr", "for Main use (""tests.adb""")
-         and then Repository_File_Contains ("tests/tests/tests.gpr", "use ""tests"""),
-         "nested tests project builds the expected AUnit runner");
-      Assert
-        (Repository_File_Contains ("tests/tests/tests.gpr", "for Source_Dirs use (""src/"", ""config/"")")
-         and then Repository_File_Contains ("tests/tests/tests.gpr", """-gnat2022"""),
-         "nested tests project keeps Ada 2022 test sources wired");
-      Assert
         (Repository_File_Contains
            ("tools/files_check_all.gpr",
             "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"", ""release_check.adb"")")
@@ -2030,12 +2016,6 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("tests/.gitignore", "/alire/")
          and then Repository_File_Contains ("tests/.gitignore", "/config/"),
          "top-level tests crate ignores generated build artifacts");
-      Assert
-        (Repository_File_Contains ("tests/tests/.gitignore", "/obj/")
-         and then Repository_File_Contains ("tests/tests/.gitignore", "/bin/")
-         and then Repository_File_Contains ("tests/tests/.gitignore", "/alire/")
-         and then Repository_File_Contains ("tests/tests/.gitignore", "/config/"),
-         "nested tests crate ignores generated build artifacts");
       Assert
         (Repository_File_Contains ("tools/.gitignore", "/obj/")
          and then Repository_File_Contains ("tools/.gitignore", "/bin/")

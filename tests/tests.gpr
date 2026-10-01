@@ -1,6 +1,10 @@
 with "config/tests_config.gpr";
 project Tests is
 
+   Extra_C_Switches := External_As_List ("FILES_CFLAGS", " ");
+   Extra_Linker_Switches := External_As_List ("FILES_LDFLAGS", " ");
+
+   for Languages use ("Ada", "C");
    for Source_Dirs use ("tests/src/", "config/");
    for Object_Dir use "obj/" & Tests_Config.Build_Profile;
    for Create_Missing_Dirs use "True";
@@ -10,6 +14,8 @@ project Tests is
    package Compiler is
       for Default_Switches ("Ada") use
         Tests_Config.Ada_Compiler_Switches & ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwU");
+      for Default_Switches ("C") use
+        ("-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror") & Extra_C_Switches;
    end Compiler;
 
    --  Bytes out as bytes in. Alire's generated switches carry -gnatW8 and the
@@ -30,16 +36,17 @@ project Tests is
             for Default_Switches ("Ada") use
               ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
                "-framework", "CoreFoundation", "-framework", "CoreServices",
-               "-framework", "Foundation");
+               "-framework", "Foundation") & Extra_Linker_Switches;
          when "windows" =>
             --  The Vulkan loader is named vulkan-1 on Windows (vulkan-1.dll),
             --  not vulkan.
             for Default_Switches ("Ada") use
               ("-lvulkan-1", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
-               "-lshell32", "-lole32", "-lkernel32");
+               "-lshell32", "-lole32", "-lkernel32", "-ladvapi32") & Extra_Linker_Switches;
          when others =>
             for Default_Switches ("Ada") use
-              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0");
+              ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0") &
+              Extra_Linker_Switches;
       end case;
    end Linker;
 

@@ -3494,12 +3494,13 @@ package body Files_Suite.Interaction is
       end;
 
       declare
+         Breadcrumb_Width : constant Positive := Window_W * 2;
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
+           Files.Rendering.Build_Frame_Commands (Snapshot, Breadcrumb_Width, Window_H, Line);
          Rows     : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
-           Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Window_W, Line);
+           Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Breadcrumb_Width, Line);
          Action   : Files.Events.Input_Action;
          X, Y     : Natural := 0;
          Found    : Boolean := False;
@@ -3520,7 +3521,7 @@ package body Files_Suite.Interaction is
          Assert (Found, "the breadcrumb for the parent directory is laid out");
          Action :=
            Files.Events.Translate_Click
-             (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
+             (Snapshot, Frame, X, Y, Breadcrumb_Width, Window_H, Line_Height => Line);
          Assert
            (Action.Kind = Files.Events.Breadcrumb_Click_Input_Action,
             "a breadcrumb coordinate translates to a breadcrumb click");

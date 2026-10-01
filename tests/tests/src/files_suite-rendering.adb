@@ -1090,6 +1090,8 @@ package body Files_Suite.Rendering is
 
       Main_Layer    : Natural := 0;
       Overlay_Layer : Natural := 0;
+      Carried_Pictures : Natural := 0;
+      Tile_Identity : Unbounded_String;
    begin
       if not Ada.Directories.Exists (Emoji_Font) then
          return;
@@ -1113,12 +1115,17 @@ package body Files_Suite.Rendering is
       for Icon of Text.Colour_Icons loop
          Assert (Icon.Thumbnail_Width > 0 and then Icon.Thumbnail_Height > 0,
                  "the picture has a size");
-         Assert
-           (Natural (Icon.Thumbnail_Pixels.Length)
-              = Icon.Thumbnail_Width * Icon.Thumbnail_Height * 4,
-            "with four bytes for each of its pixels");
          Assert (Icon.Shared_Tile_Id /= Null_Unbounded_String,
                  "and names an identity so repeats share one atlas tile");
+         if not Icon.Thumbnail_Pixels.Is_Empty then
+            Assert
+              (Natural (Icon.Thumbnail_Pixels.Length) = Icon.Thumbnail_Width * Icon.Thumbnail_Height * 4,
+               "the carried picture has four bytes per pixel");
+            Carried_Pictures := Carried_Pictures + 1;
+            Tile_Identity := Icon.Shared_Tile_Id;
+         else
+            Assert (Icon.Shared_Tile_Id = Tile_Identity, "a repeated emoji reuses the carried picture's tile");
+         end if;
 
          if Icon.Overlay then
             Overlay_Layer := Overlay_Layer + 1;
@@ -1126,6 +1133,7 @@ package body Files_Suite.Rendering is
             Main_Layer := Main_Layer + 1;
          end if;
       end loop;
+      Assert (Carried_Pictures = 1, "the shared emoji picture is carried once across both layers");
 
       --  One from each layer: an emoji in an overlay must stay in the overlay,
       --  or it draws underneath the panel it belongs to.
@@ -1877,6 +1885,9 @@ package body Files_Suite.Rendering is
          Assert
            (Has_Overlay_Rect_At (Frame, Panel.Bar_X, Panel.Bar_Y, Expected_Fill, Panel.Bar_Height),
             "the progress bar's filled width is proportional to Done / Total");
+         Assert
+           (Frame_Has_Text (Frame, "3 of 10"),
+            "the progress overlay keeps the completed and total item counts when no label is present");
       end;
    end Test_Panels_Expose_Close_Button;
 

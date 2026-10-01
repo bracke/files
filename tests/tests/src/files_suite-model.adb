@@ -85,6 +85,7 @@ package body Files_Suite.Model is
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
+   use type Files.Model.Undo_Entry;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
@@ -104,6 +105,7 @@ package body Files_Suite.Model is
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Accent_Folding_Sort (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Restore_Admission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -138,6 +140,9 @@ package body Files_Suite.Model is
         (T, Test_Accent_Folding_Sort'Access, "accented names sort next to their base letter");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_History_Bounds'Access, "undo and back-navigation history are bounded over a long session");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Restore_Admission'Access,
+         "restored history filters malformed actions while retaining retryable snapshots");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Directory_Projection_Settings'Access, "directory projection settings");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -279,15 +284,22 @@ package body Files_Suite.Model is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model;
       Empty : Files.File_System.Item_Vectors.Vector;
+      History_Path : constant String := Join (Root, "history-entry");
    begin
       --  Recording far more undo entries than the cap keeps only the most recent
       --  ones; the reachable LIFO history is bounded rather than growing forever.
+      Reset_Root;
+      Write_Binary_File (History_Path, "history");
       for Index in 1 .. 260 loop
          declare
+            Image : constant String := Integer'Image (Index);
+            pragma Unreferenced (Image);
             From : Files.Types.String_Vectors.Vector;
          begin
-            From.Append (To_Unbounded_String ("/from/" & Integer'Image (Index)));
-            Files.Model.Record_Undo (Model, Files.Model.Undo_Rename, From => From, To => From);
+            From.Append (To_Unbounded_String (History_Path));
+            Files.Model.Record_Undo
+              (Model, Files.Model.Undo_Delete_Created, From => From,
+               To => Files.Types.String_Vectors.Empty_Vector, Redoable => False);
          end;
       end loop;
       declare
@@ -317,6 +329,81 @@ package body Files_Suite.Model is
          Assert (Count = 200, "back-navigation history is capped at 200; went back" & Count'Image);
       end;
    end Test_History_Bounds;
+
+   procedure Test_History_Restore_Admission
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Model : Files.Model.Window_Model;
+      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
+
+      function Rename_Action return Files.Model.Undo_Entry is
+         Result : Files.Model.Undo_Entry;
+      begin
+         Result.Kind := Files.Model.Undo_Rename;
+         Result.From.Append (To_Unbounded_String ("/missing/new-name"));
+         Result.To.Append (To_Unbounded_String ("/missing/old-name"));
+         Result.Created_Identities.Append (To_Unbounded_String ("persisted-identity"));
+         Result.Created_Tree_Revisions.Append (Null_Unbounded_String);
+         return Result;
+      end Rename_Action;
+
+      Good_Undo : Files.Model.Undo_Entry := Rename_Action;
+      Good_Redo : constant Files.Model.Undo_Entry := Rename_Action;
+      Short_Targets : Files.Model.Undo_Entry := Rename_Action;
+      Foreign_Marker : Files.Model.Undo_Entry := Rename_Action;
+      Bad_Metadata : Files.Model.Undo_Entry := Rename_Action;
+      Bad_Restore : Files.Model.Undo_Entry := Rename_Action;
+      Bad_Copy_Records : Files.Model.Undo_Entry := Rename_Action;
+      Undo_Only_Redo : Files.Model.Undo_Entry := Rename_Action;
+   begin
+      Good_Undo.Reverse_Completed.Append (Good_Undo.From.First_Element);
+
+      Short_Targets.To.Clear;
+
+      Foreign_Marker.Reverse_Completed.Append
+        (To_Unbounded_String ("/missing/not-in-action"));
+
+      Bad_Metadata.Kind := Files.Model.Undo_Set_Permissions;
+      Bad_Metadata.To.Replace_Element
+        (Bad_Metadata.To.First_Index, To_Unbounded_String ("not-a-mode"));
+      Bad_Metadata.Forward.Append (To_Unbounded_String ("420"));
+
+      Bad_Restore.Redoable := False;
+      Bad_Restore.Restore_Trash.Append (To_Unbounded_String ("/missing/trash-entry"));
+
+      Bad_Copy_Records.Kind := Files.Model.Undo_Delete_Created;
+      Bad_Copy_Records.To.Clear;
+      Bad_Copy_Records.Forward.Append (To_Unbounded_String ("/missing/source"));
+      Bad_Copy_Records.Create_Kind := Files.Model.Create_Copy;
+      Bad_Copy_Records.Copy_Records.Append (To_Unbounded_String ("incomplete-group"));
+
+      Undo_Only_Redo.Redoable := False;
+
+      Undo.Append (Short_Targets);
+      Undo.Append (Good_Undo);
+      Undo.Append (Foreign_Marker);
+      Undo.Append (Bad_Metadata);
+      Undo.Append (Bad_Restore);
+      Undo.Append (Bad_Copy_Records);
+      Redo.Append (Undo_Only_Redo);
+      Redo.Append (Good_Redo);
+
+      Files.Model.Set_History (Model, Undo, Redo);
+
+      Assert
+        (Natural (Files.Model.Undo_History (Model).Length) = 1
+         and then Files.Model.Undo_History (Model).First_Element = Good_Undo,
+         "only the structurally valid Undo action and its partial progress survive");
+      Assert
+        (Natural (Files.Model.Redo_History (Model).Length) = 1
+         and then Files.Model.Redo_History (Model).First_Element = Good_Redo,
+         "Redo filters undo-only entries but retains a valid action with stale paths");
+      Assert
+        (Files.Model.Undo_History (Model).First_Element.Created_Identities.First_Element =
+           To_Unbounded_String ("persisted-identity"),
+         "sanitizing restored history does not recapture or discard its identity snapshot");
+   end Test_History_Restore_Admission;
 
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2878,6 +2965,7 @@ package body Files_Suite.Model is
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
       Operation : Files.Operations.Operation_Result;
+      Dangling_Untitled : Boolean := False;
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Reset_Root;
@@ -3052,9 +3140,18 @@ package body Files_Suite.Model is
       Assert
         (Files.File_System.Next_Untitled_Name (Root) = "untitled 2.txt",
          "untitled name generation skips directory collisions");
+      Dangling_Untitled := Create_Symlink ("missing-target", Join (Root, "untitled 2.txt"));
+      if Dangling_Untitled then
+         Assert
+           (Files.File_System.Next_Untitled_Name (Root) = "untitled 4.txt",
+            "untitled name generation skips dangling-link collisions");
+      end if;
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 2.txt", "create uses first available suffix");
+      Assert
+        (Files.Model.Temporary_Item_Name (Model) =
+           (if Dangling_Untitled then "untitled 4.txt" else "untitled 2.txt"),
+         "create uses the first suffix without an existing directory entry");
       Files.Model.Cancel_Create_File (Model);
       declare
          function Suffix_Text (Value : Natural) return String is

@@ -24,6 +24,7 @@ with GNAT.OS_Lib;
 with Textrender.Fonts;
 
 with Hostkit.Host;
+with Hostkit.Fs;
 
 with Files.Accessibility;
 with Files.Application;
@@ -1709,6 +1710,24 @@ package body Files_Suite.Settings is
       Assert
         (Loaded.Settings.Default_View = Files.Types.Details,
          "resaved settings text replaces the previous content");
+      declare
+         Temp_Path : constant String := Saved_Path & ".tmp";
+         Victim : constant String := Join (Root, "settings-temp-victim");
+      begin
+         Write_File (Victim, "must stay intact");
+         if Files_Suite.Support.Create_Symlink (Victim, Temp_Path) then
+            Saved := Files.Settings.Save_Text
+              (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
+            Assert (Saved.Success, "settings save skips an occupied temp pathname");
+            Assert (Hostkit.Fs.Is_Link (Temp_Path),
+                    "settings save preserves a colliding temp symlink");
+            Assert (File_Has_Bytes (Victim, "must stay intact"),
+                    "settings save never follows and truncates a temp symlink target");
+            Assert (not Ada.Directories.Exists (Saved_Path & ".tmp-2")
+                      and then not Hostkit.Fs.Is_Link (Saved_Path & ".tmp-2"),
+                    "settings save removes its alternate temporary file");
+         end if;
+      end;
       Write_File (Blocked_Parent, "not a directory");
       Saved := Files.Settings.Save_Text (Blocked_Path, "[settings]" & ASCII.LF);
       Assert (not Saved.Success, "settings save rejects a file used as parent directory");

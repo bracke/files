@@ -15,34 +15,34 @@ executables = ["tests"]
 gnat_native = "=15.2.1"
 
 [[depends-on]]
-files = "*"
+files = "^0.1.0"
 
 [[depends-on]]
-hostkit = "*"
+hostkit = "^0.1.0"
 
 [[pins]]
 hostkit = { path = "../../hostkit" }
 files = { path = ".." }
 
 [[depends-on]]
-project_tools = "*"
+project_tools = "^0.1.0"
 
 [[pins]]
 project_tools = { path = "../../project_tools" }
 
 [[depends-on]]
-guikit = "*"
+guikit = "^0.1.0"
 
 [[pins]]
 guikit = { path = "../../guikit" }
 
 [[depends-on]]
-a11ykit = "*"
+a11y = "^0.1.0"
 
 [[pins]]
-a11ykit = { path = "../../a11ykit" }
+a11y = { path = "../../a11ykit" }
 
-# Pins are root-only in Alire: this root builds zlib, so it must pin cryptolib.
+# Pins are root-only in Alire: files uses cryptolib, so this root must pin it.
 [[pins]]
 cryptolib = { path = "../../cryptolib" }
 
