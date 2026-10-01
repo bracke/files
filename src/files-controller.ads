@@ -234,7 +234,8 @@ package Files.Controller is
 
    --  Act on the command palette's highlighted command (from Palette_Selected_Id):
    --  launch the chosen application in Open-With mode, otherwise execute the
-   --  command, closing the palette on success (except Open_With).
+   --  command. Application preflight and spawn failures are returned as failed
+   --  operations; handled selections close the palette.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.

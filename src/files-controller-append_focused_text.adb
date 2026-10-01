@@ -8,7 +8,9 @@ separate (Files.Controller)
       Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
       New_Text : Unbounded_String;
    begin
-      if Text = "" then
+      if Text = "" or else Files.Model.Paste_Execution_Is_Active (Model)
+        or else Files.Model.Paste_Conflict_Is_Active (Model)
+      then
          return Make_Result (Controller_Ignored);
       end if;
 
@@ -22,6 +24,9 @@ separate (Files.Controller)
             Matched : Boolean;
          begin
             Files.Model.Type_Ahead_Input (Model, Text, Matched);
+            if Matched then
+               Files.Model.Ensure_Selected_Item_Extra (Model);
+            end if;
             return Make_Result (if Matched then Controller_Selection_Moved else Controller_Ignored);
          end;
       end if;

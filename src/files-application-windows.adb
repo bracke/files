@@ -27,8 +27,8 @@ with Files.File_System;
 with Files.Folder_Size;
 with Files.Folder_Tree;
 with Files.Interaction;
+with Files.Job_Scavenger;
 with Files.Operations;
-with Hostkit.Watch;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Guikit.Layout;
@@ -322,7 +322,7 @@ package body Files.Application.Windows is
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
-      Watch : Hostkit.Watch.Watch_State;
+      Watch : Files.Refresh_Jobs.Watch_Session;
    end record;
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
@@ -837,22 +837,25 @@ package body Files.Application.Windows is
       end loop;
    end Handle_All_Drop_Input;
 
-   procedure Release_Native_Watch
-     (Runtime : in out Runtime_Window) is
+   procedure Release_Window_Jobs
+     (Model : in out Files.Model.Window_Model;
+      Watch : in out Files.Refresh_Jobs.Watch_Session) is
    begin
-      Hostkit.Watch.Release (Runtime.Watch);
-   end Release_Native_Watch;
+      Files.Model.Cancel_Folder_Scan (Model);
+      Files.Model.Clear_Paste_Execution (Model);
+      Files.Refresh_Jobs.Cancel (Model);
+      Files.Refresh_Jobs.Release_Watch (Watch);
+   end Release_Window_Jobs;
 
    function Drain_Native_Watch
      (Runtime : in out Runtime_Window)
       return Boolean is
    begin
-      --  Re-pointing the watch at the directory currently on screen is a no-op
-      --  once it is already there, so this is cheap to do every frame.
-      Hostkit.Watch.Watch_Path
+      --  Native registration and storage reads happen in the helper process.
+      Files.Refresh_Jobs.Watch_Path
         (Runtime.Watch, Files.Model.Current_Path (Runtime.Model));
 
-      return Hostkit.Watch.Poll (Runtime.Watch);
+      return Files.Refresh_Jobs.Poll_Watch (Runtime.Watch);
    end Drain_Native_Watch;
 
    procedure Handle_File_Watch_Poll
@@ -860,10 +863,26 @@ package body Files.Application.Windows is
    is
       Now    : constant Ada.Calendar.Time := Ada.Calendar.Clock;
       Result : Files.Operations.Operation_Result;
+      Refreshed : Boolean;
+      pragma Unreferenced (Refreshed);
    begin
       if Runtime.Handle = null then
          return;
       end if;
+      if not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+        or else Glfw.Windows.Should_Close (As_Window (Runtime.Handle))
+      then
+         Release_Window_Jobs (Runtime.Model, Runtime.Watch);
+         return;
+      end if;
+
+      if Files.Model.Paste_Execution_Is_Active (Runtime.Model) then
+         Files.Refresh_Jobs.Cancel (Runtime.Model);
+         return;
+      end if;
+      Refreshed := Files.Refresh_Jobs.Advance (Runtime.Model, Runtime.Settings);
+      --  Also service selections deferred by a cancelled or failed refresh.
+      Files.Model.Ensure_Selected_Item_Extra (Runtime.Model);
 
       if Drain_Native_Watch (Runtime) then
          declare
@@ -892,33 +911,14 @@ package body Files.Application.Windows is
       end loop;
    end Handle_All_File_Watch_Poll;
 
-   --  Advance the incremental folder-size walk by one frame's worth of work and
-   --  publish a finished measurement into the window whose selected directory it
-   --  belongs to. Requests are posted from the input path (Update_Folder_Size);
-   --  this keeps the walk off the UI critical path so selection stays smooth.
-   procedure Poll_All_Folder_Sizes
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector)
-   is
-      Path      : Ada.Strings.Unbounded.Unbounded_String;
-      Result    : Files.File_System.Directory_Size_Result;
-      Available : Boolean;
+   --  Each window polls and publishes only its own folder measurements.
+   procedure Poll_All_Folder_Sizes (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      Files.Folder_Size.Step;
-
-      --  Drain every finished measurement and publish each into the window whose
-      --  selection still contains that directory.
-      loop
-         Files.Folder_Size.Take (Path, Result, Available);
-         exit when not Available;
-
-         for Runtime of Runtime_Windows loop
-            if Files.Model.Is_Selected_Directory
-                 (Runtime.Model, Ada.Strings.Unbounded.To_String (Path))
-            then
-               Files.Model.Set_Folder_Size
-                 (Runtime.Model, Ada.Strings.Unbounded.To_String (Path), Result);
-            end if;
-         end loop;
+      for Runtime of Runtime_Windows loop
+         if Runtime.Handle /= null then
+            Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
+            Files.Model.Poll_Folder_Sizes (Runtime.Model);
+         end if;
       end loop;
    end Poll_All_Folder_Sizes;
 
@@ -1160,46 +1160,56 @@ package body Files.Application.Windows is
       return Result;
    end Frame_Text_Key;
 
-   procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   procedure Release_Window (Runtime : in out Runtime_Window) is
+   begin
+      --  Stop helpers before settings writes or graphics shutdown can delay
+      --  native cleanup. A cleared handle also prevents queued input dispatch.
+      Release_Window_Jobs (Runtime.Model, Runtime.Watch);
+      if Runtime.Handle = null then
+         return;
+      end if;
+      if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
+         declare
+            Window_W : Glfw.Size := 0;
+            Window_H : Glfw.Size := 0;
+         begin
+            Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+            if Window_W > 0 and then Window_H > 0
+              and then (Runtime.Settings.Window_Width /= Natural (Window_W)
+                        or else Runtime.Settings.Window_Height /= Natural (Window_H))
+            then
+               Runtime.Settings.Window_Width := Natural (Window_W);
+               Runtime.Settings.Window_Height := Natural (Window_H);
+               Persist_Settings (Runtime);
+            end if;
+         end;
+      end if;
+      Guikit.Vulkan.Shutdown (Runtime.Vulkan);
+      if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
+         Unregister_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Runtime.Handle)));
+         Glfw.Windows.Destroy (As_Window (Runtime.Handle));
+      end if;
+      Free_Window (Runtime.Handle);
+   end Release_Window;
+
+   procedure Release_Closed_Windows (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
       for Runtime of Runtime_Windows loop
          if Runtime.Handle /= null
-           and then Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+           and then (not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+                     or else Glfw.Windows.Should_Close (As_Window (Runtime.Handle)))
          then
-            declare
-               Window_W : Glfw.Size := 0;
-               Window_H : Glfw.Size := 0;
-            begin
-               Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
-               if Window_W > 0 and then Window_H > 0
-                 and then
-                   (Runtime.Settings.Window_Width /= Natural (Window_W)
-                    or else Runtime.Settings.Window_Height /= Natural (Window_H))
-               then
-                  Runtime.Settings.Window_Width := Natural (Window_W);
-                  Runtime.Settings.Window_Height := Natural (Window_H);
-                  Persist_Settings (Runtime);
-               end if;
-            end;
-         end if;
-
-         Guikit.Vulkan.Shutdown (Runtime.Vulkan);
-         Release_Native_Watch (Runtime);
-
-         if Runtime.Handle /= null then
-            if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
-               Unregister_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Runtime.Handle)));
-               Glfw.Windows.Destroy (As_Window (Runtime.Handle));
-            end if;
-
-            declare
-               Handle : Window_Access := Runtime.Handle;
-            begin
-               Free_Window (Handle);
-            end;
+            Release_Window (Runtime);
          end if;
       end loop;
+   end Release_Closed_Windows;
 
+   procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   begin
+      Files.Folder_Size.Cancel;
+      for Runtime of Runtime_Windows loop
+         Release_Window (Runtime);
+      end loop;
       Runtime_Windows.Clear;
       Process_Text_Font_Ready := False;
       Process_Text_Font_Path := Null_Unbounded_String;
@@ -1320,6 +1330,8 @@ package body Files.Application.Windows is
             Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,
             Last_Watch_Poll => Ada.Calendar.Time_Of (1901, 1, 1),
             Watch => <>));
+      Files.Model.Set_Background_Transfers
+        (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
    exception
       when others =>
          if Handle /= null then
@@ -1978,6 +1990,7 @@ package body Files.Application.Windows is
    is
       Runtime_Windows : Runtime_Window_Vectors.Vector;
       Initialized     : Boolean := False;
+      Recovery_Reported : Boolean := False;
    begin
       if Startup.Windows.Is_Empty then
          return;
@@ -2026,12 +2039,26 @@ package body Files.Application.Windows is
       while Any_Window_Open (Runtime_Windows) loop
          begin
             Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
+            Release_Closed_Windows (Runtime_Windows);
+            exit when not Any_Window_Open (Runtime_Windows);
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Text_Input (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
             Handle_All_Mouse (Runtime_Windows);
             Handle_All_Drop_Input (Runtime_Windows);
             Handle_All_Scroll_Input (Runtime_Windows);
+            if not Recovery_Reported
+              and then Files.Job_Scavenger.Has_Unrecoverable
+            then
+               for Runtime of Runtime_Windows loop
+                  if Runtime.Handle /= null then
+                     Files.Model.Set_Error
+                       (Runtime.Model, "error.recovery.unsafe_transport");
+                     Runtime.Frame_Cache_Valid := False;
+                  end if;
+               end loop;
+               Recovery_Reported := True;
+            end if;
             Render_All (Runtime_Windows);
             Handle_All_File_Watch_Poll (Runtime_Windows);
             Poll_All_Folder_Sizes (Runtime_Windows);

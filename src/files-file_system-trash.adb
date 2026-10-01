@@ -1,4 +1,6 @@
+with Files.Job_Context;
 with Files.File_System.Support;
+with Files.File_System.Recovery;
 with Ada.Strings.Unbounded;
 with Ada.Directories;
 with Ada.Text_IO;
@@ -450,7 +452,7 @@ package body Trash is
 
       function Source_Exists return Boolean is
       begin
-         return Path /= "" and then Ada.Directories.Exists (Path);
+         return Path /= "" and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
       exception
          when others =>
             return False;
@@ -460,6 +462,11 @@ package body Trash is
       begin
          if Value = "" then
             return "";
+         elsif Hostkit.Fs.Is_Link (Value) then
+            --  Resolve the parent to find the link's location, never its target.
+            return Join_Path
+              (Ada.Directories.Full_Name (Ada.Directories.Containing_Directory (Value)),
+               Ada.Directories.Simple_Name (Value));
          elsif Ada.Directories.Exists (Value) then
             return Ada.Directories.Full_Name (Value);
          else
@@ -565,9 +572,11 @@ package body Trash is
          Candidate : Unbounded_String := To_Unbounded_String (Name);
       begin
          while Ada.Directories.Exists (Join_Path (Files_Directory, To_String (Candidate)))
+           or else Hostkit.Fs.Is_Link (Join_Path (Files_Directory, To_String (Candidate)))
            or else (Info_Directory /= ""
-                    and then Ada.Directories.Exists
-                               (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo")))
+                    and then
+                      (Ada.Directories.Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))
+                       or else Hostkit.Fs.Is_Link (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))))
          loop
             Candidate := To_Unbounded_String (Name & "." & Image_No_Space (Counter));
             exit when Counter = Positive'Last;
@@ -624,11 +633,11 @@ package body Trash is
       Name      : Unbounded_String;
       Target    : Unbounded_String;
       Info_Path : Unbounded_String;
-      File      : Ada.Text_IO.File_Type;
+      Info_Owned : Boolean := False;
 
       procedure Delete_Info_File_If_Present is
       begin
-         if Ada.Directories.Exists (To_String (Info_Path)) then
+         if Info_Owned and then Ada.Directories.Exists (To_String (Info_Path)) then
             Ada.Directories.Delete_File (To_String (Info_Path));
          end if;
       exception
@@ -683,59 +692,83 @@ package body Trash is
       Name := To_Unbounded_String
         (Unique_Trash_Name (Files_Dir, Info_Dir, Ada.Directories.Simple_Name (Path)));
       Target := To_Unbounded_String (Join_Path (Files_Dir, To_String (Name)));
-      Trashed_Path := Target;
 
       if not Macos_Home then
          Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
-         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, To_String (Info_Path));
-         Ada.Text_IO.Put_Line (File, "[Trash Info]");
-         Ada.Text_IO.Put_Line (File, "Path=" & Trash_Info_Path_Value (Ada.Directories.Full_Name (Path)));
-         Ada.Text_IO.Put_Line (File, "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock));
-         Ada.Text_IO.Close (File);
+         declare
+            use type GNAT.OS_Lib.File_Descriptor;
+            Descriptor : GNAT.OS_Lib.File_Descriptor :=
+              GNAT.OS_Lib.Create_New_File (To_String (Info_Path), GNAT.OS_Lib.Binary);
+            Metadata : constant String :=
+              "[Trash Info]" & ASCII.LF
+              & "Path=" & Trash_Info_Path_Value (GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => False))
+              & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
+            Written : Integer;
+            Next    : Positive := Metadata'First;
+            Closed  : Boolean;
+         begin
+            if Descriptor = GNAT.OS_Lib.Invalid_FD then
+               raise Ada.Directories.Use_Error;
+            end if;
+            Info_Owned := True;
+            while Next <= Metadata'Last loop
+               Written := GNAT.OS_Lib.Write (Descriptor, Metadata (Next)'Address, Metadata'Last - Next + 1);
+               if Written <= 0 then
+                  raise Ada.Directories.Use_Error;
+               end if;
+               Next := Next + Written;
+            end loop;
+            GNAT.OS_Lib.Close (Descriptor, Closed);
+            Descriptor := GNAT.OS_Lib.Invalid_FD;
+            if not Closed then
+               raise Ada.Directories.Use_Error;
+            end if;
+         exception
+            when others =>
+               if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+                  GNAT.OS_Lib.Close (Descriptor);
+               end if;
+               raise;
+         end;
       end if;
 
       begin
-         Ada.Directories.Rename (Path, To_String (Target));
+         if not Support.Move_No_Replace (Path, To_String (Target)) then
+            raise Ada.Directories.Use_Error;
+         end if;
       exception
          when others =>
             --  Cross-device (EXDEV): rename cannot move across filesystems, so
             --  the home trash is on a different mount than the file. Fall back
             --  to copy-then-delete into the trash.
             begin
-               Copy_Tree (Path, To_String (Target));
                declare
-                  Removed : constant Mutation_Result := Delete_Permanently (Path);
+                  Expected : constant Support.Source_Snapshot := Support.Snapshot (Path);
+                  Identity : UString;
+                  Removed : Mutation_Result;
                begin
+                  Support.Copy_To_New_Path
+                    (Path, To_String (Target), Identity, Times => Expected.Times, Preserve_Ownership => True);
+                  Trashed_Path := Target;
+                  Removed := Recovery.Remove_Move_Source (Path, Expected);
                   if not Removed.Success then
-                     --  The source could not be removed after the copy, so the
-                     --  move failed and the source is kept. Roll back the copy we
-                     --  just made into the trash -- both payload and sidecar --
-                     --  so no orphaned trash entry is left behind.
                      declare
                         Rolled_Back : constant Mutation_Result :=
-                          Delete_Permanently (To_String (Target));
-                        pragma Unreferenced (Rolled_Back);
+                          Delete_Created_Entry
+                            (To_String (Target), To_String (Identity), Tree_Revision (To_String (Target)));
                      begin
-                        null;
+                        if Rolled_Back.Success then
+                           Trashed_Path := Null_Unbounded_String;
+                           Delete_Info_File_If_Present;
+                        end if;
                      end;
-                     Delete_Info_File_If_Present;
                      return Removed;
                   end if;
                end;
             exception
                when others =>
-                  --  Copy_Tree raised partway through (e.g. out of space on the
-                  --  trash filesystem), leaving a partial payload behind. Remove
-                  --  it and the sidecar so no orphaned trash entry remains --
-                  --  the same rollback the delete-failed branch above does. The
-                  --  source is untouched, so the move simply failed.
-                  declare
-                     Rolled_Back : constant Mutation_Result :=
-                       Delete_Permanently (To_String (Target));
-                     pragma Unreferenced (Rolled_Back);
-                  begin
-                     null;
-                  end;
+                  --  Copy_Tree owns cleanup; an existing payload belongs to
+                  --  another operation and must be left intact.
                   Delete_Info_File_If_Present;
                   return
                     (Success   => False,
@@ -743,10 +776,10 @@ package body Trash is
             end;
       end;
 
+      Trashed_Path := Target;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
-         Safe_Close (File);
          Delete_Info_File_If_Present;
          return
            (Success   => False,
@@ -795,10 +828,7 @@ package body Trash is
       return Removed;
    end Delete_Trashed_Item;
 
-   function Restore_From_Trash
-     (Trashed_Path : String)
-      return Mutation_Result
-   is
+   function Original_Path (Trashed_Path : String) return String is
       --  Reverse of Move_To_Trash's Trash_Info_Path_Value percent-encoder.
       function Url_Decode (Value : String) return String is
          Result : Unbounded_String;
@@ -867,6 +897,22 @@ package body Trash is
             return "";
       end Read_Original_Path;
 
+      Base : constant String := Trash_Base_Path;
+      Backend : constant Trash_Backend := Trash_Backend_For_Base;
+   begin
+      if Base = "" or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data then
+         return "";
+      end if;
+      return Read_Original_Path
+        (Join_Path (Join_Path (Base, "info"), Ada.Directories.Simple_Name (Trashed_Path) & ".trashinfo"));
+   exception
+      when others => return "";
+   end Original_Path;
+
+   function Restore_From_Trash
+     (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
+      return Mutation_Result
+   is
       Backend   : constant Trash_Backend := Trash_Backend_For_Base;
       Base      : constant String := Trash_Base_Path;
    begin
@@ -885,13 +931,14 @@ package body Trash is
          Original  : Unbounded_String;
          Parent    : Unbounded_String;
       begin
-         if not Ada.Directories.Exists (Info_Path) then
+         if Expected_Original = "" and then not Ada.Directories.Exists (Info_Path) then
             return
               (Success   => False,
                Error_Key => To_Unbounded_String ("error.trash.restore_unavailable"));
          end if;
 
-         Original := To_Unbounded_String (Read_Original_Path (Info_Path));
+         Original := To_Unbounded_String
+           (if Expected_Original /= "" then Expected_Original else Original_Path (Trashed_Path));
          if Length (Original) = 0 then
             return
               (Success   => False,
@@ -908,38 +955,78 @@ package body Trash is
                Error_Key => To_Unbounded_String ("error.trash.restore_parent_missing"));
          end if;
 
-         if Ada.Directories.Exists (To_String (Original)) then
+         if Ada.Directories.Exists (To_String (Original)) or else Hostkit.Fs.Is_Link (To_String (Original)) then
             return
               (Success   => False,
                Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
          end if;
 
-         begin
-            Ada.Directories.Rename (Trashed_Path, To_String (Original));
-         exception
-            when others =>
-               --  Cross-device (EXDEV): rename cannot move across filesystems,
-               --  so fall back to copy-then-delete just like Move_To_Trash.
-               begin
-                  Copy_Tree (Trashed_Path, To_String (Original));
-               exception
-                  when others =>
-                     return
-                       (Success   => False,
-                        Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
-               end;
-               --  The restore itself is done (the copy succeeded); removing the
-               --  now-redundant trash copy is best-effort. Reporting failure here
-               --  told the user the restore failed when their file is actually
-               --  back, and skipped the sidecar cleanup below, leaving a stale
-               --  trash entry. At worst we now leave a rare orphaned payload.
-               declare
-                  Removed : constant Mutation_Result := Delete_Permanently (Trashed_Path);
-                  pragma Unreferenced (Removed);
-               begin
-                  null;
-               end;
-         end;
+         if Expected_Identity /= "" then
+            if not Rename_Item (Trashed_Path, To_String (Original), Expected_Identity).Success then
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+            end if;
+         else
+            begin
+               if not Support.Move_No_Replace (Trashed_Path, To_String (Original)) then
+                  raise Ada.Directories.Use_Error;
+               end if;
+            exception
+               when others =>
+                  --  Copy on the destination filesystem before publishing the
+                  --  restored path. A failed copy leaves Original absent, even
+                  --  when cleanup of the staging directory cannot finish.
+                  declare
+                     Stage : Unbounded_String;
+
+                     procedure Clean_Stage is
+                     begin
+                        if Length (Stage) > 0 then
+                           declare
+                              Removed : constant Boolean :=
+                                Files.Job_Context.Discard_Stage (To_String (Stage));
+                              pragma Unreferenced (Removed);
+                           begin
+                              null;
+                           end;
+                        end if;
+                     end Clean_Stage;
+                  begin
+                     Stage := To_Unbounded_String
+                       (Files.Job_Context.Create_Stage (To_String (Parent)));
+                     --  Cancellation stops new work, but must not interrupt rollback.
+                     Copy_Tree (Trashed_Path, Join_Path (To_String (Stage), "payload"),
+                                Check_Job_Cancellation => False, Preserve_Ownership => True);
+                     if Ada.Directories.Exists (To_String (Original))
+                       or else Hostkit.Fs.Is_Link (To_String (Original))
+                     then
+                        raise Ada.Directories.Use_Error;
+                     end if;
+                     if not Support.Move_No_Replace
+                       (Join_Path (To_String (Stage), "payload"), To_String (Original))
+                     then
+                        raise Ada.Directories.Use_Error;
+                     end if;
+                     Clean_Stage;
+                  exception
+                     when others =>
+                        Clean_Stage;
+                        return
+                          (Success   => False,
+                           Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+                  end;
+                  --  The restore itself is done (the copy succeeded); removing the
+                  --  now-redundant trash copy is best-effort. Reporting failure here
+                  --  told the user the restore failed when their file is actually
+                  --  back, and skipped the sidecar cleanup below, leaving a stale
+                  --  trash entry. At worst we now leave a rare orphaned payload.
+                  declare
+                     Removed : constant Mutation_Result := Delete_Permanently (Trashed_Path);
+                     pragma Unreferenced (Removed);
+                  begin
+                     null;
+                  end;
+            end;
+         end if;
 
          begin
             if Ada.Directories.Exists (Info_Path) then

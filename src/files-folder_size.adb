@@ -1,310 +1,166 @@
-with Ada.Directories;
-
+with Ada.Streams.Stream_IO;
 with Hostkit.Fs;
 
 package body Files.Folder_Size is
-
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
 
-   --  Mirror the guards of Files.File_System.Directory_Size so the incremental
-   --  walk produces the same totals for the same subtree.
-   Max_Entries : constant := 50_000;
-   Max_Depth   : constant := 64;
+   Default_Scan : Session;
 
-   --  A directory still to be visited, with its depth below the root.
-   type Pending_Dir is record
-      Path  : Unbounded_String;
-      Depth : Natural := 0;
-   end record;
-
-   package Pending_Vectors is new
-     Ada.Containers.Vectors
-       (Index_Type   => Positive,
-        Element_Type => Pending_Dir);
-
-   --  A finished measurement awaiting collection by Take.
-   type Finished_Measurement is record
-      Path   : Unbounded_String;
-      Result : Files.File_System.Directory_Size_Result;
-   end record;
-
-   package Finished_Vectors is new
-     Ada.Containers.Vectors
-       (Index_Type   => Positive,
-        Element_Type => Finished_Measurement);
-
-   --  Walk state (one directory measured at a time, all on the UI thread).
-   Target_Path : Unbounded_String;
-   Active      : Boolean := False;
-   Root_Valid  : Boolean := False;
-   Pending     : Pending_Vectors.Vector;
-   Cur_Search  : Ada.Directories.Search_Type;
-   Cur_Open    : Boolean := False;
-   Cur_Depth   : Natural := 0;
-   Acc         : Files.File_System.Directory_Size_Result;
-   Visited     : Natural := 0;
-
-   --  Directories still to measure once the current walk finishes.
-   Targets : Path_Vectors.Vector;
-
-   --  Finished measurements awaiting collection, in completion order.
-   Done_Queue : Finished_Vectors.Vector;
-
-   function Saturating_Long_Add
-     (Left  : Long_Long_Integer;
-      Right : Long_Long_Integer)
-      return Long_Long_Integer is
+   procedure Close (File : in out Ada.Streams.Stream_IO.File_Type) is
    begin
-      if Right > 0 and then Left > Long_Long_Integer'Last - Right then
-         return Long_Long_Integer'Last;
-      else
-         return Left + Right;
+      if Ada.Streams.Stream_IO.Is_Open (File) then
+         Ada.Streams.Stream_IO.Close (File);
       end if;
-   end Saturating_Long_Add;
-
-   function Is_Symlink (Candidate : String) return Boolean is
-   begin
-      return Hostkit.Fs.Is_Link (Candidate);
    exception
-      when others =>
-         return False;
-   end Is_Symlink;
+      when others => null;
+   end Close;
 
-   --  Release the open directory handle, if any.
-   procedure Close_Search is
+   procedure Start_Next (Scan : in out Session) is
+      File : Ada.Streams.Stream_IO.File_Type;
    begin
-      if Cur_Open then
-         Ada.Directories.End_Search (Cur_Search);
-         Cur_Open := False;
-      end if;
-   end Close_Search;
-
-   --  Begin measuring the directory at Path as the current walk.
-   procedure Begin_Walk (Path : Unbounded_String) is
-   begin
-      Close_Search;
-      Pending.Clear;
-      Target_Path := Path;
-      Acc := (others => <>);
-      Visited := 0;
-      Cur_Depth := 0;
-
-      --  Match the top-level guard of Directory_Size: a missing path or a
-      --  non-directory yields an unavailable result. The validity captured
-      --  here (not re-checked mid-walk) reproduces the reference exactly,
-      --  including the race where the root vanishes after this check.
-      begin
-         Root_Valid :=
-           Path /= Null_Unbounded_String
-           and then Ada.Directories.Exists (To_String (Path))
-           and then Ada.Directories.Kind (To_String (Path)) = Ada.Directories.Directory;
-      exception
-         when others =>
-            Root_Valid := False;
-      end;
-
-      Pending.Append (Pending_Dir'(Path => Path, Depth => 0));
-      Active := True;
-   end Begin_Walk;
-
-   --  Start the next queued directory, or go idle when the queue is empty.
-   procedure Start_Next is
-   begin
-      if Targets.Is_Empty then
-         Active := False;
-         return;
-      end if;
-
-      declare
-         Next : constant Unbounded_String := Targets.First_Element;
-      begin
-         Targets.Delete_First;
-         Begin_Walk (Next);
-      end;
+      while not Scan.Targets.Is_Empty loop
+         Scan.Target_Path := Scan.Targets.First_Element;
+         Scan.Targets.Delete_First;
+         begin
+            Files.Process_Jobs.Reserve (Scan.Job);
+            Ada.Streams.Stream_IO.Create
+              (File, Ada.Streams.Stream_IO.Out_File, Files.Process_Jobs.Path (Scan.Job, "request"));
+            Unbounded_String'Output (Ada.Streams.Stream_IO.Stream (File), Scan.Target_Path);
+            Ada.Streams.Stream_IO.Close (File);
+            Files.Process_Jobs.Launch (Scan.Job, "--files-folder-size");
+            return;
+         exception
+            when others =>
+               Close (File);
+               Files.Process_Jobs.Reset (Scan.Job);
+               Scan.Done_Queue.Append (Finished_Measurement'(Path => Scan.Target_Path, Result => (others => <>)));
+         end;
+      end loop;
+      Scan.Target_Path := Null_Unbounded_String;
    end Start_Next;
 
-   --  Publish the accumulated totals as a finished result and move on to the
-   --  next queued directory. Available mirrors Directory_Size: True whenever the
-   --  root was a readable directory (even when the walk was capped).
-   procedure Finish is
+   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector) is
+      Keep : constant Boolean := Files.Process_Jobs.Active (Scan.Job) and then Paths.Contains (Scan.Target_Path);
    begin
-      Close_Search;
-      Pending.Clear;
-      Acc.Available := Root_Valid;
-      Done_Queue.Append (Finished_Measurement'(Path => Target_Path, Result => Acc));
-      Start_Next;
-   end Finish;
-
-   procedure Set_Targets (Paths : Path_Vectors.Vector) is
-   begin
-      if Active and then Paths.Contains (Target_Path) then
-         --  Keep the walk in progress; queue every other requested directory.
-         Targets.Clear;
-         for P of Paths loop
-            if P /= Target_Path then
-               Targets.Append (P);
-            end if;
-         end loop;
-      else
-         --  The current walk (if any) is no longer wanted: abandon it and start
-         --  measuring the requested directories from scratch.
-         Close_Search;
-         Pending.Clear;
-         Active := False;
-         Targets := Paths;
-         Start_Next;
+      Scan.Targets.Clear;
+      for P of Paths loop
+         if (not Keep or else P /= Scan.Target_Path) and then not Scan.Targets.Contains (P) then
+            Scan.Targets.Append (P);
+         end if;
+      end loop;
+      if not Keep then
+         Files.Process_Jobs.Reset (Scan.Job);
+         Start_Next (Scan);
       end if;
    end Set_Targets;
 
-   procedure Request (Path : String) is
-      One : Path_Vectors.Vector;
+   procedure Cancel (Scan : in out Session) is
    begin
-      One.Append (To_Unbounded_String (Path));
-      Set_Targets (One);
+      Files.Process_Jobs.Reset (Scan.Job);
+      Scan.Targets.Clear;
+      Scan.Target_Path := Null_Unbounded_String;
+   end Cancel;
+
+   procedure Step (Scan : in out Session; Budget : Natural := 4000) is
+      File : Ada.Streams.Stream_IO.File_Type;
+      Finished, Cancelled : Boolean;
+      Result : Files.File_System.Directory_Size_Result;
+   begin
+      if Budget = 0 or else not Files.Process_Jobs.Active (Scan.Job) then
+         return;
+      end if;
+      Files.Process_Jobs.Poll (Scan.Job, Finished, Cancelled);
+      if not Finished then
+         return;
+      end if;
+      if not Cancelled then
+         begin
+            Ada.Streams.Stream_IO.Open
+              (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Scan.Job, "result"));
+            Result := Files.File_System.Directory_Size_Result'Input (Ada.Streams.Stream_IO.Stream (File));
+            Ada.Streams.Stream_IO.Close (File);
+         exception
+            when others => Close (File); Result := (others => <>);
+         end;
+         Scan.Done_Queue.Append (Finished_Measurement'(Path => Scan.Target_Path, Result => Result));
+      end if;
+      Files.Process_Jobs.Reset (Scan.Job);
+      Start_Next (Scan);
+   end Step;
+
+   procedure Take
+     (Scan : in out Session;
+      Path : out Unbounded_String;
+      Result : out Files.File_System.Directory_Size_Result;
+      Available : out Boolean) is
+   begin
+      Available := not Scan.Done_Queue.Is_Empty;
+      if Available then
+         Path := Scan.Done_Queue.First_Element.Path;
+         Result := Scan.Done_Queue.First_Element.Result;
+         Scan.Done_Queue.Delete_First;
+      else
+         Path := Null_Unbounded_String;
+         Result := (others => <>);
+      end if;
+   end Take;
+
+   function Is_Active (Scan : Session) return Boolean is
+   begin
+      return Files.Process_Jobs.Active (Scan.Job);
+   end Is_Active;
+
+   function Target_For_Test (Scan : Session) return String is
+   begin
+      return To_String (Scan.Target_Path);
+   end Target_For_Test;
+
+   procedure Set_Targets (Paths : Path_Vectors.Vector) is
+   begin
+      Set_Targets (Default_Scan, Paths);
+   end Set_Targets;
+
+   procedure Request (Path : String) is
+      Paths : Path_Vectors.Vector;
+   begin
+      Paths.Append (To_Unbounded_String (Path));
+      Set_Targets (Default_Scan, Paths);
    end Request;
 
    procedure Cancel is
    begin
-      Close_Search;
-      Pending.Clear;
-      Targets.Clear;
-      Active := False;
+      Cancel (Default_Scan);
    end Cancel;
 
-   --  Classify one entry exactly as Directory_Size does: count every non-dot
-   --  entry, skip symlinks, descend real directories, size ordinary files.
-   procedure Process_Entry (Item : Ada.Directories.Directory_Entry_Type) is
-      Name : constant String := Ada.Directories.Simple_Name (Item);
-      Full : constant String := Ada.Directories.Full_Name (Item);
-   begin
-      if Name = "." or else Name = ".." then
-         return;
-      end if;
-
-      Visited := Visited + 1;
-      if Visited > Max_Entries then
-         Acc.Capped := True;
-         return;
-      end if;
-
-      Acc.Item_Count := Acc.Item_Count + 1;
-
-      if Is_Symlink (Full) then
-         null;
-      elsif Ada.Directories.Kind (Item) = Ada.Directories.Directory then
-         Pending.Append (Pending_Dir'(Path => To_Unbounded_String (Full), Depth => Cur_Depth + 1));
-      elsif Ada.Directories.Kind (Item) = Ada.Directories.Ordinary_File then
-         Acc.File_Count := Acc.File_Count + 1;
-         Acc.Total_Bytes :=
-           Saturating_Long_Add
-             (Acc.Total_Bytes,
-              Long_Long_Integer (Ada.Directories.Size (Item)));
-      end if;
-   exception
-      when others =>
-         --  Skip entries that cannot be classified or sized (races, permission
-         --  denials) without aborting the walk, as Directory_Size does.
-         null;
-   end Process_Entry;
-
-   --  Open the next pending directory into Cur_Search. Directories past the
-   --  depth guard are capped and skipped, matching Directory_Size, which sets
-   --  Capped on entry to an over-deep Walk.
-   procedure Open_Next_Directory is
-      Next : constant Pending_Dir := Pending.Last_Element;
-   begin
-      Pending.Delete_Last;
-
-      if Next.Depth > Max_Depth then
-         Acc.Capped := True;
-         return;
-      end if;
-
-      begin
-         Ada.Directories.Start_Search
-           (Search    => Cur_Search,
-            Directory => To_String (Next.Path),
-            Pattern   => "",
-            Filter    =>
-              [Ada.Directories.Ordinary_File => True,
-               Ada.Directories.Directory     => True,
-               Ada.Directories.Special_File  => True]);
-         Cur_Open := True;
-         Cur_Depth := Next.Depth;
-      exception
-         when others =>
-            --  An unreadable subdirectory is skipped, as Directory_Size does.
-            Cur_Open := False;
-      end;
-   end Open_Next_Directory;
-
    procedure Step (Budget : Natural := 4000) is
-      Item     : Ada.Directories.Directory_Entry_Type;
-      Consumed : Natural := 0;
    begin
-      if not Active then
-         return;
-      end if;
-
-      while Consumed < Budget loop
-         --  Directory_Size unwinds the whole walk once Capped is set (via
-         --  "exit when Result.Capped"), so stop here on any cap.
-         if Acc.Capped then
-            Finish;
-            return;
-         end if;
-
-         if Cur_Open then
-            if Ada.Directories.More_Entries (Cur_Search) then
-               Ada.Directories.Get_Next_Entry (Cur_Search, Item);
-               Consumed := Consumed + 1;
-               Process_Entry (Item);
-            else
-               Close_Search;
-            end if;
-         elsif Pending.Is_Empty then
-            Finish;
-            return;
-         else
-            Open_Next_Directory;
-         end if;
-      end loop;
+      Step (Default_Scan, Budget);
    end Step;
 
    procedure Take
-     (Path      : out Unbounded_String;
-      Result    : out Files.File_System.Directory_Size_Result;
+     (Path : out Unbounded_String;
+      Result : out Files.File_System.Directory_Size_Result;
       Available : out Boolean) is
    begin
-      if Done_Queue.Is_Empty then
-         Path := Null_Unbounded_String;
-         Result := (others => <>);
-         Available := False;
-      else
-         declare
-            First : constant Finished_Measurement := Done_Queue.First_Element;
-         begin
-            Path := First.Path;
-            Result := First.Result;
-            Available := True;
-            Done_Queue.Delete_First;
-         end;
-      end if;
+      Take (Default_Scan, Path, Result, Available);
    end Take;
 
-   function Is_Active return Boolean is
-   begin
-      return Active;
-   end Is_Active;
+   function Is_Active return Boolean is (Is_Active (Default_Scan));
+   function Target_For_Test return String is (Target_For_Test (Default_Scan));
 
-   function Target_For_Test return String is
+   procedure Run_Helper (Directory : String) is
+      File : Ada.Streams.Stream_IO.File_Type;
+      Path : Unbounded_String;
+      Result : Files.File_System.Directory_Size_Result;
    begin
-      if Active then
-         return To_String (Target_Path);
-      else
-         return "";
-      end if;
-   end Target_For_Test;
-
+      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Hostkit.Fs.Join (Directory, "request"));
+      Path := Unbounded_String'Input (Ada.Streams.Stream_IO.Stream (File));
+      Ada.Streams.Stream_IO.Close (File);
+      Result := Files.File_System.Directory_Size (To_String (Path));
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Hostkit.Fs.Join (Directory, "result"));
+      Files.File_System.Directory_Size_Result'Output (Ada.Streams.Stream_IO.Stream (File), Result);
+      Ada.Streams.Stream_IO.Close (File);
+   exception
+      when others => Close (File);
+   end Run_Helper;
 end Files.Folder_Size;

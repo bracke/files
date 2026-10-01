@@ -188,8 +188,10 @@ package body Navigation is
    is
       Drained : constant Files.Types.String_Vectors.Vector := Model.Recent_Open_Queue;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Recent_Open_Queue.Clear;
+      if not Drained.Is_Empty then
+         Model.Revision_Value := Model.Revision_Value + 1;
+         Model.Recent_Open_Queue.Clear;
+      end if;
       return Drained;
    end Take_Recent_Opens;
 

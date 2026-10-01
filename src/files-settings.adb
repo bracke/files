@@ -5,8 +5,11 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
+with Hostkit.Fs;
 with Hostkit.Host;
 
+with Files.File_Identities;
+with Files.Durable_Writes;
 with Files.UTF8;
 
 package body Files.Settings is

@@ -93,6 +93,15 @@ package Files.Operations is
    --  @return /C for COMSPEC shells and -c otherwise.
    function Shell_Command_Option return String;
 
+   --  Check an open action's effective executable using the same host-aware
+   --  PATH and executable-file policy used immediately before spawning it.
+   --
+   --  @param Action Open action to preflight.
+   --  @return True when its executable (or explicit shell) is available.
+   function Open_Action_Executable_Is_Available
+     (Action : Files.Settings.Open_Action)
+      return Boolean;
+
    --  Spawn an open action's executable, optionally detached.
    --
    --  When Detach is True the process is started through Files.Launcher and we do
@@ -650,10 +659,9 @@ package Files.Operations is
 
    --  Refresh the cached recursive folder size for the current selection.
    --
-   --  When exactly one directory is selected and its size is not already cached
-   --  the directory tree is walked (bounded) and the totals are stored on the
-   --  model for the info pane; otherwise any stale cache is cleared. Cheap when
-   --  the selection is unchanged. Never mutates the filesystem.
+   --  Request uncached selected directories from a helper process and prune
+   --  stale cached totals. The frame loop publishes completed measurements for
+   --  the info pane and selection total. Never traverses directories here.
    --
    --  @param Model Window model whose folder-size cache is updated.
    --  @param Settings Settings model (reserved for future filtering).

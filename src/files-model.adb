@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Ada.Containers.Ordered_Sets;
+with Ada.Directories;
 with Ada.Strings.Fixed;
 
 with Files.Command_Palette;
@@ -12,6 +13,318 @@ with Files.Model.Support;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
+
+   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Undo_Stack);
+   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Redo_Stack);
+
+   function Same_Length
+     (Left, Right : Files.Types.String_Vectors.Vector) return Boolean is
+     (Natural (Left.Length) = Natural (Right.Length));
+
+   function Nonempty_Values
+     (Values : Files.Types.String_Vectors.Vector) return Boolean is
+   begin
+      for Value of Values loop
+         if Length (Value) = 0 then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Nonempty_Values;
+
+   function Unique_Nonempty_Values
+     (Values : Files.Types.String_Vectors.Vector) return Boolean
+   is
+      Seen : Files.Types.String_Vectors.Vector;
+   begin
+      for Value of Values loop
+         if Length (Value) = 0 or else Seen.Contains (Value) then
+            return False;
+         end if;
+         Seen.Append (Value);
+      end loop;
+      return True;
+   end Unique_Nonempty_Values;
+
+   function Completion_Markers_Valid
+     (Markers, Allowed : Files.Types.String_Vectors.Vector) return Boolean
+   is
+      Seen : Files.Types.String_Vectors.Vector;
+   begin
+      for Marker of Markers loop
+         if Length (Marker) = 0
+           or else not Allowed.Contains (Marker)
+           or else Seen.Contains (Marker)
+         then
+            return False;
+         end if;
+         Seen.Append (Marker);
+      end loop;
+      return True;
+   end Completion_Markers_Valid;
+
+   function Valid_Natural_Image (Value : UString) return Boolean is
+      Text : constant String := Ada.Strings.Fixed.Trim (To_String (Value), Ada.Strings.Both);
+      Parsed : Natural;
+      pragma Unreferenced (Parsed);
+   begin
+      if Text = "" then
+         return False;
+      end if;
+      Parsed := Natural'Value (Text);
+      return True;
+   exception
+      when others =>
+         return False;
+   end Valid_Natural_Image;
+
+   function Valid_Ownership_Image (Value : UString) return Boolean is
+      Text : constant String := Ada.Strings.Fixed.Trim (To_String (Value), Ada.Strings.Both);
+      Space : constant Natural := Ada.Strings.Fixed.Index (Text, " ");
+      User, Group : Natural;
+      pragma Unreferenced (User, Group);
+   begin
+      if Space = 0 then
+         return False;
+      end if;
+      User := Natural'Value (Text (Text'First .. Space - 1));
+      Group := Natural'Value (Text (Space + 1 .. Text'Last));
+      return True;
+   exception
+      when others =>
+         return False;
+   end Valid_Ownership_Image;
+
+   function Valid_Copy_Records
+     (Values : Files.Types.String_Vectors.Vector) return Boolean
+   is
+      Index : Positive := 1;
+      Keys  : Files.Types.String_Vectors.Vector;
+   begin
+      if Natural (Values.Length) mod 6 /= 0 or else not Nonempty_Values (Values) then
+         return False;
+      end if;
+      while Index <= Values.Last_Index loop
+         if Keys.Contains (Values (Index)) then
+            return False;
+         end if;
+         Keys.Append (Values (Index));
+         Index := Index + 6;
+      end loop;
+      return True;
+   end Valid_Copy_Records;
+
+   function History_Entry_Usable
+     (Action : Undo_Entry; For_Redo : Boolean) return Boolean
+   is
+      Main_Count : constant Natural := Natural (Action.From.Length);
+      Restore_Count : constant Natural := Natural (Action.Restore_Trash.Length);
+
+      function Payload_Images_Valid
+        (Values : Files.Types.String_Vectors.Vector;
+         Ownership : Boolean) return Boolean is
+      begin
+         if Natural (Values.Length) /= Main_Count then
+            return False;
+         end if;
+         for Value of Values loop
+            if (if Ownership then not Valid_Ownership_Image (Value)
+                else not Valid_Natural_Image (Value))
+            then
+               return False;
+            end if;
+         end loop;
+         return True;
+      end Payload_Images_Valid;
+
+      Forward_Markers_Valid : Boolean := False;
+   begin
+      if Action.Kind = Undo_None
+        or else Main_Count = 0
+        or else not Unique_Nonempty_Values (Action.From)
+        or else not Same_Length (Action.From, Action.Created_Identities)
+        or else not Same_Length (Action.From, Action.Created_Tree_Revisions)
+        or else not Nonempty_Values (Action.Created_Identities)
+        or else (For_Redo and then not Action.Redoable)
+      then
+         return False;
+      end if;
+
+      if Restore_Count = 0 then
+         if not Action.Restore_Identities.Is_Empty
+           or else not Action.Restore_Targets.Is_Empty
+           or else not Action.Restores_Completed.Is_Empty
+         then
+            return False;
+         end if;
+      elsif Action.Redoable
+        or else Action.Kind not in Undo_Move | Undo_Delete_Created
+        or else not Unique_Nonempty_Values (Action.Restore_Trash)
+        or else not Same_Length (Action.Restore_Trash, Action.Restore_Identities)
+        or else not Same_Length (Action.Restore_Trash, Action.Restore_Targets)
+        or else not Nonempty_Values (Action.Restore_Identities)
+        or else not Unique_Nonempty_Values (Action.Restore_Targets)
+        or else not Completion_Markers_Valid
+          (Action.Restores_Completed, Action.Restore_Trash)
+      then
+         return False;
+      end if;
+
+      case Action.Kind is
+         when Undo_Rename | Undo_Move =>
+            if not Same_Length (Action.From, Action.To)
+              or else not Unique_Nonempty_Values (Action.To)
+              or else not Action.Forward.Is_Empty
+              or else Action.Create_Kind /= Create_None
+            then
+               return False;
+            end if;
+            Forward_Markers_Valid :=
+              Completion_Markers_Valid (Action.Forward_Completed, Action.To);
+
+         when Undo_Restore_Trash =>
+            if Action.Redoable
+              or else not Same_Length (Action.From, Action.To)
+              or else not Unique_Nonempty_Values (Action.To)
+              or else not Action.Forward.Is_Empty
+              or else Action.Create_Kind /= Create_None
+              or else Restore_Count /= 0
+              or else not Action.Forward_Completed.Is_Empty
+            then
+               return False;
+            end if;
+            Forward_Markers_Valid := True;
+
+         when Undo_Delete_Created =>
+            if not Action.To.Is_Empty
+              or else (Action.Redoable
+                and then (Action.Create_Kind = Create_None
+                  or else not Same_Length (Action.From, Action.Forward)
+                  or else not Nonempty_Values (Action.Forward)))
+              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
+            then
+               return False;
+            end if;
+            Forward_Markers_Valid :=
+              Completion_Markers_Valid (Action.Forward_Completed, Action.From);
+
+         when Undo_Set_Permissions =>
+            if Action.Create_Kind /= Create_None
+              or else Restore_Count /= 0
+              or else not Payload_Images_Valid (Action.To, False)
+              or else (Action.Redoable and then not Payload_Images_Valid (Action.Forward, False))
+              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
+              or else not Action.Reverse_Completed.Is_Empty
+              or else not Action.Forward_Completed.Is_Empty
+            then
+               return False;
+            end if;
+            Forward_Markers_Valid := True;
+
+         when Undo_Set_Ownership =>
+            if Action.Create_Kind /= Create_None
+              or else Restore_Count /= 0
+              or else not Payload_Images_Valid (Action.To, True)
+              or else (Action.Redoable and then not Payload_Images_Valid (Action.Forward, True))
+              or else (not Action.Redoable and then not Action.Forward.Is_Empty)
+              or else not Action.Reverse_Completed.Is_Empty
+              or else not Action.Forward_Completed.Is_Empty
+            then
+               return False;
+            end if;
+            Forward_Markers_Valid := True;
+
+         when Undo_None =>
+            return False;
+      end case;
+
+      return Forward_Markers_Valid
+        and then Completion_Markers_Valid (Action.Reverse_Completed, Action.From)
+        and then (not For_Redo or else
+          (Action.Reverse_Completed.Is_Empty and then Action.Restores_Completed.Is_Empty))
+        and then (For_Redo or else Action.Forward_Completed.Is_Empty)
+        and then
+          ((Action.Copy_Records.Is_Empty)
+           or else (Action.Kind = Undo_Delete_Created
+             and then Action.Redoable
+             and then Action.Create_Kind = Create_Copy
+             and then Valid_Copy_Records (Action.Copy_Records)));
+   exception
+      when others =>
+         return False;
+   end History_Entry_Usable;
+
+   procedure Set_History (Model : in out Window_Model; Undo, Redo : Undo_Entry_Vectors.Vector) is
+      Sanitized_Undo, Sanitized_Redo : Undo_Entry_Vectors.Vector;
+   begin
+      for Action of Undo loop
+         if History_Entry_Usable (Action, For_Redo => False) then
+            Sanitized_Undo.Append (Action);
+         end if;
+      end loop;
+      for Action of Redo loop
+         if History_Entry_Usable (Action, For_Redo => True) then
+            Sanitized_Redo.Append (Action);
+         end if;
+      end loop;
+      Model.Undo_Stack := Sanitized_Undo;
+      Model.Redo_Stack := Sanitized_Redo;
+      Model.Revision_Value := Model.Revision_Value + 1;
+   end Set_History;
+
+   procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
+   begin
+      Model.Background_Transfers_Value := Enabled;
+   end Set_Background_Transfers;
+
+   function Background_Transfers (Model : Window_Model) return Boolean is (Model.Background_Transfers_Value);
+
+   procedure Set_Background_Operation
+     (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String) is
+   begin
+      Model.Operation_Job := Job;
+      Model.Operation_Label_Key := To_Unbounded_String (Label_Key);
+      Model.Paste_Exec_Current_Value := To_Unbounded_String (Current_Path (Model));
+      Model.Revision_Value := Model.Revision_Value + 1;
+   end Set_Background_Operation;
+
+   function Background_Operation_Label (Model : Window_Model) return String is (To_String (Model.Operation_Label_Key));
+
+   function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Operation_Job);
+
+   procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Process_Jobs.Session) is
+   begin
+      Model.Refresh_Job := Job;
+   end Set_Background_Refresh;
+
+   function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Refresh_Job);
+
+   procedure Advance_Background_Paste
+     (Model : in out Window_Model; Finished : out Boolean; Result : out Files.Transfer_Jobs.Job_Result)
+   is
+   begin
+      if not Files.Transfer_Jobs.Active (Model.Paste_Exec_Job) then
+         if Model.Paste_Exec_Cancelled_Value then
+            Finished := True;
+            Result := (Cancelled => True, others => <>);
+            return;
+         end if;
+         Files.Transfer_Jobs.Start
+           (Model.Paste_Exec_Job,
+            Model.Paste_Exec_Actions_Value.Element (Model.Paste_Exec_Cursor_Value + 1),
+            Model.Paste_Exec_Mode_Value, Model.Paste_Exec_Copy_Context);
+         Model.Paste_Exec_Current_Value :=
+           To_Unbounded_String
+             (Ada.Directories.Simple_Name
+                (To_String (Model.Paste_Exec_Actions_Value.Element (Model.Paste_Exec_Cursor_Value + 1).Source_Path)));
+         Model.Revision_Value := Model.Revision_Value + 1;
+      end if;
+      Files.Transfer_Jobs.Poll (Model.Paste_Exec_Job, Finished, Result);
+      if Finished then
+         Files.Transfer_Jobs.Reset (Model.Paste_Exec_Job);
+      end if;
+   end Advance_Background_Paste;
+
    use type Ada.Calendar.Time;
    use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
@@ -34,8 +347,10 @@ package body Files.Model is
       Home_Path         : String;
       Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons) is
    begin
+      Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
+      Files.Process_Jobs.Reset (Model.Refresh_Job);
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
@@ -541,6 +856,7 @@ package body Files.Model is
       Directory_Path : String;
       Items          : Files.File_System.Item_Vectors.Vector) is
    begin
+      Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
       --  Leaving the virtual recent view does not preserve it in history (its
       --  path is synthetic); an ordinary directory change pushes back history as
@@ -580,6 +896,7 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
+      Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
       --  Only the initial entry into the view records the departure point; a
       --  refresh or clear re-enters while already active and just swaps items.
@@ -1801,6 +2118,7 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
+      Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
       if Model.Temporary_Active then
          Cancel_Create_File (Model);
@@ -1922,6 +2240,28 @@ package body Files.Model is
      renames Clipboard.Clear_System_Clipboard_Request;
 
    package Undo_Redo is
+      function Try_Record_Undo
+        (Model       : in out Window_Model;
+         Kind        : Undo_Action_Kind;
+         From        : Files.Types.String_Vectors.Vector;
+         To          : Files.Types.String_Vectors.Vector;
+         Forward     : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Create_Kind : Undo_Create_Kind := Create_None;
+         Redoable    : Boolean := True;
+         Restore_Trash : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Identities : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Retain_Verified_Main : Natural := 0;
+         Retain_Verified_Restores : Natural := 0) return Boolean;
+
       procedure Record_Undo
         (Model       : in out Window_Model;
          Kind        : Undo_Action_Kind;
@@ -1932,7 +2272,17 @@ package body Files.Model is
          Create_Kind : Undo_Create_Kind := Create_None;
          Redoable    : Boolean := True;
          Restore_Trash : Files.Types.String_Vectors.Vector :=
-           Files.Types.String_Vectors.Empty_Vector);
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Identities : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+           Files.Types.String_Vectors.Empty_Vector;
+         Retain_Verified_Main : Natural := 0;
+         Retain_Verified_Restores : Natural := 0);
 
       procedure Clear_Undo
         (Model : in out Window_Model);
@@ -1979,6 +2329,29 @@ package body Files.Model is
 
    --  The undo redo operations now live in the
    --  Files.Model.Undo_Redo child; these renamings keep them on the public API.
+   function Try_Record_Undo
+     (Model       : in out Window_Model;
+      Kind        : Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Undo_Create_Kind := Create_None;
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0) return Boolean
+     renames Undo_Redo.Try_Record_Undo;
+
    procedure Record_Undo
      (Model       : in out Window_Model;
       Kind        : Undo_Action_Kind;
@@ -1989,7 +2362,17 @@ package body Files.Model is
       Create_Kind : Undo_Create_Kind := Create_None;
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector)
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0)
      renames Undo_Redo.Record_Undo;
 
    procedure Clear_Undo (Model : in out Window_Model)
@@ -2207,13 +2590,37 @@ package body Files.Model is
         (Model : Window_Model)
          return Files.Types.String_Vectors.Vector;
 
+      function Paste_Execution_Created_Identities
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
+
+      function Paste_Execution_Created_Tree_Revisions
+        (Model : Window_Model)
+         return Files.Types.String_Vectors.Vector;
+
+      function Paste_Execution_Verified_Created_Count
+        (Model : Window_Model) return Natural;
+
       function Paste_Execution_Replaced_Trash
         (Model : Window_Model)
          return Files.Types.String_Vectors.Vector;
 
+      function Paste_Execution_Replaced_Identities
+        (Model : Window_Model) return Files.Types.String_Vectors.Vector;
+
+      function Paste_Execution_Replaced_Targets
+        (Model : Window_Model) return Files.Types.String_Vectors.Vector;
+
+      function Paste_Execution_Verified_Replaced_Count
+        (Model : Window_Model) return Natural;
+
+      function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
+
       procedure Record_Paste_Execution_Replaced_Trash
         (Model      : in out Window_Model;
-         Trash_Path : Files.Types.UString);
+         Trash_Path : Files.Types.UString;
+         Identity : String;
+         Original_Path : String := "");
 
       function Paste_Execution_First_Dest
         (Model : Window_Model)
@@ -2226,7 +2633,10 @@ package body Files.Model is
         (Model       : in out Window_Model;
          Dest_Path   : Files.Types.UString;
          Source_Path : Files.Types.UString;
-         Name        : String);
+         Name        : String;
+         Identity    : String;
+         Tree_Revision : String;
+         Retain_Verified_Snapshot : Boolean := False);
 
       procedure Cancel_Paste_Execution
         (Model : in out Window_Model);
@@ -2281,10 +2691,36 @@ package body Files.Model is
    function Paste_Execution_Undo_To (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Paste_Exec.Paste_Execution_Undo_To;
 
+   function Paste_Execution_Created_Identities (Model : Window_Model) return Files.Types.String_Vectors.Vector
+     renames Paste_Exec.Paste_Execution_Created_Identities;
+
+   function Paste_Execution_Created_Tree_Revisions
+     (Model : Window_Model) return Files.Types.String_Vectors.Vector
+     renames Paste_Exec.Paste_Execution_Created_Tree_Revisions;
+
+   function Paste_Execution_Verified_Created_Count
+     (Model : Window_Model) return Natural
+     renames Paste_Exec.Paste_Execution_Verified_Created_Count;
+
    function Paste_Execution_Replaced_Trash (Model : Window_Model) return Files.Types.String_Vectors.Vector
      renames Paste_Exec.Paste_Execution_Replaced_Trash;
 
-   procedure Record_Paste_Execution_Replaced_Trash (Model : in out Window_Model; Trash_Path : Files.Types.UString)
+   function Paste_Execution_Replaced_Identities (Model : Window_Model) return Files.Types.String_Vectors.Vector
+     renames Paste_Exec.Paste_Execution_Replaced_Identities;
+
+   function Paste_Execution_Replaced_Targets (Model : Window_Model) return Files.Types.String_Vectors.Vector
+     renames Paste_Exec.Paste_Execution_Replaced_Targets;
+
+   function Paste_Execution_Verified_Replaced_Count
+     (Model : Window_Model) return Natural
+     renames Paste_Exec.Paste_Execution_Verified_Replaced_Count;
+
+   function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session
+     renames Paste_Exec.Paste_Execution_Copy_Context;
+
+   procedure Record_Paste_Execution_Replaced_Trash
+     (Model : in out Window_Model; Trash_Path : Files.Types.UString; Identity : String;
+      Original_Path : String := "")
      renames Paste_Exec.Record_Paste_Execution_Replaced_Trash;
 
    function Paste_Execution_First_Dest (Model : Window_Model) return String
@@ -2297,7 +2733,10 @@ package body Files.Model is
      (Model       : in out Window_Model;
       Dest_Path   : Files.Types.UString;
       Source_Path : Files.Types.UString;
-      Name        : String)
+      Name        : String;
+      Identity    : String;
+      Tree_Revision : String;
+      Retain_Verified_Snapshot : Boolean := False)
      renames Paste_Exec.Record_Paste_Execution_Write;
 
    procedure Cancel_Paste_Execution (Model : in out Window_Model)
@@ -2305,6 +2744,43 @@ package body Files.Model is
 
    procedure Clear_Paste_Execution (Model : in out Window_Model)
      renames Paste_Exec.Clear_Paste_Execution;
+
+   procedure Set_Folder_Size_Targets (Model : in out Window_Model; Paths : Files.Folder_Size.Path_Vectors.Vector) is
+   begin
+      Files.Folder_Size.Set_Targets (Model.Folder_Scan, Paths);
+   end Set_Folder_Size_Targets;
+
+   procedure Cancel_Folder_Scan (Model : in out Window_Model) is
+      Path : UString;
+      Result : Files.File_System.Directory_Size_Result;
+      Available : Boolean;
+   begin
+      Files.Folder_Size.Cancel (Model.Folder_Scan);
+      loop
+         Files.Folder_Size.Take (Model.Folder_Scan, Path, Result, Available);
+         exit when not Available;
+      end loop;
+   end Cancel_Folder_Scan;
+
+   procedure Poll_Folder_Sizes (Model : in out Window_Model) is
+      Path : UString;
+      Result : Files.File_System.Directory_Size_Result;
+      Available : Boolean;
+   begin
+      Files.Folder_Size.Step (Model.Folder_Scan);
+      loop
+         Files.Folder_Size.Take (Model.Folder_Scan, Path, Result, Available);
+         exit when not Available;
+         if Is_Selected_Directory (Model, To_String (Path)) then
+            Set_Folder_Size (Model, To_String (Path), Result);
+         end if;
+      end loop;
+   end Poll_Folder_Sizes;
+
+   function Folder_Scan_Is_Active (Model : Window_Model) return Boolean is
+     (Files.Folder_Size.Is_Active (Model.Folder_Scan));
+   function Folder_Scan_Target (Model : Window_Model) return String is
+     (Files.Folder_Size.Target_For_Test (Model.Folder_Scan));
 
    package Folder_Sizes is
       procedure Set_Folder_Size

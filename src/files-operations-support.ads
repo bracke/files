@@ -81,4 +81,14 @@ private package Files.Operations.Support is
       Select_Name : String := "")
       return Operation_Result;
 
+   --  Finalize an operation error before scheduling its reload.
+   --  @param Model Window whose error and listing to update.
+   --  @param Settings Directory settings for the reload.
+   --  @param Error_Key Operation error to preserve through completion.
+   --  @return Immediate reload result.
+   function Reload_With_Error
+     (Model : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Error_Key : String) return Operation_Result;
+
 end Files.Operations.Support;

@@ -179,8 +179,8 @@ package body Directory is
       Filetype : String)
       return String;
 
-   function Kind_From_Directory_Entry
-     (Dir_Entry : Ada.Directories.Directory_Entry_Type)
+   function Kind_From_Path
+     (Full : String)
       return Files.Types.Item_Kind;
 
    function Item_For_Path
@@ -680,8 +680,8 @@ package body Directory is
    is
       Result : String (1 .. 3) := "---";
 
-      --  Both classifiers -- Kind_From_Directory_Entry and the one in Load_Item
-      --  -- reach Executable_Item by asking Hostkit.Fs.Is_Executable and
+      --  The shared Kind_From_Path classifier reaches Executable_Item by
+      --  asking Hostkit.Fs.Is_Executable and
       --  Regular_File_Item by the same question answering False, so for those
       --  two the answer is already in Kind. A directory and a special file are
       --  not ordinary files, which is what Is_Executable requires, so it answers False
@@ -1327,17 +1327,16 @@ package body Directory is
       return "";
    end Extra_Info_Token;
 
-   function Kind_From_Directory_Entry
-     (Dir_Entry : Ada.Directories.Directory_Entry_Type)
+   function Kind_From_Path
+     (Full : String)
       return Files.Types.Item_Kind
    is
-      Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
    begin
       if Hostkit.Fs.Is_Link (Full) then
          return Files.Types.Symlink_Item;
       end if;
 
-      case Ada.Directories.Kind (Dir_Entry) is
+      case Ada.Directories.Kind (Full) is
          when Ada.Directories.Directory =>
             return Files.Types.Directory_Item;
          when Ada.Directories.Ordinary_File =>
@@ -1351,7 +1350,7 @@ package body Directory is
    exception
       when others =>
          return Files.Types.Unknown_Item;
-   end Kind_From_Directory_Entry;
+   end Kind_From_Path;
 
    --  Build a fully-classified directory item for a single filesystem entry.
    --  Shared by directory loading and single-path stat so both populate size,
@@ -1401,6 +1400,7 @@ package body Directory is
          Owner_Id           => 0,
          Group_Id           => 0,
          Filetype_Extra     => Null_Unbounded_String,
+         Filetype_Extra_Loaded => False,
          Thumbnail_Available => False,
          Thumbnail_Path      => Null_Unbounded_String,
          Thumbnail_Width     => 0,
@@ -1454,122 +1454,38 @@ package body Directory is
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result
    is
-      Search : Ada.Directories.Search_Type;
-      Dir_Entry : Ada.Directories.Directory_Entry_Type;
-      Items  : Item_Vectors.Vector;
+      Items : Item_Vectors.Vector;
       Normalized_Path : Unbounded_String;
-      Started : Boolean := False;
-
-      --  One read of the thumbnail cache for the whole listing, in place of one
-      --  failed stat per entry.
       Cached : constant Cache_Index :=
         Index_Thumbnail_Cache (Default_Thumbnail_Cache_Directory (Path));
-   begin
-      if not Files.Fs.Directory_Exists (Path)
-      then
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Items     => Items,
-            Error_Key => To_Unbounded_String ("error.directory.load"));
-      end if;
 
-      Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
-
-      Ada.Directories.Start_Search
-        (Search,
-         Directory => Path,
-         Pattern   => "*",
-         Filter    =>
-           [Ada.Directories.Ordinary_File => True,
-            Ada.Directories.Directory     => True,
-            Ada.Directories.Special_File  => True]);
-      Started := True;
-
-      while Ada.Directories.More_Entries (Search) loop
-         begin
-            Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
-         exception
-            when others =>
-               --  The enumeration itself failed, not one entry within it -- a file
-               --  that vanished mid-scan, typically. There is no way to step past
-               --  that and be sure of advancing, so stop and keep what we have: a
-               --  directory listed as far as we got beats one that will not open.
-               exit;
-         end;
-
-         --  An entry we cannot even name is skipped, not fatal. Naming it sits
-         --  outside the guard below, so it used to fall through to the handler at
-         --  the bottom and fail the whole load -- which is why C:\ loaded only when
-         --  nothing in it happened to be unreadable at that moment.
-         begin
-            declare
-               Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
-            begin
-               if Name /= "."
-                 and then Name /= ".."
-                 and then (Settings.Show_Hidden_Files or else Name (Name'First) /= '.')
-               then
-                  --  One entry we cannot inspect must not cost us the directory. It
-                  --  used to: anything raised here fell through to the handler below
-                  --  and the whole load failed, so a single locked entry made the
-                  --  directory unopenable. On Linux you rarely meet one; C:\ has
-                  --  several -- System Volume Information, pagefile.sys, DumpStack.log
-                  --  -- so the drive root, the one directory a Windows user starts
-                  --  from, could not be listed at all.
-                  --
-                  --  An entry whose kind we cannot read is still an entry the user can
-                  --  see, so keep it and say only what we know, rather than hiding it.
-                  begin
-                     declare
-                        Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
-                        Kind : constant Files.Types.Item_Kind := Kind_From_Directory_Entry (Dir_Entry);
-                     begin
-                        Items.Append
-                          (Item_For_Path
-                             (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached));
-                     end;
-                  exception
-                     when others =>
-                        begin
-                           Items.Append
-                             (Item_For_Path
-                                (Join_Path (To_String (Normalized_Path), Name),
-                                 Name,
-                                 To_String (Normalized_Path),
-                                 Files.Types.Other_Item,
-                                 Settings,
-                                 Cached));
-                        exception
-                           when others =>
-                              null;
-                        end;
-                  end;
-               end if;
-            end;
-            exception
-               when others =>
-                  null;
-         end;
-      end loop;
-
-         Safe_End_Search (Search, Started);
-
-         Sort_Items (Items, Settings.Sort_Field_Value, Settings.Sort_Ascending);
-
-         return
-           (Success   => True,
-            Path      => Normalized_Path,
-            Items     => Items,
-            Error_Key => Null_Unbounded_String);
+      procedure Add_Entry (Name : String) is
+         Full : constant String := Join_Path (To_String (Normalized_Path), Name);
+      begin
+         if Settings.Show_Hidden_Files or else Name (Name'First) /= '.' then
+            Items.Append
+              (Item_For_Path (Full, Name, To_String (Normalized_Path),
+                              Kind_From_Path (Full), Settings, Cached));
+         end if;
       exception
          when others =>
-            Safe_End_Search (Search, Started);
-            return
-              (Success   => False,
-               Path      => To_Unbounded_String (Path),
-               Items     => Items,
-               Error_Key => To_Unbounded_String ("error.directory.load"));
+            --  Metadata failure for one entry must not hide the entire folder.
+            null;
+      end Add_Entry;
+   begin
+      if not Files.Fs.Directory_Exists (Path) then
+         return (Success => False, Path => To_Unbounded_String (Path),
+                 Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"));
+      end if;
+      Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+      Support.For_Each_Entry (Path, Add_Entry'Access);
+      Sort_Items (Items, Settings.Sort_Field_Value, Settings.Sort_Ascending);
+      return (Success => True, Path => Normalized_Path,
+              Items => Items, Error_Key => Null_Unbounded_String);
+   exception
+      when others =>
+         return (Success => False, Path => To_Unbounded_String (Path),
+                 Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"));
    end Load_Directory;
 
    function Load_Item
@@ -1579,7 +1495,7 @@ package body Directory is
    is
       Empty : Directory_Item;
    begin
-      if Full_Path = "" or else not Ada.Directories.Exists (Full_Path) then
+      if Full_Path = "" or else not (Ada.Directories.Exists (Full_Path) or else Hostkit.Fs.Is_Link (Full_Path)) then
          return
            (Success   => False,
             Item      => Empty,
@@ -1587,27 +1503,14 @@ package body Directory is
       end if;
 
       declare
-         Full   : constant String := Ada.Directories.Full_Name (Full_Path);
+         Full   : constant String :=
+           (if Hostkit.Fs.Is_Link (Full_Path) then
+              GNAT.OS_Lib.Normalize_Pathname (Full_Path, Resolve_Links => False)
+            else Ada.Directories.Full_Name (Full_Path));
          Name   : constant String := Ada.Directories.Simple_Name (Full);
          Parent : constant String := Ada.Directories.Containing_Directory (Full);
-         Kind   : Files.Types.Item_Kind;
+         Kind   : constant Files.Types.Item_Kind := Kind_From_Path (Full);
       begin
-         if Hostkit.Fs.Is_Link (Full) then
-            Kind := Files.Types.Symlink_Item;
-         else
-            case Ada.Directories.Kind (Full) is
-               when Ada.Directories.Directory =>
-                  Kind := Files.Types.Directory_Item;
-               when Ada.Directories.Ordinary_File =>
-                  if Hostkit.Fs.Is_Executable (Full) then
-                     Kind := Files.Types.Executable_Item;
-                  else
-                     Kind := Files.Types.Regular_File_Item;
-                  end if;
-               when Ada.Directories.Special_File =>
-                  Kind := Files.Types.Other_Item;
-            end case;
-         end if;
 
          return
            (Success   => True,
@@ -1626,9 +1529,6 @@ package body Directory is
      (Path : String)
       return Directory_Signature
    is
-      Search    : Ada.Directories.Search_Type;
-      Dir_Entry : Ada.Directories.Directory_Entry_Type;
-      Started   : Boolean := False;
       Result    : Directory_Signature :=
         (Path                  => To_Unbounded_String (Path),
          Exists                => False,
@@ -1654,6 +1554,54 @@ package body Directory is
          Value := (Value * 131 + Long_Long_Integer'Max (0, Size)) mod Modulus;
          return Natural (Value);
       end Entry_Checksum;
+
+      procedure Add_Entry (Name : String) is
+      begin
+         Result.Entry_Count := Result.Entry_Count + 1;
+         declare
+            Full     : constant String := Join_Path (To_String (Result.Path), Name);
+            Kind     : Ada.Directories.File_Kind := Ada.Directories.Special_File;
+            Size     : Long_Long_Integer := 0;
+            Modified : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+         begin
+            begin
+               Kind := Ada.Directories.Kind (Full);
+            exception
+               when others =>
+                  null;
+            end;
+
+            if Kind = Ada.Directories.Ordinary_File then
+               begin
+                  Size := Long_Long_Integer (Ada.Directories.Size (Full));
+               exception
+                  when others =>
+                     Size := 0;
+               end;
+            end if;
+
+            Result.Entry_State_Checksum :=
+              (Result.Entry_State_Checksum + Entry_Checksum (Name, Kind, Size)) mod 1_000_000_007;
+
+            begin
+               Modified := Ada.Directories.Modification_Time (Full);
+               if not Result.Latest_Modified_Known
+                 or else Modified > Result.Latest_Modified
+               then
+                  Result.Latest_Modified := Modified;
+                  Result.Latest_Modified_Known := True;
+               end if;
+            exception
+               when others =>
+                  null;
+            end;
+         exception
+            when others =>
+               Result.Entry_State_Checksum :=
+                 (Result.Entry_State_Checksum
+                  + Entry_Checksum (Name, Ada.Directories.Special_File, 0)) mod 1_000_000_007;
+         end;
+      end Add_Entry;
    begin
       if not Files.Fs.Directory_Exists (Path)
       then
@@ -1662,75 +1610,10 @@ package body Directory is
 
       Result.Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
       Result.Exists := True;
-      Ada.Directories.Start_Search
-        (Search,
-         Directory => Path,
-         Pattern   => "*",
-         Filter    =>
-           [Ada.Directories.Ordinary_File => True,
-            Ada.Directories.Directory     => True,
-            Ada.Directories.Special_File  => True]);
-      Started := True;
-
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
-         begin
-            if Name /= "." and then Name /= ".." then
-               Result.Entry_Count := Result.Entry_Count + 1;
-               declare
-                  Full     : constant String := Ada.Directories.Full_Name (Dir_Entry);
-                  Kind     : Ada.Directories.File_Kind := Ada.Directories.Special_File;
-                  Size     : Long_Long_Integer := 0;
-                  Modified : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
-               begin
-                  begin
-                     Kind := Ada.Directories.Kind (Dir_Entry);
-                  exception
-                     when others =>
-                        null;
-                  end;
-
-                  if Kind = Ada.Directories.Ordinary_File then
-                     begin
-                        Size := Long_Long_Integer (Ada.Directories.Size (Full));
-                     exception
-                        when others =>
-                           Size := 0;
-                     end;
-                  end if;
-
-                  Result.Entry_State_Checksum :=
-                    (Result.Entry_State_Checksum + Entry_Checksum (Name, Kind, Size)) mod 1_000_000_007;
-
-                  begin
-                     Modified := Ada.Directories.Modification_Time (Full);
-                     if not Result.Latest_Modified_Known
-                       or else Modified > Result.Latest_Modified
-                     then
-                        Result.Latest_Modified := Modified;
-                        Result.Latest_Modified_Known := True;
-                     end if;
-                  exception
-                     when others =>
-                        null;
-                  end;
-               exception
-                  when others =>
-                     Result.Entry_State_Checksum :=
-                       (Result.Entry_State_Checksum
-                        + Entry_Checksum (Name, Ada.Directories.Special_File, 0)) mod 1_000_000_007;
-               end;
-            end if;
-         end;
-      end loop;
-
-      Safe_End_Search (Search, Started);
+      Support.For_Each_Entry (Path, Add_Entry'Access);
       return Result;
    exception
       when others =>
-         Safe_End_Search (Search, Started);
          return Result;
    end Directory_State;
 
@@ -1789,6 +1672,7 @@ package body Directory is
          Owner_Id           => 0,
          Group_Id           => 0,
          Filetype_Extra     => Null_Unbounded_String,
+         Filetype_Extra_Loaded => False,
          Thumbnail_Available => False,
          Thumbnail_Path      => Null_Unbounded_String,
          Thumbnail_Width     => 0,
@@ -1827,6 +1711,7 @@ package body Directory is
          Owner_Id           => 0,
          Group_Id           => 0,
          Filetype_Extra     => Null_Unbounded_String,
+         Filetype_Extra_Loaded => False,
          Thumbnail_Available => False,
          Thumbnail_Path      => Null_Unbounded_String,
          Thumbnail_Width     => 0,

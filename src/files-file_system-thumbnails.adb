@@ -186,7 +186,12 @@ package body Thumbnails is
       Search      : Ada.Directories.Search_Type;
       Item        : Ada.Directories.Directory_Entry_Type;
    begin
-      if not Files.Fs.Directory_Exists (Cache_Directory) then
+      --  A cache path may have been replaced with a directory symlink since it
+      --  was configured.  Pruning is destructive, so never follow that link
+      --  and evict ordinary files from an unrelated target directory.
+      if Hostkit.Fs.Is_Link (Cache_Directory)
+        or else not Files.Fs.Directory_Exists (Cache_Directory)
+      then
          return;
       end if;
 
@@ -347,13 +352,23 @@ package body Thumbnails is
       Max_Bytes : Natural)
       return String
    is
+      Success : Boolean;
+   begin
+      return Read_Preview_Text (Path, Max_Bytes, Success);
+   end Read_Preview_Text;
+
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
+   is
       File   : Stream_IO.File_Type;
       Result : Ada.Strings.Unbounded.Unbounded_String;
       Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
       Last   : Ada.Streams.Stream_Element_Offset;
       Total  : Natural := 0;
    begin
+      Success := False;
       if Max_Bytes = 0 then
+         Success := True;
          return "";
       end if;
 
@@ -369,6 +384,7 @@ package body Thumbnails is
       end loop;
 
       Stream_IO.Close (File);
+      Success := True;
       return Ada.Strings.Unbounded.To_String (Result);
    exception
       when others =>
@@ -647,6 +663,38 @@ package body Thumbnails is
       return Thumbnail_Result
    is
       File : Stream_IO.File_Type;
+      Temp : Unbounded_String;
+      Temp_Identity : Unbounded_String;
+
+      procedure Remove_Owned_Temp is
+      begin
+         if Length (Temp) > 0
+           and then Length (Temp_Identity) > 0
+           and then Files.File_Identities.Token (To_String (Temp)) = To_String (Temp_Identity)
+           and then Ada.Directories.Exists (To_String (Temp))
+         then
+            Ada.Directories.Delete_File (To_String (Temp));
+         end if;
+      exception
+         when others =>
+            null;
+      end Remove_Owned_Temp;
+
+      function Publish_Temp (Target_Path : String) return Boolean is
+      begin
+         if Length (Temp_Identity) = 0
+           or else Files.File_Identities.Token (To_String (Temp)) /= To_String (Temp_Identity)
+           or else not Hostkit.Fs.Replace_File (To_String (Temp), Target_Path)
+         then
+            return False;
+         end if;
+         Temp := Null_Unbounded_String;
+         Temp_Identity := Null_Unbounded_String;
+         return True;
+      exception
+         when others =>
+            return False;
+      end Publish_Temp;
 
       function Clamp_Channel (Value : Natural) return Natural is
       begin
@@ -1274,18 +1322,48 @@ package body Thumbnails is
       Prune_Cache_Once (Cache_Directory);
       Ada.Directories.Create_Path (Cache_Directory);
       Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
+      declare
+         use type GNAT.OS_Lib.File_Descriptor;
+         Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      begin
+         for Index in 1 .. 9_999 loop
+            declare
+               Candidate : constant String := To_String (Target) & ".tmp"
+                 & (if Index = 1 then "" else "-" &
+                      Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Both));
+            begin
+               Descriptor := GNAT.OS_Lib.Create_New_File (Candidate, GNAT.OS_Lib.Binary);
+               if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+                  Temp := To_Unbounded_String (Candidate);
+                  Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));
+                  GNAT.OS_Lib.Close (Descriptor);
+                  Descriptor := GNAT.OS_Lib.Invalid_FD;
+                  exit;
+               end if;
+            end;
+         end loop;
+         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Descriptor);
+         end if;
+         if Length (Temp_Identity) = 0 then
+            raise Ada.Directories.Use_Error;
+         end if;
+      end;
       if (Source_Fits_Fast_Decode
-          and then (Try_Write_Decoded_Png_Thumbnail (To_String (Target))
-                    or else Try_Write_Decoded_P3_Thumbnail (To_String (Target))))
-        or else Try_Write_Gdk_Pixbuf_Thumbnail (To_String (Target))
+          and then (Try_Write_Decoded_Png_Thumbnail (To_String (Temp))
+                    or else Try_Write_Decoded_P3_Thumbnail (To_String (Temp))))
+        or else Try_Write_Gdk_Pixbuf_Thumbnail (To_String (Temp))
       then
-         return
-           (Status         => Thumbnail_Generated,
-            Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
-            Thumbnail_Path => Target,
-            Width          => Size,
-            Height         => Size,
-            Error_Key      => Null_Unbounded_String);
+         if Publish_Temp (To_String (Target)) then
+            return
+              (Status         => Thumbnail_Generated,
+               Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
+               Thumbnail_Path => Target,
+               Width          => Size,
+               Height         => Size,
+               Error_Key      => Null_Unbounded_String);
+         end if;
+         raise Ada.Directories.Use_Error;
       end if;
 
       Checksum := Thumbnail_Path_Checksum (Source_Path);
@@ -1310,7 +1388,7 @@ package body Thumbnails is
             Stream_IO.Write (File, Buffer);
          end Put_Header;
       begin
-         Stream_IO.Create (File, Stream_IO.Out_File, To_String (Target));
+         Stream_IO.Create (File, Stream_IO.Out_File, To_String (Temp));
          Put_Header
            ("P6" & ASCII.LF
             & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF
@@ -1338,6 +1416,10 @@ package body Thumbnails is
          Stream_IO.Close (File);
       end;
 
+      if not Publish_Temp (To_String (Target)) then
+         raise Ada.Directories.Use_Error;
+      end if;
+
       return
         (Status         => Thumbnail_Generated,
          Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
@@ -1350,6 +1432,7 @@ package body Thumbnails is
          if Stream_IO.Is_Open (File) then
             Stream_IO.Close (File);
          end if;
+         Remove_Owned_Temp;
 
          return
            (Status         => Thumbnail_Failed,

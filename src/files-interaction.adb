@@ -506,6 +506,7 @@ package body Files.Interaction is
       --  Keep the info-pane folder-size cache aligned with keyboard-driven
       --  selection changes. Cheap when the selected directory is unchanged.
       Files.Operations.Update_Folder_Size (Model, Settings);
+      Files.Model.Ensure_Selected_Item_Extra (Model);
    end Handle_Key;
 
    procedure Apply_Input_Action

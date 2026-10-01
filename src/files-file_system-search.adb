@@ -2,6 +2,7 @@ with Ada.Strings.Unbounded;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Files.Fs;
+with Files.Job_Context;
 
 separate (Files.File_System)
 package body Search is
@@ -40,37 +41,48 @@ package body Search is
       end Matches;
 
       procedure Visit (Directory_Path : String; Depth : Natural) is
-         Load : constant Directory_Load_Result := Load_Directory (Directory_Path, Settings);
       begin
-         if not Load.Success
-           or else Depth > Max_Search_Depth
-           or else Natural (Result.Items.Length) >= Max_Items
-           or else Scanned >= Max_Entries_Scanned
-         then
+         if Files.Job_Context.Cancelled then
             return;
          end if;
-
-         for Item of Load.Items loop
-            exit when Natural (Result.Items.Length) >= Max_Items
-              or else Scanned >= Max_Entries_Scanned;
-            Scanned := Scanned + 1;
-            if Matches (Item.Name) then
-               Result.Items.Append (Item);
+         if Depth > Max_Search_Depth or else Natural (Result.Items.Length) >= Max_Items
+           or else Scanned >= Max_Entries_Scanned
+         then
+            Result.Error_Key := To_Unbounded_String ("error.search.failed");
+            return;
+         end if;
+         declare
+            Load : constant Directory_Load_Result := Load_Directory (Directory_Path, Settings);
+         begin
+            if not Load.Success then
+               Result.Error_Key := To_Unbounded_String
+                 (if Depth = 0 then "error.directory.load" else "error.search.failed");
+               return;
             end if;
-         end loop;
-
-         --  Descend only into real directories. Symlinked directories arrive as
-         --  Symlink_Item, so this walk is inherently cycle-safe.
-         for Item of Load.Items loop
-            exit when Natural (Result.Items.Length) >= Max_Items
-              or else Scanned >= Max_Entries_Scanned;
-            if Item.Kind = Files.Types.Directory_Item then
-               Visit (To_String (Item.Full_Path), Depth + 1);
-            end if;
-         end loop;
+            for Item of Load.Items loop
+               exit when Files.Job_Context.Cancelled;
+               if Natural (Result.Items.Length) >= Max_Items or else Scanned >= Max_Entries_Scanned then
+                  Result.Error_Key := To_Unbounded_String ("error.search.failed");
+                  return;
+               end if;
+               Scanned := Scanned + 1;
+               if Matches (Item.Name) then
+                  Result.Items.Append (Item);
+               end if;
+            end loop;
+            --  Only a skipped subtree makes the walk incomplete. Reaching a
+            --  limit on the final file of a complete leaf listing is allowed.
+            for Item of Load.Items loop
+               exit when Files.Job_Context.Cancelled;
+               if Item.Kind = Files.Types.Directory_Item then
+                  Visit (To_String (Item.Full_Path), Depth + 1);
+               end if;
+            end loop;
+         end;
       exception
          when others =>
-            null;
+            Result.Error_Key := To_Unbounded_String
+              (if Depth = 0 then "error.directory.load" else "error.search.failed");
       end Visit;
    begin
       if not Files.Fs.Directory_Exists (Root_Path)
@@ -81,7 +93,7 @@ package body Search is
 
       Result.Root_Path := To_Unbounded_String (Ada.Directories.Full_Name (Root_Path));
       Visit (Root_Path, 0);
-      Result.Success := True;
+      Result.Success := Length (Result.Error_Key) = 0;
       return Result;
    exception
       when others =>

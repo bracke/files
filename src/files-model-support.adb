@@ -238,7 +238,7 @@ package body Files.Model.Support is
    is
       Filter : constant String := To_String (Model.Filter_Value);
    begin
-      return Filter = ""
+      return Model.Search_Results_Active or else Filter = ""
         or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), Filter);
    end Item_Is_Visible;
 

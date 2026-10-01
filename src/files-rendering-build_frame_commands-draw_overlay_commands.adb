@@ -548,17 +548,18 @@ separate (Files.Rendering.Build_Frame_Commands)
               (if Panel.Width > Saturating_Multiply (Pad, 2) then Panel.Width - Saturating_Multiply (Pad, 2)
                else Panel.Width);
             Verb_Key : constant String :=
-              (if Snapshot.Paste_Progress_Moving
-               then "dialog.paste_progress.moving"
+              (if Length (Snapshot.Paste_Progress_Operation_Label) > 0
+               then To_String (Snapshot.Paste_Progress_Operation_Label)
+               elsif Snapshot.Paste_Progress_Moving then "dialog.paste_progress.moving"
                else "dialog.paste_progress.copying");
             Count_Line : constant UString :=
-              Localized (Verb_Key)
+              (Localized (Verb_Key)
               & To_Unbounded_String (" ")
               & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Done)))
               & To_Unbounded_String (" ")
               & Localized ("dialog.paste_progress.of")
               & To_Unbounded_String (" ")
-              & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Total)));
+              & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Total))));
             Cancel_Hovered : constant Boolean :=
               Has_Hover
               and then Contains_Point
@@ -572,7 +573,8 @@ separate (Files.Rendering.Build_Frame_Commands)
             Add_Overlay_Border (Panel.X, Panel.Y, Panel.Width, Panel.Height, Border_Color);
             Add_Accessibility_Node
               (Role_Dialog, Panel.X, Panel.Y, Panel.Width, Panel.Height,
-               Localized ("dialog.paste_progress.title"));
+               (if Length (Snapshot.Paste_Progress_Operation_Label) > 0 then Localized (Verb_Key)
+                else Localized ("dialog.paste_progress.title")));
 
             --  "Copying/Moving N of M" plus the current item name.
             Add_Overlay_Text

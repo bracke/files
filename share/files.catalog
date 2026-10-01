@@ -1,4 +1,6 @@
 default_locale = en
+en.recovery.unsafe_transport = Cannot safely reclaim transport with unverified ownership
+en.error.recovery.unsafe_transport = Interrupted jobs left unsafe temporary files; see the error log for paths.
 en.startup.window.ready = Window
 en.startup.error = Error
 en.runtime.smoke.window = Runtime smoke window
@@ -36,6 +38,10 @@ en.cli.help.option.live_smoke =   --live-smoke     run live window smoke validat
 en.cli.help.option.settings =   --settings PATH  use PATH as the settings file.
 en.cli.help.option.version =   --version      show version information and exit.
 en.cli.help.option.help =   --help, -h       show this help text and exit.
+en.cli.recovery.error.argument = Recovery commands require exactly one path argument.
+en.cli.recovery.error.list = Could not list recoveries in
+en.cli.recovery.error.not_directory = Not a directory
+en.cli.recovery.error.not_payload = Not a Files recovery payload
 en.command.view.small = Small Icons
 en.command.view.large = Large Icons
 en.command.view.details = Details

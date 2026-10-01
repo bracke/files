@@ -1,9 +1,13 @@
+with Files.Copy_Context;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Files.Paste;
+with Files.File_Identities;
+with Files.History_Journal;
+with Files.Archive_Writing;
 
 with Zlib;
 
@@ -23,19 +27,26 @@ package body Transfer is
    is
       Items     : constant Files.File_System.Item_Vectors.Vector :=
         Files.Model.Selected_Items (Model);
-      Directory : constant String := Files.Model.Current_Path (Model);
+      Directory : constant String :=
+        (if Files.Model.In_Recent_View (Model) and then not Items.Is_Empty
+         then Ada.Directories.Containing_Directory (To_String (Items.First_Element.Full_Path))
+         else Files.Model.Current_Path (Model));
 
       Input_Paths : Files.Types.String_Vectors.Vector;
       Entry_Names : Files.Types.String_Vectors.Vector;
+      Collection_Failed : Boolean := False;
 
-      --  Recursively collect ordinary files under a selected entry, recording
+      --  Recursively collect directories and ordinary files, recording
       --  each with a directory-relative archive entry name (forward slashes).
       procedure Collect (Full : String; Entry_Name : String) is
          Search    : Ada.Directories.Search_Type;
          Started   : Boolean := False;
          Dir_Entry : Ada.Directories.Directory_Entry_Type;
       begin
-         if not Ada.Directories.Exists (Full) then
+         if Files.Job_Context.Cancelled then
+            return;
+         elsif not Exists_Safely (Full) then
+            Collection_Failed := True;
             return;
          elsif Hostkit.Fs.Is_Link (Full) then
             --  Skip symlinks instead of following them: Ada.Directories.Kind
@@ -45,6 +56,12 @@ package body Transfer is
             --  Directory_Size, which also skip links via Hostkit.Fs.
             return;
          elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
+            if Entry_Names.Contains (To_Unbounded_String (Entry_Name)) then
+               Collection_Failed := True;
+               return;
+            end if;
+            Input_Paths.Append (To_Unbounded_String (Full));
+            Entry_Names.Append (To_Unbounded_String (Entry_Name));
             Ada.Directories.Start_Search
               (Search,
                Directory => Full,
@@ -68,11 +85,16 @@ package body Transfer is
             end loop;
             Ada.Directories.End_Search (Search);
          elsif Ada.Directories.Kind (Full) = Ada.Directories.Ordinary_File then
+            if Entry_Names.Contains (To_Unbounded_String (Entry_Name)) then
+               Collection_Failed := True;
+               return;
+            end if;
             Input_Paths.Append (To_Unbounded_String (Full));
             Entry_Names.Append (To_Unbounded_String (Entry_Name));
          end if;
       exception
          when others =>
+            Collection_Failed := True;
             if Started then
                Ada.Directories.End_Search (Search);
             end if;
@@ -84,7 +106,12 @@ package body Transfer is
          return Image (Image'First + 1 .. Image'Last);
       end Trimmed_Image;
    begin
-      if Items.Is_Empty then
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start
+           (Model, Settings, (if Format = Zip_Archive then Files.Operation_Jobs.Compress_Zip
+            else Files.Operation_Jobs.Compress_Seven_Zip));
+      end if;
+      if Items.Is_Empty or else Directory = "" then
          return Make_Result (Operation_Failed, "error.compress.failed", Directory);
       end if;
 
@@ -92,7 +119,7 @@ package body Transfer is
          Collect (To_String (Item.Full_Path), To_String (Item.Name));
       end loop;
 
-      if Input_Paths.Is_Empty then
+      if Collection_Failed or else Input_Paths.Is_Empty then
          return Make_Result (Operation_Failed, "error.compress.failed", Directory);
       end if;
 
@@ -109,7 +136,7 @@ package body Transfer is
          --  "report (1).zip" when the first choice already exists.
          function Unique_Name return String is
          begin
-            if not Ada.Directories.Exists
+            if not Exists_Safely
                      (Ada.Directories.Compose (Directory, Base, Extension))
             then
                return Base & "." & Extension;
@@ -119,7 +146,7 @@ package body Transfer is
                declare
                   Candidate : constant String := Base & " (" & Trimmed_Image (N) & ")";
                begin
-                  if not Ada.Directories.Exists
+                  if not Exists_Safely
                            (Ada.Directories.Compose (Directory, Candidate, Extension))
                   then
                      return Candidate & "." & Extension;
@@ -136,6 +163,18 @@ package body Transfer is
          Inputs       : Zlib.Text_Array (1 .. Count);
          Names        : Zlib.Text_Array (1 .. Count);
          Status       : Zlib.Status_Code;
+         Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
+         Staged       : constant String := Ada.Directories.Compose (Stage, Archive_Name);
+         Created      : Files.Types.String_Vectors.Vector;
+         Identities   : Files.Types.String_Vectors.Vector;
+         Tree_Revisions : Files.Types.String_Vectors.Vector;
+
+         procedure Discard_Stage is
+            Removed : constant Boolean := Files.Job_Context.Discard_Stage (Stage);
+            pragma Unreferenced (Removed);
+         begin
+            null;
+         end Discard_Stage;
       begin
          for I in 1 .. Count loop
             Inputs (I) := Input_Paths.Element (I);
@@ -144,17 +183,35 @@ package body Transfer is
 
          case Format is
             when Zip_Archive =>
-               Zlib.ZIP_Files (Inputs, Output_Path, Names, Status => Status);
+               Files.Archive_Writing.ZIP_Files (Inputs, Staged, Names, Status);
             when Seven_Zip_Archive =>
-               Zlib.Seven_Zip_Deflate_Files (Inputs, Output_Path, Names, Status => Status);
+               Zlib.Seven_Zip_Deflate_Files (Inputs, Staged, Names, Status => Status);
          end case;
 
-         if Status /= Zlib.Ok then
+         Identities.Append (To_Unbounded_String (Files.File_Identities.Token (Staged)));
+         Tree_Revisions.Append
+           (To_Unbounded_String (Files.File_System.Tree_Revision (Staged)));
+         if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+           or else not Hostkit.Fs.Move_No_Replace (Staged, Output_Path)
+         then
+            Discard_Stage;
             return Make_Result (Operation_Failed, "error.compress.failed", Directory);
          end if;
+         Files.Job_Context.Record_Created
+           (Output_Path, "", To_String (Identities.First_Element), To_String (Tree_Revisions.First_Element));
+         Discard_Stage;
+         Created.Append (To_Unbounded_String (Output_Path));
+         Files.Model.Record_Undo
+           (Model, Files.Model.Undo_Delete_Created, Created,
+            Files.Types.String_Vectors.Empty_Vector, Redoable => False, Original_Identities => Identities,
+            Original_Tree_Revisions => Tree_Revisions);
 
          --  Reload so the new archive appears, and select it.
          return Reload_Current_Directory (Model, Settings, Archive_Name);
+      exception
+         when others =>
+            Discard_Stage;
+            raise;
       end;
    exception
       when others =>
@@ -172,6 +229,32 @@ package body Transfer is
 
       First_Created : Unbounded_String;
       Extracted_Any : Boolean := False;
+      Created       : Files.Types.String_Vectors.Vector;
+      Identities    : Files.Types.String_Vectors.Vector;
+      Tree_Revisions : Files.Types.String_Vectors.Vector;
+      Progress_Recorded : Boolean := False;
+      Verified_Count : Natural := 0;
+
+      procedure Record_Progress is
+         Previous : Files.Model.Undo_Entry;
+         Found : Boolean;
+      begin
+         if Progress_Recorded then
+            Files.Model.Take_Undo (Model, Previous, Found);
+         end if;
+         Progress_Recorded := Files.Model.Try_Record_Undo
+           (Model, Files.Model.Undo_Delete_Created, Created,
+            Files.Types.String_Vectors.Empty_Vector, Redoable => False,
+            Original_Identities => Identities,
+            Original_Tree_Revisions => Tree_Revisions,
+            Retain_Verified_Main => Verified_Count);
+         if Progress_Recorded
+           and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
+             Natural (Created.Length)
+         then
+            Verified_Count := Natural (Created.Length);
+         end if;
+      end Record_Progress;
 
       function Trimmed_Image (Value : Positive) return String is
          Image : constant String := Positive'Image (Value);
@@ -187,15 +270,25 @@ package body Transfer is
            or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
       end Name_Is_Archive;
    begin
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Extract);
+      end if;
       if Items.Is_Empty then
          return Make_Result (Operation_Failed, "error.extract.failed", Directory);
       end if;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          declare
             Item_Name : constant String := To_String (Item.Name);
             Full_Path : constant String := To_String (Item.Full_Path);
+            Destination : constant String :=
+              (if Files.Model.In_Recent_View (Model) then Ada.Directories.Containing_Directory (Full_Path)
+               else Directory);
          begin
+            if Destination = "" then
+               return Make_Result (Operation_Failed, "error.extract.failed", Directory);
+            end if;
             if Name_Is_Archive (Item_Name) then
                declare
                   Raw_Base : constant String := Ada.Directories.Base_Name (Item_Name);
@@ -205,7 +298,7 @@ package body Transfer is
                   --  or "report (1)" when the first choice already exists.
                   function Unique_Name return String is
                   begin
-                     if not Ada.Directories.Exists (Ada.Directories.Compose (Directory, Base)) then
+                     if not Exists_Safely (Ada.Directories.Compose (Destination, Base)) then
                         return Base;
                      end if;
 
@@ -213,7 +306,7 @@ package body Transfer is
                         declare
                            Candidate : constant String := Base & " (" & Trimmed_Image (N) & ")";
                         begin
-                           if not Ada.Directories.Exists (Ada.Directories.Compose (Directory, Candidate)) then
+                           if not Exists_Safely (Ada.Directories.Compose (Destination, Candidate)) then
                               return Candidate;
                            end if;
                         end;
@@ -223,20 +316,48 @@ package body Transfer is
                   end Unique_Name;
 
                   Dest_Name : constant String := Unique_Name;
-                  Dest_Dir  : constant String := Ada.Directories.Compose (Directory, Dest_Name);
+                  Dest_Dir  : constant String := Ada.Directories.Compose (Destination, Dest_Name);
                   Status    : Zlib.Status_Code;
+                  Stage     : constant String := Files.Job_Context.Create_Stage (Destination);
+                  Payload   : constant String := Hostkit.Fs.Join (Stage, "payload");
+
+                  procedure Discard_Stage is
+                     Removed : constant Boolean := Files.Job_Context.Discard_Stage (Stage);
+                     pragma Unreferenced (Removed);
+                  begin
+                     null;
+                  end Discard_Stage;
                begin
-                  Ada.Directories.Create_Directory (Dest_Dir);
-                  Zlib.Extract_Archive_File_To_Directory (Full_Path, Dest_Dir, "", Status);
+                  Ada.Directories.Create_Directory (Payload);
+                  Zlib.Extract_Archive_File_To_Directory (Full_Path, Payload, "", Status);
 
-                  if Status /= Zlib.Ok then
-                     return Make_Result (Operation_Failed, "error.extract.failed", Directory);
-                  end if;
+                  declare
+                     Identity : constant String := Files.File_Identities.Token (Payload);
+                     Revision : constant String := Files.File_System.Tree_Revision (Payload);
+                  begin
 
+                     if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+                       or else not Hostkit.Fs.Move_No_Replace (Payload, Dest_Dir)
+                     then
+                        Discard_Stage;
+                        return Make_Result (Operation_Failed, "error.extract.failed", Directory);
+                     end if;
+
+                     Files.Job_Context.Record_Created (Dest_Dir, "", Identity, Revision);
+                     Identities.Append (To_Unbounded_String (Identity));
+                     Tree_Revisions.Append (To_Unbounded_String (Revision));
+                  end;
+                  Discard_Stage;
+                  Created.Append (To_Unbounded_String (Dest_Dir));
+                  Record_Progress;
                   if not Extracted_Any then
                      First_Created := To_Unbounded_String (Dest_Name);
                      Extracted_Any := True;
                   end if;
+               exception
+                  when others =>
+                     Discard_Stage;
+                     raise;
                end;
             end if;
          end;
@@ -264,6 +385,35 @@ package body Transfer is
 
       First_Created : Unbounded_String;
       Created_Any   : Boolean := False;
+      Created       : Files.Types.String_Vectors.Vector;
+      Sources       : Files.Types.String_Vectors.Vector;
+      Identities    : Files.Types.String_Vectors.Vector;
+      Tree_Revisions : Files.Types.String_Vectors.Vector;
+      Progress_Recorded : Boolean := False;
+      Verified_Count : Natural := 0;
+
+      Copy_Batch : constant Files.Copy_Context.Session := Files.Copy_Context.Create;
+
+      procedure Record_Progress is
+         Previous : Files.Model.Undo_Entry;
+         Found : Boolean;
+      begin
+         if Progress_Recorded then
+            Files.Model.Take_Undo (Model, Previous, Found);
+         end if;
+         Progress_Recorded := Files.Model.Try_Record_Undo
+           (Model, Files.Model.Undo_Delete_Created, Created,
+            Files.Types.String_Vectors.Empty_Vector, Forward => Sources, Create_Kind => Files.Model.Create_Copy,
+            Original_Identities => Identities,
+            Original_Tree_Revisions => Tree_Revisions,
+            Retain_Verified_Main => Verified_Count);
+         if Progress_Recorded
+           and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
+             Natural (Created.Length)
+         then
+            Verified_Count := Natural (Created.Length);
+         end if;
+      end Record_Progress;
 
       function Trimmed_Image (Value : Positive) return String is
          Image : constant String := Positive'Image (Value);
@@ -286,13 +436,21 @@ package body Transfer is
          end if;
       end Copy_Marker;
    begin
-      if Items.Is_Empty then
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Duplicate);
+      end if;
+      if Items.Is_Empty or else (Directory = "" and then not Files.Model.In_Recent_View (Model)) then
          return Make_Result (Operation_Failed, "error.duplicate.failed", Directory);
       end if;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          declare
             Source : constant String := To_String (Item.Full_Path);
+            --  Recent can select paths from several folders; each duplicate
+            --  belongs beside its source rather than in a virtual view's path.
+            Destination_Directory : constant String :=
+              (if Files.Model.In_Recent_View (Model) then Ada.Directories.Containing_Directory (Source) else Directory);
             Name   : constant String := To_String (Item.Name);
             Ext    : constant String := Ada.Directories.Extension (Name);
             Base   : constant String := Ada.Directories.Base_Name (Name);
@@ -305,8 +463,8 @@ package body Transfer is
                   declare
                      Candidate : constant String := Base & Copy_Marker (N);
                   begin
-                     if not Ada.Directories.Exists
-                              (Ada.Directories.Compose (Directory, Candidate, Ext))
+                     if not Exists_Safely
+                              (Ada.Directories.Compose (Destination_Directory, Candidate, Ext))
                      then
                         return Candidate;
                      end if;
@@ -317,15 +475,21 @@ package body Transfer is
             end Unique_Stem;
 
             Dest_Path : constant String :=
-              Ada.Directories.Compose (Directory, Unique_Stem, Ext);
+              Ada.Directories.Compose (Destination_Directory, Unique_Stem, Ext);
             Dest_Name : constant String := Ada.Directories.Simple_Name (Dest_Path);
+            Identity, Revision : Files.Types.UString;
             Mutation  : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Copy_Tree (Source, Dest_Path);
+              Files.File_System.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);
          begin
             if not Mutation.Success then
                return Make_Result (Operation_Failed, "error.duplicate.failed", Directory);
             end if;
 
+            Created.Append (To_Unbounded_String (Dest_Path));
+            Sources.Append (To_Unbounded_String (Source));
+            Identities.Append (Identity);
+            Tree_Revisions.Append (Revision);
+            Record_Progress;
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);
                Created_Any := True;
@@ -337,7 +501,7 @@ package body Transfer is
          return Make_Result (Operation_Failed, "error.duplicate.failed", Directory);
       end if;
 
-      --  Reload so the new copies appear, and select the first one.
+      --  Reload the active view; an ordinary folder selects the first copy.
       return Reload_Current_Directory (Model, Settings, To_String (First_Created));
    exception
       when others =>
@@ -403,7 +567,7 @@ package body Transfer is
                   declare
                      Candidate : constant String := Base & Link_Marker (N);
                   begin
-                     if not Ada.Directories.Exists
+                     if not Exists_Safely
                               (Ada.Directories.Compose (Directory, Candidate, Ext))
                      then
                         return Candidate;
@@ -501,7 +665,32 @@ package body Transfer is
       First_Path : Unbounded_String;
       Undo_From  : Files.Types.String_Vectors.Vector;
       Undo_To    : Files.Types.String_Vectors.Vector;
+      Identities : Files.Types.String_Vectors.Vector;
+      Progress_Recorded : Boolean := False;
+      Verified_Count : Natural := 0;
+      procedure Record_Progress is
+         Previous : Files.Model.Undo_Entry;
+         Found : Boolean;
+      begin
+         if Progress_Recorded then
+            Files.Model.Take_Undo (Model, Previous, Found);
+         end if;
+         Progress_Recorded := Files.Model.Try_Record_Undo
+           (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To, Redoable => False,
+            Original_Identities => Identities,
+            Retain_Verified_Main => Verified_Count);
+         if Progress_Recorded
+           and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
+             Natural (Undo_From.Length)
+         then
+            Verified_Count := Natural (Undo_From.Length);
+         end if;
+         Files.History_Journal.Save (Model, Required => True);
+      end Record_Progress;
    begin
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Trash);
+      end if;
       if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
          return Disabled (Model, "error.selection.empty");
       elsif not Files.File_System.Trash_Is_Available then
@@ -510,6 +699,7 @@ package body Transfer is
       end if;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          declare
             Preflight : constant Files.File_System.Mutation_Result :=
               Files.File_System.Move_To_Trash_Preflight (To_String (Item.Full_Path));
@@ -519,10 +709,11 @@ package body Transfer is
             else
                Files.Model.Set_Error (Model, To_String (Preflight.Error_Key));
                declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  Reload : constant Operation_Result :=
+                    Reload_With_Error (Model, Settings, To_String (Preflight.Error_Key));
                   pragma Unreferenced (Reload);
                begin
-                  Files.Model.Set_Error (Model, To_String (Preflight.Error_Key));
+                  null;
                end;
                return Make_Result
                  (Operation_Failed, To_String (Preflight.Error_Key), To_String (Item.Full_Path));
@@ -531,19 +722,21 @@ package body Transfer is
       end loop;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          if not Exists_Safely (To_String (Item.Full_Path)) then
             Files.Model.Set_Error (Model, "error.trash.failed");
             declare
-               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+               Reload : constant Operation_Result := Reload_With_Error (Model, Settings, "error.trash.failed");
                pragma Unreferenced (Reload);
             begin
-               Files.Model.Set_Error (Model, "error.trash.failed");
+               null;
             end;
             return Make_Result (Operation_Failed, "error.trash.failed", To_String (Item.Full_Path));
          end if;
       end loop;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          if Length (First_Path) = 0 then
             First_Path := Item.Full_Path;
          end if;
@@ -560,28 +753,32 @@ package body Transfer is
                --  earlier ones moved), so those items remain Ctrl-Z-restorable
                --  instead of being stranded in the trash.
                if not Undo_From.Is_Empty then
-                  Files.Model.Record_Undo
-                    (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To,
-                     Redoable => False);
+                  if not Progress_Recorded then
+                     Record_Progress;
+                  end if;
                end if;
                declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  Reload : constant Operation_Result :=
+                    Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
                   pragma Unreferenced (Reload);
                begin
-                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+                  null;
                end;
                return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             end if;
             Undo_From.Append (Trashed);
             Undo_To.Append (Item.Full_Path);
+            Identities.Append
+              (To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))));
+            Record_Progress;
          end;
       end loop;
 
       --  Restoring from trash reproduces the original path, but re-trashing
       --  allocates a fresh trash location, so this entry is undo-only.
-      Files.Model.Record_Undo
-        (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To,
-         Redoable => False);
+      if not Progress_Recorded and then not Undo_From.Is_Empty then
+         Record_Progress;
+      end if;
 
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -592,6 +789,10 @@ package body Transfer is
       end;
 
       return Make_Result (Operation_Success, Path => To_String (First_Path));
+   exception
+      when others =>
+         Files.Model.Set_Error (Model, "error.trash.failed");
+         return Make_Result (Operation_Failed, "error.trash.failed", Files.Model.Current_Path (Model));
    end Delete_Selected;
 
    function Delete_Selected_Permanently
@@ -602,18 +803,23 @@ package body Transfer is
       Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       First_Path : Unbounded_String;
    begin
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Delete_Permanently);
+      end if;
       if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
          return Disabled (Model, "error.selection.empty");
       end if;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          if not Exists_Safely (To_String (Item.Full_Path)) then
             Files.Model.Set_Error (Model, "error.permanent_delete.failed");
             declare
-               Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+               Reload : constant Operation_Result :=
+                 Reload_With_Error (Model, Settings, "error.permanent_delete.failed");
                pragma Unreferenced (Reload);
             begin
-               Files.Model.Set_Error (Model, "error.permanent_delete.failed");
+               null;
             end;
             return Make_Result
               (Operation_Failed, "error.permanent_delete.failed", To_String (Item.Full_Path));
@@ -621,6 +827,7 @@ package body Transfer is
       end loop;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          if Length (First_Path) = 0 then
             First_Path := Item.Full_Path;
          end if;
@@ -632,10 +839,11 @@ package body Transfer is
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
                declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  Reload : constant Operation_Result :=
+                    Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
                   pragma Unreferenced (Reload);
                begin
-                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+                  null;
                end;
                return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             end if;
@@ -661,11 +869,15 @@ package body Transfer is
       Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       First_Path : Unbounded_String;
    begin
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Restore);
+      end if;
       if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
          return Disabled (Model, "error.selection.empty");
       end if;
 
       for Item of Items loop
+         exit when Files.Job_Context.Cancelled;
          if Length (First_Path) = 0 then
             First_Path := Item.Full_Path;
          end if;
@@ -677,10 +889,11 @@ package body Transfer is
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
                declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  Reload : constant Operation_Result :=
+                    Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
                   pragma Unreferenced (Reload);
                begin
-                  Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
+                  null;
                end;
                return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
             end if;
@@ -703,24 +916,31 @@ package body Transfer is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is
-      Trash_Dir   : constant String := Files.File_System.Trash_Files_Directory;
+      Trash_Dir   : constant String :=
+        (if Files.Model.Background_Transfers (Model) then "" else Files.File_System.Trash_Files_Directory);
       Load        : Files.File_System.Directory_Load_Result;
       Total       : Natural := 0;
       Failed      : Natural := 0;
       First_Error : Unbounded_String;
+      Enumeration_Settings : Files.Settings.Settings_Model := Settings;
    begin
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Empty_Trash);
+      end if;
       if Trash_Dir = "" then
          return Disabled (Model, "error.trash.unavailable");
       end if;
 
-      --  Enumerate the same payloads the trash view lists, then purge each one.
-      Load := Files.File_System.Load_Directory (Trash_Dir, Settings);
+      --  Empty Trash purges every payload, regardless of display preferences.
+      Enumeration_Settings.Show_Hidden_Files := True;
+      Load := Files.File_System.Load_Directory (Trash_Dir, Enumeration_Settings);
       if not Load.Success then
          Files.Model.Set_Error (Model, To_String (Load.Error_Key));
          return Make_Result (Operation_Failed, To_String (Load.Error_Key), Trash_Dir);
       end if;
 
       for Item of Load.Items loop
+         exit when Files.Job_Context.Cancelled;
          Total := Total + 1;
          declare
             Mutation : constant Files.File_System.Mutation_Result :=
@@ -824,8 +1044,8 @@ package body Transfer is
       return Work;
    end Paste_Work_List;
 
-   --  Remove a destination that a Replace decision must overwrite: move it to the
-   --  trash when a backend is available, otherwise delete it permanently. Never
+   --  Remove a destination that a Replace decision must overwrite by moving it
+   --  to the trash. A failed trash operation aborts replacement. Never
    --  touches a destination that is also the source (a paste onto itself).
    function Clear_Replaced_Destination
      (Path    : String;
@@ -840,18 +1060,14 @@ package body Transfer is
 
       declare
          Result : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Move_To_Trash (Path, Trashed);
+           Files.File_System.Preserve_For_Replace (Path, Trashed);
       begin
          if Result.Success then
             return True;
          end if;
       end;
 
-      --  No trash backend available: fall back to a permanent delete, as before.
-      --  Trashed stays empty, so such a replace is not undo-restorable (an existing
-      --  limitation on trash-less environments, not made worse here).
-      Trashed := Null_Unbounded_String;
-      return Files.File_System.Delete_Permanently (Path).Success;
+      return False;
    end Clear_Replaced_Destination;
 
    --  Batch size for the first advance driven from Begin_Paste /
@@ -888,7 +1104,13 @@ package body Transfer is
             Files.Model.Record_Undo
               (Model, Files.Model.Undo_Move, Undo_From, Undo_To,
                Redoable      => Redoable,
-               Restore_Trash => Replaced_Trash);
+               Restore_Trash => Replaced_Trash,
+               Original_Restore_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),
+               Original_Restore_Targets => Files.Model.Paste_Execution_Replaced_Targets (Model),
+               Original_Identities => Files.Model.Paste_Execution_Created_Identities (Model),
+               Original_Tree_Revisions => Files.Model.Paste_Execution_Created_Tree_Revisions (Model),
+               Retain_Verified_Main => Files.Model.Paste_Execution_Verified_Created_Count (Model),
+               Retain_Verified_Restores => Files.Model.Paste_Execution_Verified_Replaced_Count (Model));
          else
             --  A copy is reversed by deleting the created copies (Undo_From) and
             --  redone by copying each source (Undo_To) back to its destination.
@@ -898,7 +1120,13 @@ package body Transfer is
                Forward       => Undo_To,
                Create_Kind   => Files.Model.Create_Copy,
                Redoable      => Redoable,
-               Restore_Trash => Replaced_Trash);
+               Restore_Trash => Replaced_Trash,
+               Original_Restore_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),
+               Original_Restore_Targets => Files.Model.Paste_Execution_Replaced_Targets (Model),
+               Original_Identities => Files.Model.Paste_Execution_Created_Identities (Model),
+               Original_Tree_Revisions => Files.Model.Paste_Execution_Created_Tree_Revisions (Model),
+               Retain_Verified_Main => Files.Model.Paste_Execution_Verified_Created_Count (Model),
+               Retain_Verified_Restores => Files.Model.Paste_Execution_Verified_Replaced_Count (Model));
          end if;
 
          --  A clipboard cut/move consumes the clipboard once the paste has run
@@ -912,7 +1140,29 @@ package body Transfer is
          end if;
       end if;
 
+      if Undo_From.Is_Empty and then not Replaced_Trash.Is_Empty then
+         Files.Model.Record_Undo
+           (Model, Files.Model.Undo_Restore_Trash, Replaced_Trash,
+            Files.Model.Paste_Execution_Replaced_Targets (Model), Redoable => False,
+            Original_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),
+            Retain_Verified_Main => Files.Model.Paste_Execution_Verified_Replaced_Count (Model));
+      end if;
       Files.Model.Clear_Paste_Execution (Model);
+
+      if Files.Model.Background_Transfers (Model) then
+         --  Preserve mutation errors while a nonmodal helper refreshes the view.
+         Files.Model.Set_Error (Model, Error_Key);
+         declare
+            Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+         begin
+            if Error_Key /= "" then
+               return Make_Result (Operation_Failed, Error_Key, Files.Model.Current_Path (Model));
+            elsif Reload.Status /= Operation_Success then
+               return Reload;
+            end if;
+         end;
+         return Make_Result (Operation_Success, Path => First_Dest);
+      end if;
 
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -943,12 +1193,16 @@ package body Transfer is
    is
       Processed : Natural := 0;
    begin
+      if Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)) then
+         return Files.Operation_Jobs.Advance (Model, Settings);
+      end if;
       if not Files.Model.Paste_Execution_Is_Active (Model) then
          return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
       end if;
 
       while Processed < Max_Items
-        and then not Files.Model.Paste_Execution_Cancelled (Model)
+        and then (not Files.Model.Paste_Execution_Cancelled (Model)
+                  or else Files.Model.Background_Transfers (Model))
         and then Files.Model.Paste_Execution_Cursor (Model)
                  < Files.Model.Paste_Execution_Action_Count (Model)
       loop
@@ -959,16 +1213,57 @@ package body Transfer is
          begin
             if Action.Skip then
                Files.Model.Skip_Paste_Execution_Action (Model);
+            elsif Files.Model.Background_Transfers (Model) then
+               declare
+                  Finished : Boolean;
+                  Result   : Files.Transfer_Jobs.Job_Result;
+               begin
+                  Files.Model.Advance_Background_Paste (Model, Finished, Result);
+                  if not Finished then
+                     return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
+                  end if;
+                  if Length (Result.Trashed) > 0 then
+                     Files.Model.Record_Paste_Execution_Replaced_Trash
+                       (Model, Result.Trashed, To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
+                  end if;
+                  if Result.Cancelled then
+                     return Finalize_Paste_Execution (Model, Settings, "");
+                  elsif not Result.Mutation.Success then
+                     return Finalize_Paste_Execution (Model, Settings, To_String (Result.Mutation.Error_Key));
+                  end if;
+                  Files.Model.Record_Paste_Execution_Write
+                    (Model, Action.Dest_Path, Action.Source_Path,
+                     Ada.Directories.Simple_Name (To_String (Action.Dest_Path)),
+                     To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
+                     Retain_Verified_Snapshot => Result.Recovered);
+                  if Result.Recovered then
+                     return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
+                  end if;
+                  if Files.Model.Paste_Execution_Cancelled (Model) then
+                     return Finalize_Paste_Execution (Model, Settings, "");
+                  end if;
+               end;
             else
                declare
-                  Replaced_Trash : Files.Types.UString := Null_Unbounded_String;
+                  Replaced_Trash, Replaced_Identity : Files.Types.UString := Null_Unbounded_String;
+                  Created_Identities, Created_Tree_Revisions : Files.Types.String_Vectors.Vector;
+                  function Preserve_Replacement return Boolean is
+                     Cleared : constant Boolean := Clear_Replaced_Destination
+                       (To_String (Action.Dest_Path), To_String (Action.Source_Path), Replaced_Trash);
+                  begin
+                     if Length (Replaced_Trash) > 0 then
+                        Replaced_Identity := To_Unbounded_String
+                          (Files.File_Identities.Token (To_String (Replaced_Trash)));
+                     end if;
+                     return Cleared;
+                  end Preserve_Replacement;
                begin
-                  if Action.Replaced
-                    and then not Clear_Replaced_Destination
-                                   (To_String (Action.Dest_Path),
-                                    To_String (Action.Source_Path),
-                                    Replaced_Trash)
+                  if Action.Replaced and then not Preserve_Replacement
                   then
+                     if Length (Replaced_Trash) > 0 then
+                        Files.Model.Record_Paste_Execution_Replaced_Trash
+                          (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
+                     end if;
                      return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
                   end if;
 
@@ -984,7 +1279,9 @@ package body Transfer is
                            Error_Key        => Null_Unbounded_String));
                      declare
                         Mutation : constant Files.File_System.Mutation_Result :=
-                          Files.File_System.Execute_Drop_Import (Plans);
+                          Files.File_System.Execute_Drop_Import
+                            (Plans, Created_Identities, Created_Tree_Revisions,
+                             Batch => Files.Model.Paste_Execution_Copy_Context (Model));
                      begin
                         if not Mutation.Success then
                            --  The destination was just cleared but the write
@@ -993,10 +1290,16 @@ package body Transfer is
                            if Length (Replaced_Trash) > 0 then
                               declare
                                  Restored : constant Files.File_System.Mutation_Result :=
-                                   Files.File_System.Restore_From_Trash (To_String (Replaced_Trash));
-                                 pragma Unreferenced (Restored);
+                                   Files.File_System.Restore_From_Trash
+                                     (To_String (Replaced_Trash), To_String (Replaced_Identity),
+                                      To_String (Action.Dest_Path));
                               begin
-                                 null;
+                                 if not Restored.Success then
+                                    Files.Model.Record_Paste_Execution_Replaced_Trash
+                          (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
+                                    return Finalize_Paste_Execution
+                                      (Model, Settings, To_String (Restored.Error_Key));
+                                 end if;
                               end;
                            end if;
                            return Finalize_Paste_Execution
@@ -1008,15 +1311,18 @@ package body Transfer is
                   --  Write succeeded: track the overwritten original's trash
                   --  location so the paste's undo entry can restore it.
                   if Length (Replaced_Trash) > 0 then
-                     Files.Model.Record_Paste_Execution_Replaced_Trash (Model, Replaced_Trash);
+                     Files.Model.Record_Paste_Execution_Replaced_Trash
+                          (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
                   end if;
-               end;
 
-               Files.Model.Record_Paste_Execution_Write
-                 (Model,
-                  Action.Dest_Path,
-                  Action.Source_Path,
-                  Ada.Directories.Simple_Name (To_String (Action.Dest_Path)));
+                  Files.Model.Record_Paste_Execution_Write
+                    (Model,
+                     Action.Dest_Path,
+                     Action.Source_Path,
+                     Ada.Directories.Simple_Name (To_String (Action.Dest_Path)),
+                     To_String (Created_Identities.First_Element),
+                     To_String (Created_Tree_Revisions.First_Element));
+               end;
             end if;
          end;
          Processed := Processed + 1;
@@ -1064,6 +1370,9 @@ package body Transfer is
       Directory : constant String := Destination;
       Plans     : Files.File_System.Drop_Import_Result;
    begin
+      if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
+         return Make_Result (Operation_Disabled, Path => Directory);
+      end if;
       if Source_Paths.Is_Empty then
          return Disabled (Model, "error.drop.invalid_source");
       end if;
@@ -1242,6 +1551,7 @@ package body Transfer is
       Current_Dir : constant String := Files.Model.Current_Path (Model);
       From_V      : Files.Types.String_Vectors.Vector;
       To_V        : Files.Types.String_Vectors.Vector;
+      Identities  : Files.Types.String_Vectors.Vector;
       Success     : Natural := 0;
       Failure     : Natural := 0;
       Need_Reload : Boolean := False;
@@ -1295,6 +1605,7 @@ package body Transfer is
                      Need_Reload := True;
                      From_V.Append (To_Unbounded_String (New_Path));
                      To_V.Append (Target.Old_Full_Path);
+                     Identities.Append (To_Unbounded_String (Files.File_Identities.Token (New_Path)));
                      if Focus_Name = Null_Unbounded_String then
                         Focus_Name := Target.New_Name;
                      end if;
@@ -1323,10 +1634,11 @@ package body Transfer is
             Files.Model.Set_Error (Model, To_String (First_Error_Key));
             if Need_Reload then
                declare
-                  Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
+                  Reload : constant Operation_Result :=
+                    Reload_With_Error (Model, Settings, To_String (First_Error_Key));
                   pragma Unreferenced (Reload);
                begin
-                  Files.Model.Set_Error (Model, To_String (First_Error_Key));
+                  null;
                end;
             end if;
             return
@@ -1341,7 +1653,8 @@ package body Transfer is
       --  refresh fails, rather than stranding the model in it.
       Files.Model.Clear_Edit_State (Model);
       if not From_V.Is_Empty then
-         Files.Model.Record_Undo (Model, Files.Model.Undo_Rename, From_V, To_V);
+         Files.Model.Record_Undo
+           (Model, Files.Model.Undo_Rename, From_V, To_V, Original_Identities => Identities);
       end if;
 
       if Need_Reload then

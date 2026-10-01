@@ -7,7 +7,12 @@ maintainers = ["Bent Bracke <bent@bracke.dk>"]
 maintainers-logins = ["bracke"]
 licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
 website = "https://github.com/bracke/files"
-long-description = "files is a desktop file manager written in Ada 2022 and rendered with Vulkan and GLFW rather than a toolkit binding. Linux, Windows and macOS are all supported targets, with per-OS platform layers built through files.gpr and Linux the validated one. It ships a live smoke check that opens a real window and reports PASS, FAIL or SKIP with distinct exit statuses, so a degenerate frame fails CI rather than passing quietly."
+long-description = """
+files is a desktop file manager written in Ada 2022 and rendered with Vulkan and
+GLFW. Linux is the validated platform; Windows and macOS adapters live in Hostkit.
+A live smoke check opens a real window and reports PASS, FAIL, or SKIP with
+separate exit statuses, so a degenerate frame fails CI.
+"""
 tags = ["filemanager"]
 
 executables = ["files"]
@@ -16,13 +21,13 @@ executables = ["files"]
 gnat_native = "=15.2.1"
 
 [[depends-on]]
-i18n = "*"
+i18n = "^1.1.0"
 
 [[depends-on]]
-messages = "*"
+messages = "^0.1.0"
 
 [[depends-on]]
-hostkit = "*"
+hostkit = "^0.1.0"
 
 [[pins]]
 hostkit = { path = "../hostkit" }
@@ -30,31 +35,34 @@ i18n = { path = "../i18n" }
 messages = { path = "../messages" }
 
 [[depends-on]]
-textrender = "*"
+textrender = "^1.0.0"
 
 [[pins]]
 textrender = { path = "../textrender" }
 
 [[depends-on]]
-zlib = "*"
+zlib = "^0.1.0"
+
+[[depends-on]]
+cryptolib = "^0.1.0"
 
 [[pins]]
 zlib = { path = "../zlib" }
 
 [[depends-on]]
-guikit = "*"
+guikit = "^0.1.0"
 
 [[pins]]
 guikit = { path = "../guikit" }
 
 [[depends-on]]
-a11ykit = "*"
+a11y = "^0.1.0"
 
 [[pins]]
-a11ykit = { path = "../a11ykit" }
+a11y = { path = "../a11ykit" }
 
-# zlib depends on cryptolib, but Alire honours pins only in the root crate, so
-# every root that builds zlib must pin it too.
+# File-content verification uses cryptolib directly. Alire honours pins only in
+# the root crate, so every root that builds files must pin it too.
 [[pins]]
 cryptolib = { path = "../cryptolib" }
 

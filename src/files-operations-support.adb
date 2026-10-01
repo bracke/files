@@ -4,6 +4,7 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
 with Files.File_System;
+with Files.Refresh_Jobs;
 with Files.Fs;
 
 with Hostkit.Fs;
@@ -19,7 +20,7 @@ package body Files.Operations.Support is
 
    function Exists_Safely (Path : String) return Boolean is
    begin
-      return Files.Fs.Exists (Path);
+      return Files.Fs.Exists (Path) or else Hostkit.Fs.Is_Link (Path);
    exception
       when others =>
          return False;
@@ -118,6 +119,9 @@ package body Files.Operations.Support is
       return Operation_Result
    is
    begin
+      if Files.Model.Background_Transfers (Model) then
+         return Files.Refresh_Jobs.Start (Model, Settings, Force => True, Select_Name => Select_Name);
+      end if;
       --  The Recent view has no backing directory (Current_Path is empty), so a
       --  directory load would spuriously fail and a mutation performed from
       --  Recent would be reported as failed with the view left stale. Rebuild it
@@ -169,8 +173,24 @@ package body Files.Operations.Support is
             end;
          end if;
          Files.Model.Set_Error (Model, "");
+         Files.Model.Ensure_Selected_Item_Extra (Model);
          return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
       end;
    end Reload_Current_Directory;
+
+   function Reload_With_Error
+     (Model : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Error_Key : String) return Operation_Result
+   is
+      Reload : Operation_Result;
+   begin
+      Files.Model.Set_Error (Model, Error_Key);
+      Reload := Reload_Current_Directory (Model, Settings);
+      if not Files.Model.Background_Transfers (Model) then
+         Files.Model.Set_Error (Model, Error_Key);
+      end if;
+      return Reload;
+   end Reload_With_Error;
 
 end Files.Operations.Support;

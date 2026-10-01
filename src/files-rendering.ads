@@ -236,6 +236,7 @@ package Files.Rendering is
       Paste_Progress_Total           : Natural := 0;
       Paste_Progress_Name            : UString;
       Paste_Progress_Moving          : Boolean := False;
+      Paste_Progress_Operation_Label : UString;
       --  Quick Look preview overlay: open when previewing a single selected item.
       --  Quick_Look_Kind selects the body (scaled image, capped text lines, or the
       --  metadata info card). Quick_Look_Image_* carry the decoded thumbnail pixels

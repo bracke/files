@@ -2,18 +2,12 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
+with Files.Process_Jobs;
 
---  Incremental, non-blocking folder-size measurement.
---
---  The info pane shows the recursive size of the selected directory. Computing
---  it synchronously (Files.File_System.Directory_Size) walks the whole subtree
---  on the UI thread, so moving the selection between folders stalls while the
---  pane is open. This package spreads the same walk across many frames: the UI
---  posts a request for the selected directory, advances the walk a bounded
---  amount each frame (Step), and collects the finished measurement (Take) to
---  publish into the model. It is single-threaded; all operations run on the UI
---  thread. For a subtree that stays within the entry- and depth-guards the
---  result is identical to Files.File_System.Directory_Size.
+--  Folder-size measurement in a cancellable helper process.
+--  Requests and polling only access private local transport files. All target
+--  directory reads, classification and recursive traversal run in the helper,
+--  using the same entry/depth guards as Files.File_System.Directory_Size.
 package Files.Folder_Size is
 
    --  A set of directories to measure (absolute paths).
@@ -21,6 +15,38 @@ package Files.Folder_Size is
      (Index_Type   => Positive,
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
       "="          => Ada.Strings.Unbounded."=");
+
+   --  One window's independent queue and helper ownership.
+   type Session is private;
+
+   --  @param Scan Window-owned measurements.
+   --  @param Paths Selected uncached directories.
+   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector);
+
+   --  @param Scan Measurements to abandon without waiting.
+   procedure Cancel (Scan : in out Session);
+
+   --  @param Scan Window-owned measurements to poll.
+   --  @param Budget Zero skips polling, nonzero polls once.
+   procedure Step (Scan : in out Session; Budget : Natural := 4000);
+
+   --  @param Scan Window-owned completed results.
+   --  @param Path Measured directory.
+   --  @param Result Measured totals.
+   --  @param Available True when a result was collected.
+   procedure Take
+     (Scan : in out Session;
+      Path : out Ada.Strings.Unbounded.Unbounded_String;
+      Result : out Files.File_System.Directory_Size_Result;
+      Available : out Boolean);
+
+   --  @param Scan Measurements to inspect.
+   --  @return True when a helper is active.
+   function Is_Active (Scan : Session) return Boolean;
+
+   --  @param Scan Measurements to inspect.
+   --  @return Active directory, or empty when idle.
+   function Target_For_Test (Scan : Session) return String;
 
    --  Set the directories to measure. The walk already in progress keeps running
    --  when its directory is still in Paths; otherwise it is abandoned. Every
@@ -40,11 +66,8 @@ package Files.Folder_Size is
    --  results are left intact so pending measurements can still be collected.
    procedure Cancel;
 
-   --  Advance the walk in progress by up to Budget directory entries. Does
-   --  nothing when no measurement is active. When the subtree is exhausted the
-   --  result becomes available to Take.
-   --
-   --  @param Budget Maximum number of directory entries to visit this call.
+   --  Poll the helper without waiting and collect a completed result.
+   --  @param Budget Retained for callers; zero skips polling, nonzero polls once.
    procedure Step (Budget : Natural := 4000);
 
    --  Collect one finished measurement. When one is available it is returned and
@@ -69,4 +92,21 @@ package Files.Folder_Size is
    --  @return The active target path, or the empty string when idle.
    function Target_For_Test return String;
 
+   --  Internal helper entry point, dispatched before application startup.
+   --  @param Directory Private transport directory containing the requested path.
+   procedure Run_Helper (Directory : String);
+
+private
+   type Finished_Measurement is record
+      Path : Ada.Strings.Unbounded.Unbounded_String;
+      Result : Files.File_System.Directory_Size_Result;
+   end record;
+   package Finished_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Finished_Measurement);
+   type Session is record
+      Job : Files.Process_Jobs.Session;
+      Target_Path : Ada.Strings.Unbounded.Unbounded_String;
+      Targets : Path_Vectors.Vector;
+      Done_Queue : Finished_Vectors.Vector;
+   end record;
 end Files.Folder_Size;

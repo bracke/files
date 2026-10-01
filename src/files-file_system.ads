@@ -1,3 +1,4 @@
+with Files.Copy_Context;
 with Ada.Calendar;
 with Ada.Streams;
 with Ada.Containers.Vectors;
@@ -40,6 +41,7 @@ package Files.File_System is
       Owner_Id           : Natural := 0;
       Group_Id           : Natural := 0;
       Filetype_Extra     : UString;
+      Filetype_Extra_Loaded : Boolean := False;
       Thumbnail_Available : Boolean := False;
       Thumbnail_Path      : UString;
       Thumbnail_Width     : Natural := 0;
@@ -658,6 +660,16 @@ package Files.File_System is
    --  @return Trashed-payload directory, or an empty string when unavailable.
    function Trash_Files_Directory return String;
 
+   --  Capture a payload's original path before recording restore history.
+   --  @param Trashed_Path Trash or replacement recovery payload pathname.
+   --  @return Original path from its sidecar, or empty on failure.
+   function Trash_Original_Path (Trashed_Path : String) return String;
+
+   --  Return whether Path is an application-owned replacement recovery payload.
+   --  @param Path Possible recovery payload path.
+   --  @return True only for a recognized application recovery payload.
+   function Is_Recovery_Payload (Path : String) return Boolean;
+
    --  Restore a trashed payload to its recorded original location.
    --
    --  For freedesktop backends the original path is read from the matching
@@ -666,9 +678,11 @@ package Files.File_System is
    --  fail with error.trash.restore_unavailable.
    --
    --  @param Trashed_Path Payload path inside the trash files directory.
+   --  @param Expected_Identity Optional history snapshot verified before restoring the payload.
+   --  @param Expected_Original Authoritative restore destination captured in history.
    --  @return Mutation result with a localized error key on failure.
    function Restore_From_Trash
-     (Trashed_Path : String)
+     (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
       return Mutation_Result;
 
    --  Create an empty regular file without replacing an existing entry.
@@ -691,10 +705,12 @@ package Files.File_System is
    --
    --  @param From_Path Existing path.
    --  @param To_Path Destination path.
+   --  @param Expected_Identity Optional history snapshot verified before and after quarantining the source.
    --  @return Mutation result.
    function Rename_Item
      (From_Path : String;
-      To_Path   : String)
+      To_Path   : String;
+      Expected_Identity : String := "")
       return Mutation_Result;
 
    --  Return whether this build can read and change POSIX permission bits.
@@ -759,6 +775,19 @@ package Files.File_System is
       Group_Id : Natural)
       return Mutation_Result;
 
+   --  @param Path Existing entry; symbolic links must be resolved by the caller.
+   --  @param Expected_Identity History identity to verify, or empty for a new live change.
+   --  @param Ownership True changes ownership; False changes permission bits.
+   --  @param Value New mode or user id.
+   --  @param Group New group id for an ownership change.
+   --  @param Previous Live previous mode or user id captured before mutation.
+   --  @param Previous_Group Live previous group id for ownership changes.
+   --  @param Identity Identity of the entry actually changed.
+   --  @return Result of applying metadata to the verified entry.
+   function Change_Metadata
+     (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
+      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
+
    --  Resolve a user name to its numeric id (getpwnam).
    --
    --  @param Name User name to resolve.
@@ -817,10 +846,25 @@ package Files.File_System is
    --
    --  @param Source_Path Existing file or directory to copy.
    --  @param Destination_Path New path to create.
+   --  @param Batch Shared hard-link journal for consecutive copies.
    --  @return Mutation result with a localized error key on failure.
    function Copy_Tree
      (Source_Path      : String;
-      Destination_Path : String)
+      Destination_Path : String;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
+   --  Copy while returning snapshots captured before atomic publication.
+   --  @param Source_Path Existing file or directory to copy.
+   --  @param Destination_Path New path to create.
+   --  @param Identity Published entry identity.
+   --  @param Tree_Revision_Value Directory or regular-file revision, empty for links.
+   --  @param Batch Shared hard-link journal for consecutive copies.
+   --  @return Mutation result with a localized error key on failure.
+   function Copy_Tree
+     (Source_Path, Destination_Path : String;
+      Identity, Tree_Revision_Value : out Files.Types.UString;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Create a symbolic link at Link_Path that refers to Source_Path.
@@ -879,7 +923,33 @@ package Files.File_System is
      (Path : String)
       return Mutation_Result;
 
-   --  Permanently delete a single trashed payload and its metadata.
+   --  Quarantine a created entry and verify its recorded identity before deleting.
+   --  A replacement is restored without deleting its contents.
+   --  @param Path Created entry to remove.
+   --  @param Expected_Identity Identity recorded when the entry was created.
+   --  @param Expected_Tree_Revision Directory or regular-file revision recorded at publication.
+   --  @return Success only when the verified entry was removed.
+   function Delete_Created_Entry
+     (Path : String; Expected_Identity, Expected_Tree_Revision : String) return Mutation_Result;
+
+   --  Quarantine and remove a private staging tree by the identity captured
+   --  when its root was created. Contents may legitimately change while work
+   --  is in progress, so only the root identity is compared. A replacement is
+   --  restored without deleting its contents.
+   --  @param Path Private staging directory to remove.
+   --  @param Expected_Identity Root identity captured at stage creation.
+   --  @return Success only when the verified stage was removed.
+   function Delete_Staging_Entry
+     (Path : String; Expected_Identity : String) return Mutation_Result;
+
+   --  @param Path Existing entry to inspect without following symbolic links.
+   --  @return SHA-256 of a directory's recursive metadata and file contents,
+   --    a regular-file metadata and content revision, or empty for a link or
+   --    unverifiable entry.
+   function Tree_Revision (Path : String) return String;
+
+   --  Permanently delete a single trashed or application recovery payload and
+   --  its metadata.
    --
    --  Removes the payload through Delete_Permanently and, for freedesktop
    --  backends, best-effort removes the matching <base>/info/<name>.trashinfo
@@ -893,6 +963,14 @@ package Files.File_System is
      (Trashed_Path : String)
       return Mutation_Result;
 
+   --  Preserve an overwritten destination in a location this application can restore.
+   --  Native trash backends use an adjacent recovery backup instead of the OS bin.
+   --  @param Path Destination to preserve before replacement.
+   --  @param Recovery_Path Payload for rollback and Undo.
+   --  @return Result of preserving the destination.
+   function Preserve_For_Replace
+     (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result;
+
    --  Build deterministic copy/move plans for paths dropped into a directory.
    --
    --  @param Source_Paths Paths received from a drag-and-drop operation.
@@ -905,12 +983,33 @@ package Files.File_System is
       Mode                  : Drop_Import_Mode := Drop_Copy)
       return Drop_Import_Result;
 
+   --  Optional cooperative cancellation, checked between copy chunks and entries.
+   type Cancellation_Check is access function return Boolean;
+
    --  Execute a validated drag-and-drop import plan.
    --
    --  @param Plans Plans produced by Plan_Drop_Import.
+   --  @param Cancel Optional callback requesting cancellation before source deletion.
+   --  @param Batch Shared hard-link journal, created automatically for multiple plans.
    --  @return Mutation result with a localized error key on failure.
    function Execute_Drop_Import
-     (Plans : Drop_Import_Plan_Vectors.Vector)
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
+   --  Execute while returning publication-time snapshots for each completed plan.
+   --  @param Plans Validated copy or move plans.
+   --  @param Created_Identities Entry identities parallel to completed plans.
+   --  @param Created_Tree_Revisions Recursive directory revisions parallel to completed plans.
+   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Batch Shared hard-link journal.
+   --  @return Mutation result with a localized error key on failure.
+   function Execute_Drop_Import
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
+      Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
    --  Bring the thumbnail cache under Budget_Bytes, deleting the least recently
@@ -1035,4 +1134,11 @@ package Files.File_System is
      (Path      : String;
       Max_Bytes : Natural)
       return String;
+
+   --  @param Path File to read.
+   --  @param Max_Bytes Maximum number of leading bytes to return.
+   --  @param Success False on an open or read failure, True for valid empty files.
+   --  @return Leading bytes; ignore them when Success is False.
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
 end Files.File_System;

@@ -1,3 +1,5 @@
+with Files.Model;
+with Files.Refresh_Jobs;
 with Files.Controller;
 with Guikit.Frame_Analysis;
 with Guikit.Vulkan;
@@ -147,6 +149,13 @@ package Files.Application.Windows is
    --  @param Startup Startup result containing window models to open.
    procedure Run
      (Startup : Startup_Result);
+
+   --  Stop a closing window's helpers without waiting for filesystem I/O.
+   --  @param Model Closing window whose transfer, operation and refresh sessions to release.
+   --  @param Watch Closing window's native notification session to release.
+   procedure Release_Window_Jobs
+     (Model : in out Files.Model.Window_Model;
+      Watch : in out Files.Refresh_Jobs.Watch_Session);
 
    --  Validate startup window models through the render pipeline without opening native windows.
    --

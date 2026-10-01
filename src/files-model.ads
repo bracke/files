@@ -1,9 +1,12 @@
+with Files.Copy_Context;
+with Files.Process_Jobs;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
 with Files.Folder_Tree;
+with Files.Folder_Size;
 with Files.Paste;
 with Files.Quick_Look;
 with Files.Settings;
@@ -12,6 +15,7 @@ with Guikit.Draw;
 with Guikit.Input;
 with Guikit.Settings_Panel;
 with Files.Types;
+with Files.Transfer_Jobs;
 
 --  Directory state, selection, filtering, history, input state, and pane state.
 package Files.Model is
@@ -1956,12 +1960,66 @@ package Files.Model is
       --  trash so the overwritten original comes back. Empty for every other
       --  action. Undo-only (a paste that replaced anything is not redoable).
       Restore_Trash : Files.Types.String_Vectors.Vector;
+      --  Parallel snapshots of replacement originals, retained for retryable Undo.
+      Restore_Identities : Files.Types.String_Vectors.Vector;
+      Restore_Targets : Files.Types.String_Vectors.Vector;
+      --  Successful reverse steps retained after a partial Undo. A retry must
+      --  never delete or move an original that an earlier pass restored.
+      Reverse_Completed : Files.Types.String_Vectors.Vector;
+      Restores_Completed : Files.Types.String_Vectors.Vector;
+      --  Successful creation/move steps retained after a partial Redo, so a
+      --  retry skips committed items instead of treating them as collisions.
+      Forward_Completed : Files.Types.String_Vectors.Vector;
+      --  Verified hard-link families retained across partial copy Redo retries.
+      Copy_Records : Files.Types.String_Vectors.Vector;
+      --  Parallel to From for creations, moves, trash and metadata changes. Tracks the current entry at
+      --  either end of a move, including a new identity after a copy-based move.
+      --  Empty tokens never authorize deletion, history moves, trash restoration or metadata changes.
+      Created_Identities : Files.Types.String_Vectors.Vector;
+      --  Parallel recursive revision snapshots for created directories. Files
+      --  and links use an empty value. Undo refuses a directory whose complete
+      --  tree no longer matches the snapshot captured at publication.
+      Created_Tree_Revisions : Files.Types.String_Vectors.Vector;
    end record;
+
+   --  @param Model Window owning these measurements.
+   --  @param Paths Selected uncached directory paths.
+   procedure Set_Folder_Size_Targets (Model : in out Window_Model; Paths : Files.Folder_Size.Path_Vectors.Vector);
+
+   --  @param Model Window whose size helper to cancel and pending results to discard.
+   procedure Cancel_Folder_Scan (Model : in out Window_Model);
+
+   --  @param Model Window whose completed sizes to publish for its current selection.
+   procedure Poll_Folder_Sizes (Model : in out Window_Model);
+
+   --  @param Model Window whose measurement to inspect.
+   --  @return True when its size helper is active.
+   function Folder_Scan_Is_Active (Model : Window_Model) return Boolean;
+
+   --  @param Model Window whose measurement to inspect.
+   --  @return Active measurement path, or empty when idle.
+   function Folder_Scan_Target (Model : Window_Model) return String;
 
    --  Stack of undo/redo entries; the last element is the top of the stack.
    package Undo_Entry_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Undo_Entry);
+
+   --  @param Model Window whose history to snapshot.
+   --  @return Undo stack, oldest first.
+   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
+
+   --  @param Model Window whose history to snapshot.
+   --  @return Redo stack, oldest first.
+   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
+
+   --  Restore checkpointed history after filtering structurally unusable
+   --  actions and completion markers. Identity snapshots are retained without
+   --  consulting current pathnames so refused operations remain retryable.
+   --  @param Model Window whose checkpointed history to restore.
+   --  @param Undo Undo stack, oldest first.
+   --  @param Redo Redo stack, oldest first.
+   procedure Set_History (Model : in out Window_Model; Undo, Redo : Undo_Entry_Vectors.Vector);
 
    --  Push a newly performed undoable action onto the undo stack and clear the
    --  redo stack (a new operation invalidates any pending redo). Empty actions
@@ -1976,6 +2034,14 @@ package Files.Model is
    --  @param Redoable    False marks the entry undo-only (skipped by redo).
    --  @param Restore_Trash Trash locations of paste-replace originals to restore
    --    from the trash after the main reverse; empty for non-replacing actions.
+   --  @param Original_Identities Snapshots captured at publication or retained when extending a batch.
+   --  @param Original_Tree_Revisions Directory or regular-file snapshots captured at publication.
+   --  @param Original_Restore_Identities Snapshots captured when preserving replacement originals.
+   --  @param Original_Restore_Targets Original destinations captured when preserving replacement originals.
+   --  @param Retain_Verified_Main Number of leading From snapshots already
+   --    validated at publication and retained across a partial operation.
+   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
+   --    already validated when their originals were preserved.
    procedure Record_Undo
      (Model       : in out Window_Model;
       Kind        : Undo_Action_Kind;
@@ -1986,7 +2052,61 @@ package Files.Model is
       Create_Kind : Undo_Create_Kind := Create_None;
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector);
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0);
+
+   --  Record only members whose publication identity still matches the live
+   --  entry. Created directories also require a matching recursive revision,
+   --  and every payload needed by Undo and Redo must be complete and valid.
+   --  Replacement actions are recorded only when every created and preserved
+   --  entry is verifiable, since their reverse steps are inseparable.
+   --  @param Model Model whose history is updated.
+   --  @param Kind Kind of action that can be undone.
+   --  @param From Current locations to undo from.
+   --  @param To Restore targets or old values parallel to From.
+   --  @param Forward Redo sources or new values parallel to From.
+   --  @param Create_Kind Creation operation used by Redo.
+   --  @param Redoable Whether a successful Undo may enter Redo history.
+   --  @param Restore_Trash Preserved replacement originals to restore.
+   --  @param Original_Identities Publication identities parallel to From.
+   --  @param Original_Tree_Revisions Directory revisions parallel to From.
+   --  @param Original_Restore_Identities Identities parallel to Restore_Trash.
+   --  @param Original_Restore_Targets Destinations parallel to Restore_Trash.
+   --  @param Retain_Verified_Main Number of leading From snapshots previously
+   --    validated and allowed to survive a later pathname replacement.
+   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
+   --    previously validated and allowed to survive a later replacement.
+   --  @return True when a usable history entry was added.
+   function Try_Record_Undo
+     (Model       : in out Window_Model;
+      Kind        : Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Undo_Create_Kind := Create_None;
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0) return Boolean;
 
    --  Forget the entire undo and redo history.
    --
@@ -2225,6 +2345,46 @@ package Files.Model is
       Mode            : Files.File_System.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True);
 
+   --  Select helper execution for a live window; headless callers can step synchronously.
+   --  @param Model Window model to configure before starting a paste.
+   --  @param Enabled Whether filesystem actions run on helper processes.
+   procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean);
+
+   --  Return whether filesystem actions use helpers.
+   --  @param Model Window model to inspect.
+   --  @return True when background transfers are enabled.
+   function Background_Transfers (Model : Window_Model) return Boolean;
+
+   --  Start or poll the current paste action without blocking on filesystem I/O.
+   --  @param Model Model owning the helper and current action.
+   --  @param Finished True when Result can be consumed.
+   --  @param Result Current action's filesystem result.
+   procedure Advance_Background_Paste
+     (Model : in out Window_Model; Finished : out Boolean; Result : out Files.Transfer_Jobs.Job_Result);
+
+   --  @param Model Window owning a general background operation.
+   --  @param Job Helper session to attach while the progress overlay is open.
+   --  @param Label_Key Localized command caption for the progress overlay.
+   procedure Set_Background_Operation
+     (Model : in out Window_Model; Job : Files.Process_Jobs.Session; Label_Key : String);
+
+   --  @param Model Window to inspect.
+   --  @return Progress caption key, or empty for a copy/move paste.
+   function Background_Operation_Label (Model : Window_Model) return String;
+
+   --  @param Model Window to inspect.
+   --  @return Shared helper session, inactive during ordinary paste execution.
+   function Background_Operation (Model : Window_Model) return Files.Process_Jobs.Session;
+
+   --  @param Model Window whose nonmodal directory-read session to replace.
+   --  @param Job Shared helper session, or empty to cancel the pending read.
+   --  Transport changes do not change the visible model revision.
+   procedure Set_Background_Refresh (Model : in out Window_Model; Job : Files.Process_Jobs.Session);
+
+   --  @param Model Window owning a nonmodal directory-read helper.
+   --  @return Shared refresh session, or an empty session.
+   function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session;
+
    --  Whether a resumable paste execution is currently in flight.
    --
    --  @param Model Model to inspect.
@@ -2322,6 +2482,22 @@ package Files.Model is
    function Paste_Execution_Undo_To
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
+   --  @param Model Window owning the current paste batch.
+   --  @return Entry identities parallel to the committed destination paths.
+   function Paste_Execution_Created_Identities
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
+   --  @param Model Window owning the current paste batch.
+   --  @return Recursive directory revisions parallel to committed destinations.
+   function Paste_Execution_Created_Tree_Revisions
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
+
+   --  @param Model Window owning the current paste batch.
+   --  @return Leading created snapshots independently verified at publication.
+   function Paste_Execution_Verified_Created_Count
+     (Model : Window_Model) return Natural;
 
    --  Trash locations of destinations this paste overwrote via Replace, so the
    --  undo entry can restore each overwritten original from the trash.
@@ -2332,14 +2508,31 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
-   --  Record that a Replace moved a destination to the trash at Trash_Path, so
-   --  undo can later restore it. Called once per replaced destination.
-   --
+   --  @param Model Window whose preserved originals to inspect.
+   --  @return Parallel identities captured when those originals were preserved.
+   function Paste_Execution_Replaced_Identities (Model : Window_Model) return Files.Types.String_Vectors.Vector;
+
+   --  @param Model Window whose replacement destinations to inspect.
+   --  @return Destinations captured when replacement originals were preserved.
+   function Paste_Execution_Replaced_Targets (Model : Window_Model) return Files.Types.String_Vectors.Vector;
+
+   --  @param Model Window owning the current paste batch.
+   --  @return Leading preserved-original snapshots independently verified.
+   function Paste_Execution_Verified_Replaced_Count
+     (Model : Window_Model) return Natural;
+
+   --  @param Model Window owning the active copy batch.
+   --  @return Shared private hard-link journal, or an empty session.
+   function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
+
+   --  Record a preserved original and its identity for the paste's Undo.
    --  @param Model Model to update.
    --  @param Trash_Path The overwritten original's location inside the trash.
+   --  @param Identity Snapshot captured when the original was preserved.
+   --  @param Original_Path Original destination captured before preservation.
    procedure Record_Paste_Execution_Replaced_Trash
-     (Model      : in out Window_Model;
-      Trash_Path : Files.Types.UString);
+     (Model : in out Window_Model; Trash_Path : Files.Types.UString; Identity : String;
+      Original_Path : String := "");
 
    --  The first destination path written, reported as the operation result path.
    --
@@ -2362,11 +2555,18 @@ package Files.Model is
    --  @param Dest_Path Destination path just written.
    --  @param Source_Path Source path just copied or moved.
    --  @param Name Leaf name shown as the current progress item.
+   --  @param Identity Entry identity captured by the process that published the destination.
+   --  @param Tree_Revision Directory or regular-file revision captured before publication.
+   --  @param Retain_Verified_Snapshot True when a private recovery checkpoint
+   --    already verified this exact publication snapshot.
    procedure Record_Paste_Execution_Write
      (Model       : in out Window_Model;
       Dest_Path   : Files.Types.UString;
       Source_Path : Files.Types.UString;
-      Name        : String);
+      Name        : String;
+      Identity    : String;
+      Tree_Revision : String;
+      Retain_Verified_Snapshot : Boolean := False);
 
    --  Request cancellation of the armed execution; the next advance finalizes
    --  over the items completed so far (already-written files are kept).
@@ -2587,6 +2787,7 @@ private
       Undo_Stack            : Undo_Entry_Vectors.Vector;
       Redo_Stack            : Undo_Entry_Vectors.Vector;
       Folder_Sizes            : Folder_Size_Maps.Map;
+      Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu_Open_Value       : Boolean := False;
       Context_Menu_X_Value          : Natural := 0;
       Context_Menu_Y_Value          : Natural := 0;
@@ -2604,6 +2805,12 @@ private
       Paste_Conflict_Apply_All_Value : Boolean := False;
       Paste_Conflict_Clears_Clip_Val : Boolean := True;
       Paste_Exec_Active_Value        : Boolean := False;
+      Background_Transfers_Value    : Boolean := False;
+      Paste_Exec_Job                 : Files.Transfer_Jobs.Session;
+      Paste_Exec_Copy_Context        : Files.Copy_Context.Session;
+      Operation_Job                 : Files.Process_Jobs.Session;
+      Refresh_Job                   : Files.Process_Jobs.Session;
+      Operation_Label_Key           : UString;
       Paste_Exec_Actions_Value       : Files.Paste.Resolved_Action_Vectors.Vector;
       Paste_Exec_Cursor_Value        : Natural := 0;
       Paste_Exec_Done_Value          : Natural := 0;
@@ -2616,10 +2823,16 @@ private
       Paste_Exec_First_Dest_Value    : UString;
       Paste_Exec_Undo_From_Value     : Files.Types.String_Vectors.Vector;
       Paste_Exec_Undo_To_Value       : Files.Types.String_Vectors.Vector;
+      Paste_Exec_Identities_Value    : Files.Types.String_Vectors.Vector;
+      Paste_Exec_Tree_Revisions_Value : Files.Types.String_Vectors.Vector;
+      Paste_Exec_Verified_Created_Count : Natural := 0;
       --  Trash locations of destinations overwritten by a Replace during this
       --  paste, so the undo entry can restore them (parallel to nothing; each is
       --  restored to its own recorded original path).
       Paste_Exec_Replaced_Trash_Value : Files.Types.String_Vectors.Vector;
+      Paste_Exec_Replaced_Identities_Value : Files.Types.String_Vectors.Vector;
+      Paste_Exec_Replaced_Targets_Value : Files.Types.String_Vectors.Vector;
+      Paste_Exec_Verified_Replaced_Count : Natural := 0;
       --  Monotonic change counter bumped by every model mutator. The render
       --  layer caches the value it built a snapshot at and rebuilds only when it
       --  differs, so snapshot invalidation follows the model automatically

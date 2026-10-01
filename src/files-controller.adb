@@ -618,25 +618,64 @@ package body Files.Controller is
       return Controller_Result is separate;
 
    --  Launch the chosen "Open With" application on the stored target paths, then
-   --  close the palette. The detached spawn status is advisory only (the wrapper
-   --  shell, not the real handler), mirroring Open_Selected's detached-launch
-   --  policy.
+   --  close the palette. A detached launch has no application exit status, but
+   --  preflight and process creation are still observable and must be reported.
    function Launch_Application_Result
      (Model : in out Files.Model.Window_Model;
       App   : Files.Applications.Application)
       return Controller_Result
    is
+      Targets : constant Files.Types.String_Vectors.Vector :=
+        Files.Model.Open_With_Targets (Model);
+      Actions : constant Files.Applications.Open_Action_Vectors.Vector :=
+        Files.Applications.Build_Open_Actions (App, Targets);
       Action : constant Files.Settings.Open_Action :=
-        Files.Applications.Build_Open_Action (App, Files.Model.Open_With_Targets (Model));
+        Actions.First_Element;
       Operation   : Files.Operations.Operation_Result := Empty_Operation;
       Exit_Status : Integer := 0;
-      Spawned     : constant Boolean :=
-        Files.Operations.Execute_Open_Action (Action, Exit_Status, Detach => True);
-      pragma Unreferenced (Spawned);
+      Target_Path : constant Unbounded_String :=
+        (if Targets.Is_Empty then Null_Unbounded_String else Targets.First_Element);
+
+      procedure Set_Action_Result_Fields is
+      begin
+         Operation.Path := Target_Path;
+         Operation.Action := Action;
+         Operation.Action_Executable := Action.Executable;
+         Operation.Action_Arguments := Natural (Action.Arguments.Length);
+         Operation.Action_Uses_Shell := Action.Use_Shell;
+      end Set_Action_Result_Fields;
    begin
       Files.Model.Close_Command_Palette (Model);
+      Set_Action_Result_Fields;
+
+      for Candidate of Actions loop
+         if not Files.Operations.Open_Action_Executable_Is_Available (Candidate) then
+            Operation.Status := Files.Operations.Operation_Failed;
+            Operation.Error_Key := To_Unbounded_String ("error.open_action.executable_missing");
+            Files.Model.Set_Error (Model, "error.open_action.executable_missing");
+            return Make_Result
+              (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
+         end if;
+      end loop;
+
+      Operation.Execution_Attempted := True;
+      Operation.Executable_Found := True;
+      for Candidate of Actions loop
+         if not Files.Operations.Execute_Open_Action
+           (Candidate, Exit_Status, Detach => True)
+         then
+            Operation.Status := Files.Operations.Operation_Failed;
+            Operation.Error_Key := To_Unbounded_String ("error.open_action.execution");
+            Operation.Exit_Status := Exit_Status;
+            Files.Model.Set_Error (Model, "error.open_action.execution");
+            return Make_Result
+              (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
+         end if;
+      end loop;
+
       Operation.Status := Files.Operations.Operation_Action_Executed;
-      Operation.Action := Action;
+      Operation.Exit_Status := Exit_Status;
+      Files.Model.Set_Error (Model, "");
       return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
    end Launch_Application_Result;
 
@@ -700,10 +739,13 @@ package body Files.Controller is
       --  same conflict dialog and resumable progress/cancel overlay as clipboard
       --  paste. From_Clipboard => False keeps a dropped move from clearing an
       --  unrelated clipboard selection on finalize.
-      Operation : constant Files.Operations.Operation_Result :=
-        Files.Operations.Begin_Paste
-          (Model, Settings, Source_Paths, Mode, From_Clipboard => False);
+      Operation : Files.Operations.Operation_Result;
    begin
+      if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
+         return Make_Result (Controller_Ignored);
+      end if;
+      Operation := Files.Operations.Begin_Paste
+        (Model, Settings, Source_Paths, Mode, From_Clipboard => False);
       return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
    end Handle_Drop_Import;
 

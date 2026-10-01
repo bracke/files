@@ -108,6 +108,7 @@ separate (Files.Rendering)
       Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Paste_Conflict_Name (Model));
       Snapshot.Paste_Conflict_Apply_All := Files.Model.Paste_Conflict_Apply_All (Model);
       Snapshot.Paste_Progress_Open := Files.Model.Paste_Execution_Is_Active (Model);
+      Snapshot.Paste_Progress_Operation_Label := To_Unbounded_String (Files.Model.Background_Operation_Label (Model));
       Snapshot.Paste_Progress_Done := Files.Model.Paste_Execution_Done (Model);
       Snapshot.Paste_Progress_Total := Files.Model.Paste_Execution_Total (Model);
       Snapshot.Paste_Progress_Name :=

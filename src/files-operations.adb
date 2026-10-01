@@ -11,6 +11,10 @@ with Files_Config;
 with Files.Folder_Size;
 with Files.Fs;
 with Files.Paste;
+with Files.Transfer_Jobs;
+with Files.Process_Jobs;
+with Files.Operation_Jobs;
+with Files.Job_Context;
 with Hostkit.Metadata;
 
 with Hostkit;
@@ -46,6 +50,10 @@ package body Files.Operations is
       function Shell_Executable return String;
 
       function Shell_Command_Option return String;
+
+      function Open_Action_Executable_Is_Available
+        (Action : Files.Settings.Open_Action)
+         return Boolean;
 
       function Execute_Open_Action
         (Action      : Files.Settings.Open_Action;
@@ -89,6 +97,11 @@ package body Files.Operations is
 
    function Shell_Command_Option return String
      renames Open.Shell_Command_Option;
+
+   function Open_Action_Executable_Is_Available
+     (Action : Files.Settings.Open_Action)
+      return Boolean
+     renames Open.Open_Action_Executable_Is_Available;
 
    function Execute_Open_Action
      (Action      : Files.Settings.Open_Action;
@@ -598,9 +611,16 @@ package body Files.Operations is
    is
       pragma Unreferenced (Settings);
    begin
-      --  Folder size is a recursive subtree walk. It runs incrementally off the
-      --  UI path (Files.Folder_Size), so measuring it does not block: here we just
-      --  request the selected directories and the frame loop advances the walks.
+      --  A size result changes the render revision. Stop older measurements
+      --  before a listing request captures it, and resume after that read applies.
+      if Files.Model.Paste_Execution_Is_Active (Model)
+        or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
+      then
+         Files.Model.Cancel_Folder_Scan (Model);
+         return;
+      end if;
+      --  The helper process performs the recursive subtree walk. Here we only
+      --  request selected directories; the frame loop polls for completed totals.
       --  Every selected directory is measured -- for any selection, not only when
       --  the info pane is open -- so both the info pane and the bottom bar's
       --  combined total can count folder contents.
@@ -622,11 +642,11 @@ package body Files.Operations is
                   end;
                end if;
             end loop;
-            Files.Folder_Size.Set_Targets (Targets);
+            Files.Model.Set_Folder_Size_Targets (Model, Targets);
          end;
       else
          Files.Model.Clear_Folder_Size (Model);
-         Files.Folder_Size.Cancel;
+         Files.Model.Cancel_Folder_Scan (Model);
       end if;
    end Update_Folder_Size;
 

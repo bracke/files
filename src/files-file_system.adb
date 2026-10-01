@@ -28,6 +28,8 @@ with Hostkit.Fs;
 with Hostkit.Host;
 with Files.UTF8;
 with Files.File_System.Support;
+with Files.File_System.Recovery;
+with Files.File_Identities;
 
 package body Files.File_System is
 
@@ -80,6 +82,9 @@ package body Files.File_System is
         (Path      : String;
          Max_Bytes : Natural)
          return String;
+
+      function Read_Preview_Text
+        (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
 
       function Image_Bytes_Extent
         (Data   : Ada.Streams.Stream_Element_Array;
@@ -136,6 +141,10 @@ package body Files.File_System is
      (Path      : String;
       Max_Bytes : Natural)
       return String
+     renames Thumbnails.Read_Preview_Text;
+
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
      renames Thumbnails.Read_Preview_Text;
 
    function Image_Bytes_Extent
@@ -303,8 +312,10 @@ package body Files.File_System is
 
       function Trash_Files_Directory return String;
 
+      function Original_Path (Trashed_Path : String) return String;
+
       function Restore_From_Trash
-        (Trashed_Path : String)
+        (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
          return Mutation_Result;
 
       function Move_To_Trash
@@ -361,10 +372,37 @@ package body Files.File_System is
    function Trash_Files_Directory return String
      renames Trash.Trash_Files_Directory;
 
+   function Trash_Original_Path (Trashed_Path : String) return String is
+   begin
+      if Recovery.Recognizes (Trashed_Path) then
+         return Recovery.Original_Path (Trashed_Path);
+      end if;
+      return Trash.Original_Path (Trashed_Path);
+   end Trash_Original_Path;
+
+   function Is_Recovery_Payload (Path : String) return Boolean
+     renames Recovery.Recognizes;
+
    function Restore_From_Trash
-     (Trashed_Path : String)
+     (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
       return Mutation_Result
-     renames Trash.Restore_From_Trash;
+   is
+   begin
+      if Recovery.Recognizes (Trashed_Path) then
+         return Recovery.Restore (Trashed_Path, Expected_Identity, Expected_Original);
+      end if;
+      return Trash.Restore_From_Trash (Trashed_Path, Expected_Identity, Expected_Original);
+   end Restore_From_Trash;
+
+   function Preserve_For_Replace
+     (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result
+   is
+   begin
+      if Trash.Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
+         return Trash.Move_To_Trash (Path, Recovery_Path);
+      end if;
+      return Recovery.Preserve (Path, Recovery_Path);
+   end Preserve_For_Replace;
 
    function Move_To_Trash
      (Path : String)
@@ -380,7 +418,13 @@ package body Files.File_System is
    function Delete_Trashed_Item
      (Trashed_Path : String)
       return Mutation_Result
-     renames Trash.Delete_Trashed_Item;
+   is
+   begin
+      if Recovery.Recognizes (Trashed_Path) then
+         return Recovery.Discard (Trashed_Path);
+      end if;
+      return Trash.Delete_Trashed_Item (Trashed_Path);
+   end Delete_Trashed_Item;
 
    package Path is
       function Normalize_Path
@@ -547,7 +591,8 @@ package body Files.File_System is
 
       function Rename_Item
         (From_Path : String;
-         To_Path   : String)
+         To_Path   : String;
+         Expected_Identity : String := "")
          return Mutation_Result;
 
       function Create_Symbolic_Link
@@ -576,7 +621,8 @@ package body Files.File_System is
 
    function Rename_Item
      (From_Path : String;
-      To_Path   : String)
+      To_Path   : String;
+      Expected_Identity : String := "")
       return Mutation_Result
      renames Create.Rename_Item;
 
@@ -669,6 +715,52 @@ package body Files.File_System is
       return Mutation_Result
      renames Permissions.Set_Ownership;
 
+   function Change_Metadata
+     (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
+      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString) return Mutation_Result
+   is
+      subtype U64 is Interfaces.C.unsigned_long_long;
+      type Native_Identity is record
+         Volume, Number, Seconds, Nanoseconds : U64;
+      end record with Convention => C;
+      function Update
+        (Path, Expected : System.Address; Ownership : Interfaces.C.int;
+         Value, Group : Interfaces.C.unsigned_long; Previous, Previous_Group : access U64;
+         Identity : access Native_Identity) return Interfaces.C.int
+        with Import, Convention => C, External_Name => "files_metadata_update";
+      Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
+      Expected : aliased Interfaces.C.char_array := Interfaces.C.To_C (Expected_Identity);
+      Old_Value, Old_Group : aliased U64 := 0;
+      Entry_Id : aliased Native_Identity;
+      Status : Interfaces.C.int;
+      Failed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String
+          (if Ownership then "error.ownership.denied" else "error.permissions.failed"));
+   begin
+      Previous := 0;
+      Previous_Group := 0;
+      Identity := Null_Unbounded_String;
+      Status := Update (Name'Address, Expected'Address, Boolean'Pos (Ownership),
+                        Interfaces.C.unsigned_long (Value), Interfaces.C.unsigned_long (Group),
+                        Old_Value'Access, Old_Group'Access, Entry_Id'Access);
+      if Status = 1 then
+         Previous := Natural (Old_Value);
+         Previous_Group := Natural (Old_Group);
+         Identity := To_Unbounded_String (U64'Image (Entry_Id.Volume) & U64'Image (Entry_Id.Number)
+           & U64'Image (Entry_Id.Seconds) & U64'Image (Entry_Id.Nanoseconds));
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      elsif Status = 0 then
+         return Failed;
+      end if;
+      --  Never emulate a handle-relative metadata update by checking a path,
+      --  mutating it by name, and checking again: another process can replace
+      --  the entry in between. Platforms without the native atomic adapter
+      --  therefore fail closed.
+      return Failed;
+   exception
+      when others => return Failed;
+   end Change_Metadata;
+
    function User_Id_For_Name
      (Name  : String;
       Found : out Boolean)
@@ -690,7 +782,14 @@ package body Files.File_System is
    package Copy_Move is
       function Copy_Tree
         (Source_Path      : String;
-         Destination_Path : String)
+         Destination_Path : String;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+         return Mutation_Result;
+
+      function Copy_Tree
+        (Source_Path, Destination_Path : String;
+         Identity, Tree_Revision_Value : out Files.Types.UString;
+         Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
          return Mutation_Result;
 
       function Delete_Permanently
@@ -704,7 +803,16 @@ package body Files.File_System is
          return Drop_Import_Result;
 
       function Execute_Drop_Import
-        (Plans : Drop_Import_Plan_Vectors.Vector)
+        (Plans  : Drop_Import_Plan_Vectors.Vector;
+         Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+         return Mutation_Result;
+
+      function Execute_Drop_Import
+        (Plans  : Drop_Import_Plan_Vectors.Vector;
+         Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
+         Cancel : Cancellation_Check := null;
+         Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
          return Mutation_Result;
    end Copy_Move;
    package body Copy_Move is separate;
@@ -713,7 +821,15 @@ package body Files.File_System is
    --  Files.File_System.Copy_Move child; these renamings keep them on the public API.
    function Copy_Tree
      (Source_Path      : String;
-      Destination_Path : String)
+      Destination_Path : String;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+     renames Copy_Move.Copy_Tree;
+
+   function Copy_Tree
+     (Source_Path, Destination_Path : String;
+      Identity, Tree_Revision_Value : out Files.Types.UString;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
      renames Copy_Move.Copy_Tree;
 
@@ -721,6 +837,96 @@ package body Files.File_System is
      (Path : String)
       return Mutation_Result
      renames Copy_Move.Delete_Permanently;
+
+   function Delete_Verified_Entry
+     (Path : String;
+      Expected_Identity, Expected_Tree_Revision : String;
+      Verify_Tree : Boolean) return Mutation_Result
+   is
+      Backup : UString;
+      Failed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String ("error.undo.failed"));
+   begin
+      if Expected_Identity = "" or else Files.File_Identities.Token (Path) /= Expected_Identity then
+         return Failed;
+      end if;
+      if Verify_Tree and then not Hostkit.Fs.Is_Link (Path)
+        and then (Expected_Tree_Revision = "" or else Tree_Revision (Path) /= Expected_Tree_Revision)
+      then
+         return Failed;
+      end if;
+      if not Recovery.Preserve (Path, Backup).Success then
+         return Failed;
+      end if;
+      --  Verify after the atomic rename as well: an entry substituted between
+      --  the first check and quarantine must never have its contents deleted.
+      if Files.File_Identities.Token (To_String (Backup)) /= Expected_Identity then
+         declare
+            Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
+            pragma Unreferenced (Restored);
+         begin
+            return Failed;
+         end;
+      end if;
+      if Verify_Tree and then not Hostkit.Fs.Is_Link (To_String (Backup))
+        and then Tree_Revision (To_String (Backup)) /= Expected_Tree_Revision
+      then
+         declare
+            Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
+            pragma Unreferenced (Restored);
+         begin
+            return Failed;
+         end;
+      end if;
+      declare
+         Removed : Boolean := False;
+      begin
+         begin
+            Support.Delete_Owned_Tree (To_String (Backup));
+            Removed := True;
+         exception
+            when others => null;
+         end;
+         if not Removed then
+            declare
+               Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
+               pragma Unreferenced (Restored);
+            begin
+               return Failed;
+            end;
+         end if;
+      end;
+      declare
+         Removed : constant Mutation_Result := Delete_Permanently (Ada.Directories.Containing_Directory
+           (To_String (Backup)));
+         pragma Unreferenced (Removed);
+      begin
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      end;
+   exception
+      when others => return Failed;
+   end Delete_Verified_Entry;
+
+   function Delete_Created_Entry
+     (Path : String; Expected_Identity, Expected_Tree_Revision : String) return Mutation_Result is
+   begin
+      return Delete_Verified_Entry
+        (Path, Expected_Identity, Expected_Tree_Revision, Verify_Tree => True);
+   end Delete_Created_Entry;
+
+   function Delete_Staging_Entry
+     (Path : String; Expected_Identity : String) return Mutation_Result is
+   begin
+      return Delete_Verified_Entry
+        (Path, Expected_Identity, "", Verify_Tree => False);
+   end Delete_Staging_Entry;
+
+   function Tree_Revision (Path : String) return String is
+   begin
+      return Support.Tree_Revision (Path);
+   exception
+      when others => return "";
+   end Tree_Revision;
 
    function Plan_Drop_Import
      (Source_Paths          : Files.Types.String_Vectors.Vector;
@@ -730,7 +936,17 @@ package body Files.File_System is
      renames Copy_Move.Plan_Drop_Import;
 
    function Execute_Drop_Import
-     (Plans : Drop_Import_Plan_Vectors.Vector)
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+     renames Copy_Move.Execute_Drop_Import;
+
+   function Execute_Drop_Import
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
+      Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
      renames Copy_Move.Execute_Drop_Import;
 

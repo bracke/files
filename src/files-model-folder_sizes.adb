@@ -13,8 +13,11 @@ package body Folder_Sizes is
    procedure Clear_Folder_Size
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Folder_Sizes.Clear;
+      Cancel_Folder_Scan (Model);
+      if not Model.Folder_Sizes.Is_Empty then
+         Model.Revision_Value := Model.Revision_Value + 1;
+         Model.Folder_Sizes.Clear;
+      end if;
    end Clear_Folder_Size;
 
    procedure Prune_Folder_Sizes_To_Selection
@@ -22,7 +25,6 @@ package body Folder_Sizes is
       use type Files.Types.Item_Kind;
       Kept : Folder_Size_Maps.Map;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
       --  Rebuild the cache keeping only entries for directories still selected.
       for Item of Selected_Items (Model) loop
          if Item.Kind = Files.Types.Directory_Item
@@ -31,7 +33,10 @@ package body Folder_Sizes is
             Kept.Include (Item.Full_Path, Model.Folder_Sizes.Element (Item.Full_Path));
          end if;
       end loop;
-      Model.Folder_Sizes := Kept;
+      if not Folder_Size_Maps."=" (Model.Folder_Sizes, Kept) then
+         Model.Revision_Value := Model.Revision_Value + 1;
+         Model.Folder_Sizes := Kept;
+      end if;
    end Prune_Folder_Sizes_To_Selection;
 
    function Folder_Size_Cached_For

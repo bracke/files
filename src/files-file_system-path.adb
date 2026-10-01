@@ -317,7 +317,9 @@ package body Path is
          return Image;
       end Counter_Text;
    begin
-      while Ada.Directories.Exists (Join_Path (Directory_Path, To_String (Candidate))) loop
+      while Ada.Directories.Exists (Join_Path (Directory_Path, To_String (Candidate)))
+        or else Hostkit.Fs.Is_Link (Join_Path (Directory_Path, To_String (Candidate)))
+      loop
          Candidate := To_Unbounded_String ("untitled " & Counter_Text & ".txt");
          exit when Counter = Positive'Last;
          Counter := Counter + 1;
