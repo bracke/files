@@ -1,4 +1,5 @@
 with Ada.Command_Line;
+with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -72,13 +73,52 @@ procedure Release_Check is
       Require_Text (Root & "/alire.toml", "gnat_native = ""=15.2.1""");
       Require_Text (Root & "/alire.release.toml", "gnat_native = ""=15.2.1""");
       Require_Text (Root & "/tests/alire.toml", "gnat_native = ""=15.2.1""");
-      Require_Text (Root & "/tests/tests/alire.toml", "gnat_native = ""=15.2.1""");
       Require_Text (Root & "/tools/alire.toml", "gnat_native = ""=15.2.1""");
       Require_Text (Root & "/alire/alire.lock", "gnat=15.2.1");
       Require_Text (Root & "/alire/alire.lock", "version = ""15.2.1""");
       Require_Text (Root & "/tools/alire/alire.lock", "gnat=15.2.1");
       Require_Text (Root & "/tools/alire/alire.lock", "version = ""15.2.1""");
    end Require_Alire_GNAT_15;
+
+   package Declaration_Sets is new Ada.Containers.Indefinite_Ordered_Sets (String);
+
+   --  Compare declarations in the flat tables used by these two manifests.
+   --  This includes version constraints and build actions, not just crate names.
+   function Declarations (Path : String; Table : String) return Declaration_Sets.Set is
+      File   : File_Type;
+      Result : Declaration_Sets.Set;
+      Active : Boolean := False;
+      Ordinal : Natural := 0;
+   begin
+      Open (File, In_File, Path);
+      while not End_Of_File (File) loop
+         declare
+            Line : constant String := Ada.Strings.Fixed.Trim (Get_Line (File), Ada.Strings.Both);
+         begin
+            if Line'Length > 0 and then Line (Line'First) = '[' then
+               Active := Line = "[[" & Table & "]]";
+            elsif Active and then Line'Length > 0 and then Line (Line'First) /= '#' then
+               Ordinal := Ordinal + 1;
+               Result.Include ((if Table = "actions" then Natural'Image (Ordinal) & ":" else "") & Line);
+            end if;
+         end;
+      end loop;
+      Close (File);
+      return Result;
+   end Declarations;
+
+   procedure Require_Manifest_Parity is
+      use type Declaration_Sets.Set;
+      Tables : constant Project_Tools.Alire_Manifests.String_List :=
+        [To_Unbounded_String ("depends-on"), To_Unbounded_String ("actions")];
+   begin
+      for Table of Tables loop
+         if Declarations (Dev_Manifest, To_String (Table)) /= Declarations (Rel_Manifest, To_String (Table)) then
+            Project_Tools.Release_Checks.Fail
+              ("development and release manifests differ in " & To_String (Table));
+         end if;
+      end loop;
+   end Require_Manifest_Parity;
 begin
    if not Project_Tools.Files.File_Exists (Root & "/files.gpr") then
       Put_Line
@@ -98,18 +138,25 @@ begin
    Project_Tools.Release_Checks.Require_File
      (Checker, "share/i18n/formats.i18ndata");
    Require_Alire_GNAT_15;
+   Require_Manifest_Parity;
 
    --  The release manifest must be publishable: pin-free, named "files",
    --  declaring a license, and depending on the formerly-pinned runtime crates
-   --  by wildcard version.
+   --  through explicit compatible-version constraints.
    Project_Tools.Alire_Manifests.Require_Pin_Free_Crate_Manifest (Rel_Manifest, "files");
    Project_Tools.Alire_Manifests.Require_No_Local_Pins (Rel_Manifest);
-   Project_Tools.Alire_Manifests.Require_Release_Dependencies
-     (Rel_Manifest,
-      [To_Unbounded_String ("i18n"),
-       To_Unbounded_String ("textrender"),
-       To_Unbounded_String ("zlib"),
-       To_Unbounded_String ("guikit")]);
+   for Dependency of Project_Tools.Alire_Manifests.String_List'
+     [To_Unbounded_String ("i18n"),
+      To_Unbounded_String ("textrender"),
+      To_Unbounded_String ("zlib"),
+      To_Unbounded_String ("cryptolib"),
+      To_Unbounded_String ("guikit"),
+      To_Unbounded_String ("messages"),
+      To_Unbounded_String ("hostkit"),
+      To_Unbounded_String ("a11y")]
+   loop
+      Require_Text (Rel_Manifest, To_String (Dependency) & " = ");
+   end loop;
    Project_Tools.Release_Checks.Require_Text (Checker, "alire.release.toml", "licenses =");
 
    --  The development manifest must keep the local runtime workspace pins so

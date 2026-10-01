@@ -39,11 +39,30 @@ procedure Check_All is
    end Project_Root;
 
    Root : constant String := Project_Root;
+   function Temp_Path (Name : String) return String is
+      Image : constant String := Integer'Image
+        (GNAT.OS_Lib.Pid_To_Integer (GNAT.OS_Lib.Current_Process_Id));
+   begin
+      return Project_Tools.Files.Temp_Dir & "/files-check-all-"
+        & Image (Image'First + 1 .. Image'Last) & "-" & Name;
+   end Temp_Path;
    --  The AUnit suite was split from one files_suite.adb into per-section
    --  bodies; contract checks search this combined snapshot so an assertion
    --  may live in any section. Written once at startup (see main body).
-   Combined_Suite : constant String := Root & "/tools/obj/check_all_combined_suite.txt";
+   Combined_Suite : constant String := Temp_Path ("combined-suite.txt");
    Alr  : constant String := Project_Tools.Processes.Locate_Command ("alr");
+
+   procedure Cleanup_Temps is
+   begin
+      Project_Tools.Files.Delete_File_If_Present (Combined_Suite);
+      Project_Tools.Files.Delete_File_If_Present (Temp_Path ("cldr.out"));
+      Project_Tools.Files.Delete_File_If_Present (Temp_Path ("help-long.txt"));
+      Project_Tools.Files.Delete_File_If_Present (Temp_Path ("help-short.txt"));
+      Project_Tools.Files.Delete_File_If_Present (Temp_Path ("version.txt"));
+      Project_Tools.Files.Delete_Tree (Temp_Path ("install-stage"));
+   exception
+      when others => null;
+   end Cleanup_Temps;
 
    function Is_Text_Project_File (Name : String) return Boolean is
    begin
@@ -51,6 +70,7 @@ procedure Check_All is
         or else Ends_With (Name, ".adb")
         or else Ends_With (Name, ".ads")
         or else Ends_With (Name, ".gpr")
+        or else Ends_With (Name, ".c")
         or else Ends_With (Name, ".h")
         or else Ends_With (Name, ".toml")
         or else Ends_With (Name, ".catalog")
@@ -83,7 +103,7 @@ procedure Check_All is
            Dir     => Root,
            Program => Alr,
            Args    =>
-             [1 => new String'("exec"),
+             GNAT.OS_Lib.Argument_List'[1 => new String'("exec"),
               2 => new String'("--"),
               3 => new String'("gnatls"),
               4 => new String'("--version")],
@@ -198,7 +218,7 @@ procedure Check_All is
          Program         => Root & "/tools/bin/cldr_to_catalog",
          Args            =>
            [1 => new String'(Root & "/tools/testdata/cldr/main/zz.xml")],
-         Output_Path     => "/tmp/files_cldr_to_catalog_fixture.out",
+         Output_Path     => Temp_Path ("cldr.out"),
          Required_First  => "zz-ZZ.time.locale.datetime_pattern = %d %b %Y at %H.%M.%S",
          Required_Second => "zz-ZZ.details.size.unit.mib = zmb");
    end Check_CLDR_Importer;
@@ -294,10 +314,8 @@ procedure Check_All is
       Check_Line_Lengths_In_File (Root & "/.gitignore");
       Check_Line_Lengths_In_File (Root & "/alire.toml");
       Check_Line_Lengths_In_File (Root & "/tests/alire.toml");
-      Check_Line_Lengths_In_File (Root & "/tests/tests/alire.toml");
       Check_Line_Lengths_In_File (Root & "/files.gpr");
       Check_Line_Lengths_In_File (Root & "/tests/tests.gpr");
-      Check_Line_Lengths_In_File (Root & "/tests/tests/tests.gpr");
       Check_Line_Lengths_In_File (Root & "/tools/alire.toml");
       Check_Line_Lengths_In_File (Root & "/tools/files_check_all.gpr");
    end Check_Line_Lengths;
@@ -409,10 +427,8 @@ procedure Check_All is
       Check_Consecutive_Empty_Lines_In_File (Root & "/.gitignore");
       Check_Consecutive_Empty_Lines_In_File (Root & "/alire.toml");
       Check_Consecutive_Empty_Lines_In_File (Root & "/tests/alire.toml");
-      Check_Consecutive_Empty_Lines_In_File (Root & "/tests/tests/alire.toml");
       Check_Consecutive_Empty_Lines_In_File (Root & "/files.gpr");
       Check_Consecutive_Empty_Lines_In_File (Root & "/tests/tests.gpr");
-      Check_Consecutive_Empty_Lines_In_File (Root & "/tests/tests/tests.gpr");
       Check_Consecutive_Empty_Lines_In_File (Root & "/tools/alire.toml");
       Check_Consecutive_Empty_Lines_In_File (Root & "/tools/files_check_all.gpr");
    end Check_Consecutive_Empty_Lines;
@@ -549,10 +565,8 @@ procedure Check_All is
       Check_Whitespace_In_File (Root & "/alire.toml");
       Check_Whitespace_In_File (Root & "/tests/.gitignore");
       Check_Whitespace_In_File (Root & "/tests/alire.toml");
-      Check_Whitespace_In_File (Root & "/tests/tests/alire.toml");
       Check_Whitespace_In_File (Root & "/files.gpr");
       Check_Whitespace_In_File (Root & "/tests/tests.gpr");
-      Check_Whitespace_In_File (Root & "/tests/tests/tests.gpr");
       Check_Whitespace_In_File (Root & "/tools/alire.toml");
       Check_Whitespace_In_File (Root & "/tools/files_check_all.gpr");
    end Check_Whitespace;
@@ -1973,7 +1987,7 @@ procedure Check_All is
    begin
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
-         "i18n = ""*""",
+         "i18n = ""^1.1.0""",
          "files must depend on the i18n crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
@@ -2346,29 +2360,24 @@ procedure Check_All is
    procedure Check_Crate_Structure is
       Main_Manifest  : constant String := Root & "/alire.toml";
       Top_Tests_Manifest : constant String := Root & "/tests/alire.toml";
-      Tests_Manifest : constant String := Root & "/tests/tests/alire.toml";
       Tools_Manifest : constant String := Root & "/tools/alire.toml";
       Main_Project   : constant String := Root & "/files.gpr";
       Top_Tests_Project : constant String := Root & "/tests/tests.gpr";
-      Tests_Project  : constant String := Root & "/tests/tests/tests.gpr";
       Tools_Project  : constant String := Root & "/tools/files_check_all.gpr";
       Main_Ignore    : constant String := Root & "/.gitignore";
       Top_Tests_Ignore : constant String := Root & "/tests/.gitignore";
-      Tests_Ignore   : constant String := Root & "/tests/tests/.gitignore";
       Tools_Ignore   : constant String := Root & "/tools/.gitignore";
    begin
       Project_Tools.Files.Require_Files
         ([To_Unbounded_String (Main_Project),
           To_Unbounded_String (Top_Tests_Manifest),
           To_Unbounded_String (Top_Tests_Project),
-          To_Unbounded_String (Tests_Project),
           To_Unbounded_String (Tools_Manifest),
           To_Unbounded_String (Tools_Project),
           To_Unbounded_String (Root & "/tools/src/check_all.adb"),
           To_Unbounded_String (Root & "/tools/src/cldr_to_catalog.adb"),
           To_Unbounded_String (Main_Ignore),
           To_Unbounded_String (Top_Tests_Ignore),
-          To_Unbounded_String (Tests_Ignore),
           To_Unbounded_String (Tools_Ignore)],
          "files checker tooling must be implemented as an Ada Alire helper crate");
       Project_Tools.Files.Require_Contains
@@ -2381,7 +2390,7 @@ procedure Check_All is
          "files crate must build the files executable");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
-         "guikit = ""*""",
+         "guikit = ""^0.1.0""",
          "files must depend on the guikit crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
@@ -2389,7 +2398,7 @@ procedure Check_All is
          "files must pin guikit to the local relative crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
-         "i18n = ""*""",
+         "i18n = ""^1.1.0""",
          "files must depend on the i18n crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
@@ -2397,7 +2406,7 @@ procedure Check_All is
          "files must pin i18n to the local relative crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
-         "textrender = ""*""",
+         "textrender = ""^1.0.0""",
          "files must depend on the textrender crate");
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
@@ -2449,14 +2458,6 @@ procedure Check_All is
          "first-implementation policy tests must cover the files binary entry point");
       Project_Tools.Files.Require_Contains
         (Combined_Suite,
-         "nested tests project builds the expected AUnit runner",
-         "first-implementation policy tests must cover the nested AUnit runner");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "nested tests project keeps Ada 2022 test sources wired",
-         "first-implementation policy tests must cover nested tests source wiring");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
          "checker tooling project builds the expected Ada helper",
          "first-implementation policy tests must cover checker executable wiring");
       Project_Tools.Files.Require_Contains
@@ -2473,10 +2474,6 @@ procedure Check_All is
          "first-implementation policy tests must cover top-level tests generated-artifact ignores");
       Project_Tools.Files.Require_Contains
         (Combined_Suite,
-         "nested tests crate ignores generated build artifacts",
-         "first-implementation policy tests must cover nested tests generated-artifact ignores");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
          "checker tooling crate ignores generated build artifacts",
          "first-implementation policy tests must cover checker generated-artifact ignores");
       Project_Tools.Files.Require_Contains
@@ -2489,7 +2486,7 @@ procedure Check_All is
          "checker tooling crate must build all Ada helper executables");
       Project_Tools.Files.Require_Contains
         (Tools_Manifest,
-         "project_tools = ""*""",
+         "project_tools = ""^0.1.0""",
          "checker tooling must depend on the project_tools crate");
       Project_Tools.Files.Require_Contains
         (Tools_Manifest,
@@ -2567,7 +2564,7 @@ procedure Check_All is
          Dir             => Root,
          Program         => "./bin/files",
          Args            => [1 => new String'("--help")],
-         Output_Path     => "/tmp/files-check-help-long.txt",
+         Output_Path     => Temp_Path ("help-long.txt"),
          Required_First  => "Usage: files",
          Required_Second => "--settings PATH");
       Run_And_Require_Output
@@ -2575,7 +2572,7 @@ procedure Check_All is
          Dir             => Root,
          Program         => "./bin/files",
          Args            => [1 => new String'("-h")],
-         Output_Path     => "/tmp/files-check-help-short.txt",
+         Output_Path     => Temp_Path ("help-short.txt"),
          Required_First  => "Usage: files",
          Required_Second => "--help, -h");
       Run_And_Require_Output
@@ -2583,7 +2580,7 @@ procedure Check_All is
          Dir             => Root,
          Program         => "./bin/files",
          Args            => [1 => new String'("--version")],
-         Output_Path     => "/tmp/files-check-version.txt",
+         Output_Path     => Temp_Path ("version.txt"),
          Required_First  => "files ",
          Required_Second => "0.1.0-dev");
    end Check_Executable_CLI_Help;
@@ -3191,7 +3188,7 @@ procedure Check_All is
    end Check_Platform_Bodies;
 
    procedure Check_Packaging_Metadata is
-      Stage : constant String := "/tmp/files_check_all_install_stage";
+      Stage : constant String := Temp_Path ("install-stage");
 
       procedure Require_Manifest_Entry
         (Path    : String;
@@ -3501,7 +3498,7 @@ procedure Check_All is
          "files desktop entry must not launch in a terminal");
       Project_Tools.Files.Require_Contains
         (Root & "/share/applications/files.desktop",
-         "Categories=System;FileManager;",
+         "Categories=System;FileManager;FileTools;",
          "files desktop entry must expose file-manager categories");
       Project_Tools.Files.Require_Contains
         (Root & "/share/applications/files.desktop",
@@ -3561,7 +3558,7 @@ procedure Check_All is
          "files AppStream metadata must match the desktop application summary");
       Project_Tools.Files.Require_Contains
         (Root & "/share/metainfo/dk.bracke.files.metainfo.xml",
-         "<p>Files is an Ada desktop file explorer for local directories.</p>",
+         "<p>Files is an Ada desktop file explorer for browsing, searching, organizing, and opening local files.</p>",
          "files AppStream metadata must describe the packaged application");
       Project_Tools.Files.Require_Contains
         (Root & "/share/metainfo/dk.bracke.files.metainfo.xml",
@@ -3712,7 +3709,7 @@ procedure Check_All is
          "files staged desktop entry must preserve directory MIME registration");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/applications/files.desktop",
-         "Categories=System;FileManager;",
+         "Categories=System;FileManager;FileTools;",
          "files staged desktop entry must preserve file-manager categories");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/applications/files.desktop",
@@ -3768,7 +3765,7 @@ procedure Check_All is
          "files staged AppStream metadata must preserve the application summary");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/metainfo/dk.bracke.files.metainfo.xml",
-         "<p>Files is an Ada desktop file explorer for local directories.</p>",
+         "<p>Files is an Ada desktop file explorer for browsing, searching, organizing, and opening local files.</p>",
          "files staged AppStream metadata must preserve the application description");
       Project_Tools.Files.Require_Contains
         (Stage & "/share/metainfo/dk.bracke.files.metainfo.xml",
@@ -3850,15 +3847,15 @@ begin
    Check_Desktop_Runtime_Contract;
    Run ("top-level tests build", Root & "/tests", Alr, [1 => new String'("build")]);
    Run ("top-level AUnit tests", Root & "/tests", "./bin/tests", []);
-   Run ("tests build", Root & "/tests/tests", Alr, [1 => new String'("build")]);
-   Run ("AUnit tests", Root & "/tests/tests", "./bin/tests", []);
-
+   Cleanup_Temps;
    Put_Line ("files project checks passed");
    Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
 exception
    when Program_Error =>
+      Cleanup_Temps;
       null;
    when E : others =>
+      Cleanup_Temps;
       Put_Line
         (Standard_Error,
          "files project checks failed: " & Ada.Exceptions.Exception_Message (E));

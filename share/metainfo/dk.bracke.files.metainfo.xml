@@ -6,8 +6,13 @@
   <name>Files</name>
   <summary>Browse and open local files</summary>
   <description>
-    <p>Files is an Ada desktop file explorer for local directories.</p>
+    <p>Files is an Ada desktop file explorer for browsing, searching, organizing, and opening local files.</p>
   </description>
+  <developer id="dk.bracke">
+    <name>Bent Bracke</name>
+  </developer>
+  <url type="homepage">https://github.com/bracke/files</url>
+  <content_rating type="oars-1.1" />
   <categories>
     <category>System</category>
     <category>FileManager</category>

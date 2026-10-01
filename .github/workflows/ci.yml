@@ -5,7 +5,8 @@ name: CI
 #
 # PREREQUISITE: this project pins sibling crates by local path in alire.toml
 # (project_tools, i18n, messages, textrender, zlib, guikit, hostkit, cryptolib,
-#  a11ykit).
+#  a11ykit). The checkout step pins every sibling to a reviewed commit so a
+#  historical Files revision never changes underneath a moving default branch.
 # CI clones them next to the checkout. They must therefore exist as fetchable
 # GitHub repos under the same owner. As of writing, `textrender` is published
 # but the rest are NOT — push them to github.com/<owner>/<name> (or adjust the
@@ -71,7 +72,9 @@ jobs:
             libxxf86vm-dev \
             libxrandr-dev \
             libxinerama-dev \
-            libxi-dev
+            libxi-dev \
+            appstream \
+            desktop-file-utils
           # OpenSSL for httpclient's TLS bridge (i18n's download_tzdb links it).
           sudo apt-get install -y libssl-dev
 
@@ -106,11 +109,8 @@ jobs:
           # zstd -- in Ada, and links none of them.
           pacman() { /c/msys64/usr/bin/pacman "$@"; }
 
-          # The runner's MSYS2 keyring goes stale, and then the database refuses
-          # to sync at all: "signature ... is invalid". Refresh the keyring first,
-          # and if the signed sync still will not go, fall back to an unsigned one
-          # -- this is a throwaway CI image installing four well-known libraries,
-          # not a machine whose supply chain we are defending.
+          # The runner's MSYS2 keyring can go stale. Refresh it before installing;
+          # package authenticity is mandatory even on a throwaway CI machine.
           pacman-key() { /c/msys64/usr/bin/pacman-key "$@"; }
           pacman-key --init || true
           pacman-key --populate msys2 || true
@@ -136,23 +136,7 @@ jobs:
             sleep 15
           done
 
-          if [ -z "$synced" ]; then
-            echo "::warning::signed pacman sync failed; retrying without signature checks"
-            # This step runs in Git Bash, whose /tmp is NOT the /tmp of the MSYS2
-            # installation that owns this pacman -- writing the config to "/tmp"
-            # put it somewhere pacman would never look, and the fallback died on
-            # "config file could not be read" every time it was reached. Hand both
-            # of them a path they agree on.
-            sed 's/^SigLevel.*/SigLevel = Never/' /c/msys64/etc/pacman.conf \
-              > /c/msys64/tmp/pacman-nosig.conf
-            for attempt in 1 2 3; do
-              if sync --config C:/msys64/tmp/pacman-nosig.conf; then synced=yes; break; fi
-              echo "::warning::unsigned pacman sync attempt ${attempt} failed"
-              sleep 15
-            done
-          fi
-
-          [ -n "$synced" ] || { echo "::error::could not install the MSYS2 packages"; exit 1; }
+          [ -n "$synced" ] || { echo "::error::could not install signed MSYS2 packages"; exit 1; }
 
           # ld resolves -l<name> through LIBRARY_PATH; the DLLs must also be on
           # PATH for the test binary and the live app to start.
@@ -167,24 +151,32 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           owner="${{ github.repository_owner }}"
-          git clone --depth 1 "https://github.com/${owner}/project_tools.git" project_tools
-          git clone --depth 1 "https://github.com/${owner}/i18n.git" i18n
-          git clone --depth 1 "https://github.com/${owner}/messages.git" messages
-          git clone --depth 1 "https://github.com/${owner}/textrender.git" textrender
-          git clone --depth 1 "https://github.com/${owner}/zlib.git" zlib
-          git clone --depth 1 "https://github.com/${owner}/guikit.git" guikit
-          git clone --depth 1 "https://github.com/${owner}/hostkit.git" hostkit
-          git clone --depth 1 "https://github.com/${owner}/cryptolib.git" cryptolib
-          # a11ykit publishes the frame's accessibility tree (Files.Accessibility).
-          # It is pinned in all three roots, so a checkout without it fails at
-          # "Build the application" on every OS, not just one.
+          clone_at() {
+            name="$1"
+            revision="$2"
+            git init "$name"
+            git -C "$name" remote add origin "https://github.com/${owner}/${name}.git"
+            git -C "$name" fetch --depth 1 origin "$revision"
+            git -C "$name" checkout --detach FETCH_HEAD
+          }
+          clone_at project_tools 97a53582530e2f992611ac74b01b2a9ab19a926f
+          clone_at i18n de19e64c6838b570ac5933dc3c9a5e224bc40fe0
+          clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
+          clone_at textrender eac666b738ead8ccdc1dde875a652138c0b6ac88
+          clone_at zlib 9e67642ed381fd0d4af09cb2f3e47563295dc7bb
+          clone_at guikit 1193331ddfb0a57e23229d270721495fa17ce2c0
+          clone_at hostkit 03b32e5cf2da438b974f425d3d9aed1ee257a755
+          clone_at cryptolib 05c5117f89a4ec7d06633e0d9b546fd0a8f8f90f
+          # This repository is the only temporary exception: Files consumes the
+          # renamed `a11y` crate, which has not yet been published at a stable
+          # commit. Pin this as soon as that sibling change is pushed.
           git clone --depth 1 "https://github.com/${owner}/a11ykit.git" a11ykit
           # i18n's pre-build regeneration builds download_tzdb (httpclient, tarlib,
           # awklib-on-regexp) and the CLDR import (httpclient); clone those too.
-          git clone --depth 1 "https://github.com/${owner}/httpclient.git" httpclient
-          git clone --depth 1 "https://github.com/${owner}/tarlib.git" tarlib
-          git clone --depth 1 "https://github.com/${owner}/awklib.git" awklib
-          git clone --depth 1 "https://github.com/${owner}/regexp.git" regexp
+          clone_at httpclient 8191254695b1072b010ba23c6c6b29b0644f5277
+          clone_at tarlib 1a6f22ae04e89a2e634d00f283527d337e3d3b1b
+          clone_at awklib 1ff50d0d729f403c1eb7cde7fdadad3e4e24c09c
+          clone_at regexp 075f7e0dadde859b79e0026e9bbd715c7c753ad6
 
       - name: Compute an OS-stable i18n upstream cache key
         id: cldr_key
@@ -324,6 +316,20 @@ jobs:
             ./bin/tests
           fi
 
+      - name: Run C bridges under UndefinedBehaviorSanitizer (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        working-directory: files/tests
+        env:
+          # AddressSanitizer takes ownership of sigaltstack and is incompatible
+          # with GNAT task stacks; UBSan instruments the bridges without that
+          # runtime collision.
+          FILES_CFLAGS: -fsanitize=undefined -fno-omit-frame-pointer
+          FILES_LDFLAGS: -fsanitize=undefined
+        run: |
+          alr --non-interactive build
+          ./bin/tests
+
       - name: Live GPU smoke (Linux, software Vulkan)
         # Exercises the full GLFW + Vulkan render path headlessly under Xvfb with
         # the Mesa lavapipe software ICD, then structurally analyses the read-back
@@ -354,14 +360,22 @@ jobs:
         # the architecture guardrails (rendering/window/events must-not-do-X,
         # applied across each unit and its subunits). These are OS-independent,
         # so check_all runs once on Linux. It shells out to `alr` to compile
-        # every unit and run the nested contract suite; the application build and
+        # every unit and run the contract suite; the application build and
         # the i18n upstream cache above mean it re-downloads nothing.
         if: runner.os == 'Linux'
         shell: bash
         working-directory: files
         run: |
           (cd tools && alr --non-interactive build)
+          ./tools/bin/release_check
           ./tools/bin/check_all
+      - name: Validate desktop packaging metadata (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        working-directory: files
+        run: |
+          appstreamcli validate --no-net share/metainfo/dk.bracke.files.metainfo.xml
+          desktop-file-validate share/applications/files.desktop
       # A catalogue can be well-formed and still have drifted from the
       # messages it translates: a key with no original, an argument dropped so
       # the text renders without the value it was about, an option name
