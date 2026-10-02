@@ -19,6 +19,10 @@ private package Files.File_System.Recovery is
    --  @return Original path from the recovery sidecar, or empty on failure.
    function Original_Path (Path : String) return String;
 
+   --  Return every still-valid recovery payload recorded for this user.
+   --  @return Valid registered payload paths; stale records are omitted.
+   function Registered_Payloads return Files.Types.String_Vectors.Vector;
+
    --  @param Path Payload returned by Preserve.
    --  @param Expected_Identity Optional history snapshot verified before restoration.
    --  @param Expected_Original Destination captured when history was recorded.

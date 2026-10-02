@@ -34,11 +34,14 @@ Undo entry is used, cleared, or expires. After a crash, inspect and resolve any
 remaining payload explicitly:
 
 ```sh
+files --list-recoveries
 files --list-recoveries DIRECTORY
 files --recover DIRECTORY/.files-recovery-N/payload
 files --discard-recovery DIRECTORY/.files-recovery-N/payload
 ```
 
-Listing prints the payload and its recorded original path, separated by a tab.
-Recovery refuses to replace an existing destination. Discard is permanent and
-accepts only a recognized Files recovery payload.
+The no-argument list uses the persistent application-data index; the directory
+form scans only that directory. Listing prints the payload and its recorded
+original path, separated by a tab. Recovery refuses to replace an existing
+destination. Discard is permanent, requires an identity-bound Files ownership
+record, and refuses directories containing unknown entries.

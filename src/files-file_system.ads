@@ -670,6 +670,11 @@ package Files.File_System is
    --  @return True only for a recognized application recovery payload.
    function Is_Recovery_Payload (Path : String) return Boolean;
 
+   --  Return recoverable replacement payloads recorded across directories.
+   --  Stale or damaged registry entries are omitted.
+   --  @return Valid registered replacement-recovery payload paths.
+   function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector;
+
    --  Restore a trashed payload to its recorded original location.
    --
    --  For freedesktop backends the original path is read from the matching

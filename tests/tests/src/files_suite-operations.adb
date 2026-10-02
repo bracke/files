@@ -14375,6 +14375,21 @@ package body Files_Suite.Operations is
       end Restore_Environment;
    begin
       Reset_Root;
+      declare
+         Fake_Stage : constant String := Join (Root, ".files-recovery-900");
+         Fake_Payload : constant String := Join (Fake_Stage, "payload");
+      begin
+         Ada.Directories.Create_Directory (Fake_Stage);
+         Write_Binary_File (Fake_Payload, "unowned");
+         Write_Binary_File (Join (Fake_Stage, "original"), Dest);
+         Assert
+           (not Files.File_System.Is_Recovery_Payload (Fake_Payload),
+            "a matching filename without an ownership record is not recovery data");
+         Assert
+           (Ada.Directories.Exists (Fake_Payload),
+            "the recovery gate leaves recovery-shaped user data alone");
+         Project_Tools.Files.Delete_Tree (Fake_Stage);
+      end;
       Write_Binary_File (Source, "new");
       Write_Binary_File (Dest, "original");
       Actions.Append (Files.Paste.Resolved_Action'
@@ -14403,6 +14418,29 @@ package body Files_Suite.Operations is
       end loop;
       Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
       Assert (Result.Success, "the rollback failure fixture preserves the original");
+      declare
+         Registered : constant Files.Types.String_Vectors.Vector :=
+           Files.File_System.Registered_Recovery_Payloads;
+         Found : Boolean := False;
+         Intruder : constant String := Join
+           (Ada.Directories.Containing_Directory (To_String (Backup)), "unrelated");
+      begin
+         for Payload of Registered loop
+            Found := Found or else Payload = Backup;
+         end loop;
+         Assert (Found, "native recovery is discoverable without knowing its parent directory");
+         Ada.Directories.Delete_File
+           (Join (Ada.Directories.Containing_Directory (To_String (Backup)), "original"));
+         Assert
+           (Files.File_System.Trash_Original_Path (To_String (Backup)) = Dest,
+            "the ownership record retains the original path when the legacy sidecar is lost");
+         Write_Binary_File (Intruder, "must survive");
+         Result := Files.File_System.Delete_Trashed_Item (To_String (Backup));
+         Assert
+           (not Result.Success and then Ada.Directories.Exists (Intruder),
+            "discard refuses a recovery directory containing unknown data");
+         Ada.Directories.Delete_File (Intruder);
+      end;
       Write_Binary_File (Dest, "unrelated");
       Result := Files.File_System.Restore_From_Trash (To_String (Backup));
       Assert (not Result.Success and then Ada.Directories.Exists (To_String (Backup)),

@@ -5,6 +5,7 @@ with Ada.Text_IO;
 
 with Files.File_System;
 with Files.Localization;
+with Files.Types;
 with Hostkit.Fs;
 
 package body Files.Recovery_CLI is
@@ -26,7 +27,7 @@ package body Files.Recovery_CLI is
         or else not Ada.Directories.Exists (Directory)
         or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
       then
-         Fail (Files.Localization.Text ("cli.recovery.error.not_directory", "en") & ':' & ' ' & Directory);
+         Fail (Files.Localization.Text ("cli.recovery.error.not_directory") & ':' & ' ' & Directory);
          return;
       end if;
       Ada.Directories.Start_Search
@@ -54,13 +55,29 @@ package body Files.Recovery_CLI is
                when others => null;
             end;
          end if;
-         Fail (Files.Localization.Text ("cli.recovery.error.list", "en") & ':' & ' ' & Directory);
+         Fail (Files.Localization.Text ("cli.recovery.error.list") & ':' & ' ' & Directory);
    end List;
+
+   procedure List_Registered is
+      Payloads : constant Files.Types.String_Vectors.Vector :=
+        Files.File_System.Registered_Recovery_Payloads;
+   begin
+      for Payload of Payloads loop
+         declare
+            Path : constant String := To_String (Payload);
+         begin
+            Ada.Text_IO.Put_Line
+              (Path & ASCII.HT & Files.File_System.Trash_Original_Path (Path));
+         end;
+      end loop;
+   exception
+      when others => Fail (Files.Localization.Text ("cli.recovery.error.list_all"));
+   end List_Registered;
 
    procedure Apply (Path : String; Restore : Boolean) is
    begin
       if not Files.File_System.Is_Recovery_Payload (Path) then
-         Fail (Files.Localization.Text ("cli.recovery.error.not_payload", "en") & ':' & ' ' & Path);
+         Fail (Files.Localization.Text ("cli.recovery.error.not_payload") & ':' & ' ' & Path);
          return;
       end if;
       declare
@@ -69,7 +86,7 @@ package body Files.Recovery_CLI is
             else Files.File_System.Delete_Trashed_Item (Path));
       begin
          if not Result.Success then
-            Fail (Files.Localization.Text (To_String (Result.Error_Key), "en") & ": " & Path);
+            Fail (Files.Localization.Text (To_String (Result.Error_Key)) & ": " & Path);
          end if;
       end;
    end Apply;
@@ -82,10 +99,16 @@ package body Files.Recovery_CLI is
         "--list-recoveries" | "--recover" | "--discard-recovery"
       then
          return False;
-      elsif Ada.Command_Line.Argument_Count /= 2 then
-         Fail (Files.Localization.Text ("cli.recovery.error.argument", "en"));
       elsif Ada.Command_Line.Argument (1) = "--list-recoveries" then
-         List (Ada.Command_Line.Argument (2));
+         if Ada.Command_Line.Argument_Count = 1 then
+            List_Registered;
+         elsif Ada.Command_Line.Argument_Count = 2 then
+            List (Ada.Command_Line.Argument (2));
+         else
+            Fail (Files.Localization.Text ("cli.recovery.error.list_argument"));
+         end if;
+      elsif Ada.Command_Line.Argument_Count /= 2 then
+         Fail (Files.Localization.Text ("cli.recovery.error.argument"));
       else
          Apply
            (Ada.Command_Line.Argument (2),
