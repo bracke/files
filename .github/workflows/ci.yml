@@ -179,7 +179,7 @@ jobs:
           clone_at cryptolib 05c5117f89a4ec7d06633e0d9b546fd0a8f8f90f
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 59a8dc24ffeaea4d00c2bfa27cc68b9b72b440ef
+          clone_at a11ykit 6bf13f621fef97a5e45efcdf227b1daa61cacfbf
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
