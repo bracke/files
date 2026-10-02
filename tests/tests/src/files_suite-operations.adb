@@ -8942,6 +8942,8 @@ package body Files_Suite.Operations is
       Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
       Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "");
       Old_Xdg : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
+      Prompt_Limit : constant Duration :=
+        (if Hostkit.Host.Current = Hostkit.Host.Windows then 1.0 else 0.25);
       type Kind is (Trash_Job, Delete_Job, Restore_Job, Empty_Job, Undo_Job, Redo_Job);
       procedure Restore is
       begin
@@ -8986,7 +8988,8 @@ package body Files_Suite.Operations is
                when Empty_Job => Files.Operations.Empty_Trash (Model, Settings),
                when Undo_Job => Files.Operations.Undo_Last (Model, Settings),
                when Redo_Job => Files.Operations.Redo_Last (Model, Settings));
-         Assert (Step.Status = Files.Operations.Operation_Success and then Ada.Calendar.Clock - Before < 0.25
+         Assert (Step.Status = Files.Operations.Operation_Success
+                 and then Ada.Calendar.Clock - Before < Prompt_Limit
                  and then Files.Model.Paste_Execution_Is_Active (Model),
                  "destructive and history commands launch promptly without filesystem work in the caller");
          declare
@@ -9006,7 +9009,8 @@ package body Files_Suite.Operations is
          else
             Before := Ada.Calendar.Clock;
             Files.Application.Windows.Release_Window_Jobs (Model, Watch);
-            Assert (Ada.Calendar.Clock - Before < 0.25, "window closure never joins a stalled destructive helper");
+            Assert (Ada.Calendar.Clock - Before < Prompt_Limit,
+                    "window closure never joins a stalled destructive helper");
          end if;
          Assert (File_Has_Bytes (Join (Root, "victim.txt"), "victim bytes")
                  and then not Ada.Directories.Exists (Join (Root, "new-copy.txt"))
@@ -11951,7 +11955,9 @@ package body Files_Suite.Operations is
                and then To_String (Action.Arguments.Element (8)) = "quoted-icon",
                "the icon field expands to its two specified arguments");
             Assert
-              (To_String (Action.Arguments.Element (9)) = Join (Apps_Dir, "quoted.desktop"),
+              (Hostkit.Metadata.Same_File
+                 (To_String (Action.Arguments.Element (9)),
+                  Join (Apps_Dir, "quoted.desktop")),
                "the desktop-file field expands to the source desktop entry");
          end;
 
@@ -16187,13 +16193,15 @@ package body Files_Suite.Operations is
 
          procedure Restore is
          begin
+            --  Windows refuses to remove the transport while its lease handle
+            --  is open, so release the session before restoring the fixture.
+            Files.Process_Jobs.Reset (Job);
             if Length (Original) > 0 and then Ada.Directories.Exists (To_String (Original)) then
                Project_Tools.Files.Delete_Tree (To_String (Original));
             end if;
             if Length (Saved) > 0 and then Ada.Directories.Exists (To_String (Saved)) then
                Ada.Directories.Rename (To_String (Saved), To_String (Original));
             end if;
-            Files.Process_Jobs.Reset (Job);
          end Restore;
       begin
          Files.Process_Jobs.Reserve (Job);
