@@ -17,14 +17,10 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
 #include <fcntl.h>
 #include <unistd.h>
 #ifdef __APPLE__
-#include <sys/attr.h>
-
 static int files_fchmod_evtonly(int fd, unsigned long value) {
-    struct attrlist attributes = {0};
-    uint32_t mode = (uint32_t)(value & 07777);
-    attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
-    attributes.commonattr = ATTR_CMN_ACCESSMASK;
-    return fsetattrlist(fd, &attributes, &mode, sizeof(mode), 0) == 0;
+    char held[64];
+    snprintf(held, sizeof(held), "/dev/fd/%d", fd);
+    return chmod(held, value & 07777) == 0;
 }
 #endif
 
@@ -85,8 +81,8 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
             ok = fchown(fd, value, group) == 0;
         } else {
             /* APFS can reject fchmod on the O_EVTONLY descriptor needed to
-               reopen a mode-000 file.  fsetattrlist changes the same held
-               vnode's documented access-mask attribute without a path race. */
+               reopen a mode-000 file.  Darwin resolves OP_SETATTR lookups on
+               /dev/fd back to the held vnode, retaining the identity binding. */
             ok = fchmod(fd, value & 07777) == 0
                 || files_fchmod_evtonly(fd, value);
         }
