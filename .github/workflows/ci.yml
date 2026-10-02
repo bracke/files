@@ -290,8 +290,10 @@ jobs:
           else
             bin=./bin/files
           fi
+          smoke_settings="$RUNNER_TEMP/files-runtime-smoke.conf"
+          printf '[settings]\n' > "$smoke_settings"
           set +e
-          out="$("$bin" --runtime-smoke --settings="$RUNNER_TEMP/files-runtime-smoke.conf" . 2>&1)"
+          out="$("$bin" --runtime-smoke --settings="$smoke_settings" . 2>&1)"
           code=$?
           set -e
           echo "$out"
@@ -325,7 +327,9 @@ jobs:
           else
             installed="$prefix/bin/files"
           fi
-          out="$("$installed" --runtime-smoke --settings="$RUNNER_TEMP/files-installed-smoke.conf" .)"
+          smoke_settings="$RUNNER_TEMP/files-installed-smoke.conf"
+          printf '[settings]\n' > "$smoke_settings"
+          out="$("$installed" --runtime-smoke --settings="$smoke_settings" .)"
           printf '%s\n' "$out"
           pass_count="$(printf '%s\n' "$out" | awk '$0 == "runtime-smoke: PASS" { n++ } END { print n + 0 }')"
           [ "$pass_count" -eq 1 ]
