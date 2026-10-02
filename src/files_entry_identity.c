@@ -70,7 +70,11 @@ int files_entry_identity(const char *path, struct files_identity *value) {
         free(name);
         return 0;
     }
-    HANDLE file = CreateFileW(name, FILE_READ_ATTRIBUTES,
+    /* A zero-access metadata handle is sufficient for the identity queries
+       below and continues to open the reparse point itself when a symbolic
+       link's target is missing.  Requesting FILE_READ_ATTRIBUTES can make a
+       completed link unverifiable after its source is moved away. */
+    HANDLE file = CreateFileW(name, 0,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
         FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
     free(name);
