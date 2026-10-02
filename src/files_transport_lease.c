@@ -69,8 +69,8 @@ static int identity_for(HANDLE file, struct handle_identity *result) {
     if (!number || number == UINT64_MAX) return 0;
     result->volume = info.dwVolumeSerialNumber;
     result->low = number;
-    result->high = ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
-        | info.ftCreationTime.dwLowDateTime;
+    /* Keep the legacy NTFS identity stable when the path is renamed. */
+    result->high = 0;
     return 1;
 }
 

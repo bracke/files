@@ -119,9 +119,9 @@ static int identity_from_handle(HANDLE file, struct files_identity *identity,
         memcpy(&identity->number, id.FileId.Identifier, sizeof(uint64_t));
         memcpy(&identity->birth_seconds,
                id.FileId.Identifier + sizeof(uint64_t), sizeof(uint64_t));
-        identity->birth_nanoseconds =
-            ((uint64_t)information->ftCreationTime.dwHighDateTime << 32)
-            | information->ftCreationTime.dwLowDateTime;
+        /* A Windows file ID already identifies the entry.  NTFS may rewrite
+           creation time while renaming it, which must not change the token. */
+        identity->birth_nanoseconds = 0;
         return 1;
     }
     wchar_t file_system[16];
@@ -134,9 +134,7 @@ static int identity_from_handle(HANDLE file, struct files_identity *identity,
     if (!number || number == UINT64_MAX) return 0;
     identity->volume = information->dwVolumeSerialNumber;
     identity->number = number;
-    identity->birth_seconds =
-        ((uint64_t)information->ftCreationTime.dwHighDateTime << 32)
-        | information->ftCreationTime.dwLowDateTime;
+    identity->birth_seconds = 0;
     identity->birth_nanoseconds = 0;
     return 1;
 }

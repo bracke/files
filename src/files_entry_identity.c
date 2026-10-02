@@ -36,9 +36,10 @@ static int files_identity_from_handle(HANDLE file, struct files_identity *value)
         memcpy(&value->number, id.FileId.Identifier, sizeof(uint64_t));
         memcpy(&value->birth_seconds,
                id.FileId.Identifier + sizeof(uint64_t), sizeof(uint64_t));
-        value->birth_nanoseconds =
-            ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
-            | info.ftCreationTime.dwLowDateTime;
+        /* The 128-bit file ID is the complete Windows identity.  Creation
+           timestamps may be rewritten by NTFS tunnelling during a rename, so
+           including one would make the same entry acquire a new token. */
+        value->birth_nanoseconds = 0;
         return 1;
     }
 
@@ -53,8 +54,9 @@ static int files_identity_from_handle(HANDLE file, struct files_identity *value)
     if (!number || number == UINT64_MAX) return 0;
     value->volume = info.dwVolumeSerialNumber;
     value->number = number;
-    value->birth_seconds = ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
-        | info.ftCreationTime.dwLowDateTime;
+    /* The legacy NTFS file index is stable across renames.  Creation time is
+       deliberately excluded for the same tunnelling reason as above. */
+    value->birth_seconds = 0;
     value->birth_nanoseconds = 0;
     return 1;
 }
