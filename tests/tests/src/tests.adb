@@ -486,6 +486,12 @@ begin
             end;
          end if;
          loop
+            if Ada.Command_Line.Argument (1) = "--files-operation"
+              and then Files.Process_Jobs.Cancellation_Requested
+                (Ada.Command_Line.Argument (2))
+            then
+               Hostkit.Process.End_Now (0);
+            end if;
             delay 0.1;
          end loop;
       end;
