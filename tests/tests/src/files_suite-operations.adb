@@ -6539,7 +6539,11 @@ package body Files_Suite.Operations is
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operations.Operation_Success and then Metadata_Mode_Of (Source) = 8#644#,
-                       "metadata Undo can retry the restored inode, even from mode 000");
+                       "metadata Undo can retry the restored inode, even from mode 000: status="
+                       & Files.Operations.Operation_Status'Image (Step.Status)
+                       & " mode=" & Natural'Image (Metadata_Mode_Of (Source))
+                       & " kind=" & Natural'Image (Kind)
+                       & " background=" & Boolean'Image (Background));
                Replace_And_Refuse (True);
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
@@ -6615,7 +6619,13 @@ package body Files_Suite.Operations is
                     "ownership history records the live ids rather than the stale item");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Undo applies the live ownership snapshot");
+            Assert
+              (Step.Status = Files.Operations.Operation_Success,
+               "Undo applies the live ownership snapshot: status="
+               & Files.Operations.Operation_Status'Image (Step.Status)
+               & " uid=" & Natural'Image (Uid)
+               & " gid=" & Natural'Image (Gid)
+               & " background=" & Boolean'Image (Background));
          end if;
       end loop;
    exception
@@ -12035,7 +12045,12 @@ package body Files_Suite.Operations is
               (Routed.Operation.Status = Files.Operations.Operation_Action_Executed
                and then Routed.Operation.Execution_Attempted
                and then Routed.Operation.Executable_Found,
-               "Open With launches a single-target application for multiple selections");
+               "Open With launches a single-target application for multiple selections: "
+               & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
+               & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
+               & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
+               & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
+               & " executable=" & To_String (Routed.Operation.Action_Executable));
             Assert
               (To_String (Routed.Operation.Path) = Marker_One
                and then Routed.Operation.Action_Arguments = 1
