@@ -11556,6 +11556,21 @@ package body Files_Suite.Operations is
          return To_String (Result);
       end Desktop_Escape;
 
+      function Desktop_Exec_Escape (Value : String) return String is
+         Result : Unbounded_String;
+      begin
+         --  A desktop value decoder and the Exec tokenizer each consume one
+         --  escaping layer. Preserve Windows separators through both layers.
+         for Character_Value of Value loop
+            if Character_Value = '\' then
+               Append (Result, "\\\\");
+            else
+               Append (Result, Character_Value);
+            end if;
+         end loop;
+         return To_String (Result);
+      end Desktop_Exec_Escape;
+
       procedure Restore_Environment is
       begin
          if Had_Home then
@@ -11645,7 +11660,7 @@ package body Files_Suite.Operations is
         (Join (Apps_Dir, "multi-marker.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF
          & "Name=Multi Target Marker" & LF
-         & "Exec=" & Desktop_Escape (Files_Suite.Support.Marker_Executable)
+         & "Exec=" & Desktop_Exec_Escape (Files_Suite.Support.Marker_Executable)
          & " %f" & LF);
       Write_File
         (Join (Apps_Dir, "quoted.desktop"),
