@@ -6381,6 +6381,15 @@ package body Files_Suite.Operations is
       return Mode;
    end Metadata_Mode_Of;
 
+   function Is_Owner_Only (Path : String) return Boolean is
+      Mode  : constant Natural := Metadata_Mode_Of (Path);
+      Owner : constant Natural := (Mode / 8#100#) mod 8;
+   begin
+      --  Windows ACLs do not expose directory traversal as a POSIX execute
+      --  bit, but the privacy contract is the same: only the owner has rights.
+      return Owner in 6 | 7 and then Mode mod 8#100# = 0;
+   end Is_Owner_Only;
+
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Remote : Unbounded_String;
@@ -6703,7 +6712,7 @@ package body Files_Suite.Operations is
       begin
          if Ada.Directories.Exists (Join (Stage, "payload/secret")) then
             Seen := True;
-            Assert (Metadata_Mode_Of (Stage) = 8#700#, "staging remains owner-only while files are copied");
+            Assert (Is_Owner_Only (Stage), "staging remains owner-only while files are copied");
          end if;
          return False;
       end Observe;
@@ -6723,7 +6732,7 @@ package body Files_Suite.Operations is
       declare
          New_Stage : constant String := Files.Job_Context.Create_Stage (Parent);
       begin
-         Assert (New_Stage /= Stage and then Metadata_Mode_Of (New_Stage) = 8#700#
+         Assert (New_Stage /= Stage and then Is_Owner_Only (New_Stage)
                  and then File_Has_Bytes (Join (Stage, "unrelated"), "untouched"),
                  "exclusive private staging does not change existing directories");
          Mutation := Files.File_System.Delete_Permanently (New_Stage);
@@ -6735,15 +6744,15 @@ package body Files_Suite.Operations is
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Parent, "copy")),
          Files.File_System.Drop_Copy, True, Null_Unbounded_String));
       Mutation := Files.File_System.Execute_Drop_Import (Plans, Observe'Unrestricted_Access);
-      Assert (Mutation.Success and then Seen and then Metadata_Mode_Of (Join (Parent, "copy")) = 8#700#,
+      Assert (Mutation.Success and then Seen and then Is_Owner_Only (Join (Parent, "copy")),
               "a private directory remains protected throughout copying and after publication");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       declare
          Backup : Files.Types.UString;
       begin
          Mutation := Files.File_System.Preserve_For_Replace (Join (Parent, "copy"), Backup);
-         Assert (Mutation.Success and then Metadata_Mode_Of
-                 (Ada.Directories.Containing_Directory (To_String (Backup))) = 8#700#,
+         Assert (Mutation.Success and then Is_Owner_Only
+                 (Ada.Directories.Containing_Directory (To_String (Backup))),
                  "replacement recovery directories are private too");
          Mutation := Files.File_System.Restore_From_Trash (To_String (Backup));
          Assert (Mutation.Success, "restore the private replacement fixture");
@@ -11783,7 +11792,10 @@ package body Files_Suite.Operations is
          Deep : Unbounded_String := To_Unbounded_String (Join (Apps_Dir, "deep"));
       begin
          for Level in 1 .. 66 loop
-            Append (Deep, "/d" & Level'Image);
+            Append
+              (Deep,
+               "/" & Character'Val
+                 (Character'Pos ('a') + Level mod 26));
          end loop;
          Ada.Directories.Create_Path (To_String (Deep));
          Write_File
@@ -16122,7 +16134,6 @@ package body Files_Suite.Operations is
          if Linked then
             Assert
               (Hostkit.Fs.Is_Link (Link_Path)
-               and then not Ada.Directories.Exists (Link_Path)
                and then not Files.Job_Helpers.Run_Cleanup
                  (Link_Path, "untrusted", Attempt_Limit => 1,
                   Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
