@@ -413,6 +413,8 @@ package body History is
                                  Revision := To_Unbounded_String
                                    (if Action.Create_Kind = Files.Model.Create_Hard_Link
                                     then Source_Snapshot
+                                    elsif Action.Create_Kind = Files.Model.Create_Symbolic_Link
+                                    then ""
                                     else Files.File_System.Tree_Revision (Dest));
                               end if;
                               while Action.Created_Identities.Last_Index < Index loop
