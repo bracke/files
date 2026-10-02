@@ -26,8 +26,9 @@ static int files_fchmod_evtonly(int fd, unsigned long value) {
     return chmod(held, value & 07777) == 0;
 }
 
-static int files_fchmod_link(const char *path, unsigned long value,
-                             const struct files_identity *identity) {
+static int files_fchmod_link(const char *path, const char *expected,
+                             unsigned long value, uint64_t *previous,
+                             struct files_identity *identity) {
     char parent[PATH_MAX];
     char private_dir[PATH_MAX];
     const char *slash = strrchr(path, '/');
@@ -51,11 +52,21 @@ static int files_fchmod_link(const char *path, unsigned long value,
     struct stat info;
     int matches = linked
         && fstatat(directory, "inode", &info, AT_SYMLINK_NOFOLLOW) == 0
-        && !S_ISLNK(info.st_mode)
-        && (uint64_t)info.st_dev == identity->volume
-        && (uint64_t)info.st_ino == identity->number
-        && (uint64_t)info.st_birthtimespec.tv_sec == identity->birth_seconds
-        && (uint64_t)info.st_birthtimespec.tv_nsec == identity->birth_nanoseconds;
+        && !S_ISLNK(info.st_mode);
+    char token[128];
+    if (matches) {
+        identity->volume = info.st_dev;
+        identity->number = info.st_ino;
+        identity->birth_seconds = info.st_birthtimespec.tv_sec;
+        identity->birth_nanoseconds = info.st_birthtimespec.tv_nsec;
+        snprintf(token, sizeof(token), " %llu %llu %llu %llu",
+            (unsigned long long)identity->volume,
+            (unsigned long long)identity->number,
+            (unsigned long long)identity->birth_seconds,
+            (unsigned long long)identity->birth_nanoseconds);
+        matches = !*expected || strcmp(expected, token) == 0;
+    }
+    if (matches) *previous = info.st_mode & 07777;
     int ok = matches && fchmodat(directory, "inode", value & 07777, 0) == 0;
     int saved_errno = errno;
     if (linked) unlinkat(directory, "inode", 0);
@@ -77,7 +88,21 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
 #else
     int fd = open(path, O_EVTONLY | O_NOFOLLOW | O_CLOEXEC);
 #endif
-    if (fd < 0) return 0;
+    if (fd < 0) {
+#ifdef __APPLE__
+        /* A normal process cannot opt into permission-independent O_EVTONLY
+           descriptors: Darwin reserves that policy for privately entitled
+           processes.  A mode-000 regular file can still be pinned without a
+           pathname race by creating a hard link inside a private same-volume
+           directory, verifying the linked inode, and changing it there. */
+        if (!ownership
+            && files_fchmod_link(path, expected, value, previous, identity)) {
+            *previous_group = 0;
+            return 1;
+        }
+#endif
+        return 0;
+    }
     struct stat info;
     int ok = fstat(fd, &info) == 0 && !S_ISLNK(info.st_mode);
 #ifdef __linux__
@@ -128,16 +153,8 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
             if (fchmod(fd, value & 07777) == 0) {
                 ok = 1;
             } else {
-                int descriptor_errno = errno;
                 ok = files_fchmod_evtonly(fd, value)
-                    || files_fchmod_link(path, value, identity);
-                if (!ok) {
-                    *previous_group = (uint64_t)(descriptor_errno * 1000 + errno);
-                    fprintf(stdout,
-                        "files: macOS held-inode chmod failed (fd=%d, /dev/fd=%d)\n",
-                        descriptor_errno, errno);
-                    fflush(stdout);
-                }
+                    || files_fchmod_link(path, expected, value, previous, identity);
             }
         }
 #endif
