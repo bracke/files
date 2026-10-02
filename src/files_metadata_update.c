@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -83,8 +84,17 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
             /* APFS can reject fchmod on the O_EVTONLY descriptor needed to
                reopen a mode-000 file.  Darwin resolves OP_SETATTR lookups on
                /dev/fd back to the held vnode, retaining the identity binding. */
-            ok = fchmod(fd, value & 07777) == 0
-                || files_fchmod_evtonly(fd, value);
+            if (fchmod(fd, value & 07777) == 0) {
+                ok = 1;
+            } else {
+                int descriptor_errno = errno;
+                ok = files_fchmod_evtonly(fd, value);
+                if (!ok) {
+                    fprintf(stderr,
+                        "files: macOS held-inode chmod failed (fd=%d, /dev/fd=%d)\n",
+                        descriptor_errno, errno);
+                }
+            }
         }
 #endif
     }
