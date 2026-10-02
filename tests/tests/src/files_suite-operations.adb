@@ -10970,6 +10970,9 @@ package body Files_Suite.Operations is
                Model : Files.Model.Window_Model;
                Step : Files.Operations.Operation_Result;
                Destinations, Sources : Files.Types.String_Vectors.Vector;
+               Expected_A, Before_Dangling_A, After_Dangling_A : Files.Types.UString;
+               Link_Target : Files.Types.UString;
+               A_Marked, Link_Target_Read : Boolean := False;
 
                function Create (Source, Dest : String) return Boolean is
                begin
@@ -11041,8 +11044,23 @@ package body Files_Suite.Operations is
                else
                   Ada.Directories.Delete_File (Dest_B);
                end if;
+               declare
+                  Pending : Files.Model.Undo_Entry;
+                  Found : Boolean;
+               begin
+                  Files.Model.Take_Redo (Model, Pending, Found);
+                  Assert (Found, "the partial creation remains available for diagnostic inspection");
+                  if Found then
+                     Expected_A := Pending.Created_Identities (Pending.Created_Identities.First_Index);
+                     A_Marked := Pending.Forward_Completed.Contains (Pending.From (Pending.From.First_Index));
+                     Files.Model.Push_Redo (Model, Pending);
+                  end if;
+               end;
+               Before_Dangling_A := To_Unbounded_String (Files.File_Identities.Token (Dest_A));
                --  Completed A no longer needs its source to finish B.
                Ada.Directories.Rename (Source_A, Held_A);
+               After_Dangling_A := To_Unbounded_String (Files.File_Identities.Token (Dest_A));
+               Link_Target_Read := Hostkit.Fs.Read_Link_Target (Dest_A, Link_Target);
                Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Assert (Step.Status = Files.Operations.Operation_Success
@@ -11055,7 +11073,14 @@ package body Files_Suite.Operations is
                        & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
                        & " redo=" & Boolean'Image (Files.Model.Redo_Available (Model))
                        & " undo=" & Boolean'Image (Files.Model.Undo_Available (Model))
-                       & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b")));
+                       & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b"))
+                       & " marked=" & Boolean'Image (A_Marked)
+                       & " expected='" & To_String (Expected_A) & "'"
+                       & " before='" & To_String (Before_Dangling_A) & "'"
+                       & " after='" & To_String (After_Dangling_A) & "'"
+                       & " is_link=" & Boolean'Image (Hostkit.Fs.Is_Link (Dest_A))
+                       & " target_read=" & Boolean'Image (Link_Target_Read)
+                       & " target='" & To_String (Link_Target) & "'");
                Ada.Directories.Rename (Held_A, Source_A);
                Assert (File_Has_Bytes (Dest_A, "original a"), "completed A retains its original bytes");
                Step := Complete_Operation
