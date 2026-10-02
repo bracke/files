@@ -1,6 +1,9 @@
 # Files Platform Support
 
-This snapshot is validated on the current Linux desktop environment.
+This snapshot has full live-window validation on Linux. CI also builds, links,
+runs the AUnit suite, checks the installed package, and exercises the headless
+render path on Windows and macOS; those runners do not provide interactive GUI
+session validation.
 
 Supported local integrations:
 
@@ -16,7 +19,8 @@ Supported local integrations:
 
 Known platform limits:
 
-1. Windows and macOS native bindings need validation on those operating systems.
+1. Windows and macOS still need live-window testing in real interactive desktop
+   sessions; their CI coverage is build, unit, installation, and headless smoke.
 2. Permission and ownership changes require the native handle-safe metadata
    adapter. Linux and macOS provide it; Windows currently fails the operation
    rather than using a pathname sequence that could modify a replaced entry.

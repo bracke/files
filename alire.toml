@@ -67,13 +67,13 @@ a11y = { path = "../a11ykit" }
 cryptolib = { path = "../cryptolib" }
 
 [[depends-on]]
-df_vulkan = "~0.1.0"
+df_vulkan = "=0.1.0"
 
 [[depends-on]]
-openglada_glfw = "~0.9.0"
+openglada_glfw = "=0.9.0"
 
 [[depends-on]]
-utilada = "^2.9.0"
+utilada = "=2.9.0"
 
 # Bundle i18n's generated locale data into share/i18n after every build. The
 # load-only i18n serves formatting from those files at runtime, so a deployed

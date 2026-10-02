@@ -51,13 +51,13 @@ cryptolib = "^0.1.0"
 guikit = "^0.1.0"
 
 [[depends-on]]
-df_vulkan = "~0.1.0"
+df_vulkan = "=0.1.0"
 
 [[depends-on]]
-openglada_glfw = "~0.9.0"
+openglada_glfw = "=0.9.0"
 
 [[depends-on]]
-utilada = "^2.9.0"
+utilada = "=2.9.0"
 
 # Ship the generated runtime locale data in published builds too.
 [[actions]]

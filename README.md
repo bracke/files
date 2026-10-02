@@ -11,7 +11,7 @@ On Debian/Ubuntu (Linux; see below for macOS/Windows deps):
 #    See the complete sibling list below, including a11ykit (crate name a11y).
 # 2. System libraries
 sudo apt-get install -y libvulkan-dev libgdk-pixbuf-2.0-dev libglib2.0-dev \
-  libgtk-3-dev fonts-dejavu-core
+  libgtk-3-dev libssl-dev fonts-dejavu-core fonts-noto-color-emoji
 # 3. Build and run (Alire provides the GNAT 15 toolchain)
 alr build
 bin/files [PATH ...]        # defaults to your home directory
@@ -37,12 +37,14 @@ stays usable while a refresh is pending, and results apply only to the view
 that requested them. Paste completion and cancellation do not wait for a reload.
 
 Replace keeps the overwritten item available for rollback and Undo. On native
-trash backends this uses an adjacent `.files-recovery-*` directory containing the
-original as `payload` and its pathname in `original`. A failed rollback leaves
-that recovery payload in place and records a recovery Undo action. If the
-original name is occupied, preserve the occupying item elsewhere and retry Undo.
-After a crash, use `files --list-recoveries DIRECTORY`, `files --recover PAYLOAD`,
-or `files --discard-recovery PAYLOAD` to resolve retained payloads explicitly.
+trash backends this uses an adjacent private `.files-recovery-*` directory. An
+ownership record binds the directory identity, original pathname, and `payload`;
+an application-data index makes retained payloads discoverable after restart. A
+failed rollback leaves that payload in place and records a recovery Undo action.
+If the original name is occupied, preserve the occupying item elsewhere and
+retry Undo. After a crash, use `files --list-recoveries` to list the global
+index, `files --list-recoveries DIRECTORY` to scan one directory, or
+`files --recover PAYLOAD` / `files --discard-recovery PAYLOAD` to resolve it.
 
 Linux, Windows, and macOS are all supported targets. Linux is the validated
 platform today; the Windows and macOS adapters live in the `hostkit` sibling
@@ -98,7 +100,9 @@ sudo apt-get install -y \
   libgdk-pixbuf-2.0-dev \
   libglib2.0-dev \
   libgtk-3-dev \
-  fonts-dejavu-core
+  libssl-dev \
+  fonts-dejavu-core \
+  fonts-noto-color-emoji
 ```
 
 ### System libraries (macOS)
@@ -106,7 +110,7 @@ sudo apt-get install -y \
 Vulkan on macOS is provided by MoltenVK. With [Homebrew](https://brew.sh/):
 
 ```sh
-brew install vulkan-headers vulkan-loader molten-vk glfw
+brew install vulkan-headers vulkan-loader molten-vk glfw gdk-pixbuf openssl@3
 ```
 
 System fonts under `/System/Library/Fonts` are used for text rendering; set
@@ -114,9 +118,21 @@ System fonts under `/System/Library/Fonts` are used for text rendering; set
 
 ### System libraries (Windows)
 
-Install the [Vulkan SDK](https://vulkan.lunarg.com/) (e.g. `choco install
-vulkan-sdk`). System fonts under `C:\Windows\Fonts` are used for text
-rendering; set `FILES_FONT_PATH` to override.
+Use the preinstalled MSYS2 shell on GitHub runners, or install
+[MSYS2](https://www.msys2.org/) locally, then install libraries for the same
+MinGW-w64 ABI used by Alire GNAT:
+
+```sh
+pacman -S --needed mingw-w64-x86_64-vulkan-loader \
+  mingw-w64-x86_64-glib2 mingw-w64-x86_64-gdk-pixbuf2 \
+  mingw-w64-x86_64-glfw mingw-w64-x86_64-openssl
+```
+
+Set `CPATH` to `C:/msys64/mingw64/include`, `LIBRARY_PATH` to
+`C:/msys64/mingw64/lib`, and add `C:\msys64\mingw64\bin` to `PATH`. The LunarG
+SDK's MSVC `.lib` files are not compatible with GNAT's MinGW linker. System
+fonts under `C:\Windows\Fonts` are used for text rendering; set
+`FILES_FONT_PATH` to override.
 
 ### Build and run
 
@@ -138,8 +154,7 @@ It reports a canonical verdict line and exit code:
 
 - `live-smoke: PASS` — exit `0`
 - `live-smoke: FAIL <reason>` — exit `1` (a degenerate frame; fails CI)
-- `live-smoke: SKIP <reason>` — exit `77` (no display or no Vulkan device;
-  non-fatal, so environments without a GPU don't fail)
+- `live-smoke: SKIP <reason>` — exit `77` (no display or no Vulkan device)
 
 It runs headlessly against the Mesa **lavapipe** software Vulkan driver under a
 virtual display:
@@ -150,7 +165,8 @@ VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
   xvfb-run -a bin/files --live-smoke
 ```
 
-CI runs exactly this on the Linux job (see `.github/workflows/ci.yml`).
+CI provisions both dependencies and therefore requires `PASS`; a `SKIP` fails
+the Linux job rather than hiding a broken runner configuration.
 
 ## Tests
 
@@ -185,7 +201,8 @@ The crate uses two Alire manifests:
 - `alire.toml` — the **development** manifest, with local-path pins to the
   runtime sibling crates listed above.
 - `alire.release.toml` — the **publishable** manifest: identical metadata but
-  **no local pins** (it depends on the published crates by wildcard version).
+  **no local pins** (it depends on published crates through explicit compatible
+  or exact version constraints).
 
 Their versions and dependency sets are kept in sync by the release-readiness
 checker, which is built on `project_tools` (`Release_Checks` / `Alire_Manifests`):

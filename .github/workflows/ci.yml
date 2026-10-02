@@ -16,9 +16,9 @@ name: CI
 # (files --runtime-smoke): the snapshot -> frame-commands -> text/glyph path
 # with no window or GPU, so the cross-platform render pipeline is validated
 # end-to-end on macOS and Windows, not only through the in-process unit test.
-# The Linux job additionally runs a live GPU smoke: the full GLFW + Vulkan
-# render path under Xvfb with the Mesa lavapipe software ICD, structurally
-# analysing the read-back framebuffer (exit 77 = skipped, non-fatal).
+# The Linux job additionally runs a required live GPU smoke: the full GLFW +
+# Vulkan render path under Xvfb with the Mesa lavapipe software ICD,
+# structurally analysing the read-back framebuffer.
 #
 # All three jobs now build, link and run the suite on real runners. Getting
 # there needed a platform abstraction for anything Linux-only that portable code
@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: files
 
@@ -167,10 +167,13 @@ jobs:
           clone_at guikit 1193331ddfb0a57e23229d270721495fa17ce2c0
           clone_at hostkit 03b32e5cf2da438b974f425d3d9aed1ee257a755
           clone_at cryptolib 05c5117f89a4ec7d06633e0d9b546fd0a8f8f90f
-          # This repository is the only temporary exception: Files consumes the
-          # renamed `a11y` crate, which has not yet been published at a stable
-          # commit. Pin this as soon as that sibling change is pushed.
-          git clone --depth 1 "https://github.com/${owner}/a11ykit.git" a11ykit
+          # The published repository still calls the crate a11ykit. Files uses
+          # the forthcoming a11y name but only the compatibility packages, so
+          # apply that one deterministic manifest rename to an immutable source.
+          clone_at a11ykit 879a81b78f9d28b2b7abc46841c41f855d7faae4
+          grep -Fx 'name = "a11ykit"' a11ykit/alire.toml
+          sed -i.bak 's/^name = "a11ykit"$/name = "a11y"/' a11ykit/alire.toml
+          rm a11ykit/alire.toml.bak
           # i18n's pre-build regeneration builds download_tzdb (httpclient, tarlib,
           # awklib-on-regexp) and the CLDR import (httpclient); clone those too.
           clone_at httpclient 8191254695b1072b010ba23c6c6b29b0644f5277
@@ -199,14 +202,13 @@ jobs:
               | tr -d '\r' | git hash-object --stdin)
           echo "key=i18n-upstream-$h" >> "$GITHUB_OUTPUT"
       - name: Cache the i18n upstream download trees (CI-only; avoids flaky 82 MB+ downloads)
-        # Only the raw download trees are cached (not the generated export), so the
-        # regen re-runs with current i18n code; each downloader skips when its dir
-        # is present. The reliable ubuntu/macOS download seeds one shared cross-OS
-        # entry the Windows leg restores, taking Windows out of the download path.
+        # Only the raw download trees are cached (not the generated export), so
+        # regeneration still runs with current i18n code. Matrix legs may race
+        # on a cold key; later runs restore the shared cross-OS archive.
         # Inlined because files checks out siblings by hand, not via project_tools'
         # checkout-ada-siblings action.
         if: steps.cldr_key.outputs.key != ''
-        uses: actions/cache@v4
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: |
             i18n/cldr/upstream/cldr-json
@@ -223,7 +225,7 @@ jobs:
       - name: Set up Alire
         # v5 defaults to alr 2.1.0, whose index carries gnat_native 15.2.1.
         # v4 pins alr 2.0.2, whose older index cannot resolve it.
-        uses: alire-project/setup-alire@v6
+        uses: alire-project/setup-alire@fc4c8ce471aa30b3af0d39ce15add1ee9eaf28f2 # v6.0.0
         with:
           toolchain: gnat_native=15.2.1 gprbuild
 
@@ -272,20 +274,52 @@ jobs:
             || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
             || '' }}
         run: |
+          set -euo pipefail
           if [ -f ./bin/files.exe ]; then
             export PATH="/c/msys64/mingw64/bin:$PATH"
             bin=./bin/files.exe
           else
             bin=./bin/files
           fi
-          out="$("$bin" --runtime-smoke . 2>&1)" || true
+          set +e
+          out="$("$bin" --runtime-smoke . 2>&1)"
+          code=$?
+          set -e
           echo "$out"
-          if echo "$out" | grep -q "runtime-smoke: PASS"; then
+          if [ "$code" -ne 0 ]; then
+            echo "::error::headless render smoke exited with $code on ${{ matrix.os }}"
+            exit "$code"
+          fi
+          pass_count="$(printf '%s\n' "$out" | awk '$0 == "runtime-smoke: PASS" { n++ } END { print n + 0 }')"
+          if [ "$pass_count" -eq 1 ]; then
             echo "headless render pipeline is healthy on ${{ matrix.os }}"
           else
-            echo "::error::headless render smoke did not report PASS on ${{ matrix.os }}"
+            echo "::error::headless render smoke did not report exactly one PASS on ${{ matrix.os }}"
             exit 1
           fi
+
+      - name: Install and smoke-test packaged artifacts
+        shell: bash
+        working-directory: files
+        env:
+          FILES_FONT_PATH: >-
+            ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
+            || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
+            || '' }}
+        run: |
+          set -euo pipefail
+          prefix="$RUNNER_TEMP/files-install"
+          alr --non-interactive install --prefix="$prefix"
+          if [ -f "$prefix/bin/files.exe" ]; then
+            export PATH="/c/msys64/mingw64/bin:$PATH"
+            installed="$prefix/bin/files.exe"
+          else
+            installed="$prefix/bin/files"
+          fi
+          out="$("$installed" --runtime-smoke .)"
+          printf '%s\n' "$out"
+          pass_count="$(printf '%s\n' "$out" | awk '$0 == "runtime-smoke: PASS" { n++ } END { print n + 0 }')"
+          [ "$pass_count" -eq 1 ]
 
       - name: Build and run the test suite
         shell: bash
@@ -324,7 +358,7 @@ jobs:
           # AddressSanitizer takes ownership of sigaltstack and is incompatible
           # with GNAT task stacks; UBSan instruments the bridges without that
           # runtime collision.
-          FILES_CFLAGS: -fsanitize=undefined -fno-omit-frame-pointer
+          FILES_CFLAGS: -fanalyzer -fsanitize=undefined -fno-omit-frame-pointer
           FILES_LDFLAGS: -fsanitize=undefined
         run: |
           alr --non-interactive build
@@ -333,8 +367,8 @@ jobs:
       - name: Live GPU smoke (Linux, software Vulkan)
         # Exercises the full GLFW + Vulkan render path headlessly under Xvfb with
         # the Mesa lavapipe software ICD, then structurally analyses the read-back
-        # framebuffer. Exit 0 = pass, 1 = degenerate frame (fails the job),
-        # 77 = skipped (no display/Vulkan) which is treated as non-fatal.
+        # framebuffer. The job provisions both a display and software Vulkan,
+        # so PASS is required; SKIP means the CI environment is broken.
         if: runner.os == 'Linux'
         shell: bash
         working-directory: files
@@ -348,7 +382,8 @@ jobs:
           if [ "$code" -eq 0 ]; then
             echo "live-smoke passed the structural framebuffer analysis"
           elif [ "$code" -eq 77 ]; then
-            echo "::warning::live-smoke skipped (no display/Vulkan device available)"
+            echo "::error::live-smoke skipped despite the provisioned display and Vulkan device"
+            exit 1
           else
             echo "::error::live-smoke failed the structural analysis (exit $code)"
             exit "$code"

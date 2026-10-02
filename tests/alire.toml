@@ -47,7 +47,7 @@ a11y = { path = "../../a11ykit" }
 cryptolib = { path = "../../cryptolib" }
 
 [[depends-on]]
-aunit = "^26.0.0"
+aunit = "=26.0.0"
 
 # `alr test` with no test action defined does not run anything: it falls back to
 # `alr build --release` and reports success, which is how the documented

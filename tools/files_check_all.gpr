@@ -9,7 +9,8 @@ project Files_Check_All is
 
    package Compiler is
       for Default_Switches ("Ada") use
-        Files_Check_All_Config.Ada_Compiler_Switches & ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwU");
+        Files_Check_All_Config.Ada_Compiler_Switches &
+          ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwU", "-gnatwe");
    end Compiler;
 
    --  Bytes out as bytes in. Alire's generated switches carry -gnatW8 and the
