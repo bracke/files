@@ -21,6 +21,7 @@ enum claim_outcome {
 #endif
 #include <windows.h>
 #include <stdlib.h>
+#include <wchar.h>
 
 static wchar_t *wide_name(const char *path) {
     int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
@@ -41,6 +42,36 @@ static int valid_file_id(const FILE_ID_INFO *id) {
         not_all_ones |= id->FileId.Identifier[i] != 0xff;
     }
     return nonzero && not_all_ones;
+}
+
+struct handle_identity {
+    uint64_t volume, low, high;
+};
+
+static int identity_for(HANDLE file, struct handle_identity *result) {
+    FILE_ID_INFO id;
+    if (GetFileInformationByHandleEx(file, FileIdInfo, &id, sizeof(id))
+        && valid_file_id(&id)) {
+        result->volume = id.VolumeSerialNumber;
+        memcpy(&result->low, id.FileId.Identifier, sizeof(uint64_t));
+        memcpy(&result->high,
+               id.FileId.Identifier + sizeof(uint64_t), sizeof(uint64_t));
+        return 1;
+    }
+    BY_HANDLE_FILE_INFORMATION info;
+    wchar_t file_system[16];
+    if (!GetFileInformationByHandle(file, &info)
+        || !GetVolumeInformationByHandleW(file, NULL, 0, NULL, NULL, NULL,
+                                          file_system,
+                                          sizeof(file_system) / sizeof(file_system[0]))
+        || _wcsicmp(file_system, L"NTFS") != 0) return 0;
+    uint64_t number = ((uint64_t)info.nFileIndexHigh << 32) | info.nFileIndexLow;
+    if (!number || number == UINT64_MAX) return 0;
+    result->volume = info.dwVolumeSerialNumber;
+    result->low = number;
+    result->high = ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
+        | info.ftCreationTime.dwLowDateTime;
+    return 1;
 }
 
 long long files_transport_lease_create(const char *path) {
@@ -165,13 +196,11 @@ long long files_transport_lease_join(const char *path) {
 
 int files_transport_lease_identity(long long value, uint64_t result[5]) {
     HANDLE file = (HANDLE)(intptr_t)value;
-    FILE_ID_INFO id;
-    if (file == INVALID_HANDLE_VALUE
-        || !GetFileInformationByHandleEx(file, FileIdInfo, &id, sizeof(id))
-        || !valid_file_id(&id)) return 0;
-    result[0] = id.VolumeSerialNumber;
-    memcpy(&result[1], id.FileId.Identifier, sizeof(uint64_t));
-    memcpy(&result[2], id.FileId.Identifier + sizeof(uint64_t), sizeof(uint64_t));
+    struct handle_identity id;
+    if (file == INVALID_HANDLE_VALUE || !identity_for(file, &id)) return 0;
+    result[0] = id.volume;
+    result[1] = id.low;
+    result[2] = id.high;
     LARGE_INTEGER start = {0};
     DWORD read_count;
     if (!SetFilePointerEx(file, start, NULL, FILE_BEGIN)
@@ -182,7 +211,7 @@ int files_transport_lease_identity(long long value, uint64_t result[5]) {
 
 int files_transport_lease_path_matches(long long value, const char *path) {
     HANDLE held = (HANDLE)(intptr_t)value;
-    FILE_ID_INFO original, current;
+    struct handle_identity original, current;
     BY_HANDLE_FILE_INFORMATION attributes;
     wchar_t *name = wide_name(path);
     if (!name) return 0;
@@ -192,12 +221,9 @@ int files_transport_lease_path_matches(long long value, const char *path) {
     if (file == INVALID_HANDLE_VALUE) return 0;
     int matches = GetFileInformationByHandle(file, &attributes)
         && !(attributes.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-        && GetFileInformationByHandleEx(held, FileIdInfo, &original, sizeof(original))
-        && GetFileInformationByHandleEx(file, FileIdInfo, &current, sizeof(current))
-        && valid_file_id(&original) && valid_file_id(&current)
-        && original.VolumeSerialNumber == current.VolumeSerialNumber
-        && !memcmp(original.FileId.Identifier, current.FileId.Identifier,
-                   sizeof(original.FileId.Identifier));
+        && identity_for(held, &original) && identity_for(file, &current)
+        && original.volume == current.volume
+        && original.low == current.low && original.high == current.high;
     CloseHandle(file);
     return matches;
 }

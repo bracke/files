@@ -13,6 +13,51 @@ struct files_identity {
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
+
+static int files_valid_file_id(const FILE_ID_INFO *id) {
+    int nonzero = 0, not_all_ones = 0;
+    for (size_t i = 0; i < sizeof(id->FileId.Identifier); ++i) {
+        nonzero |= id->FileId.Identifier[i];
+        not_all_ones |= id->FileId.Identifier[i] != 0xff;
+    }
+    return nonzero && not_all_ones;
+}
+
+static int files_identity_from_handle(HANDLE file, struct files_identity *value) {
+    BY_HANDLE_FILE_INFORMATION info;
+    FILE_ID_INFO id;
+    if (!GetFileInformationByHandle(file, &info)) return 0;
+    if (GetFileInformationByHandleEx(file, FileIdInfo, &id, sizeof(id))
+        && files_valid_file_id(&id)) {
+        value->volume = id.VolumeSerialNumber;
+        /* Preserve all 128 ID bits; ReFS may map distinct files to one 64-bit
+           legacy file index. */
+        memcpy(&value->number, id.FileId.Identifier, sizeof(uint64_t));
+        memcpy(&value->birth_seconds,
+               id.FileId.Identifier + sizeof(uint64_t), sizeof(uint64_t));
+        value->birth_nanoseconds =
+            ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
+            | info.ftCreationTime.dwLowDateTime;
+        return 1;
+    }
+
+    /* Some NTFS hosts reject FileIdInfo while still supplying the documented
+       stable 64-bit file index. Never use this narrower fallback on ReFS. */
+    wchar_t file_system[16];
+    if (!GetVolumeInformationByHandleW(file, NULL, 0, NULL, NULL, NULL,
+                                       file_system,
+                                       sizeof(file_system) / sizeof(file_system[0]))
+        || _wcsicmp(file_system, L"NTFS") != 0) return 0;
+    uint64_t number = ((uint64_t)info.nFileIndexHigh << 32) | info.nFileIndexLow;
+    if (!number || number == UINT64_MAX) return 0;
+    value->volume = info.dwVolumeSerialNumber;
+    value->number = number;
+    value->birth_seconds = ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
+        | info.ftCreationTime.dwLowDateTime;
+    value->birth_nanoseconds = 0;
+    return 1;
+}
 
 int files_entry_identity(const char *path, struct files_identity *value) {
     int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
@@ -28,27 +73,9 @@ int files_entry_identity(const char *path, struct files_identity *value) {
         FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
     free(name);
     if (file == INVALID_HANDLE_VALUE) return 0;
-    BY_HANDLE_FILE_INFORMATION info;
-    FILE_ID_INFO id;
-    int ok = GetFileInformationByHandle(file, &info)
-        && GetFileInformationByHandleEx(file, FileIdInfo, &id, sizeof(id));
+    int ok = files_identity_from_handle(file, value);
     CloseHandle(file);
-    if (!ok) return 0;
-    int nonzero = 0, not_all_ones = 0;
-    for (size_t i = 0; i < sizeof(id.FileId.Identifier); ++i) {
-        nonzero |= id.FileId.Identifier[i];
-        not_all_ones |= id.FileId.Identifier[i] != 0xff;
-    }
-    if (!nonzero || !not_all_ones) return 0;
-    value->volume = id.VolumeSerialNumber;
-    /* Preserve all 128 ID bits; ReFS may map distinct files to one 64-bit ID.
-       Creation time remains a secondary replacement check, not an immutable
-       credential against a process that can rewrite file metadata. */
-    memcpy(&value->number, id.FileId.Identifier, sizeof(uint64_t));
-    memcpy(&value->birth_seconds, id.FileId.Identifier + sizeof(uint64_t), sizeof(uint64_t));
-    value->birth_nanoseconds = ((uint64_t)info.ftCreationTime.dwHighDateTime << 32)
-        | info.ftCreationTime.dwLowDateTime;
-    return 1;
+    return ok;
 }
 #elif defined(__linux__)
 #include <sys/stat.h>
