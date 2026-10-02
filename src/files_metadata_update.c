@@ -16,6 +16,17 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/attr.h>
+
+static int files_fchmod_evtonly(int fd, unsigned long value) {
+    struct attrlist attributes = {0};
+    uint32_t mode = (uint32_t)(value & 07777);
+    attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
+    attributes.commonattr = ATTR_CMN_ACCESSMASK;
+    return fsetattrlist(fd, &attributes, &mode, sizeof(mode), 0) == 0;
+}
+#endif
 
 int files_metadata_update(const char *path, const char *expected, int ownership,
     unsigned long value, unsigned long group, const char *owner_name,
@@ -70,7 +81,15 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
             ok = chmod(held, value & 07777) == 0;
         }
 #else
-        ok = ownership ? fchown(fd, value, group) == 0 : fchmod(fd, value & 07777) == 0;
+        if (ownership) {
+            ok = fchown(fd, value, group) == 0;
+        } else {
+            /* APFS can reject fchmod on the O_EVTONLY descriptor needed to
+               reopen a mode-000 file.  fsetattrlist changes the same held
+               vnode's documented access-mask attribute without a path race. */
+            ok = fchmod(fd, value & 07777) == 0
+                || files_fchmod_evtonly(fd, value);
+        }
 #endif
     }
     close(fd);

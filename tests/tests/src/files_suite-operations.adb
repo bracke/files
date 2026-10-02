@@ -6536,14 +6536,30 @@ package body Files_Suite.Operations is
                end if;
                Assert (Step.Status = Files.Operations.Operation_Success, "the live metadata change succeeds");
                Replace_And_Refuse (False);
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-               Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success and then Metadata_Mode_Of (Source) = 8#644#,
-                       "metadata Undo can retry the restored inode, even from mode 000: status="
-                       & Files.Operations.Operation_Status'Image (Step.Status)
-                       & " mode=" & Natural'Image (Metadata_Mode_Of (Source))
-                       & " kind=" & Natural'Image (Kind)
-                       & " background=" & Boolean'Image (Background));
+               declare
+                  Pending : Files.Model.Undo_Entry;
+                  Found : Boolean;
+                  Expected, Current : Files.Types.UString;
+               begin
+                  Files.Model.Take_Undo (Model, Pending, Found);
+                  if Found and then not Pending.Created_Identities.Is_Empty then
+                     Expected := Pending.Created_Identities.First_Element;
+                     Files.Model.Push_Undo (Model, Pending);
+                  end if;
+                  Current := To_Unbounded_String (Files.File_Identities.Token (Source));
+                  Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                  Await_View (Model, Settings);
+                  Assert (Step.Status = Files.Operations.Operation_Success
+                          and then Metadata_Mode_Of (Source) = 8#644#,
+                          "metadata Undo can retry the restored inode, even from mode 000: status="
+                          & Files.Operations.Operation_Status'Image (Step.Status)
+                          & " mode=" & Natural'Image (Metadata_Mode_Of (Source))
+                          & " kind=" & Natural'Image (Kind)
+                          & " background=" & Boolean'Image (Background)
+                          & " found=" & Boolean'Image (Found)
+                          & " expected='" & To_String (Expected) & "'"
+                          & " current='" & To_String (Current) & "'");
+               end;
                Replace_And_Refuse (True);
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
