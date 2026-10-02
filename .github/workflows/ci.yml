@@ -80,7 +80,10 @@ jobs:
       - name: Install system libraries (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew update
+          # Runner images are published with a coherent Homebrew snapshot. Avoid
+          # upgrading that snapshot here: on the Intel runner it rebuilds large,
+          # unrelated dependency trees and can consume the entire job timeout.
+          export HOMEBREW_NO_AUTO_UPDATE=1
           # The Intel image can retain a dangling openssl@1.1 symlink even after
           # Homebrew reports that formula as unlinked. An openssl@3 upgrade then
           # builds successfully but returns failure while trying to replace it.
