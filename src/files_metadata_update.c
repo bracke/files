@@ -57,9 +57,11 @@ static int files_fchmod_link(const char *path, unsigned long value,
         && (uint64_t)info.st_birthtimespec.tv_sec == identity->birth_seconds
         && (uint64_t)info.st_birthtimespec.tv_nsec == identity->birth_nanoseconds;
     int ok = matches && fchmodat(directory, "inode", value & 07777, 0) == 0;
+    int saved_errno = errno;
     if (linked) unlinkat(directory, "inode", 0);
     if (directory >= 0) close(directory);
     rmdir(private_dir);
+    errno = saved_errno;
     return ok;
 }
 #endif
@@ -130,6 +132,7 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
                 ok = files_fchmod_evtonly(fd, value)
                     || files_fchmod_link(path, value, identity);
                 if (!ok) {
+                    *previous_group = (uint64_t)(descriptor_errno * 1000 + errno);
                     fprintf(stdout,
                         "files: macOS held-inode chmod failed (fd=%d, /dev/fd=%d)\n",
                         descriptor_errno, errno);

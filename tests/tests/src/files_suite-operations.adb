@@ -6540,6 +6540,9 @@ package body Files_Suite.Operations is
                   Pending : Files.Model.Undo_Entry;
                   Found : Boolean;
                   Expected, Current : Files.Types.UString;
+                  Direct_Previous, Direct_Errors : Natural := 0;
+                  Direct_Identity : Files.Types.UString;
+                  Direct_Result : Files.File_System.Mutation_Result;
                begin
                   Files.Model.Take_Undo (Model, Pending, Found);
                   if Found and then not Pending.Created_Identities.Is_Empty then
@@ -6549,6 +6552,13 @@ package body Files_Suite.Operations is
                   Current := To_Unbounded_String (Files.File_Identities.Token (Source));
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
+                  if Step.Status /= Files.Operations.Operation_Success then
+                     Direct_Result := Files.File_System.Change_Metadata
+                       (Source, To_String (Expected), False, 8#644#, 0,
+                        Direct_Previous, Direct_Errors, Direct_Identity);
+                  else
+                     Direct_Result := (Success => True, Error_Key => Null_Unbounded_String);
+                  end if;
                   Assert (Step.Status = Files.Operations.Operation_Success
                           and then Metadata_Mode_Of (Source) = 8#644#,
                           "metadata Undo can retry the restored inode, even from mode 000: status="
@@ -6557,8 +6567,15 @@ package body Files_Suite.Operations is
                           & " kind=" & Natural'Image (Kind)
                           & " background=" & Boolean'Image (Background)
                           & " found=" & Boolean'Image (Found)
+                          & " action=" & Files.Model.Undo_Action_Kind'Image (Pending.Kind)
+                          & " from=" & Natural'Image (Natural (Pending.From.Length))
+                          & " identities="
+                          & Natural'Image (Natural (Pending.Created_Identities.Length))
+                          & " cancelled=" & Boolean'Image (Files.Job_Context.Cancelled)
                           & " expected='" & To_String (Expected) & "'"
-                          & " current='" & To_String (Current) & "'");
+                          & " current='" & To_String (Current) & "'"
+                          & " direct=" & Boolean'Image (Direct_Result.Success)
+                          & " native_errors=" & Natural'Image (Direct_Errors));
                end;
                Replace_And_Refuse (True);
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
