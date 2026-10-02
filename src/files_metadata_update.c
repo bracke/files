@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 struct files_identity {
@@ -16,12 +17,50 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <unistd.h>
 #ifdef __APPLE__
 static int files_fchmod_evtonly(int fd, unsigned long value) {
     char held[64];
     snprintf(held, sizeof(held), "/dev/fd/%d", fd);
     return chmod(held, value & 07777) == 0;
+}
+
+static int files_fchmod_link(const char *path, unsigned long value,
+                             const struct files_identity *identity) {
+    char parent[PATH_MAX];
+    char private_dir[PATH_MAX];
+    const char *slash = strrchr(path, '/');
+    size_t parent_length = slash ? (size_t)(slash - path) : 0;
+    if (!slash) {
+        strcpy(parent, ".");
+    } else if (parent_length == 0) {
+        strcpy(parent, "/");
+    } else {
+        if (parent_length >= sizeof(parent)) return 0;
+        memcpy(parent, path, parent_length);
+        parent[parent_length] = '\0';
+    }
+    if (snprintf(private_dir, sizeof(private_dir),
+                 "%s/.files-mode-XXXXXX", parent) >= (int)sizeof(private_dir)
+        || !mkdtemp(private_dir)) return 0;
+
+    int directory = open(private_dir, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    int linked = directory >= 0
+        && linkat(AT_FDCWD, path, directory, "inode", 0) == 0;
+    struct stat info;
+    int matches = linked
+        && fstatat(directory, "inode", &info, AT_SYMLINK_NOFOLLOW) == 0
+        && !S_ISLNK(info.st_mode)
+        && (uint64_t)info.st_dev == identity->volume
+        && (uint64_t)info.st_ino == identity->number
+        && (uint64_t)info.st_birthtimespec.tv_sec == identity->birth_seconds
+        && (uint64_t)info.st_birthtimespec.tv_nsec == identity->birth_nanoseconds;
+    int ok = matches && fchmodat(directory, "inode", value & 07777, 0) == 0;
+    if (linked) unlinkat(directory, "inode", 0);
+    if (directory >= 0) close(directory);
+    rmdir(private_dir);
+    return ok;
 }
 #endif
 
@@ -88,11 +127,13 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
                 ok = 1;
             } else {
                 int descriptor_errno = errno;
-                ok = files_fchmod_evtonly(fd, value);
+                ok = files_fchmod_evtonly(fd, value)
+                    || files_fchmod_link(path, value, identity);
                 if (!ok) {
-                    fprintf(stderr,
+                    fprintf(stdout,
                         "files: macOS held-inode chmod failed (fd=%d, /dev/fd=%d)\n",
                         descriptor_errno, errno);
+                    fflush(stdout);
                 }
             }
         }
