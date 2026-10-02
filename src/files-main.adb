@@ -5,10 +5,12 @@ with Files.Job_Scavenger;
 with Files.Process_Jobs;
 with Files.Recovery_CLI;
 with Hostkit.Process;
+with Ada.Command_Line;
 
 procedure Files.Main is
    Reaped  : Boolean;
    Stopped : Boolean;
+   Status  : Ada.Command_Line.Exit_Status := Ada.Command_Line.Success;
 begin
    if Files.Recovery_CLI.Run_If_Requested then
       Files.Job_Scavenger.Shutdown (Reaped);
@@ -28,7 +30,7 @@ begin
       end if;
    else
       Files.Job_Scavenger.Scavenge;
-      Files.Application.Run;
+      Status := Files.Application.Run;
       Files.Job_Scavenger.Shutdown (Reaped);
       Files.Job_Context.Shutdown;
       Files.Process_Jobs.Shutdown (Stopped);
@@ -36,8 +38,10 @@ begin
          --  Recovery is durable and resumes on the next launch. If only its
          --  monitor is still in a host filesystem call, a normal window close
          --  is still a successful application exit.
-         Hostkit.Process.End_Now (if Stopped then 0 else 1);
+         Hostkit.Process.End_Now
+           (if Stopped then Integer (Status) else Integer (Ada.Command_Line.Failure));
       end if;
+      Ada.Command_Line.Set_Exit_Status (Status);
    end if;
 exception
    when others =>

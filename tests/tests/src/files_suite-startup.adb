@@ -25,6 +25,7 @@ with Textrender.Fonts;
 
 with Hostkit.Fs;
 with Hostkit.Host;
+with Hostkit.Durability;
 
 with Files.Accessibility;
 with Files.Application;
@@ -33,6 +34,8 @@ with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
 with Files.Drop_Events;
+with Files.Durable_Writes;
+with Files.Durable_Writes.Testing;
 with Files.Events;
 with Files.File_System;
 with Files.Fs;
@@ -75,6 +78,7 @@ package body Files_Suite.Startup is
    use type Files.File_System.Thumbnail_Status;
    use type Files.File_System.Trash_Backend;
    use type Files.Application.Run_Mode;
+   use type Files.Durable_Writes.Publication_Result;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
    use type Guikit.Draw.Accessibility_Role;
@@ -115,6 +119,7 @@ package body Files_Suite.Startup is
    procedure Test_Desktop_Error_Report (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Report_Settings_Error (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Durable_Publication_Outcomes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -150,6 +155,8 @@ package body Files_Suite.Startup is
         (T, Test_Startup_Report_Settings_Error'Access, "startup report formats settings errors");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Run_Configuration_Parsing'Access, "runtime smoke argument parsing");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Durable_Publication_Outcomes'Access, "durable publication outcome taxonomy");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Localization_Catalog'Access, "localization uses default catalog");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -810,8 +817,16 @@ package body Files_Suite.Startup is
            (To_String (Smoke), Files.Localization.Text ("runtime.smoke.vertices") & ": ") > 0,
          "runtime smoke report uses localized vertex-count label");
       Assert
+        (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.text_failed")) > 0,
+         "runtime smoke rejects a startup that contains path errors");
+      Assert
+        (Ada.Strings.Fixed.Index (To_String (Smoke), "runtime-smoke: FAIL") > 0,
+         "runtime smoke emits FAIL when any requested path failed");
+      Startup.Errors.Clear;
+      Smoke := To_Unbounded_String (Files.Application.Runtime_Smoke_Report (Startup, Width => 800, Height => 400));
+      Assert
         (Ada.Strings.Fixed.Index (To_String (Smoke), Files.Localization.Text ("runtime.smoke.ready")) > 0,
-         "runtime smoke report exposes headless render quality status");
+         "runtime smoke report exposes successful headless render quality");
       Assert
         (Ada.Strings.Fixed.Index (To_String (Smoke), "runtime-smoke: PASS") > 0,
          "runtime smoke report emits the fixed ASCII PASS verdict marker for CI");
@@ -1120,9 +1135,11 @@ package body Files_Suite.Startup is
       Args.Clear;
       Args.Append (To_Unbounded_String ("--unknown-path"));
       Config := Files.Application.Parse_Run_Configuration (Args);
-      Assert (Config.Mode = Files.Application.Desktop_Run, "unknown dash-prefixed path keeps desktop mode");
-      Assert (Natural (Config.Paths.Length) = 1, "unknown dash-prefixed value is preserved as a path");
-      Assert (To_String (Config.Paths.Element (1)) = "--unknown-path", "unknown option is treated as a path");
+      Assert (not Config.Valid, "unknown dash-prefixed options are rejected");
+      Assert (Config.Paths.Is_Empty, "an unknown option is not reinterpreted as a path");
+      Assert
+        (To_String (Config.Error_Key) = "cli.error.unknown_option",
+         "unknown options retain a command-line diagnostic");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--runtime-smoke"));
@@ -1155,16 +1172,14 @@ package body Files_Suite.Startup is
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings"));
       Config := Files.Application.Parse_Run_Configuration (Args);
-      Assert (To_String (Config.Settings_Path) = "", "a dangling --settings leaves the default settings path");
-      Assert
-        (Config.Paths.Is_Empty,
-         "a dangling --settings is dropped rather than becoming a bogus --settings startup path");
+      Assert (not Config.Valid, "a dangling --settings is rejected");
+      Assert (Config.Paths.Is_Empty, "a dangling --settings never becomes a startup path");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings="));
       Config := Files.Application.Parse_Run_Configuration (Args);
-      Assert (To_String (Config.Settings_Path) = "", "empty settings equals form leaves default settings path");
-      Assert (Config.Paths.Is_Empty, "empty settings equals form is consumed as a recognized flag");
+      Assert (not Config.Valid, "an empty settings equals form is rejected");
+      Assert (Config.Paths.Is_Empty, "an empty settings value is consumed as an invalid flag");
 
       declare
          Dir           : constant String := Join (Root, "cli-settings");
@@ -1207,6 +1222,10 @@ package body Files_Suite.Startup is
            (Ada.Strings.Fixed.Index (Help, "--settings PATH") > 0,
             "help text documents settings path flag");
          Assert
+           (Ada.Strings.Fixed.Index (Help, "--list-recoveries") > 0
+            and then Ada.Strings.Fixed.Index (Help, "--discard-recovery") > 0,
+            "help text documents recovery commands");
+         Assert
            (Ada.Strings.Fixed.Index (Help, "--version") > 0,
             "help text documents version flag");
          Assert
@@ -1217,6 +1236,42 @@ package body Files_Suite.Startup is
             "version text uses generated crate metadata");
       end;
    end Test_Run_Configuration_Parsing;
+
+   procedure Test_Durable_Publication_Outcomes
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      use Hostkit.Durability;
+      use Files.Durable_Writes;
+      function Outcome
+        (File_Sync      : Hostkit.Durability.Outcome;
+         Replaced       : Boolean;
+         Directory_Sync : Hostkit.Durability.Outcome)
+         return Publication_Result
+        renames Files.Durable_Writes.Testing.Outcome_Of;
+   begin
+      Assert
+        (Outcome (Failed, True, Synced) = Not_Published,
+         "a failed file sync must prevent publication");
+      Assert
+        (Outcome (Synced, False, Synced) = Not_Published,
+         "a failed replacement must remain unpublished");
+      Assert
+        (Outcome (Synced, True, Failed) = Published_Not_Durable,
+         "directory sync failure must retain the published state");
+      Assert
+        (Published (Outcome (Synced, True, Failed)),
+         "the partial outcome must report publication");
+      Assert
+        (not Durable (Outcome (Synced, True, Failed)),
+         "the partial outcome must not claim durability");
+      Assert
+        (Outcome (Synced, True, Synced) = Published_Durable,
+         "a synced directory must produce a durable result");
+      Assert
+        (Outcome (Synced, True, Not_Supported) = Published_Durable,
+         "journaled hosts without directory sync support are durable");
+   end Test_Durable_Publication_Outcomes;
 
    procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1311,7 +1366,7 @@ package body Files_Suite.Startup is
          "runtime smoke live-harness label is localized");
       Assert
         (Files.Localization.Text ("cli.help.usage") =
-         "Usage: files [--runtime-smoke] [--live-smoke] [--settings PATH] [--version] [PATH...]",
+         "Usage: files [OPTION]... [PATH...]",
          "CLI help usage is localized");
       Assert
         (Files.Localization.Text ("cli.help.path") = "PATH opens a directory, or the parent directory of a file.",

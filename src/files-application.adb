@@ -1,7 +1,7 @@
-with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Interfaces;
@@ -58,20 +58,27 @@ package body Files.Application is
               and then Value (Value'First .. Value'First + 10) = "--settings="
             then
                if Value'Length = 11 then
-                  Result.Settings_Path := Null_Unbounded_String;
+                  Result.Valid := False;
+                  Result.Error_Key := To_Unbounded_String ("cli.error.settings_path_missing");
+                  Result.Error_Argument := Argument;
                else
                   Result.Settings_Path := To_Unbounded_String (Value (Value'First + 11 .. Value'Last));
                end if;
+            elsif Parse_Flags and then Value'Length > 0 and then Value (Value'First) = '-' then
+               Result.Valid := False;
+               Result.Error_Key := To_Unbounded_String ("cli.error.unknown_option");
+               Result.Error_Argument := Argument;
             else
                Result.Paths.Append (Argument);
             end if;
          end;
       end loop;
 
-      --  A dangling "--settings" with no value after it is simply dropped (the
-      --  app falls back to the default settings file). Appending the literal flag
-      --  text as a path -- the old behaviour -- produced a confusing
-      --  "path does not exist: --settings" startup error instead.
+      if Need_Settings_Path then
+         Result.Valid := False;
+         Result.Error_Key := To_Unbounded_String ("cli.error.settings_path_missing");
+         Result.Error_Argument := To_Unbounded_String ("--settings");
+      end if;
 
       return Result;
    end Parse_Run_Configuration;
@@ -91,6 +98,12 @@ package body Files.Application is
         & Files.Localization.Text ("cli.help.option.live_smoke", Locale)
         & ASCII.LF
         & Files.Localization.Text ("cli.help.option.settings", Locale)
+        & ASCII.LF
+        & Files.Localization.Text ("cli.help.option.list_recoveries", Locale)
+        & ASCII.LF
+        & Files.Localization.Text ("cli.help.option.recover", Locale)
+        & ASCII.LF
+        & Files.Localization.Text ("cli.help.option.discard_recovery", Locale)
         & ASCII.LF
         & Files.Localization.Text ("cli.help.option.version", Locale)
         & ASCII.LF
@@ -273,6 +286,12 @@ package body Files.Application is
            Files.Settings.Ensure_Default_File (Effective_Path);
       begin
          if Ensured.Success then
+            if not Ensured.Durable then
+               Result.Errors.Append
+                 (Startup_Error'
+                    (Input_Path => To_Unbounded_String (Effective_Path),
+                     Error_Key  => Ensured.Error_Key));
+            end if;
             declare
                Loaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Effective_Path);
             begin
@@ -501,9 +520,11 @@ package body Files.Application is
               Width  => Width,
               Height => Height);
       begin
-         Append_Line ("runtime-smoke:" & " " & (if Quality.Passed then "PASS" else "FAIL"));
          Append_Line
-           ((if Quality.Passed
+           ("runtime-smoke:" & " "
+            & (if Quality.Passed and then Result.Errors.Is_Empty then "PASS" else "FAIL"));
+         Append_Line
+           ((if Quality.Passed and then Result.Errors.Is_Empty
              then Files.Localization.Text ("runtime.smoke.ready", Locale)
              else Files.Localization.Text ("runtime.smoke.text_failed", Locale))
             & "  "
@@ -595,11 +616,12 @@ package body Files.Application is
       return To_String (Report);
    end Runtime_Smoke_Report;
 
-   procedure Run is
+   function Run return Ada.Command_Line.Exit_Status is
       Arguments : String_Vectors.Vector;
       Config    : Run_Configuration;
       Result    : Startup_Result;
       Report    : Unbounded_String;
+      Status    : Ada.Command_Line.Exit_Status := Ada.Command_Line.Success;
    begin
       --  Serve icon definitions from the bundled .icon files (the single edit
       --  surface); Guikit.Draw falls back to its built-in copies if they are absent.
@@ -610,12 +632,20 @@ package body Files.Application is
       end loop;
 
       Config := Parse_Run_Configuration (Arguments);
-      if Config.Mode = Help_Run then
+      if not Config.Valid then
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            Files.Localization.Text (To_String (Config.Error_Key))
+            & (if Length (Config.Error_Argument) = 0
+               then "" else ": " & To_String (Config.Error_Argument)));
+         Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, Help_Text);
+         return Ada.Command_Line.Failure;
+      elsif Config.Mode = Help_Run then
          Ada.Text_IO.Put_Line (Help_Text);
-         return;
+         return Ada.Command_Line.Success;
       elsif Config.Mode = Version_Run then
          Ada.Text_IO.Put_Line (Version_Text);
-         return;
+         return Ada.Command_Line.Success;
       end if;
 
       Result := Resolve_Startup (Config.Paths, To_String (Config.Settings_Path));
@@ -623,11 +653,22 @@ package body Files.Application is
       if To_String (Report) /= "" then
          Ada.Text_IO.Put_Line (To_String (Report));
       end if;
+      if not Result.Errors.Is_Empty then
+         Status := Ada.Command_Line.Failure;
+      end if;
 
       case Config.Mode is
          when Headless_Smoke_Run =>
-            Ada.Text_IO.Put_Line (Runtime_Smoke_Report (Result));
-            return;
+            declare
+               Smoke : constant String := Runtime_Smoke_Report (Result);
+               Pass_Marker : constant String := "runtime-smoke:" & " " & "PASS";
+            begin
+               Ada.Text_IO.Put_Line (Smoke);
+               if Ada.Strings.Fixed.Index (Smoke, Pass_Marker) = Smoke'First then
+                  return Status;
+               end if;
+               return Ada.Command_Line.Failure;
+            end;
 
          when Live_Smoke_Run =>
             declare
@@ -784,39 +825,47 @@ package body Files.Application is
                case Files.Application.Windows.Gate_Outcome (Live_Result) is
                   when Files.Application.Windows.Live_Smoke_Pass =>
                      Ada.Text_IO.Put_Line (Live_Smoke_Marker & Space & Pass_Token);
-                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
+                     Status := Ada.Command_Line.Success;
 
                   when Files.Application.Windows.Live_Smoke_Fail =>
                      Ada.Text_IO.Put_Line
                        (Live_Smoke_Marker & Space & Fail_Token & Space
                         & Live_Smoke_Fail_Reason (Live_Result));
-                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                     Status := Ada.Command_Line.Failure;
 
                   when Files.Application.Windows.Live_Smoke_Skip =>
                      Ada.Text_IO.Put_Line
                        (Live_Smoke_Marker & Space & Skip_Token & Space
                         & Live_Smoke_Skip_Reason (Live_Result));
-                     Ada.Command_Line.Set_Exit_Status (Live_Smoke_Skip_Exit_Code);
+                     Status := Live_Smoke_Skip_Exit_Code;
                end case;
             end;
-            return;
+            return Status;
 
          when Help_Run =>
-            return;
+            return Ada.Command_Line.Success;
 
          when Version_Run =>
-            return;
+            return Ada.Command_Line.Success;
 
          when Desktop_Run =>
             null;
       end case;
 
+      if Result.Windows.Is_Empty then
+         return Ada.Command_Line.Failure;
+      end if;
+
       begin
          Files.Application.Windows.Run (Result);
       exception
          when Error : Files.Application.Windows.Desktop_Error =>
-            Ada.Text_IO.Put_Line (Desktop_Error_Report (Ada.Exceptions.Exception_Message (Error)));
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               Desktop_Error_Report (Ada.Exceptions.Exception_Message (Error)));
+            return Ada.Command_Line.Failure;
       end;
+      return Status;
    end Run;
 
 end Files.Application;

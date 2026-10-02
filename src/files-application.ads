@@ -1,3 +1,4 @@
+with Ada.Command_Line;
 with Ada.Containers.Vectors;
 
 with Files.Model;
@@ -46,13 +47,16 @@ package Files.Application is
       Mode  : Run_Mode := Desktop_Run;
       Paths : String_Vectors.Vector;
       Settings_Path : UString;
+      Valid : Boolean := True;
+      Error_Key : UString;
+      Error_Argument : UString;
    end record;
 
    --  Parse application command-line arguments into runtime mode and paths.
    --
-   --  Recognized smoke flags and settings-path selectors are consumed before
-   --  a -- terminator. Unknown dash-prefixed values remain paths so normal
-   --  startup path behavior is preserved.
+   --  Recognized flags are consumed before a -- terminator. Unknown options
+   --  and missing settings values make the configuration invalid; a pathname
+   --  beginning with a dash must follow --.
    --
    --  @param Arguments Raw command-line arguments.
    --  @return Parsed runtime mode and path arguments.
@@ -172,6 +176,7 @@ package Files.Application is
    --
    --  The selected run mode may print help, execute smoke checks, or open
    --  desktop windows after resolving startup paths and settings.
-   procedure Run;
+   --  @return Success only when the selected mode completes without errors.
+   function Run return Ada.Command_Line.Exit_Status;
 
 end Files.Application;
