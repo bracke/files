@@ -8,9 +8,8 @@ name: CI
 #  a11ykit). The checkout step pins every sibling to a reviewed commit so a
 #  historical Files revision never changes underneath a moving default branch.
 # CI clones them next to the checkout. They must therefore exist as fetchable
-# GitHub repos under the same owner. As of writing, `textrender` is published
-# but the rest are NOT — push them to github.com/<owner>/<name> (or adjust the
-# clone URLs below) before this workflow can succeed.
+# GitHub repos under the same owner. The immutable revisions below must remain
+# fetchable so historical Files revisions keep testing the same dependency set.
 #
 # Every job runs a headless render smoke on the shipped binary
 # (files --runtime-smoke): the snapshot -> frame-commands -> text/glyph path
@@ -169,7 +168,7 @@ jobs:
           clone_at cryptolib 05c5117f89a4ec7d06633e0d9b546fd0a8f8f90f
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 4ceb66b27c1394a7029fdf0375c11123198dc327
+          clone_at a11ykit 84ff097f8df661b30f6a2dd0dc072461ce97c87d
           # i18n's pre-build regeneration builds download_tzdb (httpclient, tarlib,
           # awklib-on-regexp) and the CLDR import (httpclient); clone those too.
           clone_at httpclient 8191254695b1072b010ba23c6c6b29b0644f5277
