@@ -52,7 +52,9 @@ package body Files.Copy_Context is
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Temp);
       Files.Types.String_Vectors.Vector'Output (Ada.Streams.Stream_IO.Stream (File), Items);
       Ada.Streams.Stream_IO.Close (File);
-      if not Files.Durable_Writes.Publish (Temp, Path) then
+      if not Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish (Temp, Path))
+      then
          raise Ada.Directories.Use_Error;
       end if;
    exception

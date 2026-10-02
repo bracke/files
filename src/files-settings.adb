@@ -832,6 +832,7 @@ package body Files.Settings is
       if not Applied.Success then
          return
            (Success   => False,
+            Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => Applied.Error_Key);
       end if;

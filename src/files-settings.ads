@@ -177,6 +177,7 @@ package Files.Settings is
 
    type Settings_Write_Result is record
       Success   : Boolean := True;
+      Durable   : Boolean := True;
       Path      : UString;
       Error_Key : UString;
    end record;

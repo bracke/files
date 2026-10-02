@@ -7,17 +7,20 @@ separate (Files.Settings)
       if Path = "" then
          return
            (Success   => False,
+            Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
       elsif Ada.Directories.Exists (Path) then
          if Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File then
             return
               (Success   => True,
+               Durable   => True,
                Path      => To_Unbounded_String (Path),
                Error_Key => Null_Unbounded_String);
          else
             return
               (Success   => False,
+               Durable   => False,
                Path      => To_Unbounded_String (Path),
                Error_Key => To_Unbounded_String ("error.settings.not_file"));
          end if;
@@ -28,6 +31,7 @@ separate (Files.Settings)
       when others =>
          return
            (Success   => False,
+            Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
    end Ensure_Default_File;

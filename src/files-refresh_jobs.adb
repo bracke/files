@@ -232,8 +232,9 @@ package body Files.Refresh_Jobs is
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Hostkit.Fs.Join (Directory, "result.tmp"));
       Outcome'Output (Ada.Streams.Stream_IO.Stream (File), Done);
       Ada.Streams.Stream_IO.Close (File);
-      if not Files.Durable_Writes.Publish
-        (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"))
+      if not Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish
+           (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -310,7 +311,7 @@ package body Files.Refresh_Jobs is
                                          Hostkit.Fs.Join (Directory, "changed.tmp"));
             Ada.Streams.Stream_IO.Close (File);
             declare
-               Posted : constant Boolean := Files.Durable_Writes.Publish
+               Posted : constant Files.Durable_Writes.Publication_Result := Files.Durable_Writes.Publish
                  (Hostkit.Fs.Join (Directory, "changed.tmp"), Hostkit.Fs.Join (Directory, "changed"));
                pragma Unreferenced (Posted);
             begin

@@ -17,7 +17,7 @@ package body Files.History_Journal is
    procedure Write (Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector; Required : Boolean := False) is
       Directory : constant String := Files.Job_Context.Directory;
       File : Ada.Streams.Stream_IO.File_Type;
-      Published : Boolean;
+      Published : Files.Durable_Writes.Publication_Result;
    begin
       if Directory = "" then
          return;
@@ -28,7 +28,7 @@ package body Files.History_Journal is
       Ada.Streams.Stream_IO.Close (File);
       Published := Files.Durable_Writes.Publish
         (Hostkit.Fs.Join (Directory, "history.tmp"), Hostkit.Fs.Join (Directory, "history"));
-      if Required and then not Published then
+      if Required and then not Files.Durable_Writes.Published (Published) then
          raise Ada.Directories.Use_Error;
       end if;
    exception

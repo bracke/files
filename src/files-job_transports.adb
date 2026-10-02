@@ -192,7 +192,9 @@ package body Files.Job_Transports is
       String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
       String'Output (Ada.Streams.Stream_IO.Stream (File), Owner_Token);
       Ada.Streams.Stream_IO.Close (File);
-      if not Files.Durable_Writes.Publish (Temp, Marker) then
+      if not Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish (Temp, Marker))
+      then
          raise Ada.Directories.Use_Error;
       end if;
    exception

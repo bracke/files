@@ -346,8 +346,9 @@ package body Files.Operation_Jobs is
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Hostkit.Fs.Join (Directory, "result.tmp"));
       Outcome'Output (Ada.Streams.Stream_IO.Stream (File), Done);
       Ada.Streams.Stream_IO.Close (File);
-      if not Files.Durable_Writes.Publish
-        (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"))
+      if not Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish
+           (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
       then
          raise Ada.Directories.Use_Error;
       end if;

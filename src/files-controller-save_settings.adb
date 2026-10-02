@@ -51,11 +51,12 @@ separate (Files.Controller)
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;
 
-      Files.Model.Set_Error (Model, "");
+      Files.Model.Set_Error
+        (Model, (if Saved.Durable then "" else To_String (Saved.Error_Key)));
       Files.Model.Set_Settings_Draft (Model, Files.Settings.Make_Draft (Settings));
       Operation.Status := Files.Operations.Operation_Success;
       Operation.Path := To_Unbounded_String (Settings_Path);
-      Operation.Error_Key := Null_Unbounded_String;
+      Operation.Error_Key := Saved.Error_Key;
 
       return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
    end Save_Settings;

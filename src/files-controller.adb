@@ -336,10 +336,11 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Hidden_Files_Command, Operation);
       end if;
 
-      Files.Model.Set_Error (Model, "");
+      Files.Model.Set_Error
+        (Model, (if Saved.Durable then "" else To_String (Saved.Error_Key)));
       Operation.Status := Files.Operations.Operation_Success;
       Operation.Path := To_Unbounded_String (Settings_Path);
-      Operation.Error_Key := Null_Unbounded_String;
+      Operation.Error_Key := Saved.Error_Key;
 
       return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Hidden_Files_Command, Operation);
    end Toggle_Hidden_Files;
@@ -369,10 +370,11 @@ package body Files.Controller is
       --  directory reload. The next Build_Snapshot carries the new flag, which
       --  differs from the cached snapshot and rebuilds the frame on its own.
       Settings := Updated;
-      Files.Model.Set_Error (Model, "");
+      Files.Model.Set_Error
+        (Model, (if Saved.Durable then "" else To_String (Saved.Error_Key)));
       Operation.Status := Files.Operations.Operation_Success;
       Operation.Path := To_Unbounded_String (Settings_Path);
-      Operation.Error_Key := Null_Unbounded_String;
+      Operation.Error_Key := Saved.Error_Key;
 
       return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
    end Toggle_Show_Extensions;

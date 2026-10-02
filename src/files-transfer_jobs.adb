@@ -175,8 +175,9 @@ package body Files.Transfer_Jobs is
            (Output, Ada.Streams.Stream_IO.Out_File, Hostkit.Fs.Join (Directory, "result.tmp"));
          Job_Result'Output (Ada.Streams.Stream_IO.Stream (Output), Result);
          Ada.Streams.Stream_IO.Close (Output);
-         if not Files.Durable_Writes.Publish
-           (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"))
+         if not Files.Durable_Writes.Published
+           (Files.Durable_Writes.Publish
+              (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
          then
             raise Ada.Directories.Use_Error;
          end if;
@@ -268,7 +269,7 @@ package body Files.Transfer_Jobs is
             Job_Result'Output (Ada.Streams.Stream_IO.Stream (File), Result);
             Ada.Streams.Stream_IO.Close (File);
             declare
-               Published : constant Boolean := Files.Durable_Writes.Publish
+               Published : constant Files.Durable_Writes.Publication_Result := Files.Durable_Writes.Publish
                  (Hostkit.Fs.Join (Directory, "completed.tmp"), Hostkit.Fs.Join (Directory, "completed"));
                pragma Unreferenced (Published);
             begin

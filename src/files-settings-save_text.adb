@@ -9,6 +9,8 @@ separate (Files.Settings)
       Temp   : Unbounded_String;
       Temp_Identity : Unbounded_String;
       Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Publication : Files.Durable_Writes.Publication_Result :=
+        Files.Durable_Writes.Not_Published;
 
       procedure Remove_Owned_Temp is
       begin
@@ -35,15 +37,17 @@ separate (Files.Settings)
       if Path = "" then
          return
            (Success   => False,
+            Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
       elsif Ada.Directories.Exists (Path)
         and then Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
       then
-         return
-           (Success   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.not_file"));
+            return
+              (Success   => False,
+               Durable   => False,
+               Path      => To_Unbounded_String (Path),
+               Error_Key => To_Unbounded_String ("error.settings.not_file"));
       end if;
 
       if Parent /= "" then
@@ -51,6 +55,7 @@ separate (Files.Settings)
             if Ada.Directories.Kind (Parent) /= Ada.Directories.Directory then
                return
                  (Success   => False,
+                  Durable   => False,
                   Path      => To_Unbounded_String (Path),
                   Error_Key => To_Unbounded_String ("error.settings.not_file"));
             end if;
@@ -106,9 +111,11 @@ separate (Files.Settings)
             raise Ada.Directories.Use_Error;
          end if;
       end;
-      if Files.File_Identities.Token (To_String (Temp)) /= To_String (Temp_Identity)
-        or else not Files.Durable_Writes.Publish (To_String (Temp), Path)
-      then
+      if Files.File_Identities.Token (To_String (Temp)) /= To_String (Temp_Identity) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Publication := Files.Durable_Writes.Publish (To_String (Temp), Path);
+      if not Files.Durable_Writes.Published (Publication) then
          raise Ada.Directories.Use_Error;
       end if;
       Temp := Null_Unbounded_String;
@@ -116,8 +123,12 @@ separate (Files.Settings)
 
       return
         (Success   => True,
+         Durable   => Files.Durable_Writes.Durable (Publication),
          Path      => To_Unbounded_String (Path),
-         Error_Key => Null_Unbounded_String);
+         Error_Key =>
+           (if Files.Durable_Writes.Durable (Publication)
+            then Null_Unbounded_String
+            else To_Unbounded_String ("warning.settings.not_durable")));
    exception
       when others =>
          if Descriptor /= GNAT.OS_Lib.Invalid_FD then
@@ -128,6 +139,7 @@ separate (Files.Settings)
 
          return
            (Success   => False,
+            Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
    end Save_Text;

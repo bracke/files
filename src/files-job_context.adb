@@ -96,7 +96,9 @@ package body Files.Job_Context is
       String'Output (Ada.Streams.Stream_IO.Stream (File), Path);
       String'Output (Ada.Streams.Stream_IO.Stream (File), Identity);
       Ada.Streams.Stream_IO.Close (File);
-      if not Files.Durable_Writes.Publish (Temp, Data) then
+      if not Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish (Temp, Data))
+      then
          raise Ada.Directories.Use_Error;
       end if;
    exception
@@ -431,7 +433,9 @@ package body Files.Job_Context is
       String'Output (Ada.Streams.Stream_IO.Stream (File), Owner_Directory);
       String'Output (Ada.Streams.Stream_IO.Stream (File), Identity);
       Ada.Streams.Stream_IO.Close (File);
-      if not Files.Durable_Writes.Publish (Owner_Temp, Owner) then
+      if not Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish (Owner_Temp, Owner))
+      then
          raise Ada.Directories.Use_Error;
       end if;
       Write_Stage_Record (Record_Directory, Path, Identity);
