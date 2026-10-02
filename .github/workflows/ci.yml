@@ -169,9 +169,12 @@ jobs:
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
           clone_at a11ykit 84ff097f8df661b30f6a2dd0dc072461ce97c87d
-          # i18n's pre-build regeneration builds download_tzdb (httpclient, tarlib,
-          # awklib-on-regexp) and the CLDR import (httpclient); clone those too.
+          # i18n's pre-build regeneration builds download_tzdb (httpclient with
+          # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
+          # clone that complete pinned tool dependency closure too.
           clone_at httpclient 8191254695b1072b010ba23c6c6b29b0644f5277
+          clone_at ssllib b1637fa14a30ab60b7ef6800533a88aed5a549bf
+          clone_at truststores a6c86d29dd5f4ac0110425aa30d1a742ffc8a4d5
           clone_at tarlib 1a6f22ae04e89a2e634d00f283527d337e3d3b1b
           clone_at awklib 1ff50d0d729f403c1eb7cde7fdadad3e4e24c09c
           clone_at regexp 075f7e0dadde859b79e0026e9bbd715c7c753ad6
