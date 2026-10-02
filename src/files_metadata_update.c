@@ -253,14 +253,20 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
     if (ownership) {
         *previous = sid_identity(owner);
         *previous_group = sid_identity(primary_group);
-        PSID new_owner = account_sid(owner_name, value);
-        PSID new_group = account_sid(group_name, group);
+        /* Background history runs in a fresh helper process, so Hostkit's
+           process-local SID/name cache is deliberately absent there.  The
+           current descriptor already owns authoritative SIDs for unchanged
+           owner/group ids; reuse them instead of requiring a name round-trip. */
+        int borrowed_owner = sid_identity(owner) == value;
+        int borrowed_group = sid_identity(primary_group) == group;
+        PSID new_owner = borrowed_owner ? owner : account_sid(owner_name, value);
+        PSID new_group = borrowed_group ? primary_group : account_sid(group_name, group);
         if (new_owner && new_group)
             ok = SetSecurityInfo(file, SE_FILE_OBJECT,
                     OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION,
                     new_owner, new_group, NULL, NULL) == ERROR_SUCCESS;
-        free(new_group);
-        free(new_owner);
+        if (!borrowed_group) free(new_group);
+        if (!borrowed_owner) free(new_owner);
     } else {
         unsigned char everyone_buffer[SECURITY_MAX_SID_SIZE];
         DWORD everyone_size = sizeof(everyone_buffer);
