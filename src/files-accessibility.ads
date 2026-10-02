@@ -42,21 +42,17 @@ package Files.Accessibility is
      (Frame : Files.Rendering.Frame_Commands)
       return A11ykit.Tree.Accessibility_Tree;
 
-   --  Register the application with the host screen-reader service, and
-   --  unregister it again. Publish only reaches a provider that has been
-   --  started -- registering is what makes A11ykit.Provider.Available answer
-   --  True in the first place -- so a session that never calls these publishes
-   --  into nothing however many trees it builds.
+   --  Begin and end the application's host screen-reader lifetime. Native
+   --  providers defer registration until Publish supplies the first root tree.
    --
-   --  Both are idempotent and both are no-ops on a host with no provider, which
-   --  today is every host.
+   --  Both are idempotent and no-ops on an unsupported host.
    procedure Start;
    procedure Stop;
 
-   --  Publish the frame's accessibility tree to the host screen-reader service
-   --  when a provider is available. A no-op otherwise -- and no host provider is
-   --  implemented yet, so it currently never publishes -- so it is safe (and
-   --  cheap) to call every frame.
+   --  Publish the frame's accessibility tree. On Linux, Windows, and macOS the
+   --  a11y provider attempts native registration and publication; when the host
+   --  service is unavailable it still validates the semantic tree through the
+   --  toolkit's fallback backend.
    --
    --  @param Frame Render frame containing accessibility nodes.
    procedure Publish (Frame : Files.Rendering.Frame_Commands);

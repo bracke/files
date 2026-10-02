@@ -10,6 +10,7 @@ with System;
 
 with Files.Commands;
 with Files.Events;
+with Files.File_System;
 with Files.Fonts;
 with Files.Localization;
 with Files.Model;
@@ -19,6 +20,10 @@ with Files.Quick_Look;
 with Guikit.Draw;
 with Files.Rendering;
 with Files.Accessibility;
+with A11y.Platforms;
+with A11y.Results;
+with A11ykit.Compatibility;
+with A11ykit.Provider;
 with A11ykit.Tree;
 with Guikit.Vulkan;
 with Files.Types;
@@ -36,11 +41,14 @@ package body Files_Suite.Rendering is
    use Files.Rendering;
    use Guikit.Draw;
    use type Files.Commands.Command_Id;
+   use type Files.File_System.Native_API_Binding_Status;
    use type Files.Rendering.Context_Menu_Row_Kind;
    use type Guikit.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
    use type Files.Types.Focus_Target;
+   use type A11y.Platforms.Platform_Kind;
+   use type A11y.Results.Status_Code;
    use type System.Address;
 
    type Rendering_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -1303,6 +1311,8 @@ package body Files_Suite.Rendering is
         Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
       Tree     : constant A11ykit.Tree.Accessibility_Tree :=
         Files.Accessibility.To_A11ykit_Tree (Frame);
+      Profile  : constant Files.Rendering.Accessibility_Integration_Profile :=
+        Files.Accessibility.Integration_Profile;
       Roots    : Natural := 0;
    begin
       Assert
@@ -1319,18 +1329,38 @@ package body Files_Suite.Rendering is
          end if;
       end loop;
       Assert (Roots >= 1, "the mapped tree has at least one root node");
+      Assert
+        (A11ykit.Compatibility.Validate_Tree (Tree).Status =
+           A11y.Results.Success,
+         "the mapped tree satisfies the provider contract");
 
-      --  Publishing only reaches a provider the application has registered
-      --  with, and the windowed session registers once at startup. Both calls
-      --  are idempotent no-ops until a host provider exists, so what is
-      --  checkable here is that the lifetime pair is callable in any order and
-      --  that publishing between them stays harmless.
+      Assert
+        (Profile.Native_API_Binding_Status =
+           (if A11y.Platforms.Current = A11y.Platforms.Unsupported
+            then Files.File_System.Native_API_Binding_Missing
+            else Files.File_System.Native_API_Binding_Available),
+         "the integration profile reports whether this target has a native provider binding");
+
+      --  The provider needs the first tree before it can register its native
+      --  application root. Publication must therefore run even while Available
+      --  is initially False; hosts without a live service use the validating
+      --  fallback and still report a successful semantic publication.
       Files.Accessibility.Start;
       Files.Accessibility.Start;
       Files.Accessibility.Publish (Frame);
+      Assert
+        (A11ykit.Provider.Last_Publish_Status = A11y.Results.Success,
+         "the frame reaches the native provider or its validating fallback: "
+         & A11y.Results.Status_Code'Image
+             (A11ykit.Provider.Last_Publish_Status));
+      Assert
+        (A11ykit.Provider.Last_Published_Event_Count > 0,
+         "accessibility publication delivers semantic events");
+      Assert
+        (A11ykit.Provider.Last_Publish_Backend_Name'Length > 0,
+         "accessibility publication records the backend that consumed the frame");
       Files.Accessibility.Stop;
       Files.Accessibility.Stop;
-      Files.Accessibility.Publish (Frame);
       Assert
         (not Files.Accessibility.To_A11ykit_Tree (Frame).Nodes.Is_Empty,
          "the frame still maps after the provider lifetime has been started and stopped");

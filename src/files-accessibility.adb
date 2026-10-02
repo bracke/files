@@ -1,8 +1,16 @@
 with A11ykit;
 with A11ykit.Provider;
+with A11y.Platforms;
 
 package body Files.Accessibility is
    use Ada.Strings.Unbounded;
+   use type A11y.Platforms.Platform_Kind;
+
+   function Native_Binding_Status
+      return Files.File_System.Native_API_Binding_Status is
+     (if A11y.Platforms.Current = A11y.Platforms.Unsupported
+      then Files.File_System.Native_API_Binding_Missing
+      else Files.File_System.Native_API_Binding_Available);
 
    --  The neutral roles line up one-to-one with the renderer's roles.
    function A11y_Role (Node_Role : Guikit.Draw.Accessibility_Role) return A11ykit.Role is
@@ -24,7 +32,7 @@ package body Files.Accessibility is
    begin
       return
         (Render_Node_Tree          => True,
-         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Missing,
+         Native_API_Binding_Status => Native_Binding_Status,
          Role_Metadata             => True,
          Table_Metadata            => True,
          Pane_Section_Metadata     => True,
@@ -38,7 +46,7 @@ package body Files.Accessibility is
    is
       Result : Export_Result :=
         (Success                   => True,
-         Native_API_Binding_Status => Files.File_System.Native_API_Binding_Missing,
+         Native_API_Binding_Status => Native_Binding_Status,
          Node_Count                => Natural (Frame.Accessibility.Length),
          Focused_Node_Count        => 0,
          Nodes                     => Frame.Accessibility,
@@ -92,9 +100,10 @@ package body Files.Accessibility is
 
    procedure Publish (Frame : Files.Rendering.Frame_Commands) is
    begin
-      if A11ykit.Provider.Available then
-         A11ykit.Provider.Publish (To_A11ykit_Tree (Frame));
-      end if;
+      --  Native providers establish their host registration from the first
+      --  tree, because only then is the application root known.  Available is
+      --  therefore an outcome of Publish, not a precondition for calling it.
+      A11ykit.Provider.Publish (To_A11ykit_Tree (Frame));
    end Publish;
 
 end Files.Accessibility;

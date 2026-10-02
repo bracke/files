@@ -3470,8 +3470,8 @@ procedure Check_All is
          "platform support documentation must record drop event-source support");
       Project_Tools.Files.Require_Contains
         (Root & "/share/doc/files/platform-support.md",
-         "Ada accessibility bridge",
-         "platform support documentation must record accessibility bridge support");
+         "native AT-SPI, UI Automation",
+         "platform support documentation must record native accessibility provider support");
       Project_Tools.Files.Require_Contains
         (Root & "/share/applications/files.desktop",
          "MimeType=inode/directory;",

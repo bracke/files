@@ -9,6 +9,10 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Fixed
+- Accessibility frames now reach a11y's native provider bootstrap instead of
+  being discarded while the provider is waiting for its first root tree.
+- Accessibility integration reports the compiled native provider binding, and
+  platform documentation reflects Windows' ACL/SID metadata adapter.
 - Failed permission restoration after a directory rename rolls back safely or
   retains a private recovery payload, including its original directory mode.
 - Cross-filesystem trash verifies source identities and revisions before removal,

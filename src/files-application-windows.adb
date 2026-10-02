@@ -2001,10 +2001,9 @@ package body Files.Application.Windows is
       Guikit.Vulkan.Configure_Window_Hints;
 
       --  Register with the host screen reader for the lifetime of this session.
-      --  Render_Window publishes a tree every time it rebuilds a frame, but a
-      --  provider only listens once the application has registered with it, so
-      --  without this every one of those trees goes nowhere. A no-op on a host
-      --  with no provider, which today is all of them.
+      --  Render_Window publishes a tree every time it rebuilds a frame; the
+      --  first tree gives the native provider the root it needs to register.
+      --  Unsupported hosts retain the semantic validation fallback.
       Files.Accessibility.Start;
 
       for Startup_Window of Startup.Windows loop

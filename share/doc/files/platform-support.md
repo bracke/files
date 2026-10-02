@@ -15,12 +15,14 @@ Supported local integrations:
 5. Windows and macOS platform binding contracts for trash and volume metadata.
 6. Native GLFW file-drop callbacks routed through the Ada drop event-source
    backend for deterministic queued drop imports.
-7. Accessibility nodes exported through the Ada accessibility bridge.
+7. Accessibility trees published through a11y's native AT-SPI, UI Automation,
+   and NSAccessibility providers, with semantic validation fallback when the
+   host screen-reader service is unavailable.
+8. Permission and ownership changes through hostkit's handle-safe metadata
+   adapters. Windows maps permission bits to ACLs and round-trips identities
+   through SIDs; Linux and macOS use their native metadata interfaces.
 
 Known platform limits:
 
 1. Windows and macOS still need live-window testing in real interactive desktop
    sessions; their CI coverage is build, unit, installation, and headless smoke.
-2. Permission and ownership changes require the native handle-safe metadata
-   adapter. Linux and macOS provide it; Windows currently fails the operation
-   rather than using a pathname sequence that could modify a replaced entry.
