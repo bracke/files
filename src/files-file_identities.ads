@@ -2,9 +2,10 @@
 package Files.File_Identities is
    --  Empty when the host cannot establish an identity. Never authorizes Undo.
    --  @param Path Entry to inspect without following symbolic links.
-   --  @return Volume, full file ID and creation time where available, or an
-   --  empty token. A same-owner process can alter creation time on Windows
-   --  and macOS; this is not proof against deliberate same-owner forgery.
+   --  @return Volume, host file ID and a stable generation field where the
+   --  host provides one, or an empty token. Windows uses its full file ID and
+   --  deliberately excludes creation time because NTFS may rewrite that time
+   --  during a rename. This is not proof against deliberate same-owner forgery.
    function Token (Path : String) return String;
 
    --  @param Path Entry to inspect without following links.
