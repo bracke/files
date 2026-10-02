@@ -311,14 +311,13 @@ package body History is
       Expected_Tree_Revision : constant String :=
         (if Index <= Action.Created_Tree_Revisions.Last_Index
          then To_String (Action.Created_Tree_Revisions (Index)) else "");
-      Is_Link : Boolean;
    begin
       if Identity = "" or else Files.File_Identities.Token (Path) /= Identity then
          return False;
       end if;
-      Is_Link := Hostkit.Fs.Is_Link (Path);
       return
-        (if Is_Link then Expected_Tree_Revision = ""
+        (if Action.Create_Kind = Files.Model.Create_Symbolic_Link
+         then Expected_Tree_Revision = ""
          else Expected_Tree_Revision /= ""
            and then Files.File_System.Tree_Revision (Path) = Expected_Tree_Revision);
    exception
