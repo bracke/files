@@ -6385,8 +6385,9 @@ package body Files_Suite.Operations is
       Mode  : constant Natural := Metadata_Mode_Of (Path);
       Owner : constant Natural := (Mode / 8#100#) mod 8;
    begin
-      --  Windows ACLs do not expose directory traversal as a POSIX execute
-      --  bit, but the privacy contract is the same: only the owner has rights.
+      if not Hostkit.Metadata.Mode_Bits_Are_Native then
+         return not Hostkit.Fs.Directory_Accessible_By_Others (Path);
+      end if;
       return Owner in 6 | 7 and then Mode mod 8#100# = 0;
    end Is_Owner_Only;
 
@@ -6578,7 +6579,10 @@ package body Files_Suite.Operations is
             Step := (if Toggle then Files.Operations.Toggle_Permission_Bit (Model, 8, Settings)
                      else Files.Operations.Set_Permissions_For (Model, 8#750#, Settings));
             Assert (Step.Status = Files.Operations.Operation_Success
-                    and then Metadata_Mode_Of (Source) = (if Toggle then 8#601# else 8#750#),
+                    and then Metadata_Mode_Of (Source) =
+                      (if Hostkit.Metadata.Mode_Bits_Are_Native
+                       then (if Toggle then 8#601# else 8#750#)
+                       else (if Toggle then 8#600# else 8#640#)),
                     "permission changes and toggles use current mode bits");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
@@ -11035,7 +11039,13 @@ package body Files_Suite.Operations is
                        and then not Files.Model.Redo_Available (Model)
                        and then Files.Model.Undo_Available (Model)
                        and then File_Has_Bytes (Dest_B, "original b"),
-                       "unblocking B completes Redo despite A's now-missing source and returns it to Undo history");
+                       "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
+                       & Files.Model.Undo_Create_Kind'Image (Kind)
+                       & " missing=" & Boolean'Image (Missing_Source)
+                       & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                       & " redo=" & Boolean'Image (Files.Model.Redo_Available (Model))
+                       & " undo=" & Boolean'Image (Files.Model.Undo_Available (Model))
+                       & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b")));
                Ada.Directories.Rename (Held_A, Source_A);
                Assert (File_Has_Bytes (Dest_A, "original a"), "completed A retains its original bytes");
                Step := Complete_Operation
@@ -16208,6 +16218,7 @@ package body Files_Suite.Operations is
          Original := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
          Saved := Original & "-saved";
          Expected := To_Unbounded_String (Files.File_Identities.Token (To_String (Original)));
+         Files.Process_Jobs.Testing.Release_Owner (Job);
          Ada.Directories.Rename (To_String (Original), To_String (Saved));
          Ada.Directories.Create_Directory (To_String (Original));
          Write_Binary_File
