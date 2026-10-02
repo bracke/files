@@ -6,7 +6,8 @@ struct files_identity {
 };
 
 #ifdef _WIN32
-#ifndef _WIN32_WINNT
+#if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0602
+#undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0602
 #endif
 #include <windows.h>
