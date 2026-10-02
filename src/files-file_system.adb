@@ -728,11 +728,17 @@ package body Files.File_System is
       end record with Convention => C;
       function Update
         (Path, Expected : System.Address; Ownership : Interfaces.C.int;
-         Value, Group : Interfaces.C.unsigned_long; Previous, Previous_Group : access U64;
+         Value, Group : Interfaces.C.unsigned_long;
+         Owner_Name, Group_Name : System.Address;
+         Previous, Previous_Group : access U64;
          Identity : access Native_Identity) return Interfaces.C.int
         with Import, Convention => C, External_Name => "files_metadata_update";
       Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
       Expected : aliased Interfaces.C.char_array := Interfaces.C.To_C (Expected_Identity);
+      Owner_Name : aliased Interfaces.C.char_array := Interfaces.C.To_C
+        ((if Ownership then Permissions.User_Name_For_Id (Value) else ""));
+      Group_Name : aliased Interfaces.C.char_array := Interfaces.C.To_C
+        ((if Ownership then Permissions.Group_Name_For_Id (Group) else ""));
       Old_Value, Old_Group : aliased U64 := 0;
       Entry_Id : aliased Native_Identity;
       Status : Interfaces.C.int;
@@ -745,6 +751,7 @@ package body Files.File_System is
       Identity := Null_Unbounded_String;
       Status := Update (Name'Address, Expected'Address, Boolean'Pos (Ownership),
                         Interfaces.C.unsigned_long (Value), Interfaces.C.unsigned_long (Group),
+                        Owner_Name'Address, Group_Name'Address,
                         Old_Value'Access, Old_Group'Access, Entry_Id'Access);
       if Status = 1 then
          Previous := Natural (Old_Value);
