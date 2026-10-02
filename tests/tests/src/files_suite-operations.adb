@@ -12477,7 +12477,6 @@ package body Files_Suite.Operations is
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
-
       function Img (N : Integer) return String is
       begin
          return Ada.Strings.Fixed.Trim (Integer'Image (N), Ada.Strings.Both);
@@ -14554,6 +14553,19 @@ package body Files_Suite.Operations is
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
+      Had_Stall : constant Boolean :=
+        Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
+      Old_Stall : constant String :=
+        Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "");
+
+      procedure Restore_Stall is
+      begin
+         if Had_Stall then
+            Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", Old_Stall);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_OPERATIONS");
+         end if;
+      end Restore_Stall;
 
       procedure Finish is
       begin
@@ -14626,13 +14638,30 @@ package body Files_Suite.Operations is
       Files.Model.Set_Filter (Model, "");
       Step := Files.Operations.Refresh (Model, Settings);
       Select_Name (Model, "a.txt");
+      Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      declare
+         Job : constant Files.Process_Jobs.Session :=
+           Files.Model.Background_Operation (Model);
+         Marker : constant String := Files.Process_Jobs.Path (Job, "started");
+      begin
+         for Attempt in 1 .. 5_000 loop
+            exit when Ada.Directories.Exists (Marker);
+            delay 0.001;
+         end loop;
+         Assert (Ada.Directories.Exists (Marker),
+                 "the duplicate helper reaches the pre-work cancellation point");
+      end;
+      Restore_Stall;
       Files.Operations.Cancel_Paste_Execution (Model);
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");
    exception
-      when others => Files.Model.Clear_Paste_Execution (Model); raise;
+      when others =>
+         Restore_Stall;
+         Files.Model.Clear_Paste_Execution (Model);
+         raise;
    end Test_Background_Operations;
 
    procedure Test_Window_Job_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
