@@ -114,10 +114,25 @@ package body Files_Suite.Support is
    end Create_Symlink;
 
    procedure Reset_Root is
+      Removed : Files.File_System.Mutation_Result;
    begin
       if Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root) then
-         Assert (Files.File_System.Delete_Permanently (Root).Success,
-                 "test fixture cleanup removes links without following targets");
+         --  A just-reaped Windows helper can retain a directory handle for a
+         --  short interval after its result has been collected.  Retry the
+         --  idempotent cleanup so that this normal release latency does not
+         --  poison every later test that shares Root.
+         for Attempt in 1 .. 100 loop
+            Removed := Files.File_System.Delete_Permanently (Root);
+            exit when Removed.Success
+              or else not (Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root));
+            delay 0.01;
+         end loop;
+         Assert
+           (Removed.Success
+              or else not (Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root)),
+            "test fixture cleanup removes links without following targets; cwd="
+            & Ada.Directories.Current_Directory & "; root=" & Root
+            & "; error=" & To_String (Removed.Error_Key));
       end if;
       Ada.Directories.Create_Path (Root);
    end Reset_Root;
