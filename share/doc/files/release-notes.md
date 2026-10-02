@@ -9,6 +9,8 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Fixed
+- Windows C bridges now declare the Windows 8 API baseline required for stable
+  128-bit file identities, including transport-lease ownership checks.
 - Accessibility frames now reach a11y's native provider bootstrap instead of
   being discarded while the provider is waiting for its first root tree.
 - Accessibility integration reports the compiled native provider binding, and

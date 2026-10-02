@@ -6,6 +6,9 @@ struct files_identity {
 };
 
 #ifdef _WIN32
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0602
+#endif
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
