@@ -5,6 +5,7 @@ with Ada.Text_IO;
 with Ada.Streams.Stream_IO;
 with Interfaces.C;
 with System;
+with GNAT.OS_Lib;
 
 with AUnit;
 with AUnit.Reporter.Text;
@@ -41,7 +42,11 @@ procedure Tests is
 begin
    if not Ada.Environment_Variables.Exists ("FILES_TEST_ROOT") then
       declare
-         Suite_Temp : constant String := Hostkit.Fs.Create_Temporary_Directory ("files-suite-");
+         Created_Temp : constant String :=
+           Hostkit.Fs.Create_Temporary_Directory ("files-suite-");
+         Suite_Temp : constant String :=
+           GNAT.OS_Lib.Normalize_Pathname
+             (Created_Temp, Resolve_Links => True);
          Job_Temp   : constant String := Hostkit.Fs.Join (Suite_Temp, "jobs");
       begin
          if Suite_Temp = "" then
