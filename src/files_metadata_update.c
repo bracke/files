@@ -218,8 +218,10 @@ int files_metadata_update(const char *path, const char *expected, int ownership,
     int ok = 0;
     wchar_t *name = wide_text(path);
     if (!name) return 0;
-    DWORD access = FILE_READ_ATTRIBUTES | READ_CONTROL
-        | (ownership ? WRITE_OWNER : WRITE_DAC);
+    /* FILE_READ_ATTRIBUTES would make a chmod-from-000 impossible even for
+       the owner.  Handle information remains queryable through the control
+       handle used to update the security descriptor. */
+    DWORD access = READ_CONTROL | (ownership ? WRITE_OWNER : WRITE_DAC);
     HANDLE file = CreateFileW(name, access,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         NULL, OPEN_EXISTING,
