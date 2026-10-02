@@ -81,6 +81,10 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
+          # The Intel image can still have openssl@1.1 linked. Homebrew then
+          # installs openssl@3 successfully but returns failure when its upgrade
+          # cannot replace /usr/local/bin/openssl.
+          brew unlink openssl@1.1 || true
           # MoltenVK provides the Vulkan loader/ICD on macOS. gdk-pixbuf (which
           # pulls in glib) satisfies files.gpr's thumbnail-decoding switches. No
           # compression library is needed -- the zlib sibling crate's codecs are
