@@ -1,32 +1,92 @@
 with Files.File_Identities;
 with Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Streams.Stream_IO;
+with Ada.Streams;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 with Hostkit.Durability;
 with Hostkit.Fs;
+with Hostkit.Lease_Files;
+with Files.Bounded_Streams;
+with Files.Exclusive_Streams;
+with Files.Lease_Streams;
 with Files.Private_Directories;
 
 package body Files.File_System.Recovery is
    use Ada.Strings.Unbounded;
    use Files.File_System.Support;
+   use type Ada.Directories.File_Size;
    use type Ada.Directories.File_Kind;
    use type Files.Private_Directories.Create_Result;
    use type Hostkit.Durability.Outcome;
+   use type Hostkit.Lease_Files.Open_Outcome;
 
    Owner_Name : constant String := ".files-recovery-owner";
    Owner_Magic : constant String := "files-recovery-v1";
    Registry_Magic : constant String := "files-recovery-registry-v1";
+   Max_Header_Length : constant := 128;
+   Max_Path_Length : constant := 32 * 1024;
+   Max_Identity_Length : constant := 1024;
+   Max_Record_Bytes : constant :=
+     Max_Header_Length + Max_Path_Length + Max_Identity_Length + 3 * 16;
+
+   function Record_Is_Regular
+     (Path : String; Maximum : Natural := Max_Record_Bytes) return Boolean
+   is
+   begin
+      return not Hostkit.Fs.Is_Link (Path)
+        and then Ada.Directories.Exists (Path)
+        and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File
+        and then Ada.Directories.Size (Path) <= Ada.Directories.File_Size (Maximum);
+   exception
+      when others => return False;
+   end Record_Is_Regular;
+
+   function Valid_Absolute_Path (Path : String) return Boolean is
+   begin
+      if Path = "" then
+         return False;
+      end if;
+      for Item of Path loop
+         if Item = Character'Val (0) then
+            return False;
+         end if;
+      end loop;
+      return GNAT.OS_Lib.Is_Absolute_Path (Path);
+   exception
+      when others => return False;
+   end Valid_Absolute_Path;
+
+   procedure Write_Bounded
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value : String;
+      Maximum : Natural)
+   is
+   begin
+      if Value'Length > Maximum then
+         raise Ada.Directories.Use_Error;
+      end if;
+      String'Output (Stream, Value);
+   end Write_Bounded;
 
    function Registry_Data_Directory return String is
    begin
       if Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
-         return Join_Path
-           (Ada.Environment_Variables.Value ("FILES_TEST_TEMP"), "data");
+         declare
+            Root : constant String :=
+              Ada.Environment_Variables.Value ("FILES_TEST_TEMP");
+         begin
+            return
+              (if Valid_Absolute_Path (Root) then Join_Path (Root, "data")
+               else "");
+         end;
       end if;
-      return Hostkit.Fs.Application_Data_Directory;
+      declare
+         Root : constant String := Hostkit.Fs.Application_Data_Directory;
+      begin
+         return (if Valid_Absolute_Path (Root) then Root else "");
+      end;
    exception
       when others => return "";
    end Registry_Data_Directory;
@@ -72,53 +132,69 @@ package body Files.File_System.Recovery is
    function Read_Owner
      (Stage : String; Original, Identity : out UString) return Boolean
    is
-      File  : Ada.Streams.Stream_IO.File_Type;
+      Input : aliased Files.Lease_Streams.Input_Stream;
       Magic : UString;
+      Record_Path : constant String := Join_Path (Stage, Owner_Name);
    begin
       Original := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
-      if Hostkit.Fs.Is_Link (Join_Path (Stage, Owner_Name)) then
+      if not Record_Is_Regular (Record_Path) then
          return False;
       end if;
-      Ada.Streams.Stream_IO.Open
-        (File, Ada.Streams.Stream_IO.In_File, Join_Path (Stage, Owner_Name));
+      if Files.Lease_Streams.Open (Record_Path, Input) /=
+          Hostkit.Lease_Files.Opened
+        or else Files.Lease_Streams.Size (Input) > Max_Record_Bytes
+      then
+         Files.Lease_Streams.Release (Input);
+         return False;
+      end if;
       Magic := To_Unbounded_String
-        (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Header_Length));
       Original := To_Unbounded_String
-        (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Path_Length));
       Identity := To_Unbounded_String
-        (String'Input (Ada.Streams.Stream_IO.Stream (File)));
-      Ada.Streams.Stream_IO.Close (File);
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Identity_Length));
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
       return To_String (Magic) = Owner_Magic
-        and then Length (Original) > 0
+        and then Valid_Absolute_Path (To_String (Original))
         and then
           (Length (Identity) = 0
            or else Files.File_Identities.Token (Stage) = To_String (Identity));
    exception
       when others =>
-         Safe_Close (File);
+         Files.Lease_Streams.Release (Input);
          Original := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          return False;
    end Read_Owner;
 
    procedure Write_Owner (Stage, Original : String) is
-      File : Ada.Streams.Stream_IO.File_Type;
+      File : aliased Files.Exclusive_Streams.Output_Stream;
    begin
-      Ada.Streams.Stream_IO.Create
-        (File, Ada.Streams.Stream_IO.Out_File, Join_Path (Stage, Owner_Name));
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Owner_Magic);
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Original);
-      String'Output
-        (Ada.Streams.Stream_IO.Stream (File), Files.File_Identities.Token (Stage));
-      Ada.Streams.Stream_IO.Close (File);
+      if not Valid_Absolute_Path (Original) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Files.Exclusive_Streams.Create (File, Join_Path (Stage, Owner_Name));
+      Write_Bounded
+        (File'Access, Owner_Magic, Max_Header_Length);
+      Write_Bounded
+        (File'Access, Original, Max_Path_Length);
+      Write_Bounded
+        (File'Access, Files.File_Identities.Token (Stage), Max_Identity_Length);
+      Files.Exclusive_Streams.Close (File);
       if Hostkit.Durability.Sync_File (Join_Path (Stage, Owner_Name)) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
       end if;
    exception
-      when others => Safe_Close (File); raise;
+      when others => Files.Exclusive_Streams.Close_Safely (File); raise;
    end Write_Owner;
 
    function Contains_Only_Owned_Entries (Stage : String) return Boolean is
@@ -156,31 +232,44 @@ package body Files.File_System.Recovery is
    function Read_Registry_Record
      (Directory : String; Payload, Identity : out UString) return Boolean
    is
-      File  : Ada.Streams.Stream_IO.File_Type;
+      Input : aliased Files.Lease_Streams.Input_Stream;
       Magic : UString;
+      Record_Path : constant String := Join_Path (Directory, "record");
    begin
       Payload := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       if Hostkit.Fs.Is_Link (Directory)
-        or else Hostkit.Fs.Is_Link (Join_Path (Directory, "record"))
         or else not Ada.Directories.Exists (Directory)
         or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Record_Is_Regular (Record_Path)
       then
          return False;
       end if;
-      Ada.Streams.Stream_IO.Open
-        (File, Ada.Streams.Stream_IO.In_File, Join_Path (Directory, "record"));
+      if Files.Lease_Streams.Open (Record_Path, Input) /=
+          Hostkit.Lease_Files.Opened
+        or else Files.Lease_Streams.Size (Input) > Max_Record_Bytes
+      then
+         Files.Lease_Streams.Release (Input);
+         return False;
+      end if;
       Magic := To_Unbounded_String
-        (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Header_Length));
       Payload := To_Unbounded_String
-        (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Path_Length));
       Identity := To_Unbounded_String
-        (String'Input (Ada.Streams.Stream_IO.Stream (File)));
-      Ada.Streams.Stream_IO.Close (File);
-      return To_String (Magic) = Registry_Magic and then Length (Payload) > 0;
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Identity_Length));
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return To_String (Magic) = Registry_Magic
+        and then Valid_Absolute_Path (To_String (Payload));
    exception
       when others =>
-         Safe_Close (File);
+         Files.Lease_Streams.Release (Input);
          Payload := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          return False;
@@ -230,9 +319,9 @@ package body Files.File_System.Recovery is
    function Register (Payload : String) return String is
       Root : constant String := Registry_Root (Create => True);
       Directory : UString;
-      File : Ada.Streams.Stream_IO.File_Type;
+      File : aliased Files.Exclusive_Streams.Output_Stream;
    begin
-      if Root = "" then
+      if Root = "" or else not Valid_Absolute_Path (Payload) then
          raise Ada.Directories.Use_Error;
       end if;
       for N in 1 .. 9_999 loop
@@ -253,15 +342,17 @@ package body Files.File_System.Recovery is
       if Length (Directory) = 0 then
          raise Ada.Directories.Use_Error;
       end if;
-      Ada.Streams.Stream_IO.Create
-        (File, Ada.Streams.Stream_IO.Out_File,
-         Join_Path (To_String (Directory), "record"));
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Registry_Magic);
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Payload);
-      String'Output
-        (Ada.Streams.Stream_IO.Stream (File),
-         Files.File_Identities.Token (Ada.Directories.Containing_Directory (Payload)));
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create
+        (File, Join_Path (To_String (Directory), "record"));
+      Write_Bounded
+        (File'Access, Registry_Magic, Max_Header_Length);
+      Write_Bounded
+        (File'Access, Payload, Max_Path_Length);
+      Write_Bounded
+        (File'Access,
+         Files.File_Identities.Token (Ada.Directories.Containing_Directory (Payload)),
+         Max_Identity_Length);
+      Files.Exclusive_Streams.Close (File);
       if Hostkit.Durability.Sync_File (Join_Path (To_String (Directory), "record")) /=
           Hostkit.Durability.Synced
         or else Hostkit.Durability.Sync_Directory (To_String (Directory)) =
@@ -273,7 +364,7 @@ package body Files.File_System.Recovery is
       return To_String (Directory);
    exception
       when others =>
-         Safe_Close (File);
+         Files.Exclusive_Streams.Close_Safely (File);
          if Length (Directory) > 0 then
             Delete_Registry_Record (To_String (Directory));
          end if;
@@ -410,9 +501,12 @@ package body Files.File_System.Recovery is
       Parent   : constant String := Ada.Directories.Containing_Directory (Original);
       Stage    : UString;
       Registry_Entry : UString;
-      File     : Ada.Streams.Stream_IO.File_Type;
+      File     : aliased Files.Exclusive_Streams.Output_Stream;
    begin
       Backup := Null_Unbounded_String;
+      if not Valid_Absolute_Path (Original) then
+         raise Ada.Directories.Use_Error;
+      end if;
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String := Join_Path (Parent, ".files-recovery-" & Image_No_Space (N));
@@ -430,9 +524,11 @@ package body Files.File_System.Recovery is
       if Length (Stage) = 0 then
          raise Ada.Directories.Use_Error;
       end if;
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Join_Path (To_String (Stage), "original"));
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Original);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create
+        (File, Join_Path (To_String (Stage), "original"));
+      Write_Bounded
+        (File'Access, Original, Max_Path_Length);
+      Files.Exclusive_Streams.Close (File);
       if Hostkit.Durability.Sync_File (Join_Path (To_String (Stage), "original")) /=
         Hostkit.Durability.Synced
       then
@@ -447,11 +543,13 @@ package body Files.File_System.Recovery is
             Mode : constant Natural := Permission_Bits_Of (Path, Available);
          begin
             if Available and then (Mode / 8#200#) mod 2 = 0 then
-               Ada.Streams.Stream_IO.Create
-                 (File, Ada.Streams.Stream_IO.Out_File, Join_Path (To_String (Stage), "mode"));
-               Natural'Output (Ada.Streams.Stream_IO.Stream (File), Mode);
-               String'Output (Ada.Streams.Stream_IO.Stream (File), Files.File_Identities.Token (Path));
-               Ada.Streams.Stream_IO.Close (File);
+               Files.Exclusive_Streams.Create
+                 (File, Join_Path (To_String (Stage), "mode"));
+               Natural'Output (File'Access, Mode);
+               Write_Bounded
+                 (File'Access,
+                  Files.File_Identities.Token (Path), Max_Identity_Length);
+               Files.Exclusive_Streams.Close (File);
                if Hostkit.Durability.Sync_File (Join_Path (To_String (Stage), "mode")) /=
                  Hostkit.Durability.Synced
                then
@@ -479,7 +577,7 @@ package body Files.File_System.Recovery is
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
-         Safe_Close (File);
+         Files.Exclusive_Streams.Close_Safely (File);
          if Length (Stage) > 0 and then Length (Backup) = 0 then
             if Ada.Directories.Exists (Join_Path (To_String (Stage), "payload"))
               or else Hostkit.Fs.Is_Link (Join_Path (To_String (Stage), "payload"))
@@ -500,21 +598,41 @@ package body Files.File_System.Recovery is
    end Preserve;
 
    function Original_Path (Path : String) return String is
-      File : Ada.Streams.Stream_IO.File_Type;
+      Input : aliased Files.Lease_Streams.Input_Stream;
       Target : UString;
       Identity : UString;
+      Record_Path : constant String :=
+        Join_Path (Ada.Directories.Containing_Directory (Path), "original");
    begin
       if Read_Owner (Ada.Directories.Containing_Directory (Path), Target, Identity) then
          return To_String (Target);
       end if;
-      Ada.Streams.Stream_IO.Open
-        (File, Ada.Streams.Stream_IO.In_File, Join_Path (Ada.Directories.Containing_Directory (Path), "original"));
-      Target := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
-      Ada.Streams.Stream_IO.Close (File);
-      return To_String (Target);
+      if not Record_Is_Regular
+        (Record_Path, Max_Path_Length + 16)
+      then
+         return "";
+      end if;
+      if Files.Lease_Streams.Open (Record_Path, Input) /=
+          Hostkit.Lease_Files.Opened
+        or else Files.Lease_Streams.Size (Input) > Max_Path_Length + 16
+      then
+         Files.Lease_Streams.Release (Input);
+         return "";
+      end if;
+      Target := To_Unbounded_String
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Path_Length));
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return
+        (if Valid_Absolute_Path (To_String (Target)) then
+            To_String (Target)
+         else "");
    exception
       when others =>
-         Safe_Close (File);
+         Files.Lease_Streams.Release (Input);
          return "";
    end Original_Path;
 
@@ -575,7 +693,7 @@ package body Files.File_System.Recovery is
       end if;
       Target := To_Unbounded_String
         (if Expected_Original /= "" then Expected_Original else Original_Path (Path));
-      if Length (Target) = 0 then
+      if not Valid_Absolute_Path (To_String (Target)) then
          raise Ada.Directories.Use_Error;
       end if;
       if Ada.Directories.Exists (To_String (Target)) or else Hostkit.Fs.Is_Link (To_String (Target)) then
@@ -585,15 +703,34 @@ package body Files.File_System.Recovery is
       --  payload writable. Restore its recorded mode before retrying the move.
       if Ada.Directories.Exists (Join_Path (Parent, "mode")) then
          declare
-            File : Ada.Streams.Stream_IO.File_Type;
+            Input : aliased Files.Lease_Streams.Input_Stream;
+            Record_Path : constant String := Join_Path (Parent, "mode");
             Mode, Previous, Previous_Group : Natural;
             Expected, Identity : UString;
             Result : Mutation_Result;
          begin
-            Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Join_Path (Parent, "mode"));
-            Mode := Natural'Input (Ada.Streams.Stream_IO.Stream (File));
-            Expected := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
-            Ada.Streams.Stream_IO.Close (File);
+            if not Record_Is_Regular
+              (Record_Path, Max_Identity_Length + 32)
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
+            if Files.Lease_Streams.Open (Record_Path, Input) /=
+                Hostkit.Lease_Files.Opened
+              or else Files.Lease_Streams.Size (Input) >
+                Max_Identity_Length + 32
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
+            Mode := Natural'Input (Input'Access);
+            Expected := To_Unbounded_String
+              (Files.Bounded_Streams.Input_String
+                 (Input'Access, Max_Identity_Length));
+            if Mode > 8#7777#
+              or else not Files.Lease_Streams.End_Of_Stream (Input)
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
+            Files.Lease_Streams.Release (Input);
             if Length (Expected) = 0 then
                raise Ada.Directories.Use_Error;
             end if;
@@ -603,7 +740,7 @@ package body Files.File_System.Recovery is
                raise Ada.Directories.Use_Error;
             end if;
          exception
-            when others => Safe_Close (File); raise;
+            when others => Files.Lease_Streams.Release (Input); raise;
          end;
       end if;
       if (Expected_Identity /= "" and then not Rename_Item (Path, To_String (Target), Expected_Identity).Success)

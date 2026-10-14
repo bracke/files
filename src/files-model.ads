@@ -1946,8 +1946,12 @@ package Files.Model is
    --      undo-only (Redoable is False), so redo never re-runs it.
    --    * Delete_Created: reverse deletes From; redo re-creates each From path
    --      from the parallel source path in Forward using Create_Kind.
-   --    * Set_Permissions/Set_Ownership: To holds the old value (reverse) and
-   --      Forward holds the new value (redo), both parallel to From.
+   --    * Set_Permissions: To holds the old value (reverse) and Forward holds
+   --      the new value (redo), both parallel to From.
+   --    * Set_Ownership uses the same vectors, with each value encoded as
+   --      "uid gid<NUL>user-name<NUL>group-name".  The names let a helper
+   --      process reconstruct platform identities whose numeric token is only
+   --      meaningful inside the process that obtained it.
    type Undo_Entry is record
       Kind        : Undo_Action_Kind := Undo_None;
       From        : Files.Types.String_Vectors.Vector;

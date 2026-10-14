@@ -1,9 +1,9 @@
 with Files.Job_Context;
 with Files.File_System.Support;
 with Files.File_System.Recovery;
+with Files.Private_Directories;
 with Ada.Strings.Unbounded;
 with Ada.Directories;
-with Ada.Text_IO;
 with Files.Platform;
 with Files_Config;
 with Hostkit.Trash;
@@ -55,14 +55,14 @@ package body Trash is
          return (Backend => Trash_Macos_Native, Base => Null_Unbounded_String);
       end if;
 
-      --  The freedesktop layout. The ~/.Trash probe is only reached when
-      --  XDG_DATA_HOME is empty, as before, so setting it costs no filesystem
-      --  check.
-      if Xdg_Data_Home /= "" then
+      --  The freedesktop base directories are absolute paths.  Treat a
+      --  malformed environment value as unset instead of making trash
+      --  operations relative to the file manager's process directory.
+      if Xdg_Data_Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Xdg_Data_Home) then
          Result :=
            (Backend => Trash_Xdg_Data_Home,
             Base    => To_Unbounded_String (Join_Path (Xdg_Data_Home, "Trash")));
-      elsif Home /= "" then
+      elsif Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Home) then
          if Ada.Directories.Exists (Join_Path (Home, ".Trash")) then
             Result :=
               (Backend => Trash_Macos_Home,
@@ -120,6 +120,43 @@ package body Trash is
       when others =>
          return "";
    end Trash_Files_Directory;
+
+   function Valid_Original_Path (Path : String) return Boolean is
+   begin
+      if Path = "" or else not GNAT.OS_Lib.Is_Absolute_Path (Path) then
+         return False;
+      end if;
+      for Value of Path loop
+         if Value = ASCII.NUL then
+            return False;
+         end if;
+      end loop;
+      return True;
+   exception
+      when others =>
+         return False;
+   end Valid_Original_Path;
+
+   --  Public trash operations must act only on direct children of this
+   --  environment's payload directory.  Besides protecting the public API,
+   --  this keeps a damaged history record from using a valid sidecar basename
+   --  to move or delete an unrelated entry elsewhere on the filesystem.
+   function Is_Trash_Payload (Path, Payload_Directory : String) return Boolean is
+      Actual_Parent, Expected_Parent : Unbounded_String;
+   begin
+      if not Valid_Original_Path (Path) or else Payload_Directory = "" then
+         return False;
+      end if;
+      Actual_Parent := To_Unbounded_String
+        (Hostkit.Fs.Real_Path (Ada.Directories.Containing_Directory (Path)));
+      Expected_Parent := To_Unbounded_String
+        (Hostkit.Fs.Real_Path (Payload_Directory));
+      return Length (Actual_Parent) > 0
+        and then Actual_Parent = Expected_Parent;
+   exception
+      when others =>
+         return False;
+   end Is_Trash_Payload;
 
    function Path_Can_Be_Directory (Path : String) return Boolean is
       Current : Unbounded_String := To_Unbounded_String (Path);
@@ -482,9 +519,13 @@ package body Trash is
          Parent : String)
          return Boolean
       is
+         Windows       : constant Boolean := Files_Config.Alire_Host_OS = "windows";
          Clean_Child  : constant String := Normalized_Text (Child);
          Clean_Parent : constant String := Normalized_Text (Parent);
          Next         : Natural;
+
+         function Is_Separator (Value : Character) return Boolean is
+           (Value = '/' or else (Windows and then Value = '\'));
       begin
          if Clean_Child = "" or else Clean_Parent = "" then
             return False;
@@ -496,14 +537,12 @@ package body Trash is
             return False;
          end if;
 
-         if Clean_Parent (Clean_Parent'Last) = '/'
-           or else Clean_Parent (Clean_Parent'Last) = '\'
-         then
+         if Is_Separator (Clean_Parent (Clean_Parent'Last)) then
             return True;
          end if;
 
          Next := Clean_Child'First + Clean_Parent'Length;
-         return Clean_Child (Next) = '/' or else Clean_Child (Next) = '\';
+         return Is_Separator (Clean_Child (Next));
       exception
          when others =>
             return False;
@@ -684,9 +723,16 @@ package body Trash is
          end;
       end if;
 
-      Ada.Directories.Create_Path (Files_Dir);
+      --  Create only the generic parent with the process umask. The trash root
+      --  and both payload directories are owner-only before any name or
+      --  metadata is placed in them.
+      Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Base));
+      Files.Private_Directories.Ensure (Base);
+      if Files_Dir /= Base then
+         Files.Private_Directories.Ensure (Files_Dir);
+      end if;
       if Info_Dir /= "" then
-         Ada.Directories.Create_Path (Info_Dir);
+         Files.Private_Directories.Ensure (Info_Dir);
       end if;
 
       Name := To_Unbounded_String
@@ -711,6 +757,7 @@ package body Trash is
                raise Ada.Directories.Use_Error;
             end if;
             Info_Owned := True;
+            Files.Private_Directories.Make_File_Private (Descriptor);
             while Next <= Metadata'Last loop
                Written := GNAT.OS_Lib.Write (Descriptor, Metadata (Next)'Address, Metadata'Last - Next + 1);
                if Written <= 0 then
@@ -799,10 +846,18 @@ package body Trash is
      (Trashed_Path : String)
       return Mutation_Result
    is
-      Removed : constant Mutation_Result := Delete_Permanently (Trashed_Path);
+      Removed : Mutation_Result;
       Backend : constant Trash_Backend := Trash_Backend_For_Base;
       Base    : constant String := Trash_Base_Path;
    begin
+      if Backend not in Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home
+        or else not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory)
+      then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.trash.failed"));
+      end if;
+      Removed := Delete_Permanently (Trashed_Path);
       if not Removed.Success then
          return Removed;
       end if;
@@ -873,27 +928,77 @@ package body Trash is
 
       --  Read and URL-decode the Path= value from a trashinfo sidecar.
       function Read_Original_Path (Info_File_Path : String) return String is
-         File   : Ada.Text_IO.File_Type;
          Result : Unbounded_String;
+         Max_Trash_Info_Bytes : constant Natural := 1024 * 1024;
+         Max_Trash_Info_Line  : constant Natural := 64 * 1024;
+         Read_Succeeded : Boolean;
       begin
-         Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Info_File_Path);
-         while not Ada.Text_IO.End_Of_File (File) loop
-            declare
-               Line : constant String := Ada.Text_IO.Get_Line (File);
-            begin
-               if Line'Length >= 5
-                 and then Line (Line'First .. Line'First + 4) = "Path="
-               then
-                  Result := To_Unbounded_String (Url_Decode (Line (Line'First + 5 .. Line'Last)));
-                  exit;
+         if Hostkit.Fs.Is_Link (Info_File_Path)
+           or else not Ada.Directories.Exists (Info_File_Path)
+           or else Ada.Directories.Kind (Info_File_Path) /= Ada.Directories.Ordinary_File
+         then
+            return "";
+         end if;
+         declare
+            Content : constant String := Read_Preview_Text
+              (Info_File_Path, Max_Trash_Info_Bytes + 1, Read_Succeeded);
+            Cursor  : Positive := 1;
+            Last    : Natural;
+         begin
+            if not Read_Succeeded
+              or else Content'Length > Max_Trash_Info_Bytes
+            then
+               return "";
+            end if;
+            while Cursor <= Content'Length loop
+               Last := Cursor;
+               while Last <= Content'Length
+                 and then Content (Last) /= ASCII.LF
+                 and then Content (Last) /= ASCII.CR
+               loop
+                  Last := Last + 1;
+               end loop;
+               declare
+                  Line : constant String :=
+                    (if Last = Cursor then ""
+                     else Content (Cursor .. Last - 1));
+               begin
+                  if Line'Length > Max_Trash_Info_Line then
+                     return "";
+                  elsif Line'Length >= 5
+                    and then Line (Line'First .. Line'First + 4) = "Path="
+                  then
+                     declare
+                        Decoded : constant String :=
+                          Url_Decode (Line (Line'First + 5 .. Line'Last));
+                     begin
+                        if not Valid_Original_Path (Decoded) then
+                           return "";
+                        end if;
+                        Result := To_Unbounded_String (Decoded);
+                     end;
+                     exit;
+                  end if;
+               end;
+               if Last <= Content'Length then
+                  declare
+                     First_Mark : constant Character := Content (Last);
+                  begin
+                     Last := Last + 1;
+                     if First_Mark = ASCII.CR
+                       and then Last <= Content'Length
+                       and then Content (Last) = ASCII.LF
+                     then
+                        Last := Last + 1;
+                     end if;
+                  end;
                end if;
-            end;
-         end loop;
-         Safe_Close (File);
+               Cursor := Last;
+            end loop;
+         end;
          return To_String (Result);
       exception
          when others =>
-            Safe_Close (File);
             return "";
       end Read_Original_Path;
 
@@ -901,6 +1006,8 @@ package body Trash is
       Backend : constant Trash_Backend := Trash_Backend_For_Base;
    begin
       if Base = "" or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data then
+         return "";
+      elsif not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory) then
          return "";
       end if;
       return Read_Original_Path
@@ -918,6 +1025,7 @@ package body Trash is
    begin
       if Base = ""
         or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data
+        or else not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory)
       then
          return
            (Success   => False,
@@ -939,7 +1047,7 @@ package body Trash is
 
          Original := To_Unbounded_String
            (if Expected_Original /= "" then Expected_Original else Original_Path (Trashed_Path));
-         if Length (Original) = 0 then
+         if not Valid_Original_Path (To_String (Original)) then
             return
               (Success   => False,
                Error_Key => To_Unbounded_String ("error.trash.restore_failed"));

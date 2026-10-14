@@ -1,15 +1,28 @@
 with Ada.Directories;
-with Ada.Streams.Stream_IO;
+with Ada.IO_Exceptions;
+with Ada.Streams;
 with Ada.Strings.Unbounded;
+with GNAT.OS_Lib;
+with Files.Bounded_Streams;
 with Files.File_System;
 with Files.Durable_Writes;
+with Files.Exclusive_Streams;
 with Files.Job_Context;
+with Files.Job_Records;
+with Files.Lease_Streams;
 with Hostkit.Fs;
+with Hostkit.Lease_Files;
 with Hostkit.Watch;
 
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
+   use type Ada.Directories.File_Kind;
    use type Files.Settings.Settings_Model;
+   use type Hostkit.Lease_Files.Open_Outcome;
+
+   Max_Watch_Path_Length : constant := 32 * 1024;
+   Request_Header : constant String := "files-refresh-request-1";
+   Result_Header : constant String := "files-refresh-result-1";
 
    type Request is record
       Root : Files.Types.UString;
@@ -30,13 +43,202 @@ package body Files.Refresh_Jobs is
       Error_Key : Files.Types.UString;
    end record;
 
-   procedure Close (File : in out Ada.Streams.Stream_IO.File_Type) is
+   function Nul_Free (Value : String) return Boolean is
    begin
-      if Ada.Streams.Stream_IO.Is_Open (File) then
-         Ada.Streams.Stream_IO.Close (File);
-      end if;
+      for Item of Value loop
+         if Item = ASCII.NUL then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Nul_Free;
+
+   function Valid_Absolute_Path (Path : String) return Boolean is
+   begin
+      return Path /= ""
+        and then Nul_Free (Path)
+        and then GNAT.OS_Lib.Is_Absolute_Path (Path);
    exception
-      when others => null;
+      when others =>
+         return False;
+   end Valid_Absolute_Path;
+
+   function Request_Paths_Are_Consistent
+     (Root, Previous_Path : String;
+      Recent              : Boolean) return Boolean is
+   begin
+      if Recent then
+         return Root = "" and then Previous_Path = "";
+      end if;
+      return Valid_Absolute_Path (Root)
+        and then Valid_Absolute_Path (Previous_Path);
+   end Request_Paths_Are_Consistent;
+
+   function Watch_Path_Is_Consistent (Path : String) return Boolean is
+     (Path'Length <= Max_Watch_Path_Length
+      and then Valid_Absolute_Path (Path));
+
+   function Is_Consistent (Done : Outcome) return Boolean is
+     (Done.Success = (Length (Done.Error_Key) = 0)
+      and then (not Done.Reloaded or else Done.Success));
+
+   procedure Write_Request
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Work : Request)
+   is
+   begin
+      if not Request_Paths_Are_Consistent
+        (To_String (Work.Root), To_String (Work.Previous.Path), Work.Recent)
+      then
+         raise Ada.Directories.Use_Error;
+      end if;
+      String'Output (Stream, Request_Header);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Work.Root), Files.Job_Records.Max_Path_Length);
+      Natural'Output (Stream, Work.Revision);
+      Files.Job_Records.Write_Settings (Stream, Work.Settings);
+      Files.Job_Records.Write_Signature (Stream, Work.Previous);
+      Boolean'Output (Stream, Work.Recent);
+      Boolean'Output (Stream, Work.Force);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Work.Selection), Files.Job_Records.Max_Path_Length);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Work.Error_Key), Files.Job_Records.Max_Error_Length);
+   end Write_Request;
+
+   function Open_Transport
+     (Path : String;
+      Input : in out Files.Lease_Streams.Input_Stream) return Boolean is
+     (Files.Lease_Streams.Open (Path, Input) = Hostkit.Lease_Files.Opened
+      and then Files.Lease_Streams.Size (Input) <=
+        Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes));
+
+   function Read_Request (Path : String) return Request
+   is
+      Input : aliased Files.Lease_Streams.Input_Stream;
+      Work : Request;
+   begin
+      if not Open_Transport (Path, Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if Files.Job_Records.Read_String
+        (Input'Access, Request_Header'Length) /= Request_Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Work.Root := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Path_Length));
+      Work.Revision := Natural'Input (Input'Access);
+      Work.Settings := Files.Job_Records.Read_Settings (Input'Access);
+      Work.Previous := Files.Job_Records.Read_Signature (Input'Access);
+      Work.Recent := Boolean'Input (Input'Access);
+      Work.Force := Boolean'Input (Input'Access);
+      Work.Selection := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Path_Length));
+      Work.Error_Key := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Error_Length));
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if not Request_Paths_Are_Consistent
+        (To_String (Work.Root), To_String (Work.Previous.Path), Work.Recent)
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return Work;
+   exception
+      when others =>
+         Files.Lease_Streams.Release (Input);
+         raise;
+   end Read_Request;
+
+   procedure Read_Request_Identity
+     (Path : String;
+      Root : out Files.Types.UString;
+      Revision : out Natural)
+   is
+      Input : aliased Files.Lease_Streams.Input_Stream;
+   begin
+      if not Open_Transport (Path, Input)
+        or else Files.Job_Records.Read_String
+          (Input'Access, Request_Header'Length) /= Request_Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Root := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Path_Length));
+      Revision := Natural'Input (Input'Access);
+      if Length (Root) > 0
+        and then not Valid_Absolute_Path (To_String (Root))
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+   exception
+      when others =>
+         Files.Lease_Streams.Release (Input);
+         raise;
+   end Read_Request_Identity;
+
+   procedure Write_Outcome
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Done : Outcome)
+   is
+   begin
+      if not Is_Consistent (Done) then
+         raise Ada.IO_Exceptions.Use_Error;
+      end if;
+      String'Output (Stream, Result_Header);
+      Boolean'Output (Stream, Done.Success);
+      Boolean'Output (Stream, Done.Reloaded);
+      Files.Job_Records.Write_Items (Stream, Done.Items);
+      Files.Job_Records.Write_Signature (Stream, Done.Signature);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Done.Error_Key), Files.Job_Records.Max_Error_Length);
+   end Write_Outcome;
+
+   function Read_Outcome (Path : String) return Outcome
+   is
+      Input : aliased Files.Lease_Streams.Input_Stream;
+      Done : Outcome;
+   begin
+      if not Open_Transport (Path, Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if Files.Job_Records.Read_String
+        (Input'Access, Result_Header'Length) /= Result_Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Done.Success := Boolean'Input (Input'Access);
+      Done.Reloaded := Boolean'Input (Input'Access);
+      Done.Items := Files.Job_Records.Read_Items (Input'Access);
+      Done.Signature := Files.Job_Records.Read_Signature (Input'Access);
+      Done.Error_Key := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Error_Length));
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if not Is_Consistent (Done) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return Done;
+   exception
+      when others =>
+         Files.Lease_Streams.Release (Input);
+         raise;
+   end Read_Outcome;
+
+   procedure Close (File : in out Files.Exclusive_Streams.Output_Stream) is
+   begin
+      Files.Exclusive_Streams.Close_Safely (File);
    end Close;
 
    procedure Cancel (Model : in out Files.Model.Window_Model) is
@@ -52,7 +254,7 @@ package body Files.Refresh_Jobs is
       Select_Name : String := "") return Files.Operations.Operation_Result
    is
       Job : Files.Process_Jobs.Session;
-      File : Ada.Streams.Stream_IO.File_Type;
+      File : aliased Files.Exclusive_Streams.Output_Stream;
       Previous_Error : constant String := Files.Model.Last_Error_Key (Model);
       Work : constant Request :=
         (Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
@@ -79,9 +281,11 @@ package body Files.Refresh_Jobs is
       end if;
       Cancel (Model);
       Files.Process_Jobs.Reserve (Job);
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Files.Process_Jobs.Path (Job, "request"));
-      Request'Output (Ada.Streams.Stream_IO.Stream (File), Work);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create
+        (File, Files.Process_Jobs.Path (Job, "request"));
+      Write_Request (File'Access, Work);
+      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
+      Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Job, "--files-refresh");
       Files.Model.Set_Background_Refresh (Model, Job);
       return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
@@ -100,7 +304,6 @@ package body Files.Refresh_Jobs is
       Settings : Files.Settings.Settings_Model) return Boolean
    is
       Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
-      File : Ada.Streams.Stream_IO.File_Type;
       Work : Request;
       Done : Outcome;
       Finished, Cancelled : Boolean;
@@ -117,10 +320,9 @@ package body Files.Refresh_Jobs is
       end if;
       --  Read only the request header from local transport. A navigation or edit
       --  must discard even a helper still blocked on the previous directory.
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Job, "request"));
-      Requested_Root := Files.Types.UString'Input (Ada.Streams.Stream_IO.Stream (File));
-      Requested_Revision := Natural'Input (Ada.Streams.Stream_IO.Stream (File));
-      Ada.Streams.Stream_IO.Close (File);
+      Read_Request_Identity
+        (Files.Process_Jobs.Path (Job, "request"),
+         Requested_Root, Requested_Revision);
       if Requested_Root /= Files.Model.Current_Path (Model)
         or else Requested_Revision /= Files.Model.Revision (Model)
       then
@@ -132,18 +334,14 @@ package body Files.Refresh_Jobs is
          return False;
       end if;
       Cancel (Model); --  Job keeps the finished transport alive through result collection.
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Job, "request"));
-      Work := Request'Input (Ada.Streams.Stream_IO.Stream (File));
-      Ada.Streams.Stream_IO.Close (File);
+      Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
       Matching := Work.Root = Files.Model.Current_Path (Model)
         and then Work.Recent = Files.Model.In_Recent_View (Model)
         and then Work.Revision = Files.Model.Revision (Model) and then Work.Settings = Settings;
       if not Matching or else Cancelled then
          return False;
       end if;
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Job, "result"));
-      Done := Outcome'Input (Ada.Streams.Stream_IO.Stream (File));
-      Ada.Streams.Stream_IO.Close (File);
+      Done := Read_Outcome (Files.Process_Jobs.Path (Job, "result"));
       if not Done.Success then
          if Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, To_String (Done.Error_Key));
@@ -174,7 +372,6 @@ package body Files.Refresh_Jobs is
       return Done.Reloaded;
    exception
       when others =>
-         Close (File);
          Cancel (Model);
          if Matching and then Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, "error.directory.load");
@@ -183,13 +380,11 @@ package body Files.Refresh_Jobs is
    end Advance;
 
    procedure Run_Helper (Directory : String) is
-      File : Ada.Streams.Stream_IO.File_Type;
+      File : aliased Files.Exclusive_Streams.Output_Stream;
       Work : Request;
       Done : Outcome;
    begin
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Hostkit.Fs.Join (Directory, "request"));
-      Work := Request'Input (Ada.Streams.Stream_IO.Stream (File));
-      Ada.Streams.Stream_IO.Close (File);
+      Work := Read_Request (Hostkit.Fs.Join (Directory, "request"));
       if Work.Recent then
          for Path of Files.Settings.Recent_Paths (Work.Settings) loop
             declare
@@ -229,9 +424,11 @@ package body Files.Refresh_Jobs is
             end if;
          end;
       end if;
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Hostkit.Fs.Join (Directory, "result.tmp"));
-      Outcome'Output (Ada.Streams.Stream_IO.Stream (File), Done);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create
+        (File, Hostkit.Fs.Join (Directory, "result.tmp"));
+      Write_Outcome (File'Access, Done);
+      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
+      Files.Exclusive_Streams.Close (File);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish
            (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
@@ -251,7 +448,7 @@ package body Files.Refresh_Jobs is
    end Release_Watch;
 
    procedure Watch_Path (Job : in out Watch_Session; Path : String) is
-      File : Ada.Streams.Stream_IO.File_Type;
+      File : aliased Files.Exclusive_Streams.Output_Stream;
    begin
       if Job.Path = Path then
          return;
@@ -260,11 +457,18 @@ package body Files.Refresh_Jobs is
       if Path = "" then
          return;
       end if;
+      if not Watch_Path_Is_Consistent (Path) then
+         --  The helper cannot decode this request. Leave the session inactive
+         --  so the caller uses its polling fallback instead of repeatedly
+         --  launching a helper that exits immediately.
+         return;
+      end if;
       Files.Process_Jobs.Reserve (Job.Process);
-      Ada.Streams.Stream_IO.Create
-        (File, Ada.Streams.Stream_IO.Out_File, Files.Process_Jobs.Path (Job.Process, "request"));
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Path);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create
+        (File, Files.Process_Jobs.Path (Job.Process, "request"));
+      Files.Job_Records.Write_String
+        (File'Access, Path, Max_Watch_Path_Length);
+      Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Job.Process, "--files-watch");
       Job.Path := To_Unbounded_String (Path);
    exception
@@ -273,8 +477,48 @@ package body Files.Refresh_Jobs is
          Release_Watch (Job);
    end Watch_Path;
 
+   function Claim_Watch_Notification (Directory : String) return Boolean is
+     (Hostkit.Fs.Move_No_Replace
+        (Hostkit.Fs.Join (Directory, "changed"),
+         Hostkit.Fs.Join (Directory, "changed.claimed")));
+
+   function Post_Watch_Notification (Directory : String) return Boolean is
+      File      : Files.Exclusive_Streams.Output_Stream;
+      Temporary : constant String := Hostkit.Fs.Join (Directory, "changed.tmp");
+      Target    : constant String := Hostkit.Fs.Join (Directory, "changed");
+   begin
+      Files.Exclusive_Streams.Create (File, Temporary);
+      Files.Exclusive_Streams.Close (File);
+      return Files.Durable_Writes.Published
+        (Files.Durable_Writes.Publish (Temporary, Target));
+   exception
+      when others =>
+         Close (File);
+         return False;
+   end Post_Watch_Notification;
+
    function Poll_Watch (Job : in out Watch_Session) return Boolean is
       Finished, Cancelled : Boolean;
+      Directory : constant String := Files.Process_Jobs.Path (Job.Process, "");
+      Claimed : constant String := Hostkit.Fs.Join (Directory, "changed.claimed");
+
+      procedure Remove_Claim is
+      begin
+         if Hostkit.Fs.Is_Link (Claimed) then
+            declare
+               Removed : constant Boolean := Hostkit.Fs.Delete_Link (Claimed);
+               pragma Unreferenced (Removed);
+            begin
+               null;
+            end;
+         elsif Ada.Directories.Exists (Claimed)
+           and then Ada.Directories.Kind (Claimed) = Ada.Directories.Ordinary_File
+         then
+            Ada.Directories.Delete_File (Claimed);
+         end if;
+      exception
+         when others => null;
+      end Remove_Claim;
    begin
       if not Files.Process_Jobs.Active (Job.Process) then
          return False;
@@ -284,8 +528,12 @@ package body Files.Refresh_Jobs is
          Release_Watch (Job);
          return False;
       end if;
-      if Ada.Directories.Exists (Files.Process_Jobs.Path (Job.Process, "changed")) then
-         Ada.Directories.Delete_File (Files.Process_Jobs.Path (Job.Process, "changed"));
+      --  Clear an acknowledgement left by a transient unlink failure, then
+      --  atomically claim the current marker.  A marker published after this
+      --  rename remains at "changed" for the next poll.
+      Remove_Claim;
+      if Claim_Watch_Notification (Directory) then
+         Remove_Claim;
          return True;
       end if;
       return False;
@@ -294,36 +542,41 @@ package body Files.Refresh_Jobs is
    end Poll_Watch;
 
    procedure Run_Watch_Helper (Directory : String) is
-      File : Ada.Streams.Stream_IO.File_Type;
       Watch : Hostkit.Watch.Watch_State;
+      Pending : Boolean := False;
+      Input : aliased Files.Lease_Streams.Input_Stream;
    begin
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Hostkit.Fs.Join (Directory, "request"));
+      if not Open_Transport
+        (Hostkit.Fs.Join (Directory, "request"), Input)
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
       declare
-         Path : constant String := String'Input (Ada.Streams.Stream_IO.Stream (File));
+         Path : constant String := Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Watch_Path_Length);
       begin
-         Ada.Streams.Stream_IO.Close (File);
+         if not Files.Lease_Streams.End_Of_Stream (Input)
+           or else not Watch_Path_Is_Consistent (Path)
+         then
+            raise Ada.IO_Exceptions.Data_Error;
+         end if;
+         Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Watch_Path (Watch, Path);
       end;
       loop
          exit when Files.Job_Context.Cancelled;
          if Hostkit.Watch.Poll (Watch) then
-            Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File,
-                                         Hostkit.Fs.Join (Directory, "changed.tmp"));
-            Ada.Streams.Stream_IO.Close (File);
-            declare
-               Posted : constant Files.Durable_Writes.Publication_Result := Files.Durable_Writes.Publish
-                 (Hostkit.Fs.Join (Directory, "changed.tmp"), Hostkit.Fs.Join (Directory, "changed"));
-               pragma Unreferenced (Posted);
-            begin
-               null;
-            end;
+            Pending := True;
+         end if;
+         if Pending and then Post_Watch_Notification (Directory) then
+            Pending := False;
          end if;
          delay 0.05;
       end loop;
       Hostkit.Watch.Release (Watch);
    exception
       when others =>
-         Close (File);
+         Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Release (Watch);
    end Run_Watch_Helper;
 end Files.Refresh_Jobs;

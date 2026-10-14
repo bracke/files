@@ -1,11 +1,12 @@
 with Ada.Directories;
-with Ada.Streams.Stream_IO;
+with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with Files.File_System;
 with Files.Job_Context;
 with Hostkit.Fs;
+with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
 
@@ -13,6 +14,8 @@ package body Files.Process_Jobs is
    use Ada.Strings.Unbounded;
    use type Ada.Real_Time.Time;
    use type Ada.Real_Time.Time_Span;
+   use type Ada.Streams.Stream_Element_Array;
+   use type Hostkit.Lease_Files.Open_Outcome;
    use type Hostkit.Spawn.Spawn_Outcome;
    use type Hostkit.Spawn.Wait_State;
 
@@ -20,6 +23,32 @@ package body Files.Process_Jobs is
    --  parent retry covers launch and false-success races; a second failure
    --  leaves the transport on disk for the next startup recovery pass.
    Cleanup_Failure_Limit : constant Positive := 2;
+   Cancellation_Marker : constant Ada.Streams.Stream_Element_Array :=
+     [Character'Pos ('c'), Character'Pos ('a'), Character'Pos ('n'),
+      Character'Pos ('c'), Character'Pos ('e'), Character'Pos ('l'),
+      Character'Pos (ASCII.LF)];
+
+   function Valid_Cancellation_Marker (Path : String) return Boolean is
+      Handle : Hostkit.Lease_Files.Lease;
+      Read_Back : Ada.Streams.Stream_Element_Array (Cancellation_Marker'Range);
+      Valid : Boolean := False;
+   begin
+      if Hostkit.Lease_Files.Open
+        (Path, Hostkit.Lease_Files.Shared, Writable => False, Item => Handle) /=
+          Hostkit.Lease_Files.Opened
+      then
+         return False;
+      end if;
+      Valid := Hostkit.Lease_Files.Size (Handle) = Cancellation_Marker'Length
+        and then Hostkit.Lease_Files.Read_At (Handle, Read_Back)
+        and then Read_Back = Cancellation_Marker;
+      Hostkit.Lease_Files.Release (Handle);
+      return Valid;
+   exception
+      when others =>
+         Hostkit.Lease_Files.Release (Handle);
+         return False;
+   end Valid_Cancellation_Marker;
 
    procedure Free is new Ada.Unchecked_Deallocation (State, State_Access);
 
@@ -414,6 +443,34 @@ package body Files.Process_Jobs is
          end if;
          Job.Shared := null;
       end if;
+   exception
+      when others =>
+         --  Controlled finalization must not replace an active exception with
+         --  a cleanup failure. Preserve the durable transport and let the
+         --  orphan reaper retry whenever possible.
+         if Job.Shared /= null then
+            begin
+               if Job.Shared.Started and then not Job.Shared.Finished then
+                  Stop (Job.Shared);
+               end if;
+               Ensure_Reaper;
+               Submit_Or_Abandon (Job.Shared);
+            exception
+               when others =>
+                  --  The durable marker is sufficient for startup recovery.
+                  --  Drop the in-memory lease and registration as a last
+                  --  resort so finalization itself remains exception-safe.
+                  if Job.Shared /= null then
+                     begin
+                        Files.Job_Transports.Release (Job.Shared.Owner);
+                        Destroy (Job.Shared);
+                     exception
+                        when others => null;
+                     end;
+                  end if;
+            end;
+         end if;
+         Job.Shared := null;
    end Finalize;
 
    procedure Reserve (Job : in out Session) is
@@ -476,23 +533,29 @@ package body Files.Process_Jobs is
    end Poll;
 
    procedure Cancel (Job : Session) is
-      File : Ada.Streams.Stream_IO.File_Type;
+      Marker : Hostkit.Lease_Files.Lease;
+      Marker_Path : constant String := Path (Job, "cancel");
+      Outcome : Hostkit.Lease_Files.Open_Outcome;
    begin
       if Job.Shared /= null and then not Job.Shared.Cancelled then
-         Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path (Job, "cancel"));
-         Ada.Streams.Stream_IO.Close (File);
+         Outcome := Hostkit.Lease_Files.Create (Marker_Path, Marker);
+         if Outcome = Hostkit.Lease_Files.Opened then
+            if not Hostkit.Lease_Files.Write_At (Marker, Cancellation_Marker) then
+               Hostkit.Lease_Files.Release (Marker);
+               raise Ada.Directories.Use_Error;
+            end if;
+            Hostkit.Lease_Files.Release (Marker);
+         elsif Outcome /= Hostkit.Lease_Files.Refused
+           or else not Valid_Cancellation_Marker (Marker_Path)
+         then
+            raise Ada.Directories.Use_Error;
+         end if;
          Job.Shared.Cancel_At := Ada.Real_Time.Clock;
          Job.Shared.Cancelled := True;
       end if;
    exception
       when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            begin
-               Ada.Streams.Stream_IO.Close (File);
-            exception
-               when others => null;
-            end;
-         end if;
+         Hostkit.Lease_Files.Release (Marker);
          raise;
    end Cancel;
 
@@ -555,5 +618,6 @@ package body Files.Process_Jobs is
    end Shutdown;
 
    function Cancellation_Requested (Directory : String) return Boolean is
-     (Directory /= "" and then Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "cancel")));
+     (Directory /= ""
+      and then Valid_Cancellation_Marker (Hostkit.Fs.Join (Directory, "cancel")));
 end Files.Process_Jobs;

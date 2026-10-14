@@ -115,7 +115,8 @@ package body History is
 
    function Change_Recorded_Metadata
      (Action : Files.Model.Undo_Entry; Index : Positive; Ownership : Boolean;
-      Value : Natural; Group : Natural := 0) return Boolean
+      Value : Natural; Group : Natural := 0;
+      Owner_Name : String := ""; Group_Name : String := "") return Boolean
    is
       Previous, Previous_Group : Natural;
       Identity : Files.Types.UString;
@@ -125,8 +126,67 @@ package body History is
       end if;
       return Files.File_System.Change_Metadata
         (To_String (Action.From (Index)), To_String (Action.Created_Identities (Index)),
-         Ownership, Value, Group, Previous, Previous_Group, Identity).Success;
+         Ownership, Value, Group, Previous, Previous_Group, Identity,
+         Owner_Name, Group_Name).Success;
    end Change_Recorded_Metadata;
+
+   function Parse_Ownership_Text
+     (Text : String; User_Id, Group_Id : out Natural;
+      User_Name, Group_Name : out Files.Types.UString) return Boolean
+   is
+      First_Nul  : Natural := 0;
+      Second_Nul : Natural := 0;
+   begin
+      User_Id := 0;
+      Group_Id := 0;
+      User_Name := Null_Unbounded_String;
+      Group_Name := Null_Unbounded_String;
+      if Text = "" then
+         return False;
+      end if;
+      for Index in Text'Range loop
+         if Text (Index) = ASCII.NUL then
+            First_Nul := Index;
+            exit;
+         end if;
+      end loop;
+      declare
+         Numeric_Last : constant Natural :=
+           (if First_Nul = 0 then Text'Last else First_Nul - 1);
+         Space : constant Natural := Ada.Strings.Fixed.Index
+           (Text (Text'First .. Numeric_Last), " ");
+      begin
+         if Space = 0 then
+            return False;
+         end if;
+         User_Id := Natural'Value (Text (Text'First .. Space - 1));
+         Group_Id := Natural'Value (Text (Space + 1 .. Numeric_Last));
+      end;
+      if First_Nul = 0 then
+         return True;
+      end if;
+      for Index in First_Nul + 1 .. Text'Last loop
+         if Text (Index) = ASCII.NUL then
+            Second_Nul := Index;
+            exit;
+         end if;
+      end loop;
+      if Second_Nul = 0 then
+         return False;
+      end if;
+      User_Name := To_Unbounded_String
+        (Text (First_Nul + 1 .. Second_Nul - 1));
+      Group_Name := To_Unbounded_String
+        (Text (Second_Nul + 1 .. Text'Last));
+      return True;
+   exception
+      when others =>
+         User_Id := 0;
+         Group_Id := 0;
+         User_Name := Null_Unbounded_String;
+         Group_Name := Null_Unbounded_String;
+         return False;
+   end Parse_Ownership_Text;
 
    function Restore_Recorded_Trash
      (Path : Files.Types.UString; Identities, Targets : Files.Types.String_Vectors.Vector;
@@ -253,21 +313,21 @@ package body History is
 
                      Old_Text : constant String :=
                        Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
-                     Space    : constant Natural := Ada.Strings.Fixed.Index (Old_Text, " ");
                      Old_Uid  : Natural := 0;
                      Old_Gid  : Natural := 0;
+                     Old_User_Name, Old_Group_Name : Files.Types.UString;
                   begin
-                     if Space > 0 then
-                        begin
-                           Old_Uid := Natural'Value (Old_Text (Old_Text'First .. Space - 1));
-                           Old_Gid := Natural'Value (Old_Text (Space + 1 .. Old_Text'Last));
-                           if not Change_Recorded_Metadata (Action, Index, True, Old_Uid, Old_Gid) then
-                              Succeeded := False;
-                           end if;
-                        exception
-                           when others =>
-                              Succeeded := False;
-                        end;
+                     if Parse_Ownership_Text
+                       (Old_Text, Old_Uid, Old_Gid,
+                        Old_User_Name, Old_Group_Name)
+                     then
+                        if not Change_Recorded_Metadata
+                          (Action, Index, True, Old_Uid, Old_Gid,
+                           To_String (Old_User_Name),
+                           To_String (Old_Group_Name))
+                        then
+                           Succeeded := False;
+                        end if;
                      else
                         Succeeded := False;
                      end if;
@@ -483,22 +543,21 @@ package body History is
                     (if Index <= Action.Forward.Last_Index
                      then Ada.Strings.Fixed.Trim (To_String (Action.Forward.Element (Index)), Ada.Strings.Both)
                      else "");
-                  Space    : constant Natural :=
-                    (if New_Text = "" then 0 else Ada.Strings.Fixed.Index (New_Text, " "));
                   New_Uid  : Natural := 0;
                   New_Gid  : Natural := 0;
+                  New_User_Name, New_Group_Name : Files.Types.UString;
                begin
-                  if Space > 0 then
-                     begin
-                        New_Uid := Natural'Value (New_Text (New_Text'First .. Space - 1));
-                        New_Gid := Natural'Value (New_Text (Space + 1 .. New_Text'Last));
-                        if not Change_Recorded_Metadata (Action, Index, True, New_Uid, New_Gid) then
-                           Succeeded := False;
-                        end if;
-                     exception
-                        when others =>
-                           Succeeded := False;
-                     end;
+                  if Parse_Ownership_Text
+                    (New_Text, New_Uid, New_Gid,
+                     New_User_Name, New_Group_Name)
+                  then
+                     if not Change_Recorded_Metadata
+                       (Action, Index, True, New_Uid, New_Gid,
+                        To_String (New_User_Name),
+                        To_String (New_Group_Name))
+                     then
+                        Succeeded := False;
+                     end if;
                   else
                      Succeeded := False;
                   end if;

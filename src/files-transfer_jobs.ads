@@ -54,6 +54,37 @@ package Files.Transfer_Jobs is
    procedure Run_Helper (Directory : String);
 
 private
+   --  Transfer helpers run with an implementation-defined working directory;
+   --  every operational pathname crossing the wire must therefore be absolute
+   --  and safe to pass to native filesystem APIs.  Batch_Directory may be
+   --  empty when no shared hard-link journal is in use.
+   function Request_Is_Consistent
+     (Action : Files.Paste.Resolved_Action;
+      Batch_Directory : String) return Boolean;
+
+   --  Wire-level invariants shared with the test child package. A successful
+   --  helper result must carry the identity needed for safe history, while
+   --  failed and cancelled results must not claim a published destination.
+   function Result_Is_Consistent (Result : Job_Result) return Boolean;
+
+   --  Decode one complete request through a validated, pinned file lease.
+   procedure Read_Transport_Request
+     (Path : String;
+      Action : out Files.Paste.Resolved_Action;
+      Mode : out Files.File_System.Drop_Import_Mode;
+      Batch_Directory : out Files.Types.UString);
+
+   --  Decode one complete result through a validated, pinned file lease.
+   function Read_Transport_Result (Path : String) return Job_Result;
+
+   --  Decode the authority record for an original destination preserved
+   --  before replacement.  The record is accepted only as a complete,
+   --  ordinary file and while the preserved entry still has its captured
+   --  identity.
+   procedure Read_Replacement_Checkpoint
+     (Path : String;
+      Backup, Backup_Identity : out Files.Types.UString);
+
    type Session is record
       Process : Files.Process_Jobs.Session;
    end record;

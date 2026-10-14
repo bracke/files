@@ -10,6 +10,15 @@ with Files.Operations.Support;
 separate (Files.Operations)
 package body Metadata is
 
+   function Ownership_Text
+     (User_Id, Group_Id : Natural; User_Name, Group_Name : String)
+      return String
+   is
+     (Ada.Strings.Fixed.Trim (Natural'Image (User_Id), Ada.Strings.Both)
+      & " "
+      & Ada.Strings.Fixed.Trim (Natural'Image (Group_Id), Ada.Strings.Both)
+      & ASCII.NUL & User_Name & ASCII.NUL & Group_Name);
+
    function Permissions_Editable_Selection
      (Model : Files.Model.Window_Model)
       return Boolean
@@ -134,10 +143,16 @@ package body Metadata is
          Item      : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
          Path      : constant String :=
            GNAT.OS_Lib.Normalize_Pathname (To_String (Item.Full_Path), Resolve_Links => True);
+         New_User_Name : constant String :=
+           Files.File_System.User_Name_For_Id (User_Id);
+         New_Group_Name : constant String :=
+           Files.File_System.Group_Name_For_Id (Group_Id);
          Old_Uid, Old_Gid : Natural;
          Identity : Files.Types.UString;
          Mutation  : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Change_Metadata (Path, "", True, User_Id, Group_Id, Old_Uid, Old_Gid, Identity);
+           Files.File_System.Change_Metadata
+             (Path, "", True, User_Id, Group_Id, Old_Uid, Old_Gid,
+              Identity, New_User_Name, New_Group_Name);
       begin
          if not Mutation.Success then
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
@@ -149,19 +164,21 @@ package body Metadata is
             Undo_To      : Files.Types.String_Vectors.Vector;
             Undo_Forward : Files.Types.String_Vectors.Vector;
             Identities   : Files.Types.String_Vectors.Vector;
+            Old_User_Name : constant String :=
+              Files.File_System.User_Name_For_Id (Old_Uid);
+            Old_Group_Name : constant String :=
+              Files.File_System.Group_Name_For_Id (Old_Gid);
          begin
             Identities.Append (Identity);
             Undo_From.Append (To_Unbounded_String (Path));
             Undo_To.Append
               (To_Unbounded_String
-                 (Ada.Strings.Fixed.Trim (Natural'Image (Old_Uid), Ada.Strings.Both)
-                  & " "
-                  & Ada.Strings.Fixed.Trim (Natural'Image (Old_Gid), Ada.Strings.Both)));
+                 (Ownership_Text
+                    (Old_Uid, Old_Gid, Old_User_Name, Old_Group_Name)));
             Undo_Forward.Append
               (To_Unbounded_String
-                 (Ada.Strings.Fixed.Trim (Natural'Image (User_Id), Ada.Strings.Both)
-                  & " "
-                  & Ada.Strings.Fixed.Trim (Natural'Image (Group_Id), Ada.Strings.Both)));
+                 (Ownership_Text
+                    (User_Id, Group_Id, New_User_Name, New_Group_Name)));
             Files.Model.Record_Undo
               (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To,
                Forward => Undo_Forward, Original_Identities => Identities);

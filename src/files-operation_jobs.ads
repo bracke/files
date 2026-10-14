@@ -26,4 +26,10 @@ package Files.Operation_Jobs is
 
    --  @param Directory Private request/result directory passed to a helper.
    procedure Run_Helper (Directory : String);
+private
+   --  Normal operations run against an absolute directory. The Recent view is
+   --  synthetic and is represented by an empty root.
+   function Request_Path_Is_Consistent
+     (Root   : String;
+      Recent : Boolean) return Boolean;
 end Files.Operation_Jobs;

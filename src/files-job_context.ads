@@ -3,7 +3,9 @@ with Files.Job_Transports;
 
 --  Helper-local cancellation and staging journal. Never set by the UI process.
 package Files.Job_Context is
-   --  @param Directory Private helper transport directory, or empty outside a helper.
+   --  @param Directory Absolute private helper transport directory, or empty
+   --    outside a helper.
+   --  @exception Ada.Directories.Use_Error when a nonempty path is invalid.
    procedure Initialize (Directory : String);
 
    --  Release the process-wide foreground staging owner before the orphan
@@ -20,7 +22,7 @@ package Files.Job_Context is
    --  @param Path Unused directory pathname; raises on failure or collision.
    procedure Create_Private_Directory (Path : String);
 
-   --  @param Parent Destination filesystem directory.
+   --  @param Parent Absolute destination filesystem directory.
    --  @return Exclusively created and journaled staging directory.
    --  Raises Use_Error before copying when the filesystem cannot identify the
    --  directory without a copyable sidecar (for example, no birth time).

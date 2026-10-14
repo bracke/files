@@ -1,22 +1,32 @@
 with Ada.Directories;
-with Ada.Streams.Stream_IO;
+with Ada.IO_Exceptions;
+with Ada.Streams;
 with Ada.Strings.Unbounded;
+with GNAT.OS_Lib;
 
 with Files.Job_Context;
+with Files.Job_Records;
+with Files.Lease_Streams;
 with Files.Durable_Writes;
 with Files.History_Journal;
 with Files.Refresh_Jobs;
 with Files.File_System;
+with Files.Exclusive_Streams;
 with Files.Types;
 with Files.Paste;
 with Files.Process_Jobs;
 with Hostkit.Fs;
+with Hostkit.Lease_Files;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
    use type Files.Operations.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
    use type Files.Settings.Settings_Model;
+   use type Hostkit.Lease_Files.Open_Outcome;
+
+   Request_Header : constant String := "files-operation-request-1";
+   Result_Header : constant String := "files-operation-result-1";
 
    type Request is record
       Kind     : Operation_Kind;
@@ -25,7 +35,6 @@ package body Files.Operation_Jobs is
       Query    : Files.Types.UString;
       Selected : Files.File_System.Item_Vectors.Vector;
       Settings : Files.Settings.Settings_Model;
-      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
    end record;
 
    type Outcome is record
@@ -36,8 +45,153 @@ package body Files.Operation_Jobs is
       Selection : Files.Types.UString;
       Visible_Error : Files.Types.UString;
       Signature : Files.File_System.Directory_Signature;
-      History_Undo, History_Redo : Files.Model.Undo_Entry_Vectors.Vector;
    end record;
+
+   function Nul_Free (Value : String) return Boolean is
+   begin
+      for Item of Value loop
+         if Item = ASCII.NUL then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Nul_Free;
+
+   function Valid_Absolute_Path (Path : String) return Boolean is
+   begin
+      return Path /= ""
+        and then Nul_Free (Path)
+        and then GNAT.OS_Lib.Is_Absolute_Path (Path);
+   exception
+      when others =>
+         return False;
+   end Valid_Absolute_Path;
+
+   function Request_Path_Is_Consistent
+     (Root   : String;
+      Recent : Boolean) return Boolean is
+     ((if Recent then Root = "" else Valid_Absolute_Path (Root)));
+
+   procedure Write_Request
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Work : Request)
+   is
+   begin
+      if not Request_Path_Is_Consistent
+        (To_String (Work.Root), Work.Recent)
+      then
+         raise Ada.Directories.Use_Error;
+      end if;
+      String'Output (Stream, Request_Header);
+      Operation_Kind'Output (Stream, Work.Kind);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Work.Root), Files.Job_Records.Max_Path_Length);
+      Boolean'Output (Stream, Work.Recent);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Work.Query), Files.Job_Records.Max_Text_Length);
+      Files.Job_Records.Write_Items (Stream, Work.Selected);
+      Files.Job_Records.Write_Settings (Stream, Work.Settings);
+   end Write_Request;
+
+   function Read_Request (Path : String) return Request
+   is
+      Input : aliased Files.Lease_Streams.Input_Stream;
+      Work : Request;
+   begin
+      if Files.Lease_Streams.Open (Path, Input) /=
+          Hostkit.Lease_Files.Opened
+        or else Files.Lease_Streams.Size (Input) >
+          Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if Files.Job_Records.Read_String
+        (Input'Access, Request_Header'Length) /= Request_Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Work.Kind := Operation_Kind'Input (Input'Access);
+      Work.Root := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Path_Length));
+      Work.Recent := Boolean'Input (Input'Access);
+      Work.Query := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Text_Length));
+      Work.Selected := Files.Job_Records.Read_Items (Input'Access);
+      Work.Settings := Files.Job_Records.Read_Settings (Input'Access);
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if not Request_Path_Is_Consistent
+        (To_String (Work.Root), Work.Recent)
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return Work;
+   exception
+      when others =>
+         Files.Lease_Streams.Release (Input);
+         raise;
+   end Read_Request;
+
+   procedure Write_Outcome
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Done : Outcome)
+   is
+   begin
+      String'Output (Stream, Result_Header);
+      Operation_Kind'Output (Stream, Done.Kind);
+      Boolean'Output (Stream, Done.Recent);
+      Files.Job_Records.Write_Operation_Result (Stream, Done.Result);
+      Files.Job_Records.Write_Items (Stream, Done.Items);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Done.Selection), Files.Job_Records.Max_Path_Length);
+      Files.Job_Records.Write_String
+        (Stream, To_String (Done.Visible_Error),
+         Files.Job_Records.Max_Error_Length);
+      Files.Job_Records.Write_Signature (Stream, Done.Signature);
+   end Write_Outcome;
+
+   function Read_Outcome (Path : String) return Outcome
+   is
+      Input : aliased Files.Lease_Streams.Input_Stream;
+      Done : Outcome;
+   begin
+      if Files.Lease_Streams.Open (Path, Input) /=
+          Hostkit.Lease_Files.Opened
+        or else Files.Lease_Streams.Size (Input) >
+          Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if Files.Job_Records.Read_String
+        (Input'Access, Result_Header'Length) /= Result_Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Done.Kind := Operation_Kind'Input (Input'Access);
+      Done.Recent := Boolean'Input (Input'Access);
+      Done.Result := Files.Job_Records.Read_Operation_Result (Input'Access);
+      Done.Items := Files.Job_Records.Read_Items (Input'Access);
+      Done.Selection := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Path_Length));
+      Done.Visible_Error := To_Unbounded_String
+        (Files.Job_Records.Read_String
+           (Input'Access, Files.Job_Records.Max_Error_Length));
+      Done.Signature := Files.Job_Records.Read_Signature (Input'Access);
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
+      return Done;
+   exception
+      when others =>
+         Files.Lease_Streams.Release (Input);
+         raise;
+   end Read_Outcome;
 
    function Start
      (Model : in out Files.Model.Window_Model;
@@ -45,12 +199,11 @@ package body Files.Operation_Jobs is
       Kind : Operation_Kind) return Files.Operations.Operation_Result
    is
       Job  : Files.Process_Jobs.Session;
-      File : Ada.Streams.Stream_IO.File_Type;
+      File : aliased Files.Exclusive_Streams.Output_Stream;
       Work : constant Request :=
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Recent => Files.Model.In_Recent_View (Model), Query => To_Unbounded_String (Files.Model.Filter_Text (Model)),
-         Selected => Files.Model.Selected_Items (Model), Settings => Settings,
-         Undo => Files.Model.Undo_History (Model), Redo => Files.Model.Redo_History (Model));
+         Selected => Files.Model.Selected_Items (Model), Settings => Settings);
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
       if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
@@ -61,7 +214,9 @@ package body Files.Operation_Jobs is
          return (Status => Files.Operations.Operation_Disabled,
                  Error_Key => To_Unbounded_String ("error.filter.empty"), others => <>);
       end if;
-      if (Kind = Undo and then Work.Undo.Is_Empty) or else (Kind = Redo and then Work.Redo.Is_Empty) then
+      if (Kind = Undo and then Files.Model.Undo_History (Model).Is_Empty)
+        or else (Kind = Redo and then Files.Model.Redo_History (Model).Is_Empty)
+      then
          Files.Model.Set_Error (Model, "error.undo.failed");
          return (Status => Files.Operations.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.undo.failed"), others => <>);
@@ -83,9 +238,14 @@ package body Files.Operation_Jobs is
          end;
       end if;
       Files.Process_Jobs.Reserve (Job);
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Files.Process_Jobs.Path (Job, "request"));
-      Request'Output (Ada.Streams.Stream_IO.Stream (File), Work);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.History_Journal.Save_Stacks
+        (Files.Process_Jobs.Path (Job, ""), Files.Model.Undo_History (Model),
+         Files.Model.Redo_History (Model), Required => True);
+      Files.Exclusive_Streams.Create
+        (File, Files.Process_Jobs.Path (Job, "request"));
+      Write_Request (File'Access, Work);
+      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
+      Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Job, "--files-operation");
       Actions.Append
         (Files.Paste.Resolved_Action'
@@ -110,9 +270,8 @@ package body Files.Operation_Jobs is
       return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
    exception
       when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            Ada.Streams.Stream_IO.Close (File);
-         end if;
+         Files.Exclusive_Streams.Close_Safely (File);
+         Files.Process_Jobs.Reset (Job);
          Files.Model.Set_Error (Model, "error.drop.failed");
          return (Status => Files.Operations.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.drop.failed"), others => <>);
@@ -125,7 +284,6 @@ package body Files.Operation_Jobs is
       Job       : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
       Finished  : Boolean;
       Cancelled : Boolean := False;
-      File      : Ada.Streams.Stream_IO.File_Type;
       Done      : Outcome;
       Work      : Request;
 
@@ -136,9 +294,7 @@ package body Files.Operation_Jobs is
          Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Redo_History (Model);
          Tracked : Boolean;
       begin
-         Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Job, "request"));
-         Work := Request'Input (Ada.Streams.Stream_IO.Stream (File));
-         Ada.Streams.Stream_IO.Close (File);
+         Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
          Files.Job_Context.Read_Created
            (Files.Process_Jobs.Path (Job, ""), Destinations, Sources, Identities, Tree_Revisions);
          if Work.Kind = Redo and then not Redo_Stack.Is_Empty then
@@ -193,23 +349,24 @@ package body Files.Operation_Jobs is
             end if;
          end if;
       exception
-         when others =>
-            if Ada.Streams.Stream_IO.Is_Open (File) then
-               Ada.Streams.Stream_IO.Close (File);
-            end if;
+         when others => null;
       end Recover_Undo;
    begin
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);
       if not Finished then
          return (Status => Files.Operations.Operation_Success, others => <>);
       end if;
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Job, "result"));
-      Done := Outcome'Input (Ada.Streams.Stream_IO.Stream (File));
-      Ada.Streams.Stream_IO.Close (File);
+      Done := Read_Outcome (Files.Process_Jobs.Path (Job, "result"));
+      Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
+      if Done.Kind /= Work.Kind or else Done.Recent /= Work.Recent then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if not Files.History_Journal.Restore
+        (Files.Process_Jobs.Path (Job, ""), Model)
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
       if Done.Kind in Search_Names | Search_Contents then
-         Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Files.Process_Jobs.Path (Job, "request"));
-         Work := Request'Input (Ada.Streams.Stream_IO.Stream (File));
-         Ada.Streams.Stream_IO.Close (File);
          if Work.Root /= Files.Model.Current_Path (Model) or else Work.Recent /= Files.Model.In_Recent_View (Model)
            or else Work.Query /= Files.Model.Filter_Text (Model) or else Work.Settings /= Settings
          then
@@ -218,7 +375,6 @@ package body Files.Operation_Jobs is
          end if;
       end if;
       Files.Model.Clear_Paste_Execution (Model);
-      Files.Model.Set_History (Model, Done.History_Undo, Done.History_Redo);
       if Done.Result.Status /= Files.Operations.Operation_Success then
          Recover_Undo;
       end if;
@@ -267,9 +423,6 @@ package body Files.Operation_Jobs is
       return Done.Result;
    exception
       when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            Ada.Streams.Stream_IO.Close (File);
-         end if;
          Files.Model.Clear_Paste_Execution (Model);
          declare
             Restored : constant Boolean :=
@@ -295,20 +448,20 @@ package body Files.Operation_Jobs is
    end Advance;
 
    procedure Run_Helper (Directory : String) is
-      File  : Ada.Streams.Stream_IO.File_Type;
+      File  : aliased Files.Exclusive_Streams.Output_Stream;
       Work  : Request;
       Done  : Outcome;
       Model : Files.Model.Window_Model;
    begin
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Hostkit.Fs.Join (Directory, "request"));
-      Work := Request'Input (Ada.Streams.Stream_IO.Stream (File));
-      Ada.Streams.Stream_IO.Close (File);
+      Work := Read_Request (Hostkit.Fs.Join (Directory, "request"));
       Done.Kind := Work.Kind;
       Files.Model.Initialize (Model, To_String (Work.Root), Work.Selected, Hostkit.Fs.Home_Directory);
       if Work.Recent then
          Files.Model.Navigate_Recent (Model, Work.Selected);
       end if;
-      Files.Model.Set_History (Model, Work.Undo, Work.Redo);
+      if not Files.History_Journal.Restore (Directory, Model) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
       Files.History_Journal.Save (Model, Required => Work.Kind in Trash | Undo | Redo);
       if Work.Kind in Search_Names | Search_Contents then
          Files.Model.Set_Filter (Model, To_String (Work.Query));
@@ -341,16 +494,20 @@ package body Files.Operation_Jobs is
          Done.Items.Append (Files.Model.Visible_Item (Model, I));
       end loop;
       Done.Signature := Files.Model.Directory_Signature_Of (Model);
-      Done.History_Undo := Files.Model.Undo_History (Model);
-      Done.History_Redo := Files.Model.Redo_History (Model);
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Hostkit.Fs.Join (Directory, "result.tmp"));
-      Outcome'Output (Ada.Streams.Stream_IO.Stream (File), Done);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create
+        (File, Hostkit.Fs.Join (Directory, "result.tmp"));
+      Write_Outcome (File'Access, Done);
+      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
+      Files.Exclusive_Streams.Close (File);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish
            (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
       then
          raise Ada.Directories.Use_Error;
       end if;
+   exception
+      when others =>
+         Files.Exclusive_Streams.Close_Safely (File);
+         raise;
    end Run_Helper;
 end Files.Operation_Jobs;

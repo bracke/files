@@ -20,8 +20,10 @@ package Files.Copy_Context is
    --  @param Batch Batch that owns the journal.
    --  @param Items Verified hard-link records to publish atomically.
    procedure Save (Batch : Session; Items : Files.Types.String_Vectors.Vector);
-   --  @param Path Parent-owned batch directory borrowed by a copy helper.
+   --  @param Path Absolute parent-owned batch directory borrowed by a copy helper.
    --  @return A non-owning view of its copy journal.
+   --  @exception Ada.Directories.Use_Error when Path is empty, relative, too
+   --    long, or contains NUL.
    function Borrow (Path : String) return Session;
 private
    type Session is record

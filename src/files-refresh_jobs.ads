@@ -46,6 +46,24 @@ package Files.Refresh_Jobs is
    --  @param Directory Private native-watch request/notification directory.
    procedure Run_Watch_Helper (Directory : String);
 private
+   --  A real directory request carries absolute filesystem paths. The Recent
+   --  view is synthetic, so both path fields are deliberately empty there.
+   function Request_Paths_Are_Consistent
+     (Root, Previous_Path : String;
+      Recent              : Boolean) return Boolean;
+
+   --  Watch helpers pass this value directly to the native watcher.
+   function Watch_Path_Is_Consistent (Path : String) return Boolean;
+
+   --  Move a posted watch marker away from the helper's publication name in
+   --  one atomic step.  A helper can then publish a later event without the
+   --  consumer deleting that new marker while acknowledging the old one.
+   function Claim_Watch_Notification (Directory : String) return Boolean;
+
+   --  Publish one idempotent watch marker. False leaves the caller responsible
+   --  for retrying because the native event has already been consumed.
+   function Post_Watch_Notification (Directory : String) return Boolean;
+
    type Watch_Session is record
       Process : Files.Process_Jobs.Session;
       Path : Files.Types.UString;

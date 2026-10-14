@@ -1,6 +1,9 @@
 with Ada.Directories;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Environment_Variables;
 with Ada.Real_Time;
+with Ada.Streams;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -10,6 +13,7 @@ with Files.Job_Transports;
 with Files.Localization;
 with Files.Types;
 with Hostkit.Fs;
+with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
 with Hostkit.Spawn;
@@ -18,20 +22,50 @@ package body Files.Job_Scavenger is
    use Ada.Strings.Unbounded;
    use type Files.Job_Cleanup.Cleanup_Outcome;
    use type Files.Job_Transports.Claim_Outcome;
+   use type Hostkit.Lease_Files.Open_Outcome;
    use type Hostkit.Spawn.Spawn_Outcome;
    use type Hostkit.Spawn.Wait_State;
    use type Ada.Real_Time.Time;
+   use type Ada.Streams.Stream_Element_Array;
+
+   package Reported_Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
 
    Report_Directory : Files.Types.UString;
    Report_Environment : constant String := "FILES_RECOVERY_REPORT_DIR";
    Report_Name : constant String := "unsafe";
+   Report_Marker : constant Ada.Streams.Stream_Element_Array :=
+     [Character'Pos ('u'), Character'Pos ('n'), Character'Pos ('s'),
+      Character'Pos ('a'), Character'Pos ('f'), Character'Pos ('e'),
+      Character'Pos (ASCII.LF)];
    Previous_Report_Directory : Files.Types.UString;
    Previous_Report_Existed : Boolean := False;
 
    function Has_Unrecoverable return Boolean is
-     (Length (Report_Directory) > 0
-      and then Ada.Directories.Exists
-        (Hostkit.Fs.Join (To_String (Report_Directory), Report_Name)));
+      Report : Hostkit.Lease_Files.Lease;
+      Read_Back : Ada.Streams.Stream_Element_Array (Report_Marker'Range);
+      Valid : Boolean := False;
+   begin
+      if Length (Report_Directory) = 0
+        or else Hostkit.Lease_Files.Open
+          (Hostkit.Fs.Join (To_String (Report_Directory), Report_Name),
+           Hostkit.Lease_Files.Shared, Writable => False, Item => Report) /=
+             Hostkit.Lease_Files.Opened
+      then
+         return False;
+      end if;
+      Valid := Hostkit.Lease_Files.Size (Report) = Report_Marker'Length
+        and then Hostkit.Lease_Files.Read_At (Report, Read_Back)
+        and then Read_Back = Report_Marker;
+      Hostkit.Lease_Files.Release (Report);
+      return Valid;
+   exception
+      when others =>
+         Hostkit.Lease_Files.Release (Report);
+         return False;
+   end Has_Unrecoverable;
 
    procedure Clean_Report is
    begin
@@ -107,23 +141,22 @@ package body Files.Job_Scavenger is
    protected Terminal_Reports is
       procedure Mark_If_New (Directory : String; New_Report : out Boolean);
    private
-      Reported : Files.Types.String_Vectors.Vector;
+      Reported : Reported_Path_Sets.Set;
    end Terminal_Reports;
 
    protected body Terminal_Reports is
       procedure Mark_If_New (Directory : String; New_Report : out Boolean) is
-         Value : constant Files.Types.UString := To_Unbounded_String (Directory);
       begin
-         New_Report := not Reported.Contains (Value);
+         New_Report := not Reported.Contains (Directory);
          if New_Report then
-            Reported.Append (Value);
+            Reported.Insert (Directory);
          end if;
       end Mark_If_New;
    end Terminal_Reports;
 
    procedure Report_Unrecoverable (Directory : String) is
       New_Report : Boolean;
-      Report : Ada.Text_IO.File_Type;
+      Report : Hostkit.Lease_Files.Lease;
    begin
       Terminal_Reports.Mark_If_New (Directory, New_Report);
       if New_Report then
@@ -141,23 +174,23 @@ package body Files.Job_Scavenger is
                declare
                   Target : constant String :=
                     Hostkit.Fs.Join (Target_Directory, Report_Name);
+                  Written : Boolean;
                begin
-                  if Ada.Directories.Exists (Target) then
-                     Ada.Text_IO.Open (Report, Ada.Text_IO.Append_File, Target);
-                  else
-                     Ada.Text_IO.Create (Report, Ada.Text_IO.Out_File, Target);
+                  if Hostkit.Lease_Files.Create (Target, Report) =
+                    Hostkit.Lease_Files.Opened
+                  then
+                     Written := Hostkit.Lease_Files.Write_At
+                       (Report, Report_Marker);
+                     pragma Unreferenced (Written);
+                     Hostkit.Lease_Files.Release (Report);
                   end if;
-                  Ada.Text_IO.Put_Line (Report, Directory);
-                  Ada.Text_IO.Close (Report);
                end;
             end if;
          end;
       end if;
    exception
       when others =>
-         if Ada.Text_IO.Is_Open (Report) then
-            Ada.Text_IO.Close (Report);
-         end if;
+         Hostkit.Lease_Files.Release (Report);
    end Report_Unrecoverable;
 
    protected body Scan_Requests is
@@ -471,10 +504,8 @@ package body Files.Job_Scavenger is
                         if Outcome = Files.Job_Transports.Claim_Acquired then
                            declare
                               Removed : constant Boolean :=
-                                (if Length (Incomplete_Identity) = 0
-                                 then Files.Job_Transports.Remove_Empty_Incomplete (Directory, Claim)
-                                 else Files.File_System.Delete_Staging_Entry
-                                   (Directory, To_String (Incomplete_Identity)).Success);
+                                Files.File_System.Delete_Staging_Entry
+                                  (Directory, To_String (Incomplete_Identity)).Success;
                            begin
                               if not Removed
                                 or else Ada.Directories.Exists (Directory)

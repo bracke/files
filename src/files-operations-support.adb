@@ -8,6 +8,7 @@ with Files.Refresh_Jobs;
 with Files.Fs;
 
 with Hostkit.Fs;
+with Hostkit.Host;
 
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
@@ -76,6 +77,7 @@ package body Files.Operations.Support is
      (Executable : String)
       return Boolean
    is
+      use type Hostkit.Host.Kind;
       Located : GNAT.OS_Lib.String_Access := null;
    begin
       if Executable = "" then
@@ -83,7 +85,11 @@ package body Files.Operations.Support is
       end if;
 
       for Character_Value of Executable loop
-         if Character_Value = '/' or else Character_Value = '\' then
+         if Character_Value = '/'
+           or else
+             (Hostkit.Host.Current = Hostkit.Host.Windows
+              and then Character_Value = '\')
+         then
             --  A path, not a name to be looked up: it has to be a regular file that
             --  this host will actually run.
             --

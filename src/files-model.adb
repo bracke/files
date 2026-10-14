@@ -3,6 +3,8 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 
+with GNAT.OS_Lib;
+
 with Files.Command_Palette;
 with Files.Localization;
 with Files.Settings_Form;
@@ -13,6 +15,9 @@ with Files.Model.Support;
 
 package body Files.Model is
    use Ada.Strings.Unbounded;
+
+   package UString_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => UString);
 
    function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Undo_Stack);
    function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Redo_Stack);
@@ -35,30 +40,68 @@ package body Files.Model is
    function Unique_Nonempty_Values
      (Values : Files.Types.String_Vectors.Vector) return Boolean
    is
-      Seen : Files.Types.String_Vectors.Vector;
+      Seen : UString_Sets.Set;
    begin
       for Value of Values loop
          if Length (Value) = 0 or else Seen.Contains (Value) then
             return False;
          end if;
-         Seen.Append (Value);
+         Seen.Insert (Value);
       end loop;
       return True;
    end Unique_Nonempty_Values;
 
+   function Valid_Absolute_Path (Value : UString) return Boolean is
+      Path : constant String := To_String (Value);
+   begin
+      if Path = "" then
+         return False;
+      end if;
+      for Item of Path loop
+         if Item = ASCII.NUL then
+            return False;
+         end if;
+      end loop;
+      return GNAT.OS_Lib.Is_Absolute_Path (Path);
+   exception
+      when others =>
+         return False;
+   end Valid_Absolute_Path;
+
+   function Absolute_Paths
+     (Values : Files.Types.String_Vectors.Vector) return Boolean is
+   begin
+      for Value of Values loop
+         if not Valid_Absolute_Path (Value) then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Absolute_Paths;
+
+   function Unique_Absolute_Paths
+     (Values : Files.Types.String_Vectors.Vector) return Boolean is
+   begin
+      return Unique_Nonempty_Values (Values) and then Absolute_Paths (Values);
+   end Unique_Absolute_Paths;
+
    function Completion_Markers_Valid
      (Markers, Allowed : Files.Types.String_Vectors.Vector) return Boolean
    is
-      Seen : Files.Types.String_Vectors.Vector;
+      Seen : UString_Sets.Set;
+      Allowed_Values : UString_Sets.Set;
    begin
+      for Value of Allowed loop
+         Allowed_Values.Include (Value);
+      end loop;
       for Marker of Markers loop
          if Length (Marker) = 0
-           or else not Allowed.Contains (Marker)
+           or else not Allowed_Values.Contains (Marker)
            or else Seen.Contains (Marker)
          then
             return False;
          end if;
-         Seen.Append (Marker);
+         Seen.Insert (Marker);
       end loop;
       return True;
    end Completion_Markers_Valid;
@@ -79,17 +122,51 @@ package body Files.Model is
    end Valid_Natural_Image;
 
    function Valid_Ownership_Image (Value : UString) return Boolean is
-      Text : constant String := Ada.Strings.Fixed.Trim (To_String (Value), Ada.Strings.Both);
-      Space : constant Natural := Ada.Strings.Fixed.Index (Text, " ");
-      User, Group : Natural;
-      pragma Unreferenced (User, Group);
+      Text       : constant String := To_String (Value);
+      First_Nul  : Natural := 0;
+      Second_Nul : Natural := 0;
    begin
-      if Space = 0 then
+      if Text = "" then
          return False;
       end if;
-      User := Natural'Value (Text (Text'First .. Space - 1));
-      Group := Natural'Value (Text (Space + 1 .. Text'Last));
-      return True;
+      for Index in Text'Range loop
+         if Text (Index) = ASCII.NUL then
+            First_Nul := Index;
+            exit;
+         end if;
+      end loop;
+      if First_Nul /= 0 then
+         for Index in First_Nul + 1 .. Text'Last loop
+            if Text (Index) = ASCII.NUL then
+               Second_Nul := Index;
+               exit;
+            end if;
+         end loop;
+         if Second_Nul = 0 then
+            return False;
+         end if;
+         for Index in Second_Nul + 1 .. Text'Last loop
+            if Text (Index) = ASCII.NUL then
+               return False;
+            end if;
+         end loop;
+      end if;
+      declare
+         Numeric_Last : constant Natural :=
+           (if First_Nul = 0 then Text'Last else First_Nul - 1);
+         Numeric : constant String := Ada.Strings.Fixed.Trim
+           (Text (Text'First .. Numeric_Last), Ada.Strings.Both);
+         Space : constant Natural := Ada.Strings.Fixed.Index (Numeric, " ");
+         User, Group : Natural;
+         pragma Unreferenced (User, Group);
+      begin
+         if Space = 0 then
+            return False;
+         end if;
+         User := Natural'Value (Numeric (Numeric'First .. Space - 1));
+         Group := Natural'Value (Numeric (Space + 1 .. Numeric'Last));
+         return True;
+      end;
    exception
       when others =>
          return False;
@@ -99,16 +176,18 @@ package body Files.Model is
      (Values : Files.Types.String_Vectors.Vector) return Boolean
    is
       Index : Positive := 1;
-      Keys  : Files.Types.String_Vectors.Vector;
+      Keys  : UString_Sets.Set;
    begin
       if Natural (Values.Length) mod 6 /= 0 or else not Nonempty_Values (Values) then
          return False;
       end if;
       while Index <= Values.Last_Index loop
-         if Keys.Contains (Values (Index)) then
+         if Keys.Contains (Values (Index))
+           or else not Valid_Absolute_Path (Values (Index + 3))
+         then
             return False;
          end if;
-         Keys.Append (Values (Index));
+         Keys.Insert (Values (Index));
          Index := Index + 6;
       end loop;
       return True;
@@ -141,7 +220,7 @@ package body Files.Model is
    begin
       if Action.Kind = Undo_None
         or else Main_Count = 0
-        or else not Unique_Nonempty_Values (Action.From)
+        or else not Unique_Absolute_Paths (Action.From)
         or else not Same_Length (Action.From, Action.Created_Identities)
         or else not Same_Length (Action.From, Action.Created_Tree_Revisions)
         or else not Nonempty_Values (Action.Created_Identities)
@@ -159,11 +238,11 @@ package body Files.Model is
          end if;
       elsif Action.Redoable
         or else Action.Kind not in Undo_Move | Undo_Delete_Created
-        or else not Unique_Nonempty_Values (Action.Restore_Trash)
+        or else not Unique_Absolute_Paths (Action.Restore_Trash)
         or else not Same_Length (Action.Restore_Trash, Action.Restore_Identities)
         or else not Same_Length (Action.Restore_Trash, Action.Restore_Targets)
         or else not Nonempty_Values (Action.Restore_Identities)
-        or else not Unique_Nonempty_Values (Action.Restore_Targets)
+        or else not Unique_Absolute_Paths (Action.Restore_Targets)
         or else not Completion_Markers_Valid
           (Action.Restores_Completed, Action.Restore_Trash)
       then
@@ -173,7 +252,7 @@ package body Files.Model is
       case Action.Kind is
          when Undo_Rename | Undo_Move =>
             if not Same_Length (Action.From, Action.To)
-              or else not Unique_Nonempty_Values (Action.To)
+              or else not Unique_Absolute_Paths (Action.To)
               or else not Action.Forward.Is_Empty
               or else Action.Create_Kind /= Create_None
             then
@@ -185,7 +264,7 @@ package body Files.Model is
          when Undo_Restore_Trash =>
             if Action.Redoable
               or else not Same_Length (Action.From, Action.To)
-              or else not Unique_Nonempty_Values (Action.To)
+              or else not Unique_Absolute_Paths (Action.To)
               or else not Action.Forward.Is_Empty
               or else Action.Create_Kind /= Create_None
               or else Restore_Count /= 0
@@ -200,7 +279,7 @@ package body Files.Model is
               or else (Action.Redoable
                 and then (Action.Create_Kind = Create_None
                   or else not Same_Length (Action.From, Action.Forward)
-                  or else not Nonempty_Values (Action.Forward)))
+                  or else not Absolute_Paths (Action.Forward)))
               or else (not Action.Redoable and then not Action.Forward.Is_Empty)
             then
                return False;

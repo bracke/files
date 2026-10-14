@@ -1,8 +1,27 @@
+with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
 package body Files.Paste is
 
    use Ada.Strings.Unbounded;
+
+   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   function To_Set
+     (Paths : Files.Types.String_Vectors.Vector)
+      return Path_Sets.Set
+   is
+      Result : Path_Sets.Set;
+   begin
+      for Path of Paths loop
+         Result.Include (To_String (Path));
+      end loop;
+      return Result;
+   end To_Set;
 
    function Desired_Path
      (Dir  : String;
@@ -78,10 +97,14 @@ package body Files.Paste is
       Existing  : Files.Types.String_Vectors.Vector;
       After     : Natural := 0)
       return Natural is
+      Existing_Set : constant Path_Sets.Set := To_Set (Existing);
    begin
       for Index in Items.First_Index .. Items.Last_Index loop
          if Index > After
-           and then Has_Conflict (Items.Element (Index), Existing)
+           and then Existing_Set.Contains
+             (Desired_Path
+                (To_String (Items.Element (Index).Dest_Dir),
+                 To_String (Items.Element (Index).Dest_Name)))
            and then Effective_Decision (Policy, Override_At (Overrides, Index)) = Decision_Pending
          then
             return Index;
@@ -115,8 +138,8 @@ package body Files.Paste is
    function Unique_Path
      (Dir      : String;
       Name     : String;
-      Existing : Files.Types.String_Vectors.Vector;
-      Claimed  : Files.Types.String_Vectors.Vector)
+      Existing : Path_Sets.Set;
+      Claimed  : Path_Sets.Set)
       return String
    is
       Dot       : constant Natural := Extension_Start (Name);
@@ -127,8 +150,8 @@ package body Files.Paste is
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Desired_Path (Dir, Name));
    begin
-      while Contains (Existing, To_String (Candidate))
-        or else Contains (Claimed, To_String (Candidate))
+      while Existing.Contains (To_String (Candidate))
+        or else Claimed.Contains (To_String (Candidate))
       loop
          Candidate :=
            To_Unbounded_String
@@ -147,10 +170,11 @@ package body Files.Paste is
       return Resolved_Action_Vectors.Vector
    is
       Actions : Resolved_Action_Vectors.Vector;
+      Existing_Set : constant Path_Sets.Set := To_Set (Existing);
       --  Destinations already assigned earlier in this batch; a second item that
       --  would resolve to the same path is uniquified so it cannot clobber the
       --  first even before either is written to disk.
-      Claimed : Files.Types.String_Vectors.Vector;
+      Claimed : Path_Sets.Set;
 
       procedure Emit_Write (Source : Files.Types.UString; Dest : String; Replaced : Boolean) is
       begin
@@ -160,7 +184,7 @@ package body Files.Paste is
                Dest_Path   => To_Unbounded_String (Dest),
                Skip        => False,
                Replaced    => Replaced));
-         Claimed.Append (To_Unbounded_String (Dest));
+         Claimed.Include (Dest);
       end Emit_Write;
    begin
       for Index in Items.First_Index .. Items.Last_Index loop
@@ -169,13 +193,15 @@ package body Files.Paste is
             Dir      : constant String := To_String (Item.Dest_Dir);
             Name     : constant String := To_String (Item.Dest_Name);
             Desired  : constant String := Desired_Path (Dir, Name);
-            Conflict : constant Boolean := Contains (Existing, Desired);
+            Conflict : constant Boolean := Existing_Set.Contains (Desired);
          begin
             if not Conflict then
                --  No on-disk conflict: write to the desired name, but still
                --  uniquify against earlier same-batch claims to avoid clobber.
-               if Contains (Claimed, Desired) then
-                  Emit_Write (Item.Source_Path, Unique_Path (Dir, Name, Existing, Claimed), False);
+               if Claimed.Contains (Desired) then
+                  Emit_Write
+                    (Item.Source_Path,
+                     Unique_Path (Dir, Name, Existing_Set, Claimed), False);
                else
                   Emit_Write (Item.Source_Path, Desired, False);
                end if;
@@ -184,7 +210,9 @@ package body Files.Paste is
                   when Decision_Replace =>
                      Emit_Write (Item.Source_Path, Desired, True);
                   when Decision_Rename =>
-                     Emit_Write (Item.Source_Path, Unique_Path (Dir, Name, Existing, Claimed), False);
+                     Emit_Write
+                       (Item.Source_Path,
+                        Unique_Path (Dir, Name, Existing_Set, Claimed), False);
                   when Decision_Skip | Decision_Pending =>
                      --  Skip, and treat an undecided conflict as Skip so the
                      --  destination is never silently overwritten.

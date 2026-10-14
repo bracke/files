@@ -1,8 +1,12 @@
 with Files.Copy_Context;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Characters.Handling;
 with Ada.Directories;
+with Ada.Strings.Hash;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
+with Hostkit.Metadata;
 
 with Files.Paste;
 with Files.File_Identities;
@@ -19,6 +23,15 @@ package body Transfer is
    use type Files.File_System.Drop_Import_Mode;
    use type Zlib.Status_Code;
 
+   package Archive_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   type Text_Array_Access is access Zlib.Text_Array;
+   procedure Free_Text_Array is new Ada.Unchecked_Deallocation
+     (Zlib.Text_Array, Text_Array_Access);
+
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
@@ -34,16 +47,48 @@ package body Transfer is
 
       Input_Paths : Files.Types.String_Vectors.Vector;
       Entry_Names : Files.Types.String_Vectors.Vector;
+      Names_Seen  : Archive_Name_Sets.Set;
       Collection_Failed : Boolean := False;
+      Max_Archive_Entries : constant Natural :=
+        (if Format = Zip_Archive then 65_535 else 100_000);
+      Max_Archive_Depth : constant Natural := 64;
+      Max_Archive_Path_Bytes : constant Natural := 64 * 1024 * 1024;
+      Collected_Path_Bytes : Natural := 0;
+
+      function Record_Entry (Full, Entry_Name : String) return Boolean is
+      begin
+         if Names_Seen.Contains (Entry_Name)
+           or else Full'Length > Max_Archive_Path_Bytes - Collected_Path_Bytes
+           or else Entry_Name'Length >
+             Max_Archive_Path_Bytes - Collected_Path_Bytes - Full'Length
+         then
+            return False;
+         end if;
+         Collected_Path_Bytes :=
+           Collected_Path_Bytes + Full'Length + Entry_Name'Length;
+         Names_Seen.Insert (Entry_Name);
+         Input_Paths.Append (To_Unbounded_String (Full));
+         Entry_Names.Append (To_Unbounded_String (Entry_Name));
+         return True;
+      end Record_Entry;
 
       --  Recursively collect directories and ordinary files, recording
       --  each with a directory-relative archive entry name (forward slashes).
-      procedure Collect (Full : String; Entry_Name : String) is
+      procedure Collect
+        (Full       : String;
+         Entry_Name : String;
+         Depth      : Natural := 0)
+      is
          Search    : Ada.Directories.Search_Type;
          Started   : Boolean := False;
          Dir_Entry : Ada.Directories.Directory_Entry_Type;
       begin
          if Files.Job_Context.Cancelled then
+            return;
+         elsif Depth > Max_Archive_Depth
+           or else Natural (Input_Paths.Length) >= Max_Archive_Entries
+         then
+            Collection_Failed := True;
             return;
          elsif not Exists_Safely (Full) then
             Collection_Failed := True;
@@ -56,12 +101,10 @@ package body Transfer is
             --  Directory_Size, which also skip links via Hostkit.Fs.
             return;
          elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
-            if Entry_Names.Contains (To_Unbounded_String (Entry_Name)) then
+            if not Record_Entry (Full, Entry_Name) then
                Collection_Failed := True;
                return;
             end if;
-            Input_Paths.Append (To_Unbounded_String (Full));
-            Entry_Names.Append (To_Unbounded_String (Entry_Name));
             Ada.Directories.Start_Search
               (Search,
                Directory => Full,
@@ -71,7 +114,10 @@ package body Transfer is
                   Ada.Directories.Directory     => True,
                   Ada.Directories.Special_File  => False]);
             Started := True;
-            while Ada.Directories.More_Entries (Search) loop
+            while not Collection_Failed
+              and then not Files.Job_Context.Cancelled
+              and then Ada.Directories.More_Entries (Search)
+            loop
                Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
                declare
                   Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
@@ -79,18 +125,16 @@ package body Transfer is
                   if Name /= "." and then Name /= ".." then
                      Collect
                        (Ada.Directories.Full_Name (Dir_Entry),
-                        Entry_Name & "/" & Name);
+                        Entry_Name & "/" & Name,
+                        Depth + 1);
                   end if;
                end;
             end loop;
             Ada.Directories.End_Search (Search);
          elsif Ada.Directories.Kind (Full) = Ada.Directories.Ordinary_File then
-            if Entry_Names.Contains (To_Unbounded_String (Entry_Name)) then
+            if not Record_Entry (Full, Entry_Name) then
                Collection_Failed := True;
-               return;
             end if;
-            Input_Paths.Append (To_Unbounded_String (Full));
-            Entry_Names.Append (To_Unbounded_String (Entry_Name));
          end if;
       exception
          when others =>
@@ -160,8 +204,8 @@ package body Transfer is
          Archive_Name : constant String := Unique_Name;
          Output_Path  : constant String := Ada.Directories.Compose (Directory, Archive_Name);
          Count        : constant Natural := Natural (Input_Paths.Length);
-         Inputs       : Zlib.Text_Array (1 .. Count);
-         Names        : Zlib.Text_Array (1 .. Count);
+         Inputs       : Text_Array_Access := null;
+         Names        : Text_Array_Access := null;
          Status       : Zlib.Status_Code;
          Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
          Staged       : constant String := Ada.Directories.Compose (Stage, Archive_Name);
@@ -176,22 +220,30 @@ package body Transfer is
             null;
          end Discard_Stage;
       begin
+         Inputs := new Zlib.Text_Array (1 .. Count);
+         Names := new Zlib.Text_Array (1 .. Count);
          for I in 1 .. Count loop
-            Inputs (I) := Input_Paths.Element (I);
-            Names  (I) := Entry_Names.Element (I);
+            Inputs.all (I) := Input_Paths.Element (I);
+            Names.all (I) := Entry_Names.Element (I);
          end loop;
 
          case Format is
             when Zip_Archive =>
-               Files.Archive_Writing.ZIP_Files (Inputs, Staged, Names, Status);
+               Files.Archive_Writing.ZIP_Files
+                 (Inputs.all, Staged, Names.all, Status);
             when Seven_Zip_Archive =>
-               Zlib.Seven_Zip_Deflate_Files (Inputs, Staged, Names, Status => Status);
+               Zlib.Seven_Zip_Deflate_Files
+                 (Inputs.all, Staged, Names.all, Status => Status);
          end case;
+         Free_Text_Array (Inputs);
+         Free_Text_Array (Names);
 
          Identities.Append (To_Unbounded_String (Files.File_Identities.Token (Staged)));
          Tree_Revisions.Append
            (To_Unbounded_String (Files.File_System.Tree_Revision (Staged)));
          if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+           or else Length (Identities.First_Element) = 0
+           or else Length (Tree_Revisions.First_Element) = 0
            or else not Hostkit.Fs.Move_No_Replace (Staged, Output_Path)
          then
             Discard_Stage;
@@ -210,6 +262,8 @@ package body Transfer is
          return Reload_Current_Directory (Model, Settings, Archive_Name);
       exception
          when others =>
+            Free_Text_Array (Inputs);
+            Free_Text_Array (Names);
             Discard_Stage;
             raise;
       end;
@@ -328,6 +382,26 @@ package body Transfer is
                      null;
                   end Discard_Stage;
                begin
+                  declare
+                     Catalog_Status : Zlib.Status_Code;
+                     Entries : constant Zlib.Archive_Entry_Array :=
+                       Zlib.List_Archive_File_Entries
+                         (Full_Path, "", Catalog_Status);
+                     Capacity : constant Hostkit.Metadata.Volume_Capacity :=
+                       Hostkit.Metadata.Volume_Capacity_Of (Destination);
+                  begin
+                     if Catalog_Status /= Zlib.Ok
+                       or else not Files.Archive_Writing.Extraction_Is_Within_Limits
+                         (Entries,
+                          Free_Bytes        => Capacity.Free_Bytes,
+                          Free_Bytes_Known  => Capacity.Available,
+                          Free_Inodes       => Capacity.Free_Inode_Count,
+                          Free_Inodes_Known => Capacity.Inodes_Known)
+                     then
+                        return Make_Result
+                          (Operation_Failed, "error.extract.failed", Directory);
+                     end if;
+                  end;
                   Ada.Directories.Create_Directory (Payload);
                   Zlib.Extract_Archive_File_To_Directory (Full_Path, Payload, "", Status);
 
@@ -337,6 +411,7 @@ package body Transfer is
                   begin
 
                      if Status /= Zlib.Ok or else Files.Job_Context.Cancelled
+                       or else Identity = "" or else Revision = ""
                        or else not Hostkit.Fs.Move_No_Replace (Payload, Dest_Dir)
                      then
                         Discard_Stage;
@@ -991,29 +1066,47 @@ package body Transfer is
      (Directory : String)
       return Files.Types.String_Vectors.Vector
    is
+      Max_Destination_Entries : constant Natural := 100_000;
       Result : Files.Types.String_Vectors.Vector;
       Search : Ada.Directories.Search_Type;
       Entry_Value : Ada.Directories.Directory_Entry_Type;
+      Started : Boolean := False;
+      Count : Natural := 0;
    begin
       Ada.Directories.Start_Search
         (Search    => Search,
          Directory => Directory,
          Pattern   => "",
          Filter    => [others => True]);
+      Started := True;
       while Ada.Directories.More_Entries (Search) loop
+         if Count = Max_Destination_Entries then
+            Ada.Directories.End_Search (Search);
+            Started := False;
+            return Files.Types.String_Vectors.Empty_Vector;
+         end if;
          Ada.Directories.Get_Next_Entry (Search, Entry_Value);
          declare
             Name : constant String := Ada.Directories.Simple_Name (Entry_Value);
          begin
             if Name /= "." and then Name /= ".." then
                Result.Append (To_Unbounded_String (Files.Paste.Desired_Path (Directory, Name)));
+               Count := Count + 1;
             end if;
          end;
       end loop;
       Ada.Directories.End_Search (Search);
+      Started := False;
       return Result;
    exception
       when others =>
+         if Started then
+            begin
+               Ada.Directories.End_Search (Search);
+            exception
+               when others => null;
+            end;
+         end if;
          return Files.Types.String_Vectors.Empty_Vector;
    end Existing_Destination_Paths;
 
