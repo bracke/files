@@ -11,6 +11,7 @@ with Textrender.Fonts;
 with Files.File_System;
 
 with Files.Fs;
+with Hostkit.Fs;
 
 package body Files.Fonts is
    use Ada.Strings.Unbounded;
@@ -25,6 +26,7 @@ package body Files.Fonts is
 
    Max_Discovered_Fonts : constant Natural := 256;
    Max_Search_Depth : constant Natural := 4;
+   Max_Scanned_Font_Entries : constant Natural := 100_000;
 
    Candidate_Paths : constant Font_Path_Array :=
      [To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf"),
@@ -195,13 +197,15 @@ package body Files.Fonts is
    procedure Scan_Font_Directory
      (Paths : in out Font_Path_Vectors.Vector;
       Root  : String;
-      Depth : Natural)
+      Depth : Natural;
+      Scanned : in out Natural)
    is
       Search  : Ada.Directories.Search_Type;
       Font_Entry : Ada.Directories.Directory_Entry_Type;
       Started : Boolean := False;
    begin
       if Natural (Paths.Length) >= Max_Discovered_Fonts
+        or else Scanned >= Max_Scanned_Font_Entries
         or else Depth > Max_Search_Depth
         or else Root = ""
         or else not Files.Fs.Directory_Exists (Root)
@@ -220,15 +224,19 @@ package body Files.Fonts is
 
       while Ada.Directories.More_Entries (Search)
         and then Natural (Paths.Length) < Max_Discovered_Fonts
+        and then Scanned < Max_Scanned_Font_Entries
       loop
          Ada.Directories.Get_Next_Entry (Search, Font_Entry);
+         Scanned := Scanned + 1;
          declare
             Name : constant String := Ada.Directories.Simple_Name (Font_Entry);
             Full : constant String := Ada.Directories.Full_Name (Font_Entry);
          begin
             if Name /= "." and then Name /= ".." then
                if Ada.Directories.Kind (Font_Entry) = Ada.Directories.Directory then
-                  Scan_Font_Directory (Paths, Full, Depth + 1);
+                  if not Hostkit.Fs.Is_Link (Full) then
+                     Scan_Font_Directory (Paths, Full, Depth + 1, Scanned);
+                  end if;
                elsif Is_Font_File (Full) and then not Is_Known_Unsupported_Renderer_Font (Full) then
                   Append_Unique (Paths, Full);
                end if;
@@ -252,6 +260,7 @@ package body Files.Fonts is
    function Candidate_Fonts return Font_Path_Vectors.Vector is
       Paths      : Font_Path_Vectors.Vector;
       Discovered : Font_Path_Vectors.Vector;
+      Scanned    : Natural := 0;
    begin
       for Path of Candidate_Paths loop
          if Is_Font_File (To_String (Path))
@@ -262,7 +271,8 @@ package body Files.Fonts is
       end loop;
 
       for Root of Font_Search_Roots loop
-         Scan_Font_Directory (Discovered, To_String (Root), 0);
+         Scan_Font_Directory (Discovered, To_String (Root), 0, Scanned);
+         exit when Scanned >= Max_Scanned_Font_Entries;
       end loop;
 
       Sort_Paths (Discovered);

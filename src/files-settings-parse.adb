@@ -3,6 +3,8 @@ separate (Files.Settings)
      (Text : String)
       return Settings_Parse_Result
    is
+      use type Files.Types.Color_Label;
+
       Settings   : Settings_Model := Default_Settings;
       Section    : Settings_Section := No_Section;
       Line_First : Positive := Text'First;
@@ -13,6 +15,7 @@ separate (Files.Settings)
       Theme_Explicit : Boolean := False;
       Legacy_High    : Boolean := False;
       Legacy_Light   : Boolean := False;
+      Entry_Count    : Natural := 0;
 
       --  Per-section key=value handlers. Each mutates the enclosing Settings (and,
       --  for [settings], the legacy-theme flags) and reports a rejected value by
@@ -84,12 +87,16 @@ separate (Files.Settings)
          if Setting_Key = "bookmark" then
             --  New form: bookmark = "<path>" (path may contain '=' or start with
             --  '#'). The on-disk token stays "bookmark" so files keep loading.
-            if Value /= "" then
+            if Persistent_Path_Is_Valid (Value) then
                Settings.Favorite_Paths.Append (To_Unbounded_String (Value));
+            elsif Value /= "" then
+               Err := To_Unbounded_String ("error.settings.invalid");
             end if;
-         elsif Key /= "" then
+         elsif Persistent_Path_Is_Valid (Key) then
             --  Legacy form: the bare path written as the key.
             Settings.Favorite_Paths.Append (To_Unbounded_String (Key));
+         elsif Key /= "" then
+            Err := To_Unbounded_String ("error.settings.invalid");
          end if;
       end Parse_Bookmarks_Line;
 
@@ -114,8 +121,12 @@ separate (Files.Settings)
                      Path_Text  : constant String :=
                        Value (Bar + 1 .. Value'Last);
                   begin
-                     if Color_Label_From_Name (Color_Text, Label) then
+                     if Color_Label_From_Name (Color_Text, Label)
+                       and then Persistent_Path_Is_Valid (Path_Text)
+                     then
                         Set_Label (Settings, Path_Text, Label);
+                     elsif Label /= Files.Types.No_Label then
+                        Err := To_Unbounded_String ("error.settings.invalid");
                      end if;
                   end;
                end if;
@@ -132,10 +143,14 @@ separate (Files.Settings)
          --  overflow load never grows unbounded; the quoted value survives paths
          --  with '=' or '#'.
          if Setting_Key = "recent"
-           and then Value /= ""
+           and then Persistent_Path_Is_Valid (Value)
            and then Natural (Settings.Recent_Paths_Value.Length) < Max_Recent_Items
          then
             Settings.Recent_Paths_Value.Append (To_Unbounded_String (Value));
+         elsif Setting_Key = "recent" and then Value /= ""
+           and then not Persistent_Path_Is_Valid (Value)
+         then
+            Err := To_Unbounded_String ("error.settings.invalid");
          end if;
       end Parse_Recent_Line;
 
@@ -408,6 +423,13 @@ separate (Files.Settings)
          end if;
       end Parse_Settings_Line;
    begin
+      if Text'Length > Max_Settings_Text_Bytes or else Contains_Nul (Text) then
+         return
+           (Success   => False,
+            Settings  => Settings,
+            Error_Key => To_Unbounded_String ("error.settings.invalid"));
+      end if;
+
       --  The file is authoritative for filetype/icon/open-action mappings:
       --  start from scalar defaults with empty maps so a mapping deleted from
       --  the file does not silently reappear from the built-in defaults.
@@ -445,7 +467,12 @@ separate (Files.Settings)
             Line     : constant String := Trim (Raw_Line);
             Equals   : Natural;
          begin
-            if Line = "" or else Line (Line'First) = '#' then
+            if Raw_Line'Length > Max_Settings_Line_Bytes then
+               return
+                 (Success   => False,
+                  Settings  => Settings,
+                  Error_Key => To_Unbounded_String ("error.settings.invalid"));
+            elsif Line = "" or else Line (Line'First) = '#' then
                null;
             elsif Line (Line'First) = '[' and then Line (Line'Last) = ']' then
                declare
@@ -476,6 +503,14 @@ separate (Files.Settings)
                   end if;
                end;
             else
+               if Entry_Count >= Max_Settings_Entries then
+                  return
+                    (Success   => False,
+                     Settings  => Settings,
+                     Error_Key => To_Unbounded_String ("error.settings.invalid"));
+               end if;
+               Entry_Count := Entry_Count + 1;
+
                Equals := Ada.Strings.Fixed.Index (Line, "=");
                if Equals = 0 then
                   return

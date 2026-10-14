@@ -4,9 +4,25 @@ separate (Files.Settings)
       Path   : String)
       return Open_Action
    is
+      use type Hostkit.Host.Kind;
+
+      function Has_Windows_Root_Syntax (Value : String) return Boolean is
+        ((Value'Length >= 3
+          and then Value (Value'First + 1) = ':'
+          and then Value (Value'First + 2) in '/' | '\')
+         or else
+           (Value'Length >= 2
+            and then Value (Value'First) = '\'
+            and then Value (Value'First + 1) = '\'));
+
+      Backslash_Is_Separator : constant Boolean :=
+        Hostkit.Host.Current = Hostkit.Host.Windows
+        or else Has_Windows_Root_Syntax (Path);
+
       function Is_Path_Separator (Value : Character) return Boolean is
       begin
-         return Value = '/' or else Value = '\';
+         return Value = '/'
+           or else (Backslash_Is_Separator and then Value = '\');
       end Is_Path_Separator;
 
       function UNC_Share_Root_Last (Value : String) return Natural is

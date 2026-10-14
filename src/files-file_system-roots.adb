@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;
 with Ada.Directories;
 with Ada.Text_IO;
 with Ada.Strings.Fixed;
+with Files.Bounded_Text_IO;
 with Files.Fs;
 with Files_Config;
 with Hostkit.Metadata;
@@ -12,6 +13,7 @@ separate (Files.File_System)
 package body Roots is
 
    use type Ada.Directories.File_Kind;
+   Max_Mount_Record_Length : constant Positive := 64 * 1024;
    type Volume_Size_Info is record
       Capacity_Bytes   : Long_Long_Integer := 0;
       Free_Bytes       : Long_Long_Integer := 0;
@@ -83,6 +85,9 @@ package body Roots is
 
    function Available_Root_Entries return Root_Entry_Vectors.Vector is
       Roots : Root_Entry_Vectors.Vector;
+      Max_Discovered_Roots : constant Natural := 1_024;
+      Max_Root_Entries_Scanned : constant Natural := 4_096;
+      Root_Entries_Scanned : Natural := 0;
       Home                    : constant String := Safe_Environment_Value ("HOME");
       User_Profile            : constant String := Safe_Environment_Value ("USERPROFILE");
       Xdg_Runtime_Dir         : constant String := Safe_Environment_Value ("XDG_RUNTIME_DIR");
@@ -96,33 +101,6 @@ package body Roots is
       One_Drive_Consumer      : constant String := Safe_Environment_Value ("OneDriveConsumer");
       Home_Drive_Profile      : constant String :=
         (if Home_Drive /= "" and then Home_Path /= "" then Home_Drive & Home_Path else "");
-
-      function Field_From
-        (Line  : String;
-         Index : Positive)
-         return String
-      is
-         Current : Positive := 1;
-         Start   : Natural := 0;
-      begin
-         for Position in Line'Range loop
-            if Line (Position) /= ' ' and then Start = 0 then
-               Start := Position;
-            elsif Line (Position) = ' ' and then Start /= 0 then
-               if Current = Index then
-                  return Line (Start .. Position - 1);
-               end if;
-               Current := Current + 1;
-               Start := 0;
-            end if;
-         end loop;
-
-         if Start /= 0 and then Current = Index then
-            return Line (Start .. Line'Last);
-         end if;
-
-         return "";
-      end Field_From;
 
       function Starts_With
         (Text   : String;
@@ -232,9 +210,9 @@ package body Roots is
       end Is_Displayable_Root_Mount;
 
       function Filesystem_Type_For (Path : String) return String is
-         File   : Ada.Text_IO.File_Type;
-         Buffer : String (1 .. 4096);
-         Last   : Natural;
+         File     : Ada.Text_IO.File_Type;
+         Line     : Unbounded_String;
+         Complete : Boolean;
       begin
          if not Ada.Directories.Exists ("/proc/mounts") then
             return "";
@@ -242,20 +220,23 @@ package body Roots is
 
          Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts");
          while not Ada.Text_IO.End_Of_File (File) loop
-            Ada.Text_IO.Get_Line (File, Buffer, Last);
-            declare
-               Line        : constant String := Buffer (1 .. Last);
-               --  Decode the mount point's octal escapes (/proc/mounts stores a
-               --  space as \040 etc.); comparing the raw field against a real
-               --  Full_Name path never matched for mounts under paths with
-               --  spaces, so those shares lost their network/type classification.
-               Mount_Point : constant String := Mount_Field (Line, 2);
-            begin
-               if Mount_Point = Path then
-                  Ada.Text_IO.Close (File);
-                  return Field_From (Line, 3);
-               end if;
-            end;
+            Files.Bounded_Text_IO.Read_Line
+              (File, Max_Mount_Record_Length, Line, Complete);
+            if Complete then
+               declare
+                  Text        : constant String := To_String (Line);
+                  --  Decode the mount point's octal escapes (/proc/mounts stores a
+                  --  space as \040 etc.); comparing the raw field against a real
+                  --  Full_Name path never matched for mounts under paths with
+                  --  spaces, so those shares lost their network/type classification.
+                  Mount_Point : constant String := Mount_Field (Text, 2);
+               begin
+                  if Mount_Point = Path then
+                     Ada.Text_IO.Close (File);
+                     return Mount_Field (Text, 3);
+                  end if;
+               end;
+            end if;
          end loop;
 
          Ada.Text_IO.Close (File);
@@ -286,6 +267,9 @@ package body Roots is
          Label : Unbounded_String;
          Effective_Kind : Root_Kind := Kind;
       begin
+         if Natural (Roots.Length) >= Max_Discovered_Roots then
+            return;
+         end if;
          if Files.Fs.Directory_Exists (Path)
          then
             Full := To_Unbounded_String (Ada.Directories.Full_Name (Path));
@@ -336,7 +320,9 @@ package body Roots is
          Child  : Ada.Directories.Directory_Entry_Type;
          Started : Boolean := False;
       begin
-         if not Ada.Directories.Exists (Parent)
+         if Root_Entries_Scanned >= Max_Root_Entries_Scanned
+           or else Natural (Roots.Length) >= Max_Discovered_Roots
+           or else not Ada.Directories.Exists (Parent)
            or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
          then
             return;
@@ -352,8 +338,12 @@ package body Roots is
                Ada.Directories.Special_File  => False]);
          Started := True;
 
-         while Ada.Directories.More_Entries (Search) loop
+         while Root_Entries_Scanned < Max_Root_Entries_Scanned
+           and then Natural (Roots.Length) < Max_Discovered_Roots
+           and then Ada.Directories.More_Entries (Search)
+         loop
             Ada.Directories.Get_Next_Entry (Search, Child);
+            Root_Entries_Scanned := Root_Entries_Scanned + 1;
             declare
                Name : constant String := Ada.Directories.Simple_Name (Child);
                Full : constant String := Ada.Directories.Full_Name (Child);
@@ -379,60 +369,9 @@ package body Roots is
       end Append_Children;
 
       procedure Append_Proc_Mounts is
-         File   : Ada.Text_IO.File_Type;
-         Buffer : String (1 .. 4096);
-         Last   : Natural;
-
-         function Octal_Value (Value : Character) return Natural is
-         begin
-            if Value in '0' .. '7' then
-               return Character'Pos (Value) - Character'Pos ('0');
-            else
-               return Natural'Last;
-            end if;
-         end Octal_Value;
-
-         function Decode_Mount_Escapes (Value : String) return String is
-            Result : Unbounded_String;
-            Index  : Natural := Value'First;
-         begin
-            while Index <= Value'Last loop
-               if Value (Index) = '\'
-                 and then Index + 3 <= Value'Last
-                 and then Octal_Value (Value (Index + 1)) /= Natural'Last
-                 and then Octal_Value (Value (Index + 2)) /= Natural'Last
-                 and then Octal_Value (Value (Index + 3)) /= Natural'Last
-               then
-                  declare
-                     Code : constant Natural :=
-                       Octal_Value (Value (Index + 1)) * 64
-                       + Octal_Value (Value (Index + 2)) * 8
-                       + Octal_Value (Value (Index + 3));
-                  begin
-                     if Code <= Character'Pos (Character'Last) then
-                        Append (Result, Character'Val (Code));
-                        Index := Index + 4;
-                     else
-                        Append (Result, Value (Index));
-                        Index := Index + 1;
-                     end if;
-                  end;
-               else
-                  Append (Result, Value (Index));
-                  Index := Index + 1;
-               end if;
-            end loop;
-
-            return To_String (Result);
-         end Decode_Mount_Escapes;
-
-         function Mount_Field
-           (Line  : String;
-            Index : Positive)
-            return String is
-         begin
-            return Decode_Mount_Escapes (Field_From (Line, Index));
-         end Mount_Field;
+         File     : Ada.Text_IO.File_Type;
+         Line     : Unbounded_String;
+         Complete : Boolean;
       begin
          if not Ada.Directories.Exists ("/proc/mounts") then
             return;
@@ -440,16 +379,20 @@ package body Roots is
 
          Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts");
          while not Ada.Text_IO.End_Of_File (File) loop
-            Ada.Text_IO.Get_Line (File, Buffer, Last);
-            declare
-               Line            : constant String := Buffer (1 .. Last);
-               Mount_Point     : constant String := Mount_Field (Line, 2);
-               Filesystem_Type : constant String := Field_From (Line, 3);
-            begin
-               if Is_Displayable_Root_Mount (Mount_Point, Filesystem_Type) then
-                  Append_If_Directory (Mount_Point, Root_Kind_For_Mount (Mount_Point, Filesystem_Type));
-               end if;
-            end;
+            Files.Bounded_Text_IO.Read_Line
+              (File, Max_Mount_Record_Length, Line, Complete);
+            if Complete then
+               declare
+                  Text            : constant String := To_String (Line);
+                  Mount_Point     : constant String := Mount_Field (Text, 2);
+                  Filesystem_Type : constant String := Mount_Field (Text, 3);
+               begin
+                  if Is_Displayable_Root_Mount (Mount_Point, Filesystem_Type) then
+                     Append_If_Directory
+                       (Mount_Point, Root_Kind_For_Mount (Mount_Point, Filesystem_Type));
+                  end if;
+               end;
+            end if;
          end loop;
          Ada.Text_IO.Close (File);
       exception
@@ -773,13 +716,54 @@ package body Roots is
    is
       Current : Positive := 1;
       Start   : Natural := 0;
+
+      function Octal_Value (Value : Character) return Natural is
+      begin
+         return
+           (if Value in '0' .. '7'
+            then Character'Pos (Value) - Character'Pos ('0')
+            else Natural'Last);
+      end Octal_Value;
+
+      function Decode (Value : String) return String is
+         Result : Unbounded_String;
+         Position : Natural := Value'First;
+      begin
+         while Position <= Value'Last loop
+            if Value (Position) = '\'
+              and then Position + 3 <= Value'Last
+              and then Octal_Value (Value (Position + 1)) /= Natural'Last
+              and then Octal_Value (Value (Position + 2)) /= Natural'Last
+              and then Octal_Value (Value (Position + 3)) /= Natural'Last
+            then
+               declare
+                  Code : constant Natural :=
+                    Octal_Value (Value (Position + 1)) * 64
+                    + Octal_Value (Value (Position + 2)) * 8
+                    + Octal_Value (Value (Position + 3));
+               begin
+                  if Code <= Character'Pos (Character'Last) then
+                     Append (Result, Character'Val (Code));
+                     Position := Position + 4;
+                  else
+                     Append (Result, Value (Position));
+                     Position := Position + 1;
+                  end if;
+               end;
+            else
+               Append (Result, Value (Position));
+               Position := Position + 1;
+            end if;
+         end loop;
+         return To_String (Result);
+      end Decode;
    begin
       for Position in Line'Range loop
          if Line (Position) /= ' ' and then Start = 0 then
             Start := Position;
          elsif Line (Position) = ' ' and then Start /= 0 then
             if Current = Index then
-               return Line (Start .. Position - 1);
+               return Decode (Line (Start .. Position - 1));
             end if;
             Current := Current + 1;
             Start := 0;
@@ -787,7 +771,7 @@ package body Roots is
       end loop;
 
       if Start /= 0 and then Current = Index then
-         return Line (Start .. Line'Last);
+         return Decode (Line (Start .. Line'Last));
       end if;
 
       return "";
@@ -879,10 +863,10 @@ package body Roots is
    end Removable_Status_For;
 
    function Mount_Metadata_For_Root (Path : String) return Mount_Metadata is
-      File   : Ada.Text_IO.File_Type;
-      Buffer : String (1 .. 4096);
-      Last   : Natural;
-      Result : Mount_Metadata;
+      File     : Ada.Text_IO.File_Type;
+      Line     : Unbounded_String;
+      Complete : Boolean;
+      Result   : Mount_Metadata;
    begin
       if not Ada.Directories.Exists ("/proc/mounts") then
          return Result;
@@ -890,27 +874,30 @@ package body Roots is
 
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts");
       while not Ada.Text_IO.End_Of_File (File) loop
-         Ada.Text_IO.Get_Line (File, Buffer, Last);
-         declare
-            Line        : constant String := Buffer (1 .. Last);
-            Mount_Point : constant String := Mount_Field (Line, 2);
-         begin
-            if Mount_Point = Path then
-               declare
-                  Source : constant String := Mount_Field (Line, 1);
-                  Known  : Boolean := False;
-               begin
-                  Ada.Text_IO.Close (File);
-                  Result.Source_Device := To_Unbounded_String (Source);
-                  Result.Filesystem_Type := To_Unbounded_String (Mount_Field (Line, 3));
-                  Result.Mount_Options := To_Unbounded_String (Mount_Field (Line, 4));
-                  Result.Removable := Removable_Status_For (Source, Known);
-                  Result.Removable_Known := Known;
-                  Result.Found := True;
-                  return Result;
-               end;
-            end if;
-         end;
+         Files.Bounded_Text_IO.Read_Line
+           (File, Max_Mount_Record_Length, Line, Complete);
+         if Complete then
+            declare
+               Text        : constant String := To_String (Line);
+               Mount_Point : constant String := Mount_Field (Text, 2);
+            begin
+               if Mount_Point = Path then
+                  declare
+                     Source : constant String := Mount_Field (Text, 1);
+                     Known  : Boolean := False;
+                  begin
+                     Ada.Text_IO.Close (File);
+                     Result.Source_Device := To_Unbounded_String (Source);
+                     Result.Filesystem_Type := To_Unbounded_String (Mount_Field (Text, 3));
+                     Result.Mount_Options := To_Unbounded_String (Mount_Field (Text, 4));
+                     Result.Removable := Removable_Status_For (Source, Known);
+                     Result.Removable_Known := Known;
+                     Result.Found := True;
+                     return Result;
+                  end;
+               end if;
+            end;
+         end if;
       end loop;
 
       Ada.Text_IO.Close (File);

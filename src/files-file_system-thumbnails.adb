@@ -1,4 +1,5 @@
 with Files.File_System.Support;
+with Files.Private_Directories;
 with Ada.Strings.Unbounded;
 with Interfaces.C;
 with Interfaces.C.Strings;
@@ -11,6 +12,10 @@ with Files.File_Types;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 with Ada.Characters.Handling;
+with Ada.Containers.Ordered_Sets;
+with Ada.Unchecked_Deallocation;
+with CryptoLib.Hashes;
+with GNAT.CRC32;
 with Zlib;
 
 separate (Files.File_System)
@@ -28,13 +33,42 @@ package body Thumbnails is
    use type System.Address;
    use type Ada.Streams.Stream_Element;
    use type Ada.Streams.Stream_Element_Offset;
-   function Gdk_Pixbuf_New_From_File_At_Size
-     (Filename : Interfaces.C.Strings.chars_ptr;
-      Width    : C_Int;
-      Height   : C_Int;
-      Error    : System.Address)
-      return System.Address
-   with Import, Convention => C, External_Name => "gdk_pixbuf_new_from_file_at_size";
+
+   Max_Thumbnail_Dimension : constant Positive := 2_048;
+   Max_Decode_Source_Bytes : constant Natural := 128 * 1024 * 1024;
+
+   function Loader_New return System.Address
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_new";
+
+   function Loader_Write
+     (Loader : System.Address;
+      Buffer : System.Address;
+      Count  : Interfaces.C.size_t;
+      Error  : System.Address)
+      return Interfaces.C.int
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_write";
+
+   function Loader_Close
+     (Loader : System.Address;
+      Error  : System.Address)
+      return Interfaces.C.int
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_close";
+
+   function Loader_Get_Pixbuf (Loader : System.Address) return System.Address
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_get_pixbuf";
+
+   procedure Loader_Set_Size
+     (Loader : System.Address; Width, Height : C_Int)
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_set_size";
+
+   function Signal_Connect_Data
+     (Instance        : System.Address;
+      Detailed_Signal : Interfaces.C.Strings.chars_ptr;
+      Handler         : System.Address;
+      Data            : System.Address;
+      Destroy_Data    : System.Address;
+      Flags           : Interfaces.C.int) return Interfaces.C.unsigned_long
+     with Import, Convention => C, External_Name => "g_signal_connect_data";
 
    function Gdk_Pixbuf_Get_Width
      (Pixbuf : System.Address)
@@ -65,6 +99,54 @@ package body Thumbnails is
      (Object : System.Address)
    with Import, Convention => C, External_Name => "g_object_unref";
 
+   package C_Int_Pointers is new System.Address_To_Access_Conversions (C_Int);
+   use type C_Int_Pointers.Object_Pointer;
+
+   procedure Loader_Size_Prepared
+     (Loader : System.Address;
+      Width, Height : C_Int;
+      Data : System.Address)
+     with Convention => C;
+
+   procedure Loader_Size_Prepared
+     (Loader : System.Address;
+      Width, Height : C_Int;
+      Data : System.Address)
+   is
+      Limit_Pointer : constant C_Int_Pointers.Object_Pointer :=
+        C_Int_Pointers.To_Pointer (Data);
+      Target_Width, Target_Height : C_Int;
+   begin
+      if Limit_Pointer = null
+        or else Limit_Pointer.all <= 0
+        or else Width <= 0
+        or else Height <= 0
+      then
+         return;
+      end if;
+
+      if Width >= Height then
+         Target_Width := Limit_Pointer.all;
+         Target_Height := C_Int'Max
+           (1,
+            C_Int
+              (Long_Long_Integer (Height) * Long_Long_Integer (Limit_Pointer.all)
+               / Long_Long_Integer (Width)));
+      else
+         Target_Height := Limit_Pointer.all;
+         Target_Width := C_Int'Max
+           (1,
+            C_Int
+              (Long_Long_Integer (Width) * Long_Long_Integer (Limit_Pointer.all)
+               / Long_Long_Integer (Height)));
+      end if;
+      Loader_Set_Size (Loader, Target_Width, Target_Height);
+   exception
+      --  Never let an Ada exception cross the C callback boundary.
+      when others =>
+         null;
+   end Loader_Size_Prepared;
+
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr);
 
@@ -79,6 +161,10 @@ package body Thumbnails is
    function Thumbnail_Path_Checksum
      (Source_Path : String)
       return Natural;
+
+   function Thumbnail_Cache_Key
+     (Source_Path : String)
+      return String;
 
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr) is
@@ -147,6 +233,37 @@ package body Thumbnails is
       return Natural (Result);
    end Thumbnail_Path_Checksum;
 
+   function Thumbnail_Cache_Key
+     (Source_Path : String)
+      return String
+   is
+      use Ada.Streams;
+      Text : constant String :=
+        Source_Path & ASCII.NUL
+        & Files.File_Identities.Token (Source_Path) & ASCII.NUL
+        & Files.File_Identities.Revision (Source_Path);
+      Data : Stream_Element_Array (1 .. Stream_Element_Offset (Text'Length));
+      Context : CryptoLib.Hashes.SHA256_Context;
+      Digest : CryptoLib.Hashes.SHA256_Digest;
+      Hex : constant String := "0123456789abcdef";
+      Result : String (1 .. 64);
+   begin
+      for Index in Text'Range loop
+         Data (Stream_Element_Offset (Index - Text'First + 1)) :=
+           Stream_Element (Character'Pos (Text (Index)));
+      end loop;
+      CryptoLib.Hashes.Initialize_SHA256 (Context);
+      CryptoLib.Hashes.Update (Context, Data);
+      Digest := CryptoLib.Hashes.Finalize (Context);
+      for Index in Digest'Range loop
+         Result ((Index - Digest'First) * 2 + 1) :=
+           Hex (Natural (Digest (Index)) / 16 + 1);
+         Result ((Index - Digest'First) * 2 + 2) :=
+           Hex (Natural (Digest (Index)) mod 16 + 1);
+      end loop;
+      return Result;
+   end Thumbnail_Cache_Key;
+
    --  The cache had no bound and nothing ever removed anything from it, so it
    --  accumulated one file per image ever browsed, for as long as the account
    --  existed -- including thumbnails whose source was renamed or deleted long
@@ -160,8 +277,35 @@ package body Thumbnails is
    --  Oldest first, by modification time, which is also what clears the
    --  orphans: a thumbnail nothing looks at is never rewritten, so it ages out.
    Cache_Byte_Budget : constant Long_Long_Integer := 64 * 1024 * 1024;
+   Max_Cache_Prune_Entries : constant Natural := 100_000;
 
-   Cache_Pruned_This_Run : Boolean := False;
+   package Cache_Path_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Unbounded_String);
+
+   Max_Remembered_Cache_Paths : constant Natural := 256;
+
+   protected Cache_Prune_Registry is
+      procedure Claim (Path : String; Prune : out Boolean);
+   private
+      Seen : Cache_Path_Sets.Set;
+   end Cache_Prune_Registry;
+
+   protected body Cache_Prune_Registry is
+      procedure Claim (Path : String; Prune : out Boolean) is
+         Key : constant Unbounded_String := To_Unbounded_String (Path);
+      begin
+         if Seen.Contains (Key) then
+            Prune := False;
+         else
+            Prune := True;
+            --  Keep the registry itself bounded. Beyond the cap, pruning again
+            --  is safer than retaining one attacker-controlled path forever.
+            if Natural (Seen.Length) < Max_Remembered_Cache_Paths then
+               Seen.Insert (Key);
+            end if;
+         end if;
+      end Claim;
+   end Cache_Prune_Registry;
 
    procedure Prune_Thumbnail_Cache
      (Cache_Directory : String;
@@ -169,6 +313,7 @@ package body Thumbnails is
    is
       type Cached_File is record
          Path     : Unbounded_String;
+         Identity : Unbounded_String;
          Size     : Long_Long_Integer := 0;
          Modified : Ada.Calendar.Time;
       end record;
@@ -179,12 +324,31 @@ package body Thumbnails is
       function Older (Left : Cached_File; Right : Cached_File) return Boolean is
         (Left.Modified < Right.Modified);
 
+      function Is_Thumbnail_Name (Name : String) return Boolean is
+         Prefix : constant String := "thumb_";
+         Suffix : constant String := ".ppm";
+         Digest_First : constant Integer := Name'Last - Suffix'Length - 63;
+      begin
+         return Name'Length >= Prefix'Length + 1 + 1 + 64 + Suffix'Length
+           and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+           and then Name (Name'Last - Suffix'Length + 1 .. Name'Last) = Suffix
+           and then Name (Digest_First - 1) = '_'
+           and then (for all Index in Digest_First .. Digest_First + 63 =>
+             Name (Index) in '0' .. '9' | 'a' .. 'f');
+      exception
+         when others =>
+            return False;
+      end Is_Thumbnail_Name;
+
       package Sorting is new Cached_File_Vectors.Generic_Sorting ("<" => Older);
 
       Files_Found : Cached_File_Vectors.Vector;
       Total       : Long_Long_Integer := 0;
       Search      : Ada.Directories.Search_Type;
       Item        : Ada.Directories.Directory_Entry_Type;
+      Started     : Boolean := False;
+      Count       : Natural := 0;
+      Overflowed  : Boolean := False;
    begin
       --  A cache path may have been replaced with a directory symlink since it
       --  was configured.  Pruning is destructive, so never follow that link
@@ -198,9 +362,19 @@ package body Thumbnails is
       Ada.Directories.Start_Search
         (Search, Cache_Directory, "*",
          Filter => [Ada.Directories.Ordinary_File => True, others => False]);
+      Started := True;
 
       while Ada.Directories.More_Entries (Search) loop
          Ada.Directories.Get_Next_Entry (Search, Item);
+
+         if not Is_Thumbnail_Name (Ada.Directories.Simple_Name (Item)) then
+            goto Continue;
+         elsif Count = Max_Cache_Prune_Entries then
+            Ada.Directories.End_Search (Search);
+            Started := False;
+            return;
+         end if;
+         Count := Count + 1;
 
          begin
             declare
@@ -208,12 +382,18 @@ package body Thumbnails is
                Size : constant Long_Long_Integer :=
                  Long_Long_Integer (Ada.Directories.Size (Item));
             begin
-               Files_Found.Append
-                 (Cached_File'
-                    (Path     => To_Unbounded_String (Full),
-                     Size     => Size,
-                     Modified => Ada.Directories.Modification_Time (Item)));
-               Total := Total + Size;
+               if Size < 0 or else Total > Long_Long_Integer'Last - Size then
+                  Overflowed := True;
+               else
+                  Files_Found.Append
+                    (Cached_File'
+                       (Path     => To_Unbounded_String (Full),
+                        Identity => To_Unbounded_String
+                          (Files.File_Identities.Token (Full)),
+                        Size     => Size,
+                        Modified => Ada.Directories.Modification_Time (Item)));
+                  Total := Total + Size;
+               end if;
             end;
          exception
             --  A file that vanished mid-scan, or whose size the host will not
@@ -222,11 +402,13 @@ package body Thumbnails is
             when others =>
                null;
          end;
+         <<Continue>>
       end loop;
 
       Ada.Directories.End_Search (Search);
+      Started := False;
 
-      if Total <= Budget_Bytes then
+      if Overflowed or else Total <= Budget_Bytes then
          return;
       end if;
 
@@ -236,8 +418,12 @@ package body Thumbnails is
          exit when Total <= Budget_Bytes;
 
          begin
-            Ada.Directories.Delete_File (To_String (Candidate.Path));
-            Total := Total - Candidate.Size;
+            if Length (Candidate.Identity) > 0
+              and then Delete_Staging_Entry
+                (To_String (Candidate.Path), To_String (Candidate.Identity)).Success
+            then
+               Total := Total - Candidate.Size;
+            end if;
          exception
             when others =>
                null;
@@ -245,18 +431,25 @@ package body Thumbnails is
       end loop;
    exception
       when others =>
+         if Started then
+            begin
+               Ada.Directories.End_Search (Search);
+            exception
+               when others => null;
+            end;
+         end if;
          null;
    end Prune_Thumbnail_Cache;
 
    --  Once per run, at the default budget. See the note above for why not per
    --  write.
    procedure Prune_Cache_Once (Cache_Directory : String) is
+      Prune : Boolean;
    begin
-      if Cache_Pruned_This_Run then
+      Cache_Prune_Registry.Claim (Cache_Directory, Prune);
+      if not Prune then
          return;
       end if;
-
-      Cache_Pruned_This_Run := True;
       Prune_Thumbnail_Cache (Cache_Directory, Cache_Byte_Budget);
    end Prune_Cache_Once;
 
@@ -264,7 +457,10 @@ package body Thumbnails is
      (Fallback_Directory : String)
       return String
    is
-      Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
+      Raw_Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
+      Xdg_Cache : constant String :=
+        (if GNAT.OS_Lib.Is_Absolute_Path (Raw_Xdg_Cache) then Raw_Xdg_Cache
+         else "");
 
       function In_Cache_Root (Root : String) return String is
         (Join_Path (Join_Path (Root, "files"), "thumbnails"));
@@ -284,7 +480,12 @@ package body Thumbnails is
             return Xdg_Cache;
          end if;
 
-         return Hostkit.Fs.Cache_Directory;
+         declare
+            Root : constant String := Hostkit.Fs.Cache_Directory;
+         begin
+            return
+              (if GNAT.OS_Lib.Is_Absolute_Path (Root) then Root else "");
+         end;
       end Host_Cache_Root;
 
       Cache_Root : constant String := Host_Cache_Root;
@@ -315,7 +516,7 @@ package body Thumbnails is
            & "_"
            & Image_No_Space (Size)
            & "_"
-           & Image_No_Space (Thumbnail_Path_Checksum (Source_Path))
+           & Thumbnail_Cache_Key (Source_Path)
            & ".ppm");
    end Thumbnail_Path_For;
 
@@ -347,6 +548,70 @@ package body Thumbnails is
         or else Extension = "ppm";
    end Is_Image_Item;
 
+   function Read_Bounded_Regular_File
+     (Path : String; Max_Bytes : Natural;
+      Success, Complete : out Boolean) return String
+   is
+      use type GNAT.OS_Lib.File_Descriptor;
+      Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Result     : Ada.Strings.Unbounded.Unbounded_String;
+      Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
+      Bytes_Read : Integer;
+      Total      : Natural := 0;
+   begin
+      Success := False;
+      Complete := False;
+
+      Descriptor := Files.Fs.Open_Regular_Read (Path);
+      if Descriptor = GNAT.OS_Lib.Invalid_FD then
+         return "";
+      end if;
+
+      while Total < Max_Bytes loop
+         Bytes_Read := GNAT.OS_Lib.Read
+           (Descriptor,
+            Buffer'Address,
+            Integer'Min (Integer (Buffer'Length), Max_Bytes - Total));
+         if Bytes_Read < 0 then
+            raise Ada.Directories.Use_Error;
+         end if;
+         if Bytes_Read = 0 then
+            Complete := True;
+            exit;
+         end if;
+         for Index in Buffer'First
+           .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1
+         loop
+            Ada.Strings.Unbounded.Append
+              (Result, Character'Val (Natural (Buffer (Index))));
+            Total := Total + 1;
+         end loop;
+      end loop;
+
+      if not Complete then
+         --  Reaching the cap is not evidence that the complete file was read.
+         --  Probe one byte so strict parsers cannot accept a truncated prefix
+         --  after a file grows or is replaced between the size check and open.
+         Bytes_Read := GNAT.OS_Lib.Read (Descriptor, Buffer'Address, 1);
+         if Bytes_Read < 0 then
+            raise Ada.Directories.Use_Error;
+         end if;
+         Complete := Bytes_Read = 0;
+      end if;
+
+      GNAT.OS_Lib.Close (Descriptor);
+      Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Success := True;
+      return Ada.Strings.Unbounded.To_String (Result);
+   exception
+      when others =>
+         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Descriptor);
+         end if;
+         Complete := False;
+         return Ada.Strings.Unbounded.To_String (Result);
+   end Read_Bounded_Regular_File;
+
    function Read_Preview_Text
      (Path      : String;
       Max_Bytes : Natural)
@@ -360,36 +625,20 @@ package body Thumbnails is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
    is
-      File   : Stream_IO.File_Type;
-      Result : Ada.Strings.Unbounded.Unbounded_String;
-      Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
-      Last   : Ada.Streams.Stream_Element_Offset;
-      Total  : Natural := 0;
+      Complete : Boolean;
+      Result : constant String := Read_Bounded_Regular_File
+        (Path, Max_Bytes, Success, Complete);
+
+      procedure Ignore_Completion (Value : Boolean) is
+         pragma Unreferenced (Value);
+      begin
+         null;
+      end Ignore_Completion;
    begin
-      Success := False;
-      if Max_Bytes = 0 then
-         Success := True;
-         return "";
-      end if;
-
-      Stream_IO.Open (File, Stream_IO.In_File, Path);
-      while not Stream_IO.End_Of_File (File) and then Total < Max_Bytes loop
-         Stream_IO.Read (File, Buffer, Last);
-         for Index in Buffer'First .. Last loop
-            exit when Total >= Max_Bytes;
-            Ada.Strings.Unbounded.Append
-              (Result, Character'Val (Natural (Buffer (Index))));
-            Total := Total + 1;
-         end loop;
-      end loop;
-
-      Stream_IO.Close (File);
-      Success := True;
-      return Ada.Strings.Unbounded.To_String (Result);
-   exception
-      when others =>
-         Safe_Close (File);
-         return Ada.Strings.Unbounded.To_String (Result);
+      --  A preview deliberately accepts a leading prefix; strict decoders call
+      --  Read_Bounded_Regular_File directly and require Complete.
+      Ignore_Completion (Complete);
+      return Result;
    end Read_Preview_Text;
 
    function Image_Bytes_Extent
@@ -431,7 +680,12 @@ package body Thumbnails is
       begin
          --  A declared dimension is not a promise. Refuse anything that could not
          --  be an image before a caller allocates four bytes per pixel for it.
-         if W = 0 or else H = 0 or else W > 16_384 or else H > 16_384 then
+         if W = 0
+           or else H = 0
+           or else W > 16_384
+           or else H > 16_384
+           or else W > 4_194_304 / H
+         then
             return False;
          end if;
 
@@ -450,30 +704,6 @@ package body Thumbnails is
      (Data : Ada.Streams.Stream_Element_Array)
       return Decoded_Image
    is
-      --  gdk-pixbuf's incremental loader, which takes bytes rather than a path.
-      --  files already links gdk-pixbuf on every host for thumbnails, so this
-      --  costs no new dependency and handles what a minimal reader would not:
-      --  interlaced PNG, 16-bit channels, palettes with transparency.
-      function Loader_New return System.Address
-        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_new";
-
-      function Loader_Write
-        (Loader : System.Address;
-         Buffer : System.Address;
-         Count  : Interfaces.C.size_t;
-         Error  : System.Address)
-         return Interfaces.C.int
-        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_write";
-
-      function Loader_Close
-        (Loader : System.Address;
-         Error  : System.Address)
-         return Interfaces.C.int
-        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_close";
-
-      function Loader_Get_Pixbuf (Loader : System.Address) return System.Address
-        with Import, Convention => C, External_Name => "gdk_pixbuf_loader_get_pixbuf";
-
       type Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
       pragma Convention (C, Pixel_Array);
       package Pixel_Pointers is new System.Address_To_Access_Conversions (Pixel_Array);
@@ -481,9 +711,20 @@ package body Thumbnails is
 
       Result : Decoded_Image;
       Loader : System.Address := System.Null_Address;
-      Local  : Ada.Streams.Stream_Element_Array := Data;
+      Declared_Width, Declared_Height : Natural := 0;
+
+      procedure Release_Loader is
+      begin
+         if Loader /= System.Null_Address then
+            G_Object_Unref (Loader);
+            Loader := System.Null_Address;
+         end if;
+      end Release_Loader;
    begin
-      if Data'Length = 0 then
+      --  gdk-pixbuf allocates while consuming the stream. Validate the PNG's
+      --  declared extent first so a compressed image cannot force an
+      --  unbounded allocation before the post-decode checks run.
+      if not Image_Bytes_Extent (Data, Declared_Width, Declared_Height) then
          return Result;
       end if;
 
@@ -494,27 +735,26 @@ package body Thumbnails is
       end if;
 
       if Loader_Write
-           (Loader, Local (Local'First)'Address,
-            Interfaces.C.size_t (Local'Length), System.Null_Address) = 0
+           (Loader, Data (Data'First)'Address,
+            Interfaces.C.size_t (Data'Length), System.Null_Address) = 0
       then
          --  Close before giving up: the loader owns a partial image otherwise.
          declare
             Ignored : constant Interfaces.C.int := Loader_Close (Loader, System.Null_Address);
             pragma Unreferenced (Ignored);
          begin
-            G_Object_Unref (Loader);
+            Release_Loader;
             return Result;
          end;
       end if;
 
       declare
          Closed : constant Interfaces.C.int := Loader_Close (Loader, System.Null_Address);
-         pragma Unreferenced (Closed);
 
          Pixbuf : constant System.Address := Loader_Get_Pixbuf (Loader);
       begin
-         if Pixbuf = System.Null_Address then
-            G_Object_Unref (Loader);
+         if Closed = 0 or else Pixbuf = System.Null_Address then
+            Release_Loader;
             return Result;
          end if;
 
@@ -527,14 +767,15 @@ package body Thumbnails is
             Raw       : constant Pixel_Pointers.Object_Pointer :=
               Pixel_Pointers.To_Pointer (Address);
          begin
-            if Width = 0
-              or else Height = 0
-              or else Channels < 3
+            if Width /= Declared_Width
+              or else Height /= Declared_Height
+              or else Channels not in 3 .. 4
               or else Rowstride < Width * Channels
+              or else Rowstride > Pixel_Array'Length / Height
               or else Address = System.Null_Address
               or else Raw = null
             then
-               G_Object_Unref (Loader);
+               Release_Loader;
                return Result;
             end if;
 
@@ -563,15 +804,13 @@ package body Thumbnails is
             Result.Available := True;
          end;
 
-         G_Object_Unref (Loader);
+         Release_Loader;
       end;
 
       return Result;
    exception
       when others =>
-         if Loader /= System.Null_Address then
-            G_Object_Unref (Loader);
-         end if;
+         Release_Loader;
 
          return (Available => False, Width => 0, Height => 0,
                  Pixels => Files.Types.Byte_Vectors.Empty_Vector);
@@ -587,71 +826,142 @@ package body Thumbnails is
       package Gdk_Pixel_Pointers is new System.Address_To_Access_Conversions (Gdk_Pixel_Array);
       use type Gdk_Pixel_Pointers.Object_Pointer;
 
-      C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
-      Pixbuf : System.Address := System.Null_Address;
-      Result : Decoded_Image;
-   begin
-      Pixbuf :=
-        Gdk_Pixbuf_New_From_File_At_Size
-          (Filename => C_Path,
-           Width    => C_Int (Max_Size),
-           Height   => C_Int (Max_Size),
-           Error    => System.Null_Address);
-      Interfaces.C.Strings.Free (C_Path);
+      use type GNAT.OS_Lib.File_Descriptor;
+      Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Loader     : System.Address := System.Null_Address;
+      Loader_Was_Closed : Boolean := False;
+      Signal_Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;
+      Requested_Size : aliased C_Int := C_Int (Max_Size);
+      Buffer     : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
+      Bytes_Read : Integer;
+      Total      : Natural := 0;
+      Result     : Decoded_Image;
 
-      if Pixbuf = System.Null_Address then
+      procedure Clean is
+         Ignored : Interfaces.C.int;
+         pragma Unreferenced (Ignored);
+      begin
+         Safe_Free (Signal_Name);
+         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Descriptor);
+            Descriptor := GNAT.OS_Lib.Invalid_FD;
+         end if;
+         if Loader /= System.Null_Address then
+            if not Loader_Was_Closed then
+               Ignored := Loader_Close (Loader, System.Null_Address);
+            end if;
+            G_Object_Unref (Loader);
+            Loader := System.Null_Address;
+         end if;
+      end Clean;
+   begin
+      if Max_Size > Max_Thumbnail_Dimension then
          return Result;
       end if;
 
-      declare
-         Width     : constant Natural := Natural (Gdk_Pixbuf_Get_Width (Pixbuf));
-         Height    : constant Natural := Natural (Gdk_Pixbuf_Get_Height (Pixbuf));
-         Channels  : constant Natural := Natural (Gdk_Pixbuf_Get_N_Channels (Pixbuf));
-         Rowstride : constant Natural := Natural (Gdk_Pixbuf_Get_Rowstride (Pixbuf));
-         Pixels_Address : constant System.Address := Gdk_Pixbuf_Get_Pixels (Pixbuf);
-         Raw       : constant Gdk_Pixel_Pointers.Object_Pointer :=
-           Gdk_Pixel_Pointers.To_Pointer (Pixels_Address);
-      begin
-         if Width = 0
-           or else Height = 0
-           or else Width > Max_Size
-           or else Height > Max_Size
-           or else Channels < 3
-           or else Rowstride < Width * Channels
-           or else Pixels_Address = System.Null_Address
-           or else Raw = null
+      Descriptor := Files.Fs.Open_Regular_Read (Path);
+      if Descriptor = GNAT.OS_Lib.Invalid_FD then
+         return Result;
+      end if;
+      Loader := Loader_New;
+      if Loader = System.Null_Address then
+         Clean;
+         return Result;
+      end if;
+      Signal_Name := Interfaces.C.Strings.New_String ("size-prepared");
+      if Signal_Connect_Data
+        (Loader, Signal_Name, Loader_Size_Prepared'Address,
+         Requested_Size'Address, System.Null_Address, 0) = 0
+      then
+         Clean;
+         return Result;
+      end if;
+      Safe_Free (Signal_Name);
+
+      loop
+         Bytes_Read := GNAT.OS_Lib.Read
+           (Descriptor, Buffer'Address, Integer (Buffer'Length));
+         if Bytes_Read < 0
+           or else Bytes_Read > Integer (Max_Decode_Source_Bytes - Total)
          then
-            G_Object_Unref (Pixbuf);
+            Clean;
             return Result;
          end if;
+         exit when Bytes_Read = 0;
+         Total := Total + Bytes_Read;
+         if Loader_Write
+           (Loader, Buffer (Buffer'First)'Address,
+            Interfaces.C.size_t (Bytes_Read), System.Null_Address) = 0
+         then
+            Clean;
+            return Result;
+         end if;
+      end loop;
+      GNAT.OS_Lib.Close (Descriptor);
+      Descriptor := GNAT.OS_Lib.Invalid_FD;
 
-         --  Copy row-major RGBA (alpha from the source or opaque when absent),
-         --  matching the byte layout the icon-atlas thumbnail rasterizer reads.
-         for Row in 0 .. Height - 1 loop
-            for Column in 0 .. Width - 1 loop
-               declare
-                  Offset : constant Natural := Row * Rowstride + Column * Channels;
-               begin
-                  Result.Pixels.Append (Raw.all (Offset));
-                  Result.Pixels.Append (Raw.all (Offset + 1));
-                  Result.Pixels.Append (Raw.all (Offset + 2));
-                  Result.Pixels.Append (if Channels >= 4 then Raw.all (Offset + 3) else 255);
-               end;
-            end loop;
-         end loop;
-
-         G_Object_Unref (Pixbuf);
-         Result.Available := True;
-         Result.Width := Width;
-         Result.Height := Height;
+      if Loader_Close (Loader, System.Null_Address) = 0 then
+         Loader_Was_Closed := True;
+         Clean;
          return Result;
+      end if;
+      Loader_Was_Closed := True;
+
+      declare
+         Pixbuf    : constant System.Address := Loader_Get_Pixbuf (Loader);
+      begin
+         if Pixbuf = System.Null_Address then
+            Clean;
+            return Result;
+         end if;
+         declare
+            Width     : constant Natural := Natural (Gdk_Pixbuf_Get_Width (Pixbuf));
+            Height    : constant Natural := Natural (Gdk_Pixbuf_Get_Height (Pixbuf));
+            Channels  : constant Natural := Natural (Gdk_Pixbuf_Get_N_Channels (Pixbuf));
+            Rowstride : constant Natural := Natural (Gdk_Pixbuf_Get_Rowstride (Pixbuf));
+            Pixels_Address : constant System.Address := Gdk_Pixbuf_Get_Pixels (Pixbuf);
+            Raw       : constant Gdk_Pixel_Pointers.Object_Pointer :=
+              Gdk_Pixel_Pointers.To_Pointer (Pixels_Address);
+         begin
+            if Width = 0
+              or else Height = 0
+              or else Width > Max_Size
+              or else Height > Max_Size
+              or else Channels not in 3 .. 4
+              or else Rowstride < Width * Channels
+              or else Rowstride > Gdk_Pixel_Array'Length / Height
+              or else Pixels_Address = System.Null_Address
+              or else Raw = null
+            then
+               Clean;
+               return Result;
+            end if;
+
+            --  Copy row-major RGBA (alpha from the source or opaque when absent),
+            --  matching the byte layout the icon-atlas thumbnail rasterizer reads.
+            for Row in 0 .. Height - 1 loop
+               for Column in 0 .. Width - 1 loop
+                  declare
+                     Offset : constant Natural := Row * Rowstride + Column * Channels;
+                  begin
+                     Result.Pixels.Append (Raw.all (Offset));
+                     Result.Pixels.Append (Raw.all (Offset + 1));
+                     Result.Pixels.Append (Raw.all (Offset + 2));
+                     Result.Pixels.Append (if Channels = 4 then Raw.all (Offset + 3) else 255);
+                  end;
+               end loop;
+            end loop;
+
+            Clean;
+            Result.Available := True;
+            Result.Width := Width;
+            Result.Height := Height;
+            return Result;
+         end;
       end;
    exception
       when others =>
-         Safe_Free (C_Path);
-         if Pixbuf /= System.Null_Address then
-            G_Object_Unref (Pixbuf);
-         end if;
+         Clean;
          return (Available => False, Width => 0, Height => 0,
                  Pixels => Files.Types.Byte_Vectors.Empty_Vector);
    end Decode_Image_To_Pixels;
@@ -716,30 +1026,37 @@ package body Thumbnails is
       --  path and falls through to the streaming gdk-pixbuf loader, so a huge
       --  non-image named *.png can no longer be read into RAM on a directory
       --  browse (a memory/CPU denial of service).
-      Max_Fast_Decode_Source_Bytes : constant Long_Long_Integer := 33_554_432;
+      Max_Fast_Decode_Source_Bytes : constant Natural := 33_554_432;
 
       function Source_Fits_Fast_Decode return Boolean is
       begin
          return Long_Long_Integer (Ada.Directories.Size (Source_Path))
-                  <= Max_Fast_Decode_Source_Bytes;
+                  <= Long_Long_Integer (Max_Fast_Decode_Source_Bytes);
       exception
          when others =>
             return False;
       end Source_Fits_Fast_Decode;
 
-      type Rgb_Pixel is record
+      type Rgba_Pixel is record
          Red   : Natural := 0;
          Green : Natural := 0;
          Blue  : Natural := 0;
+         Alpha : Natural := 255;
       end record;
 
       package Pixel_Vectors is new Ada.Containers.Vectors
         (Index_Type   => Natural,
-         Element_Type => Rgb_Pixel);
+         Element_Type => Rgba_Pixel);
 
       package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
         (Index_Type   => Natural,
          Element_Type => Ada.Streams.Stream_Element);
+
+      type Stream_Element_Array_Access is
+        access Ada.Streams.Stream_Element_Array;
+      procedure Free_Stream_Element_Array is new Ada.Unchecked_Deallocation
+        (Object => Ada.Streams.Stream_Element_Array,
+         Name   => Stream_Element_Array_Access);
 
       type Gdk_Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
       pragma Convention (C, Gdk_Pixel_Array);
@@ -780,15 +1097,22 @@ package body Thumbnails is
 
       function Bytes_To_Stream_Array
         (Data : Thumbnail_Byte_Vectors.Vector)
-         return Ada.Streams.Stream_Element_Array
+         return Stream_Element_Array_Access
       is
-         Result : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Data.Length) - 1);
+         Result : Stream_Element_Array_Access :=
+           new Ada.Streams.Stream_Element_Array
+             (0 .. Ada.Streams.Stream_Element_Offset (Data.Length) - 1);
       begin
          for Index in 0 .. Natural (Data.Length) - 1 loop
-            Result (Ada.Streams.Stream_Element_Offset (Index)) := Data.Element (Index);
+            Result (Ada.Streams.Stream_Element_Offset (Index)) :=
+              Data.Element (Index);
          end loop;
 
          return Result;
+      exception
+         when others =>
+            Free_Stream_Element_Array (Result);
+            raise;
       end Bytes_To_Stream_Array;
 
       --  Binary P6, not the ASCII P3 this used to write.
@@ -824,6 +1148,11 @@ package body Thumbnails is
 
             Stream_IO.Write (Output, Buffer);
          end Put_Header;
+
+         function Against_White
+           (Channel, Alpha : Natural) return Stream_Element is
+           (Stream_Element
+              ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
       begin
          Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path);
          Put_Header
@@ -837,13 +1166,15 @@ package body Thumbnails is
                   Source_Row    : constant Natural := Row * Source_Height / Size;
                   Source_Column : constant Natural := Column * Source_Width / Size;
                   Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
-                  Pixel         : constant Rgb_Pixel := Pixels.Element (Source_Index);
+                  Pixel         : constant Rgba_Pixel := Pixels.Element (Source_Index);
                   At_Byte       : constant Stream_Element_Offset :=
                     Stream_Element_Offset (Column) * 3 + 1;
                begin
-                  Row_Bytes (At_Byte)     := Stream_Element (Pixel.Red mod 256);
-                  Row_Bytes (At_Byte + 1) := Stream_Element (Pixel.Green mod 256);
-                  Row_Bytes (At_Byte + 2) := Stream_Element (Pixel.Blue mod 256);
+                  --  PPM has no alpha channel. Composite rather than exposing
+                  --  arbitrary RGB values hidden beneath transparent pixels.
+                  Row_Bytes (At_Byte)     := Against_White (Pixel.Red, Pixel.Alpha);
+                  Row_Bytes (At_Byte + 1) := Against_White (Pixel.Green, Pixel.Alpha);
+                  Row_Bytes (At_Byte + 2) := Against_White (Pixel.Blue, Pixel.Alpha);
                end;
             end loop;
 
@@ -863,14 +1194,15 @@ package body Thumbnails is
         (Target_Path : String)
          return Boolean
       is
-         Input  : Ada.Text_IO.File_Type;
-         Token  : Unbounded_String;
+         Token   : Unbounded_String;
          Content : Unbounded_String;
          Scan_Index : Positive := 1;
          Pixels : Pixel_Vectors.Vector;
          Source_Width  : Natural := 0;
          Source_Height : Natural := 0;
          Max_Value     : Natural := 0;
+         Read_Succeeded : Boolean := False;
+         Read_Complete  : Boolean := False;
 
          function Next_Token return Boolean is
             Value : Character;
@@ -880,6 +1212,16 @@ package body Thumbnails is
                Value := Element (Content, Scan_Index);
                Scan_Index := Scan_Index + 1;
                if Value = ' ' or else Value = ASCII.HT or else Value = ASCII.LF or else Value = ASCII.CR then
+                  if Length (Token) > 0 then
+                     return True;
+                  end if;
+               elsif Value = '#' then
+                  while Scan_Index <= Length (Content)
+                    and then Element (Content, Scan_Index) /= ASCII.LF
+                    and then Element (Content, Scan_Index) /= ASCII.CR
+                  loop
+                     Scan_Index := Scan_Index + 1;
+                  end loop;
                   if Length (Token) > 0 then
                      return True;
                   end if;
@@ -919,32 +1261,13 @@ package body Thumbnails is
             return Natural'Min ((Value * 255) / Max_Value, 255);
          end Scaled_Channel;
       begin
-         Ada.Text_IO.Open (Input, Ada.Text_IO.In_File, Source_Path);
-         while not Ada.Text_IO.End_Of_File (Input) loop
-            declare
-               Buffer  : String (1 .. 4096);
-               Last    : Natural;
-               Comment : Natural := 0;
-            begin
-               Ada.Text_IO.Get_Line (Input, Buffer, Last);
-               for Index in 1 .. Last loop
-                  if Buffer (Index) = '#' then
-                     Comment := Index;
-                     exit;
-                  end if;
-               end loop;
-
-               if Last = 0 then
-                  null;
-               elsif Comment = 0 then
-                  Append (Content, Buffer (1 .. Last));
-               elsif Comment > 1 then
-                  Append (Content, Buffer (1 .. Comment - 1));
-               end if;
-               Append (Content, ' ');
-            end;
-         end loop;
-         Ada.Text_IO.Close (Input);
+         Content := To_Unbounded_String
+           (Read_Bounded_Regular_File
+              (Source_Path, Max_Fast_Decode_Source_Bytes,
+               Read_Succeeded, Read_Complete));
+         if not Read_Succeeded or else not Read_Complete then
+            return False;
+         end if;
 
          if not Next_Token or else To_String (Token) /= "P3" then
             return False;
@@ -956,6 +1279,7 @@ package body Thumbnails is
            or else Source_Width = 0
            or else Source_Height = 0
            or else Max_Value = 0
+           or else Max_Value > 65_535
            or else Source_Width > 4096
            or else Source_Height > 4096
            or else Source_Width * Source_Height > 4_194_304
@@ -969,24 +1293,34 @@ package body Thumbnails is
                Green : Natural;
                Blue  : Natural;
             begin
-               if not Next_Natural (Red) or else not Next_Natural (Green) or else not Next_Natural (Blue) then
+               if not Next_Natural (Red)
+                 or else not Next_Natural (Green)
+                 or else not Next_Natural (Blue)
+                 or else Red > Max_Value
+                 or else Green > Max_Value
+                 or else Blue > Max_Value
+               then
                   return False;
                end if;
 
                Pixels.Append
                  (New_Item =>
-                    Rgb_Pixel'
+                    Rgba_Pixel'
                       (Red   => Scaled_Channel (Red),
                        Green => Scaled_Channel (Green),
-                       Blue  => Scaled_Channel (Blue)));
+                       Blue  => Scaled_Channel (Blue),
+                       Alpha => 255));
             end;
          end loop;
+
+         if Next_Token then
+            return False;
+         end if;
 
          Write_Pixels_As_Ppm (Target_Path, Pixels, Source_Width, Source_Height);
          return True;
       exception
          when others =>
-            Safe_Close (Input);
             return False;
       end Try_Write_Decoded_P3_Thumbnail;
 
@@ -994,11 +1328,12 @@ package body Thumbnails is
         (Target_Path : String)
          return Boolean
       is
-         File   : Ada.Streams.Stream_IO.File_Type;
-         Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
-         Last   : Ada.Streams.Stream_Element_Offset;
-         Bytes  : Thumbnail_Byte_Vectors.Vector;
-         Idat   : Thumbnail_Byte_Vectors.Vector;
+         use type GNAT.OS_Lib.File_Descriptor;
+         File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+         Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
+         Bytes_Read : Integer;
+         Bytes      : Thumbnail_Byte_Vectors.Vector;
+         Idat       : Thumbnail_Byte_Vectors.Vector;
          Width  : Natural := 0;
          Height : Natural := 0;
          Bit_Depth  : Natural := 0;
@@ -1007,6 +1342,15 @@ package body Thumbnails is
          Position   : Natural := 8;
          Channels   : Natural := 0;
          Pixels     : Pixel_Vectors.Vector;
+         Saw_Ihdr   : Boolean := False;
+         Saw_Plte   : Boolean := False;
+         Saw_Trns   : Boolean := False;
+         Saw_Idat   : Boolean := False;
+         Ended_Idat : Boolean := False;
+         Saw_Iend   : Boolean := False;
+         Transparent_Red   : Natural := 0;
+         Transparent_Green : Natural := 0;
+         Transparent_Blue  : Natural := 0;
 
          function Is_Png_Signature return Boolean is
          begin
@@ -1032,6 +1376,49 @@ package body Thumbnails is
               & Character'Val (Byte_At (Bytes, Index + 3));
          end Chunk_Type;
 
+         function Chunk_Crc_Is_Valid
+           (Type_Start : Natural;
+            Crc_Start  : Natural) return Boolean
+         is
+            use type Interfaces.Unsigned_32;
+            Context : GNAT.CRC32.CRC32;
+            Buffer  : Ada.Streams.Stream_Element_Array (1 .. 4096);
+            Cursor  : Natural := Type_Start;
+            Expected : constant Interfaces.Unsigned_32 :=
+              Interfaces.Shift_Left
+                (Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start)), 24)
+              or Interfaces.Shift_Left
+                (Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start + 1)), 16)
+              or Interfaces.Shift_Left
+                (Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start + 2)), 8)
+              or Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start + 3));
+         begin
+            GNAT.CRC32.Initialize (Context);
+            while Cursor < Crc_Start loop
+               declare
+                  Count : constant Natural := Natural'Min
+                    (Natural (Buffer'Length), Crc_Start - Cursor);
+               begin
+                  for Index in 0 .. Count - 1 loop
+                     Buffer
+                       (Buffer'First + Ada.Streams.Stream_Element_Offset (Index)) :=
+                         Bytes.Element (Cursor + Index);
+                  end loop;
+                  GNAT.CRC32.Update
+                    (Context,
+                     Buffer
+                       (Buffer'First
+                        .. Buffer'First
+                          + Ada.Streams.Stream_Element_Offset (Count) - 1));
+                  Cursor := Cursor + Count;
+               end;
+            end loop;
+            return GNAT.CRC32.Get_Value (Context) = Expected;
+         exception
+            when others =>
+               return False;
+         end Chunk_Crc_Is_Valid;
+
          function Paeth
            (Left  : Natural;
             Up    : Natural;
@@ -1052,14 +1439,33 @@ package body Thumbnails is
             end if;
          end Paeth;
       begin
-         Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Source_Path);
-         while not Ada.Streams.Stream_IO.End_Of_File (File) loop
-            Ada.Streams.Stream_IO.Read (File, Buffer, Last);
-            for Index in 1 .. Last loop
+         File := Files.Fs.Open_Regular_Read (Source_Path);
+         if File = GNAT.OS_Lib.Invalid_FD then
+            return False;
+         end if;
+         loop
+            Bytes_Read := GNAT.OS_Lib.Read
+              (File, Buffer'Address, Integer (Buffer'Length));
+            if Bytes_Read < 0 then
+               raise Ada.Directories.Use_Error;
+            end if;
+            exit when Bytes_Read = 0;
+            if Long_Long_Integer (Natural (Bytes.Length))
+                + Long_Long_Integer (Bytes_Read) >
+                  Long_Long_Integer (Max_Fast_Decode_Source_Bytes)
+            then
+               GNAT.OS_Lib.Close (File);
+               File := GNAT.OS_Lib.Invalid_FD;
+               return False;
+            end if;
+            for Index in Buffer'First
+              .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1
+            loop
                Bytes.Append (Buffer (Index));
             end loop;
          end loop;
-         Ada.Streams.Stream_IO.Close (File);
+         GNAT.OS_Lib.Close (File);
+         File := GNAT.OS_Lib.Invalid_FD;
 
          if not Is_Png_Signature then
             return False;
@@ -1071,35 +1477,96 @@ package body Thumbnails is
                Kind         : constant String := Chunk_Type (Position + 4);
                Data_Start   : constant Natural := Position + 8;
                Data_Last    : constant Natural := Data_Start + Length_Value - 1;
+               Crc_Start    : constant Natural := Data_Start + Length_Value;
             begin
                if Data_Start + Length_Value + 4 > Natural (Bytes.Length) then
+                  return False;
+               elsif not Chunk_Crc_Is_Valid (Position + 4, Crc_Start) then
                   return False;
                end if;
 
                if Kind = "IHDR" then
-                  if Length_Value < 13 then
+                  if Saw_Ihdr or else Position /= 8 or else Length_Value /= 13 then
                      return False;
                   end if;
+                  Saw_Ihdr := True;
                   Width := U32_BE_From (Bytes, Data_Start);
                   Height := U32_BE_From (Bytes, Data_Start + 4);
                   Bit_Depth := Byte_At (Bytes, Data_Start + 8);
                   Color_Type := Byte_At (Bytes, Data_Start + 9);
                   Interlace := Byte_At (Bytes, Data_Start + 12);
+                  if Byte_At (Bytes, Data_Start + 10) /= 0
+                    or else Byte_At (Bytes, Data_Start + 11) /= 0
+                  then
+                     return False;
+                  end if;
                elsif Kind = "IDAT" then
+                  if not Saw_Ihdr or else Ended_Idat then
+                     return False;
+                  end if;
+                  Saw_Idat := True;
                   if Length_Value > 0 then
                      for Index in Data_Start .. Data_Last loop
                         Idat.Append (Bytes.Element (Index));
                      end loop;
                   end if;
                elsif Kind = "IEND" then
+                  if not Saw_Ihdr or else not Saw_Idat or else Length_Value /= 0 then
+                     return False;
+                  end if;
+                  Saw_Iend := True;
+                  Position := Crc_Start + 4;
                   exit;
+               elsif Kind = "PLTE" then
+                  if not Saw_Ihdr
+                    or else Saw_Plte
+                    or else Saw_Idat
+                    or else Length_Value = 0
+                    or else Length_Value mod 3 /= 0
+                    or else Length_Value > 768
+                  then
+                     return False;
+                  end if;
+                  Saw_Plte := True;
+               elsif Kind = "tRNS" then
+                  --  For the true-colour format decoded here, tRNS identifies
+                  --  one fully transparent RGB sample.  It must precede IDAT;
+                  --  silently ignoring it exposes RGB data that should be
+                  --  invisible in the generated opaque PPM thumbnail.
+                  if not Saw_Ihdr
+                    or else Saw_Trns
+                    or else Saw_Idat
+                    or else Color_Type /= 2
+                    or else Bit_Depth /= 8
+                    or else Length_Value /= 6
+                    or else Byte_At (Bytes, Data_Start) /= 0
+                    or else Byte_At (Bytes, Data_Start + 2) /= 0
+                    or else Byte_At (Bytes, Data_Start + 4) /= 0
+                  then
+                     return False;
+                  end if;
+                  Saw_Trns := True;
+                  Transparent_Red := Byte_At (Bytes, Data_Start + 1);
+                  Transparent_Green := Byte_At (Bytes, Data_Start + 3);
+                  Transparent_Blue := Byte_At (Bytes, Data_Start + 5);
+               else
+                  if Saw_Idat then
+                     Ended_Idat := True;
+                  end if;
+                  --  Unknown critical chunks change decoding semantics.  This
+                  --  minimal decoder may ignore ancillary chunks only.
+                  if Kind (Kind'First) in 'A' .. 'Z' and then Kind /= "PLTE" then
+                     return False;
+                  end if;
                end if;
 
-               Position := Data_Start + Length_Value + 4;
+               Position := Crc_Start + 4;
             end;
          end loop;
 
-         if Width = 0
+         if not Saw_Iend
+           or else Position /= Natural (Bytes.Length)
+           or else Width = 0
            or else Height = 0
            or else Width > 4096
            or else Height > 4096
@@ -1125,38 +1592,120 @@ package body Thumbnails is
          declare
             Row_Stride : constant Natural := Width * Channels;
             Needed     : constant Natural := Height * (Row_Stride + 1);
-            Compressed : constant Ada.Streams.Stream_Element_Array := Bytes_To_Stream_Array (Idat);
-            Source     : Zlib.Byte_Array (0 .. Natural (Compressed'Length) - 1);
-            --  The full inflated raster lives in a heap-backed vector, not a
-            --  stack/secondary-stack array, so a large image cannot exhaust the
-            --  stack -- it is bounded by RAM instead.
+            Compressed : Stream_Element_Array_Access :=
+              Bytes_To_Stream_Array (Idat);
             Inflated   : Thumbnail_Byte_Vectors.Vector;
-            Decode_Status : Zlib.Status_Code := Zlib.Ok;
             Previous   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
               [others => 0];
             Current    : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
               [others => 0];
-         begin
-            for I in Source'Range loop
-               Source (I) :=
-                 Zlib.Byte (Compressed (Compressed'First + Ada.Streams.Stream_Element_Offset (I)));
-            end loop;
-            --  Inflate the zlib-wrapped PNG IDAT stream with the pure-Ada zlib
-            --  crate (no system libz dependency).
-            declare
-               use type Zlib.Status_Code;
-               Raw_Inflated : constant Zlib.Byte_Array :=
-                 Zlib.Inflate_With_Header (Source, Zlib.Zlib_Header, Decode_Status);
+
+            function Inflate_Raster return Boolean is
+               use type Ada.Containers.Count_Type;
+
+               Filter   : Zlib.Filter_Type;
+               Position : Ada.Streams.Stream_Element_Offset :=
+                 Compressed'First;
+               Output   : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
+
+               procedure Close_Filter is
+               begin
+                  if Zlib.Is_Open (Filter) then
+                     Zlib.Close (Filter, Ignore_Error => True);
+                  end if;
+               exception
+                  when others => null;
+               end Close_Filter;
+
+               function Append_Output
+                 (Last : Ada.Streams.Stream_Element_Offset) return Boolean
+               is
+                  Count : constant Natural :=
+                    (if Last < Output'First then 0
+                     else Natural (Last - Output'First + 1));
+               begin
+                  if Count > Needed - Natural (Inflated.Length) then
+                     return False;
+                  end if;
+                  for Index in Output'First .. Last loop
+                     Inflated.Append (Output (Index));
+                  end loop;
+                  return True;
+               end Append_Output;
             begin
-               if Decode_Status /= Zlib.Ok or else Raw_Inflated'Length < Needed then
+               Inflated.Reserve_Capacity (Ada.Containers.Count_Type (Needed));
+               Zlib.Inflate_Init (Filter, Header => Zlib.Zlib_Header);
+
+               while Position <= Compressed'Last loop
+                  declare
+                     In_Last  : Ada.Streams.Stream_Element_Offset;
+                     Out_Last : Ada.Streams.Stream_Element_Offset;
+                     Before   : constant Ada.Streams.Stream_Element_Offset := Position;
+                  begin
+                     Zlib.Translate
+                       (Filter,
+                        Compressed (Position .. Compressed'Last),
+                        In_Last,
+                        Output,
+                        Out_Last);
+                     if not Append_Output (Out_Last) then
+                        Close_Filter;
+                        return False;
+                     end if;
+                     if In_Last >= Before then
+                        Position := In_Last + 1;
+                     end if;
+                     if Zlib.Stream_End (Filter) then
+                        if Position <= Compressed'Last then
+                           Close_Filter;
+                           return False;
+                        end if;
+                        exit;
+                     end if;
+                     if In_Last < Before and then Out_Last < Output'First then
+                        Close_Filter;
+                        return False;
+                     end if;
+                  end;
+               end loop;
+
+               while not Zlib.Stream_End (Filter) loop
+                  declare
+                     Empty    : constant Ada.Streams.Stream_Element_Array (1 .. 0) := [];
+                     In_Last  : Ada.Streams.Stream_Element_Offset;
+                     Out_Last : Ada.Streams.Stream_Element_Offset;
+                  begin
+                     Zlib.Translate
+                       (Filter, Empty, In_Last, Output, Out_Last, Zlib.Finish);
+                     if not Append_Output (Out_Last)
+                       or else (Out_Last < Output'First
+                         and then not Zlib.Stream_End (Filter))
+                     then
+                        Close_Filter;
+                        return False;
+                     end if;
+                  end;
+               end loop;
+
+               if Inflated.Length /= Ada.Containers.Count_Type (Needed) then
+                  Close_Filter;
                   return False;
                end if;
-               Inflated.Reserve_Capacity (Ada.Containers.Count_Type (Needed));
-               for I in 0 .. Needed - 1 loop
-                  Inflated.Append
-                    (Ada.Streams.Stream_Element (Raw_Inflated (Raw_Inflated'First + I)));
-               end loop;
-            end;
+               Zlib.Close (Filter);
+               return True;
+            exception
+               when others =>
+                  Close_Filter;
+                  return False;
+            end Inflate_Raster;
+         begin
+            --  Stream into the exact declared raster budget.  A compressed
+            --  payload that expands past it is invalid instead of being fully
+            --  materialized first as an attacker-controlled allocation.
+            if not Inflate_Raster then
+               Free_Stream_Element_Array (Compressed);
+               return False;
+            end if;
 
             for Row in 0 .. Height - 1 loop
                declare
@@ -1164,6 +1713,7 @@ package body Thumbnails is
                   Base   : constant Natural := Row * (Row_Stride + 1) + 1;
                begin
                   if Filter > 4 then
+                     Free_Stream_Element_Array (Compressed);
                      return False;
                   end if;
 
@@ -1203,25 +1753,53 @@ package body Thumbnails is
 
                   for Column in 0 .. Width - 1 loop
                      Pixels.Append
-                       (Rgb_Pixel'
+                       (Rgba_Pixel'
                           (Red   =>
                              Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels))),
                            Green =>
                              Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 1))),
                            Blue  =>
-                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 2)))));
+                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 2))),
+                           Alpha =>
+                             (if Channels = 4
+                              then Natural
+                                (Current
+                                   (Ada.Streams.Stream_Element_Offset
+                                      (Column * Channels + 3)))
+                              elsif Saw_Trns
+                                and then Natural
+                                  (Current
+                                     (Ada.Streams.Stream_Element_Offset
+                                        (Column * Channels))) = Transparent_Red
+                                and then Natural
+                                  (Current
+                                     (Ada.Streams.Stream_Element_Offset
+                                        (Column * Channels + 1))) = Transparent_Green
+                                and then Natural
+                                  (Current
+                                     (Ada.Streams.Stream_Element_Offset
+                                        (Column * Channels + 2))) = Transparent_Blue
+                              then 0
+                              else 255)));
                   end loop;
 
                   Previous := Current;
                end;
             end loop;
+            Free_Stream_Element_Array (Compressed);
+         exception
+            when others =>
+               Free_Stream_Element_Array (Compressed);
+               raise;
          end;
 
          Write_Pixels_As_Ppm (Target_Path, Pixels, Width, Height);
          return True;
       exception
          when others =>
-            Safe_Close (File);
+            if File /= GNAT.OS_Lib.Invalid_FD then
+               GNAT.OS_Lib.Close (File);
+            end if;
             return False;
       end Try_Write_Decoded_Png_Thumbnail;
 
@@ -1229,71 +1807,32 @@ package body Thumbnails is
         (Target_Path : String)
          return Boolean
       is
-         C_Path : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Source_Path);
-         Pixbuf : System.Address := System.Null_Address;
+         Image   : constant Decoded_Image :=
+           Decode_Image_To_Pixels (Source_Path, Size);
+         Decoded : Pixel_Vectors.Vector;
       begin
-         Pixbuf :=
-           Gdk_Pixbuf_New_From_File_At_Size
-             (Filename => C_Path,
-              Width    => C_Int (Size),
-              Height   => C_Int (Size),
-              Error    => System.Null_Address);
-         Interfaces.C.Strings.Free (C_Path);
-
-         if Pixbuf = System.Null_Address then
+         if not Image.Available
+           or else Image.Width = 0
+           or else Image.Height = 0
+           or else Natural (Image.Pixels.Length) /= Image.Width * Image.Height * 4
+         then
             return False;
          end if;
-
-         declare
-            Width     : constant Natural := Natural (Gdk_Pixbuf_Get_Width (Pixbuf));
-            Height    : constant Natural := Natural (Gdk_Pixbuf_Get_Height (Pixbuf));
-            Channels  : constant Natural := Natural (Gdk_Pixbuf_Get_N_Channels (Pixbuf));
-            Rowstride : constant Natural := Natural (Gdk_Pixbuf_Get_Rowstride (Pixbuf));
-            Pixels_Address : constant System.Address := Gdk_Pixbuf_Get_Pixels (Pixbuf);
-            Raw       : constant Gdk_Pixel_Pointers.Object_Pointer :=
-              Gdk_Pixel_Pointers.To_Pointer (Pixels_Address);
-            Decoded   : Pixel_Vectors.Vector;
-         begin
-            if Width = 0
-              or else Height = 0
-              or else Width > 4096
-              or else Height > 4096
-              or else Channels < 3
-              or else Rowstride < Width * Channels
-              or else Pixels_Address = System.Null_Address
-              or else Raw = null
-            then
-               G_Object_Unref (Pixbuf);
-               return False;
-            end if;
-
-            for Row in 0 .. Height - 1 loop
-               for Column in 0 .. Width - 1 loop
-                  declare
-                     Offset : constant Natural := Row * Rowstride + Column * Channels;
-                  begin
-                     Decoded.Append
-                       (Rgb_Pixel'
-                          (Red   => Natural (Raw.all (Offset)),
-                           Green => Natural (Raw.all (Offset + 1)),
-                           Blue  => Natural (Raw.all (Offset + 2))));
-                  end;
-               end loop;
-            end loop;
-
-            G_Object_Unref (Pixbuf);
-            Pixbuf := System.Null_Address;
-            --  Null the handle before any further work: Write_Pixels_As_Ppm can
-            --  raise, and the exception handler unrefs Pixbuf when non-null.
-            Write_Pixels_As_Ppm (Target_Path, Decoded, Width, Height);
-            return True;
-         end;
+         Decoded.Reserve_Capacity
+           (Ada.Containers.Count_Type (Image.Width * Image.Height));
+         for Index in 0 .. Image.Width * Image.Height - 1 loop
+            Decoded.Append
+              (Rgba_Pixel'
+                 (Red   => Natural (Image.Pixels.Element (Index * 4)),
+                  Green => Natural (Image.Pixels.Element (Index * 4 + 1)),
+                  Blue  => Natural (Image.Pixels.Element (Index * 4 + 2)),
+                  Alpha => Natural (Image.Pixels.Element (Index * 4 + 3))));
+         end loop;
+         Write_Pixels_As_Ppm
+           (Target_Path, Decoded, Image.Width, Image.Height);
+         return True;
       exception
          when others =>
-            Safe_Free (C_Path);
-            if Pixbuf /= System.Null_Address then
-               G_Object_Unref (Pixbuf);
-            end if;
             return False;
       end Try_Write_Gdk_Pixbuf_Thumbnail;
 
@@ -1301,6 +1840,16 @@ package body Thumbnails is
       Size_Bias : Natural := 0;
       Target    : Unbounded_String;
    begin
+      if Size > Max_Thumbnail_Dimension then
+         return
+           (Status         => Thumbnail_Failed,
+            Source_Path    => To_Unbounded_String (Source_Path),
+            Thumbnail_Path => Null_Unbounded_String,
+            Width          => Size,
+            Height         => Size,
+            Error_Key      => To_Unbounded_String ("error.thumbnail.failed"));
+      end if;
+
       if not Ada.Directories.Exists (Source_Path) then
          return
            (Status         => Thumbnail_Source_Missing,
@@ -1319,8 +1868,10 @@ package body Thumbnails is
             Error_Key      => To_Unbounded_String ("error.thumbnail.unsupported"));
       end if;
 
+      Ada.Directories.Create_Path
+        (Ada.Directories.Containing_Directory (Cache_Directory));
+      Files.Private_Directories.Ensure (Cache_Directory);
       Prune_Cache_Once (Cache_Directory);
-      Ada.Directories.Create_Path (Cache_Directory);
       Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
       declare
          use type GNAT.OS_Lib.File_Descriptor;
@@ -1336,6 +1887,10 @@ package body Thumbnails is
                if Descriptor /= GNAT.OS_Lib.Invalid_FD then
                   Temp := To_Unbounded_String (Candidate);
                   Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));
+                  if Length (Temp_Identity) = 0 then
+                     raise Ada.Directories.Use_Error;
+                  end if;
+                  Files.Private_Directories.Make_File_Private (Descriptor);
                   GNAT.OS_Lib.Close (Descriptor);
                   Descriptor := GNAT.OS_Lib.Invalid_FD;
                   exit;
@@ -1348,6 +1903,12 @@ package body Thumbnails is
          if Length (Temp_Identity) = 0 then
             raise Ada.Directories.Use_Error;
          end if;
+      exception
+         when others =>
+            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+               GNAT.OS_Lib.Close (Descriptor);
+            end if;
+            raise;
       end;
       if (Source_Fits_Fast_Decode
           and then (Try_Write_Decoded_Png_Thumbnail (To_String (Temp))

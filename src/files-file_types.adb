@@ -1,4 +1,5 @@
 with Files.UTF8;
+with Hostkit.Host;
 
 package body Files.File_Types is
 
@@ -56,9 +57,23 @@ package body Files.File_Types is
    function Leaf_Name (Name : String) return String is
       Clean : constant String := Trim_Name (Name);
       First : Natural := Clean'First;
+      use type Hostkit.Host.Kind;
+
+      Windows_Syntax : constant Boolean :=
+        Hostkit.Host.Current = Hostkit.Host.Windows
+        or else
+          ((Clean'Length >= 3
+            and then Clean (Clean'First + 1) = ':'
+            and then Clean (Clean'First + 2) in '/' | '\')
+           or else
+             (Clean'Length >= 2
+              and then Clean (Clean'First) = '\'
+              and then Clean (Clean'First + 1) = '\'));
    begin
       for Index in reverse Clean'Range loop
-         if Clean (Index) = '/' or else Clean (Index) = '\' then
+         if Clean (Index) = '/'
+           or else (Windows_Syntax and then Clean (Index) = '\')
+         then
             First := Index + 1;
             exit;
          end if;

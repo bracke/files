@@ -7,7 +7,7 @@ separate (Files.Settings)
       use type Files.Types.Color_Label;
       Existing : Natural := 0;
    begin
-      if Path = "" then
+      if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
       for Index in

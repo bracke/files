@@ -1,6 +1,6 @@
 separate (Files.Settings)
    function Parse_Action (Text : String) return Open_Action is
-      Clean     : Unbounded_String := To_Unbounded_String (Trim (Text));
+      Clean     : Unbounded_String;
       Use_Shell : Boolean := False;
       Position  : Positive;
       Last      : Natural;
@@ -9,6 +9,11 @@ separate (Files.Settings)
       Args      : String_Vectors.Vector;
       Program   : Unbounded_String := Null_Unbounded_String;
    begin
+      if Text'Length > Max_Settings_Line_Bytes or else Contains_Nul (Text) then
+         return Make_Action ("", Args, False);
+      end if;
+      Clean := To_Unbounded_String (Trim (Text));
+
       if Starts_With (Files.Types.To_Lower (To_String (Clean)), "shell:") then
          Use_Shell := True;
          if Length (Clean) > 6 then
@@ -44,6 +49,10 @@ separate (Files.Settings)
                   return Make_Action ("", Args, Use_Shell);
                end if;
                exit when not Found;
+               if Natural (Args.Length) >= Max_Parsed_Action_Arguments then
+                  return Make_Action
+                    ("", String_Vectors.Empty_Vector, Use_Shell);
+               end if;
                Args.Append (To_Unbounded_String (Token));
                Position := Last;
             end;

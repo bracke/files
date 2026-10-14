@@ -6,7 +6,7 @@ separate (Files.Settings)
    is
       Clean : constant String := Trim (Text);
    begin
-      if Contains_Line_Break (Text) then
+      if Contains_Nul (Text) or else Contains_Line_Break (Text) then
          case Field is
             when 1 =>
                return "error.settings.invalid_view_mode";

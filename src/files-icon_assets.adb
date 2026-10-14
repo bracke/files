@@ -1,9 +1,12 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Directories;
+with Ada.Streams;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;
 
+with GNAT.OS_Lib;
+
+with Files.Fs;
+with Files.Resources;
 with Guikit.Draw;
 
 package body Files.Icon_Assets is
@@ -17,40 +20,83 @@ package body Files.Icon_Assets is
       Equivalent_Keys => "=");
 
    Cache : Text_Maps.Map;
+   Max_Icon_Asset_Bytes : constant := 64 * 1024;
 
-   --  Locate the bundled icon directory the same way the catalog is located:
-   --  relative to the current directory, then one or two levels up (covering the
-   --  in-tree bin/ and obj build layouts).
-   function Icons_Root return String is
+   function Valid_Icon_Id (Value : String) return Boolean is
    begin
-      if Ada.Directories.Exists ("share/files/icons") then
-         return "share/files/icons";
-      elsif Ada.Directories.Exists ("../../share/files/icons") then
-         return "../../share/files/icons";
-      elsif Ada.Directories.Exists ("../share/files/icons") then
-         return "../share/files/icons";
+      if Value'Length not in 1 .. 64 then
+         return False;
       end if;
-      return "share/files/icons";
-   end Icons_Root;
 
-   --  Read a whole text file, joining its lines with LF (the parser trims each
-   --  line, so exact line terminators do not matter). Returns "" on any error.
-   function Read_File (Path : String) return String is
-      File   : Ada.Text_IO.File_Type;
-      Result : Unbounded_String;
-   begin
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
-      while not Ada.Text_IO.End_Of_File (File) loop
-         Append (Result, Ada.Text_IO.Get_Line (File));
-         Append (Result, ASCII.LF);
+      for Item of Value loop
+         if Item not in 'a' .. 'z' | '0' .. '9' | '-' | '_' then
+            return False;
+         end if;
       end loop;
-      Ada.Text_IO.Close (File);
+      return True;
+   end Valid_Icon_Id;
+
+   function Valid_Theme_Name (Value : String) return Boolean is
+     (Value in "" | "files-basic" | "files-high-contrast");
+
+   function Icons_Root return String is
+     (Files.Resources.Share_Path ("files/icons"));
+
+   --  Read one small icon definition byte-for-byte. Returns "" on any error.
+   function Read_File (Path : String) return String is
+      use type Ada.Streams.Stream_Element_Offset;
+      use type GNAT.OS_Lib.File_Descriptor;
+
+      File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
+      Read   : Integer;
+      Result : Unbounded_String;
+
+      procedure Close_File is
+      begin
+         if File /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (File);
+            File := GNAT.OS_Lib.Invalid_FD;
+         end if;
+      exception
+         when others => null;
+      end Close_File;
+   begin
+      File := Files.Fs.Open_Regular_Read_Following_Links (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return "";
+      end if;
+
+      loop
+         Read := GNAT.OS_Lib.Read
+           (File, Buffer'Address, Integer (Buffer'Length));
+         if Read < 0 then
+            Close_File;
+            return "";
+         end if;
+         exit when Read = 0;
+         declare
+            Chunk_Length : constant Natural := Natural (Read);
+            Chunk : String (1 .. Chunk_Length);
+         begin
+            if Chunk_Length > Max_Icon_Asset_Bytes - Length (Result) then
+               Close_File;
+               return "";
+            end if;
+            for Index in Chunk'Range loop
+               Chunk (Index) := Character'Val
+                 (Buffer
+                    (Ada.Streams.Stream_Element_Offset (Index)
+                     + Buffer'First - 1));
+            end loop;
+            Append (Result, Chunk);
+         end;
+      end loop;
+      Close_File;
       return To_String (Result);
    exception
       when others =>
-         if Ada.Text_IO.Is_Open (File) then
-            Ada.Text_IO.Close (File);
-         end if;
+         Close_File;
          return "";
    end Read_File;
 
@@ -59,20 +105,31 @@ package body Files.Icon_Assets is
       Theme_Name : String)
       return String
    is
-      Key : constant String := Theme_Name & "|" & Icon_Id;
    begin
-      if Cache.Contains (Key) then
-         return Cache.Element (Key);
+      if not Valid_Icon_Id (Icon_Id) or else not Valid_Theme_Name (Theme_Name) then
+         return "";
       end if;
 
       declare
+         Key  : constant String := Theme_Name & "|" & Icon_Id;
+         Root : constant String := Icons_Root;
          Sub  : constant String :=
            (if Theme_Name = "files-high-contrast" then "/high-contrast" else "");
-         Path : constant String := Icons_Root & Sub & "/" & Icon_Id & ".icon";
-         Text : constant String := Read_File (Path);
+         Path : constant String := Root & Sub & "/" & Icon_Id & ".icon";
       begin
-         Cache.Insert (Key, Text);
-         return Text;
+         if Root = "" then
+            return "";
+         end if;
+         if Cache.Contains (Key) then
+            return Cache.Element (Key);
+         end if;
+
+         declare
+            Text : constant String := Read_File (Path);
+         begin
+            Cache.Insert (Key, Text);
+            return Text;
+         end;
       end;
    end Disk_Icon_Asset;
 

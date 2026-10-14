@@ -28,13 +28,17 @@ separate (Files.Settings)
       end loop;
 
       if (Length (Draft.Open_Action_Token) > 0 or else Length (Draft.Open_Action_Command) > 0)
-        and then Contains_Line_Break (To_String (Draft.Open_Action_Command))
+        and then
+          (Contains_Nul (To_String (Draft.Open_Action_Command))
+           or else Contains_Line_Break (To_String (Draft.Open_Action_Command)))
       then
          return "error.settings.invalid_open_action";
       end if;
 
       for Value of Draft.Open_Action_Commands loop
-         if Contains_Line_Break (To_String (Value)) then
+         if Contains_Nul (To_String (Value))
+           or else Contains_Line_Break (To_String (Value))
+         then
             return "error.settings.invalid_open_action";
          end if;
       end loop;

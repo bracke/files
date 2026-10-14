@@ -6,6 +6,8 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Interfaces;
 
+with GNAT.OS_Lib;
+
 with Hostkit.Fs;
 
 with Files.Commands;
@@ -195,7 +197,12 @@ package body Files.Application is
       --  Windows do not read it, and Hostkit says what the host does, but a user
       --  who exported it meant it. It is a user-level override, so it applies
       --  whichever home is being asked about.
-      Xdg_Config : constant String := Safe_Environment_Value ("XDG_CONFIG_HOME");
+      Raw_Xdg_Config : constant String :=
+        Safe_Environment_Value ("XDG_CONFIG_HOME");
+      Xdg_Config : constant String :=
+        (if GNAT.OS_Lib.Is_Absolute_Path (Raw_Xdg_Config) then
+            Raw_Xdg_Config
+         else "");
 
       Legacy : constant String := Legacy_Settings_Path (Home_Path);
 
@@ -206,6 +213,7 @@ package body Files.Application is
       --  exist), the only layout that can be applied to it is the POSIX one.
       Host_Config : constant String :=
         (if Home_Path /= "" and then Home_Path = Hostkit.Fs.Home_Directory
+           and then GNAT.OS_Lib.Is_Absolute_Path (Hostkit.Fs.Config_Directory)
          then Hostkit.Fs.Config_Directory
          else "");
 

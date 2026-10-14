@@ -2,6 +2,8 @@ with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Streams;
+with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
@@ -10,11 +12,36 @@ with Hostkit.Host;
 
 with Files.File_Identities;
 with Files.Durable_Writes;
+with Files.Fs;
+with Files.Private_Directories;
 with Files.UTF8;
 
 package body Files.Settings is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
+
+   --  Settings are persistent user input.  Bound both their serialized size
+   --  and the number of heap-owning objects a compact file can create.
+   Max_Settings_Text_Bytes      : constant Natural := 1 * 1024 * 1024;
+   Max_Settings_Line_Bytes      : constant Natural := 64 * 1024;
+   Max_Settings_Entries         : constant Natural := 4_096;
+   Max_Parsed_Action_Arguments  : constant Natural := 256;
+
+   function Contains_Nul (Text : String) return Boolean is
+   begin
+      for Value of Text loop
+         if Value = ASCII.NUL then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Contains_Nul;
+
+   function Persistent_Path_Is_Valid (Path : String) return Boolean is
+   begin
+      return Path /= ""
+        and then not Contains_Nul (Path);
+   end Persistent_Path_Is_Valid;
 
    function Snapshot_Settings_Key_Of
      (Settings : Settings_Model)
@@ -132,6 +159,7 @@ package body Files.Settings is
    function Mapping_Key_Is_Valid (Text : String) return Boolean is
    begin
       return Text /= ""
+        and then not Contains_Nul (Text)
         and then not Contains_Line_Break (Text)
         and then Ada.Strings.Fixed.Index (Text, "=") = 0;
    end Mapping_Key_Is_Valid;
@@ -141,7 +169,9 @@ package body Files.Settings is
       --  Reject whitespace-only values: Add_*_Mapping trims before inserting,
       --  so a value like "   " would pass parse validation yet be dropped on
       --  insert. Validating the trimmed form keeps parse and insert in sync.
-      return Trim (Text) /= "" and then not Contains_Line_Break (Text);
+      return Trim (Text) /= ""
+        and then not Contains_Nul (Text)
+        and then not Contains_Line_Break (Text);
    end Mapping_Value_Is_Valid;
 
    function Is_Whole_Placeholder (Text : String) return Boolean is
@@ -367,7 +397,7 @@ package body Files.Settings is
       Path     : String)
       return Boolean is
    begin
-      if Path = "" then
+      if not Persistent_Path_Is_Valid (Path) then
          return False;
       end if;
       for Existing of Settings.Favorite_Paths loop
@@ -384,7 +414,7 @@ package body Files.Settings is
    is
       To_Remove : Natural := 0;
    begin
-      if Path = "" then
+      if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
       for Index in
@@ -425,7 +455,7 @@ package body Files.Settings is
       Path     : String)
       return Files.Types.Color_Label is
    begin
-      if Path = "" then
+      if not Persistent_Path_Is_Valid (Path) then
          return Files.Types.No_Label;
       end if;
       for Entry_Value of Settings.Labels loop
@@ -477,12 +507,16 @@ package body Files.Settings is
      (Action : Open_Action)
       return Boolean is
    begin
-      if Contains_Line_Break (To_String (Action.Executable)) then
+      if Contains_Nul (To_String (Action.Executable))
+        or else Contains_Line_Break (To_String (Action.Executable))
+      then
          return False;
       end if;
 
       for Argument of Action.Arguments loop
-         if Contains_Line_Break (To_String (Argument)) then
+         if Contains_Nul (To_String (Argument))
+           or else Contains_Line_Break (To_String (Argument))
+         then
             return False;
          end if;
       end loop;

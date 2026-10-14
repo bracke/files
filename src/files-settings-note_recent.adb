@@ -5,7 +5,7 @@ separate (Files.Settings)
    is
       Index : Natural;
    begin
-      if Path = "" then
+      if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
 

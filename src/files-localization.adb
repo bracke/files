@@ -2,16 +2,20 @@ with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Streams;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;
 
 with Messages.Arguments;
 with Messages.Result;
 with Messages.Runtime;
 
+with GNAT.OS_Lib;
+
 with Files_Config;
+with Files.Fs;
+with Files.Resources;
 
 with Hostkit.Host;
 
@@ -42,7 +46,6 @@ package body Files.Localization is
       Key     : String)
       return String;
    function Portable_Locale (Value : String) return Boolean;
-   function Catalog_Root return String;
    function Catalog_Path return String;
    function Locale_Catalog_Path (Locale : String) return String;
    function Locale_Loaded (Locale : String) return Boolean;
@@ -298,60 +301,124 @@ package body Files.Localization is
       Key     : String)
       return String
    is
-      File       : Ada.Text_IO.File_Type;
+      use type Ada.Streams.Stream_Element_Offset;
+      use type Ada.Directories.File_Kind;
+      use type GNAT.OS_Lib.File_Descriptor;
+
+      Max_Config_Bytes : constant := 256 * 1024;
+      File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
+      Bytes_Read : Integer;
+      Text       : Unbounded_String;
       In_Section : Boolean := Section = "";
+
+      procedure Close_File is
+      begin
+         if File /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (File);
+            File := GNAT.OS_Lib.Invalid_FD;
+         end if;
+      exception
+         when others => null;
+      end Close_File;
    begin
-      if not Ada.Directories.Exists (Path) then
+      if not Ada.Directories.Exists (Path)
+        or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
+      then
          return "";
       end if;
 
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      File := Files.Fs.Open_Regular_Read_Following_Links (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return "";
+      end if;
 
-      while not Ada.Text_IO.End_Of_File (File) loop
+      loop
+         Bytes_Read := GNAT.OS_Lib.Read
+           (File, Buffer'Address, Integer (Buffer'Length));
+         if Bytes_Read < 0 then
+            Close_File;
+            return "";
+         end if;
+         exit when Bytes_Read = 0;
          declare
-            Line       : constant String := Ada.Text_IO.Get_Line (File);
-            Trimmed    : constant String := Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both);
-            Equals_Pos : Natural;
+            Chunk_Length : constant Natural := Natural (Bytes_Read);
+            Chunk : String (1 .. Chunk_Length);
          begin
-            if Trimmed'Length = 0
-              or else Trimmed (Trimmed'First) = '#'
-              or else Trimmed (Trimmed'First) = ';'
-            then
-               null;
-            elsif Trimmed'Length > 2
-              and then Trimmed (Trimmed'First) = '['
-              and then Trimmed (Trimmed'Last) = ']'
-            then
-               In_Section := Trimmed (Trimmed'First + 1 .. Trimmed'Last - 1) = Section;
-            elsif In_Section then
-               Equals_Pos := Ada.Strings.Fixed.Index (Trimmed, "=");
-               if Equals_Pos > 0 then
-                  declare
-                     Name  : constant String :=
-                       Ada.Strings.Fixed.Trim (Trimmed (Trimmed'First .. Equals_Pos - 1), Ada.Strings.Both);
-                     Value : constant String :=
-                       (if Equals_Pos < Trimmed'Last then
-                          Ada.Strings.Fixed.Trim (Trimmed (Equals_Pos + 1 .. Trimmed'Last), Ada.Strings.Both)
-                        else "");
-                  begin
-                     if Name = Key then
-                        Ada.Text_IO.Close (File);
-                        return Value;
-                     end if;
-                  end;
-               end if;
+            if Chunk_Length > Max_Config_Bytes - Length (Text) then
+               Close_File;
+               return "";
             end if;
+            for Index in Chunk'Range loop
+               Chunk (Index) := Character'Val
+                 (Buffer
+                    (Ada.Streams.Stream_Element_Offset (Index)
+                     + Buffer'First - 1));
+            end loop;
+            Append (Text, Chunk);
          end;
       end loop;
+      Close_File;
 
-      Ada.Text_IO.Close (File);
-      return "";
+      declare
+         Content    : constant String := To_String (Text);
+         Line_First : Natural := Content'First;
+      begin
+         while Line_First <= Content'Last loop
+            declare
+               Newline : constant Natural :=
+                 Ada.Strings.Fixed.Index
+                   (Content (Line_First .. Content'Last), String'(1 => ASCII.LF));
+               Line_Last : constant Natural :=
+                 (if Newline = 0 then Content'Last else Newline - 1);
+               Line : constant String :=
+                 (if Line_Last < Line_First then ""
+                  else Content (Line_First .. Line_Last));
+               Trimmed : constant String :=
+                 Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both);
+               Equals_Pos : Natural;
+            begin
+               if Trimmed'Length = 0
+                 or else Trimmed (Trimmed'First) = '#'
+                 or else Trimmed (Trimmed'First) = ';'
+               then
+                  null;
+               elsif Trimmed'Length > 2
+                 and then Trimmed (Trimmed'First) = '['
+                 and then Trimmed (Trimmed'Last) = ']'
+               then
+                  In_Section :=
+                    Trimmed (Trimmed'First + 1 .. Trimmed'Last - 1) = Section;
+               elsif In_Section then
+                  Equals_Pos := Ada.Strings.Fixed.Index (Trimmed, "=");
+                  if Equals_Pos > 0 then
+                     declare
+                        Name : constant String := Ada.Strings.Fixed.Trim
+                          (Trimmed (Trimmed'First .. Equals_Pos - 1),
+                           Ada.Strings.Both);
+                        Value : constant String :=
+                          (if Equals_Pos < Trimmed'Last then
+                             Ada.Strings.Fixed.Trim
+                               (Trimmed (Equals_Pos + 1 .. Trimmed'Last),
+                                Ada.Strings.Both)
+                           else "");
+                     begin
+                        if Name = Key then
+                           return Value;
+                        end if;
+                     end;
+                  end if;
+               end if;
+
+               exit when Newline = 0;
+               Line_First := Newline + 1;
+            end;
+         end loop;
+         return "";
+      end;
    exception
       when others =>
-         if Ada.Text_IO.Is_Open (File) then
-            Ada.Text_IO.Close (File);
-         end if;
-
+         Close_File;
          return "";
    end Locale_Config_Value;
 
@@ -381,27 +448,15 @@ package body Files.Localization is
       end;
    end Portable_Locale;
 
-   function Catalog_Root return String is
-   begin
-      if Ada.Directories.Exists ("share/files.catalog") then
-         return "share";
-      elsif Ada.Directories.Exists ("../../share/files.catalog") then
-         return "../../share";
-      elsif Ada.Directories.Exists ("../share/files.catalog") then
-         return "../share";
-      end if;
-
-      return "share";
-   end Catalog_Root;
-
    function Catalog_Path return String is
    begin
-      return Catalog_Root & "/files.catalog";
+      return Files.Resources.Share_Path ("files.catalog");
    end Catalog_Path;
 
    function Locale_Catalog_Path (Locale : String) return String is
    begin
-      return Catalog_Root & "/locales/files-" & Locale & ".catalog";
+      return Files.Resources.Share_Path
+        ("locales/files-" & Locale & ".catalog");
    end Locale_Catalog_Path;
 
    function Locale_Loaded (Locale : String) return Boolean is

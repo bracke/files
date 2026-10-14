@@ -34,7 +34,7 @@ separate (Files.Settings)
             null;
       end Remove_Owned_Temp;
    begin
-      if Path = "" then
+      if Path = "" or else Contains_Nul (Path) or else Contains_Nul (Text) then
          return
            (Success   => False,
             Durable   => False,
@@ -81,6 +81,10 @@ separate (Files.Settings)
             if Descriptor /= GNAT.OS_Lib.Invalid_FD then
                Temp := To_Unbounded_String (Candidate);
                Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));
+               if Length (Temp_Identity) = 0 then
+                  raise Ada.Directories.Use_Error;
+               end if;
+               Files.Private_Directories.Make_File_Private (Descriptor);
                exit;
             end if;
          end;

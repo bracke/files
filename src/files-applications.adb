@@ -2,16 +2,26 @@ with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Hostkit.Fs;
 
+with Files.Fs;
 with Files.Localization;
 with Files.Operations;
 
 package body Files.Applications is
    use Ada.Strings.Unbounded;
+
+   --  Desktop files are discovered automatically from user-controlled XDG
+   --  directories.  Bound each one before Text_IO.Get_Line can allocate an
+   --  arbitrarily large physical line.  Real entries are normally only a few
+   --  KiB; one MiB leaves generous room for localized keys and action groups.
+   Max_Desktop_File_Bytes : constant Natural := 1 * 1024 * 1024;
+   Max_Desktop_Line_Bytes  : constant Natural := 64 * 1024;
+   Max_Desktop_Entries     : constant Natural := 4_096;
+   Max_Desktop_List_Items  : constant Natural := 256;
+   Max_Desktop_Exec_Tokens : constant Natural := 256;
 
    package Desktop_Id_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_Type => String);
@@ -254,6 +264,11 @@ package body Files.Applications is
       Valid := True;
       while Position <= Value'Last loop
          if Value (Position) = ';' then
+            if Natural (Items.Length) >= Max_Desktop_List_Items then
+               Valid := False;
+               Items.Clear;
+               return;
+            end if;
             Items.Append (Current);
             Current := Null_Unbounded_String;
          elsif Value (Position) /= '\' then
@@ -283,6 +298,11 @@ package body Files.Applications is
       if Length (Current) > 0
         or else (Value'Length > 0 and then Value (Value'Last) /= ';')
       then
+         if Natural (Items.Length) >= Max_Desktop_List_Items then
+            Valid := False;
+            Items.Clear;
+            return;
+         end if;
          Items.Append (Current);
       end if;
    end Parse_String_List;
@@ -378,6 +398,11 @@ package body Files.Applications is
       procedure Finish_Token is
       begin
          if Started then
+            if Natural (Tokens.Length) >= Max_Desktop_Exec_Tokens then
+               Valid := False;
+               Tokens.Clear;
+               return;
+            end if;
             Tokens.Append (Current);
             Current := Null_Unbounded_String;
             Started := False;
@@ -386,6 +411,11 @@ package body Files.Applications is
    begin
       Tokens.Clear;
       Valid := True;
+
+      if Text'Length > Max_Desktop_Line_Bytes then
+         Valid := False;
+         return;
+      end if;
 
       while Position <= Text'Last loop
          if Text (Position) = '\' then
@@ -404,6 +434,9 @@ package body Files.Applications is
            and then not In_Quotes
          then
             Finish_Token;
+            if not Valid then
+               return;
+            end if;
          else
             if In_Quotes and then Text (Position) = '%'
               and then Position < Text'Last
@@ -627,7 +660,8 @@ package body Files.Applications is
       --  literal mixes letters with a space (which the repository's hard-coded
       --  text check would otherwise flag).
       Group_Header : constant String := "[Desktop" & " " & "Entry]";
-      File         : Ada.Text_IO.File_Type;
+      use type GNAT.OS_Lib.File_Descriptor;
+      File         : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       In_Group     : Boolean := False;
       Have_Group   : Boolean := False;
       Have_Any_Group : Boolean := False;
@@ -656,6 +690,10 @@ package body Files.Applications is
       Name_Rank   : Natural := Natural'Last;
       Icon_Rank   : Natural := Natural'Last;
       Entry_Valid : Boolean := True;
+      Entry_Count : Natural := 0;
+      File_Content : Unbounded_String;
+      Read_Buffer  : String (1 .. 8 * 1024);
+      Bytes_Read   : Integer;
 
       procedure Assign_Decoded
         (Raw    : String;
@@ -710,6 +748,111 @@ package body Files.Applications is
             Best_Rank := Rank;
          end if;
       end Consider_Localized;
+
+      procedure Process_Line (Raw_Line : String) is
+         Line   : constant String :=
+           (if Raw_Line'Length <= Max_Desktop_Line_Bytes
+            then Trim_Blanks (Raw_Line)
+            else "");
+         Equals : Natural := 0;
+      begin
+         if Raw_Line'Length > Max_Desktop_Line_Bytes then
+            Entry_Valid := False;
+         elsif Line'Length = 0 or else Line (Line'First) = '#' then
+            null;
+         elsif Entry_Count >= Max_Desktop_Entries then
+            Entry_Valid := False;
+         elsif Line (Line'First) = '[' then
+            Entry_Count := Entry_Count + 1;
+            Keys_Seen.Clear;
+            if not Is_Valid_Group_Header (Line) then
+               Entry_Valid := False;
+               In_Group := False;
+            else
+               declare
+                  Group_Name : constant String :=
+                    Line (Line'First + 1 .. Line'Last - 1);
+               begin
+                  Have_Any_Group := True;
+                  if Groups_Seen.Contains (Group_Name) then
+                     Entry_Valid := False;
+                  else
+                     Groups_Seen.Insert (Group_Name);
+                  end if;
+
+                  In_Group := Line = Group_Header;
+                  if In_Group then
+                     Have_Group := True;
+                  end if;
+               end;
+            end if;
+         else
+            Entry_Count := Entry_Count + 1;
+            for Index in Line'Range loop
+               if Line (Index) = '=' then
+                  Equals := Index;
+                  exit;
+               end if;
+            end loop;
+
+            if not Have_Any_Group or else Equals <= Line'First then
+               Entry_Valid := False;
+            else
+               declare
+                  Key   : constant String :=
+                    Trim_Blanks (Line (Line'First .. Equals - 1));
+                  Value : constant String :=
+                    Trim_Blanks (Line (Equals + 1 .. Line'Last));
+               begin
+                  if Keys_Seen.Contains (Key) then
+                     Entry_Valid := False;
+                  else
+                     Keys_Seen.Insert (Key);
+                     if not In_Group then
+                        null;
+                     elsif Key = "Type" then
+                        Is_App := Value = "Application";
+                        Have_Type := True;
+                     elsif Key = "Name" then
+                        Assign_Decoded (Value, Name_Value);
+                        Have_Name := True;
+                     elsif Key'Length > 5
+                       and then Key (Key'First .. Key'First + 4) = "Name["
+                     then
+                        Consider_Localized
+                          (Key, "Name", Value, Localized_Name_Value,
+                           Have_Localized_Name, Name_Rank);
+                     elsif Key = "Exec" then
+                        Assign_Decoded (Value, Exec_Value);
+                     elsif Key = "Icon" then
+                        Assign_Decoded (Value, Icon_Value);
+                        Have_Icon := True;
+                     elsif Key'Length > 5
+                       and then Key (Key'First .. Key'First + 4) = "Icon["
+                     then
+                        Any_Localized_Icon := True;
+                        Consider_Localized
+                          (Key, "Icon", Value, Localized_Icon_Value,
+                           Have_Localized_Icon, Icon_Rank);
+                     elsif Key = "TryExec" then
+                        Assign_Decoded (Value, Try_Exec_Value);
+                        Have_Try_Exec := True;
+                     elsif Key = "OnlyShowIn" then
+                        Assign_String_List (Value, Only_Show_In);
+                        Have_Only_Show_In := True;
+                     elsif Key = "NotShowIn" then
+                        Assign_String_List (Value, Not_Show_In);
+                        Have_Not_Show_In := True;
+                     elsif Key = "NoDisplay" then
+                        Assign_Boolean (Value, No_Display);
+                     elsif Key = "Hidden" then
+                        Assign_Boolean (Value, Hidden);
+                     end if;
+                  end if;
+               end;
+            end if;
+         end if;
+      end Process_Line;
    begin
       Found := False;
       App :=
@@ -718,105 +861,65 @@ package body Files.Applications is
          Icon         => Null_Unbounded_String,
          Desktop_File => Null_Unbounded_String);
 
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
-      while not Ada.Text_IO.End_Of_File (File) loop
-         declare
-            Line    : constant String := Trim_Blanks (Ada.Text_IO.Get_Line (File));
-            Equals  : Natural := 0;
-         begin
-            if Line'Length > 0 and then Line (Line'First) = '[' then
-               Keys_Seen.Clear;
-               if not Is_Valid_Group_Header (Line) then
-                  Entry_Valid := False;
-                  In_Group := False;
-               else
-                  declare
-                     Group_Name : constant String :=
-                       Line (Line'First + 1 .. Line'Last - 1);
-                  begin
-                     Have_Any_Group := True;
-                     if Groups_Seen.Contains (Group_Name) then
-                        Entry_Valid := False;
-                     else
-                        Groups_Seen.Insert (Group_Name);
-                     end if;
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return;
+      end if;
 
-                     In_Group := Line = Group_Header;
-                     if In_Group then
-                        Have_Group := True;
-                     end if;
-                  end;
-               end if;
-            elsif Line'Length > 0
-              and then Line (Line'First) /= '#'
-            then
-               for Index in Line'Range loop
-                  if Line (Index) = '=' then
-                     Equals := Index;
-                     exit;
-                  end if;
-               end loop;
-
-               if not Have_Any_Group or else Equals <= Line'First then
-                  Entry_Valid := False;
-               else
-                  declare
-                     Key   : constant String :=
-                       Trim_Blanks (Line (Line'First .. Equals - 1));
-                     Value : constant String :=
-                       Trim_Blanks (Line (Equals + 1 .. Line'Last));
-                  begin
-                     if Keys_Seen.Contains (Key) then
-                        Entry_Valid := False;
-                     else
-                        Keys_Seen.Insert (Key);
-                        if not In_Group then
-                           null;
-                        elsif Key = "Type" then
-                           Is_App := Value = "Application";
-                           Have_Type := True;
-                        elsif Key = "Name" then
-                           Assign_Decoded (Value, Name_Value);
-                           Have_Name := True;
-                        elsif Key'Length > 5
-                          and then Key (Key'First .. Key'First + 4) = "Name["
-                        then
-                           Consider_Localized
-                             (Key, "Name", Value, Localized_Name_Value,
-                              Have_Localized_Name, Name_Rank);
-                        elsif Key = "Exec" then
-                           Assign_Decoded (Value, Exec_Value);
-                        elsif Key = "Icon" then
-                           Assign_Decoded (Value, Icon_Value);
-                           Have_Icon := True;
-                        elsif Key'Length > 5
-                          and then Key (Key'First .. Key'First + 4) = "Icon["
-                        then
-                           Any_Localized_Icon := True;
-                           Consider_Localized
-                             (Key, "Icon", Value, Localized_Icon_Value,
-                              Have_Localized_Icon, Icon_Rank);
-                        elsif Key = "TryExec" then
-                           Assign_Decoded (Value, Try_Exec_Value);
-                           Have_Try_Exec := True;
-                        elsif Key = "OnlyShowIn" then
-                           Assign_String_List (Value, Only_Show_In);
-                           Have_Only_Show_In := True;
-                        elsif Key = "NotShowIn" then
-                           Assign_String_List (Value, Not_Show_In);
-                           Have_Not_Show_In := True;
-                        elsif Key = "NoDisplay" then
-                           Assign_Boolean (Value, No_Display);
-                        elsif Key = "Hidden" then
-                           Assign_Boolean (Value, Hidden);
-                        end if;
-                     end if;
-                  end;
-               end if;
-            end if;
-         end;
+      loop
+         Bytes_Read := GNAT.OS_Lib.Read
+           (File, Read_Buffer'Address, Read_Buffer'Length);
+         if Bytes_Read < 0 then
+            raise Ada.Directories.Use_Error;
+         end if;
+         exit when Bytes_Read = 0;
+         if Natural (Bytes_Read) >
+           Max_Desktop_File_Bytes - Length (File_Content)
+         then
+            Entry_Valid := False;
+            exit;
+         end if;
+         Append (File_Content, Read_Buffer (1 .. Bytes_Read));
       end loop;
-      Ada.Text_IO.Close (File);
+      GNAT.OS_Lib.Close (File);
+      File := GNAT.OS_Lib.Invalid_FD;
+
+      if not Entry_Valid then
+         return;
+      end if;
+
+      declare
+         Cursor : Positive := 1;
+         Last   : Natural;
+         Count  : constant Natural := Length (File_Content);
+      begin
+         while Cursor <= Count and then Entry_Valid loop
+            Last := Cursor;
+            while Last <= Count
+              and then Element (File_Content, Last) /= ASCII.LF
+              and then Element (File_Content, Last) /= ASCII.CR
+            loop
+               Last := Last + 1;
+            end loop;
+            Process_Line
+              ((if Last = Cursor then ""
+                else Slice (File_Content, Cursor, Last - 1)));
+            if Last <= Count then
+               declare
+                  First_Mark : constant Character :=
+                    Element (File_Content, Last);
+               begin
+                  Last := Last + 1;
+                  if First_Mark = ASCII.CR and then Last <= Count
+                    and then Element (File_Content, Last) = ASCII.LF
+                  then
+                     Last := Last + 1;
+                  end if;
+               end;
+            end if;
+            Cursor := Last;
+         end loop;
+      end;
 
       if Have_Localized_Name then
          Name_Value := Localized_Name_Value;
@@ -854,13 +957,8 @@ package body Files.Applications is
       end if;
    exception
       when others =>
-         if Ada.Text_IO.Is_Open (File) then
-            begin
-               Ada.Text_IO.Close (File);
-            exception
-               when others =>
-                  null;
-            end;
+         if File /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (File);
          end if;
          Found := False;
    end Parse_Desktop_File;
@@ -872,7 +970,10 @@ package body Files.Applications is
       Result : String := Relative_Path;
    begin
       for Index in Result'Range loop
-         if Result (Index) = '/' or else Result (Index) = '\' then
+         --  Scan_Directory constructs relative IDs with '/', on every host.
+         --  A backslash can only survive in a POSIX filename; replacing it
+         --  would make two distinct desktop files claim the same ID.
+         if Result (Index) = '/' then
             Result (Index) := '-';
          end if;
       end loop;
@@ -884,6 +985,7 @@ package body Files.Applications is
    --  ID even when hidden or malformed, so a lower-priority definition cannot
    --  unexpectedly make that application visible again.
    Max_Application_Scan_Depth : constant Natural := 64;
+   Max_Application_Scan_Entries : constant Natural := 100_000;
 
    procedure Scan_Directory
      (Directory     : String;
@@ -891,6 +993,7 @@ package body Files.Applications is
       Locales       : Files.Types.String_Vectors.Vector;
       Claimed       : in out Desktop_Id_Sets.Set;
       Apps          : in out Application_Vectors.Vector;
+      Scanned       : in out Natural;
       Depth         : Natural := 0)
    is
       Search  : Ada.Directories.Search_Type;
@@ -913,7 +1016,9 @@ package body Files.Applications is
             Ada.Directories.Special_File  => False]);
 
       while Ada.Directories.More_Entries (Search) loop
+         exit when Scanned >= Max_Application_Scan_Entries;
          Ada.Directories.Get_Next_Entry (Search, Element);
+         Scanned := Scanned + 1;
          declare
             Simple : constant String := Ada.Directories.Simple_Name (Element);
             Full   : constant String := Ada.Directories.Full_Name (Element);
@@ -931,7 +1036,7 @@ package body Files.Applications is
             elsif Kind = Ada.Directories.Directory then
                if Simple /= "." and then Simple /= ".." then
                   Scan_Directory
-                    (Full, Relative, Locales, Claimed, Apps, Depth + 1);
+                    (Full, Relative, Locales, Claimed, Apps, Scanned, Depth + 1);
                end if;
             elsif Kind = Ada.Directories.Ordinary_File
               and then Simple'Length > 8
@@ -1042,6 +1147,7 @@ package body Files.Applications is
    function Available_Applications return Application_Vectors.Vector is
       Collected : Application_Vectors.Vector;
       Claimed   : Desktop_Id_Sets.Set;
+      Scanned   : Natural := 0;
       Locales   : constant Files.Types.String_Vectors.Vector :=
         Message_Locale_Candidates;
    begin
@@ -1051,7 +1157,9 @@ package body Files.Applications is
             Relative_Path => "",
             Locales       => Locales,
             Claimed       => Claimed,
-            Apps          => Collected);
+            Apps          => Collected,
+            Scanned       => Scanned);
+         exit when Scanned >= Max_Application_Scan_Entries;
       end loop;
 
       Application_Sorting.Sort (Collected);

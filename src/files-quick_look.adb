@@ -33,7 +33,9 @@ package body Files.Quick_Look is
 
       --  Treat a large share of stray control bytes as binary; ordinary text
       --  and source files stay well under this threshold.
-      return Control_Count * 100 > Raw_Bytes'Length * 10;
+      --  Equivalent to Control_Count * 10 > Length, without overflowing for a
+      --  very large caller-supplied buffer.
+      return Control_Count > Raw_Bytes'Length / 10;
    end Looks_Binary;
 
    --  Split Raw_Bytes into at most Max_Preview_Lines lines on LF boundaries,
