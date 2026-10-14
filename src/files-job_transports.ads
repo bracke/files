@@ -1,5 +1,5 @@
 with Ada.Finalization;
-private with Interfaces.C;
+private with Hostkit.Lease_Files;
 
 with Files.Types;
 
@@ -95,8 +95,7 @@ package Files.Job_Transports is
    --  Claim an incomplete transport only when its pre-creation witness proves
    --  that this version started it and no creator still holds that witness.
    --  @param Directory Possible incomplete transport directory.
-   --  @param Identity Captured identity for guarded removal, or empty when
-   --  a pre-lease candidate has no filesystem birth time.
+   --  @param Identity Captured identity required for guarded removal.
    --  @param Owner Exclusive claim, unchanged on failure.
    --  @param Minimum_Age Grace period before claiming a witnessed directory.
    --  @return Acquired retains the witness lock for guarded removal; Deferred
@@ -113,19 +112,12 @@ package Files.Job_Transports is
    --  @param Owner Claimed witness, released by this call.
    procedure Forget_Witness (Directory : String; Owner : in out Lease);
 
-   --  Remove an incomplete candidate that contains only protocol files.
-   --  This works even when the filesystem has no birth time.
-   --  @param Directory Witnessed incomplete transport to remove.
-   --  @param Owner Exclusive witness claim held through removal.
-   --  @return True when the incomplete directory was removed.
-   function Remove_Empty_Incomplete (Directory : String; Owner : Lease) return Boolean;
-
    --  Remove orphaned witnesses whose directory is gone or fully marked.
    procedure Scavenge_Witnesses;
 
 private
    type Lease is new Ada.Finalization.Limited_Controlled with record
-      Handle : Interfaces.C.long_long := 0;
+      Handle : Hostkit.Lease_Files.Lease;
       Exclusive : Boolean := False;
       Directory : Files.Types.UString;
       Identity  : Files.Types.UString;

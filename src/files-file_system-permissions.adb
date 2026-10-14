@@ -45,6 +45,10 @@ package body Permissions is
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.permissions.unsupported"));
+      elsif Mode > 8#7777# then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.permissions.failed"));
       elsif not Exists_Safely (Path) then
          return
            (Success   => False,

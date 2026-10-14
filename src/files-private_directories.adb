@@ -1,22 +1,17 @@
 with Ada.Directories;
-with Interfaces.C;
-with System;
+with Hostkit.Private_Paths;
 
 package body Files.Private_Directories is
    function Try_Create (Path : String) return Create_Result is
-      use type Interfaces.C.int;
-      function Create_Native (Name : System.Address) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_private_directory";
-      Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
-      Result : constant Interfaces.C.int := Create_Native (Name'Address);
    begin
-      if Result = 1 then
-         return Created;
-      elsif Result = 0 then
-         return Collision;
-      else
-         raise Ada.Directories.Use_Error;
-      end if;
+      case Hostkit.Private_Paths.Create_Directory (Path) is
+         when Hostkit.Private_Paths.Created =>
+            return Created;
+         when Hostkit.Private_Paths.Already_Exists =>
+            return Collision;
+         when Hostkit.Private_Paths.Create_Error =>
+            raise Ada.Directories.Use_Error;
+      end case;
    end Try_Create;
 
    procedure Create (Path : String) is
@@ -25,4 +20,18 @@ package body Files.Private_Directories is
          raise Ada.Directories.Use_Error;
       end if;
    end Create;
+
+   procedure Ensure (Path : String) is
+   begin
+      if not Hostkit.Private_Paths.Ensure_Directory (Path) then
+         raise Ada.Directories.Use_Error;
+      end if;
+   end Ensure;
+
+   procedure Make_File_Private (Descriptor : GNAT.OS_Lib.File_Descriptor) is
+   begin
+      if not Hostkit.Private_Paths.Restrict_Open_File (Integer (Descriptor)) then
+         raise Ada.Directories.Use_Error;
+      end if;
+   end Make_File_Private;
 end Files.Private_Directories;

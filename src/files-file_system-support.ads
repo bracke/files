@@ -3,13 +3,17 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 with Interfaces.C;
+with Hostkit.Metadata_Copy;
 
 --  Shared low-level helpers of Files.File_System (safe close / end-search,
 --  environment access, small text formatting), extracted so the concern
 --  children and the parent can all use them. A private child.
 private package Files.File_System.Support is
+   use type Hostkit.Metadata_Copy.Entry_Times;
 
    --  Enumerate names without following links or dropping dangling links.
+   --  Raises Use_Error before buffered names exceed the shared entry or byte
+   --  budget, so a single hostile directory cannot exhaust process memory.
    --  @param Path Directory to read.
    --  @param Visit Called for each entry other than dot and dot-dot.
    procedure For_Each_Entry
@@ -83,8 +87,7 @@ private package Files.File_System.Support is
    --  @return Exclusively created, journaled private staging directory.
    function Create_Stage (Parent : String) return String;
 
-   type Copy_Times is array (Positive range 1 .. 4) of Interfaces.C.long_long
-     with Convention => C;
+   subtype Copy_Times is Hostkit.Metadata_Copy.Entry_Times;
    package Source_Time_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type => String, Element_Type => Copy_Times);
 

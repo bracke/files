@@ -44,11 +44,15 @@ package body Copy_Move is
      (Path : String)
       return Mutation_Result
    is
+      Windows : constant Boolean := Files_Config.Alire_Host_OS = "windows";
+
       function Has_Navigation_Component return Boolean is
          First : Positive := Path'First;
       begin
          for Index in Path'Range loop
-            if Path (Index) = '/' or else Path (Index) = '\' then
+            if Path (Index) = '/'
+              or else (Windows and then Path (Index) = '\')
+            then
                if Index > First
                  and then Path (First .. Index - 1) in "." | ".."
                then
@@ -65,7 +69,11 @@ package body Copy_Move is
       begin
          if Path = ""
            or else Path = "/"
-           or else (Path'Length = 3 and then Path (Path'First + 1 .. Path'First + 2) = ":\")
+           or else
+             (Windows
+              and then Path'Length = 3
+              and then Path (Path'First + 1) = ':'
+              and then Path (Path'First + 2) in '/' | '\')
            or else Has_Navigation_Component
          then
             return True;
@@ -194,7 +202,9 @@ package body Copy_Move is
            or else (I'Length > O'Length
                     and then I (I'First .. I'First + O'Length - 1) = O
                     and then (I (I'First + O'Length) = '/'
-                              or else I (I'First + O'Length) = '\'));
+                              or else
+                                (Files_Config.Alire_Host_OS = "windows"
+                                 and then I (I'First + O'Length) = '\')));
       end Is_Within_Tree;
    begin
       if not Files.Fs.Directory_Exists (Destination_Directory)
@@ -328,7 +338,11 @@ package body Copy_Move is
                   declare
                      Identity : constant String := Files.File_Identities.Token (Source_Path);
                   begin
-                     if Support.Move_No_Replace (Source_Path, Destination_Path) then
+                     if Identity = "" then
+                        return
+                          (Success   => False,
+                           Error_Key => To_Unbounded_String ("error.drop.failed"));
+                     elsif Support.Move_No_Replace (Source_Path, Destination_Path) then
                         --  The move is committed. Only a refused rename may use
                         --  the copy/delete fallback. A rename needs no content
                         --  snapshot: move recovery and Undo use the entry identity.

@@ -2,12 +2,14 @@ with Ada.Environment_Variables;
 with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 with Ada.Strings.Unbounded;
-with System;
 
 with GNAT.OS_Lib;
 with GNAT.Directory_Operations;
 with Files.Job_Context;
+with Files.Directory_Rename_Access;
 with Files.File_Identities;
+with Files.Platform_Regular_Files;
+with Files_Config;
 with CryptoLib.Hashes;
 
 with Hostkit.Fs;
@@ -16,19 +18,20 @@ with Hostkit.Metadata;
 package body Files.File_System.Support is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
-   use type Interfaces.C.int;
-   use type Interfaces.C.unsigned_long_long;
-   use type System.Address;
+   use type Interfaces.Unsigned_64;
 
    procedure For_Each_Entry
      (Path : String; Visit : not null access procedure (Name : String))
    is
+      Max_Entries : constant Natural := 100_000;
+      Max_Name_Bytes : constant Natural := 64 * 1024 * 1024;
       Dir : GNAT.Directory_Operations.Dir_Type;
       type Name_Buffer is access String;
       procedure Free is new Ada.Unchecked_Deallocation (String, Name_Buffer);
       Buffer : Name_Buffer := new String (1 .. 65_536);
       Last : Natural;
       Names : Files.Types.String_Vectors.Vector;
+      Name_Bytes : Natural := 0;
    begin
       GNAT.Directory_Operations.Open (Dir, Path);
       loop
@@ -38,7 +41,13 @@ package body Files.File_System.Support is
             raise Ada.Directories.Use_Error;
          end if;
          if Buffer (1 .. Last) /= "." and then Buffer (1 .. Last) /= ".." then
+            if Natural (Names.Length) >= Max_Entries
+              or else Last > Max_Name_Bytes - Name_Bytes
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
             Names.Append (To_Unbounded_String (Buffer (1 .. Last)));
+            Name_Bytes := Name_Bytes + Last;
          end if;
       end loop;
       GNAT.Directory_Operations.Close (Dir);
@@ -156,16 +165,16 @@ package body Files.File_System.Support is
       return Left.Root_Revision = Right.Root_Revision and then Left.Entries = Right.Entries;
    end "=";
 
-   function Regular_File_Digest (Path : String) return String;
+   function Regular_File_Digest
+     (Path                   : String;
+      Cancel                 : Cancellation_Check := null;
+      Check_Job_Cancellation : Boolean := True) return String;
 
    function Snapshot (Path : String) return Source_Snapshot is
       Result : Source_Snapshot;
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
       procedure Visit (Full_Path, Relative : String; Depth : Natural) is
-         function Capture_Times (Name, Values : System.Address) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_copy_times_capture";
-         Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Full_Path);
-         Saved_Times : aliased Copy_Times;
+         Saved_Times : Copy_Times;
          Identity : constant String := Files.File_Identities.Token (Full_Path);
          Is_Directory : constant Boolean :=
            not Hostkit.Fs.Is_Link (Full_Path)
@@ -185,7 +194,7 @@ package body Files.File_System.Support is
          then
             raise Ada.Directories.Use_Error;
          end if;
-         if Capture_Times (Name'Address, Saved_Times'Address) /= 1 then
+         if not Hostkit.Metadata_Copy.Capture_Times (Full_Path, Saved_Times) then
             raise Ada.Directories.Use_Error;
          end if;
          Result.Times.Insert (Full_Path, Saved_Times);
@@ -217,14 +226,16 @@ package body Files.File_System.Support is
       return Result;
    end Snapshot;
 
-   function Regular_File_Digest (Path : String) return String is
+   function Regular_File_Digest
+     (Path                   : String;
+      Cancel                 : Cancellation_Check := null;
+      Check_Job_Cancellation : Boolean := True) return String
+   is
       use Ada.Streams;
       use type GNAT.OS_Lib.File_Descriptor;
-      function Open_Noatime (Name : System.Address) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_digest_open_noatime";
-      Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
       Input : Ada.Streams.Stream_IO.File_Type;
       Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Supported : Boolean;
       Buffer : Stream_Element_Array (1 .. 65_536);
       Last : Stream_Element_Offset;
       Bytes_Read : Integer;
@@ -234,10 +245,19 @@ package body Files.File_System.Support is
       Result : String (1 .. 64);
    begin
       CryptoLib.Hashes.Initialize_SHA256 (Context);
-      Descriptor := GNAT.OS_Lib.File_Descriptor (Open_Noatime (Name'Address));
+      Descriptor := Files.Platform_Regular_Files.Open_Read (Path, False, Supported);
+      if Supported and then Descriptor = GNAT.OS_Lib.Invalid_FD then
+         --  The native implementation is available but refused a link,
+         --  non-regular entry, or failed open.  Falling back to a pathname
+         --  open here would reintroduce the race that it just detected.
+         raise Ada.Directories.Use_Error;
+      end if;
       if Descriptor /= GNAT.OS_Lib.Invalid_FD then
          loop
-            if Files.Job_Context.Cancelled then
+            if (Cancel /= null and then Cancel.all)
+              or else
+                (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
+            then
                raise Ada.Directories.Use_Error;
             end if;
             Bytes_Read := GNAT.OS_Lib.Read (Descriptor, Buffer'Address, Integer (Buffer'Length));
@@ -253,7 +273,10 @@ package body Files.File_System.Support is
       else
          Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, Path);
          while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
-            if Files.Job_Context.Cancelled then
+            if (Cancel /= null and then Cancel.all)
+              or else
+                (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
+            then
                raise Ada.Directories.Use_Error;
             end if;
             Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
@@ -298,8 +321,6 @@ package body Files.File_System.Support is
       end Add;
 
       procedure Restore_Directory_Times is
-         function Apply_Times (Name, Values : System.Address) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_copy_times_apply";
       begin
          for Cursor in State.Times.Iterate loop
             declare
@@ -308,14 +329,11 @@ package body Files.File_System.Support is
                if not Hostkit.Fs.Is_Link (Item_Path)
                  and then Ada.Directories.Kind (Item_Path) = Ada.Directories.Directory
                then
-                  declare
-                     Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Item_Path);
-                     Values : aliased Copy_Times := Source_Time_Maps.Element (Cursor);
-                  begin
-                     if Apply_Times (Name'Address, Values'Address) /= 1 then
-                        raise Ada.Directories.Use_Error;
-                     end if;
-                  end;
+                  if not Hostkit.Metadata_Copy.Apply_Times
+                    (Item_Path, Source_Time_Maps.Element (Cursor))
+                  then
+                     raise Ada.Directories.Use_Error;
+                  end if;
                end if;
             end;
          end loop;
@@ -366,44 +384,33 @@ package body Files.File_System.Support is
    end Tree_Revision;
 
    function Move_No_Replace (Source, Destination : String) return Boolean is
-      function Prepare (Name, Context : System.Address) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_directory_rename_begin";
-      function Finish (Context : System.Address) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_directory_rename_finish";
-      procedure Release (Context : System.Address)
-        with Import, Convention => C, External_Name => "files_directory_rename_release";
-      Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Source);
-      Context : aliased System.Address := System.Null_Address;
-      Moved : Boolean;
-      Restored : Interfaces.C.int;
+      Context  : Files.Directory_Rename_Access.Context;
+      Moved    : Boolean;
+      Restored : Boolean;
    begin
-      if Prepare (Name'Address, Context'Address) /= 1 then
+      if not Files.Directory_Rename_Access.Prepare (Source, Context) then
          return False;
       end if;
       Moved := Hostkit.Fs.Move_No_Replace (Source, Destination);
-      Restored := Finish (Context);
-      if Restored /= 1 then
+      Restored := Files.Directory_Rename_Access.Finish (Context);
+      if not Restored then
          --  Restore the original pathname before reporting a refused operation.
          --  If that pathname is occupied, leave the committed payload in place.
          if Moved and then Hostkit.Fs.Move_No_Replace (Destination, Source) then
             Moved := False;
          end if;
-         Restored := Finish (Context);
-         if Restored /= 1 then
-            Release (Context);
+         Restored := Files.Directory_Rename_Access.Finish (Context);
+         if not Restored then
+            Files.Directory_Rename_Access.Release (Context);
          end if;
-         Context := System.Null_Address;
          raise Ada.Directories.Use_Error;
       end if;
-      Context := System.Null_Address;
       return Moved;
    exception
       when others =>
-         if Context /= System.Null_Address then
-            Restored := Finish (Context);
-            if Restored /= 1 then
-               Release (Context);
-            end if;
+         Restored := Files.Directory_Rename_Access.Finish (Context);
+         if not Restored then
+            Files.Directory_Rename_Access.Release (Context);
          end if;
          raise;
    end Move_No_Replace;
@@ -446,11 +453,49 @@ package body Files.File_System.Support is
       Items : constant Files.Types.String_Vectors.Vector := Files.Copy_Context.Records (Batch);
       Links : Copied_File_Maps.Map;
       Index : Positive := 1;
+
+      function Nul_Free (Value : String) return Boolean is
+      begin
+         for Item of Value loop
+            if Item = ASCII.NUL then
+               return False;
+            end if;
+         end loop;
+         return True;
+      end Nul_Free;
+
+      function Valid_Absolute_Path (Path : String) return Boolean is
+      begin
+         return Path /= ""
+           and then Nul_Free (Path)
+           and then GNAT.OS_Lib.Is_Absolute_Path (Path);
+      exception
+         when others =>
+            return False;
+      end Valid_Absolute_Path;
    begin
       if Natural (Items.Length) mod 6 /= 0 then
          raise Ada.Directories.Use_Error;
       end if;
       while Index <= Items.Last_Index loop
+         --  Copy_Context is deliberately only a bounded transport.  Validate
+         --  the hard-link schema here before a persisted pathname can be used
+         --  for identity checks, digest reads, or link creation.
+         if Length (Items (Index)) = 0
+           or else Length (Items (Index + 1)) = 0
+           or else Length (Items (Index + 2)) = 0
+           or else not Valid_Absolute_Path (To_String (Items (Index + 3)))
+           or else Length (Items (Index + 4)) = 0
+           or else Length (Items (Index + 5)) = 0
+           or else not Nul_Free (To_String (Items (Index)))
+           or else not Nul_Free (To_String (Items (Index + 1)))
+           or else not Nul_Free (To_String (Items (Index + 2)))
+           or else not Nul_Free (To_String (Items (Index + 4)))
+           or else not Nul_Free (To_String (Items (Index + 5)))
+           or else Links.Contains (To_String (Items (Index)))
+         then
+            raise Ada.Directories.Use_Error;
+         end if;
          Links.Insert
            (To_String (Items (Index)),
             (Path                 => Items (Index + 3),
@@ -473,7 +518,10 @@ package body Files.File_System.Support is
             Path : constant String := To_String (Item.Path);
             Published : constant String :=
               (if Path = Stage then Destination
-               elsif Starts_With (Path, Stage & "/") or else Starts_With (Path, Stage & "\")
+               elsif Starts_With (Path, Stage & "/")
+                 or else
+                   (Files_Config.Alire_Host_OS = "windows"
+                    and then Starts_With (Path, Stage & "\"))
                then Destination & Path (Path'First + Stage'Length .. Path'Last)
                else Path);
          begin
@@ -629,17 +677,7 @@ package body Files.File_System.Support is
 
       Owned     : Boolean := False;
 
-      function Capture_Metadata (Name : System.Address) return System.Address
-        with Import, Convention => C, External_Name => "files_copy_metadata_capture";
-      function Apply_Metadata (Data, Name : System.Address; Ownership : Interfaces.C.int) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_copy_metadata_apply";
-      procedure Set_Times (Data, Values : System.Address)
-        with Import, Convention => C, External_Name => "files_copy_metadata_set_times";
-      procedure Release_Metadata (Data : System.Address)
-        with Import, Convention => C, External_Name => "files_copy_metadata_release";
-      function Link_Count (Data : System.Address) return Interfaces.C.unsigned_long_long
-        with Import, Convention => C, External_Name => "files_copy_metadata_link_count";
-      Metadata : System.Address := System.Null_Address;
+      Metadata : Hostkit.Metadata_Copy.Snapshot := Hostkit.Metadata_Copy.No_Snapshot;
       Source_Identity : Files.Types.UString;
       Source_Revision : Files.Types.UString;
       Source_Content_Digest : Files.Types.UString;
@@ -649,9 +687,6 @@ package body Files.File_System.Support is
 
       function Content_Digest (Path : String) return String is
          use Ada.Streams;
-         Input : Ada.Streams.Stream_IO.File_Type;
-         Buffer : Stream_Element_Array (1 .. 65_536);
-         Last : Stream_Element_Offset;
          Context : CryptoLib.Hashes.SHA256_Context;
          Digest : CryptoLib.Hashes.SHA256_Digest;
          Hex : constant String := "0123456789abcdef";
@@ -683,15 +718,11 @@ package body Files.File_System.Support is
                end;
             end;
          else
-            Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, Path);
-            while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
-               Check_Cancelled;
-               Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
-               if Last >= Buffer'First then
-                  Add (Buffer (Buffer'First .. Last));
-               end if;
-            end loop;
-            Ada.Streams.Stream_IO.Close (Input);
+            --  Use the descriptor-pinned, no-follow regular-file reader.  A
+            --  pathname open after the classification above could otherwise
+            --  follow a replacement symlink or block on a replacement FIFO.
+            return Regular_File_Digest
+              (Path, Cancel, Check_Job_Cancellation);
          end if;
          Digest := CryptoLib.Hashes.Finalize (Context);
          for Index in Digest'Range loop
@@ -699,20 +730,16 @@ package body Files.File_System.Support is
             Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
          end loop;
          return Result;
-      exception
-         when others =>
-            Safe_Close (Input);
-            raise;
       end Content_Digest;
 
       procedure Copy_Metadata is
-         Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Destination_Path);
       begin
-         if Apply_Metadata (Metadata, Name'Address, Boolean'Pos (Preserve_Ownership)) /= 1 then
+         if not Hostkit.Metadata_Copy.Apply
+           (Metadata, Destination_Path, Preserve_Ownership)
+         then
             raise Ada.Directories.Use_Error;
          end if;
-         Release_Metadata (Metadata);
-         Metadata := System.Null_Address;
+         Metadata := Hostkit.Metadata_Copy.No_Snapshot;
       end Copy_Metadata;
 
       procedure Record_Hard_Link is
@@ -761,9 +788,9 @@ package body Files.File_System.Support is
       end Check_Cancelled;
 
       function Copy_Hard_Link return Boolean is
-         Links : Interfaces.C.unsigned_long_long;
+         Links : Interfaces.Unsigned_64;
       begin
-         Links := Link_Count (Metadata);
+         Links := Hostkit.Metadata_Copy.Link_Count (Metadata);
          if Shared_Batch or else Links > 1 then
             Source_Identity := To_Unbounded_String (Files.File_Identities.Token (Source_Path));
             Source_Revision := To_Unbounded_String (Files.File_Identities.Revision (Source_Path, False));
@@ -805,8 +832,7 @@ package body Files.File_System.Support is
                   raise Ada.Directories.Use_Error;
                end if;
                Check_Cancelled;
-               Release_Metadata (Metadata);
-               Metadata := System.Null_Address;
+               Metadata := Hostkit.Metadata_Copy.No_Snapshot;
                if Root_File_Digest /= null and then not Hostkit.Fs.Is_Link (Source_Path) then
                   Root_File_Digest.all := First.Content_Digest;
                end if;
@@ -820,10 +846,13 @@ package body Files.File_System.Support is
          use Ada.Streams;
          use type GNAT.OS_Lib.File_Descriptor;
          Input  : Ada.Streams.Stream_IO.File_Type;
+         Input_Descriptor : GNAT.OS_Lib.File_Descriptor :=
+           GNAT.OS_Lib.Invalid_FD;
          Output : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
          Buffer : Stream_Element_Array (1 .. 65_536);
          Last   : Stream_Element_Offset;
          Next   : Stream_Element_Offset;
+         Bytes_Read : Integer;
          Wrote  : Integer;
          Closed : Boolean;
          Sparse : Boolean := False;
@@ -831,43 +860,80 @@ package body Files.File_System.Support is
          Digest : CryptoLib.Hashes.SHA256_Digest;
          Hex : constant String := "0123456789abcdef";
          Digest_Text : String (1 .. 64);
-         function Skip_Zeros (Descriptor, Count : Interfaces.C.int) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_copy_skip_zeros";
-         function Finish_Sparse (Descriptor : Interfaces.C.int) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_copy_finish_sparse";
-      begin
-         if Root_File_Digest /= null then
-            CryptoLib.Hashes.Initialize_SHA256 (Digest_Context);
-         end if;
-         Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, Source_Path);
-         Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
-         if Output = GNAT.OS_Lib.Invalid_FD then
-            raise Ada.Directories.Use_Error;
-         end if;
-         Owned := True;
-         while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
-            Check_Cancelled;
-            Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
-            if Root_File_Digest /= null and then Last >= Buffer'First then
-               CryptoLib.Hashes.Update (Digest_Context, Buffer (Buffer'First .. Last));
+         procedure Copy_Buffer (Buffer_Last : Stream_Element_Offset) is
+         begin
+            if Root_File_Digest /= null
+              and then Buffer_Last >= Buffer'First
+            then
+               CryptoLib.Hashes.Update
+                 (Digest_Context, Buffer (Buffer'First .. Buffer_Last));
             end if;
             Next := Buffer'First;
-            if Last >= Buffer'First and then (for all Index in Buffer'First .. Last => Buffer (Index) = 0)
-              and then Skip_Zeros (Interfaces.C.int (Output), Interfaces.C.int (Last - Buffer'First + 1)) = 1
+            if Buffer_Last >= Buffer'First
+              and then
+                (for all Index in Buffer'First .. Buffer_Last =>
+                   Buffer (Index) = 0)
+              and then Files.Platform_Regular_Files.Skip_Zeros
+                (Output, Integer (Buffer_Last - Buffer'First + 1))
             then
                Sparse := True;
-               Next := Last + 1;
+               Next := Buffer_Last + 1;
             end if;
-            while Next <= Last loop
-               Wrote := GNAT.OS_Lib.Write (Output, Buffer (Next)'Address, Integer (Last - Next + 1));
+            while Next <= Buffer_Last loop
+               Wrote := GNAT.OS_Lib.Write
+                 (Output, Buffer (Next)'Address,
+                  Integer (Buffer_Last - Next + 1));
                if Wrote <= 0 then
                   raise Ada.Directories.Use_Error;
                end if;
                Next := Next + Stream_Element_Offset (Wrote);
             end loop;
-         end loop;
-         Ada.Streams.Stream_IO.Close (Input);
-         if Sparse and then Finish_Sparse (Interfaces.C.int (Output)) /= 1 then
+         end Copy_Buffer;
+      begin
+         if Root_File_Digest /= null then
+            CryptoLib.Hashes.Initialize_SHA256 (Digest_Context);
+         end if;
+         declare
+            Supported : Boolean;
+         begin
+            Input_Descriptor := Files.Platform_Regular_Files.Open_Read
+              (Source_Path, False, Supported);
+            if Supported and then Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
+               raise Ada.Directories.Use_Error;
+            end if;
+         end;
+         if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
+            Ada.Streams.Stream_IO.Open
+              (Input, Ada.Streams.Stream_IO.In_File, Source_Path);
+         end if;
+         Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
+         if Output = GNAT.OS_Lib.Invalid_FD then
+            raise Ada.Directories.Use_Error;
+         end if;
+         Owned := True;
+         if Input_Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            loop
+               Check_Cancelled;
+               Bytes_Read := GNAT.OS_Lib.Read
+                 (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
+               if Bytes_Read < 0 then
+                  raise Ada.Directories.Use_Error;
+               end if;
+               exit when Bytes_Read = 0;
+               Last := Buffer'First + Stream_Element_Offset (Bytes_Read) - 1;
+               Copy_Buffer (Last);
+            end loop;
+            GNAT.OS_Lib.Close (Input_Descriptor);
+            Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
+         else
+            while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
+               Check_Cancelled;
+               Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
+               Copy_Buffer (Last);
+            end loop;
+            Ada.Streams.Stream_IO.Close (Input);
+         end if;
+         if Sparse and then not Files.Platform_Regular_Files.Finish_Sparse (Output) then
             raise Ada.Directories.Use_Error;
          end if;
          GNAT.OS_Lib.Close (Output, Closed);
@@ -889,6 +955,9 @@ package body Files.File_System.Support is
       exception
          when others =>
             Safe_Close (Input);
+            if Input_Descriptor /= GNAT.OS_Lib.Invalid_FD then
+               GNAT.OS_Lib.Close (Input_Descriptor);
+            end if;
             if Output /= GNAT.OS_Lib.Invalid_FD then
                GNAT.OS_Lib.Close (Output);
             end if;
@@ -901,17 +970,16 @@ package body Files.File_System.Support is
       end if;
       --  Capture before reading bytes or enumerating children changes atime.
       declare
-         Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Source_Path);
       begin
-         Metadata := Capture_Metadata (Name'Address);
-         if Metadata = System.Null_Address then
+         Metadata := Hostkit.Metadata_Copy.Capture (Source_Path);
+         if not Hostkit.Metadata_Copy.Is_Available (Metadata) then
             raise Ada.Directories.Use_Error;
          end if;
          if Times.Contains (Source_Path) then
             declare
-               Saved_Times : aliased Copy_Times := Times.Element (Source_Path);
+               Saved_Times : constant Copy_Times := Times.Element (Source_Path);
             begin
-               Set_Times (Metadata, Saved_Times'Address);
+               Hostkit.Metadata_Copy.Set_Times (Metadata, Saved_Times);
             end;
          end if;
       end;
@@ -978,7 +1046,7 @@ package body Files.File_System.Support is
       Record_Hard_Link;
    exception
       when others =>
-         Release_Metadata (Metadata);
+         Metadata := Hostkit.Metadata_Copy.No_Snapshot;
          if Owned then
             begin
                Delete_Owned_Tree (Destination_Path);
@@ -1007,11 +1075,25 @@ package body Files.File_System.Support is
    end Copy_Tree;
 
    procedure Delete_Tree (Path : String) is
+      Native_Result : constant Hostkit.Fs.Delete_Tree_Outcome :=
+        Hostkit.Fs.Delete_Tree_No_Follow (Path);
+
       procedure Delete_Entry (Name : String) is
       begin
          Delete_Tree (Join_Path (Path, Name));
       end Delete_Entry;
    begin
+      case Native_Result is
+         when Hostkit.Fs.Tree_Deleted =>
+            return;
+         when Hostkit.Fs.Tree_Delete_Failed =>
+            raise Ada.Directories.Use_Error;
+         when Hostkit.Fs.Tree_Delete_Unsupported =>
+            null;
+      end case;
+
+      --  Hosts without descriptor-relative traversal use the conservative
+      --  pathname fallback below.
       --  Unlink a symlink as a link, never following it: Ada.Directories.Kind
       --  and Delete_Tree dereference links, so classifying by Kind would let a
       --  recursive delete walk into and wipe the link target's real contents

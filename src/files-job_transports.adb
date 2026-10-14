@@ -2,13 +2,15 @@ with Ada.Calendar;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
-with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
-with System;
+with Interfaces;
 
 with CryptoLib.OS_Random;
+with Files.Bounded_Streams;
 with Files.Durable_Writes;
+with Files.Exclusive_Streams;
 with Files.File_Identities;
+with Files.Lease_Streams;
 with Files.Private_Directories;
 with Hostkit.Fs;
 
@@ -16,8 +18,11 @@ package body Files.Job_Transports is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
-   use type Interfaces.C.int;
-   use type Interfaces.C.long_long;
+   use type Ada.Streams.Stream_Element_Array;
+   use type Ada.Streams.Stream_Element_Offset;
+   use type Hostkit.Lease_Files.Lease_Identity;
+   use type Hostkit.Lease_Files.Open_Outcome;
+   use type Interfaces.Unsigned_64;
    use type Files.Private_Directories.Create_Result;
 
    Marker_Header : constant String := "files-job-transport-4";
@@ -31,56 +36,71 @@ package body Files.Job_Transports is
    Transport_Prefix : constant String := "files-job-";
    Witness_Prefix : constant String := ".files-job-creation-";
    Hex_Digits : constant String := "0123456789abcdef";
+   Max_Marker_Header_Length : constant := 128;
+   Max_Marker_Path_Length : constant := 32 * 1024;
+   Max_Marker_Token_Length : constant := 1024;
+   Max_Marker_Bytes : constant := 64 * 1024;
 
-   function Create_Lease_Native (Name : System.Address) return Interfaces.C.long_long
-     with Import, Convention => C, External_Name => "files_transport_lease_create";
-   function Claim_Lease_Native
-     (Name, Outcome : System.Address) return Interfaces.C.long_long
-     with Import, Convention => C, External_Name => "files_transport_lease_claim";
-   function Join_Lease_Native (Name : System.Address) return Interfaces.C.long_long
-     with Import, Convention => C, External_Name => "files_transport_lease_join";
-   procedure Release_Lease_Native (Handle : Interfaces.C.long_long)
-     with Import, Convention => C, External_Name => "files_transport_lease_release";
-   type Native_Identity is array (1 .. 5) of Interfaces.C.unsigned_long_long
-     with Convention => C;
-   function Lease_Identity_Native
-     (Handle : Interfaces.C.long_long; Value : System.Address) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_transport_lease_identity";
-   function Set_Lease_Nonce_Native
-     (Handle : Interfaces.C.long_long; Value : System.Address) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_transport_lease_set_nonce";
-   function Prepare_Witness_Native (Handle : Interfaces.C.long_long) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_transport_lease_prepare_witness";
-   function Publish_Witness_Native (Handle : Interfaces.C.long_long) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_transport_lease_publish_witness";
-   function Witness_State_Native (Handle : Interfaces.C.long_long) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_transport_lease_witness_state";
-   function Lease_Path_Matches_Native
-     (Handle : Interfaces.C.long_long; Name : System.Address) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_transport_lease_path_matches";
+   Preparing_Witness : constant Ada.Streams.Stream_Element_Array :=
+     [Character'Pos ('p'), Character'Pos ('r'), Character'Pos ('e'),
+      Character'Pos ('p'), Character'Pos ('a'), Character'Pos ('r'),
+      Character'Pos ('e'), Character'Pos ('4')];
+   Published_Witness : constant Ada.Streams.Stream_Element_Array :=
+     [Character'Pos ('p'), Character'Pos ('u'), Character'Pos ('b'),
+      Character'Pos ('l'), Character'Pos ('i'), Character'Pos ('s'),
+      Character'Pos ('h'), Character'Pos ('4')];
 
-   function Lease_Token (Handle : Interfaces.C.long_long) return String is
-      Value : aliased Native_Identity;
+   function Held (Owner : Lease) return Boolean is
+     (Hostkit.Lease_Files.Is_Held (Owner.Handle));
+
+   function Lease_Token (Handle : Hostkit.Lease_Files.Lease) return String is
+      Value : constant Hostkit.Lease_Files.Lease_Identity :=
+        Hostkit.Lease_Files.Identity (Handle);
+      Nonce : Ada.Streams.Stream_Element_Array (1 .. 16);
+      Parts : array (1 .. 5) of Interfaces.Unsigned_64 :=
+        [Value.Volume, Value.Low, Value.High, 0, 0];
    begin
-      if Handle = 0 or else Lease_Identity_Native (Handle, Value'Address) /= 1 then
+      if not Value.Available or else not Hostkit.Lease_Files.Read_At (Handle, Nonce) then
          return "";
       end if;
+      for Index in Nonce'Range loop
+         declare
+            Part : constant Positive := (if Index <= 8 then 4 else 5);
+            Shift : constant Natural := Natural ((Index - 1) mod 8) * 8;
+         begin
+            Parts (Part) := Parts (Part) or Interfaces.Shift_Left
+              (Interfaces.Unsigned_64 (Nonce (Index)), Shift);
+         end;
+      end loop;
       declare
          Result : Unbounded_String;
       begin
-         for Part of Value loop
-            Append (Result, Interfaces.C.unsigned_long_long'Image (Part));
+         for Part of Parts loop
+            Append (Result, Interfaces.Unsigned_64'Image (Part));
          end loop;
          return To_String (Result);
       end;
    end Lease_Token;
 
+   function Witness_State (Handle : Hostkit.Lease_Files.Lease) return Natural is
+      State : Ada.Streams.Stream_Element_Array (1 .. 8);
+   begin
+      if Hostkit.Lease_Files.Size (Handle) /= 8
+        or else not Hostkit.Lease_Files.Read_At (Handle, State)
+      then
+         return 0;
+      elsif State = Preparing_Witness then
+         return 1;
+      elsif State = Published_Witness then
+         return 2;
+      else
+         return 0;
+      end if;
+   end Witness_State;
+
    procedure Release (Owner : in out Lease) is
    begin
-      if Owner.Handle /= 0 then
-         Release_Lease_Native (Owner.Handle);
-         Owner.Handle := 0;
-      end if;
+      Hostkit.Lease_Files.Release (Owner.Handle);
       Owner.Exclusive := False;
       Owner.Directory := Null_Unbounded_String;
       Owner.Identity := Null_Unbounded_String;
@@ -92,20 +112,21 @@ package body Files.Job_Transports is
    end Finalize;
 
    function Claim_Lease
-     (Name  : in out Interfaces.C.char_array;
+     (Name  : String;
       Owner : in out Lease) return Claim_Outcome
    is
-      Native_Outcome : aliased Interfaces.C.int := 0;
+      Outcome : Hostkit.Lease_Files.Open_Outcome;
    begin
-      Owner.Handle := Claim_Lease_Native (Name'Address, Native_Outcome'Address);
-      if Owner.Handle /= 0 then
+      Outcome := Hostkit.Lease_Files.Open
+        (Name, Hostkit.Lease_Files.Exclusive, True, Owner.Handle);
+      if Outcome = Hostkit.Lease_Files.Opened then
          Owner.Exclusive := True;
          return Claim_Acquired;
       end if;
       return
-        (case Native_Outcome is
-           when 2      => Claim_Busy,
-           when 3      => Claim_Refused,
+        (case Outcome is
+           when Hostkit.Lease_Files.Busy => Claim_Busy,
+           when Hostkit.Lease_Files.Refused => Claim_Refused,
            when others => Claim_Error);
    end Claim_Lease;
 
@@ -151,10 +172,9 @@ package body Files.Job_Transports is
 
    procedure Forget_Witness (Directory : String; Owner : in out Lease) is
       Path : constant String := Witness_Path (Directory);
-      Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
-      Same : constant Boolean := Owner.Handle /= 0
+      Same : constant Boolean := Held (Owner)
         and then Is_Transport_Path (Directory)
-        and then Lease_Path_Matches_Native (Owner.Handle, Name'Address) = 1;
+        and then Hostkit.Lease_Files.Path_Matches (Owner.Handle, Path);
    begin
       Release (Owner);
       if Same then
@@ -172,7 +192,7 @@ package body Files.Job_Transports is
      (Directory, Owner_Token : String;
       Identity : out Files.Types.UString;
       Header : String := Marker_Header) is
-      File   : Ada.Streams.Stream_IO.File_Type;
+      File   : aliased Files.Exclusive_Streams.Output_Stream;
       Marker : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
       Temp   : constant String := Marker & ".tmp";
    begin
@@ -186,12 +206,12 @@ package body Files.Job_Transports is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Temp);
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Header);
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Directory);
-      String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
-      String'Output (Ada.Streams.Stream_IO.Stream (File), Owner_Token);
-      Ada.Streams.Stream_IO.Close (File);
+      Files.Exclusive_Streams.Create (File, Temp);
+      String'Output (File'Access, Header);
+      String'Output (File'Access, Directory);
+      String'Output (File'Access, To_String (Identity));
+      String'Output (File'Access, Owner_Token);
+      Files.Exclusive_Streams.Close (File);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish (Temp, Marker))
       then
@@ -199,13 +219,7 @@ package body Files.Job_Transports is
       end if;
    exception
       when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            begin
-               Ada.Streams.Stream_IO.Close (File);
-            exception
-               when others => null;
-            end;
-         end if;
+         Files.Exclusive_Streams.Close_Safely (File);
          begin
             if Ada.Directories.Exists (Temp) then
                Ada.Directories.Delete_File (Temp);
@@ -253,16 +267,24 @@ package body Files.Job_Transports is
             Candidate : constant String :=
               Hostkit.Fs.Join (Hostkit.Fs.Temp_Directory, Transport_Prefix & Random_Name);
             Witness : Lease;
-            Witness_Name : aliased Interfaces.C.char_array :=
-              Interfaces.C.To_C (Witness_Path (Candidate));
+            Witness_Name : constant String := Witness_Path (Candidate);
          begin
             --  The witness is created before the directory. A crash in the
             --  pre-marker window leaves a lockable proof of this attempt.
-            Witness.Handle := Create_Lease_Native (Witness_Name'Address);
-            if Witness.Handle = 0 then
-               goto Continue;
-            end if;
-            if Prepare_Witness_Native (Witness.Handle) /= 1 then
+            case Hostkit.Lease_Files.Create (Witness_Name, Witness.Handle) is
+               when Hostkit.Lease_Files.Opened =>
+                  null;
+               when Hostkit.Lease_Files.Refused =>
+                  goto Continue;
+               when others =>
+                  --  A new random name cannot cure unavailable locking or an
+                  --  operating-system error. In particular, do not create a
+                  --  hundred failed witness files before reporting failure.
+                  raise Ada.Directories.Use_Error;
+            end case;
+            if not Hostkit.Lease_Files.Write_At
+              (Witness.Handle, Preparing_Witness)
+            then
                Forget_Witness (Candidate, Witness);
                raise Ada.Directories.Use_Error;
             end if;
@@ -276,22 +298,19 @@ package body Files.Job_Transports is
                --  Perform the last potentially allocating output assignment
                --  before publishing either the lease or ownership marker.
                Directory := To_Unbounded_String (Candidate);
-               declare
-                  Lease_Path : aliased Interfaces.C.char_array :=
-                    Interfaces.C.To_C (Hostkit.Fs.Join (Candidate, Lease_Name));
-               begin
-                  Owner.Handle := Create_Lease_Native (Lease_Path'Address);
-                  if Owner.Handle = 0 then
-                     raise Ada.Directories.Use_Error;
-                  end if;
-               end;
+               if Hostkit.Lease_Files.Create
+                 (Hostkit.Fs.Join (Candidate, Lease_Name), Owner.Handle) /=
+                   Hostkit.Lease_Files.Opened
+               then
+                  raise Ada.Directories.Use_Error;
+               end if;
                declare
                   Nonce : aliased Ada.Streams.Stream_Element_Array (1 .. 16);
                   Success : Boolean;
                begin
                   CryptoLib.OS_Random.Fill_OS (Nonce, Success);
-                  if not Success or else
-                    Set_Lease_Nonce_Native (Owner.Handle, Nonce'Address) /= 1
+                  if not Success or else not Hostkit.Lease_Files.Write_At
+                    (Owner.Handle, Nonce)
                   then
                      raise Ada.Directories.Use_Error;
                   end if;
@@ -299,7 +318,9 @@ package body Files.Job_Transports is
                Mark (Candidate, Lease_Token (Owner.Handle), Identity);
                Owner.Directory := Directory;
                Owner.Identity := Identity;
-               if Publish_Witness_Native (Witness.Handle) /= 1 then
+               if not Hostkit.Lease_Files.Write_At
+                 (Witness.Handle, Published_Witness)
+               then
                   raise Ada.Directories.Use_Error;
                end if;
                Forget_Witness (Candidate, Witness);
@@ -330,8 +351,9 @@ package body Files.Job_Transports is
       Valid     : out Boolean;
       Read_Error : out Boolean)
    is
-      File     : Ada.Streams.Stream_IO.File_Type;
+      Input    : aliased Files.Lease_Streams.Input_Stream;
       Marker   : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
+      Outcome  : Hostkit.Lease_Files.Open_Outcome;
       Header   : Files.Types.UString;
       Recorded_Directory : Files.Types.UString;
    begin
@@ -352,24 +374,42 @@ package body Files.Job_Transports is
       then
          return;
       end if;
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Marker);
-      Header := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+      Outcome := Files.Lease_Streams.Open (Marker, Input);
+      if Outcome /= Hostkit.Lease_Files.Opened then
+         Files.Lease_Streams.Release (Input);
+         Read_Error := Outcome /= Hostkit.Lease_Files.Refused;
+         return;
+      elsif Files.Lease_Streams.Size (Input) > Max_Marker_Bytes then
+         Files.Lease_Streams.Release (Input);
+         return;
+      end if;
+      Header := To_Unbounded_String
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Marker_Header_Length));
       if To_String (Header) not in Marker_Header | Retiring_Header
         | Truncated_Lease_Header | Truncated_Retiring_Header
         | Unbound_Marker_Header | Pre_Lease_Marker_Header
       then
-         Ada.Streams.Stream_IO.Close (File);
+         Files.Lease_Streams.Release (Input);
          return;
       end if;
-      Recorded_Directory := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
-      Identity := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+      Recorded_Directory := To_Unbounded_String
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Marker_Path_Length));
+      Identity := To_Unbounded_String
+        (Files.Bounded_Streams.Input_String
+           (Input'Access, Max_Marker_Token_Length));
       if To_String (Header) in Marker_Header | Retiring_Header
         | Truncated_Lease_Header | Truncated_Retiring_Header
       then
          Owner_Token := To_Unbounded_String
-           (String'Input (Ada.Streams.Stream_IO.Stream (File)));
+           (Files.Bounded_Streams.Input_String
+              (Input'Access, Max_Marker_Token_Length));
       end if;
-      Ada.Streams.Stream_IO.Close (File);
+      if not Files.Lease_Streams.End_Of_Stream (Input) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Files.Lease_Streams.Release (Input);
       if To_String (Recorded_Directory) /= Directory
         or else Length (Identity) = 0
         or else (To_String (Header) in Marker_Header | Retiring_Header
@@ -386,26 +426,14 @@ package body Files.Job_Transports is
       Valid := True;
    exception
       when Ada.IO_Exceptions.End_Error | Ada.IO_Exceptions.Data_Error | Constraint_Error =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            begin
-               Ada.Streams.Stream_IO.Close (File);
-            exception
-               when others => null;
-            end;
-         end if;
+         Files.Lease_Streams.Release (Input);
          Identity := Null_Unbounded_String;
          Owner_Token := Null_Unbounded_String;
          Current := False;
          Retiring := False;
          Valid := False;
       when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            begin
-               Ada.Streams.Stream_IO.Close (File);
-            exception
-               when others => null;
-            end;
-         end if;
+         Files.Lease_Streams.Release (Input);
          Identity := Null_Unbounded_String;
          Owner_Token := Null_Unbounded_String;
          Current := False;
@@ -453,13 +481,12 @@ package body Files.Job_Transports is
       Retiring : Boolean;
       Valid : Boolean;
       Read_Error : Boolean;
-      Lease_Path : aliased Interfaces.C.char_array :=
-        Interfaces.C.To_C (Hostkit.Fs.Join (Directory, Lease_Name));
+      Lease_Path : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
    begin
-      if Owner.Handle = 0
+      if not Held (Owner)
         or else To_String (Owner.Directory) /= Directory
         or else Length (Owner.Identity) = 0
-        or else Lease_Path_Matches_Native (Owner.Handle, Lease_Path'Address) /= 1
+        or else not Hostkit.Lease_Files.Path_Matches (Owner.Handle, Lease_Path)
       then
          return False;
       end if;
@@ -490,18 +517,19 @@ package body Files.Job_Transports is
       Retiring : Boolean;
       Valid : Boolean;
       Read_Error : Boolean;
-      Lease_Path : aliased Interfaces.C.char_array :=
-        Interfaces.C.To_C (Hostkit.Fs.Join (Directory, Lease_Name));
+      Lease_Path : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
    begin
-      if Owner.Handle /= 0 then
+      if Held (Owner) then
          return False;
       end if;
       Read_Marker (Directory, Identity, Owner_Token, Current, Retiring, Valid, Read_Error);
       if not Valid or else not Current or else Retiring then
          return False;
       end if;
-      Owner.Handle := Join_Lease_Native (Lease_Path'Address);
-      if Owner.Handle = 0 then
+      if Hostkit.Lease_Files.Open
+        (Lease_Path, Hostkit.Lease_Files.Shared, False, Owner.Handle) /=
+          Hostkit.Lease_Files.Opened
+      then
          return False;
       end if;
       Owner.Directory := To_Unbounded_String (Directory);
@@ -537,7 +565,7 @@ package body Files.Job_Transports is
       if Read_Error then
          return Claim_Error;
       end if;
-      if Owner.Handle /= 0
+      if Held (Owner)
         or else not Valid
         or else To_String (Identity) /= Expected_Identity
       then
@@ -549,8 +577,7 @@ package body Files.Job_Transports is
          return Claim_Unrecoverable;
       end if;
       declare
-         Lease_Path : aliased Interfaces.C.char_array :=
-           Interfaces.C.To_C (Hostkit.Fs.Join (Directory, Lease_Name));
+         Lease_Path : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
       begin
          if Current
            and then not Ada.Directories.Exists
@@ -599,8 +626,7 @@ package body Files.Job_Transports is
       Lease_Path   : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
       Marker_Path  : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
       Marker_Temp  : constant String := Marker_Path & ".tmp";
-      Witness_Name : aliased Interfaces.C.char_array :=
-        Interfaces.C.To_C (Witness_Path (Directory));
+      Witness_Name : constant String := Witness_Path (Directory);
       Search_Open  : Boolean := False;
       Protocol_Error : Boolean := False;
 
@@ -639,7 +665,7 @@ package body Files.Job_Transports is
       end Protocol_Only;
    begin
       Identity := Null_Unbounded_String;
-      if Owner.Handle /= 0
+      if Held (Owner)
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
         or else not Ada.Directories.Exists (Directory)
@@ -657,7 +683,7 @@ package body Files.Job_Transports is
       if not Protocol_Only then
          return (if Protocol_Error then Claim_Error else Claim_Refused);
       end if;
-      if not Ada.Directories.Exists (Interfaces.C.To_Ada (Witness_Name)) then
+      if not Ada.Directories.Exists (Witness_Name) then
          return Claim_Unrecoverable;
       end if;
       declare
@@ -673,17 +699,25 @@ package body Files.Job_Transports is
          Release (Owner);
          return Claim_Deferred;
       end if;
-      if Lease_Path_Matches_Native (Owner.Handle, Witness_Name'Address) /= 1
+      if not Hostkit.Lease_Files.Path_Matches (Owner.Handle, Witness_Name)
         or else not Protocol_Only
       then
          Release (Owner);
          return (if Protocol_Error then Claim_Error else Claim_Refused);
       end if;
-      if Witness_State_Native (Owner.Handle) /= 1 then
+      if Witness_State (Owner.Handle) /= 1 then
          Release (Owner);
          return Claim_Unrecoverable;
       end if;
       Identity := To_Unbounded_String (Files.File_Identities.Token (Directory));
+      if Length (Identity) = 0 then
+         --  The witness proves that this version began creating a transport,
+         --  but it does not identify the directory currently occupying the
+         --  pathname.  Without a directory identity, guarded removal cannot
+         --  distinguish the interrupted transport from a replacement.
+         Release (Owner);
+         return Claim_Unrecoverable;
+      end if;
       declare
          Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          Modified : constant Ada.Calendar.Time :=
@@ -714,48 +748,6 @@ package body Files.Job_Transports is
          return Claim_Error;
    end Claim_Incomplete;
 
-   function Remove_Empty_Incomplete (Directory : String; Owner : Lease) return Boolean is
-      Temp : constant String := Hostkit.Fs.Join (Directory, Marker_Name & ".tmp");
-      Lease_Path : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
-      Witness_Name : aliased Interfaces.C.char_array :=
-        Interfaces.C.To_C (Witness_Path (Directory));
-      Lease_Name_C : aliased Interfaces.C.char_array := Interfaces.C.To_C (Lease_Path);
-      Lease_Claim : Lease;
-   begin
-      if Owner.Handle = 0 or else not Owner.Exclusive
-        or else not Is_Transport_Path (Directory)
-        or else Lease_Path_Matches_Native (Owner.Handle, Witness_Name'Address) /= 1
-        or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
-        or else Ada.Directories.Exists (Hostkit.Fs.Join (Directory, Marker_Name))
-        or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, Marker_Name))
-      then
-         return False;
-      end if;
-      if Ada.Directories.Exists (Temp) then
-         if Hostkit.Fs.Is_Link (Temp)
-           or else Ada.Directories.Kind (Temp) /= Ada.Directories.Ordinary_File
-         then
-            return False;
-         end if;
-         Ada.Directories.Delete_File (Temp);
-      end if;
-      if Ada.Directories.Exists (Lease_Path) or else Hostkit.Fs.Is_Link (Lease_Path) then
-         if Claim_Lease (Lease_Name_C, Lease_Claim) /= Claim_Acquired
-           or else Lease_Path_Matches_Native (Lease_Claim.Handle, Lease_Name_C'Address) /= 1
-         then
-            return False;
-         end if;
-         Release (Lease_Claim);
-         Ada.Directories.Delete_File (Lease_Path);
-      end if;
-      Ada.Directories.Delete_Directory (Directory);
-      return True;
-   exception
-      when others => return False;
-   end Remove_Empty_Incomplete;
-
    procedure Scavenge_Witnesses is
       Search : Ada.Directories.Search_Type;
       Item : Ada.Directories.Directory_Entry_Type;
@@ -779,8 +771,7 @@ package body Files.Job_Transports is
                   Directory : constant String := Hostkit.Fs.Join
                     (Hostkit.Fs.Temp_Directory,
                      Transport_Prefix & Name (Name'First + Witness_Prefix'Length .. Name'Last));
-                  Witness_Name : aliased Interfaces.C.char_array :=
-                    Interfaces.C.To_C (Ada.Directories.Full_Name (Item));
+                  Witness_Name : constant String := Ada.Directories.Full_Name (Item);
                   Owner : Lease;
                begin
                   if Claim_Lease (Witness_Name, Owner) = Claim_Acquired then

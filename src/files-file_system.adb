@@ -400,11 +400,49 @@ package body Files.File_System is
    function Preserve_For_Replace
      (Path : String; Recovery_Path : out Files.Types.UString) return Mutation_Result
    is
+      Result : Mutation_Result;
    begin
-      if Trash.Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
-         return Trash.Move_To_Trash (Path, Recovery_Path);
+      Recovery_Path := Null_Unbounded_String;
+      --  Replacement must remain reversible.  Refuse before moving the
+      --  original when this host cannot identify it, rather than publishing a
+      --  new destination whose retained original cannot be safely restored.
+      if Files.File_Identities.Token (Path) = "" then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.trash.failed"));
       end if;
-      return Recovery.Preserve (Path, Recovery_Path);
+      if Trash.Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
+         Result := Trash.Move_To_Trash (Path, Recovery_Path);
+      else
+         Result := Recovery.Preserve (Path, Recovery_Path);
+      end if;
+
+      if Result.Success
+        and then
+          (Length (Recovery_Path) = 0
+           or else Files.File_Identities.Token (To_String (Recovery_Path)) = "")
+      then
+         if Length (Recovery_Path) > 0 then
+            declare
+               Restored : constant Mutation_Result :=
+                 Restore_From_Trash
+                   (To_String (Recovery_Path), Expected_Original => Path);
+            begin
+               if Restored.Success then
+                  Recovery_Path := Null_Unbounded_String;
+               end if;
+            end;
+         end if;
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.trash.failed"));
+      end if;
+      return Result;
+   exception
+      when others =>
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.trash.failed"));
    end Preserve_For_Replace;
 
    function Move_To_Trash
@@ -720,53 +758,101 @@ package body Files.File_System is
 
    function Change_Metadata
      (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
-      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString) return Mutation_Result
+      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString;
+      Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result
    is
-      subtype U64 is Interfaces.C.unsigned_long_long;
-      type Native_Identity is record
-         Volume, Number, Seconds, Nanoseconds : U64;
-      end record with Convention => C;
-      function Update
-        (Path, Expected : System.Address; Ownership : Interfaces.C.int;
-         Value, Group : Interfaces.C.unsigned_long;
-         Owner_Name, Group_Name : System.Address;
-         Previous, Previous_Group : access U64;
-         Identity : access Native_Identity) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_metadata_update";
-      Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
-      Expected : aliased Interfaces.C.char_array := Interfaces.C.To_C (Expected_Identity);
-      Owner_Name : aliased Interfaces.C.char_array := Interfaces.C.To_C
-        ((if Ownership then Permissions.User_Name_For_Id (Value) else ""));
-      Group_Name : aliased Interfaces.C.char_array := Interfaces.C.To_C
-        ((if Ownership then Permissions.Group_Name_For_Id (Group) else ""));
-      Old_Value, Old_Group : aliased U64 := 0;
-      Entry_Id : aliased Native_Identity;
-      Status : Interfaces.C.int;
+      subtype U64 is Hostkit.Metadata.Identity_Field;
+      use type U64;
+      Expected : Hostkit.Metadata.Entry_Identity;
+      Updated  : Hostkit.Metadata.Metadata_Update_Result;
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String
           (if Ownership then "error.ownership.denied" else "error.permissions.failed"));
+
+      function Parse_Identity
+        (Text : String; Item : out Hostkit.Metadata.Entry_Identity) return Boolean
+      is
+         Position : Natural := Text'First;
+         Values   : array (1 .. 4) of U64 := [others => 0];
+      begin
+         Item := (others => <>);
+         for Index in Values'Range loop
+            while Position <= Text'Last and then Text (Position) = ' ' loop
+               Position := Position + 1;
+            end loop;
+            if Position > Text'Last or else Text (Position) not in '0' .. '9' then
+               return False;
+            end if;
+            declare
+               First : constant Natural := Position;
+            begin
+               while Position <= Text'Last and then Text (Position) in '0' .. '9' loop
+                  Position := Position + 1;
+               end loop;
+               Values (Index) := U64'Value (Text (First .. Position - 1));
+            end;
+         end loop;
+         while Position <= Text'Last and then Text (Position) = ' ' loop
+            Position := Position + 1;
+         end loop;
+         if Position <= Text'Last then
+            return False;
+         end if;
+         Item :=
+           (Available       => True,
+            Volume          => Values (1),
+            File_Number     => Values (2),
+            Generation_High => Values (3),
+            Generation_Low  => Values (4));
+         return True;
+      exception
+         when others =>
+            Item := (others => <>);
+            return False;
+      end Parse_Identity;
    begin
       Previous := 0;
       Previous_Group := 0;
       Identity := Null_Unbounded_String;
-      Status := Update (Name'Address, Expected'Address, Boolean'Pos (Ownership),
-                        Interfaces.C.unsigned_long (Value), Interfaces.C.unsigned_long (Group),
-                        Owner_Name'Address, Group_Name'Address,
-                        Old_Value'Access, Old_Group'Access, Entry_Id'Access);
-      if Status = 1 then
-         Previous := Natural (Old_Value);
-         Previous_Group := Natural (Old_Group);
-         Identity := To_Unbounded_String (U64'Image (Entry_Id.Volume) & U64'Image (Entry_Id.Number)
-           & U64'Image (Entry_Id.Seconds) & U64'Image (Entry_Id.Nanoseconds));
-         return (Success => True, Error_Key => Null_Unbounded_String);
-      elsif Status = 0 then
+      if not Ownership and then Value > 8#7777# then
          return Failed;
       end if;
-      --  Never emulate a handle-relative metadata update by checking a path,
-      --  mutating it by name, and checking again: another process can replace
-      --  the entry in between. Platforms without the native atomic adapter
-      --  therefore fail closed.
-      return Failed;
+      if Expected_Identity /= ""
+        and then not Parse_Identity (Expected_Identity, Expected)
+      then
+         return Failed;
+      end if;
+      Updated := Hostkit.Metadata.Update_Entry_Metadata
+        (Path           => Path,
+         Expected       => Expected,
+         Check_Expected => Expected_Identity /= "",
+         Kind           => (if Ownership then Hostkit.Metadata.Update_Ownership
+                            else Hostkit.Metadata.Update_Permissions),
+         Value          => U64 (Value),
+         Group          => U64 (Group),
+         Max_Previous   => U64 (Natural'Last),
+         Owner_Name     =>
+           (if not Ownership then ""
+            elsif Owner_Name /= "" then Owner_Name
+            else Permissions.User_Name_For_Id (Value)),
+         Group_Name     =>
+           (if not Ownership then ""
+            elsif Group_Name /= "" then Group_Name
+            else Permissions.Group_Name_For_Id (Group)));
+      if not Updated.Success
+        or else Updated.Previous > U64 (Natural'Last)
+        or else Updated.Previous_Group > U64 (Natural'Last)
+      then
+         return Failed;
+      end if;
+      Previous := Natural (Updated.Previous);
+      Previous_Group := Natural (Updated.Previous_Group);
+      Identity := To_Unbounded_String
+        (U64'Image (Updated.Identity.Volume)
+         & U64'Image (Updated.Identity.File_Number)
+         & U64'Image (Updated.Identity.Generation_High)
+         & U64'Image (Updated.Identity.Generation_Low));
+      return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others => return Failed;
    end Change_Metadata;

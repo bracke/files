@@ -1,71 +1,48 @@
-with Interfaces.C;
-with Interfaces.C.Strings;
 with Ada.Strings.Unbounded;
+with Hostkit.Metadata;
 
 package body Files.File_Identities is
-   use type Interfaces.C.int;
-   use type Interfaces.C.Strings.chars_ptr;
-   subtype U64 is Interfaces.C.unsigned_long_long;
-   type Entry_Identity is record
-      Volume, Number, Birth_Seconds, Birth_Nanoseconds : U64;
-   end record with Convention => C;
-   function Read_Identity
-     (Path : Interfaces.C.Strings.chars_ptr;
-      Value : access Entry_Identity) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_entry_identity";
-
-   type Entry_Revision is array (1 .. 8) of U64 with Convention => C;
-   function Read_Revision
-     (Path : Interfaces.C.Strings.chars_ptr; Value : access Entry_Revision) return Interfaces.C.int
-     with Import, Convention => C, External_Name => "files_entry_revision";
+   subtype U64 is Hostkit.Metadata.Identity_Field;
 
    function Revision (Path : String; Include_Change_Time : Boolean := True) return String is
-      Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
-      Value : aliased Entry_Revision;
+      Value  : Hostkit.Metadata.Entry_Revision := Hostkit.Metadata.Entry_Revision_Of (Path);
       Result : Ada.Strings.Unbounded.Unbounded_String;
-      Status : Interfaces.C.int;
    begin
-      Status := Read_Revision (Name, Value'Access);
-      Interfaces.C.Strings.Free (Name);
-      if Status /= 1 then
+      if not Value.Available then
          return "";
       end if;
       if not Include_Change_Time then
-         Value (3 .. 4) := [others => 0];
+         Value.Changed_Seconds := 0;
+         Value.Changed_Nanoseconds := 0;
       end if;
-      for Field of Value loop
-         Ada.Strings.Unbounded.Append (Result, U64'Image (Field));
-      end loop;
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Modified_Seconds));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Modified_Nanoseconds));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Changed_Seconds));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Changed_Nanoseconds));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Size));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Mode));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.User_Id));
+      Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Group_Id));
       return Ada.Strings.Unbounded.To_String (Result);
    exception
       when others =>
-         if Name /= Interfaces.C.Strings.Null_Ptr then
-            Interfaces.C.Strings.Free (Name);
-         end if;
          return "";
    end Revision;
 
    function Token (Path : String) return String is
-      Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;
-      Value : aliased Entry_Identity;
-      Status : Interfaces.C.int;
+      Value : Hostkit.Metadata.Entry_Identity;
    begin
       if Test_Identity_Unavailable then
          return "";
       end if;
-      Name := Interfaces.C.Strings.New_String (Path);
-      Status := Read_Identity (Name, Value'Access);
-      Interfaces.C.Strings.Free (Name);
-      if Status /= 1 then
+      Value := Hostkit.Metadata.Entry_Identity_Of (Path);
+      if not Value.Available then
          return "";
       end if;
-      return U64'Image (Value.Volume) & U64'Image (Value.Number)
-        & U64'Image (Value.Birth_Seconds) & U64'Image (Value.Birth_Nanoseconds);
+      return U64'Image (Value.Volume) & U64'Image (Value.File_Number)
+        & U64'Image (Value.Generation_High) & U64'Image (Value.Generation_Low);
    exception
       when others =>
-         if Name /= Interfaces.C.Strings.Null_Ptr then
-            Interfaces.C.Strings.Free (Name);
-         end if;
          return "";
    end Token;
 end Files.File_Identities;

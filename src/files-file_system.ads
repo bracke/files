@@ -788,10 +788,13 @@ package Files.File_System is
    --  @param Previous Live previous mode or user id captured before mutation.
    --  @param Previous_Group Live previous group id for ownership changes.
    --  @param Identity Identity of the entry actually changed.
+   --  @param Owner_Name Native account name paired with Value when required.
+   --  @param Group_Name Native account name paired with Group when required.
    --  @return Result of applying metadata to the verified entry.
    function Change_Metadata
      (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
-      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
+      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString;
+      Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result;
 
    --  Resolve a user name to its numeric id (getpwnam).
    --
@@ -1025,8 +1028,9 @@ package Files.File_System is
    --  what clears orphans: a thumbnail whose source was renamed or deleted is
    --  never rewritten, so it ages to the front of the queue on its own.
    --
-   --  Housekeeping, never a precondition: a file it cannot stat or delete is
-   --  skipped, and failure to prune never stops a thumbnail being written.
+   --  Housekeeping, never a precondition: a file it cannot identify, stat, or
+   --  delete is skipped, and failure to prune never stops a thumbnail being
+   --  written. Each deletion is bound to the entry observed during the scan.
    --
    --  @param Cache_Directory Directory holding the cached thumbnails.
    --  @param Budget_Bytes Total size to come under.
@@ -1042,7 +1046,9 @@ package Files.File_System is
      (Fallback_Directory : String)
       return String;
 
-   --  Return the deterministic cached thumbnail path for a source file.
+   --  Return the deterministic cached thumbnail path for a source file and its
+   --  current identity/revision, so replacement or modification cannot reuse a
+   --  stale artifact.
    --
    --  @param Source_Path Source file represented by the thumbnail.
    --  @param Cache_Directory Thumbnail cache directory.

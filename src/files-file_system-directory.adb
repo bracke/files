@@ -23,7 +23,10 @@ package body Directory is
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element;
+   use type Ada.Streams.Stream_Element_Array;
    use type Ada.Streams.Stream_Element_Offset;
+   use type Ada.Streams.Stream_IO.Count;
+   use type GNAT.OS_Lib.File_Descriptor;
    use type Files.Settings.Sort_Field;
    use type Files.Types.Item_Kind;
 
@@ -42,6 +45,19 @@ package body Directory is
    --  freeze the whole app. Each caps the bytes it will scan; past the cap the
    --  counts are approximate, which a metadata line can live with.
    Extra_Scan_Byte_Limit : constant Long_Long_Integer := 8_388_608;
+   Max_Directory_Count_Entries : constant Natural := 10_000;
+
+   --  Cache entries are untrusted persistent input: another process running as
+   --  the user can replace one, and an interrupted older version can leave one
+   --  corrupt.  A largest supported 2048-square P6 image is a little over
+   --  12 MiB.  Keep enough room for that, but never read an arbitrary-size file
+   --  into the UI process.  The old P3 representation expands further while it
+   --  is tokenized, so retain compatibility only up to a deliberately smaller
+   --  (still ample for normal thumbnails) bound.
+   Max_Cached_Thumbnail_Bytes  : constant Natural := 16 * 1024 * 1024;
+   Max_Legacy_Thumbnail_Bytes  : constant Natural := 1 * 1024 * 1024;
+   Max_Cached_Thumbnail_Pixels : constant Natural := 2_048 * 2_048;
+   Max_Thumbnail_Cache_Entries : constant Natural := 100_000;
 
    type Cached_Thumbnail is record
       Loaded : Boolean := False;
@@ -100,9 +116,9 @@ package body Directory is
       Names  : Thumbnail_Name_Sets.Set;
    end record;
 
-   --  Read the cache directory once. A cache that does not exist yet, or cannot
-   --  be read, yields an empty listing rather than an error: a missing
-   --  thumbnail is not a missing file.
+   --  Read the cache directory once. A cache that does not exist yet yields an
+   --  empty listing. An unreadable or oversized cache falls back to per-item
+   --  checks rather than losing cached results or retaining unbounded names.
    function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index;
 
    function Thumbnail_For_Item
@@ -257,41 +273,62 @@ package body Directory is
          return True;
       end Natural_Value;
 
-      --  Byte-exact, which Files.Fs.Read_Text_File is not: it reads by line and
-      --  re-appends LF, and with -gnatW8 Text_IO decodes its input as UTF-8, so
-      --  a pixel byte above 127 would not survive the trip.
-      function Read_Bytes (From : String) return Unbounded_String is
+      --  Keep thumbnail payloads byte-exact; text-oriented readers normalize
+      --  line terminators and may decode input, corrupting encoded pixel bytes.
+      function Read_Bytes
+        (From      : String;
+         Max_Bytes : Natural)
+         return Unbounded_String
+      is
          use Ada.Streams;
 
-         Input  : Ada.Streams.Stream_IO.File_Type;
-         Buffer : Stream_Element_Array (1 .. 64 * 1024);
-         Last   : Stream_Element_Offset;
-         Bytes  : Unbounded_String;
+         Input      : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+         Buffer     : Stream_Element_Array (1 .. 64 * 1024);
+         Bytes_Read : Integer;
+         Bytes      : Unbounded_String;
+         Total      : Natural := 0;
       begin
-         Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, From);
+         Input := Files.Fs.Open_Regular_Read (From);
+         if Input = GNAT.OS_Lib.Invalid_FD then
+            return Null_Unbounded_String;
+         end if;
 
-         while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
-            Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
-            exit when Last < Buffer'First;
+         loop
+            Bytes_Read := GNAT.OS_Lib.Read
+              (Input, Buffer'Address, Integer (Buffer'Length));
+            if Bytes_Read < 0 then
+               raise Ada.Directories.Use_Error;
+            end if;
+            exit when Bytes_Read = 0;
 
             declare
-               Chunk : String (1 .. Natural (Last - Buffer'First + 1));
+               Chunk_Length : constant Natural :=
+                 Natural (Bytes_Read);
+               Chunk : String (1 .. Chunk_Length);
             begin
+               if Chunk_Length > Max_Bytes - Total then
+                  GNAT.OS_Lib.Close (Input);
+                  Input := GNAT.OS_Lib.Invalid_FD;
+                  return Null_Unbounded_String;
+               end if;
+
                for Index in Chunk'Range loop
                   Chunk (Index) :=
                     Character'Val (Buffer (Stream_Element_Offset (Index) + Buffer'First - 1));
                end loop;
 
                Append (Bytes, Chunk);
+               Total := Total + Chunk_Length;
             end;
          end loop;
 
-         Ada.Streams.Stream_IO.Close (Input);
+         GNAT.OS_Lib.Close (Input);
+         Input := GNAT.OS_Lib.Invalid_FD;
          return Bytes;
       exception
          when others =>
-            if Ada.Streams.Stream_IO.Is_Open (Input) then
-               Ada.Streams.Stream_IO.Close (Input);
+            if Input /= GNAT.OS_Lib.Invalid_FD then
+               GNAT.OS_Lib.Close (Input);
             end if;
 
             return Null_Unbounded_String;
@@ -317,7 +354,7 @@ package body Directory is
          return Result;
       end if;
 
-      Content := Read_Bytes (Path);
+      Content := Read_Bytes (Path, Max_Cached_Thumbnail_Bytes);
       if Length (Content) = 0 then
          return Result;
       end if;
@@ -338,21 +375,23 @@ package body Directory is
          function Header_Field return String is
             First : Natural;
          begin
-            while At_Byte <= Raw'Last loop
-               exit when Raw (At_Byte) not in ' ' | ASCII.HT | ASCII.LF | ASCII.CR;
-
+            loop
+               while At_Byte <= Raw'Last
+                 and then Raw (At_Byte) in ' ' | ASCII.HT | ASCII.LF | ASCII.CR
+               loop
+                  At_Byte := At_Byte + 1;
+               end loop;
+               exit when At_Byte > Raw'Last or else Raw (At_Byte) /= '#';
                if Raw (At_Byte) = '#' then
                   while At_Byte <= Raw'Last and then Raw (At_Byte) /= ASCII.LF loop
                      At_Byte := At_Byte + 1;
                   end loop;
-               else
-                  At_Byte := At_Byte + 1;
                end if;
             end loop;
 
             First := At_Byte;
             while At_Byte <= Raw'Last
-              and then Raw (At_Byte) not in ' ' | ASCII.HT | ASCII.LF | ASCII.CR
+              and then Raw (At_Byte) not in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | '#'
             loop
                At_Byte := At_Byte + 1;
             end loop;
@@ -364,7 +403,11 @@ package body Directory is
            and then Natural_Value (Header_Field, Width)
            and then Natural_Value (Header_Field, Height)
            and then Natural_Value (Header_Field, Max_Value)
-           and then Width > 0 and then Height > 0 and then Max_Value > 0
+           and then Width > 0 and then Height > 0 and then Max_Value = 255
+           and then At_Byte <= Raw'Last
+           and then Raw (At_Byte) in ' ' | ASCII.HT | ASCII.LF | ASCII.CR
+           and then Long_Long_Integer (Width) * Long_Long_Integer (Height)
+                      <= Long_Long_Integer (Max_Cached_Thumbnail_Pixels)
          then
             --  Exactly one whitespace byte separates the header from the pixels.
             At_Byte := At_Byte + 1;
@@ -373,7 +416,7 @@ package body Directory is
                Needed : constant Long_Long_Integer :=
                  Long_Long_Integer (Width) * Long_Long_Integer (Height) * 3;
             begin
-               if Needed > Long_Long_Integer (Raw'Last - At_Byte + 1) then
+               if Needed /= Long_Long_Integer (Raw'Last - At_Byte + 1) then
                   return Result;
                end if;
 
@@ -395,6 +438,12 @@ package body Directory is
          end if;
       end;
 
+      --  Tokenizing the legacy ASCII format creates one allocation per channel.
+      --  Bound that expansion independently from the binary cache-file limit.
+      if Length (Content) > Max_Legacy_Thumbnail_Bytes then
+         return Result;
+      end if;
+
       declare
          Values    : constant Files.Types.String_Vectors.Vector := Tokens;
          Width     : Natural;
@@ -409,13 +458,16 @@ package body Directory is
            or else Width = 0
            or else Height = 0
            or else Max_Value = 0
+           or else Max_Value > 65_535
+           or else Long_Long_Integer (Width) * Long_Long_Integer (Height)
+                     > Long_Long_Integer (Max_Cached_Thumbnail_Pixels)
            --  Reject headers whose declared pixel count needs more bytes than
            --  are present, computed without overflowing Integer for adversarial
            --  dimensions: Width * Height * 3 can exceed Integer'Last, so compare
            --  in Long_Long_Integer via the division form (equivalent to
            --  Length < 4 + Width * Height * 3 for the reject decision).
-           or else Long_Long_Integer (Width) * Long_Long_Integer (Height)
-                     > (Long_Long_Integer (Values.Length) - 4) / 3
+           or else Long_Long_Integer (Values.Length) - 4
+                     /= Long_Long_Integer (Width) * Long_Long_Integer (Height) * 3
          then
             return Result;
          end if;
@@ -430,6 +482,9 @@ package body Directory is
                if not Natural_Value (To_String (Values.Element (Cursor)), R)
                  or else not Natural_Value (To_String (Values.Element (Cursor + 1)), G)
                  or else not Natural_Value (To_String (Values.Element (Cursor + 2)), B)
+                 or else R > Max_Value
+                 or else G > Max_Value
+                 or else B > Max_Value
                then
                   return Result;
                end if;
@@ -466,6 +521,8 @@ package body Directory is
       Result : Cache_Index;
       Search : Ada.Directories.Search_Type;
       Item   : Ada.Directories.Directory_Entry_Type;
+      Started : Boolean := False;
+      Count   : Natural := 0;
    begin
       Result.Listed := True;
 
@@ -476,17 +533,26 @@ package body Directory is
       Ada.Directories.Start_Search
         (Search, Cache_Directory, "*",
          Filter => [Ada.Directories.Ordinary_File => True, others => False]);
+      Started := True;
 
       while Ada.Directories.More_Entries (Search) loop
+         if Count = Max_Thumbnail_Cache_Entries then
+            Safe_End_Search (Search, Started);
+            Result.Listed := False;
+            Result.Names.Clear;
+            return Result;
+         end if;
          Ada.Directories.Get_Next_Entry (Search, Item);
          Result.Names.Include (Ada.Directories.Simple_Name (Item));
+         Count := Count + 1;
       end loop;
 
-      Ada.Directories.End_Search (Search);
+      Safe_End_Search (Search, Started);
       return Result;
    exception
       when others =>
-         return (Listed => True, Names => Thumbnail_Name_Sets.Empty_Set);
+         Safe_End_Search (Search, Started);
+         return (Listed => False, Names => Thumbnail_Name_Sets.Empty_Set);
    end Index_Thumbnail_Cache;
 
    function Thumbnail_For_Item
@@ -746,10 +812,35 @@ package body Directory is
          return "";
    end Permission_String;
 
-   function Count_Text_Lines (Path : String) return Natural is
-      package Stream_IO renames Ada.Streams.Stream_IO;
+   procedure Close_Read_Descriptor
+     (File : in out GNAT.OS_Lib.File_Descriptor)
+   is
+   begin
+      if File /= GNAT.OS_Lib.Invalid_FD then
+         GNAT.OS_Lib.Close (File);
+         File := GNAT.OS_Lib.Invalid_FD;
+      end if;
+   exception
+      when others =>
+         File := GNAT.OS_Lib.Invalid_FD;
+   end Close_Read_Descriptor;
 
-      File        : Stream_IO.File_Type;
+   procedure Read_Descriptor
+     (File   : GNAT.OS_Lib.File_Descriptor;
+      Buffer : out Ada.Streams.Stream_Element_Array;
+      Last   : out Ada.Streams.Stream_Element_Offset)
+   is
+      Bytes_Read : constant Integer :=
+        GNAT.OS_Lib.Read (File, Buffer'Address, Integer (Buffer'Length));
+   begin
+      if Bytes_Read < 0 then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Last := Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1;
+   end Read_Descriptor;
+
+   function Count_Text_Lines (Path : String) return Natural is
+      File        : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Buffer      : Ada.Streams.Stream_Element_Array (1 .. 4096);
       Last        : Ada.Streams.Stream_Element_Offset;
       Count       : Natural := 0;
@@ -757,15 +848,28 @@ package body Directory is
       Last_Was_LF : Boolean := False;
       Scanned     : Long_Long_Integer := 0;
    begin
-      Stream_IO.Open (File, Stream_IO.In_File, Path);
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return 0;
+      end if;
       --  The line cap alone does not bound the read: a file with few or no
       --  newlines (a multi-GB single-line log) never reaches it, so cap the
       --  bytes scanned too.
-      while not Stream_IO.End_Of_File (File)
-        and then Count < Extra_Line_Limit
+      while Count < Extra_Line_Limit
         and then Scanned < Extra_Scan_Byte_Limit
       loop
-         Stream_IO.Read (File, Buffer, Last);
+         declare
+            Remaining : constant Long_Long_Integer :=
+              Extra_Scan_Byte_Limit - Scanned;
+            Request : constant Ada.Streams.Stream_Element_Offset :=
+              Ada.Streams.Stream_Element_Offset'Min
+                (Buffer'Length,
+                 Ada.Streams.Stream_Element_Offset (Remaining));
+         begin
+            Read_Descriptor
+              (File, Buffer (Buffer'First .. Buffer'First + Request - 1), Last);
+         end;
+         exit when Last < Buffer'First;
          if Last >= Buffer'First then
             for Index in Buffer'First .. Last loop
                Saw_Byte := True;
@@ -783,11 +887,11 @@ package body Directory is
          Count := Count + 1;
       end if;
 
-      Stream_IO.Close (File);
+      Close_Read_Descriptor (File);
       return Count;
    exception
       when others =>
-         Safe_Close (File);
+         Close_Read_Descriptor (File);
          return 0;
    end Count_Text_Lines;
 
@@ -799,7 +903,7 @@ package body Directory is
       --  otherwise be read end to end just to render its metadata line.
       Encoding_Sample_Limit : constant := 131_072;
 
-      File       : Ada.Streams.Stream_IO.File_Type;
+      File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
       Last       : Ada.Streams.Stream_Element_Offset;
       Byte_Value : Natural;
@@ -832,27 +936,31 @@ package body Directory is
          return Value >= 16#80# and then Value <= 16#BF#;
       end Is_Continuation;
    begin
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return "binary";
+      end if;
 
-      while not Ada.Streams.Stream_IO.End_Of_File (File) loop
-         Ada.Streams.Stream_IO.Read (File, Buffer, Last);
+      loop
+         Read_Descriptor (File, Buffer, Last);
+         exit when Last < Buffer'First;
          if Last >= Buffer'First then
             for Index in Buffer'First .. Last loop
                Byte_Value := Natural (Buffer (Index));
 
                if Pending > 0 then
                   if not Is_Continuation (Byte_Value) then
-                     Ada.Streams.Stream_IO.Close (File);
+                     Close_Read_Descriptor (File);
                      return "binary";
                   elsif Step = 1 and then not Valid_First_Continuation (First_Byte, Byte_Value) then
-                     Ada.Streams.Stream_IO.Close (File);
+                     Close_Read_Descriptor (File);
                      return "binary";
                   end if;
 
                   Pending := Pending - 1;
                   Step := Step + 1;
                elsif Byte_Value = 0 then
-                  Ada.Streams.Stream_IO.Close (File);
+                  Close_Read_Descriptor (File);
                   return "binary";
                elsif Byte_Value <= 16#7F# then
                   null;
@@ -872,7 +980,7 @@ package body Directory is
                   Pending := 3;
                   Step := 1;
                else
-                  Ada.Streams.Stream_IO.Close (File);
+                  Close_Read_Descriptor (File);
                   return "binary";
                end if;
 
@@ -882,13 +990,13 @@ package body Directory is
                   --  sequence straddling the cap is not a defect here (Ascii_Only
                   --  is already cleared), so do not fall through to the binary
                   --  verdict the way a genuine mid-sequence EOF would.
-                  Ada.Streams.Stream_IO.Close (File);
+                  Close_Read_Descriptor (File);
                   return (if Ascii_Only then "ascii" else "utf8");
                end if;
             end loop;
          end if;
       end loop;
-      Ada.Streams.Stream_IO.Close (File);
+      Close_Read_Descriptor (File);
 
       if Pending > 0 then
          return "binary";
@@ -897,7 +1005,7 @@ package body Directory is
       return (if Ascii_Only then "ascii" else "utf8");
    exception
       when others =>
-         Safe_Close (File);
+         Close_Read_Descriptor (File);
          return "binary";
    end Text_Encoding_Name;
 
@@ -910,73 +1018,80 @@ package body Directory is
    end Text_Metadata_Token;
 
    function Pdf_Page_Count_Token (Path : String) return String is
-      File    : Ada.Text_IO.File_Type;
-      Buffer  : String (1 .. 4096);
-      Last    : Natural;
+      Marker  : constant String := "/Type /Page";
+      File    : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Buffer  : Ada.Streams.Stream_Element_Array (1 .. 4096);
+      Last    : Ada.Streams.Stream_Element_Offset;
       Count   : Natural := 0;
       Scanned : Long_Long_Integer := 0;
+      Matched : Natural := 0;
+      Awaiting_Delimiter : Boolean := False;
+      At_End  : Boolean := False;
 
-      function Page_Marker_At
-        (Line : String;
-         Pos  : Positive)
-         return Boolean
-      is
-         Marker_Last : constant Natural := Pos + String'("/Type /Page")'Length - 1;
-      begin
-         if Marker_Last > Line'Last then
-            return False;
-         elsif Line (Pos .. Marker_Last) /= "/Type /Page" then
-            return False;
-         elsif Marker_Last = Line'Last then
-            return True;
-         end if;
-
-         declare
-            Next : constant Character := Line (Marker_Last + 1);
-         begin
-            return Next = ' '
-              or else Next = ASCII.HT
-              or else Next = ASCII.LF
-              or else Next = ASCII.CR
-              or else Next = ASCII.VT
-              or else Next = ASCII.FF
-              or else Next = '/'
-              or else Next = '>'
-              or else Next = '<'
-              or else Next = ']'
-              or else Next = '[';
-         end;
-      end Page_Marker_At;
+      function Is_Delimiter (Value : Character) return Boolean is
+        (Value = ' '
+         or else Value = ASCII.HT
+         or else Value = ASCII.LF
+         or else Value = ASCII.CR
+         or else Value = ASCII.VT
+         or else Value = ASCII.FF
+         or else Value = '/'
+         or else Value = '>'
+         or else Value = '<'
+         or else Value = ']'
+         or else Value = '[');
    begin
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return "document.kind|pdf";
+      end if;
       --  Stop once enough bytes have been scanned: a huge (or huge-and-crafted)
       --  .pdf must not read to the end on the UI thread. The page count is then
       --  a lower bound, which the metadata line tolerates.
-      while not Ada.Text_IO.End_Of_File (File)
-        and then Scanned < Extra_Scan_Byte_Limit
+      while Scanned < Extra_Scan_Byte_Limit
       loop
-         Ada.Text_IO.Get_Line (File, Buffer, Last);
-         Scanned := Scanned + Long_Long_Integer (Last) + 1;
-         if Last > 0 then
-            declare
-               Line : constant String := Buffer (1 .. Last);
-               Pos  : Natural := Ada.Strings.Fixed.Index (Line, "/Type /Page");
-            begin
-               while Pos > 0 loop
-                  if Page_Marker_At (Line, Pos) then
-                     Count := Count + 1;
+         Read_Descriptor (File, Buffer, Last);
+         if Last < Buffer'First then
+            At_End := True;
+            exit;
+         end if;
+         if Last >= Buffer'First then
+            for Index in Buffer'First .. Last loop
+               exit when Scanned = Extra_Scan_Byte_Limit;
+               declare
+                  Value : constant Character := Character'Val (Buffer (Index));
+               begin
+                  Scanned := Scanned + 1;
+                  if Awaiting_Delimiter then
+                     if Is_Delimiter (Value) then
+                        Count := Count + 1;
+                     end if;
+                     Awaiting_Delimiter := False;
                   end if;
-                  exit when Pos + 10 > Line'Last;
-                  Pos := Ada.Strings.Fixed.Index (Line (Pos + 10 .. Line'Last), "/Type /Page");
-               end loop;
-            end;
+
+                  if Value = Marker (Marker'First + Matched) then
+                     Matched := Matched + 1;
+                     if Matched = Marker'Length then
+                        Matched := 0;
+                        Awaiting_Delimiter := True;
+                     end if;
+                  elsif Value = Marker (Marker'First) then
+                     Matched := 1;
+                  else
+                     Matched := 0;
+                  end if;
+               end;
+            end loop;
          end if;
       end loop;
-      Ada.Text_IO.Close (File);
+      if Awaiting_Delimiter and then At_End then
+         Count := Count + 1;
+      end if;
+      Close_Read_Descriptor (File);
       return "document.pdf.pages|" & Natural_Text (Count);
    exception
       when others =>
-         Safe_Close (File);
+         Close_Read_Descriptor (File);
          return "document.kind|pdf";
    end Pdf_Page_Count_Token;
 
@@ -985,9 +1100,8 @@ package body Directory is
       Prefix : String)
       return String
    is
-      package Stream_IO renames Ada.Streams.Stream_IO;
-
-      File   : Stream_IO.File_Type;
+      use type GNAT.OS_Lib.Large_File_Size;
+      File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
       Last   : Ada.Streams.Stream_Element_Offset;
       Count  : Natural := 0;
@@ -996,21 +1110,27 @@ package body Directory is
       Byte_2 : Ada.Streams.Stream_Element := 0;
       Byte_3 : Ada.Streams.Stream_Element := 0;
       Seen   : Natural := 0;
-      Total  : Long_Long_Integer;
+      Total  : GNAT.OS_Lib.Large_File_Size;
    begin
-      Stream_IO.Open (File, Stream_IO.In_File, Path);
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return Prefix & ".entries|0";
+      end if;
       --  The central-directory records this counts sit at the end of the
       --  archive, so on a large file scan only its tail rather than reading
       --  gigabytes from the front on the UI thread. The count then omits any
       --  entries whose directory record falls before the window -- a lower
       --  bound the metadata line tolerates.
-      Total := Long_Long_Integer (Stream_IO.Size (File));
-      if Total > Extra_Scan_Byte_Limit then
-         Stream_IO.Set_Index
-           (File, Stream_IO.Positive_Count (Total - Extra_Scan_Byte_Limit + 1));
+      Total := GNAT.OS_Lib.File_Length64 (File);
+      if Total < 0 then
+         raise Ada.Directories.Use_Error;
+      elsif Total > GNAT.OS_Lib.Large_File_Size (Extra_Scan_Byte_Limit) then
+         GNAT.OS_Lib.Lseek
+           (File, -Long_Integer (Extra_Scan_Byte_Limit), GNAT.OS_Lib.Seek_End);
       end if;
-      while not Stream_IO.End_Of_File (File) loop
-         Stream_IO.Read (File, Buffer, Last);
+      loop
+         Read_Descriptor (File, Buffer, Last);
+         exit when Last < Buffer'First;
          if Last >= Buffer'First then
             for Index in Buffer'First .. Last loop
                Byte_0 := Byte_1;
@@ -1032,11 +1152,11 @@ package body Directory is
             end loop;
          end if;
       end loop;
-      Stream_IO.Close (File);
+      Close_Read_Descriptor (File);
       return Prefix & ".entries|" & Natural_Text (Count);
    exception
       when others =>
-         Safe_Close (File);
+         Close_Read_Descriptor (File);
          return Prefix & ".entries|0";
    end Zip_Entry_Count_Token;
 
@@ -1048,21 +1168,21 @@ package body Directory is
       Pattern : Ada.Streams.Stream_Element_Array)
       return Boolean
    is
-      use type Ada.Streams.Stream_Element_Array;
    begin
       return Last >= Pattern'Last and then Buffer (Pattern'Range) = Pattern;
    end Matches_Signature;
 
    function Executable_Format_Token (Path : String) return String is
-      package Stream_IO renames Ada.Streams.Stream_IO;
-
-      File   : Stream_IO.File_Type;
+      File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Buffer : Ada.Streams.Stream_Element_Array (1 .. 4);
       Last   : Ada.Streams.Stream_Element_Offset;
    begin
-      Stream_IO.Open (File, Stream_IO.In_File, Path);
-      Stream_IO.Read (File, Buffer, Last);
-      Stream_IO.Close (File);
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return "";
+      end if;
+      Read_Descriptor (File, Buffer, Last);
+      Close_Read_Descriptor (File);
 
       if Matches_Signature (Buffer, Last, ELF_Magic) then
          return "executable.format|elf";
@@ -1075,7 +1195,7 @@ package body Directory is
       end if;
    exception
       when others =>
-         Safe_Close (File);
+         Close_Read_Descriptor (File);
          return "";
    end Executable_Format_Token;
 
@@ -1101,6 +1221,7 @@ package body Directory is
       Dir_Entry : Ada.Directories.Directory_Entry_Type;
       Count     : Natural := 0;
       Started   : Boolean := False;
+      Capped    : Boolean := False;
    begin
       if not Files.Fs.Directory_Exists (Path)
       then
@@ -1123,13 +1244,18 @@ package body Directory is
             Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
          begin
             if Name /= "." and then Name /= ".." then
+               if Count = Max_Directory_Count_Entries then
+                  Capped := True;
+                  exit;
+               end if;
                Count := Count + 1;
             end if;
          end;
       end loop;
 
       Safe_End_Search (Search, Started);
-      return "directory.count|" & Natural_Text (Count);
+      return "directory.count|" & Natural_Text (Count) &
+        (if Capped then "+" else "");
    exception
       when others =>
          Safe_End_Search (Search, Started);
@@ -1173,17 +1299,22 @@ package body Directory is
       Filetype : String)
       return String
    is
-      package Stream_IO renames Ada.Streams.Stream_IO;
-      use type Stream_IO.Count;
-
-      File   : Stream_IO.File_Type;
+      use type GNAT.OS_Lib.Large_File_Size;
+      File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Buffer : Ada.Streams.Stream_Element_Array (1 .. 32);
       Last   : Ada.Streams.Stream_Element_Offset;
 
       function Is_PNG return Boolean is
       begin
-         --  Also require the 24 bytes the IHDR width/height are read from below.
-         return Last >= 24 and then Matches_Signature (Buffer, Last, PNG_Magic);
+         --  Width and height are meaningful only in the mandatory first IHDR
+         --  chunk.  A signature alone is not enough: arbitrary bytes at these
+         --  offsets must not be presented as image dimensions.
+         return Last >= 24
+           and then Matches_Signature (Buffer, Last, PNG_Magic)
+           and then Buffer (9 .. 12) = [0, 0, 0, 13]
+           and then Buffer (13 .. 16) =
+             [Character'Pos ('I'), Character'Pos ('H'),
+              Character'Pos ('D'), Character'Pos ('R')];
       end Is_PNG;
 
       function JPEG_Token return String is
@@ -1192,14 +1323,42 @@ package body Directory is
          Marker         : Ada.Streams.Stream_Element;
          Length_Value   : Natural;
          Remaining      : Natural;
+         File_Length    : constant GNAT.OS_Lib.Large_File_Size :=
+           GNAT.OS_Lib.File_Length64 (File);
+         Scan_End       : constant GNAT.OS_Lib.Large_File_Size :=
+           GNAT.OS_Lib.Large_File_Size'Min
+             (File_Length,
+              GNAT.OS_Lib.Large_File_Size (Extra_Scan_Byte_Limit));
+         Position       : GNAT.OS_Lib.Large_File_Size := 2;
+
+         function Can_Read (Length : Natural) return Boolean is
+           (File_Length >= 0
+            and then GNAT.OS_Lib.Large_File_Size (Length)
+              <= Scan_End - Position);
+
+         procedure Read_Segment
+           (Data      : out Ada.Streams.Stream_Element_Array;
+            Data_Last : out Ada.Streams.Stream_Element_Offset)
+         is
+         begin
+            Read_Descriptor (File, Data, Data_Last);
+            if Data_Last >= Data'First then
+               Position := Position
+                 + GNAT.OS_Lib.Large_File_Size
+                     (Data_Last - Data'First + 1);
+            end if;
+         end Read_Segment;
       begin
-         Stream_IO.Set_Index (File, 3);
-         while not Stream_IO.End_Of_File (File) loop
-            Stream_IO.Read (File, Segment_Buffer (1 .. 1), Segment_Last);
+         GNAT.OS_Lib.Lseek (File, 2, GNAT.OS_Lib.Seek_Set);
+         while Can_Read (1) loop
+            Read_Segment (Segment_Buffer (1 .. 1), Segment_Last);
             exit when Segment_Last < 1 or else Segment_Buffer (1) /= 16#FF#;
 
             loop
-               Stream_IO.Read (File, Segment_Buffer (1 .. 1), Segment_Last);
+               if not Can_Read (1) then
+                  return "";
+               end if;
+               Read_Segment (Segment_Buffer (1 .. 1), Segment_Last);
                exit when Segment_Last < 1 or else Segment_Buffer (1) /= 16#FF#;
             end loop;
 
@@ -1212,7 +1371,10 @@ package body Directory is
                null;
             else
                exit when Marker = 16#D9# or else Marker = 16#DA#;
-               Stream_IO.Read (File, Segment_Buffer (1 .. 2), Segment_Last);
+               if not Can_Read (2) then
+                  return "";
+               end if;
+               Read_Segment (Segment_Buffer (1 .. 2), Segment_Last);
                exit when Segment_Last < 2;
                Length_Value := U16_BE (Segment_Buffer, 1);
                exit when Length_Value < 2;
@@ -1220,7 +1382,10 @@ package body Directory is
                if Marker in 16#C0# .. 16#C3# or else Marker in 16#C5# .. 16#C7#
                  or else Marker in 16#C9# .. 16#CB# or else Marker in 16#CD# .. 16#CF#
                then
-                  Stream_IO.Read (File, Segment_Buffer (1 .. 5), Segment_Last);
+                  if not Can_Read (5) then
+                     return "";
+                  end if;
+                  Read_Segment (Segment_Buffer (1 .. 5), Segment_Last);
                   if Segment_Last >= 5 then
                      return "image.dimensions|" &
                        Dimensions_Text (U16_BE (Segment_Buffer, 4), U16_BE (Segment_Buffer, 2));
@@ -1230,9 +1395,13 @@ package body Directory is
 
                Remaining := Length_Value - 2;
                if Remaining > 0 then
-                  Stream_IO.Set_Index
-                    (File,
-                     Stream_IO.Positive_Count (Stream_IO.Count (Stream_IO.Index (File)) + Stream_IO.Count (Remaining)));
+                  if not Can_Read (Remaining) then
+                     return "";
+                  end if;
+                  GNAT.OS_Lib.Lseek
+                    (File, Long_Integer (Remaining), GNAT.OS_Lib.Seek_Cur);
+                  Position := Position
+                    + GNAT.OS_Lib.Large_File_Size (Remaining);
                end if;
             end if;
          end loop;
@@ -1244,14 +1413,17 @@ package body Directory is
          return "";
       end if;
 
-      Stream_IO.Open (File, Stream_IO.In_File, Path);
-      Stream_IO.Read (File, Buffer, Last);
+      File := Files.Fs.Open_Regular_Read (Path);
+      if File = GNAT.OS_Lib.Invalid_FD then
+         return "";
+      end if;
+      Read_Descriptor (File, Buffer, Last);
 
       if Filetype = "image/png" and then Is_PNG then
          declare
             Token : constant String := "image.dimensions|" & Dimensions_Text (U32_BE (Buffer, 17), U32_BE (Buffer, 21));
          begin
-            Stream_IO.Close (File);
+            Close_Read_Descriptor (File);
             return Token;
          end;
       elsif Filetype = "image/jpeg"
@@ -1262,16 +1434,16 @@ package body Directory is
          declare
             Token : constant String := JPEG_Token;
          begin
-            Stream_IO.Close (File);
+            Close_Read_Descriptor (File);
             return Token;
          end;
       end if;
 
-      Stream_IO.Close (File);
+      Close_Read_Descriptor (File);
       return "";
    exception
       when others =>
-         Safe_Close (File);
+         Close_Read_Descriptor (File);
          return "";
    end Image_Dimensions_Token;
 
@@ -1614,7 +1786,10 @@ package body Directory is
       return Result;
    exception
       when others =>
-         return Result;
+         --  A bounded enumeration failure may happen after some entries were
+         --  accumulated.  Once the scan is unavailable none of those partial
+         --  counters or timestamps are authoritative.
+         return (Path => Result.Path, others => <>);
    end Directory_State;
 
    function Detect_Directory_Change
@@ -1624,7 +1799,8 @@ package body Directory is
    is
       After_State : constant Directory_Signature := Directory_State (Path);
       Changed     : constant Boolean :=
-        Before_State.Exists /= After_State.Exists
+        Before_State.Path /= After_State.Path
+        or else Before_State.Exists /= After_State.Exists
         or else Before_State.Entry_Count /= After_State.Entry_Count
         or else Before_State.Entry_State_Checksum /= After_State.Entry_State_Checksum
         or else Before_State.Latest_Modified_Known /= After_State.Latest_Modified_Known
@@ -1747,16 +1923,19 @@ package body Directory is
          return Hostkit.Fs.Is_Link (Candidate);
       exception
          when others =>
-            return False;
+            --  Link classification is a safety boundary: an unknown entry must
+            --  be skipped, never treated as a directory that is safe to enter.
+            return True;
       end Is_Symlink;
 
-      procedure Walk (Directory : String; Depth : Natural) is
+      function Walk (Directory : String; Depth : Natural) return Boolean is
          Search : Ada.Directories.Search_Type;
          Item   : Ada.Directories.Directory_Entry_Type;
+         Started : Boolean := False;
       begin
          if Depth > Max_Depth then
             Result.Capped := True;
-            return;
+            return True;
          end if;
 
          Ada.Directories.Start_Search
@@ -1767,6 +1946,7 @@ package body Directory is
               [Ada.Directories.Ordinary_File => True,
                Ada.Directories.Directory     => True,
                Ada.Directories.Special_File  => True]);
+         Started := True;
 
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Item);
@@ -1779,7 +1959,8 @@ package body Directory is
                   if Visited > Max_Entries then
                      Result.Capped := True;
                      Ada.Directories.End_Search (Search);
-                     return;
+                     Started := False;
+                     return True;
                   end if;
 
                   Result.Item_Count := Result.Item_Count + 1;
@@ -1787,7 +1968,12 @@ package body Directory is
                   if Is_Symlink (Full) then
                      null;
                   elsif Ada.Directories.Kind (Item) = Ada.Directories.Directory then
-                     Walk (Full, Depth + 1);
+                     declare
+                        Descended : constant Boolean := Walk (Full, Depth + 1);
+                        pragma Unreferenced (Descended);
+                     begin
+                        null;
+                     end;
                      exit when Result.Capped;
                   elsif Ada.Directories.Kind (Item) = Ada.Directories.Ordinary_File then
                      Result.File_Count := Result.File_Count + 1;
@@ -1806,21 +1992,34 @@ package body Directory is
          end loop;
 
          Ada.Directories.End_Search (Search);
+         Started := False;
+         return True;
       exception
          when others =>
+            if Started then
+               begin
+                  Ada.Directories.End_Search (Search);
+               exception
+                  when others => null;
+               end;
+            end if;
             --  An unreadable subdirectory is skipped rather than failing the
-            --  whole measurement.
-            null;
+            --  whole measurement.  The caller distinguishes that case from an
+            --  unreadable root, whose result must remain unavailable.
+            return False;
       end Walk;
    begin
       if Path = ""
         or else not Ada.Directories.Exists (Path)
+        or else Hostkit.Fs.Is_Link (Path)
         or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
       then
          return Result;
       end if;
 
-      Walk (Path, 0);
+      if not Walk (Path, 0) then
+         return (others => <>);
+      end if;
       Result.Available := True;
       return Result;
    exception

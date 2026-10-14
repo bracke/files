@@ -1,6 +1,5 @@
 with Ada.Characters.Handling;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 with Files.UTF8;
 with GNAT.OS_Lib;
@@ -9,6 +8,8 @@ with Hostkit.Host;
 
 separate (Files.File_System)
 package body Path is
+
+   use type Hostkit.Host.Kind;
 
    function Parent_Directory (Path : String) return String is
    begin
@@ -36,11 +37,7 @@ package body Path is
    function Expand_User_Path (Path : String) return String is
       function Home return String is
       begin
-         if Ada.Environment_Variables.Exists ("HOME") then
-            return Ada.Environment_Variables.Value ("HOME");
-         else
-            return "";
-         end if;
+         return Hostkit.Fs.Home_Directory;
       exception
          when others =>
             return "";
@@ -50,7 +47,11 @@ package body Path is
          return (if Home = "" then Path else Home);
       elsif Path'Length >= 2
         and then Path (Path'First) = '~'
-        and then Path (Path'First + 1) = '/'
+        and then
+          (Path (Path'First + 1) = '/'
+           or else
+             (Hostkit.Host.Current = Hostkit.Host.Windows
+              and then Path (Path'First + 1) = '\'))
       then
          return
            (if Home = "" then Path
@@ -223,8 +224,6 @@ package body Path is
       Rules : Name_Rules := Host_Rules)
       return Boolean
    is
-      use type Hostkit.Host.Kind;
-
       Windows_Rules_Apply : constant Boolean :=
         (case Rules is
             when Windows_Rules => True,
