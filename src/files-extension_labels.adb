@@ -104,6 +104,9 @@ package body Files.Extension_Labels is
         or else Result.Atlas_Pixels = System.Null_Address
         or else Result.Atlas_Width = 0
         or else Result.Atlas_Height = 0
+        or else Result.Atlas_Bytes = 0
+        or else Result.Atlas_Bytes > Max_Atlas_Bytes
+        or else Result.Atlas_Width > Result.Atlas_Bytes / Result.Atlas_Height
       then
          return (Width => 0, Height => 0, Pixels => Byte_Vectors.Empty_Vector);
       end if;
@@ -120,7 +123,10 @@ package body Files.Extension_Labels is
             W0 := Natural'Max (W0, Natural (Float'Ceiling (G.X + G.Width)));
             H0 := Natural'Max (H0, Natural (Float'Ceiling (G.Y + G.Height)));
          end loop;
-         if W0 = 0 or else H0 = 0 then
+         if W0 = 0 or else H0 = 0
+           or else W0 > Max_Atlas_Bytes / 4
+           or else H0 > Max_Atlas_Bytes / (W0 * 4)
+         then
             return (Width => 0, Height => 0, Pixels => Byte_Vectors.Empty_Vector);
          end if;
 
@@ -143,39 +149,52 @@ package body Files.Extension_Labels is
                   DX0 : constant Natural := Natural (Float'Rounding (G.X));
                   DY0 : constant Natural := Natural (Float'Rounding (G.Y));
                begin
-                  for Y in 0 .. GH - 1 loop
-                     for X in 0 .. GW - 1 loop
-                        declare
-                           SX    : constant Natural := SX0 + X;
-                           SY    : constant Natural := SY0 + Y;
-                           DX    : constant Natural := DX0 + X;
-                           DY    : constant Natural := DY0 + Y;
-                           A_Idx : constant Natural := SY * AW + SX + 1;
-                        begin
-                           if DX < W0 and then DY < H0
-                             and then SX < AW and then SY < AH
-                             and then A_Idx <= Result.Atlas_Bytes
-                           then
-                              declare
-                                 Alpha : constant Interfaces.Unsigned_8 := Atlas.all (A_Idx);
-                                 P     : constant Positive := Positive ((DY * W0 + DX) * 4 + 1);
-                              begin
-                                 if Alpha > 0 then
-                                    Buf.Replace_Element (P, Cr);
-                                    Buf.Replace_Element (P + 1, Cg);
-                                    Buf.Replace_Element (P + 2, Cb);
-                                    Buf.Replace_Element (P + 3, Alpha);
-                                    Min_C := Natural'Min (Min_C, DX);
-                                    Max_C := Natural'Max (Max_C, DX);
-                                    Min_R := Natural'Min (Min_R, DY);
-                                    Max_R := Natural'Max (Max_R, DY);
-                                    Inked := True;
-                                 end if;
-                              end;
-                           end if;
-                        end;
-                     end loop;
-                  end loop;
+                  if GW > 0 and then GH > 0
+                    and then SX0 < AW and then SY0 < AH
+                    and then DX0 < W0 and then DY0 < H0
+                  then
+                     declare
+                        Safe_W : constant Natural :=
+                          Natural'Min (GW, Natural'Min (AW - SX0, W0 - DX0));
+                        Safe_H : constant Natural :=
+                          Natural'Min (GH, Natural'Min (AH - SY0, H0 - DY0));
+                     begin
+                        if Safe_W > 0 and then Safe_H > 0 then
+                           for Y in 0 .. Safe_H - 1 loop
+                              for X in 0 .. Safe_W - 1 loop
+                                 declare
+                                    SX : constant Natural := SX0 + X;
+                                    SY : constant Natural := SY0 + Y;
+                                    DX : constant Natural := DX0 + X;
+                                    DY : constant Natural := DY0 + Y;
+                                    A_Idx : constant Natural := SY * AW + SX + 1;
+                                 begin
+                                    if A_Idx <= Result.Atlas_Bytes then
+                                       declare
+                                          Alpha : constant Interfaces.Unsigned_8 :=
+                                            Atlas.all (A_Idx);
+                                          P : constant Positive :=
+                                            Positive ((DY * W0 + DX) * 4 + 1);
+                                       begin
+                                          if Alpha > 0 then
+                                             Buf.Replace_Element (P, Cr);
+                                             Buf.Replace_Element (P + 1, Cg);
+                                             Buf.Replace_Element (P + 2, Cb);
+                                             Buf.Replace_Element (P + 3, Alpha);
+                                             Min_C := Natural'Min (Min_C, DX);
+                                             Max_C := Natural'Max (Max_C, DX);
+                                             Min_R := Natural'Min (Min_R, DY);
+                                             Max_R := Natural'Max (Max_R, DY);
+                                             Inked := True;
+                                          end if;
+                                       end;
+                                    end if;
+                                 end;
+                              end loop;
+                           end loop;
+                        end if;
+                     end;
+                  end if;
                end;
             end loop;
 
@@ -235,6 +254,10 @@ package body Files.Extension_Labels is
          Cache.Insert (Key, Rasterize (Ext, Height, Theme));
       end if;
       return Cache.Element (Key);
+   exception
+      when others =>
+         return (Width => 0, Height => 0,
+                 Pixels => Files.Types.Byte_Vectors.Empty_Vector);
    end Label_For;
 
 end Files.Extension_Labels;

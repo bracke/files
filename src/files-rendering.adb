@@ -912,12 +912,8 @@ package body Files.Rendering is
             Region : constant Conflict_Hit_Region :=
               Frame.Conflict_Hits.Element (Positive (Index));
          begin
-            if Region.Width > 0
-              and then Region.Height > 0
-              and then X >= Region.X
-              and then X < Region.X + Region.Width
-              and then Y >= Region.Y
-              and then Y < Region.Y + Region.Height
+            if Contains_Rectangle_Point
+              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
             then
                return Region;
             end if;
@@ -938,12 +934,8 @@ package body Files.Rendering is
             Region : constant Permission_Hit_Region :=
               Frame.Permission_Hits.Element (Positive (Index));
          begin
-            if Region.Width > 0
-              and then Region.Height > 0
-              and then X >= Region.X
-              and then X < Region.X + Region.Width
-              and then Y >= Region.Y
-              and then Y < Region.Y + Region.Height
+            if Contains_Rectangle_Point
+              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
             then
                return Region;
             end if;
@@ -964,12 +956,8 @@ package body Files.Rendering is
             Region : constant Ownership_Hit_Region :=
               Frame.Ownership_Hits.Element (Positive (Index));
          begin
-            if Region.Width > 0
-              and then Region.Height > 0
-              and then X >= Region.X
-              and then X < Region.X + Region.Width
-              and then Y >= Region.Y
-              and then Y < Region.Y + Region.Height
+            if Contains_Rectangle_Point
+              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
             then
                return Region;
             end if;
@@ -1010,11 +998,13 @@ package body Files.Rendering is
       X    : Natural;
       Y    : Natural)
       return Natural is
+      First_Row_Y : constant Natural :=
+        Saturating_Add (Menu.Y, Menu.Padding);
    begin
       if not Menu.Visible
         or else X < Menu.X
-        or else X >= Menu.X + Menu.Width
-        or else Y < Menu.Y + Menu.Padding
+        or else X - Menu.X >= Menu.Width
+        or else Y < First_Row_Y
         or else Menu.Row_Height = 0
       then
          return 0;
@@ -1024,7 +1014,7 @@ package body Files.Rendering is
       --  order and return the command row containing Y. Separator rows are not
       --  selectable and resolve to no row.
       declare
-         Row_Top : Natural := Menu.Y + Menu.Padding;
+         Row_Top : Natural := First_Row_Y;
       begin
          for Row in 1 .. Menu.Row_Count loop
             declare
@@ -1033,14 +1023,14 @@ package body Files.Rendering is
                   then Menu.Separator_Height
                   else Menu.Row_Height);
             begin
-               if Y >= Row_Top and then Y < Row_Top + Row_H then
+               if Y >= Row_Top and then Y - Row_Top < Row_H then
                   if Menu.Row_Kinds (Row) = Separator_Row then
                      return 0;
                   else
                      return Row;
                   end if;
                end if;
-               Row_Top := Row_Top + Row_H;
+               Row_Top := Saturating_Add (Row_Top, Row_H);
             end;
          end loop;
          return 0;
@@ -1073,14 +1063,25 @@ package body Files.Rendering is
       Max_Step      : Positive := 4)
       return Integer
    is
-      Edge : constant Integer := Line_Height;
+      subtype Wide_Integer is Long_Long_Integer;
+
+      Cursor      : constant Wide_Integer := Wide_Integer (Cursor_Y);
+      Top_Edge    : constant Wide_Integer :=
+        Wide_Integer (Region_Top) + Wide_Integer (Line_Height);
+      Bottom_Edge : constant Wide_Integer :=
+        Wide_Integer (Region_Bottom) - Wide_Integer (Line_Height);
+      Line        : constant Wide_Integer := Wide_Integer (Line_Height);
+      Limit       : constant Wide_Integer := Wide_Integer (Max_Step);
+      Step        : Wide_Integer;
    begin
-      if Cursor_Y < Region_Top + Edge then
-         return Integer'Max
-           (-Max_Step, -(1 + (Region_Top + Edge - Cursor_Y) / Line_Height));
-      elsif Cursor_Y > Region_Bottom - Edge then
-         return Integer'Min
-           (Max_Step, 1 + (Cursor_Y - (Region_Bottom - Edge)) / Line_Height);
+      if Cursor < Top_Edge then
+         Step := Wide_Integer'Min
+           (Limit, 1 + (Top_Edge - Cursor) / Line);
+         return -Integer (Step);
+      elsif Cursor > Bottom_Edge then
+         Step := Wide_Integer'Min
+           (Limit, 1 + (Cursor - Bottom_Edge) / Line);
+         return Integer (Step);
       else
          return 0;
       end if;
@@ -1286,10 +1287,10 @@ package body Files.Rendering is
       --  sensible floor so it stays usable in tiny windows.
       Panel_W   : constant Natural :=
         Natural'Min (Layout.Width, Natural'Max (Saturating_Multiply (Line_Height, 16),
-                                                (Layout.Width * 3) / 4));
+                                                Bounded_Product_Divide (Layout.Width, 3, 4)));
       Panel_H   : constant Natural :=
         Natural'Min (Layout.Height, Natural'Max (Saturating_Multiply (Line_Height, 12),
-                                                 (Layout.Height * 3) / 4));
+                                                 Bounded_Product_Divide (Layout.Height, 3, 4)));
       Panel_X   : constant Natural :=
         (if Layout.Width > Panel_W then (Layout.Width - Panel_W) / 2 else 0);
       Panel_Y   : constant Natural :=

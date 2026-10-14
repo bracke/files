@@ -94,12 +94,16 @@ separate (Files.Rendering)
 
       --  Anchor to the cursor but keep the menu fully on-screen.
       Result.X :=
-        (if Snapshot.Context_Menu_X + Result.Width > Width
-         then (if Width > Result.Width then Width - Result.Width else 0)
+        (if Result.Width >= Width
+         then 0
+         elsif Snapshot.Context_Menu_X > Width - Result.Width
+         then Width - Result.Width
          else Snapshot.Context_Menu_X);
       Result.Y :=
-        (if Snapshot.Context_Menu_Y + Result.Height > Height
-         then (if Height > Result.Height then Height - Result.Height else 0)
+        (if Result.Height >= Height
+         then 0
+         elsif Snapshot.Context_Menu_Y > Height - Result.Height
+         then Height - Result.Height
          else Snapshot.Context_Menu_Y);
       Result.Visible := Result.Width > 0 and then Result.Height > 0;
 

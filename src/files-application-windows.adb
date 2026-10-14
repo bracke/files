@@ -1678,28 +1678,39 @@ package body Files.Application.Windows is
       Offset    : Long_Float)
       return Integer
    is
-      Total       : constant Long_Float := Remainder + Offset;
       Whole_Float : Long_Float := 0.0;
       Whole       : Integer := 0;
    begin
-      if Total >= Long_Float (Integer'Last) then
+      --  Native input is not trusted to contain a finite IEEE value. A NaN
+      --  compares false to every bound and, if retained, would poison every
+      --  later scroll event for this window.
+      if Remainder /= Remainder or else Offset /= Offset then
          Remainder := 0.0;
-         return Integer'Last;
-      elsif Total <= Long_Float (Integer'First) then
-         Remainder := 0.0;
-         return Integer'First;
-      elsif Total >= 1.0 then
-         Whole_Float := Long_Float'Floor (Total);
-      elsif Total <= -1.0 then
-         Whole_Float := Long_Float'Ceiling (Total);
-      else
-         Remainder := Total;
          return 0;
       end if;
 
-      Whole := Integer (Whole_Float);
-      Remainder := Total - Long_Float (Whole);
-      return Whole;
+      declare
+         Total : constant Long_Float := Remainder + Offset;
+      begin
+         if Total >= Long_Float (Integer'Last) then
+            Remainder := 0.0;
+            return Integer'Last;
+         elsif Total <= Long_Float (Integer'First) then
+            Remainder := 0.0;
+            return Integer'First;
+         elsif Total >= 1.0 then
+            Whole_Float := Long_Float'Floor (Total);
+         elsif Total <= -1.0 then
+            Whole_Float := Long_Float'Ceiling (Total);
+         else
+            Remainder := Total;
+            return 0;
+         end if;
+
+         Whole := Integer (Whole_Float);
+         Remainder := Total - Long_Float (Whole);
+         return Whole;
+      end;
    end Accumulate_Scroll_Offset;
 
    function Add_Pending_Scroll

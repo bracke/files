@@ -416,16 +416,22 @@ package body Files.UTF8 is
       Position : Natural)
       return Natural
    is
-      Length : constant Natural := Whitespace_Separator_Length (Content, Position);
-      Index  : constant Natural := Content'First + Position;
    begin
-      if Length > 0 then
-         return Length;
-      elsif Position >= Content'Length then
+      if Position >= Content'Length then
          return 0;
-      elsif Is_Word_Punctuation (Character'Pos (Content (Index))) then
-         return 1;
       end if;
+
+      declare
+         Length : constant Natural :=
+           Whitespace_Separator_Length (Content, Position);
+         Index  : constant Integer := Content'First + Integer (Position);
+      begin
+         if Length > 0 then
+            return Length;
+         elsif Is_Word_Punctuation (Character'Pos (Content (Index))) then
+            return 1;
+         end if;
+      end;
 
       return 0;
    end Word_Separator_Length;

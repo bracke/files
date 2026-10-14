@@ -28,7 +28,8 @@ separate (Files.Application.Windows)
             declare
                New_Size : constant Positive :=
                  Files.Settings.Clamp_Font_Pixel_Size
-                   (Integer (Runtime.Font_Pixel_Size) + Offset);
+                   (Add_Pending_Scroll
+                      (Integer (Runtime.Font_Pixel_Size), Offset));
             begin
                if New_Size /= Runtime.Font_Pixel_Size then
                   Runtime.Font_Pixel_Size := New_Size;

@@ -152,9 +152,12 @@ separate (Files.Rendering.Build_Frame_Commands)
       Draw_Text_W : constant Natural :=
         (if Capacity > 0 and then Line_Units > 0
          then Saturating_Multiply (Line_Units, Cell_W) else Text_W);
-      Tip_W       : constant Natural := Saturating_Add (Draw_Text_W, 2 * Padding);
+      Tip_W       : constant Natural :=
+        Saturating_Add (Draw_Text_W, Saturating_Multiply (Padding, 2));
       Tip_H       : constant Natural :=
-        Saturating_Add (Saturating_Multiply (Row_Count, Line_Height), 2 * Padding_V);
+        Saturating_Add
+          (Saturating_Multiply (Row_Count, Line_Height),
+           Saturating_Multiply (Padding_V, 2));
 
       function Fits_Right return Boolean is
       begin
