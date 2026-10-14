@@ -9,6 +9,7 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Text_IO;
 with System;
 
 with AUnit;
@@ -22,10 +23,12 @@ with Glfw.Input.Mouse;
 
 with GNAT.OS_Lib;
 with Textrender.Fonts;
+with Hostkit.Host;
 
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
+with Files.Bounded_Text_IO;
 with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
@@ -57,6 +60,7 @@ package body Files_Suite.Model is
    use AUnit.Assertions;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
+   use type Hostkit.Host.Kind;
    use type Interfaces.Unsigned_32;
    use type Files.Commands.Command_Id;
    use type Files.Commands.Command_Placement;
@@ -118,6 +122,7 @@ package body Files_Suite.Model is
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Bounded_Host_Text_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Multi_Rename_Broadcast (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -167,6 +172,9 @@ package body Files_Suite.Model is
         (T, Test_Runtime_Sort_State'Access, "runtime sort state");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Selector_And_Root_Selection'Access, "root selector and root selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Bounded_Host_Text_Records'Access,
+         "bounded host text input rejects an oversized physical record atomically");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_And_Bottom_Bar_Commands'Access, "info pane and bottom bar commands");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -355,6 +363,11 @@ package body Files_Suite.Model is
       Bad_Metadata : Files.Model.Undo_Entry := Rename_Action;
       Bad_Restore : Files.Model.Undo_Entry := Rename_Action;
       Bad_Copy_Records : Files.Model.Undo_Entry := Rename_Action;
+      Relative_From : Files.Model.Undo_Entry := Rename_Action;
+      Nul_Target : Files.Model.Undo_Entry := Rename_Action;
+      Relative_Forward : Files.Model.Undo_Entry := Rename_Action;
+      Relative_Restore : Files.Model.Undo_Entry := Rename_Action;
+      Relative_Copy_Record : Files.Model.Undo_Entry := Rename_Action;
       Undo_Only_Redo : Files.Model.Undo_Entry := Rename_Action;
    begin
       Good_Undo.Reverse_Completed.Append (Good_Undo.From.First_Element);
@@ -378,6 +391,45 @@ package body Files_Suite.Model is
       Bad_Copy_Records.Create_Kind := Files.Model.Create_Copy;
       Bad_Copy_Records.Copy_Records.Append (To_Unbounded_String ("incomplete-group"));
 
+      Relative_From.From.Replace_Element
+        (Relative_From.From.First_Index, To_Unbounded_String ("relative-new-name"));
+
+      Nul_Target.To.Replace_Element
+        (Nul_Target.To.First_Index,
+         To_Unbounded_String ("/missing/old" & Character'Val (0) & "name"));
+
+      Relative_Forward.Kind := Files.Model.Undo_Delete_Created;
+      Relative_Forward.To.Clear;
+      Relative_Forward.Forward.Append (To_Unbounded_String ("relative-source"));
+      Relative_Forward.Create_Kind := Files.Model.Create_Symbolic_Link;
+
+      Relative_Restore.Redoable := False;
+      Relative_Restore.Kind := Files.Model.Undo_Move;
+      Relative_Restore.Restore_Trash.Append
+        (To_Unbounded_String ("/missing/trash-entry"));
+      Relative_Restore.Restore_Identities.Append
+        (To_Unbounded_String ("persisted-trash-identity"));
+      Relative_Restore.Restore_Targets.Append
+        (To_Unbounded_String ("relative-restore-target"));
+
+      Relative_Copy_Record.Kind := Files.Model.Undo_Delete_Created;
+      Relative_Copy_Record.To.Clear;
+      Relative_Copy_Record.Forward.Append
+        (To_Unbounded_String ("/missing/source"));
+      Relative_Copy_Record.Create_Kind := Files.Model.Create_Copy;
+      Relative_Copy_Record.Copy_Records.Append
+        (To_Unbounded_String ("source-identity"));
+      Relative_Copy_Record.Copy_Records.Append
+        (To_Unbounded_String ("source-revision"));
+      Relative_Copy_Record.Copy_Records.Append
+        (To_Unbounded_String ("content-digest"));
+      Relative_Copy_Record.Copy_Records.Append
+        (To_Unbounded_String ("relative-copied-path"));
+      Relative_Copy_Record.Copy_Records.Append
+        (To_Unbounded_String ("destination-identity"));
+      Relative_Copy_Record.Copy_Records.Append
+        (To_Unbounded_String ("destination-revision"));
+
       Undo_Only_Redo.Redoable := False;
 
       Undo.Append (Short_Targets);
@@ -386,6 +438,11 @@ package body Files_Suite.Model is
       Undo.Append (Bad_Metadata);
       Undo.Append (Bad_Restore);
       Undo.Append (Bad_Copy_Records);
+      Undo.Append (Relative_From);
+      Undo.Append (Nul_Target);
+      Undo.Append (Relative_Forward);
+      Undo.Append (Relative_Restore);
+      Undo.Append (Relative_Copy_Record);
       Redo.Append (Undo_Only_Redo);
       Redo.Append (Good_Redo);
 
@@ -394,7 +451,7 @@ package body Files_Suite.Model is
       Assert
         (Natural (Files.Model.Undo_History (Model).Length) = 1
          and then Files.Model.Undo_History (Model).First_Element = Good_Undo,
-         "only the structurally valid Undo action and its partial progress survive");
+         "only the structurally and path-valid Undo action and its partial progress survive");
       Assert
         (Natural (Files.Model.Redo_History (Model).Length) = 1
          and then Files.Model.Redo_History (Model).First_Element = Good_Redo,
@@ -1014,6 +1071,11 @@ package body Files_Suite.Model is
       Assert
         (Files.File_Types.Extension_Of ("C:\tmp\dir.with.dots\main.adb") = "adb",
          "extension extraction uses the Windows path leaf name");
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         Assert
+           (Files.File_Types.Extension_Of ("report.txt\raw") = "txt\raw",
+            "a POSIX backslash remains part of the extension-bearing filename");
+      end if;
       Assert
         (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/file") = "",
          "extension extraction ignores dotted directory names");
@@ -2601,6 +2663,46 @@ package body Files_Suite.Model is
         (Files.Model.Path_Input_Text (Model) = Ada.Directories.Full_Name (Target),
          "root row click replaces edited path text");
    end Test_Root_Selector_And_Root_Selection;
+
+   procedure Test_Bounded_Host_Text_Records
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Path     : constant String := Join (Root, "bounded-host-lines");
+      File     : Ada.Text_IO.File_Type;
+      Line     : Unbounded_String;
+      Complete : Boolean;
+   begin
+      Reset_Root;
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Path);
+      Ada.Text_IO.Put_Line (File, "123456789");
+      Ada.Text_IO.Put_Line (File, "12345678");
+      Ada.Text_IO.Put (File, "tail");
+      Ada.Text_IO.Close (File);
+
+      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      Files.Bounded_Text_IO.Read_Line (File, 8, Line, Complete);
+      Assert
+        (not Complete and then Length (Line) = 0,
+         "an oversized physical line is rejected without returning a prefix");
+
+      Files.Bounded_Text_IO.Read_Line (File, 8, Line, Complete);
+      Assert
+        (Complete and then To_String (Line) = "12345678",
+         "a line exactly at the bound is accepted after the oversized record");
+
+      Files.Bounded_Text_IO.Read_Line (File, 8, Line, Complete);
+      Assert
+        (Complete and then To_String (Line) = "tail",
+         "an unterminated final line below the bound is accepted");
+      Ada.Text_IO.Close (File);
+   exception
+      when others =>
+         if Ada.Text_IO.Is_Open (File) then
+            Ada.Text_IO.Close (File);
+         end if;
+         raise;
+   end Test_Bounded_Host_Text_Records;
 
    procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

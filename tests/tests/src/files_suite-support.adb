@@ -21,6 +21,7 @@ with Glfw;
 with Glfw.Input.Mouse;
 
 with GNAT.OS_Lib;
+with GNAT.CRC32;
 with Textrender.Fonts;
 
 with Files.Accessibility;
@@ -295,15 +296,24 @@ package body Files_Suite.Support is
    function Chunk
      (Kind : String;
       Data : String)
-      return String is
+      return String
+   is
+      Context : GNAT.CRC32.CRC32;
+      Value   : Interfaces.Unsigned_32;
    begin
+      GNAT.CRC32.Initialize (Context);
+      GNAT.CRC32.Update (Context, Kind & Data);
+      Value := GNAT.CRC32.Get_Value (Context);
       return
         Byte ((Data'Length / 16#1000000#) mod 256) &
         Byte ((Data'Length / 16#10000#) mod 256) &
         Byte ((Data'Length / 16#100#) mod 256) &
         Byte (Data'Length mod 256) &
         Kind & Data &
-        Byte (0) & Byte (0) & Byte (0) & Byte (0);
+        Byte (Natural (Interfaces.Shift_Right (Value, 24) and 16#FF#)) &
+        Byte (Natural (Interfaces.Shift_Right (Value, 16) and 16#FF#)) &
+        Byte (Natural (Interfaces.Shift_Right (Value, 8) and 16#FF#)) &
+        Byte (Natural (Value and 16#FF#));
    end Chunk;
 
    function Minimal_Png_RGB

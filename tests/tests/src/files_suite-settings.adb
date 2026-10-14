@@ -25,6 +25,7 @@ with Textrender.Fonts;
 
 with Hostkit.Host;
 with Hostkit.Fs;
+with Hostkit.Metadata;
 
 with Files.Accessibility;
 with Files.Application;
@@ -74,6 +75,7 @@ package body Files_Suite.Settings is
    use type Files.File_System.Root_Readiness;
    use type Files.File_System.Thumbnail_Status;
    use type Files.File_System.Trash_Backend;
+   use type Hostkit.Host.Kind;
    use type Files.Application.Run_Mode;
    use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
@@ -400,6 +402,18 @@ package body Files_Suite.Settings is
       Assert (To_String (Expanded.Arguments.Element (2)) = "relative.txt", "relative path name expands");
       Assert (To_String (Expanded.Arguments.Element (3)) = "relative", "relative path stem expands");
       Assert (To_String (Expanded.Arguments.Element (4)) = "txt", "relative path extension expands");
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         Expanded := Files.Settings.Expand_Placeholders
+           (Lookup.Action, "/tmp/example/a\b.txt");
+         Assert
+           (To_String (Expanded.Arguments.Element (1)) = "/tmp/example",
+            "a POSIX backslash filename keeps its real parent");
+         Assert
+           (To_String (Expanded.Arguments.Element (2)) = "a\b.txt"
+            and then To_String (Expanded.Arguments.Element (3)) = "a\b"
+            and then To_String (Expanded.Arguments.Element (4)) = "txt",
+            "a POSIX backslash remains part of name and stem placeholders");
+      end if;
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\tmp\dir.with.dots\main.adb");
       Assert (To_String (Expanded.Arguments.Element (1)) = "C:\tmp\dir.with.dots", "Windows path parent expands");
       Assert (To_String (Expanded.Arguments.Element (2)) = "main.adb", "Windows path name expands");
@@ -1027,6 +1041,16 @@ package body Files_Suite.Settings is
       Assert (not Lookup.Found, "direct open-action insertion ignores executable line breaks");
       Files.Settings.Add_Open_Action
         (Manual,
+         "text/nul-executable",
+         Files.Settings.Make_Action
+           ("viewer" & Character'Val (0) & "ignored", Args));
+      Lookup := Files.Settings.Lookup_Open_Action
+        (Manual, "text/nul-executable", Guikit.Input.No_Modifiers);
+      Assert
+        (not Lookup.Found,
+         "direct open-action insertion ignores NUL-containing executables");
+      Files.Settings.Add_Open_Action
+        (Manual,
          "text/formfeed-executable",
          Files.Settings.Make_Action ("viewer" & ASCII.FF & "bad", Args));
       Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/formfeed-executable", Guikit.Input.No_Modifiers);
@@ -1058,6 +1082,21 @@ package body Files_Suite.Settings is
             Files.Settings.Make_Action ("viewer", Broken_Args));
          Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/linebreak-argument", Guikit.Input.No_Modifiers);
          Assert (not Lookup.Found, "direct open-action insertion ignores argument line breaks");
+      end;
+      declare
+         Broken_Args : Files.Types.String_Vectors.Vector;
+      begin
+         Broken_Args.Append
+           (To_Unbounded_String ("arg" & Character'Val (0) & "ignored"));
+         Files.Settings.Add_Open_Action
+           (Manual,
+            "text/nul-argument",
+            Files.Settings.Make_Action ("viewer", Broken_Args));
+         Lookup := Files.Settings.Lookup_Open_Action
+           (Manual, "text/nul-argument", Guikit.Input.No_Modifiers);
+         Assert
+           (not Lookup.Found,
+            "direct open-action insertion ignores NUL-containing arguments");
       end;
       declare
          Broken_Args : Files.Types.String_Vectors.Vector;
@@ -1292,6 +1331,20 @@ package body Files_Suite.Settings is
            (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
             "unrepresentable draft open-action command reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
+         Broken_Draft.Open_Action_Keys.Append
+           (To_Unbounded_String ("text/nul-action"));
+         Broken_Draft.Open_Action_Commands.Append
+           (To_Unbounded_String
+              ("viewer {path}" & Character'Val (0) & "ignored"));
+         Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
+         Assert
+           (not Broken_Load.Success,
+            "draft rejects NUL-containing open-action commands");
+         Assert
+           (To_String (Broken_Load.Error_Key) =
+              "error.settings.invalid_open_action",
+            "NUL-containing draft action reports open-action diagnostic");
+         Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/unicodebreak-action"));
          Broken_Draft.Open_Action_Commands.Append
            (To_Unbounded_String ("viewer {path}" & Line_Separator & "bad"));
@@ -1339,6 +1392,11 @@ package body Files_Suite.Settings is
          "error.settings.invalid_open_action",
          "action command field rejects line breaks");
       Assert
+        (Files.Settings.Field_Diagnostic
+           (12, "viewer {path}" & Character'Val (0) & "ignored") =
+             "error.settings.invalid_open_action",
+         "action command field rejects embedded NUL bytes");
+      Assert
         (Files.Settings.Field_Diagnostic (12, "viewer {path}" & C1_Break & "other") =
          "error.settings.invalid_open_action",
          "action command field rejects C1 line breaks");
@@ -1359,6 +1417,30 @@ package body Files_Suite.Settings is
         (Files.Settings.Field_Diagnostic (13, "details") = "error.settings.invalid",
          "out-of-range settings field reports a deterministic diagnostic");
       declare
+         Command : Unbounded_String := To_Unbounded_String ("viewer");
+      begin
+         for Index in 1 .. 257 loop
+            Append (Command, " argument" & Natural'Image (Index));
+         end loop;
+         Assert
+           (Files.Settings.Field_Diagnostic (12, To_String (Command)) =
+              "error.settings.invalid_open_action",
+            "open actions with an excessive argument vector are rejected");
+      end;
+      declare
+         Text   : Unbounded_String := To_Unbounded_String ("[bookmarks]" & ASCII.LF);
+         Parsed : Files.Settings.Settings_Parse_Result;
+      begin
+         for Index in 1 .. 4_097 loop
+            Append (Text, "bookmark = /tmp/item" & Natural'Image (Index) & ASCII.LF);
+         end loop;
+         Parsed := Files.Settings.Parse (To_String (Text));
+         Assert
+           (not Parsed.Success
+            and then To_String (Parsed.Error_Key) = "error.settings.invalid",
+            "settings parsing caps the number of persistent entries");
+      end;
+      declare
          Broken : Files.Settings.Settings_Parse_Result;
       begin
          Broken := Files.Settings.Parse ("[unknown]" & ASCII.LF);
@@ -1376,6 +1458,14 @@ package body Files_Suite.Settings is
          Assert
            (To_String (Broken.Error_Key) = "error.settings.missing_section",
             "missing section reports deterministic diagnostic");
+         Broken := Files.Settings.Parse
+           ("[settings]" & ASCII.LF
+            & "show_hidden_files = true" & Character'Val (0) & "ignored"
+            & ASCII.LF);
+         Assert
+           (not Broken.Success
+            and then To_String (Broken.Error_Key) = "error.settings.invalid",
+            "settings parser rejects embedded NUL bytes before interpreting fields");
          Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & ". = text/plain" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects empty normalized extensions");
          Assert
@@ -1492,6 +1582,17 @@ package body Files_Suite.Settings is
             Assert (Found_File, "a favorite path pointing at a file survives the round-trip");
          end;
          declare
+            Favorites : Files.Settings.Settings_Model :=
+              Files.Settings.Default_Settings;
+         begin
+            Files.Settings.Toggle_Favorite_Path (Favorites, "/tmp/safe");
+            Files.Settings.Toggle_Favorite_Path
+              (Favorites, "/tmp/bad" & Character'Val (0) & "ignored");
+            Assert
+              (Natural (Favorites.Favorite_Paths.Length) = 1,
+               "a NUL-containing path cannot be persisted as a favorite");
+         end;
+         declare
             --  The file is authoritative for mappings: a built-in mapping
             --  omitted from the file does not reappear from the defaults, while
             --  a fresh install still gets the defaults (seeded into the file by
@@ -1566,6 +1667,7 @@ package body Files_Suite.Settings is
       pragma Unreferenced (T);
       Settings_Path : constant String := Join (Root, "files.conf");
       Long_Path     : constant String := Join (Root, "long.conf");
+      Oversized_Path : constant String := Join (Root, "oversized.conf");
       Long_Type     : constant String :=
         "application/x-" &
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" &
@@ -1585,6 +1687,7 @@ package body Files_Suite.Settings is
       Not_File      : Files.Settings.Settings_Parse_Result;
       Loaded        : Files.Settings.Settings_Parse_Result;
       Long_Loaded   : Files.Settings.Settings_Parse_Result;
+      Oversized_Loaded : Files.Settings.Settings_Parse_Result;
       Ensured_Path  : constant String := Join (Join (Root, "created-config"), "settings.conf");
       Ensured       : Files.Settings.Settings_Write_Result;
       Saved_Path    : constant String := Join (Join (Root, "saved-config"), "settings.conf");
@@ -1643,6 +1746,12 @@ package body Files_Suite.Settings is
       Assert
         (To_String (Empty_Load.Error_Key) = "error.settings.load",
          "empty settings file path reports load diagnostic");
+      Loaded := Files.Settings.Load_File
+        (Settings_Path & Character'Val (0) & "ignored");
+      Assert
+        (not Loaded.Success
+         and then To_String (Loaded.Error_Key) = "error.settings.load",
+         "settings loading rejects NUL-containing paths without truncating them");
       Ada.Directories.Create_Path (Join (Root, "settings-dir"));
       Not_File := Files.Settings.Load_File (Join (Root, "settings-dir"));
       Assert (not Not_File.Success, "directory settings path is rejected");
@@ -1672,6 +1781,23 @@ package body Files_Suite.Settings is
       Assert
         (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo") = "application/x-foo",
          "filetype mapping loads from disk");
+      declare
+         Link_Path : constant String := Join (Root, "linked-settings.conf");
+      begin
+         if Files_Suite.Support.Create_Symlink (Settings_Path, Link_Path) then
+            Loaded := Files.Settings.Load_File (Link_Path);
+            Assert
+              (Loaded.Success and then Loaded.Settings.Show_Hidden_Files,
+               "settings loading follows a link only to its verified regular-file target");
+         end if;
+      end;
+      if Hostkit.Host.Current = Hostkit.Host.Linux then
+         Loaded := Files.Settings.Load_File ("/dev/null");
+         Assert
+           (not Loaded.Success
+            and then To_String (Loaded.Error_Key) = "error.settings.not_file",
+            "settings loading rejects a special file without reading it");
+      end if;
 
       Write_File
         (Long_Path,
@@ -1683,6 +1809,16 @@ package body Files_Suite.Settings is
         (Files.Settings.Filetype_For_Extension (Long_Loaded.Settings, "long") = Long_Type,
          "long filetype mapping is not split while loading");
 
+      Write_Filler_File
+        (Oversized_Path,
+         'x',
+         1 * 1024 * 1024 + 1);
+      Oversized_Loaded := Files.Settings.Load_File (Oversized_Path);
+      Assert
+        (not Oversized_Loaded.Success
+         and then To_String (Oversized_Loaded.Error_Key) = "error.settings.load",
+         "oversized settings input is rejected at the bounded file reader");
+
       Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
       Assert (Ensured.Success, "ensure default settings creates missing file");
       Assert (Ada.Directories.Exists (Ensured_Path), "ensure default settings creates parent directories");
@@ -1693,6 +1829,16 @@ package body Files_Suite.Settings is
          "ensured settings file contains default mappings");
       Saved := Files.Settings.Save_Text (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
       Assert (Saved.Success, "settings text can be saved to a new path");
+      if Hostkit.Metadata.Mode_Bits_Are_Native then
+         declare
+            Available : Boolean := False;
+         begin
+            Assert
+              (Files.File_System.Permission_Bits_Of (Saved_Path, Available)
+                 mod 8#1000# = 8#600# and then Available,
+               "saved settings containing private paths are owner-only");
+         end;
+      end if;
       Loaded := Files.Settings.Load_File (Saved_Path);
       Assert (Loaded.Success, "saved settings file loads");
       Assert (Loaded.Settings.Default_View = Files.Types.Large_Icons, "saved settings text is persisted");
@@ -1710,6 +1856,19 @@ package body Files_Suite.Settings is
       Assert
         (Loaded.Settings.Default_View = Files.Types.Details,
          "resaved settings text replaces the previous content");
+      Saved := Files.Settings.Save_Text
+        (Saved_Path,
+         "[settings]" & ASCII.LF
+         & "default_view_mode = large" & Character'Val (0) & "ignored"
+         & ASCII.LF);
+      Assert
+        (not Saved.Success,
+         "settings saving rejects embedded NUL bytes");
+      Loaded := Files.Settings.Load_File (Saved_Path);
+      Assert
+        (Loaded.Success
+         and then Loaded.Settings.Default_View = Files.Types.Details,
+         "a rejected NUL-containing save preserves the existing settings file");
       declare
          Temp_Path : constant String := Saved_Path & ".tmp";
          Victim : constant String := Join (Root, "settings-temp-victim");
@@ -2418,6 +2577,11 @@ package body Files_Suite.Settings is
       Files.Settings.Set_Label (Base, Folder_Path, Files.Types.Green);
       Assert (Files.Settings.Label_Of (Base, Folder_Path) = Files.Types.Green,
               "a folder path can carry a label");
+      Files.Settings.Set_Label
+        (Base, File_Path & Character'Val (0) & "ignored", Files.Types.Red);
+      Assert
+        (Natural (Base.Labels.Length) = 2,
+         "a NUL-containing path cannot create a persisted color label");
 
       --  No_Label clears the entry.
       Files.Settings.Set_Label (Base, File_Path, Files.Types.No_Label);
@@ -2489,6 +2653,11 @@ package body Files_Suite.Settings is
       Assert (Count (Base) = 0, "a fresh model has no recent items");
       Files.Settings.Note_Recent (Base, "");
       Assert (Count (Base) = 0, "the empty path is not recorded");
+      Files.Settings.Note_Recent
+        (Base, File_Path & Character'Val (0) & "ignored");
+      Assert
+        (Count (Base) = 0,
+         "a NUL-containing path is not recorded as a recent item");
 
       --  Note records most-recent-first (a file and a folder both round in).
       Files.Settings.Note_Recent (Base, File_Path);

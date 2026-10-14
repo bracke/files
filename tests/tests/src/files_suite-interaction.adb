@@ -27,6 +27,7 @@ with Files.Settings;
 with Guikit.Input;
 with Files.Types;
 with Guikit.Layout;
+with Files_Config;
 
 with Files_Suite.Support;
 
@@ -3434,6 +3435,12 @@ package body Files_Suite.Interaction is
    procedure Test_Breadcrumb_Segments_And_Elide (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
+
+      pragma Warnings (Off, "condition is always False");
+      function Running_On_Windows return Boolean is
+        (Files_Config.Alire_Host_OS = "windows");
+      pragma No_Inline (Running_On_Windows);
+      pragma Warnings (On, "condition is always False");
    begin
       declare
          Segs : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
@@ -3450,6 +3457,40 @@ package body Files_Suite.Interaction is
            (To_String (Segs.Element (3).Ancestor_Path) = "/home/user/files",
             "the leaf segment navigates to the full path");
       end;
+
+      if Running_On_Windows then
+         declare
+            Drive_Path : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+              Files.Breadcrumbs.Segments ("C:\Users\Alice");
+            UNC_Path : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+              Files.Breadcrumbs.Segments ("\\server\share\folder");
+         begin
+            Assert
+              (Natural (Drive_Path.Length) = 3
+               and then To_String (Drive_Path.Last_Element.Ancestor_Path) =
+                 "C:\Users\Alice",
+               "Windows drive breadcrumbs retain native separators");
+            Assert
+              (Natural (UNC_Path.Length) = 3
+               and then To_String (UNC_Path.First_Element.Ancestor_Path) =
+                 "\\server"
+               and then To_String (UNC_Path.Last_Element.Ancestor_Path) =
+                 "\\server\share\folder",
+               "UNC breadcrumb click targets retain their two-separator root");
+         end;
+      else
+         declare
+            Backslash_Name : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+              Files.Breadcrumbs.Segments ("/tmp/a\b");
+         begin
+            Assert
+              (Natural (Backslash_Name.Length) = 2
+               and then To_String (Backslash_Name.Last_Element.Label) = "a\b"
+               and then To_String (Backslash_Name.Last_Element.Ancestor_Path) =
+                 "/tmp/a\b",
+               "POSIX breadcrumbs keep backslashes inside a filename");
+         end;
+      end if;
 
       declare
          Long   : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
@@ -3655,6 +3696,9 @@ package body Files_Suite.Interaction is
       Files.Model.Open_Tree_Panel (Model);
       --  Expand the root so alpha and beta are visible rows.
       CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Assert
+        (CResult.Status = Files.Controller.Controller_Command_Executed,
+         "expanding the destination tree reports an executed command");
 
       Sources.Append (To_Unbounded_String (Src_File));
       Files.Model.Begin_Tree_Pick (Model, Files.Model.Pick_Copy, Sources, "");
@@ -3664,11 +3708,13 @@ package body Files_Suite.Interaction is
       Rows := Files.Model.Tree_Visible_Rows (Model);
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert
-        (Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (1).Path),
+        (CResult.Status = Files.Controller.Controller_Selection_Moved
+         and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (1).Path),
          "the first arrow highlights the first tree row");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert
-        (Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (2).Path),
+        (CResult.Status = Files.Controller.Controller_Selection_Moved
+         and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (2).Path),
          "Down moves the highlight to the next row");
 
       --  Right on the alpha folder (which has a child) expands it; Left collapses.
@@ -3678,11 +3724,13 @@ package body Files_Suite.Interaction is
       begin
          CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Assert
-           (Natural (Files.Model.Tree_Visible_Rows (Model).Length) > Before,
+           (CResult.Status = Files.Controller.Controller_Command_Executed
+            and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) > Before,
             "Right expands the highlighted folder");
          CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
          Assert
-           (Natural (Files.Model.Tree_Visible_Rows (Model).Length) = Before,
+           (CResult.Status = Files.Controller.Controller_Command_Executed
+            and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) = Before,
             "Left collapses it again");
       end;
 

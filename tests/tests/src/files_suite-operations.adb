@@ -1,4 +1,5 @@
 with Files.File_Identities;
+with Files.File_Identities.Testing;
 with Files.Job_Helpers;
 with Files.Job_Cleanup;
 with Files.Job_Scavenger;
@@ -7,12 +8,16 @@ with Files.Private_Directories;
 with Files.Process_Jobs;
 with Files.Process_Jobs.Testing;
 with Files.Job_Context;
+with Files.Job_Records;
 with Files.Refresh_Jobs;
+with Files.Refresh_Jobs.Testing;
+with Files.Resources;
 with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.IO_Exceptions;
 with Interfaces;
 with Interfaces.C.Strings;
 with Ada.Strings;
@@ -38,6 +43,7 @@ with Textrender.Fonts;
 with Zlib;
 
 with Hostkit.Host;
+with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
 with Hostkit.Spawn;
@@ -46,9 +52,12 @@ with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
 with Files.Applications;
+with Files.Archive_Writing;
 with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
+with Files.Copy_Context;
+with Files.Exclusive_Streams;
 with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
@@ -57,15 +66,18 @@ with Files.Features;
 with Files.Folder_Size;
 with Files.Folder_Tree;
 with Files.Fonts;
+with Files.History_Journal;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
+with Files.Operation_Jobs.Testing;
 with Files.Icon_Assets;
 with Files.Operations;
 with Files.Paste;
 with Files.Platform;
 with Hostkit.Fs;
 with Hostkit.Metadata;
+with Hostkit.Metadata_Copy;
 with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
@@ -73,6 +85,7 @@ with Files.Settings;
 with Guikit.Input;
 with Files.Types;
 with Files.Transfer_Jobs;
+with Files.Transfer_Jobs.Testing;
 with Files.UTF8;
 with Files.UI;
 with Files_Suite.Support;
@@ -115,6 +128,7 @@ package body Files_Suite.Operations is
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Interfaces.C.long_long;
+   use type Hostkit.Lease_Files.Open_Outcome;
    use type Textrender.Fonts.Load_Result;
    use type Files.Model.Sort_Field;
    use type Files.Model.Tree_Pick_Mode;
@@ -122,6 +136,7 @@ package body Files_Suite.Operations is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
+   use type Files.Types.String_Vectors.Vector;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use type Guikit.Input.Navigation_Direction;
@@ -293,6 +308,9 @@ package body Files_Suite.Operations is
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Job_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cleanup_Exit_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cleanup_Retry_Bound (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -358,6 +376,15 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Transport_Protocol_Gaps'Access,
          "transport creation crashes and cancellation failures retain safe recovery");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_Journal_Validation'Access,
+         "copy journals reject trailing transport data");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Job_Record_Validation'Access,
+         "background records reject inconsistent redundant metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Truncated_Persisted_Records'Access,
+         "every strict prefix of persisted job and history records is rejected");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Autonomous_Cleanup_Worker'Access,
          "session disposal autonomously reaps a stalled cleanup worker");
@@ -789,6 +816,12 @@ package body Files_Suite.Operations is
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable,
          "trash backend reports unavailable when no trash base exists");
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", "relative-trash-data");
+      Assert
+        (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Unavailable
+         and then not Files.File_System.Trash_Is_Available,
+         "a relative XDG data home cannot redirect trash into the process directory");
+      Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
 
       --  And with nothing selected, each platform falls back to its own desktop
       --  trash: the Recycle Bin on Windows, the freedesktop layout elsewhere.
@@ -876,6 +909,28 @@ package body Files_Suite.Operations is
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Ada.Directories.Delete_File (Prefix_Source);
       end;
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         declare
+            Backslash_Data : constant String := Join (Root, "backslash-xdg");
+            Backslash_Base : constant String := Join (Backslash_Data, "Trash");
+            Backslash_Source : constant String := Join (Backslash_Data, "Trash\victim");
+         begin
+            Ada.Directories.Create_Path (Join (Backslash_Base, "files"));
+            Ada.Directories.Create_Path (Join (Backslash_Base, "info"));
+            Write_File (Backslash_Source, "sibling");
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Backslash_Data);
+            Mutation := Files.File_System.Move_To_Trash_Preflight (Backslash_Source);
+            Assert
+              (Mutation.Success,
+               "a POSIX backslash sibling is not mistaken for a child of the trash directory");
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+            Ada.Directories.Delete_File (Backslash_Source);
+            Ada.Directories.Delete_Directory (Join (Backslash_Base, "files"));
+            Ada.Directories.Delete_Directory (Join (Backslash_Base, "info"));
+            Ada.Directories.Delete_Directory (Backslash_Base);
+            Ada.Directories.Delete_Directory (Backslash_Data);
+         end;
+      end if;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Assert
         (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Windows_Recycle_Bin,
@@ -1081,6 +1136,29 @@ package body Files_Suite.Operations is
       Assert
         (Ada.Directories.Exists (Join (Trash_Info, "doomed.txt.trashinfo")),
          "trash move writes trashinfo metadata");
+      if Hostkit.Metadata.Mode_Bits_Are_Native then
+         declare
+            Available : Boolean := False;
+         begin
+            Assert
+              (Files.File_System.Permission_Bits_Of (Join (Trash_Home, "Trash"), Available)
+                 mod 8#1000# = 8#700# and then Available,
+               "trash root is owner-only");
+            Assert
+              (Files.File_System.Permission_Bits_Of (Trash_File, Available)
+                 mod 8#1000# = 8#700# and then Available,
+               "trash payload directory is owner-only");
+            Assert
+              (Files.File_System.Permission_Bits_Of (Trash_Info, Available)
+                 mod 8#1000# = 8#700# and then Available,
+               "trash metadata directory is owner-only");
+            Assert
+              (Files.File_System.Permission_Bits_Of
+                 (Join (Trash_Info, "doomed.txt.trashinfo"), Available)
+                 mod 8#1000# = 8#600# and then Available,
+               "trash metadata sidecar is owner-only");
+         end;
+      end if;
       Assert (Files.Model.Selected_Count (Model) = 0, "successful delete reconciles selection");
       Mutation := Files.File_System.Move_To_Trash (Join (Trash_File, "doomed.txt"));
       Assert (not Mutation.Success, "trash preflight rejects items already inside trash");
@@ -1362,6 +1440,7 @@ package body Files_Suite.Operations is
       Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Trash_Home   : constant String := Root & "_restore_guard_xdg";
       Trash_File   : constant String := Join (Join (Trash_Home, "Trash"), "files");
+      Trash_Info   : constant String := Join (Join (Trash_Home, "Trash"), "info");
       Had_Xdg_Data : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
       Had_Backend  : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
       Old_Xdg_Data : Unbounded_String;
@@ -1438,6 +1517,75 @@ package body Files_Suite.Operations is
          Assert
            (Ada.Directories.Exists (Trashed_Path),
             "restore-parent-missing refusal keeps the trashed payload recoverable");
+      end;
+
+      --  Metadata from other freedesktop trash implementations is external
+      --  input. Refuse an oversized sidecar before Get_Line can allocate it.
+      declare
+         Trashed_Path : constant String := Join (Trash_File, "oversized.txt");
+         Sidecar      : constant String := Join (Trash_Info, "oversized.txt.trashinfo");
+         File         : Ada.Streams.Stream_IO.File_Type;
+      begin
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Sidecar);
+         Ada.Streams.Stream_IO.Set_Index
+           (File, Ada.Streams.Stream_IO.Count (1024 * 1024 + 1));
+         Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
+         Ada.Streams.Stream_IO.Close (File);
+         Assert
+           (Files.File_System.Trash_Original_Path (Trashed_Path) = "",
+            "oversized trash metadata is rejected before parsing");
+      end;
+
+      declare
+         Trashed_Path : constant String := Join (Trash_File, "relative-path.txt");
+         Sidecar      : constant String := Join (Trash_Info, "relative-path.txt.trashinfo");
+      begin
+         Write_File (Trashed_Path, "payload");
+         Write_File
+           (Sidecar,
+            "[Trash Info]" & ASCII.LF
+            & "Path=relative-restore-target.txt" & ASCII.LF);
+         Assert
+           (Files.File_System.Trash_Original_Path (Trashed_Path) = "",
+            "trash metadata refuses a relative original path");
+         Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
+         Assert
+           (not Mutation.Success and then Ada.Directories.Exists (Trashed_Path),
+            "a relative original path cannot move a trash payload into the process directory");
+      end;
+
+      declare
+         Trashed_Path : constant String := Join (Trash_File, "nul-path.txt");
+         Sidecar      : constant String := Join (Trash_Info, "nul-path.txt.trashinfo");
+      begin
+         Write_File (Trashed_Path, "payload");
+         Write_File
+           (Sidecar,
+            "[Trash Info]" & ASCII.LF
+            & "Path=/tmp/files-invalid%00path" & ASCII.LF);
+         Assert
+           (Files.File_System.Trash_Original_Path (Trashed_Path) = "",
+            "trash metadata refuses a decoded NUL in the original path");
+      end;
+
+      declare
+         Outside : constant String := Join (Root, "outside-trash.txt");
+         Target  : constant String := Join (Root, "outside-restore-target.txt");
+      begin
+         Write_File (Outside, "unrelated payload");
+         Mutation := Files.File_System.Restore_From_Trash
+           (Outside, Expected_Original => Target);
+         Assert
+           (not Mutation.Success
+            and then Project_Tools.Files.File_Contains (Outside, "unrelated payload")
+            and then not Ada.Directories.Exists (Target),
+            "restore refuses an entry outside the active trash payload directory");
+         Mutation := Files.File_System.Delete_Trashed_Item (Outside);
+         Assert
+           (not Mutation.Success
+            and then Project_Tools.Files.File_Contains (Outside, "unrelated payload"),
+            "trash deletion refuses an entry outside the active payload directory");
       end;
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
@@ -2756,6 +2904,22 @@ package body Files_Suite.Operations is
       end if;
 
       Reset_Root;
+      declare
+         First_Empty  : constant String := Join (Root, "signature-empty-a");
+         Second_Empty : constant String := Join (Root, "signature-empty-b");
+      begin
+         Ada.Directories.Create_Directory (First_Empty);
+         Ada.Directories.Create_Directory (Second_Empty);
+         Before := Files.File_System.Directory_State (First_Empty);
+         Change := Files.File_System.Detect_Directory_Change
+           (Before, Second_Empty);
+         Assert
+           (Change.Changed
+            and then Change.Before_State.Path /= Change.After_State.Path,
+            "directory signatures from different empty roots never compare unchanged");
+         Ada.Directories.Delete_Directory (First_Empty);
+         Ada.Directories.Delete_Directory (Second_Empty);
+      end;
       Ada.Directories.Create_Path (Join (Root, "search"));
       Ada.Directories.Create_Path (Join (Join (Root, "search"), "nested"));
       Write_File (Join (Join (Root, "search"), "alpha-match.txt"), "alpha");
@@ -2967,6 +3131,18 @@ package body Files_Suite.Operations is
           (Sources, Join (Root, "tree"), Files.File_System.Drop_Copy);
       Assert (not Plans.Success, "copying a directory into itself is rejected");
 
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         --  A backslash is an ordinary filename byte on POSIX.  This sibling
+         --  starts with the source name but is not inside the source tree.
+         Ada.Directories.Create_Path (Join (Root, "tree\peer"));
+         Plans :=
+           Files.File_System.Plan_Drop_Import
+             (Sources, Join (Root, "tree\peer"), Files.File_System.Drop_Copy);
+         Assert
+           (Plans.Success,
+            "a POSIX backslash-name sibling is not mistaken for a descendant");
+      end if;
+
       --  Two sources sharing a simple name from different directories must get
       --  distinct destinations within one batch (no silent overwrite).
       Ada.Directories.Create_Path (Join (Root, "src-a"));
@@ -3032,6 +3208,58 @@ package body Files_Suite.Operations is
          Check_Refusal (Child & "/../keep.txt");
       end;
 
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         declare
+            Literal_Dotdot : constant String := Join (Root, "literal\..");
+         begin
+            Write_File (Literal_Dotdot, "ordinary POSIX name");
+            Mutation := Files.File_System.Delete_Permanently (Literal_Dotdot);
+            Assert
+              (Mutation.Success and then not Ada.Directories.Exists (Literal_Dotdot),
+               "permanent delete does not treat a POSIX backslash as navigation");
+         end;
+      end if;
+
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         declare
+            Tool : constant String := Join (Root, "tool\name");
+            Old_Path_Exists : constant Boolean :=
+              Ada.Environment_Variables.Exists ("PATH");
+            Old_Path : constant String :=
+              (if Old_Path_Exists
+               then Ada.Environment_Variables.Value ("PATH")
+               else "");
+            Action : constant Files.Settings.Open_Action :=
+              Files.Settings.Make_Action
+                ("tool\name", Files.Types.String_Vectors.Empty_Vector);
+            Available : Boolean := False;
+         begin
+            Write_File (Tool, "#!/bin/sh" & ASCII.LF & "exit 0" & ASCII.LF);
+            Mutation := Files.File_System.Set_Permissions (Tool, 8#755#);
+            if Mutation.Success then
+               Ada.Environment_Variables.Set ("PATH", Root);
+               Available :=
+                 Files.Operations.Open_Action_Executable_Is_Available (Action);
+               if Old_Path_Exists then
+                  Ada.Environment_Variables.Set ("PATH", Old_Path);
+               else
+                  Ada.Environment_Variables.Clear ("PATH");
+               end if;
+               Assert
+                 (Available,
+                  "a POSIX executable containing a backslash is looked up on PATH");
+            end if;
+         exception
+            when others =>
+               if Old_Path_Exists then
+                  Ada.Environment_Variables.Set ("PATH", Old_Path);
+               else
+                  Ada.Environment_Variables.Clear ("PATH");
+               end if;
+               raise;
+         end;
+      end if;
+
       --  Regression: permanent-delete of a symlink to a directory must unlink
       --  the LINK, never follow it and recursively wipe the target's real
       --  contents (the previous Directory_Exists + Delete_Tree path did).
@@ -3080,9 +3308,34 @@ package body Files_Suite.Operations is
       Assert
         (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "P6"),
          "thumbnail artifact is a binary PPM image");
+      if Hostkit.Metadata.Mode_Bits_Are_Native then
+         declare
+            Available : Boolean := False;
+         begin
+            Assert
+              (Files.File_System.Permission_Bits_Of (Thumbnail_Cache, Available)
+                 mod 8#1000# = 8#700# and then Available,
+               "thumbnail cache is owner-only");
+            Assert
+              (Files.File_System.Permission_Bits_Of
+                 (To_String (Thumbnail.Thumbnail_Path), Available)
+                 mod 8#1000# = 8#600# and then Available,
+               "thumbnail artifact is owner-only");
+         end;
+      end if;
       Assert
         (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "8 8"),
          "thumbnail artifact records requested image dimensions");
+      declare
+         Oversized : constant Files.File_System.Thumbnail_Result :=
+           Files.File_System.Generate_Thumbnail
+             (Thumbnail_Source, Thumbnail_Cache, Size => 2_049);
+      begin
+         Assert
+           (Oversized.Status = Files.File_System.Thumbnail_Failed
+            and then Length (Oversized.Thumbnail_Path) = 0,
+            "oversized public thumbnail requests fail before allocating an image");
+      end;
       declare
          Cache_Path : constant String := To_String (Thumbnail.Thumbnail_Path);
          Victim : constant String := Join (Root, "thumbnail-cache-victim");
@@ -3144,6 +3397,30 @@ package body Files_Suite.Operations is
             "the decoded solid colour survives inflate/unfilter/downscale");
       end;
 
+      declare
+         Source : constant String := Join (Root, "png-inflate-overrun.png");
+         Pixel  : constant String := Byte (173) & Byte (89) & Byte (211);
+         Raster : constant String :=
+           Byte (0) & Pixel & Pixel & Byte (0) & Pixel & Pixel;
+         Generated : Files.File_System.Thumbnail_Result;
+      begin
+         --  The IHDR declares exactly fourteen inflated scanline bytes.  The
+         --  extra byte used to be silently retained by the one-shot inflater,
+         --  which first allocated the entire attacker-controlled expansion.
+         Write_Binary_File
+           (Source, Minimal_Png_RGB (2, 2, Raster & Byte (99)));
+         Generated := Files.File_System.Generate_Thumbnail
+           (Source, Thumbnail_Cache, Size => 2);
+         Assert
+           (Generated.Status = Files.File_System.Thumbnail_Generated,
+            "an invalid PNG expansion falls back to a generated thumbnail");
+         Assert
+           (not File_Has_Bytes
+              (To_String (Generated.Thumbnail_Path),
+               Pixel & Pixel & Pixel & Pixel),
+            "PNG inflate rejects output beyond the declared raster budget");
+      end;
+
       Write_Binary_File
         (Decoded_Png_Source,
          Minimal_Png_RGB
@@ -3158,6 +3435,92 @@ package body Files_Suite.Operations is
          and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0))
          and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
          "decoded PNG thumbnail preserves source pixel colors");
+
+      declare
+         Source : constant String := Join (Root, "transparent-picture.png");
+         Signature : constant String :=
+           Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#)
+           & Byte (16#1A#) & Byte (16#0A#);
+         Ihdr : constant String :=
+           Byte (0) & Byte (0) & Byte (0) & Byte (2)
+           & Byte (0) & Byte (0) & Byte (0) & Byte (1)
+           & Byte (8) & Byte (6) & Byte (0) & Byte (0) & Byte (0);
+         Raster : constant String :=
+           Byte (0)
+           & Byte (255) & Byte (0) & Byte (0) & Byte (0)
+           & Byte (0) & Byte (0) & Byte (255) & Byte (255);
+         Generated : Files.File_System.Thumbnail_Result;
+      begin
+         Write_Binary_File
+           (Source,
+            Signature & Chunk ("IHDR", Ihdr)
+            & Chunk ("IDAT", Stored_Zlib_Stream (Raster))
+            & Chunk ("IEND", ""));
+         Generated := Files.File_System.Generate_Thumbnail
+           (Source, Thumbnail_Cache, Size => 2);
+         Assert
+           (Generated.Status = Files.File_System.Thumbnail_Generated,
+            "an RGBA PNG produces a thumbnail");
+         Assert
+           (File_Has_Bytes
+              (To_String (Generated.Thumbnail_Path),
+               Byte (255) & Byte (255) & Byte (255)
+               & Byte (0) & Byte (0) & Byte (255)
+               & Byte (255) & Byte (255) & Byte (255)
+               & Byte (0) & Byte (0) & Byte (255))
+            and then not File_Has_Bytes
+              (To_String (Generated.Thumbnail_Path),
+               Byte (255) & Byte (0) & Byte (0)
+               & Byte (0) & Byte (0) & Byte (255)
+               & Byte (255) & Byte (0) & Byte (0)
+               & Byte (0) & Byte (0) & Byte (255)),
+            "transparent PNG pixels are composited instead of exposing hidden RGB");
+      end;
+
+      declare
+         Source : constant String := Join (Root, "transparent-key-picture.png");
+         Signature : constant String :=
+           Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#)
+           & Byte (16#1A#) & Byte (16#0A#);
+         Ihdr : constant String :=
+           Byte (0) & Byte (0) & Byte (0) & Byte (2)
+           & Byte (0) & Byte (0) & Byte (0) & Byte (1)
+           & Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0);
+         Transparent_Red : constant String :=
+           Byte (0) & Byte (255) & Byte (0) & Byte (0) & Byte (0) & Byte (0);
+         Raster : constant String :=
+           Byte (0)
+           & Byte (255) & Byte (0) & Byte (0)
+           & Byte (0) & Byte (0) & Byte (255);
+         Expected : constant String :=
+           Byte (255) & Byte (255) & Byte (255)
+           & Byte (0) & Byte (0) & Byte (255)
+           & Byte (255) & Byte (255) & Byte (255)
+           & Byte (0) & Byte (0) & Byte (255);
+         Hidden : constant String :=
+           Byte (255) & Byte (0) & Byte (0)
+           & Byte (0) & Byte (0) & Byte (255)
+           & Byte (255) & Byte (0) & Byte (0)
+           & Byte (0) & Byte (0) & Byte (255);
+         Generated : Files.File_System.Thumbnail_Result;
+      begin
+         Write_Binary_File
+           (Source,
+            Signature & Chunk ("IHDR", Ihdr)
+            & Chunk ("tRNS", Transparent_Red)
+            & Chunk ("IDAT", Stored_Zlib_Stream (Raster))
+            & Chunk ("IEND", ""));
+         Generated := Files.File_System.Generate_Thumbnail
+           (Source, Thumbnail_Cache, Size => 2);
+         Assert
+           (Generated.Status = Files.File_System.Thumbnail_Generated
+            and then File_Has_Bytes
+              (To_String (Generated.Thumbnail_Path), Expected)
+            and then not File_Has_Bytes
+              (To_String (Generated.Thumbnail_Path), Hidden),
+            "true-colour PNG tRNS transparency is composited against white");
+      end;
+
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
       Load := Files.File_System.Load_Directory (Root, Settings);
       declare
@@ -3197,30 +3560,29 @@ package body Files_Suite.Operations is
 
          Assert (Found_Auto_Thumbnail, "image-extension thumbnail item is loaded");
 
-         --  A cache written before the format changed must still load. The
-         --  thumbnails are keyed on the source path and nothing invalidates
-         --  them, so a user upgrading has a directory full of ASCII P3 files
-         --  that the loader has to keep reading -- otherwise every one of them
-         --  silently stops rendering until its source happens to be
-         --  re-thumbnailed. Put one there by hand and read it back.
+         --  The cache key now includes the source revision, but an artifact
+         --  written in the old ASCII P3 image format under the current key
+         --  must still load. Put one there by hand and read it back.
          declare
             Legacy_Source : constant String := Join (Root, "legacy-cached.png");
-            Legacy_Cache  : constant String :=
-              Files.File_System.Thumbnail_Path_For
-                (Legacy_Source,
-                 Files.File_System.Default_Thumbnail_Cache_Directory (Root),
-                 64);
             Legacy_Load   : Files.File_System.Directory_Load_Result;
             Found_Legacy  : Boolean := False;
             Ascii_Pixels  : Unbounded_String;
          begin
             Write_Binary_File (Legacy_Source, Minimal_Png_Header (8, 8));
-
-            --  2x2 of red, green, blue, white in the old ASCII form.
-            Append (Ascii_Pixels, "P3" & ASCII.LF & "2 2" & ASCII.LF & "255" & ASCII.LF);
-            Append (Ascii_Pixels, "255 0 0 0 255 0" & ASCII.LF & "0 0 255 255 255 255" & ASCII.LF);
-            Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Legacy_Cache));
-            Write_File (Legacy_Cache, To_String (Ascii_Pixels));
+            declare
+               Legacy_Cache : constant String :=
+                 Files.File_System.Thumbnail_Path_For
+                   (Legacy_Source,
+                    Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+                    64);
+            begin
+               --  2x2 of red, green, blue, white in the old ASCII form.
+               Append (Ascii_Pixels, "P3" & ASCII.LF & "2 2" & ASCII.LF & "255" & ASCII.LF);
+               Append (Ascii_Pixels, "255 0 0 0 255 0" & ASCII.LF & "0 0 255 255 255 255" & ASCII.LF);
+               Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Legacy_Cache));
+               Write_File (Legacy_Cache, To_String (Ascii_Pixels));
+            end;
 
             Legacy_Load := Files.File_System.Load_Directory (Root, Settings);
             for Item of Legacy_Load.Items loop
@@ -3240,11 +3602,145 @@ package body Files_Suite.Operations is
 
             Assert (Found_Legacy, "the legacy-cached item is listed");
          end;
+
+         declare
+            Commented_Source : constant String := Join (Root, "commented-cached.txt");
+            Trailing_Source  : constant String := Join (Root, "trailing-cached.txt");
+            Commented_Cache  : Unbounded_String;
+            Trailing_Cache   : Unbounded_String;
+            Cache_Load       : Files.File_System.Directory_Load_Result;
+            Found_Commented  : Boolean := False;
+            Found_Trailing   : Boolean := False;
+         begin
+            Write_File (Commented_Source, "not an image");
+            Write_File (Trailing_Source, "not an image");
+            Commented_Cache := To_Unbounded_String
+              (Files.File_System.Thumbnail_Path_For
+                 (Commented_Source,
+                  Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+                  64));
+            Trailing_Cache := To_Unbounded_String
+              (Files.File_System.Thumbnail_Path_For
+                 (Trailing_Source,
+                  Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+                  64));
+            Write_Binary_File
+              (To_String (Commented_Cache),
+               "P6" & ASCII.LF & "# cached preview" & ASCII.LF
+               & "1 # width" & ASCII.LF & "1" & ASCII.LF & "255" & ASCII.LF
+               & Byte (10) & Byte (20) & Byte (30));
+            Write_Binary_File
+              (To_String (Trailing_Cache),
+               "P6" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF
+               & Byte (10) & Byte (20) & Byte (30) & Byte (40));
+
+            Cache_Load := Files.File_System.Load_Directory (Root, Settings);
+            for Item of Cache_Load.Items loop
+               if To_String (Item.Name) = "commented-cached.txt" then
+                  Found_Commented := True;
+                  Assert
+                    (Item.Thumbnail_Available
+                     and then Item.Thumbnail_Width = 1
+                     and then Item.Thumbnail_Height = 1,
+                     "a binary cached PPM accepts comments between header fields");
+               elsif To_String (Item.Name) = "trailing-cached.txt" then
+                  Found_Trailing := True;
+                  Assert
+                    (not Item.Thumbnail_Available
+                     and then Item.Thumbnail_Pixels.Is_Empty,
+                     "a binary cached PPM rejects bytes beyond its declared raster");
+               end if;
+            end loop;
+            Assert
+              (Found_Commented and then Found_Trailing,
+               "the binary cache parser fixtures are listed");
+         end;
+
+         --  Cache files are persistent input, not trusted decoded pixels.  In
+         --  particular, PPM samples above maxval used to be silently clamped;
+         --  reject that corrupt entry for a non-image item so auto-generation
+         --  cannot hide the loader result from this regression check.
+         declare
+            Corrupt_Source : constant String := Join (Root, "corrupt-cached.txt");
+            Corrupt_Cache  : Unbounded_String;
+            Corrupt_Load   : Files.File_System.Directory_Load_Result;
+            Found_Corrupt  : Boolean := False;
+         begin
+            Write_File (Corrupt_Source, "not an image");
+            Corrupt_Cache := To_Unbounded_String
+              (Files.File_System.Thumbnail_Path_For
+                 (Corrupt_Source,
+                  Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+                  64));
+            Write_File
+              (To_String (Corrupt_Cache),
+               "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF
+               & "256 0 0" & ASCII.LF);
+
+            Corrupt_Load := Files.File_System.Load_Directory (Root, Settings);
+            for Item of Corrupt_Load.Items loop
+               if To_String (Item.Name) = "corrupt-cached.txt" then
+                  Found_Corrupt := True;
+                  Assert
+                    (not Item.Thumbnail_Available
+                     and then Item.Thumbnail_Pixels.Is_Empty,
+                     "a cached PPM sample above maxval is rejected");
+               end if;
+            end loop;
+            Assert (Found_Corrupt, "the corrupt-cache fixture is listed");
+         end;
+
+         declare
+            Revision_Source : constant String := Join (Root, "revision-cached.ppm");
+            First_Path, Second_Path : Unbounded_String;
+         begin
+            Write_File
+              (Revision_Source,
+               "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "255 0 0" & ASCII.LF);
+            First_Path := To_Unbounded_String
+              (Files.File_System.Thumbnail_Path_For
+                 (Revision_Source,
+                  Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
+            Write_File
+              (Revision_Source,
+               "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "0 0 255" & ASCII.LF);
+            Second_Path := To_Unbounded_String
+              (Files.File_System.Thumbnail_Path_For
+                 (Revision_Source,
+                  Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
+            Assert
+              (First_Path /= Second_Path,
+               "editing an image changes its thumbnail cache key");
+         end;
+      end;
+
+      declare
+         Header : constant String := Minimal_Png_Header (4_097, 1_024);
+         Data : Ada.Streams.Stream_Element_Array
+           (1 .. Ada.Streams.Stream_Element_Offset (Header'Length));
+         Width, Height : Natural;
+      begin
+         for Index in Header'Range loop
+            Data (Ada.Streams.Stream_Element_Offset (Index - Header'First + 1)) :=
+              Ada.Streams.Stream_Element (Character'Pos (Header (Index)));
+         end loop;
+         Assert
+           (not Files.File_System.Image_Bytes_Extent (Data, Width, Height)
+            and then Width = 0 and then Height = 0,
+            "encoded images above the colour-glyph pixel budget are rejected");
+         declare
+            Decoded : constant Files.File_System.Decoded_Image :=
+              Files.File_System.Decode_Image_Bytes (Data);
+         begin
+            Assert
+              (not Decoded.Available and then Decoded.Pixels.Is_Empty,
+               "the in-memory decoder rejects oversized dimensions before loading pixels");
+         end;
       end;
       Assert
-        (Project_Tools.Files.Any_File_Contains ("src", "gdk_pixbuf_new_from_file_at_size")
-         or else Project_Tools.Files.Any_File_Contains ("../src", "gdk_pixbuf_new_from_file_at_size")
-         or else Project_Tools.Files.Any_File_Contains ("../../src", "gdk_pixbuf_new_from_file_at_size"),
+        (Project_Tools.Files.Any_File_Contains ("src", "gdk_pixbuf_loader_new")
+         or else Project_Tools.Files.Any_File_Contains ("../src", "gdk_pixbuf_loader_new")
+         or else Project_Tools.Files.Any_File_Contains ("../../src", "gdk_pixbuf_loader_new"),
          "JPEG thumbnail decoding is routed through the native image loader binding");
 
       Write_File
@@ -3692,11 +4188,16 @@ package body Files_Suite.Operations is
       pragma Unreferenced (T);
       Cache : constant String := Join (Root, "prune-cache");
 
+      Digest_A : constant String (1 .. 64) := [others => 'a'];
+      Digest_B : constant String (1 .. 64) := [others => 'b'];
+      Digest_C : constant String (1 .. 64) := [others => 'c'];
+
       --  Distinct sizes so the totals are unambiguous, and written oldest first
       --  with a delay between them so the modification times genuinely order.
-      Old_One : constant String := Join (Cache, "thumb_a.ppm");
-      Old_Two : constant String := Join (Cache, "thumb_b.ppm");
-      Newest  : constant String := Join (Cache, "thumb_c.ppm");
+      Old_One : constant String := Join (Cache, "thumb_png_64_" & Digest_A & ".ppm");
+      Old_Two : constant String := Join (Cache, "thumb_png_64_" & Digest_B & ".ppm");
+      Newest  : constant String := Join (Cache, "thumb_png_64_" & Digest_C & ".ppm");
+      Unrelated : constant String := Join (Cache, "notes.txt");
 
       function Filler (Count : Natural) return String is
          Text : constant String (1 .. Count) := [others => 'x'];
@@ -3712,6 +4213,21 @@ package body Files_Suite.Operations is
       Write_File (Old_Two, Filler (4_000));
       delay 1.1;
       Write_File (Newest, Filler (4_000));
+      Write_File (Unrelated, Filler (9_000));
+
+      Files.File_Identities.Testing.Set_Unavailable (True);
+      begin
+         Files.File_System.Prune_Thumbnail_Cache (Cache, 0);
+         Files.File_Identities.Testing.Set_Unavailable (False);
+      exception
+         when others =>
+            Files.File_Identities.Testing.Set_Unavailable (False);
+            raise;
+      end;
+      Assert
+        (Path_Exists (Old_One) and then Path_Exists (Old_Two)
+         and then Path_Exists (Newest),
+         "cache pruning refuses identity-free deletion candidates");
 
       --  Comfortably above the total: nothing is touched.
       Files.File_System.Prune_Thumbnail_Cache (Cache, 1_000_000);
@@ -3725,6 +4241,9 @@ package body Files_Suite.Operations is
       Assert
         (not Path_Exists (Old_One) and then not Path_Exists (Old_Two),
          "and the older ones are the ones evicted");
+      Assert
+        (File_Has_Bytes (Unrelated, Filler (9_000)),
+         "cache pruning never deletes an unrelated file");
 
       --  Housekeeping must never be a precondition for anything.
       Files.File_System.Prune_Thumbnail_Cache (Join (Root, "no-such-cache"), 1);
@@ -3803,8 +4322,15 @@ package body Files_Suite.Operations is
         (Cache_Directory = Join (Join (Cache_Home, "files"), "thumbnails"),
          "an explicit XDG_CACHE_HOME is honoured on every host, got " & Cache_Directory);
 
-      Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
       Ada.Environment_Variables.Set (Host_Variable, Cache_Home);
+      Ada.Environment_Variables.Set ("XDG_CACHE_HOME", "relative-cache-home");
+      Assert
+        (GNAT.OS_Lib.Is_Absolute_Path (Cache_Directory)
+         and then Cache_Directory /=
+           Join (Join ("relative-cache-home", "files"), "thumbnails"),
+         "a relative XDG_CACHE_HOME cannot redirect thumbnails into the process directory");
+
+      Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
       Assert
         (Cache_Directory = Join (Join (Host_Cache_Root, "files"), "thumbnails"),
          "without XDG_CACHE_HOME the cache follows this host's convention, got " & Cache_Directory);
@@ -4044,15 +4570,20 @@ package body Files_Suite.Operations is
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       function E (S : String) return String renames Files.File_System.Expand_User_Path;
-      Home : constant String :=
-        (if Ada.Environment_Variables.Exists ("HOME")
-         then
-            Ada.Environment_Variables.Value ("HOME")
-         else "");
+      Home : constant String := Hostkit.Fs.Home_Directory;
    begin
       if Home /= "" then
          Assert (E ("~") = Home, "a bare tilde expands to the home directory");
          Assert (E ("~/Downloads") = Home & "/Downloads", "a leading ~/ expands to home");
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Assert
+              (E ("~\Downloads") = Home & "\Downloads",
+               "a leading Windows tilde path expands to the host profile");
+         else
+            Assert
+              (E ("~\Downloads") = "~\Downloads",
+               "a POSIX backslash after tilde remains part of the path");
+         end if;
       end if;
       Assert (E ("/absolute/dir") = "/absolute/dir", "an absolute path is left unchanged");
       Assert (E ("relative/dir") = "relative/dir", "a relative path without a tilde is unchanged");
@@ -4427,6 +4958,36 @@ package body Files_Suite.Operations is
       Snapshot : Files.Rendering.View_Snapshot;
       Frame    : Files.Rendering.Frame_Commands;
 
+      procedure Write_Late_JPEG (Path : String) is
+         use type Ada.Streams.Stream_IO.Count;
+         File : Ada.Streams.Stream_IO.File_Type;
+      begin
+         Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+         String'Write
+           (Ada.Streams.Stream_IO.Stream (File), Byte (16#FF#) & Byte (16#D8#));
+         --  Sparse APP segments put the first dimensions marker just beyond
+         --  the metadata scan budget without writing an eight-megabyte fixture.
+         for Segment in 1 .. 128 loop
+            String'Write
+              (Ada.Streams.Stream_IO.Stream (File),
+               Byte (16#FF#) & Byte (16#E0#) & Byte (16#FF#) & Byte (16#FF#));
+            Ada.Streams.Stream_IO.Set_Index
+              (File, Ada.Streams.Stream_IO.Index (File) +
+                 Ada.Streams.Stream_IO.Count (65_533));
+         end loop;
+         String'Write
+           (Ada.Streams.Stream_IO.Stream (File),
+            Byte (16#FF#) & Byte (16#C0#) & Byte (0) & Byte (7) & Byte (8) &
+            Byte (0) & Byte (16) & Byte (0) & Byte (32));
+         Ada.Streams.Stream_IO.Close (File);
+      exception
+         when others =>
+            if Ada.Streams.Stream_IO.Is_Open (File) then
+               Ada.Streams.Stream_IO.Close (File);
+            end if;
+            raise;
+      end Write_Late_JPEG;
+
       function Detail_Value
         (Prefix_Key : String;
          Value      : String;
@@ -4503,6 +5064,11 @@ package body Files_Suite.Operations is
       Write_File (Join (Root, "meta.txt"), "abcd");
       Write_File (Join (Root, "zmarkdown.md"), "# Title" & ASCII.LF & "body");
       Write_Binary_File (Join (Root, "zsheet.xlsx"), "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File
+        (Join (Root, "zbinary.pdf"),
+         "%PDF-1.7" & Character'Val (16#FF#) & ASCII.LF
+         & "1 0 obj <</Type /Page>>" & ASCII.LF
+         & "2 0 obj <</Type /Pages /Count 1>>");
       Write_Binary_File (Join (Root, "zutf8.txt"), "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
       Write_Binary_File (Join (Root, "zbinary.txt"), "bad" & Character'Val (16#C3#));
       Write_File
@@ -4510,6 +5076,39 @@ package body Files_Suite.Operations is
          "procedure Unit is" & ASCII.LF & "begin" & ASCII.LF & "null;" & ASCII.LF & "end;");
       Write_File (Join (Root, "zdata.json"), "{""ok"":true}");
       Write_File (Join (Root, "zdoc.xml"), "<root/>");
+      Write_Binary_File
+        (Join (Root, "zheader.png"),
+         Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) &
+         Byte (16#1A#) & Byte (16#0A#) & Byte (0) & Byte (0) & Byte (0) &
+         Byte (13) & "IHDR" & Byte (0) & Byte (0) & Byte (0) & Byte (32) &
+         Byte (0) & Byte (0) & Byte (0) & Byte (16));
+      Write_Binary_File
+        (Join (Root, "zbad.png"),
+         Byte (16#89#) & "PNG" & Byte (16#0D#) & Byte (16#0A#) &
+         Byte (16#1A#) & Byte (16#0A#) & Byte (0) & Byte (0) & Byte (0) &
+         Byte (13) & "NOPE" & Byte (0) & Byte (0) & Byte (0) & Byte (32) &
+         Byte (0) & Byte (0) & Byte (0) & Byte (16));
+      Write_Late_JPEG (Join (Root, "zlate.jpg"));
+      Assert
+        (Files.File_System.Extra_Info_Token
+           (Join (Root, "zheader.png"), Files.Types.Regular_File_Item,
+            "image/png") = "image.dimensions|32x16",
+         "PNG metadata reads dimensions only from a valid leading IHDR");
+      Assert
+        (Files.File_System.Extra_Info_Token
+           (Join (Root, "zbad.png"), Files.Types.Regular_File_Item,
+            "image/png") = "",
+         "PNG metadata rejects dimensions outside a leading IHDR");
+      Assert
+        (Files.File_System.Extra_Info_Token
+           (Join (Root, "zlate.jpg"), Files.Types.Regular_File_Item,
+            "image/jpeg") = "",
+         "JPEG metadata stops before a dimensions marker beyond the scan budget");
+      Assert
+        (Files.File_System.Extra_Info_Token
+           (Join (Root, "zbinary.pdf"), Files.Types.Regular_File_Item,
+            "application/pdf") = "document.pdf.pages|1",
+         "PDF metadata scans binary bytes and does not count the Pages tree");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "meta.txt");
@@ -5167,18 +5766,51 @@ package body Files_Suite.Operations is
 
    procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      Original_Cwd : constant String := Ada.Directories.Current_Directory;
+      Trusted_Root : constant String := Files.Resources.Share_Root;
+      Counterfeit_Cwd : constant String := Join (Root, "counterfeit-resource-cwd");
+      Folder : Unbounded_String;
+
+      procedure Restore is
+      begin
+         Ada.Directories.Set_Directory (Original_Cwd);
+      exception
+         when others => null;
+      end Restore;
+
       --  Read the bundled folder.icon from disk. This confirms the runtime loads
       --  icon definitions from the .icon files (the single edit surface) rather
       --  than only the built-in copies, and that it sees the redesigned shapes.
-      Folder : constant String := Files.Icon_Assets.Disk_Icon_Asset ("folder", "");
    begin
-      Assert (Folder /= "", "the bundled folder.icon is read from disk");
-      Assert (Ada.Strings.Fixed.Index (Folder, "files-icon-v1") > 0,
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Counterfeit_Cwd, "share/files/icons"));
+      Write_Binary_File
+        (Join (Counterfeit_Cwd, "share/files/icons/folder.icon"),
+         "counterfeit current-directory icon");
+      Ada.Directories.Set_Directory (Counterfeit_Cwd);
+      Folder := To_Unbounded_String
+        (Files.Icon_Assets.Disk_Icon_Asset ("folder", ""));
+      Assert
+        (Trusted_Root /= ""
+         and then Files.Resources.Share_Root = Trusted_Root
+         and then Files.Resources.Share_Root /=
+           Ada.Directories.Full_Name ("share"),
+         "bundled resources stay anchored to the executable, not the launch directory");
+      Restore;
+      Assert (Length (Folder) > 0, "the bundled folder.icon is read from disk");
+      Assert (Ada.Strings.Fixed.Index (To_String (Folder), "files-icon-v1") > 0,
               "the disk icon carries the files-icon-v1 header");
-      Assert (Ada.Strings.Fixed.Index (Folder, "grid=32") > 0,
+      Assert (Ada.Strings.Fixed.Index (To_String (Folder), "grid=32") > 0,
               "the disk icon uses the finer 32-unit grid");
-      Assert (Ada.Strings.Fixed.Index (Folder, "tri=") > 0,
+      Assert (Ada.Strings.Fixed.Index (To_String (Folder), "tri=") > 0,
               "the disk icon uses triangle primitives");
+      Assert
+        (Files.Icon_Assets.Disk_Icon_Asset ("../settings", "") = ""
+         and then Files.Icon_Assets.Disk_Icon_Asset
+           ("folder", "../../untrusted-theme") = "",
+         "icon assets reject path traversal and unknown theme identifiers");
+   exception
+      when others => Restore; raise;
    end Test_Icon_Assets_Load_From_Disk;
 
    --  With several items selected the info pane is coalesced field-major: each
@@ -5524,6 +6156,17 @@ package body Files_Suite.Operations is
          Files.Folder_Size.Take (Path, Result, Available);
          exit when not Available;
       end loop;
+      Files.Folder_Size.Request ("relative-folder-size-target");
+      Assert
+        (not Files.Folder_Size.Is_Active
+         and then Files.Folder_Size.Target_For_Test = "",
+         "folder-size requests reject relative targets before launching a helper");
+      Files.Folder_Size.Request
+        (Root & Character'Val (0) & "ignored");
+      Assert
+        (not Files.Folder_Size.Is_Active
+         and then Files.Folder_Size.Target_For_Test = "",
+         "folder-size requests reject NUL-containing targets before launching a helper");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Before := Ada.Calendar.Clock;
       Files.Folder_Size.Request (Join (Root, "unreadable-or-missing"));
@@ -6101,6 +6744,28 @@ package body Files_Suite.Operations is
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operations.Operation_Success, "recovery remains undoable for its owned output");
       end loop;
+      declare
+         Journal_Directory : constant String := Join (Root, "linked-created-journal");
+         Victim            : constant String := Join (Root, "linked-created-victim");
+         Journal           : constant String := Join (Journal_Directory, "created");
+      begin
+         Ada.Directories.Create_Directory (Journal_Directory);
+         Write_Binary_File (Victim, "protected recovery journal");
+         if Hostkit.Fs.Create_Hard_Link (Victim, Journal) then
+            Files.Job_Context.Initialize (Journal_Directory);
+            Files.Job_Context.Record_Created (Source);
+            Files.Job_Context.Initialize ("");
+            Files.Job_Context.Read_Created
+              (Journal_Directory, Destinations, Sources, Identities,
+               Tree_Revisions);
+            Assert
+              (Project_Tools.Files.Read_Raw_File (Victim) =
+                 "protected recovery journal"
+               and then Destinations.Is_Empty
+               and then Identities.Is_Empty,
+               "created journal I/O refuses a multiply-linked file");
+         end if;
+      end;
       Ada.Directories.Create_Directory (Join (Root, "journal"));
       Files.Job_Context.Initialize (Join (Root, "journal"));
       Files.Job_Context.Record_Created (Source);
@@ -6113,6 +6778,55 @@ package body Files_Suite.Operations is
         (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
       Assert (Natural (Destinations.Length) = 1 and then Natural (Identities.Length) = 1,
               "a truncated journal ignores incomplete records without losing earlier snapshots");
+      Ada.Streams.Stream_IO.Create
+        (File, Ada.Streams.Stream_IO.Out_File, Join (Join (Root, "journal"), "created"));
+      Ada.Streams.Stream_IO.Set_Index
+        (File, Ada.Streams.Stream_IO.Count (64 * 1024 * 1024 + 1));
+      Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
+      Ada.Streams.Stream_IO.Close (File);
+      Files.Job_Context.Read_Created
+        (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
+      Assert
+        (Destinations.Is_Empty and then Sources.Is_Empty and then Identities.Is_Empty
+         and then Tree_Revisions.Is_Empty,
+         "an oversized recovery journal is rejected before allocating records");
+      Ada.Streams.Stream_IO.Create
+        (File, Ada.Streams.Stream_IO.Out_File,
+         Join (Join (Root, "journal"), "created"));
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "files-created-3");
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "relative-destination");
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "");
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "identity");
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "revision");
+      Ada.Streams.Stream_IO.Close (File);
+      Files.Job_Context.Read_Created
+        (Join (Root, "journal"), Destinations, Sources, Identities,
+         Tree_Revisions);
+      Assert
+        (Destinations.Is_Empty and then Sources.Is_Empty
+         and then Identities.Is_Empty and then Tree_Revisions.Is_Empty,
+         "created recovery records reject relative destination paths");
+      Ada.Streams.Stream_IO.Create
+        (File, Ada.Streams.Stream_IO.Out_File,
+         Join (Join (Root, "journal"), "moved"));
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "files-moved-1");
+      String'Output (Ada.Streams.Stream_IO.Stream (File), Source);
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "relative-source");
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "identity");
+      Ada.Streams.Stream_IO.Close (File);
+      Files.Job_Context.Read_Moved
+        (Join (Root, "journal"), Destinations, Sources, Identities);
+      Assert
+        (Destinations.Is_Empty and then Sources.Is_Empty
+         and then Identities.Is_Empty,
+         "moved recovery records reject relative source paths");
+      Files.Job_Context.Read_Created
+        ("relative-recovery-journal", Destinations, Sources, Identities,
+         Tree_Revisions);
+      Assert
+        (Destinations.Is_Empty and then Sources.Is_Empty
+         and then Identities.Is_Empty and then Tree_Revisions.Is_Empty,
+         "recovery journal readers reject relative transport directories");
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File, Join (Join (Root, "journal"), "created"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), Source);
@@ -6609,10 +7323,12 @@ package body Files_Suite.Operations is
             Select_Name (Model, "live-source");
             Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
             Assert (Step.Status = Files.Operations.Operation_Success, "change ownership with a stale cached owner");
-            Assert (Ada.Strings.Fixed.Trim
-                      (To_String (Files.Model.Undo_To_Paths (Model).First_Element), Ada.Strings.Both)
-                    = Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both) & " "
-                      & Ada.Strings.Fixed.Trim (Natural'Image (Gid), Ada.Strings.Both),
+            Assert
+              (Ada.Strings.Fixed.Index
+                 (To_String (Files.Model.Undo_To_Paths (Model).First_Element),
+                  Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both) & " "
+                  & Ada.Strings.Fixed.Trim (Natural'Image (Gid), Ada.Strings.Both)
+                  & String'(1 => Ada.Characters.Latin_1.NUL)) = 1,
                     "ownership history records the live ids rather than the stale item");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
@@ -6842,13 +7558,12 @@ package body Files_Suite.Operations is
 
    procedure Test_Copy_Extended_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Hostkit.Metadata_Copy.Entry_Times;
       function Prepare_Native (Path : System.Address; Directory : Interfaces.C.int) return Interfaces.C.int
         with Import, Convention => C, External_Name => "files_test_metadata_prepare";
       function Check_Native (Path : System.Address; Directory : Interfaces.C.int) return Interfaces.C.int
         with Import, Convention => C, External_Name => "files_test_metadata_check";
-      function Capture_Times (Path, Values : System.Address) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "files_copy_times_capture";
-      type Times_Array is array (Positive range 1 .. 4) of Interfaces.C.long_long with Convention => C;
+      subtype Times_Array is Hostkit.Metadata_Copy.Entry_Times;
       Source : constant String := Join (Root, "source");
       Remote : Unbounded_String;
       Original_File, Original_Directory : Times_Array;
@@ -6856,10 +7571,11 @@ package body Files_Suite.Operations is
       Had_Tmp : constant Boolean := Ada.Environment_Variables.Exists ("TMPDIR");
       Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
       function Times_Of (Path : String) return Times_Array is
-         Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
-         Values : aliased Times_Array;
+         Values : Times_Array;
       begin
-         Assert (Capture_Times (Name'Address, Values'Address) = 1, "capture access and modification times");
+         Assert
+           (Hostkit.Metadata_Copy.Capture_Times (Path, Values),
+            "capture access and modification times");
          return Values;
       end Times_Of;
       procedure Prepare (Path : String; Directory : Boolean) is
@@ -7762,6 +8478,23 @@ package body Files_Suite.Operations is
          if Block_Rollback then
             Mutation := Files.File_System.Delete_Permanently (Source);
             Assert (Mutation.Success, "remove the test replacement before retrying recovery");
+            declare
+               Mode_Path : constant String := Join
+                 (Ada.Directories.Containing_Directory (To_String (Backup)), "mode");
+               Mode_Alias : constant String := Join (Root, "recovery-mode-hardlink");
+            begin
+               if Hostkit.Fs.Create_Hard_Link (Mode_Path, Mode_Alias) then
+                  Mutation := Files.File_System.Restore_From_Trash
+                    (To_String (Backup),
+                     Files.File_Identities.Token (To_String (Backup)), Source);
+                  Assert
+                    (not Mutation.Success
+                     and then Ada.Directories.Exists (To_String (Backup))
+                     and then not Ada.Directories.Exists (Source),
+                     "recovery refuses a multiply-linked mode record");
+                  Ada.Directories.Delete_File (Mode_Alias);
+               end if;
+            end;
             Mutation := Files.File_System.Restore_From_Trash
               (To_String (Backup), Files.File_Identities.Token (To_String (Backup)), Source);
             Assert (Mutation.Success and then File_Has_Bytes (Join (Source, "child"), "original bytes")
@@ -8404,6 +9137,35 @@ package body Files_Suite.Operations is
            (Join (Root, "missing.txt"), 100, Read_Ok);
       begin
          Assert (not Read_Ok and then Text = "", "an open failure is distinct from an empty file");
+      end;
+      declare
+         Text : constant String := Files.File_System.Read_Preview_Text
+           (Join (Root, "empty.txt") & ASCII.NUL & "ignored", 100, Read_Ok);
+      begin
+         Assert
+           (not Read_Ok and then Text = "",
+            "preview paths containing NUL are rejected rather than truncated by the native opener");
+      end;
+      Write_Binary_File (Join (Root, "preview-target.txt"), "private bytes");
+      if Create_Symlink
+           (Join (Root, "preview-target.txt"), Join (Root, "preview-link.txt"))
+      then
+         declare
+            Text : constant String := Files.File_System.Read_Preview_Text
+              (Join (Root, "preview-link.txt"), 100, Read_Ok);
+         begin
+            Assert
+              (not Read_Ok and then Text = "",
+               "preview reads refuse a symbolic link instead of following it");
+         end;
+      end if;
+      declare
+         Text : constant String := Files.File_System.Read_Preview_Text
+           ("/dev/null", 100, Read_Ok);
+      begin
+         Assert
+           (not Read_Ok and then Text = "",
+            "preview reads refuse a special file without treating it as empty");
       end;
    exception
       when others =>
@@ -9638,6 +10400,22 @@ package body Files_Suite.Operations is
          "compress to 7z succeeds");
       Assert (Ada.Directories.Exists (Sz_Path), "7z archive is created next to the first item");
       Assert (First_Bytes (Sz_Path, 6) = Sz_Magic, "7z archive begins with the 7z signature");
+
+      Select_Name (Model, "notes.txt");
+      Files.File_Identities.Testing.Set_Unavailable (True);
+      begin
+         Routed := Files.Controller.Execute_Command
+           (Files.Commands.Compress_Zip_Command, Model, Settings);
+         Files.File_Identities.Testing.Set_Unavailable (False);
+      exception
+         when others =>
+            Files.File_Identities.Testing.Set_Unavailable (False);
+            raise;
+      end;
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Failed
+         and then not Ada.Directories.Exists (Join (Dir, "notes.zip")),
+         "compression does not publish an archive without a verifiable identity");
    end Test_Compress_Selected_Operation;
 
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9693,8 +10471,43 @@ package body Files_Suite.Operations is
       Load            : Files.File_System.Directory_Load_Result;
       Model           : Files.Model.Window_Model;
       Routed          : Files.Controller.Controller_Result;
+      Catalogue       : Zlib.Archive_Entry_Array (1 .. 2);
    begin
       Reset_Root;
+
+      Catalogue (1).Name := To_Unbounded_String ("report.txt");
+      Catalogue (1).Uncompressed_Size := 10;
+      Catalogue (1).Compressed_Size := 10;
+      Catalogue (2).Name := To_Unbounded_String ("notes.txt");
+      Catalogue (2).Uncompressed_Size := 20;
+      Catalogue (2).Compressed_Size := 20;
+      Assert
+        (Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 100, True),
+         "a small archive fits within known destination resources");
+      Assert
+        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 25, True, 100, True),
+         "archive extraction preserves free-space headroom");
+      Assert
+        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 1, True),
+         "archive extraction cannot exhaust destination inodes");
+      Catalogue (1).Uncompressed_Size := Interfaces.Unsigned_64'Last;
+      Catalogue (2).Uncompressed_Size := 1;
+      Assert
+        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 0, False, 0, False),
+         "overflowing archive totals are rejected before extraction");
+      Catalogue (1).Uncompressed_Size := 1;
+      Catalogue (1).Compressed_Size := Interfaces.Unsigned_64'Last;
+      Catalogue (2).Uncompressed_Size := 1;
+      Catalogue (2).Compressed_Size := 0;
+      Assert
+        (Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 100, True),
+         "expansion-limit arithmetic saturates instead of overflowing");
+
       Ada.Directories.Create_Path (Dir);
       Write_File (Source_Report, Report_Payload);
       Write_File (Source_Notes, Notes_Payload);
@@ -9730,6 +10543,22 @@ package body Files_Suite.Operations is
         (Project_Tools.Files.Read_Raw_File (Out_Notes)
            = Project_Tools.Files.Read_Raw_File (Source_Notes),
          "second extracted file matches the original contents");
+
+      Select_Name (Model, "bundle.zip");
+      Files.File_Identities.Testing.Set_Unavailable (True);
+      begin
+         Routed := Files.Controller.Execute_Command
+           (Files.Commands.Extract_Archive_Command, Model, Settings);
+         Files.File_Identities.Testing.Set_Unavailable (False);
+      exception
+         when others =>
+            Files.File_Identities.Testing.Set_Unavailable (False);
+            raise;
+      end;
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Failed
+         and then not Ada.Directories.Exists (Join (Dir, "bundle (1)")),
+         "extraction does not publish a tree without a verifiable identity");
    end Test_Extract_Selected_Operation;
 
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9795,6 +10624,19 @@ package body Files_Suite.Operations is
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "modeable.txt");
       Assert (Mode_Of (Target) = 8#644#, "baseline permission bits are 0644");
+
+      Assert
+        (not Files.File_System.Set_Permissions (Target, 8#10_000#).Success,
+         "the filesystem API rejects permission bits outside 07777");
+      Result := Files.Operations.Set_Permissions_For
+        (Model, 8#10_000#, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Failed,
+         "the operation API rejects permission bits outside 07777");
+      Assert (Mode_Of (Target) = 8#644#, "an invalid mode leaves the file unchanged");
+      Assert
+        (not Files.Model.Undo_Available (Model),
+         "an invalid mode does not create an undo record");
 
       Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
       Assert
@@ -10271,6 +11113,26 @@ package body Files_Suite.Operations is
         (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
+      declare
+         Payload : constant String :=
+           To_String
+             (Files.Model.Undo_History (Model).Last_Element.To.First_Element);
+         First_Separator : constant Natural :=
+           Ada.Strings.Fixed.Index
+             (Payload, String'(1 => Ada.Characters.Latin_1.NUL));
+         Second_Separator : constant Natural :=
+           (if First_Separator = 0
+            then 0
+            else Ada.Strings.Fixed.Index
+              (Payload,
+               String'(1 => Ada.Characters.Latin_1.NUL),
+               From => First_Separator + 1));
+      begin
+         Assert
+           (First_Separator > 0 and then Second_Separator > First_Separator,
+            "ownership history retains names for a later helper process");
+      end;
+
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Assert (Result.Status = Files.Operations.Operation_Success, "undo of chown succeeds");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chown undo");
@@ -10534,6 +11396,89 @@ package body Files_Suite.Operations is
             Assert (Guarded.Total_Bytes = 10, "symlinked directory is not descended into");
          end;
       end if;
+
+      declare
+         Root_Link : constant String := Join (Root, "size-root-link");
+      begin
+         if Files_Suite.Support.Create_Symlink (Tree, Root_Link) then
+            declare
+               Guarded : constant Files.File_System.Directory_Size_Result :=
+                 Files.File_System.Directory_Size (Root_Link);
+            begin
+               Project_Tools.Files.Delete_Tree (Root_Link);
+               Assert
+                 (not Guarded.Available
+                  and then Guarded.Total_Bytes = 0
+                  and then Guarded.Item_Count = 0,
+                  "folder sizing refuses a symlink supplied as its root");
+            end;
+         end if;
+      end;
+
+      --  A root that cannot be enumerated is not an empty directory.  Gate the
+      --  assertion on the host actually denying the search (for example, a
+      --  privileged test process may still enumerate mode 000).
+      declare
+         Locked      : constant String := Join (Root, "locked-size-root");
+         Search      : Ada.Directories.Search_Type;
+         Dir_Item    : Ada.Directories.Directory_Entry_Type;
+         Started     : Boolean := False;
+         Denied      : Boolean := False;
+         Mutation    : Files.File_System.Mutation_Result;
+         Guarded     : Files.File_System.Directory_Size_Result;
+      begin
+         Ada.Directories.Create_Directory (Locked);
+         Write_Binary_File (Join (Locked, "hidden"), "not empty");
+         Mutation := Files.File_System.Set_Permissions (Locked, 0);
+         if Mutation.Success then
+            begin
+               Ada.Directories.Start_Search (Search, Locked, "");
+               Started := True;
+               if Ada.Directories.More_Entries (Search) then
+                  Ada.Directories.Get_Next_Entry (Search, Dir_Item);
+               end if;
+               Ada.Directories.End_Search (Search);
+               Started := False;
+            exception
+               when others =>
+                  Denied := True;
+                  if Started then
+                     begin
+                        Ada.Directories.End_Search (Search);
+                     exception
+                        when others => null;
+                     end;
+                     Started := False;
+                  end if;
+            end;
+
+            Guarded := Files.File_System.Directory_Size (Locked);
+            Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+            Assert (Mutation.Success, "restore the folder-size test root mode");
+            if Denied then
+               Assert
+                 (not Guarded.Available
+                  and then Guarded.Total_Bytes = 0
+                  and then Guarded.File_Count = 0
+                  and then Guarded.Item_Count = 0
+                  and then not Guarded.Capped,
+                  "an unreadable size root is unavailable, not an empty measurement");
+            end if;
+         end if;
+         Project_Tools.Files.Delete_Tree (Locked);
+      exception
+         when others =>
+            if Started then
+               begin
+                  Ada.Directories.End_Search (Search);
+               exception
+                  when others => null;
+               end;
+            end if;
+            Mutation := Files.File_System.Set_Permissions (Locked, 8#755#);
+            Project_Tools.Files.Delete_Tree (Locked);
+            raise;
+      end;
 
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
@@ -10947,6 +11892,104 @@ package body Files_Suite.Operations is
       Rename ("b1.txt", "b2.txt");
       Assert (Ada.Directories.Exists (B2), "the new rename applies");
       Assert (not Files.Model.Redo_Available (Model), "a new operation clears the redo stack");
+
+      declare
+         Directory : constant String := Join (Root, "malformed-history");
+         File : Ada.Streams.Stream_IO.File_Type;
+      begin
+         Ada.Directories.Create_Directory (Directory);
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Join (Directory, "history"));
+         String'Output
+           (Ada.Streams.Stream_IO.Stream (File), "files-history-1");
+         Natural'Output (Ada.Streams.Stream_IO.Stream (File), 1);
+         Files.Model.Undo_Action_Kind'Output
+           (Ada.Streams.Stream_IO.Stream (File), Files.Model.Undo_Rename);
+         Natural'Output (Ada.Streams.Stream_IO.Stream (File), 1);
+         Integer'Output (Ada.Streams.Stream_IO.Stream (File), 1);
+         Integer'Output
+           (Ada.Streams.Stream_IO.Stream (File), Integer'Last);
+         Ada.Streams.Stream_IO.Close (File);
+         Assert
+           (not Files.History_Journal.Restore (Directory, Model)
+            and then Files.Model.Undo_Available (Model),
+            "forged history string bounds are rejected without replacing live history");
+      end;
+
+      declare
+         Write_Directory : constant String := Join (Root, "linked-history-write");
+         Read_Directory  : constant String := Join (Root, "linked-history-read");
+         Hard_Directory  : constant String := Join (Root, "hard-linked-history-read");
+         Source_Directory : constant String := Join (Root, "history-source");
+         Victim          : constant String := Join (Root, "history-victim");
+         Rejected        : Boolean := False;
+      begin
+         begin
+            Files.History_Journal.Save_Stacks
+              ("relative-history-directory",
+               Files.Model.Undo_Entry_Vectors.Empty_Vector,
+               Files.Model.Undo_Entry_Vectors.Empty_Vector,
+               Required => True);
+         exception
+            when Ada.Directories.Use_Error =>
+               Rejected := True;
+         end;
+         Assert
+           (Rejected
+            and then not Ada.Directories.Exists ("relative-history-directory"),
+            "history snapshots reject relative transport directories");
+         Rejected := False;
+         Assert
+           (not Files.History_Journal.Restore
+              (Root & Character'Val (0) & "history-directory", Model),
+            "history restore rejects NUL-containing transport directories");
+
+         Ada.Directories.Create_Directory (Write_Directory);
+         Write_Binary_File (Victim, "protected history target");
+         if Hostkit.Fs.Create_Link
+           (Victim, Join (Write_Directory, "history.tmp"))
+         then
+            begin
+               Files.History_Journal.Save_Stacks
+                 (Write_Directory,
+                  Files.Model.Undo_History (Model),
+                  Files.Model.Redo_History (Model),
+                  Required => True);
+            exception
+               when Ada.Directories.Use_Error =>
+                  Rejected := True;
+            end;
+            Assert
+              (Rejected and then File_Has_Bytes (Victim, "protected history target"),
+               "history snapshots refuse a temporary symlink without truncating its target");
+         end if;
+
+         Ada.Directories.Create_Directory (Source_Directory);
+         Files.History_Journal.Save_Stacks
+           (Source_Directory,
+            Files.Model.Undo_Entry_Vectors.Empty_Vector,
+            Files.Model.Undo_Entry_Vectors.Empty_Vector,
+            Required => True);
+         Ada.Directories.Create_Directory (Read_Directory);
+         if Hostkit.Fs.Create_Link
+           (Join (Source_Directory, "history"), Join (Read_Directory, "history"))
+         then
+            Assert
+              (not Files.History_Journal.Restore (Read_Directory, Model)
+               and then Files.Model.Undo_Available (Model),
+               "history restore refuses a linked snapshot without replacing live history");
+         end if;
+         Ada.Directories.Create_Directory (Hard_Directory);
+         if Hostkit.Fs.Create_Hard_Link
+           (Join (Source_Directory, "history"),
+            Join (Hard_Directory, "history"))
+         then
+            Assert
+              (not Files.History_Journal.Restore (Hard_Directory, Model)
+               and then Files.Model.Undo_Available (Model),
+               "history restore refuses a multiply-linked snapshot without replacing live history");
+         end if;
+      end;
    end Test_Undo_Redo_History;
 
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11663,6 +12706,36 @@ package body Files_Suite.Operations is
          "[Desktop Entry]" & LF & "Type=Application" & LF
          & "Name=Text Editor" & LF & "Exec=editor %F" & LF);
       Write_File
+        (Join (Root, "linked-application-target.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Linked Application" & LF & "Exec=viewer %F" & LF);
+      declare
+         Link_Created : constant Boolean := Create_Symlink
+           (Join (Root, "linked-application-target.desktop"),
+            Join (Apps_Dir, "linked-application.desktop"));
+         pragma Unreferenced (Link_Created);
+      begin
+         null;
+      end;
+      declare
+         Excessive_Exec : Unbounded_String := To_Unbounded_String ("viewer");
+      begin
+         for Index in 1 .. 257 loop
+            Append (Excessive_Exec, " argument" & Natural'Image (Index));
+         end loop;
+         Write_File
+           (Join (Apps_Dir, "excessive-exec.desktop"),
+            "[Desktop Entry]" & LF & "Type=Application" & LF
+            & "Name=Excessive Exec" & LF
+            & "Exec=" & To_String (Excessive_Exec) & LF);
+      end;
+      Write_Filler_File
+        (Join (Apps_Dir, "oversized.desktop"),
+         ' ',
+         1 * 1024 * 1024 + 1,
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Oversized Entry" & LF & "Exec=viewer %F" & LF);
+      Write_File
         (Join (Apps_Dir, "viewer.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF
          & "Name=Image Viewer" & LF & "Exec=viewer --open %U" & LF
@@ -11887,6 +12960,15 @@ package body Files_Suite.Operations is
          Assert
            (To_String (Find (Apps, "Try Missing").Exec) = "",
             "an unavailable TryExec keeps an application out of the picker");
+         Assert
+           (To_String (Find (Apps, "Oversized Entry").Exec) = "",
+            "oversized desktop entries are rejected before line allocation");
+         Assert
+           (To_String (Find (Apps, "Linked Application").Exec) = "",
+            "application discovery refuses linked desktop entries");
+         Assert
+           (To_String (Find (Apps, "Excessive Exec").Exec) = "",
+            "desktop entries with excessive Exec vectors are rejected");
          Assert
            (To_String (Find (Apps, "Invalid Boolean").Exec) = ""
             and then To_String (Find (Apps, "Duplicate Key").Exec) = ""
@@ -13355,6 +14437,30 @@ package body Files_Suite.Operations is
       Result := Files.File_System.Execute_Drop_Import (Plans);
       Assert (not Result.Success, "copying onto the source is refused");
       Assert (Ada.Directories.Size (Source) = 262_144, "a self-copy never truncates or deletes its source");
+
+      Ada.Directories.Delete_File (Dest);
+      Plans.Clear;
+      Plans.Append
+        (Files.File_System.Drop_Import_Plan'
+           (Source_Path      => To_Unbounded_String (Source),
+            Destination_Path => To_Unbounded_String (Dest),
+            Mode             => Files.File_System.Drop_Move,
+            Valid            => True,
+            Error_Key        => Null_Unbounded_String));
+      Files.File_Identities.Testing.Set_Unavailable (True);
+      begin
+         Result := Files.File_System.Execute_Drop_Import (Plans);
+      exception
+         when others =>
+            Files.File_Identities.Testing.Set_Unavailable (False);
+            raise;
+      end;
+      Files.File_Identities.Testing.Set_Unavailable (False);
+      Assert
+        (not Result.Success
+         and then Ada.Directories.Exists (Source)
+         and then not Ada.Directories.Exists (Dest),
+         "a move without a recoverable identity is refused before publication");
    end Test_Transfer_Cancellation;
 
    procedure Test_Background_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -13464,6 +14570,8 @@ package body Files_Suite.Operations is
       Load     : Files.File_System.Directory_Load_Result;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
+      Backup   : Files.Types.UString;
+      Mutation : Files.File_System.Mutation_Result;
 
       procedure Restore_Environment is
       begin
@@ -13502,8 +14610,24 @@ package body Files_Suite.Operations is
          Assert (Project_Tools.Files.Read_Raw_File (Dest) = "original", "Replace keeps the original on trash failure");
       end loop;
       Restore_Environment;
+
+      Files.File_Identities.Testing.Set_Unavailable (True);
+      begin
+         Mutation := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      exception
+         when others =>
+            Files.File_Identities.Testing.Set_Unavailable (False);
+            raise;
+      end;
+      Files.File_Identities.Testing.Set_Unavailable (False);
+      Assert
+        (not Mutation.Success
+         and then Length (Backup) = 0
+         and then File_Has_Bytes (Dest, "original"),
+         "Replace refuses an unidentifiable original before moving it");
    exception
       when others =>
+         Files.File_Identities.Testing.Set_Unavailable (False);
          Files.Model.Clear_Paste_Execution (Model);
          Restore_Environment;
          raise;
@@ -13642,7 +14766,9 @@ package body Files_Suite.Operations is
               "failed restore staging is removed through guarded job staging");
       Unlock (Join (To_String (Trashed), "locked"));
       Ada.Directories.Create_Directory (Join (Root, "cancelled-recovery"));
-      Write_Binary_File (Join (Join (Root, "cancelled-recovery"), "cancel"), "cancel");
+      Write_Binary_File
+        (Join (Join (Root, "cancelled-recovery"), "cancel"),
+         "cancel" & ASCII.LF);
       Files.Job_Context.Initialize (Join (Root, "cancelled-recovery"));
       Assert (Files.Job_Context.Cancelled, "the restore retry runs after helper cancellation");
       Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
@@ -13757,16 +14883,11 @@ package body Files_Suite.Operations is
                   Ada.Directories.Create_Path (Join (Transport, "created"));
                   Files.Job_Context.Initialize (Transport);
                   if Via_Helper then
-                     Ada.Streams.Stream_IO.Create
-                       (File, Ada.Streams.Stream_IO.Out_File, Join (Transport, "request"));
-                     Files.Paste.Resolved_Action'Output (Ada.Streams.Stream_IO.Stream (File), Action);
-                     Files.File_System.Drop_Import_Mode'Output (Ada.Streams.Stream_IO.Stream (File), Mode);
-                     Ada.Streams.Stream_IO.Close (File);
+                     Files.Transfer_Jobs.Testing.Write_Request
+                       (Join (Transport, "request"), Action, Mode);
                      Files.Transfer_Jobs.Run_Helper (Transport);
-                     Ada.Streams.Stream_IO.Open
-                       (File, Ada.Streams.Stream_IO.In_File, Join (Transport, "result"));
-                     Outcome := Files.Transfer_Jobs.Job_Result'Input (Ada.Streams.Stream_IO.Stream (File));
-                     Ada.Streams.Stream_IO.Close (File);
+                     Outcome := Files.Transfer_Jobs.Testing.Read_Result
+                       (Join (Transport, "result"));
                      Assert (Outcome.Mutation.Success and then not Outcome.Cancelled
                              and then Length (Outcome.Mutation.Error_Key) = 0,
                              "the helper acknowledges a committed mutation despite a journal failure");
@@ -14110,6 +15231,18 @@ package body Files_Suite.Operations is
       Step : Files.Operations.Operation_Result;
       Load : Files.File_System.Directory_Load_Result;
       Routed : Files.Interaction.Interaction_Result;
+      Fault_Name : constant String := "FILES_TEST_REFRESH_RESULT_INCONSISTENT";
+      Had_Fault : constant Boolean := Ada.Environment_Variables.Exists (Fault_Name);
+      Old_Fault : constant String := Ada.Environment_Variables.Value (Fault_Name, "");
+
+      procedure Restore_Fault is
+      begin
+         if Had_Fault then
+            Ada.Environment_Variables.Set (Fault_Name, Old_Fault);
+         else
+            Ada.Environment_Variables.Clear (Fault_Name);
+         end if;
+      end Restore_Fault;
 
       procedure Await_Refresh (Expected : Boolean) is
          Applied : Boolean := False;
@@ -14136,6 +15269,7 @@ package body Files_Suite.Operations is
          Assert (Finished and then not Cancelled, "the stale snapshot is ready before the view changes");
       end Await_Ready;
    begin
+      Ada.Environment_Variables.Clear (Fault_Name);
       Reset_Root;
       Write_Binary_File (Join (Root, "alpha"), "alpha");
       Load := Files.File_System.Load_Directory (Root, Settings);
@@ -14152,6 +15286,16 @@ package body Files_Suite.Operations is
       Await_Refresh (True);
       Assert (Files.Model.Item_Count (Model) = 2 and then Files.Model.Selected_Name (Model) = "alpha",
               "a changed snapshot adds the new item and preserves selection");
+      Write_Binary_File (Join (Root, "inconsistent"), "inconsistent");
+      Ada.Environment_Variables.Set (Fault_Name, "1");
+      Step := Files.Operations.Refresh_If_Changed (Model, Settings);
+      Await_Ready;
+      Ada.Environment_Variables.Clear (Fault_Name);
+      Ada.Directories.Delete_File (Join (Root, "inconsistent"));
+      Await_Refresh (False);
+      Assert (Files.Model.Item_Count (Model) = 2
+              and then Files.Model.Last_Error_Key (Model) = "error.directory.load",
+              "an inconsistent helper outcome is rejected without replacing the listing");
       Files.Interaction.Apply_Context_Menu_Command
         (Model, Settings, "", Files.Commands.Refresh_Directory_Command, 16, Guikit.Input.No_Modifiers, Routed);
       Await_Refresh (True);
@@ -14200,6 +15344,12 @@ package body Files_Suite.Operations is
       Await_Refresh (True);
       Assert (Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1,
               "explicit Recent refresh also loads its items in a helper");
+      Restore_Fault;
+   exception
+      when others =>
+         Files.Refresh_Jobs.Cancel (Model);
+         Restore_Fault;
+         raise;
    end Test_Background_Refresh;
 
    procedure Test_Stalled_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -14237,6 +15387,50 @@ package body Files_Suite.Operations is
       end Await_Stall;
    begin
       Reset_Root;
+      declare
+         Oversized : constant String (1 .. 32 * 1024 + 1) :=
+           [others => 'x'];
+      begin
+         Files.Refresh_Jobs.Watch_Path (Watch, "relative-watch");
+         Assert
+           (Files.Refresh_Jobs.Testing.Watch_Target (Watch) = "",
+            "a relative watch path is rejected before launching a helper");
+         Files.Refresh_Jobs.Watch_Path (Watch, Oversized);
+         Assert
+           (Files.Refresh_Jobs.Testing.Watch_Target (Watch) = "",
+            "an oversized watch path falls back without launching a doomed helper");
+      end;
+      declare
+         Directory : constant String := Join (Root, "watch-notifications");
+         Changed   : constant String := Join (Directory, "changed");
+         Claimed   : constant String := Join (Directory, "changed.claimed");
+         Temporary : constant String := Join (Directory, "changed.tmp");
+      begin
+         Ada.Directories.Create_Directory (Directory);
+         Write_Binary_File (Changed, "");
+         Assert
+           (Files.Refresh_Jobs.Testing.Claim_Notification (Directory)
+            and then not Ada.Directories.Exists (Changed)
+            and then Ada.Directories.Exists (Claimed),
+            "watch polling atomically claims the notification being acknowledged");
+         Write_Binary_File (Changed, "");
+         Ada.Directories.Delete_File (Claimed);
+         Assert
+           (Files.Refresh_Jobs.Testing.Claim_Notification (Directory),
+            "a notification published after the claim remains for the next poll");
+         Ada.Directories.Delete_File (Claimed);
+         Ada.Directories.Create_Directory (Temporary);
+         Assert
+           (not Files.Refresh_Jobs.Testing.Post_Notification (Directory),
+            "a watch marker reports a transient publication failure");
+         Ada.Directories.Delete_Directory (Temporary);
+         Assert
+           (Files.Refresh_Jobs.Testing.Post_Notification (Directory)
+            and then Ada.Directories.Exists (Changed),
+            "a consumed watch event can be published on a later retry");
+         Ada.Directories.Delete_File (Changed);
+         Ada.Directories.Delete_Directory (Directory);
+      end;
       Write_Binary_File (Join (Root, "source"), "source");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
@@ -14427,12 +15621,29 @@ package body Files_Suite.Operations is
       Old_Back : constant String :=
         (if Had_Back then
            Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND") else "");
+      Had_Test_Temp : constant Boolean :=
+        Ada.Environment_Variables.Exists ("FILES_TEST_TEMP");
+      Old_Test_Temp : constant String :=
+        Ada.Environment_Variables.Value ("FILES_TEST_TEMP", "");
       Model    : Files.Model.Window_Model;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
       Backup   : Files.Types.UString;
       Result   : Files.File_System.Mutation_Result;
       Paths    : Files.Types.String_Vectors.Vector;
+      Relative_Target : constant String := "files-recovery-relative-target.txt";
+      Relative_Registry : constant String :=
+        "files-relative-recovery-" & Ada.Directories.Simple_Name (Root);
+      Registry_Source : constant String := Join (Root, "registry-source");
+
+      procedure Restore_Test_Temp is
+      begin
+         if Had_Test_Temp then
+            Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Old_Test_Temp);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TEST_TEMP");
+         end if;
+      end Restore_Test_Temp;
 
       procedure Restore_Environment is
       begin
@@ -14441,6 +15652,7 @@ package body Files_Suite.Operations is
          else
             Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
          end if;
+         Restore_Test_Temp;
       end Restore_Environment;
    begin
       Reset_Root;
@@ -14459,6 +15671,19 @@ package body Files_Suite.Operations is
             "the recovery gate leaves recovery-shaped user data alone");
          Project_Tools.Files.Delete_Tree (Fake_Stage);
       end;
+      Write_Binary_File (Registry_Source, "registry payload");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Relative_Registry);
+      Result := Files.File_System.Preserve_For_Replace (Registry_Source, Backup);
+      Restore_Test_Temp;
+      Assert
+        (not Result.Success
+         and then Length (Backup) = 0
+         and then Project_Tools.Files.File_Contains
+           (Registry_Source, "registry payload")
+         and then not Ada.Directories.Exists (Relative_Registry),
+         "a relative recovery registry root cannot redirect private records into the process directory");
+      Ada.Directories.Delete_File (Registry_Source);
       Write_Binary_File (Source, "new");
       Write_Binary_File (Dest, "original");
       Actions.Append (Files.Paste.Resolved_Action'
@@ -14488,6 +15713,30 @@ package body Files_Suite.Operations is
       Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
       Assert (Result.Success, "the rollback failure fixture preserves the original");
       declare
+         Owner_Path : constant String :=
+           Join
+             (Ada.Directories.Containing_Directory (To_String (Backup)),
+              ".files-recovery-owner");
+         Owner_Alias : constant String := Join (Root, "recovery-owner-hardlink");
+         Owner_Data : constant String :=
+           Project_Tools.Files.Read_Raw_File (Owner_Path);
+      begin
+         if Hostkit.Fs.Create_Hard_Link (Owner_Path, Owner_Alias) then
+            Assert
+              (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+               "recovery rejects a multiply-linked ownership record");
+            Ada.Directories.Delete_File (Owner_Alias);
+         end if;
+         Write_Binary_File (Owner_Path, Owner_Data & "trailing");
+         Assert
+           (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+            "recovery ownership records reject trailing data");
+         Write_Binary_File (Owner_Path, Owner_Data);
+         Assert
+           (Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+            "restoring the exact ownership record restores recognition");
+      end;
+      declare
          Registered : constant Files.Types.String_Vectors.Vector :=
            Files.File_System.Registered_Recovery_Payloads;
          Found : Boolean := False;
@@ -14510,6 +15759,19 @@ package body Files_Suite.Operations is
             "discard refuses a recovery directory containing unknown data");
          Ada.Directories.Delete_File (Intruder);
       end;
+      Result := Files.File_System.Restore_From_Trash
+        (To_String (Backup), Expected_Original => Relative_Target);
+      Assert
+        (not Result.Success
+         and then Ada.Directories.Exists (To_String (Backup))
+         and then not Ada.Directories.Exists (Relative_Target),
+         "recovery refuses a relative caller-supplied restore path");
+      Result := Files.File_System.Restore_From_Trash
+        (To_String (Backup),
+         Expected_Original => Dest & Character'Val (0) & "suffix");
+      Assert
+        (not Result.Success and then Ada.Directories.Exists (To_String (Backup)),
+         "recovery refuses a caller-supplied restore path containing NUL");
       Write_Binary_File (Dest, "unrelated");
       Result := Files.File_System.Restore_From_Trash (To_String (Backup));
       Assert (not Result.Success and then Ada.Directories.Exists (To_String (Backup)),
@@ -14538,6 +15800,18 @@ package body Files_Suite.Operations is
         Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
       Old_Stall : constant String :=
         Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "");
+      Had_Kind_Fault : constant Boolean :=
+        Ada.Environment_Variables.Exists
+          ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
+      Old_Kind_Fault : constant String :=
+        Ada.Environment_Variables.Value
+          ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "");
+      Had_Recent_Fault : constant Boolean :=
+        Ada.Environment_Variables.Exists
+          ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
+      Old_Recent_Fault : constant String :=
+        Ada.Environment_Variables.Value
+          ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "");
 
       procedure Restore_Stall is
       begin
@@ -14547,6 +15821,29 @@ package body Files_Suite.Operations is
             Ada.Environment_Variables.Clear ("FILES_TEST_STALL_OPERATIONS");
          end if;
       end Restore_Stall;
+
+      procedure Restore_Kind_Fault is
+      begin
+         if Had_Kind_Fault then
+            Ada.Environment_Variables.Set
+              ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", Old_Kind_Fault);
+         else
+            Ada.Environment_Variables.Clear
+              ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
+         end if;
+      end Restore_Kind_Fault;
+
+      procedure Restore_Recent_Fault is
+      begin
+         if Had_Recent_Fault then
+            Ada.Environment_Variables.Set
+              ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH",
+               Old_Recent_Fault);
+         else
+            Ada.Environment_Variables.Clear
+              ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
+         end if;
+      end Restore_Recent_Fault;
 
       procedure Finish is
       begin
@@ -14638,9 +15935,65 @@ package body Files_Suite.Operations is
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");
+
+      Step := Files.Operations.Refresh (Model, Settings);
+      Files.Model.Clear_Search_Results (Model);
+      Select_Name (Model, "a.txt");
+      Ada.Environment_Variables.Set
+        ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
+      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      for Attempt in 1 .. 10_000 loop
+         Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+         exit when not Files.Model.Paste_Execution_Is_Active (Model);
+         delay 0.001;
+      end loop;
+      Restore_Kind_Fault;
+      Assert
+        (not Files.Model.Paste_Execution_Is_Active (Model)
+         and then Step.Status = Files.Operations.Operation_Failed
+         and then not Files.Model.Search_Results_Are_Active (Model),
+         "a helper result whose operation kind differs from its request is rejected");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
+         and then Files.Model.Undo_Available (Model),
+         "kind-mismatch recovery retains the committed duplicate and its Undo");
+      Step := Complete_Operation
+        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Assert
+        (Step.Status = Files.Operations.Operation_Success
+         and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
+         "the recovered duplicate can still be undone safely");
+
+      Select_Name (Model, "a.txt");
+      Ada.Environment_Variables.Set
+        ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
+      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      for Attempt in 1 .. 10_000 loop
+         Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+         exit when not Files.Model.Paste_Execution_Is_Active (Model);
+         delay 0.001;
+      end loop;
+      Restore_Recent_Fault;
+      Assert
+        (not Files.Model.Paste_Execution_Is_Active (Model)
+         and then Step.Status = Files.Operations.Operation_Failed
+         and then not Files.Model.In_Recent_View (Model),
+         "a helper result whose Recent-view flag differs from its request is rejected");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
+         and then Files.Model.Undo_Available (Model),
+         "Recent-mismatch recovery retains the committed duplicate and its Undo");
+      Step := Complete_Operation
+        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Assert
+        (Step.Status = Files.Operations.Operation_Success
+         and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
+         "the duplicate recovered from a Recent mismatch remains safely undoable");
    exception
       when others =>
          Restore_Stall;
+         Restore_Kind_Fault;
+         Restore_Recent_Fault;
          Files.Model.Clear_Paste_Execution (Model);
          raise;
    end Test_Background_Operations;
@@ -14847,9 +16200,48 @@ package body Files_Suite.Operations is
       Assert (Rejected and then not Cancelled,
               "a failed cancellation file creation leaves the request retryable");
       Ada.Directories.Delete_Directory (Files.Process_Jobs.Path (Job, "cancel"));
+      declare
+         Victim : constant String := Join (Root, "cancel-marker-victim");
+         Marker : constant String := Files.Process_Jobs.Path (Job, "cancel");
+         Linked : Boolean := False;
+      begin
+         Write_Binary_File (Victim, "unchanged");
+         Linked := Hostkit.Fs.Create_Hard_Link (Victim, Marker);
+         if Linked then
+            Rejected := False;
+            begin
+               Files.Process_Jobs.Cancel (Job);
+            exception
+               when Ada.Directories.Use_Error => Rejected := True;
+            end;
+            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+            Assert
+              (Rejected and then not Cancelled
+               and then not Files.Process_Jobs.Cancellation_Requested
+                 (Files.Process_Jobs.Path (Job, "")),
+               "a planted hardlink is not accepted as a cancellation marker");
+            Assert
+              (Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
+               "cancellation never truncates through a planted marker hardlink");
+            Ada.Directories.Delete_File (Marker);
+         end if;
+         Ada.Directories.Delete_File (Victim);
+      exception
+         when others =>
+            if Linked and then Ada.Directories.Exists (Marker) then
+               Ada.Directories.Delete_File (Marker);
+            end if;
+            if Ada.Directories.Exists (Victim) then
+               Ada.Directories.Delete_File (Victim);
+            end if;
+            raise;
+      end;
       Files.Process_Jobs.Cancel (Job);
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);
-      Assert (Cancelled and then Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "cancel")),
+      Assert
+        (Cancelled
+         and then Files.Process_Jobs.Cancellation_Requested
+           (Files.Process_Jobs.Path (Job, "")),
               "retry publishes the cancellation file before marking the session cancelled");
       Files.Process_Jobs.Reset (Job);
 
@@ -14864,6 +16256,25 @@ package body Files_Suite.Operations is
               and then Exit_Status = 0, "the pre-marker lease crash fixture exits cleanly");
       Assert (Ada.Directories.Exists (Before) and then Ada.Directories.Exists (After),
               "both interrupted creation phases leave recoverable directories");
+      Files.File_Identities.Testing.Set_Unavailable (True);
+      begin
+         declare
+            Unavailable_Identity : Files.Types.UString;
+            Unavailable_Claim    : Files.Job_Transports.Lease;
+         begin
+            Assert
+              (Files.Job_Transports.Claim_Incomplete
+                 (Before, Unavailable_Identity, Unavailable_Claim,
+                  Minimum_Age => 0.0) = Files.Job_Transports.Claim_Unrecoverable
+               and then Ada.Directories.Exists (Before),
+               "incomplete transport cleanup refuses an identity-free deletion");
+         end;
+         Files.File_Identities.Testing.Set_Unavailable (False);
+      exception
+         when others =>
+            Files.File_Identities.Testing.Set_Unavailable (False);
+            raise;
+      end;
       Found := Files.Job_Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
       Assert (not Ada.Directories.Exists (Before) and then not Ada.Directories.Exists (After),
               "recovery removes both witnessed markerless crash states");
@@ -14905,12 +16316,6 @@ package body Files_Suite.Operations is
       --  followed by loss of the marker while the transport owner is live.
       --  A published witness must never be mistaken for pre-marker proof.
       declare
-         function Create_Native (Name : System.Address) return Interfaces.C.long_long
-           with Import, Convention => C, External_Name => "files_transport_lease_create";
-         function Publish_Witness (Handle : Interfaces.C.long_long) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_transport_lease_publish_witness";
-         procedure Release_Native (Handle : Interfaces.C.long_long)
-           with Import, Convention => C, External_Name => "files_transport_lease_release";
          Owner : Files.Job_Transports.Lease;
          Directory, Identity : Files.Types.UString;
          Claim : Files.Job_Transports.Lease;
@@ -14920,18 +16325,26 @@ package body Files_Suite.Operations is
          declare
             Path : constant String := To_String (Directory);
             Simple : constant String := Ada.Directories.Simple_Name (Path);
-            Witness : aliased Interfaces.C.char_array := Interfaces.C.To_C
-              (Join (Hostkit.Fs.Temp_Directory,
-               ".files-job-creation-" & Simple (Simple'First + 10 .. Simple'Last)));
-            Handle : constant Interfaces.C.long_long := Create_Native (Witness'Address);
+            Witness : constant String := Join
+              (Hostkit.Fs.Temp_Directory,
+               ".files-job-creation-" & Simple (Simple'First + 10 .. Simple'Last));
+            Handle : Hostkit.Lease_Files.Lease;
+            Published : constant Ada.Streams.Stream_Element_Array :=
+              [Character'Pos ('p'), Character'Pos ('u'), Character'Pos ('b'),
+               Character'Pos ('l'), Character'Pos ('i'), Character'Pos ('s'),
+               Character'Pos ('h'), Character'Pos ('4')];
          begin
-            Assert (Handle /= 0, "a leftover published witness can be constructed");
-            if Handle /= 0 then
+            Assert
+              (Hostkit.Lease_Files.Create (Witness, Handle) =
+                 Hostkit.Lease_Files.Opened,
+               "a leftover published witness can be constructed");
+            if Hostkit.Lease_Files.Is_Held (Handle) then
                declare
-                  Published : constant Boolean := Publish_Witness (Handle) = 1;
+                  Recorded : constant Boolean :=
+                    Hostkit.Lease_Files.Write_At (Handle, Published);
                begin
-                  Release_Native (Handle);
-                  Assert (Published, "the leftover witness records publication");
+                  Hostkit.Lease_Files.Release (Handle);
+                  Assert (Recorded, "the leftover witness records publication");
                end;
             end if;
             Ada.Directories.Delete_File (Join (Path, ".files-job-transport"));
@@ -14973,6 +16386,713 @@ package body Files_Suite.Operations is
          Signal_Release;
          raise;
    end Test_Transport_Protocol_Gaps;
+
+   procedure Test_Copy_Journal_Validation
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Batch    : constant Files.Copy_Context.Session :=
+        Files.Copy_Context.Borrow (Root);
+      Expected : Files.Types.String_Vectors.Vector;
+      Actual   : Files.Types.String_Vectors.Vector;
+      File     : Ada.Streams.Stream_IO.File_Type;
+      Rejected : Boolean := False;
+      Victim   : constant String := Join (Root, "copy-journal-victim");
+      Source   : constant String := Join (Root, "copy-journal-source");
+      Target   : constant String := Join (Root, "copy-journal-target");
+      Result   : Files.File_System.Mutation_Result;
+   begin
+      Reset_Root;
+      begin
+         declare
+            Invalid : constant Files.Copy_Context.Session :=
+              Files.Copy_Context.Borrow ("relative-copy-batch");
+            pragma Unreferenced (Invalid);
+         begin
+            null;
+         end;
+      exception
+         when Ada.Directories.Use_Error => Rejected := True;
+      end;
+      Assert (Rejected, "copy journals reject a relative borrowed directory");
+      Rejected := False;
+      begin
+         declare
+            Invalid : constant Files.Copy_Context.Session :=
+              Files.Copy_Context.Borrow
+                (Root & Character'Val (0) & "copy-batch");
+            pragma Unreferenced (Invalid);
+         begin
+            null;
+         end;
+      exception
+         when Ada.Directories.Use_Error => Rejected := True;
+      end;
+      Assert (Rejected, "copy journals reject a NUL-containing borrowed directory");
+      Rejected := False;
+
+      Expected.Append (To_Unbounded_String ("source-token"));
+      Expected.Append (To_Unbounded_String ("destination-token"));
+      Files.Copy_Context.Save (Batch, Expected);
+      Actual := Files.Copy_Context.Records (Batch);
+      Assert (Actual = Expected, "a complete copy journal round-trips");
+
+      Ada.Streams.Stream_IO.Open
+        (File, Ada.Streams.Stream_IO.Append_File, Join (Root, "links"));
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), True);
+      Ada.Streams.Stream_IO.Close (File);
+      begin
+         Actual := Files.Copy_Context.Records (Batch);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert (Rejected, "copy journals reject trailing bytes");
+
+      Ada.Directories.Delete_File (Join (Root, "links"));
+      Write_Binary_File (Victim, "protected copy journal");
+      if Hostkit.Fs.Create_Hard_Link (Victim, Join (Root, "links")) then
+         Rejected := False;
+         begin
+            Actual := Files.Copy_Context.Records (Batch);
+         exception
+            when Ada.IO_Exceptions.Data_Error => Rejected := True;
+         end;
+         Assert
+           (Rejected
+            and then File_Has_Bytes (Victim, "protected copy journal"),
+            "copy journal reads refuse a multiply-linked file");
+         Ada.Directories.Delete_File (Join (Root, "links"));
+      end if;
+
+      Expected.Clear;
+      Expected.Append (To_Unbounded_String ("source-token"));
+      Expected.Append (To_Unbounded_String ("source-revision"));
+      Expected.Append (To_Unbounded_String ("source-digest"));
+      Expected.Append (To_Unbounded_String ("relative-destination"));
+      Expected.Append (To_Unbounded_String ("destination-token"));
+      Expected.Append (To_Unbounded_String ("destination-revision"));
+      Files.Copy_Context.Save (Batch, Expected);
+      Write_Binary_File (Source, "copy me");
+      Result := Files.File_System.Copy_Tree (Source, Target, Batch);
+      Assert
+        (not Result.Success and then not Ada.Directories.Exists (Target),
+         "copy journals reject relative persisted hard-link paths before copying");
+
+      if Hostkit.Fs.Create_Link (Victim, Join (Root, "links.tmp")) then
+         Write_Binary_File (Victim, "preserve me");
+         Rejected := False;
+         begin
+            Files.Copy_Context.Save (Batch, Expected);
+         exception
+            when Ada.Directories.Use_Error => Rejected := True;
+         end;
+         Assert
+           (Rejected and then File_Has_Bytes (Victim, "preserve me"),
+            "copy journals refuse a temporary symlink without truncating its target");
+         declare
+            Removed : constant Boolean :=
+              Hostkit.Fs.Delete_Link (Join (Root, "links.tmp"));
+            pragma Unreferenced (Removed);
+         begin
+            null;
+         end;
+      end if;
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Test_Copy_Journal_Validation;
+
+   procedure Test_Job_Record_Validation
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Path     : constant String := Join (Root, "invalid-job-items");
+      File     : Ada.Streams.Stream_IO.File_Type;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Item     : Files.File_System.Directory_Item;
+      Signature : Files.File_System.Directory_Signature;
+      Result   : Files.Operations.Operation_Result;
+      Transfer_Result : Files.Transfer_Jobs.Job_Result;
+      Transfer_Path   : constant String := Join (Root, "invalid-transfer-result");
+      Transfer_Target : constant String := Join (Root, "linked-transfer-result");
+      Transfer_Request_Path : constant String := Join (Root, "invalid-transfer-request");
+      Transfer_Request_Target : constant String := Join (Root, "linked-transfer-request");
+      Transfer_Action : Files.Paste.Resolved_Action;
+      Replacement_Backup : constant String := Join (Root, "replacement-backup");
+      Replacement_Record : constant String := Join (Root, "replacement-record");
+      Replacement_Target : constant String := Join (Root, "replacement-target");
+      Rejected : Boolean := False;
+
+      procedure Write_Replacement_Record (Record_Path : String) is
+      begin
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
+         String'Output
+           (Ada.Streams.Stream_IO.Stream (File), Replacement_Backup);
+         String'Output
+           (Ada.Streams.Stream_IO.Stream (File),
+            Files.File_Identities.Token (Replacement_Backup));
+         Ada.Streams.Stream_IO.Close (File);
+      end Write_Replacement_Record;
+
+      procedure Write_Raw_Items
+        (Record_Path : String;
+         Value       : Files.File_System.Directory_Item)
+      is
+         Stream : Ada.Streams.Stream_IO.Stream_Access;
+      begin
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
+         Stream := Ada.Streams.Stream_IO.Stream (File);
+         Natural'Output (Stream, 1);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Name), Files.Job_Records.Max_Path_Length);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Full_Path), Files.Job_Records.Max_Path_Length);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Parent_Path), Files.Job_Records.Max_Path_Length);
+         Files.Types.Item_Kind'Output (Stream, Value.Kind);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Filetype), Files.Job_Records.Max_Text_Length);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Icon_Id), Files.Job_Records.Max_Text_Length);
+         Boolean'Output (Stream, Value.Size_Available);
+         Long_Long_Integer'Output (Stream, Value.Size);
+         Boolean'Output (Stream, Value.Creation_Available);
+         Ada.Calendar.Time'Output (Stream, Value.Creation_Time);
+         Boolean'Output (Stream, Value.Modified_Available);
+         Ada.Calendar.Time'Output (Stream, Value.Modified_Time);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Permissions), Files.Job_Records.Max_Text_Length);
+         Boolean'Output (Stream, Value.Mode_Available);
+         Natural'Output (Stream, Value.Mode_Bits);
+         Boolean'Output (Stream, Value.Ownership_Available);
+         Natural'Output (Stream, Value.Owner_Id);
+         Natural'Output (Stream, Value.Group_Id);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Filetype_Extra), Files.Job_Records.Max_Text_Length);
+         Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
+         Boolean'Output (Stream, Value.Thumbnail_Available);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Thumbnail_Path), Files.Job_Records.Max_Path_Length);
+         Natural'Output (Stream, Value.Thumbnail_Width);
+         Natural'Output (Stream, Value.Thumbnail_Height);
+         Natural'Output (Stream, Natural (Value.Thumbnail_Pixels.Length));
+         for Byte of Value.Thumbnail_Pixels loop
+            Interfaces.Unsigned_8'Output (Stream, Byte);
+         end loop;
+         Boolean'Output (Stream, Value.Metadata_Error);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Error_Key), Files.Job_Records.Max_Error_Length);
+         Ada.Streams.Stream_IO.Close (File);
+      end Write_Raw_Items;
+
+      procedure Write_Raw_Signature
+        (Record_Path : String;
+         Value       : Files.File_System.Directory_Signature)
+      is
+         Stream : Ada.Streams.Stream_IO.Stream_Access;
+      begin
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
+         Stream := Ada.Streams.Stream_IO.Stream (File);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Path), Files.Job_Records.Max_Path_Length);
+         Boolean'Output (Stream, Value.Exists);
+         Natural'Output (Stream, Value.Entry_Count);
+         Natural'Output (Stream, Value.Entry_State_Checksum);
+         Ada.Calendar.Time'Output (Stream, Value.Latest_Modified);
+         Boolean'Output (Stream, Value.Latest_Modified_Known);
+         Ada.Streams.Stream_IO.Close (File);
+      end Write_Raw_Signature;
+   begin
+      Reset_Root;
+
+      Assert
+        (Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
+           (Root, Root, Recent => False)
+         and then Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
+           ("", "", Recent => True),
+         "refresh requests accept real absolute roots and the synthetic Recent view");
+      Assert
+        (not Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
+           ("relative-root", Root, Recent => False)
+         and then not Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
+           (Root, "relative-signature", Recent => False)
+         and then not Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
+           (Root, Root, Recent => True),
+         "refresh requests reject relative or contradictory path state");
+      Assert
+        (Files.Operation_Jobs.Testing.Request_Path_Is_Valid
+           (Root, Recent => False)
+         and then Files.Operation_Jobs.Testing.Request_Path_Is_Valid
+           ("", Recent => True)
+         and then not Files.Operation_Jobs.Testing.Request_Path_Is_Valid
+           ("relative-root", Recent => False)
+         and then not Files.Operation_Jobs.Testing.Request_Path_Is_Valid
+           (Root, Recent => True),
+         "operation requests distinguish real roots from the synthetic Recent view");
+      Assert
+        (Files.Refresh_Jobs.Testing.Watch_Request_Path_Is_Valid (Root)
+         and then not Files.Refresh_Jobs.Testing.Watch_Request_Path_Is_Valid
+           ("relative-watch")
+         and then not Files.Refresh_Jobs.Testing.Watch_Request_Path_Is_Valid
+           (Root & Character'Val (0) & "ignored"),
+         "watch requests require absolute NUL-free paths");
+
+      Signature.Path := To_Unbounded_String ("relative-signature");
+      Write_Raw_Signature (Path, Signature);
+      Ada.Streams.Stream_IO.Open
+        (File, Ada.Streams.Stream_IO.In_File, Path);
+      Rejected := False;
+      begin
+         Signature := Files.Job_Records.Read_Signature
+           (Ada.Streams.Stream_IO.Stream (File));
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert
+        (Rejected,
+         "decoded directory signatures reject relative operational paths");
+
+      Signature.Path := To_Unbounded_String
+        (Root & Character'Val (0) & "ignored");
+      Ada.Streams.Stream_IO.Create
+        (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Rejected := False;
+      begin
+         Files.Job_Records.Write_Signature
+           (Ada.Streams.Stream_IO.Stream (File), Signature);
+      exception
+         when Ada.Directories.Use_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert
+        (Rejected,
+         "directory signatures with NUL-containing paths are not serialized");
+
+      Item.Thumbnail_Available := True;
+      Item.Thumbnail_Width := Natural'Last;
+      Item.Thumbnail_Height := 1;
+      Item.Thumbnail_Pixels.Append (0);
+      Items.Append (Item);
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      begin
+         Files.Job_Records.Write_Items
+           (Ada.Streams.Stream_IO.Stream (File), Items);
+      exception
+         when Ada.Directories.Use_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert (Rejected, "invalid thumbnail dimensions are not serialized");
+
+      Item := Files.File_System.Make_Item
+        (Root, "transport-item", Files.Types.Regular_File_Item);
+      Item.Full_Path := To_Unbounded_String ("relative-transport-item");
+      Write_Raw_Items (Path, Item);
+      Ada.Streams.Stream_IO.Open
+        (File, Ada.Streams.Stream_IO.In_File, Path);
+      Rejected := False;
+      begin
+         Items := Files.Job_Records.Read_Items
+           (Ada.Streams.Stream_IO.Stream (File));
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert
+        (Rejected,
+         "decoded job items reject relative operational paths");
+
+      Item.Full_Path := To_Unbounded_String (Join (Root, "transport-item"));
+      Item.Parent_Path := To_Unbounded_String
+        (Root & Character'Val (0) & "ignored");
+      Items.Clear;
+      Items.Append (Item);
+      Ada.Streams.Stream_IO.Create
+        (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Rejected := False;
+      begin
+         Files.Job_Records.Write_Items
+           (Ada.Streams.Stream_IO.Stream (File), Items);
+      exception
+         when Ada.Directories.Use_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert
+        (Rejected,
+         "job items with NUL-containing parent paths are not serialized");
+
+      Result.Action.Executable := To_Unbounded_String ("viewer");
+      Result.Action_Executable := To_Unbounded_String ("different-viewer");
+      Rejected := False;
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      begin
+         Files.Job_Records.Write_Operation_Result
+           (Ada.Streams.Stream_IO.Stream (File), Result);
+      exception
+         when Ada.Directories.Use_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert (Rejected, "inconsistent action metadata is not serialized");
+
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Files.Operations.Operation_Status'Output
+        (Ada.Streams.Stream_IO.Stream (File), Files.Operations.Operation_Success);
+      Files.Job_Records.Write_String
+        (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Error_Length);
+      Files.Job_Records.Write_String
+        (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Path_Length);
+      Files.Job_Records.Write_String
+        (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Job_Records.Max_Path_Length);
+      Natural'Output (Ada.Streams.Stream_IO.Stream (File), 1);
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "file.txt");
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
+      Files.Job_Records.Write_String
+        (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Job_Records.Max_Path_Length);
+      Natural'Output (Ada.Streams.Stream_IO.Stream (File), 0);
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
+      Integer'Output (Ada.Streams.Stream_IO.Stream (File), 0);
+      Ada.Streams.Stream_IO.Close (File);
+      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
+      Rejected := False;
+      begin
+         Result := Files.Job_Records.Read_Operation_Result
+           (Ada.Streams.Stream_IO.Stream (File));
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Ada.Streams.Stream_IO.Close (File);
+      Assert (Rejected, "inconsistent decoded action metadata is rejected");
+
+      Transfer_Result.Mutation :=
+        (Success => True, Error_Key => Null_Unbounded_String);
+      Files.Transfer_Jobs.Testing.Write_Result
+        (Transfer_Path, Transfer_Result);
+      Rejected := False;
+      begin
+         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
+           (Transfer_Path);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert
+        (Rejected,
+         "a successful transfer result without a created identity is rejected");
+
+      Transfer_Result.Created_Identity := To_Unbounded_String ("created-token");
+      Transfer_Result.Cancelled := True;
+      Files.Transfer_Jobs.Testing.Write_Result
+        (Transfer_Path, Transfer_Result);
+      Rejected := False;
+      begin
+         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
+           (Transfer_Path);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert
+        (Rejected,
+         "a transfer result cannot report success and cancellation together");
+
+      Transfer_Result.Cancelled := False;
+      Transfer_Result.Trashed := To_Unbounded_String ("backup-path");
+      Files.Transfer_Jobs.Testing.Write_Result
+        (Transfer_Path, Transfer_Result);
+      Rejected := False;
+      begin
+         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
+           (Transfer_Path);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert
+        (Rejected,
+         "a transfer backup path without its identity is rejected");
+
+      Transfer_Result.Trashed_Identity :=
+        To_Unbounded_String ("backup-token");
+      Files.Transfer_Jobs.Testing.Write_Result
+        (Transfer_Path, Transfer_Result);
+      Rejected := False;
+      begin
+         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
+           (Transfer_Path);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert
+        (Rejected,
+         "a transfer result rejects a relative replacement path");
+
+      Transfer_Result := (others => <>);
+      Files.Transfer_Jobs.Testing.Write_Result
+        (Transfer_Target, Transfer_Result);
+      Ada.Directories.Delete_File (Transfer_Path);
+      if Hostkit.Fs.Create_Hard_Link (Transfer_Target, Transfer_Path) then
+         Rejected := False;
+         begin
+            Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
+              (Transfer_Path);
+         exception
+            when Ada.IO_Exceptions.Data_Error => Rejected := True;
+         end;
+         Assert
+           (Rejected, "transfer result reads refuse a multiply-linked file");
+         Ada.Directories.Delete_File (Transfer_Path);
+      end if;
+
+      Transfer_Action :=
+        (Source_Path => To_Unbounded_String ("relative-source"),
+         Dest_Path   => To_Unbounded_String (Join (Root, "destination")),
+         Skip        => False,
+         Replaced    => False);
+      Files.Transfer_Jobs.Testing.Write_Request
+        (Transfer_Request_Path, Transfer_Action,
+         Files.File_System.Drop_Copy);
+      Rejected := False;
+      begin
+         Transfer_Action :=
+           Files.Transfer_Jobs.Testing.Read_Request_Action
+             (Transfer_Request_Path);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert
+        (Rejected,
+         "a transfer request rejects a relative source path");
+
+      Transfer_Action.Source_Path := To_Unbounded_String (Join (Root, "source"));
+      Files.Transfer_Jobs.Testing.Write_Request
+        (Transfer_Request_Path, Transfer_Action,
+         Files.File_System.Drop_Copy,
+         Batch_Directory => "/tmp/batch" & Character'Val (0) & "suffix");
+      Rejected := False;
+      begin
+         Transfer_Action :=
+           Files.Transfer_Jobs.Testing.Read_Request_Action
+             (Transfer_Request_Path);
+      exception
+         when Ada.IO_Exceptions.Data_Error => Rejected := True;
+      end;
+      Assert
+        (Rejected,
+         "a transfer request rejects a NUL-containing batch path");
+
+      Files.Transfer_Jobs.Testing.Write_Request
+        (Transfer_Request_Target, Transfer_Action,
+         Files.File_System.Drop_Copy);
+      Ada.Directories.Delete_File (Transfer_Request_Path);
+      if Hostkit.Fs.Create_Hard_Link
+        (Transfer_Request_Target, Transfer_Request_Path)
+      then
+         Rejected := False;
+         begin
+            Transfer_Action :=
+              Files.Transfer_Jobs.Testing.Read_Request_Action
+                (Transfer_Request_Path);
+         exception
+            when Ada.IO_Exceptions.Data_Error => Rejected := True;
+         end;
+         Assert
+           (Rejected, "transfer request reads refuse a multiply-linked file");
+         Ada.Directories.Delete_File (Transfer_Request_Path);
+      end if;
+
+      Write_Binary_File (Replacement_Backup, "preserved destination");
+      Write_Replacement_Record (Replacement_Record);
+      Assert
+        (Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+           (Replacement_Record),
+         "a complete replacement checkpoint with a live identity is accepted");
+      Ada.Streams.Stream_IO.Open
+        (File, Ada.Streams.Stream_IO.Append_File, Replacement_Record);
+      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), True);
+      Ada.Streams.Stream_IO.Close (File);
+      Assert
+        (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+           (Replacement_Record),
+         "a replacement checkpoint rejects trailing fields");
+
+      Write_Replacement_Record (Replacement_Target);
+      Ada.Directories.Delete_File (Replacement_Record);
+      if Hostkit.Fs.Create_Link (Replacement_Target, Replacement_Record) then
+         Assert
+           (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+              (Replacement_Record),
+            "replacement recovery refuses a symlink checkpoint");
+         declare
+            Removed : constant Boolean :=
+              Hostkit.Fs.Delete_Link (Replacement_Record);
+            pragma Unreferenced (Removed);
+         begin
+            null;
+         end;
+      end if;
+      if Hostkit.Fs.Create_Hard_Link
+        (Replacement_Target, Replacement_Record)
+      then
+         Assert
+           (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
+              (Replacement_Record),
+            "replacement recovery refuses a multiply-linked checkpoint");
+         Ada.Directories.Delete_File (Replacement_Record);
+      end if;
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Test_Job_Record_Validation;
+
+   procedure Test_Truncated_Persisted_Records
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      use type Ada.Streams.Stream_Element_Offset;
+
+      Job_Path         : constant String := Join (Root, "complete-job-record");
+      History_Directory : constant String := Join (Root, "prefix-history");
+      History_Path     : constant String := Join (History_Directory, "history");
+      File             : Ada.Streams.Stream_IO.File_Type;
+      Written_Result   : Files.Operations.Operation_Result;
+      Read_Result      : Files.Operations.Operation_Result;
+      Model            : Files.Model.Window_Model;
+
+      function Read_All
+        (Path : String) return Ada.Streams.Stream_Element_Array
+      is
+      begin
+         Ada.Streams.Stream_IO.Open
+           (File, Ada.Streams.Stream_IO.In_File, Path);
+         declare
+            Length : constant Ada.Streams.Stream_Element_Offset :=
+              Ada.Streams.Stream_Element_Offset
+                (Ada.Streams.Stream_IO.Size (File));
+            Data : Ada.Streams.Stream_Element_Array (1 .. Length);
+            Last : Ada.Streams.Stream_Element_Offset;
+         begin
+            Ada.Streams.Stream_IO.Read (File, Data, Last);
+            Ada.Streams.Stream_IO.Close (File);
+            Assert (Last = Data'Last, "persisted-record fixture reads every byte");
+            return Data;
+         end;
+      exception
+         when others =>
+            if Ada.Streams.Stream_IO.Is_Open (File) then
+               Ada.Streams.Stream_IO.Close (File);
+            end if;
+            raise;
+      end Read_All;
+
+      procedure Write_Prefix
+        (Path  : String;
+         Data  : Ada.Streams.Stream_Element_Array;
+         Count : Natural)
+      is
+      begin
+         Ada.Streams.Stream_IO.Create
+           (File, Ada.Streams.Stream_IO.Out_File, Path);
+         if Count > 0 then
+            Ada.Streams.Stream_IO.Write
+              (File,
+               Data
+                 (Data'First ..
+                    Data'First
+                      + Ada.Streams.Stream_Element_Offset (Count) - 1));
+         end if;
+         Ada.Streams.Stream_IO.Close (File);
+      exception
+         when others =>
+            if Ada.Streams.Stream_IO.Is_Open (File) then
+               Ada.Streams.Stream_IO.Close (File);
+            end if;
+            raise;
+      end Write_Prefix;
+   begin
+      Reset_Root;
+      Ada.Streams.Stream_IO.Create
+        (File, Ada.Streams.Stream_IO.Out_File, Job_Path);
+      Files.Job_Records.Write_Operation_Result
+        (Ada.Streams.Stream_IO.Stream (File), Written_Result);
+      Ada.Streams.Stream_IO.Close (File);
+
+      declare
+         Data : constant Ada.Streams.Stream_Element_Array :=
+           Read_All (Job_Path);
+      begin
+         Ada.Streams.Stream_IO.Open
+           (File, Ada.Streams.Stream_IO.In_File, Job_Path);
+         Read_Result := Files.Job_Records.Read_Operation_Result
+           (Ada.Streams.Stream_IO.Stream (File));
+         Ada.Streams.Stream_IO.Close (File);
+         Assert
+           (Read_Result.Status = Written_Result.Status,
+            "the complete job record decodes before prefix mutation");
+
+         for Prefix_Length in 0 .. Natural (Data'Length) - 1 loop
+            Write_Prefix (Job_Path, Data, Prefix_Length);
+            Ada.Streams.Stream_IO.Open
+              (File, Ada.Streams.Stream_IO.In_File, Job_Path);
+            declare
+               Rejected : Boolean := False;
+            begin
+               begin
+                  Read_Result := Files.Job_Records.Read_Operation_Result
+                    (Ada.Streams.Stream_IO.Stream (File));
+               exception
+                  when others =>
+                     Rejected := True;
+               end;
+               Ada.Streams.Stream_IO.Close (File);
+               Assert
+                 (Rejected,
+                  "strict job-record prefix is rejected at byte"
+                  & Natural'Image (Prefix_Length));
+            end;
+         end loop;
+      end;
+
+      Ada.Directories.Create_Directory (History_Directory);
+      Files.History_Journal.Save_Stacks
+        (History_Directory,
+         Files.Model.Undo_Entry_Vectors.Empty_Vector,
+         Files.Model.Undo_Entry_Vectors.Empty_Vector,
+         Required => True);
+      Files.Model.Initialize
+        (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Assert
+        (Files.History_Journal.Restore (History_Directory, Model),
+         "the complete history record decodes before prefix mutation");
+
+      declare
+         Data : constant Ada.Streams.Stream_Element_Array :=
+           Read_All (History_Path);
+      begin
+         for Prefix_Length in 0 .. Natural (Data'Length) - 1 loop
+            Write_Prefix (History_Path, Data, Prefix_Length);
+            Assert
+              (not Files.History_Journal.Restore
+                 (History_Directory, Model),
+               "strict history-record prefix is rejected at byte"
+               & Natural'Image (Prefix_Length));
+         end loop;
+      end;
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Test_Truncated_Persisted_Records;
 
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15435,10 +17555,20 @@ package body Files_Suite.Operations is
       Files.Process_Jobs.Testing.Release_Owner (Job);
       declare
          Marker : constant String := Join (To_String (Transport), ".files-job-transport");
+         Marker_Alias : constant String := Join (Root, "transport-marker-hardlink");
          Identity : Files.Types.UString;
          Read_Error : Boolean;
          Complete : Boolean;
       begin
+         if Hostkit.Fs.Create_Hard_Link (Marker, Marker_Alias) then
+            Files.Job_Transports.Inspect_Marker
+              (To_String (Transport), Identity, Read_Error);
+            Assert
+              (not Read_Error and then Length (Identity) = 0
+               and then Ada.Directories.Exists (To_String (Transport)),
+               "marker inspection rejects a multiply-linked authority file");
+            Ada.Directories.Delete_File (Marker_Alias);
+         end if;
          Result := Files.File_System.Set_Permissions (Marker, 0);
          Assert (Result.Success, "prepare a temporarily unreadable transport marker");
          Files.Job_Transports.Inspect_Marker (To_String (Transport), Identity, Read_Error);
@@ -15672,6 +17802,40 @@ package body Files_Suite.Operations is
       end Restore;
    begin
       Reset_Root;
+      declare
+         Victim : constant String := Join (Root, "exclusive-stream-victim");
+         Alias  : constant String := Join (Root, "exclusive-stream-alias");
+         Output : Files.Exclusive_Streams.Output_Stream;
+         Refused : Boolean := False;
+         Linked  : Boolean := False;
+      begin
+         Write_Binary_File (Victim, "unchanged");
+         Linked := Hostkit.Fs.Create_Hard_Link (Victim, Alias);
+         if Linked then
+            begin
+               Files.Exclusive_Streams.Create (Output, Alias);
+            exception
+               when Ada.IO_Exceptions.Use_Error => Refused := True;
+            end;
+            Files.Exclusive_Streams.Close_Safely (Output);
+            Assert
+              (Refused
+               and then Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
+               "exclusive transport streams refuse hardlinks without truncating their target");
+            Ada.Directories.Delete_File (Alias);
+         end if;
+         Ada.Directories.Delete_File (Victim);
+      exception
+         when others =>
+            Files.Exclusive_Streams.Close_Safely (Output);
+            if Linked and then Ada.Directories.Exists (Alias) then
+               Ada.Directories.Delete_File (Alias);
+            end if;
+            if Ada.Directories.Exists (Victim) then
+               Ada.Directories.Delete_File (Victim);
+            end if;
+            raise;
+      end;
       Files.Process_Jobs.Reserve (Active);
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
 
@@ -15796,8 +17960,26 @@ package body Files_Suite.Operations is
          Marker_Path   : constant String := Join (To_String (Pre_Lease_Path), ".files-job-transport");
          Marker_Data   : String := Project_Tools.Files.Read_Raw_File (Marker_Path);
          Header_At     : constant Natural := Ada.Strings.Fixed.Index (Marker_Data, Marker_Header);
+         Marker_File   : Ada.Streams.Stream_IO.File_Type;
+         Recorded_Header, Recorded_Directory, Recorded_Identity,
+           Recorded_Owner : Files.Types.UString;
       begin
          Assert (Header_At > 0, "the fixture starts with the current transport marker");
+         Ada.Streams.Stream_IO.Open
+           (Marker_File, Ada.Streams.Stream_IO.In_File, Marker_Path);
+         Recorded_Header := To_Unbounded_String
+           (String'Input (Ada.Streams.Stream_IO.Stream (Marker_File)));
+         Recorded_Directory := To_Unbounded_String
+           (String'Input (Ada.Streams.Stream_IO.Stream (Marker_File)));
+         Recorded_Identity := To_Unbounded_String
+           (String'Input (Ada.Streams.Stream_IO.Stream (Marker_File)));
+         Recorded_Owner := To_Unbounded_String
+           (String'Input (Ada.Streams.Stream_IO.Stream (Marker_File)));
+         Ada.Streams.Stream_IO.Close (Marker_File);
+         Assert
+           (To_String (Recorded_Header) = Marker_Header
+            and then Length (Recorded_Owner) > 0,
+            "the current fixture includes its lease identity");
          Marker_Data (Header_At + Marker_Header'Length - 1) := '3';
          Write_Binary_File (Marker_Path, Marker_Data);
          declare
@@ -15812,8 +17994,18 @@ package body Files_Suite.Operations is
                    Files.Job_Transports.Claim_Unrecoverable,
                "truncated-ID markers cannot claim a transport lease");
          end;
-         Marker_Data (Header_At + Marker_Header'Length - 1) := '1';
-         Write_Binary_File (Marker_Path, Marker_Data);
+         Ada.Streams.Stream_IO.Create
+           (Marker_File, Ada.Streams.Stream_IO.Out_File, Marker_Path);
+         String'Output
+           (Ada.Streams.Stream_IO.Stream (Marker_File),
+            "files-job-transport-1");
+         String'Output
+           (Ada.Streams.Stream_IO.Stream (Marker_File),
+            To_String (Recorded_Directory));
+         String'Output
+           (Ada.Streams.Stream_IO.Stream (Marker_File),
+            To_String (Recorded_Identity));
+         Ada.Streams.Stream_IO.Close (Marker_File);
       end;
       declare
          Identity : constant String := Files.Job_Transports.Recorded_Identity
@@ -16085,12 +18277,88 @@ package body Files_Suite.Operations is
          Assert
            (Files.Job_Scavenger.Has_Unrecoverable,
             "the desktop can observe unsafe recovery reported by its child");
+
+         declare
+            Report_Directory : constant String :=
+              Ada.Environment_Variables.Value ("FILES_RECOVERY_REPORT_DIR", "");
+            Signal : constant String := Join (Report_Directory, "unsafe");
+            Victim : constant String := Join (Root, "recovery-report-victim");
+            Alias_Created : Boolean := False;
+            Second_Errors : constant String :=
+              Join (Root, "unsafe-transport-hardlink-errors");
+         begin
+            Ada.Directories.Delete_File (Signal);
+            Write_Binary_File (Victim, "unchanged");
+            Alias_Created := Hostkit.Fs.Create_Hard_Link (Victim, Signal);
+            if Alias_Created then
+               Result := Hostkit.Process.Run_Captured
+                 (Hostkit.Fs.Own_Executable, Arguments,
+                  Stderr_Path => Second_Errors, Timeout_Ms => 10_000);
+               Assert
+                 (Result.Started and then not Result.Timed_Out
+                  and then Result.Exit_Status = 0,
+                  "unsafe recovery still completes when its report marker is a hardlink");
+               Assert
+                 (Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
+                  "unsafe recovery never appends through a planted report hardlink");
+               Assert
+                 (not Files.Job_Scavenger.Has_Unrecoverable,
+                  "an untrusted hardlink is not accepted as a recovery report marker");
+               Ada.Directories.Delete_File (Signal);
+               Result := Hostkit.Process.Run_Captured
+                 (Hostkit.Fs.Own_Executable, Arguments,
+                  Stderr_Path => Second_Errors, Timeout_Ms => 10_000);
+               Assert
+                 (Result.Started and then not Result.Timed_Out
+                  and then Result.Exit_Status = 0
+                  and then Files.Job_Scavenger.Has_Unrecoverable,
+                  "recovery creates a validated report marker after a refused hardlink");
+            end if;
+            Ada.Directories.Delete_File (Victim);
+         exception
+            when others =>
+               if Alias_Created and then Ada.Directories.Exists (Signal) then
+                  Ada.Directories.Delete_File (Signal);
+               end if;
+               if Ada.Directories.Exists (Victim) then
+                  Ada.Directories.Delete_File (Victim);
+               end if;
+               raise;
+         end;
       end;
 
       Assert
         (Files.Private_Directories.Try_Create (Root) =
            Files.Private_Directories.Collision,
          "private directory creation reports an existing pathname as a collision");
+      declare
+         Real_Directory : constant String := Join (Root, "private-real-directory");
+         Linked_Path    : constant String := Join (Root, "private-linked-directory");
+         Unexpected_Success : Boolean := False;
+      begin
+         Ada.Directories.Create_Directory (Real_Directory);
+         if Files_Suite.Support.Create_Symlink (Real_Directory, Linked_Path) then
+            begin
+               Files.Private_Directories.Ensure (Linked_Path);
+               Unexpected_Success := True;
+            exception
+               when Ada.Directories.Use_Error =>
+                  null;
+            end;
+            Assert
+              (not Unexpected_Success
+               and then Hostkit.Fs.Is_Link (Linked_Path)
+               and then Ada.Directories.Exists (Real_Directory),
+               "private-directory hardening rejects a link without removing it or its target");
+            declare
+               Removed : constant Boolean := Hostkit.Fs.Delete_Link (Linked_Path);
+               pragma Unreferenced (Removed);
+            begin
+               null;
+            end;
+         end if;
+         Ada.Directories.Delete_Directory (Real_Directory);
+      end;
       declare
          Unexpected_Success : Boolean := False;
       begin
@@ -16170,25 +18438,42 @@ package body Files_Suite.Operations is
       Identity  : Files.Types.UString;
       File      : Ada.Streams.Stream_IO.File_Type;
       Linked    : Boolean;
+      Record_Linked : Boolean := False;
+      Record_Alias : constant String := Join (Root, "stage-record-hardlink");
       Children_Before : Files.Types.UString;
       Transport_Identity : Files.Types.UString;
       Before    : Ada.Calendar.Time;
 
       procedure Add_Stage_Record
         (Record_Name, Path, Expected_Identity : String;
-         Corrupt : Boolean := False)
+         Corrupt : Boolean := False;
+         Oversized : Boolean := False)
       is
          Record_Directory : constant String :=
            Join (Join (Transport, "stages"), Record_Name);
          Record_File : Ada.Streams.Stream_IO.File_Type;
       begin
-         Ada.Directories.Create_Directory (Record_Directory);
+         if not Ada.Directories.Exists (Record_Directory) then
+            Ada.Directories.Create_Path (Record_Directory);
+         elsif Hostkit.Fs.Is_Link (Record_Directory)
+           or else Ada.Directories.Kind (Record_Directory) /=
+             Ada.Directories.Directory
+         then
+            raise Ada.Directories.Use_Error;
+         end if;
          Ada.Streams.Stream_IO.Create
            (Record_File, Ada.Streams.Stream_IO.Out_File, Join (Record_Directory, "data"));
          String'Output
            (Ada.Streams.Stream_IO.Stream (Record_File),
             (if Corrupt then "damaged-stage-record" else "files-stage-3"));
-         if not Corrupt then
+         if Oversized then
+            --  String'Output encodes these two bounds before the payload.
+            --  A malformed record must be rejected before attempting the
+            --  allocation described by its forged upper bound.
+            Integer'Output (Ada.Streams.Stream_IO.Stream (Record_File), 1);
+            Integer'Output
+              (Ada.Streams.Stream_IO.Stream (Record_File), Integer'Last);
+         elsif not Corrupt then
             String'Output (Ada.Streams.Stream_IO.Stream (Record_File), Path);
             String'Output (Ada.Streams.Stream_IO.Stream (Record_File), Expected_Identity);
          end if;
@@ -16211,6 +18496,32 @@ package body Files_Suite.Operations is
             and then Ada.Directories.Exists (Victim)
             and then Project_Tools.Files.Read_Raw_File (Join (Victim, "keep")) = "unrelated",
             "cleanup refuses an arbitrary unmarked directory");
+      end;
+
+      declare
+         Job        : Files.Process_Jobs.Session;
+         Directory  : Files.Types.UString;
+         Marker     : Files.Types.UString;
+         Original   : Files.Types.UString;
+         Recorded   : Files.Types.UString;
+         Read_Error : Boolean;
+         Rejected   : Boolean;
+      begin
+         Files.Process_Jobs.Reserve (Job);
+         Directory := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+         Marker := To_Unbounded_String
+           (Join (To_String (Directory), ".files-job-transport"));
+         Original := To_Unbounded_String
+           (Project_Tools.Files.Read_Raw_File (To_String (Marker)));
+         Write_Binary_File (To_String (Marker), To_String (Original) & "trailing");
+         Files.Job_Transports.Inspect_Marker
+           (To_String (Directory), Recorded, Read_Error);
+         Rejected := Length (Recorded) = 0 and then not Read_Error;
+         Write_Binary_File (To_String (Marker), To_String (Original));
+         Files.Process_Jobs.Reset (Job);
+         Assert
+           (Rejected,
+            "transport ownership markers reject trailing data as invalid");
       end;
 
       declare
@@ -16315,9 +18626,66 @@ package body Files_Suite.Operations is
       Ada.Directories.Create_Directory (Unrelated);
       Ada.Directories.Create_Directory (Unowned);
       Write_Binary_File (Join (Unrelated, "keep"), "unrelated");
+      Files.Job_Context.Initialize ("");
+      declare
+         Rejected : Boolean := False;
+      begin
+         begin
+            Files.Job_Context.Initialize ("relative-job-context");
+         exception
+            when Ada.Directories.Use_Error =>
+               Rejected := True;
+         end;
+         Assert
+           (Rejected and then Files.Job_Context.Directory = "",
+            "job context rejects a relative helper directory without changing state");
+         Rejected := False;
+         begin
+            declare
+               Invalid : constant String :=
+                 Files.Job_Context.Create_Stage ("relative-stage-parent");
+               pragma Unreferenced (Invalid);
+            begin
+               null;
+            end;
+         exception
+            when Ada.Directories.Use_Error =>
+               Rejected := True;
+         end;
+         Assert
+           (Rejected and then not Ada.Directories.Exists ("relative-stage-parent"),
+            "stage creation rejects a relative parent directory");
+      end;
       Files.Job_Context.Initialize (Transport);
       Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
       Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Stage)));
+      declare
+         Owner : constant String := Join (To_String (Stage), ".files-owner");
+         Owner_Alias : constant String := Join (Root, "stage-owner-hardlink");
+         Owner_Linked : constant Boolean :=
+           Hostkit.Fs.Create_Hard_Link (Owner, Owner_Alias);
+      begin
+         if Owner_Linked then
+            Files.Process_Jobs.Clean_Stages (Transport_Job);
+            Assert
+              (Ada.Directories.Exists (To_String (Stage))
+               and then Ada.Directories.Exists
+                 (Join (Join (Transport, "stages"), "stage-1")),
+               "stage cleanup rejects a multiply-linked owner marker");
+            Ada.Directories.Delete_File (Owner_Alias);
+         end if;
+      end;
+      declare
+         Owner : constant String := Join (To_String (Stage), ".files-owner");
+         Owner_Data : constant String := Project_Tools.Files.Read_Raw_File (Owner);
+      begin
+         Write_Binary_File (Owner, Owner_Data & "trailing");
+         Files.Process_Jobs.Clean_Stages (Transport_Job);
+         Assert
+           (Ada.Directories.Exists (To_String (Stage)),
+            "stage cleanup rejects an owner marker with trailing data");
+         Write_Binary_File (Owner, Owner_Data);
+      end;
       Ada.Directories.Rename (To_String (Stage), Saved);
       Ada.Directories.Create_Directory (To_String (Stage));
       Ada.Streams.Stream_IO.Create
@@ -16356,14 +18724,32 @@ package body Files_Suite.Operations is
       String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Stage));
       String'Output (Ada.Streams.Stream_IO.Stream (File), "");
       Ada.Streams.Stream_IO.Close (File);
+      Ada.Streams.Stream_IO.Open
+        (File, Ada.Streams.Stream_IO.Append_File,
+         Join (Join (Join (Transport, "stages"), "stage-1"), "data"));
+      String'Output (Ada.Streams.Stream_IO.Stream (File), "trailing");
+      Ada.Streams.Stream_IO.Close (File);
+      Files.Process_Jobs.Clean_Stages (Transport_Job);
+      Assert
+        (Ada.Directories.Exists (To_String (Stage))
+         and then not Ada.Directories.Exists
+           (Join (Join (Transport, "stages"), "stage-1")),
+         "stage cleanup discards a trailing-data record without deleting its named entry");
+      Add_Stage_Record
+        ("stage-trailing-retry", To_String (Stage), "");
       Linked := Hostkit.Fs.Create_Link (Unrelated, Link);
       Add_Stage_Record ("stage-unrelated", Unrelated, Files.File_Identities.Token (Unrelated));
+      Record_Linked := Hostkit.Fs.Create_Hard_Link
+        (Join (Join (Join (Transport, "stages"), "stage-unrelated"), "data"),
+         Record_Alias);
       Add_Stage_Record ("stage-unowned", Unowned, Files.File_Identities.Token (Unowned));
       Add_Stage_Record ("stage-absent", Join (Root, ".files-work-8000"), "");
+      Add_Stage_Record ("stage-relative", ".files-work-relative", "");
       if Linked then
          Add_Stage_Record ("stage-link", Link, Files.File_Identities.Token (Link));
       end if;
       Add_Stage_Record ("stage-corrupt", "", "", Corrupt => True);
+      Add_Stage_Record ("stage-oversized", "", "", Oversized => True);
       Add_Stage_Record ("stage-truncated", "", "");
       Write_Binary_File
         (Join (Join (Join (Transport, "stages"), "stage-truncated"), "data"),
@@ -16375,9 +18761,22 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Unowned), "cleanup refuses an unowned staging-shaped pathname");
       Assert (not Linked or else Hostkit.Fs.Is_Link (Link), "cleanup never follows or deletes a substituted symlink");
       Assert
+        (not Record_Linked
+         or else not Ada.Directories.Exists
+           (Join (Join (Transport, "stages"), "stage-unrelated")),
+         "stage cleanup rejects and discards a multiply-linked record");
+      if Record_Linked and then Ada.Directories.Exists (Record_Alias) then
+         Ada.Directories.Delete_File (Record_Alias);
+      end if;
+      Assert
         (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt"))
-         and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
-         "malformed stage records are discarded without trusting their contents");
+         and then not Ada.Directories.Exists
+           (Join (Join (Transport, "stages"), "stage-oversized"))
+         and then not Ada.Directories.Exists
+           (Join (Join (Transport, "stages"), "stage-truncated"))
+         and then not Ada.Directories.Exists
+           (Join (Join (Transport, "stages"), "stage-relative")),
+         "malformed and allocation-sized stage records are discarded without trusting their contents");
       Assert (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-absent")),
               "a write-ahead reservation with no created pathname is discarded safely");
       Assert

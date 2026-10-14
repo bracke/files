@@ -3,8 +3,6 @@ with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Text_IO;
 with Ada.Streams.Stream_IO;
-with Interfaces.C;
-with System;
 with GNAT.OS_Lib;
 
 with AUnit;
@@ -21,19 +19,23 @@ with Files.File_Identities.Testing;
 with Files.Private_Directories;
 with Files.File_System;
 with Files.Process_Jobs;
+with Files.Operation_Jobs;
+with Files.Operation_Jobs.Testing;
+with Files.Refresh_Jobs.Testing;
 with Files.Transfer_Jobs;
+with Files.Transfer_Jobs.Testing;
 with Files.Paste;
 with Ada.Strings.Unbounded;
 with Hostkit.Fs;
 with Hostkit.Host;
+with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
 with Hostkit.Spawn;
 
 procedure Tests is
    use type AUnit.Status;
-   use type Interfaces.C.int;
-   use type Interfaces.C.long_long;
+   use type Hostkit.Lease_Files.Open_Outcome;
 
    function Run is new AUnit.Run.Test_Runner_With_Status (All_Suites.Suite);
 
@@ -66,32 +68,33 @@ begin
          | "--files-test-hold-before-marker"
    then
       declare
-         function Create_Native (Name : System.Address) return Interfaces.C.long_long
-           with Import, Convention => C, External_Name => "files_transport_lease_create";
-         function Prepare_Witness (Handle : Interfaces.C.long_long) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_transport_lease_prepare_witness";
          Directory : constant String := Ada.Command_Line.Argument (2);
          Simple : constant String := Ada.Directories.Simple_Name (Directory);
-         Witness : aliased Interfaces.C.char_array := Interfaces.C.To_C
-           (Hostkit.Fs.Join
-             (Hostkit.Fs.Temp_Directory,
-              ".files-job-creation-" & Simple (Simple'First + 10 .. Simple'Last)));
-         Handle : constant Interfaces.C.long_long := Create_Native (Witness'Address);
+         Witness_Path : constant String := Hostkit.Fs.Join
+           (Hostkit.Fs.Temp_Directory,
+            ".files-job-creation-" & Simple (Simple'First + 10 .. Simple'Last));
+         Witness : Hostkit.Lease_Files.Lease;
+         Owner : Hostkit.Lease_Files.Lease;
+         Preparing : constant Ada.Streams.Stream_Element_Array :=
+           [Character'Pos ('p'), Character'Pos ('r'), Character'Pos ('e'),
+            Character'Pos ('p'), Character'Pos ('a'), Character'Pos ('r'),
+            Character'Pos ('e'), Character'Pos ('4')];
          File : Ada.Text_IO.File_Type;
       begin
-         if Handle = 0 or else Prepare_Witness (Handle) /= 1 then
+         if Hostkit.Lease_Files.Create (Witness_Path, Witness) /=
+           Hostkit.Lease_Files.Opened
+           or else not Hostkit.Lease_Files.Write_At (Witness, Preparing)
+         then
             Hostkit.Process.End_Now (1);
          end if;
          Files.Private_Directories.Create (Directory);
          if Ada.Command_Line.Argument (1) = "--files-test-crash-after-lease" then
-            declare
-               Lease_Name : aliased Interfaces.C.char_array := Interfaces.C.To_C
-                 (Hostkit.Fs.Join (Directory, ".files-job-owner"));
-            begin
-               if Create_Native (Lease_Name'Address) = 0 then
-                  Hostkit.Process.End_Now (1);
-               end if;
-            end;
+            if Hostkit.Lease_Files.Create
+              (Hostkit.Fs.Join (Directory, ".files-job-owner"), Owner) /=
+                Hostkit.Lease_Files.Opened
+            then
+               Hostkit.Process.End_Now (1);
+            end if;
          elsif Ada.Command_Line.Argument (1) = "--files-test-hold-before-marker" then
             Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (3) & ".started");
             Ada.Text_IO.Close (File);
@@ -108,26 +111,26 @@ begin
      and then Ada.Command_Line.Argument (1) = "--files-test-no-btime-transport"
    then
       declare
-         function Create_Native (Name : System.Address) return Interfaces.C.long_long
-           with Import, Convention => C, External_Name => "files_transport_lease_create";
-         function Set_Nonce_Native
-           (Handle : Interfaces.C.long_long; Value : System.Address) return Interfaces.C.int
-           with Import, Convention => C, External_Name => "files_transport_lease_set_nonce";
-         procedure Release_Native (Handle : Interfaces.C.long_long)
-           with Import, Convention => C, External_Name => "files_transport_lease_release";
          procedure Seed_Nonce (Directory, Marker : String) is
-            Name : aliased Interfaces.C.char_array := Interfaces.C.To_C
-              (Hostkit.Fs.Join (Directory, Marker));
-            Nonce : aliased Interfaces.C.char_array := Interfaces.C.To_C ("abcdefghijklmnop");
-            Handle : constant Interfaces.C.long_long := Create_Native (Name'Address);
+            Name : constant String := Hostkit.Fs.Join (Directory, Marker);
+            Text : constant String := "abcdefghijklmnop";
+            Nonce : Ada.Streams.Stream_Element_Array (1 .. 16);
+            Handle : Hostkit.Lease_Files.Lease;
          begin
-            if Handle = 0 then
+            for Index in Nonce'Range loop
+               Nonce (Index) := Ada.Streams.Stream_Element
+                 (Character'Pos (Text (Natural (Index))));
+            end loop;
+            if Hostkit.Lease_Files.Create (Name, Handle) /=
+              Hostkit.Lease_Files.Opened
+            then
                Hostkit.Process.End_Now (1);
             end if;
             declare
-               Seeded : constant Boolean := Set_Nonce_Native (Handle, Nonce'Address) = 1;
+               Seeded : constant Boolean :=
+                 Hostkit.Lease_Files.Write_At (Handle, Nonce);
             begin
-               Release_Native (Handle);
+               Hostkit.Lease_Files.Release (Handle);
                if not Seeded then
                   Hostkit.Process.End_Now (1);
                end if;
@@ -571,6 +574,30 @@ begin
       end;
    end if;
    if Files.Job_Helpers.Run_If_Requested then
+      if Ada.Command_Line.Argument (1) = "--files-refresh"
+        and then Ada.Environment_Variables.Value
+          ("FILES_TEST_REFRESH_RESULT_INCONSISTENT", "") = "1"
+      then
+         Files.Refresh_Jobs.Testing.Replace_Result_Flags
+           (Ada.Command_Line.Argument (2) & "/result",
+            Success => False,
+            Reloaded => True);
+      end if;
+      if Ada.Command_Line.Argument (1) = "--files-operation"
+        and then Ada.Environment_Variables.Value
+          ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "") = "1"
+      then
+         Files.Operation_Jobs.Testing.Replace_Result_Kind
+           (Ada.Command_Line.Argument (2) & "/result",
+            Files.Operation_Jobs.Search_Names);
+      end if;
+      if Ada.Command_Line.Argument (1) = "--files-operation"
+        and then Ada.Environment_Variables.Value
+          ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "") = "1"
+      then
+         Files.Operation_Jobs.Testing.Replace_Result_Recent
+           (Ada.Command_Line.Argument (2) & "/result", True);
+      end if;
       if Ada.Command_Line.Argument (1) = "--files-transfer"
         and then Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS", "") /= ""
       then
@@ -583,16 +610,14 @@ begin
          begin
             Ada.Directories.Delete_File (Directory & "/result");
             if Fault = "checkpoint" then
-               Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Directory & "/result");
-               Files.Transfer_Jobs.Job_Result'Output (Ada.Streams.Stream_IO.Stream (File), Checkpoint);
-               Ada.Streams.Stream_IO.Close (File);
+               Files.Transfer_Jobs.Testing.Write_Result
+                 (Directory & "/result", Checkpoint);
             elsif Fault in "journal" | "replacement" | "source-replacement" then
                Ada.Directories.Delete_File (Directory & "/completed");
             end if;
             if Fault in "replacement" | "source-replacement" then
-               Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Directory & "/request");
-               Action := Files.Paste.Resolved_Action'Input (Ada.Streams.Stream_IO.Stream (File));
-               Ada.Streams.Stream_IO.Close (File);
+               Action := Files.Transfer_Jobs.Testing.Read_Request_Action
+                 (Directory & "/request");
                declare
                   Dest : constant String := Ada.Strings.Unbounded.To_String
                     (if Fault = "replacement" then Action.Dest_Path else Action.Source_Path);

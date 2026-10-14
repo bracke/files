@@ -1448,6 +1448,9 @@ package body Files_Suite.Commands is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Left at start is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Backspace at start is ignored");
+      Assert
+        (Files.UTF8.Word_Separator_Length ("x", Natural'Last) = 0,
+         "word-separator lookup rejects an extreme out-of-range offset without raising");
       Files.Controller.Replace_Focused_Text (Model, "beta");
 
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");

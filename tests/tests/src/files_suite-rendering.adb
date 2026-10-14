@@ -10,6 +10,7 @@ with System;
 
 with Files.Commands;
 with Files.Events;
+with Files.Extension_Labels;
 with Files.File_System;
 with Files.Fonts;
 with Files.Localization;
@@ -61,6 +62,7 @@ package body Files_Suite.Rendering is
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Extension_Label_Extreme_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Large_Icons_Rename_Caret (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -128,6 +130,9 @@ package body Files_Suite.Rendering is
         (T, Test_Frame_Rendering_Invariants'Access, "frame rendering invariants");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Extreme_Size_Saturation'Access, "layout saturates at extreme sizes without overflow");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Extension_Label_Extreme_Height'Access,
+         "extension labels reject an impossible raster height without raising");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Large_Icons_Rename_Caret'Access,
          "large-icons rename edits left-aligned across the cell with the caret in the label region");
@@ -713,7 +718,78 @@ package body Files_Suite.Rendering is
          Assert (Info.Scroll_Pixels <= Info.Content_Height, "the info-pane scroll offset stays bounded");
          Assert (Frame.Layout.Toolbar_Height = Natural'Last, "the rendered frame layout also saturates");
       end;
+
+      declare
+         Overlay : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
+      begin
+         Overlay.Quick_Look_Open := True;
+         Overlay.Context_Menu_Open := True;
+         Overlay.Context_Menu_Target := Files.Model.Context_Menu_Item;
+         Overlay.Context_Menu_X := Natural'Last;
+         Overlay.Context_Menu_Y := Natural'Last;
+         declare
+            Overlay_Layout : constant Guikit.Draw.Layout_Metrics :=
+              Calculate_Layout
+                (Overlay, Natural'Last, Natural'Last, Positive'Last);
+            Quick_Look : constant Quick_Look_Layout :=
+              Calculate_Quick_Look_Layout (Overlay_Layout, Positive'Last);
+            Menu : constant Context_Menu_Layout :=
+              Calculate_Context_Menu_Layout
+                (Overlay, Natural'Last, Natural'Last, Positive'Last);
+         begin
+            Assert
+              (Quick_Look.Width <= Overlay_Layout.Width
+               and then Quick_Look.Height <= Overlay_Layout.Height,
+               "quick-look extreme dimensions remain inside the layout");
+            Assert
+              (Menu.X <= Natural'Last - Menu.Width
+               and then Menu.Y <= Natural'Last - Menu.Height,
+               "context-menu extreme coordinates remain representable");
+         end;
+      end;
+
+      declare
+         Boundary_Frame : Frame_Commands;
+         Boundary_Menu  : Context_Menu_Layout;
+      begin
+         Boundary_Frame.Conflict_Hits.Append
+           (Conflict_Hit_Region'
+              (Kind   => Conflict_Hit_Replace,
+             X      => Natural'Last,
+             Y      => Natural'Last,
+             Width  => 1,
+             Height => 1));
+         Assert
+           (Conflict_Hit_At
+              (Boundary_Frame, Natural'Last, Natural'Last).Kind =
+                Conflict_Hit_Replace,
+            "hit testing accepts a one-pixel region at the coordinate limit");
+
+         Boundary_Menu.Visible := True;
+         Boundary_Menu.X := Natural'Last;
+         Boundary_Menu.Y := Natural'Last;
+         Boundary_Menu.Width := 1;
+         Boundary_Menu.Height := 1;
+         Boundary_Menu.Row_Height := 1;
+         Boundary_Menu.Row_Count := 1;
+         Assert
+           (Context_Menu_Row_At
+              (Boundary_Menu, Natural'Last, Natural'Last) = 1,
+            "context-menu hit testing accepts the coordinate limit");
+      end;
    end Test_Extreme_Size_Saturation;
+
+   procedure Test_Extension_Label_Extreme_Height
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Label : constant Files.Extension_Labels.Label :=
+        Files.Extension_Labels.Label_For ("txt", Natural'Last, Theme_Dark);
+   begin
+      Assert
+        (Label.Width = 0 and then Label.Height = 0 and then Label.Pixels.Is_Empty,
+         "an impossible extension-label size fails closed");
+   end Test_Extension_Label_Extreme_Height;
 
    --  Return the caret rectangle (a 1-2px wide Text_Color bar) emitted in Frame,
    --  or a zero rectangle if none. Found is set when a caret is present.
@@ -3170,6 +3246,16 @@ package body Files_Suite.Rendering is
 
       --  Directions are opposite and symmetric about the region.
       Assert (Step (50) < 0 and then Step (600) > 0, "above scrolls up, below scrolls down");
+
+      --  Coordinate-limit input is still capped instead of overflowing.
+      Assert
+        (Marquee_Auto_Scroll_Step
+           (Integer'First, Integer'Last, Integer'Last, Positive'Last) = -4,
+         "extreme top-edge arithmetic remains capped");
+      Assert
+        (Marquee_Auto_Scroll_Step
+           (Integer'Last, Integer'First, Integer'First, Positive'Last) = 4,
+         "extreme bottom-edge arithmetic remains capped");
    end Test_Marquee_Auto_Scroll_Step;
 
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class) is

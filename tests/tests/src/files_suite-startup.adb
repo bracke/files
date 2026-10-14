@@ -590,6 +590,12 @@ package body Files_Suite.Startup is
         (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Xdg,
          "XDG_CONFIG_HOME selects the XDG settings path");
 
+      Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "relative-config-home");
+      Assert
+        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Default,
+         "a relative XDG_CONFIG_HOME cannot redirect settings into the process directory");
+      Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
+
       Ada.Environment_Variables.Set ("FILES_SETTINGS", Override_Path);
       Assert
         (Files.Application.Configured_Settings_Path (Home_Path) = Override_Path,
@@ -1751,6 +1757,29 @@ package body Files_Suite.Startup is
             Assert
               (Files.Localization.System_Number_Locale = "da-DK",
                "portable process LANG falls back to KDE numeric formats locale");
+
+            Ada.Environment_Variables.Set
+              ("HOME", Join (Root, "missing-locale-home"));
+            declare
+               Expected_Time : constant String :=
+                 Files.Localization.System_Time_Locale;
+               Expected_Number : constant String :=
+                 Files.Localization.System_Number_Locale;
+               File : Ada.Streams.Stream_IO.File_Type;
+            begin
+               Ada.Environment_Variables.Set ("HOME", Fake_Home);
+               Ada.Streams.Stream_IO.Create
+                 (File, Ada.Streams.Stream_IO.Out_File, Config_Path);
+               Ada.Streams.Stream_IO.Set_Index
+                 (File, Ada.Streams.Stream_IO.Count (256 * 1024 + 1));
+               Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
+               Ada.Streams.Stream_IO.Close (File);
+               Assert
+                 (Files.Localization.System_Time_Locale = Expected_Time
+                  and then Files.Localization.System_Number_Locale =
+                    Expected_Number,
+                  "oversized locale configuration is ignored before parsing");
+            end;
          end;
 
          Restore_Environment;
