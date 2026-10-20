@@ -5669,6 +5669,13 @@ package body Files_Suite.Interaction is
         (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
       Assert (Files.Model.Selected_Count (Model) = 2,
               "with the grid focused the same shortcut still works");
+
+      --  A settings-writing shortcut (Ctrl+B) is applied, not reported and dropped.
+      Files_Suite.Support.Select_Name (Model, "keep.txt");
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Base_Font, Result);
+      Assert (Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
+              "Ctrl+B favourites the selection through the keyboard path");
    end Test_Text_Focus_Blocks_File_Shortcuts;
 
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is

@@ -497,14 +497,15 @@ package body Files.Interaction is
               Modifiers => Modifiers,
               Tree_Page_Rows => Tree_Page_Rows);
       begin
-         if Outcome.Command = Files.Commands.Save_Settings_Command
-           or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
-           or else Outcome.Command = Files.Commands.Toggle_Show_Extensions_Command
+         if Files.Commands.Requires_Settings_Path (Outcome.Command)
+           and then Outcome.Status = Files.Controller.Controller_Command_Executed
          then
-            --  Re-route settings-path commands through Execute_Command for the
-            --  in-out settings handling, exactly as the shell did inline. The
-            --  shell then dropped any parallel character event; surface that as
-            --  a follow-up flag so Apply_Interaction_Result performs the clear.
+            --  Re-route every settings-path command (a shortcut such as Ctrl+B,
+            --  or Enter in the palette) through Execute_Command for the in-out
+            --  settings handling: the read-only controller cannot apply them,
+            --  so they used to report success and do nothing. The shell then
+            --  dropped any parallel character event; surface that as a
+            --  follow-up flag so Apply_Interaction_Result performs the clear.
             Execute_Command
               (Model             => Model,
                Settings          => Settings,
