@@ -1588,8 +1588,19 @@ package body Directory is
       --  on load, making navigation slow. It stays empty at load time.
       begin
          if Kind /= Files.Types.Directory_Item then
-            Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
-            Item.Size_Available := True;
+            --  Ada.Directories.Size only answers for regular files (a link to
+            --  one included); a FIFO, socket, device, dangling link or link to a
+            --  directory raises. That is "no size", not a metadata failure, so
+            --  it must not abort the times, mode and ownership read below.
+            begin
+               Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
+               Item.Size_Available := True;
+            exception
+               when others =>
+                  if Kind in Files.Types.Regular_File_Item | Files.Types.Executable_Item then
+                     raise;
+                  end if;
+            end;
             if Thumbnail.Loaded then
                Item.Thumbnail_Available := True;
                Item.Thumbnail_Path := To_Unbounded_String (Thumbnail_Path);
@@ -1600,8 +1611,16 @@ package body Directory is
          end if;
          Item.Creation_Time :=
            Hostkit.Metadata.File_Creation_Time (Full, Item.Creation_Available);
-         Item.Modified_Time := Ada.Directories.Modification_Time (Full);
-         Item.Modified_Available := True;
+         begin
+            Item.Modified_Time := Ada.Directories.Modification_Time (Full);
+            Item.Modified_Available := True;
+         exception
+            when others =>
+               --  A dangling link has no target to date; other kinds must.
+               if Kind /= Files.Types.Symlink_Item then
+                  raise;
+               end if;
+         end;
          --  Mode first: the permission column is built out of what this returns.
          Hostkit.Metadata.File_Mode_And_Ownership
            (Full,

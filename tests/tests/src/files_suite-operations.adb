@@ -275,6 +275,7 @@ package body Files_Suite.Operations is
    procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Hardlink_Dangling_Symlink (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Special_Entry_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Unreadable_Hardlink_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -556,6 +557,9 @@ package body Files_Suite.Operations is
         (T, Test_Create_Symlink_Operation'Access, "create-symlink links the selected item and undo removes it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_Hardlink_Operation'Access, "create-hard-link links the selected file and undo removes it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Special_Entry_Metadata'Access,
+         "links to folders and dangling links list without a metadata error");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Hardlink_Dangling_Symlink'Access,
          "hard-link creation and Redo preserve dangling symbolic link entries");
@@ -12202,6 +12206,32 @@ package body Files_Suite.Operations is
          and then not Ada.Directories.Exists (Join (Dir, "a (link).txt")),
          "Undo removes the committed prefix of a partial link batch");
    end Test_Create_Hardlink_Operation;
+
+   procedure Test_Special_Entry_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir      : constant String := Join (Root, "special-entries");
+      Load     : Files.File_System.Directory_Load_Result;
+   begin
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         return;
+      end if;
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Dir, "folder"));
+      Assert (Hostkit.Fs.Create_Link ("folder", Join (Dir, "to-folder")), "prepare a link to a folder");
+      Assert (Hostkit.Fs.Create_Link ("missing", Join (Dir, "dangling")), "prepare a dangling link");
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      for Item of Load.Items loop
+         if To_String (Item.Name) in "to-folder" | "dangling" then
+            Assert (not Item.Metadata_Error,
+                    "a link without a regular-file target reports no metadata error: " & To_String (Item.Name));
+            if To_String (Item.Name) = "to-folder" then
+               Assert (Item.Modified_Available and then Item.Mode_Available,
+                       "a link to a folder still reports its times and mode");
+            end if;
+         end if;
+      end loop;
+   end Test_Special_Entry_Metadata;
 
    procedure Test_Hardlink_Dangling_Symlink
      (T : in out AUnit.Test_Cases.Test_Case'Class)
