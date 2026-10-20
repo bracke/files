@@ -2835,6 +2835,7 @@ procedure Check_All is
           To_Unbounded_String ("Files.Model"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
+          To_Unbounded_String ("Files.Shared_Bytes"),
           To_Unbounded_String ("Files.Types")]);
       Require_Only_Allowed_With_Clauses
         (Rendering_Body,
