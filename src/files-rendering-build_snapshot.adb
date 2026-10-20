@@ -4,6 +4,8 @@ separate (Files.Rendering)
       Settings : Files.Settings.Settings_Model)
       return View_Snapshot
    is
+      --  Selected items whose details the info pane lists.
+      Max_Info_Items : constant := 100;
       Snapshot : View_Snapshot;
 
       function Natural_Text (Value : Natural) return String is
@@ -630,7 +632,13 @@ separate (Files.Rendering)
             if Items.Is_Empty then
                Snapshot.Selected_Info.Append (Build_Info (Single_Item));
             else
+               --  The coalesced pane lists one row per item per field, and is
+               --  laid out and drawn on every rebuild (hover included). Past a
+               --  hundred items the list is unreadable anyway, while Select All
+               --  in a large folder formatted every item's dates and sizes per
+               --  mouse move; the selection count shows the full extent.
                for Item of Items loop
+                  exit when Natural (Snapshot.Selected_Info.Length) >= Max_Info_Items;
                   Snapshot.Selected_Info.Append (Build_Info (Item));
                end loop;
             end if;
