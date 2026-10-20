@@ -674,12 +674,15 @@ separate (Files.Controller)
 
       case Action.Kind is
          when Files.Events.Command_Input_Action =>
-            if Action.Command = Files.Commands.Toggle_Quick_Look_Command
-              and then Files.Model.Focus (Model) /= Files.Types.Focus_None
+            if Files.Model.Focus (Model) /= Files.Types.Focus_None
+              and then not Files.Commands.Allowed_With_Text_Focus (Action.Command)
+              --  F2 inside the rename field toggles that rename off.
+              and then not (Action.Command = Files.Commands.Rename_Selected_Items_Command
+                            and then Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input)
             then
-               --  Space is the Quick Look shortcut only when the grid owns the
-               --  keyboard. With a text field focused it is a typed space, so
-               --  ignore the shortcut and let the character event handle it.
+               --  A focused text field owns the keyboard. Space is a typed
+               --  space, not Quick Look; Ctrl+V/X/C/A/Z are text editing, and
+               --  Shift+Delete must never delete the selection behind the field.
                return Make_Result (Controller_Ignored);
             end if;
             return Execute_Command (Action.Command, Model, Settings, Modifiers);

@@ -69,6 +69,37 @@ package body Files.Commands is
       end case;
    end Allowed_With_Settings_Pane;
 
+   function Allowed_With_Text_Focus (Id : Command_Id) return Boolean is
+   begin
+      case Id is
+         when Select_Small_Icons_Command
+            | Select_Large_Icons_Command
+            | Select_Details_Command
+            | Toggle_Info_Pane_Command
+            | Toggle_Hidden_Files_Command
+            | Toggle_Show_Extensions_Command
+            | Toggle_Free_Space_Display_Command
+            | Toggle_Settings_Pane_Command
+            | Toggle_Folder_Tree_Command
+            | Focus_Path_Input_Command
+            | Focus_Filter_Input_Command
+            | Open_Command_Palette_Command
+            | Close_Command_Palette_Command
+            | Clear_Filter_Command
+            | Search_Recursive_Command
+            | Search_Contents_Command
+            | Refresh_Directory_Command
+            | Save_Settings_Command
+            | Navigate_Home_Command
+            | Navigate_Back_Command
+            | Navigate_Forward_Command
+            | Navigate_Parent_Command =>
+            return True;
+         when others =>
+            return False;
+      end case;
+   end Allowed_With_Text_Focus;
+
    function Identifier
      (Id : Command_Id)
       return String is

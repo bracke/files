@@ -161,6 +161,7 @@ package body Files_Suite.Interaction is
    procedure Test_Quick_Look_Space_Seam (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Focus_Blocks_File_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Scope_Chip_Cycles (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
@@ -343,6 +344,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Record_Open_Persists_Recent'Access,
          "opening an item through the reducer records it at the front of recents and persists");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Focus_Blocks_File_Shortcuts'Access,
+         "file shortcuts never fire behind a focused text field");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recent_Commands_Registry'Access,
          "recent commands register, gate on the recent view, and appear in the empty-area menu");
@@ -5625,6 +5629,47 @@ package body Files_Suite.Interaction is
       Assert (Result.Settings_Changed, "recording an open reports a settings change");
       Assert (Ada.Directories.Exists (Path), "recording an open persists the settings file");
    end Test_Record_Open_Persists_Recent;
+
+   procedure Test_Text_Focus_Blocks_File_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String :=
+        Files_Suite.Support.Join (Files_Suite.Support.Root, "text-focus-shortcuts");
+      Victim   : constant String := Files_Suite.Support.Join (Dir, "keep.txt");
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load     : Files.File_System.Directory_Load_Result;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Interaction.Interaction_Result;
+   begin
+      Files_Suite.Support.Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Files_Suite.Support.Write_File (Victim);
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Dir, "other.txt"));
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Files_Suite.Support.Root);
+
+      for Field in 1 .. 2 loop
+         Files_Suite.Support.Select_Name (Model, "keep.txt");
+         if Field = 1 then
+            Files.Model.Focus_Filter_Input (Model);
+         else
+            Files.Model.Focus_Path_Input (Model);
+         end if;
+         Files.Interaction.Handle_Key
+           (Model, Settings, "", Guikit.Input.Key_Delete, Shift, Base_Font, Result);
+         Assert (Ada.Directories.Exists (Victim),
+                 "Shift+Delete in a focused text field does not delete the selection");
+         Files.Interaction.Handle_Key
+           (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
+         Assert (Files.Model.Selected_Count (Model) = 1,
+                 "Ctrl+A in a focused text field does not select every file");
+         Files.Model.Cancel_Focus_Or_Edit (Model);
+      end loop;
+
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
+      Assert (Files.Model.Selected_Count (Model) = 2,
+              "with the grid focused the same shortcut still works");
+   end Test_Text_Focus_Blocks_File_Shortcuts;
 
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -323,6 +323,18 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
+   --  Return whether a keyboard shortcut may run its command while a text
+   --  field (path, filter, rename, palette, settings) owns the keyboard. Only
+   --  commands that act on the window or move focus qualify; anything acting
+   --  on the selection, the clipboard or the files themselves would otherwise
+   --  fire behind the field (Shift+Delete while renaming deleted the selection).
+   --
+   --  @param Id Command identifier.
+   --  @return True when the shortcut may run with a focused text field.
+   function Allowed_With_Text_Focus
+     (Id : Command_Id)
+      return Boolean;
+
    --  Find a command registered for the given shortcut.
    --
    --  @param Key Key code.
