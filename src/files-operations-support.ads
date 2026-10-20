@@ -68,17 +68,20 @@ private package Files.Operations.Support is
    --  @return True when it resolves to a runnable executable.
    function Executable_Is_Available (Executable : String) return Boolean;
 
-   --  Reload the model's current directory (optionally re-selecting Select_Name),
-   --  refreshing the item list and directory signature.
+   --  Reload the model's current directory, optionally selecting Select_Name or
+   --  restoring the complete current selection, and refresh its signature.
    --
    --  @param Model Window model whose current directory is reloaded.
    --  @param Settings Settings model used to classify the reload.
    --  @param Select_Name Item name to re-select after reload, or "" for none.
+   --  @param Preserve_Selection Restore all current selected paths when no
+   --    Select_Name is supplied.
    --  @return Success result, or a failed result when the reload fails.
    function Reload_Current_Directory
      (Model       : in out Files.Model.Window_Model;
       Settings    : Files.Settings.Settings_Model;
-      Select_Name : String := "")
+      Select_Name : String := "";
+      Preserve_Selection : Boolean := False)
       return Operation_Result;
 
    --  Finalize an operation error before scheduling its reload.

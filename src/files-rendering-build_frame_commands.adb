@@ -192,6 +192,20 @@ separate (Files.Rendering)
             return;
          end if;
 
+         --  Triangle commands have no clip rectangle in the draw protocol.
+         --  Suppress a partially off-frame primitive instead of handing the
+         --  backend coordinates outside its framebuffer; callers scale their
+         --  geometry down first when a partial compact rendering is useful.
+         if X1 < 0.0 or else X1 > Float (Layout.Width)
+           or else X2 < 0.0 or else X2 > Float (Layout.Width)
+           or else X3 < 0.0 or else X3 > Float (Layout.Width)
+           or else Y1 < 0.0 or else Y1 > Float (Layout.Height)
+           or else Y2 < 0.0 or else Y2 > Float (Layout.Height)
+           or else Y3 < 0.0 or else Y3 > Float (Layout.Height)
+         then
+            return;
+         end if;
+
          Result.Triangles.Append
            (Triangle_Command'
               (X1    => X1,
@@ -422,6 +436,27 @@ separate (Files.Rendering)
          Focused     : Boolean := False)
  is separate;
 
+      procedure Add_Conflict_Hit
+        (Kind   : Conflict_Hit_Kind;
+         X      : Natural;
+         Y      : Natural;
+         Hit_W  : Natural;
+         Hit_H  : Natural)
+      is
+         Draw_W : constant Natural := Clipped_Size (X, Hit_W, Layout.Width);
+         Draw_H : constant Natural := Clipped_Size (Y, Hit_H, Layout.Height);
+      begin
+         if Draw_W > 0 and then Draw_H > 0 then
+            Result.Conflict_Hits.Append
+              (Conflict_Hit_Region'
+                 (Kind   => Kind,
+                  X      => X,
+                  Y      => Y,
+                  Width  => Draw_W,
+                  Height => Draw_H));
+         end if;
+      end Add_Conflict_Hit;
+
       function Localized (Key : String) return UString is
       begin
          return To_Unbounded_String (Files.Localization.Text (Key));
@@ -558,7 +593,7 @@ separate (Files.Rendering)
             Y           => Y,
             Width       => Shadow_W,
             Height      => Shadow_H,
-            Color       => Pane_Color);
+            Color       => Shadow_Color);
       end Add_Drop_Shadow;
 
       --  Add_Drop_Shadow into the overlay layer, so an overlay panel's shadow
@@ -577,7 +612,7 @@ separate (Files.Rendering)
             Y           => Y,
             Width       => Shadow_W,
             Height      => Shadow_H,
-            Color       => Pane_Color);
+            Color       => Shadow_Color);
       end Add_Overlay_Drop_Shadow;
 
       procedure Add_Scrollbar
@@ -677,7 +712,8 @@ separate (Files.Rendering)
          X    : Natural;
          Y    : Natural;
          Size : Natural;
-         Use_Thumbnail : Boolean := False)
+         Use_Thumbnail : Boolean := False;
+         Overlay       : Boolean := False)
  is separate;
 
       procedure Add_Details_Icon
@@ -907,7 +943,12 @@ separate (Files.Rendering)
 
       function Permission_Text (Permissions : String) return String is separate;
 
-      procedure Draw_Overlay_Commands is separate;
+      type Overlay_Draw_Phase is
+        (Persistent_Overlay_Phase, Modal_Overlay_Phase);
+
+      procedure Draw_Overlay_Commands
+        (Phase : Overlay_Draw_Phase)
+      is separate;
 
       --  Details-view accessibility row labels are identical for every row;
       --  look them up once here rather than three times per visible row.
@@ -1175,7 +1216,8 @@ separate (Files.Rendering)
                      Seg.Width,
                      Toolbar_Input_Text_H,
                      Label,
-                     Color => (if Seg.Clickable then Text_Color else Muted_Text_Color));
+                     Color => (if Seg.Clickable then Text_Color else Muted_Text_Color),
+                     Fit   => True);
                   if Hovered then
                      Add_Border (Seg.X, Seg.Y, Seg.Width, Seg.Height, Hover_Color);
                   end if;
@@ -1428,10 +1470,20 @@ separate (Files.Rendering)
             Result.Text.Append (C);
          end loop;
          for C of Seg_Tips loop
-            Result.Tooltips.Append (C);
+            Add_Tooltip_Text (C.X, C.Y, C.Width, C.Height, C.Text);
          end loop;
          for N of Seg_Nodes loop
-            Result.Accessibility.Append (N);
+            Add_Accessibility_Node
+              (N.Role,
+               N.X,
+               N.Y,
+               N.Width,
+               N.Height,
+               N.Name,
+               N.Description,
+               N.Enabled,
+               N.Selected,
+               N.Focused);
          end loop;
       end;
       declare
@@ -1539,7 +1591,8 @@ separate (Files.Rendering)
             else Layout.Bottom_Bar_Height);
       begin
          Files.UI.Split_Status_Region
-           (Bottom.Info_X, Bottom.Info_Width, Free_W, Toggle_W, Divider_X, Free_X, Free_Field_W);
+           (Bottom.Info_X, Bottom.Info_Width, Free_W,
+            Toggle_W, Divider_X, Free_X, Free_Field_W, Line_Height);
          declare
             Show_Free : constant Boolean := Free_Field_W > 0;
             Counts_W  : constant Natural := (if Toggle_W > 2 * Pad then Toggle_W - 2 * Pad else 0);
@@ -1659,7 +1712,7 @@ separate (Files.Rendering)
                           Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes;
                         --  Warn in red when 10% or less of the disk is free.
                         Fill_Color : constant Render_Color :=
-                          (if Snapshot.Free_Space_Bytes * 10 <= Snapshot.Total_Space_Bytes
+                          (if Snapshot.Free_Space_Bytes <= Snapshot.Total_Space_Bytes / 10
                            then Error_Text_Color
                            else Selection_Color);
                      begin
@@ -2093,7 +2146,7 @@ separate (Files.Rendering)
                      then To_Unbounded_String (Full_Time_Text (Item.Creation_Time))
                      else Null_Unbounded_String),
                   Dim              => Item.Cut_Pending,
-                  Value_Color      => Muted_Text_Color,
+                  Value_Color      => Text_Color,
                   Dim_Color        => Disabled_Text_Color,
                   Border_Color     => Border_Color);
             end if;
@@ -2120,7 +2173,11 @@ separate (Files.Rendering)
                   Row_Description,
                   Enabled  => True,
                   Selected => Item.Selected,
-                  Focused  => Item.Selected);
+                  Focused  =>
+                    Item.Selected
+                    and then Snapshot.Focus = Files.Types.Focus_None
+                    and then Item.Visible_Index =
+                      Snapshot.Primary_Selected_Visible_Index);
             end;
          end;
 
@@ -2215,18 +2272,18 @@ separate (Files.Rendering)
             begin
                if Item.Visible_Index = Drag_Item_Index then
                   declare
-                     Icon_Size : constant Natural := Natural'Min (Natural'Max (Line_Height, 28), 48);
-                     Pad       : constant Natural := 8;
-                     Gap       : constant Natural := 8;
-                     Panel_H   : constant Natural :=
-                       Saturating_Add (Icon_Size, Saturating_Multiply (Pad, 2));
+                     Desired_Icon : constant Natural :=
+                       Natural'Min (Natural'Max (Line_Height, 28), 48);
+                     Desired_H : constant Natural :=
+                       Saturating_Add (Desired_Icon, 16);
+                     Panel_H   : constant Natural := Natural'Min (Desired_H, Height);
                      Panel_W   : constant Natural :=
                        Natural'Min
                          (Natural'Max
                             (Saturating_Add
-                               (Saturating_Add (Icon_Size, Gap),
+                               (Saturating_Add (Desired_Icon, 8),
                                 Saturating_Multiply (Line_Height, 8)),
-                             Saturating_Add (Icon_Size, Saturating_Multiply (Pad, 2))),
+                             Saturating_Add (Desired_Icon, 16)),
                           Natural'Max (1, Width));
                      Offset    : constant Natural := 14;
                      Panel_X   : constant Natural :=
@@ -2245,22 +2302,46 @@ separate (Files.Rendering)
                         elsif Height > Panel_H
                         then Height - Panel_H
                         else 0);
-                     Icon_X    : constant Natural := Saturating_Add (Panel_X, Pad);
-                     Icon_Y    : constant Natural := Saturating_Add (Panel_Y, Pad);
-                     Text_X    : constant Natural := Saturating_Add (Icon_X, Saturating_Add (Icon_Size, Gap));
-                     Text_W    : constant Natural :=
-                       (if Panel_W > Saturating_Add (Icon_Size, Saturating_Add (Gap, Saturating_Multiply (Pad, 2)))
-                        then Panel_W - Icon_Size - Gap - Saturating_Multiply (Pad, 2)
+                     Pad       : constant Natural :=
+                       Natural'Min (8, Natural'Min (Panel_W / 4, Panel_H / 4));
+                     Inner_W   : constant Natural :=
+                       (if Panel_W > Saturating_Multiply (Pad, 2)
+                        then Panel_W - Saturating_Multiply (Pad, 2)
                         else 0);
-                     Text_Y    : constant Natural :=
+                     Inner_H   : constant Natural :=
+                       (if Panel_H > Saturating_Multiply (Pad, 2)
+                        then Panel_H - Saturating_Multiply (Pad, 2)
+                        else 0);
+                     Fitted_Icon : constant Natural := Natural'Min (Desired_Icon, Inner_H);
+                     Icon_Size : constant Natural :=
+                       (if Inner_W > Saturating_Add (Fitted_Icon, Saturating_Multiply (Line_Height, 2))
+                        then Fitted_Icon
+                        else 0);
+                     Gap       : constant Natural :=
+                       (if Icon_Size > 0 then Natural'Min (8, Inner_W - Icon_Size) else 0);
+                     Icon_X    : constant Natural := Saturating_Add (Panel_X, Pad);
+                     Icon_Y    : constant Natural :=
                        Saturating_Add
                          (Panel_Y,
-                          (if Panel_H > Line_Height then (Panel_H - Line_Height) / 2 else 0));
+                          Saturating_Add
+                            (Pad, (if Inner_H > Icon_Size then (Inner_H - Icon_Size) / 2 else 0)));
+                     Text_X    : constant Natural :=
+                       Saturating_Add (Icon_X, Saturating_Add (Icon_Size, Gap));
+                     Text_W    : constant Natural :=
+                       (if Inner_W > Saturating_Add (Icon_Size, Gap)
+                        then Inner_W - Icon_Size - Gap
+                        else 0);
+                     Text_H    : constant Natural := Natural'Min (Line_Height, Inner_H);
+                     Text_Y    : constant Natural :=
+                       Saturating_Add
+                         (Panel_Y, Saturating_Add
+                            (Pad, (if Inner_H > Text_H then (Inner_H - Text_H) / 2 else 0)));
                   begin
-                     Add_Rect (Panel_X, Panel_Y, Panel_W, Panel_H, Hover_Color);
-                     Add_Border (Panel_X, Panel_Y, Panel_W, Panel_H, Selection_Color);
-                     Add_Icon (Item, Icon_X, Icon_Y, Icon_Size);
-                     Add_Text (Text_X, Text_Y, Text_W, Line_Height, Item.Name, Fit => True);
+                     Add_Overlay_Rect (Panel_X, Panel_Y, Panel_W, Panel_H, Hover_Color);
+                     Add_Overlay_Border (Panel_X, Panel_Y, Panel_W, Panel_H, Selection_Color);
+                     Add_Icon (Item, Icon_X, Icon_Y, Icon_Size, Overlay => True);
+                     Add_Overlay_Text
+                       (Text_X, Text_Y, Text_W, Text_H, Item.Name, Fit => True);
                   end;
 
                   exit;
@@ -2271,7 +2352,6 @@ separate (Files.Rendering)
 
       if Empty_State_Key /= "" and then Layout.Main_Width > 0 and then Layout.Main_Height > 0 then
          declare
-            Text_H : constant Natural := Line_Height;
             Panel_W : constant Natural :=
               Natural'Min (Natural'Max (240, Layout.Main_Width / 2), Layout.Main_Width);
             Panel_H : constant Natural := Natural'Min (Saturating_Multiply (Line_Height, 3), Layout.Main_Height);
@@ -2283,31 +2363,49 @@ separate (Files.Rendering)
               Saturating_Add
                 (Layout.Main_Y,
                  (if Layout.Main_Height > Panel_H then (Layout.Main_Height - Panel_H) / 2 else 0));
+            Text_H : constant Natural := Natural'Min (Line_Height, Panel_H);
             Text_Y : constant Natural :=
               Saturating_Add (Panel_Y, (if Panel_H > Text_H then (Panel_H - Text_H) / 2 else 0));
-            Icon_Size : constant Natural := Natural'Min (Line_Height, Panel_H);
-            Icon_X : constant Natural := Saturating_Add (Panel_X, 8);
-            Text_X : constant Natural := Saturating_Add (Panel_X, Saturating_Add (Icon_Size, 16));
+            Side_Pad : constant Natural := Natural'Min (8, Panel_W / 4);
+            Inner_X  : constant Natural := Saturating_Add (Panel_X, Side_Pad);
+            Inner_W  : constant Natural :=
+              (if Panel_W > Saturating_Multiply (Side_Pad, 2)
+               then Panel_W - Saturating_Multiply (Side_Pad, 2)
+               else 0);
+            Desired_Icon : constant Natural := Natural'Min (Line_Height, Panel_H);
+            --  Text is the useful empty-state explanation. Drop the decorative
+            --  icon when a compact panel cannot leave two text cells beside it.
+            Icon_Size : constant Natural :=
+              (if Inner_W > Saturating_Add (Desired_Icon, Saturating_Multiply (Line_Height, 2))
+               then Desired_Icon
+               else 0);
+            Icon_Gap : constant Natural :=
+              (if Icon_Size > 0 then Natural'Min (8, Inner_W - Icon_Size) else 0);
+            Icon_X : constant Natural := Inner_X;
+            Text_X : constant Natural :=
+              Saturating_Add (Inner_X, Saturating_Add (Icon_Size, Icon_Gap));
             Text_W : constant Natural :=
-              (if Panel_W > Saturating_Add (Icon_Size, 24)
-               then Panel_W - Saturating_Add (Icon_Size, 24)
-               else Panel_W);
+              (if Inner_W > Saturating_Add (Icon_Size, Icon_Gap)
+               then Inner_W - Icon_Size - Icon_Gap
+               else 0);
          begin
             Add_Rect (Panel_X, Panel_Y, Panel_W, Panel_H, Pane_Color);
             Add_Border (Panel_X, Panel_Y, Panel_W, Panel_H, Border_Color);
-            Add_Rect
-              (Icon_X,
-               Text_Y,
-               Icon_Size,
-               Natural'Min (Icon_Size, Text_H),
-               Muted_Text_Color);
-            if Icon_Size > 6 then
+            if Icon_Size > 0 then
                Add_Rect
-                 (Saturating_Add (Icon_X, Icon_Size / 4),
-                  Saturating_Add (Text_Y, Icon_Size / 2),
-                  Icon_Size / 2,
-                  1,
-                  Pane_Color);
+                 (Icon_X,
+                  Text_Y,
+                  Icon_Size,
+                  Natural'Min (Icon_Size, Text_H),
+                  Muted_Text_Color);
+               if Icon_Size > 6 then
+                  Add_Rect
+                    (Saturating_Add (Icon_X, Icon_Size / 4),
+                     Saturating_Add (Text_Y, Icon_Size / 2),
+                     Icon_Size / 2,
+                     1,
+                     Pane_Color);
+               end if;
             end if;
             Add_Text
               (Text_X,
@@ -2343,13 +2441,36 @@ separate (Files.Rendering)
             Info_Pane.Y,
             Info_Pane.Width,
             Info_Pane.Height,
-            Localized ("accessibility.info_pane"));
+            Localized ("accessibility.info_pane"),
+            (if Snapshot.Selected_Info.Is_Empty
+             then Localized ("error.selection.empty")
+             else Null_Unbounded_String));
          declare
             --  The combined selection total is rendered as the last line of the
             --  Contents section (see Coalesced_Info_Sections), so no header rows
             --  are reserved above the list.
             Section_Offset_Rows : Natural := 0;
          begin
+
+            if Snapshot.Selected_Info.Is_Empty then
+               declare
+                  Text_Y : constant Natural :=
+                    Saturating_Add (Info_Pane.Y, Info_Pane_Padding);
+                  Info_Bottom : constant Natural :=
+                    Saturating_Add (Info_Pane.Y, Info_Pane.Height);
+               begin
+                  if Text_Y < Info_Bottom then
+                     Add_Text
+                       (Saturating_Add (Info_Pane.X, Info_Pane_Padding),
+                        Text_Y,
+                        Info_Text_Width (Layout, Scrollbar_W => 0),
+                        Natural'Min (Line_Height, Info_Bottom - Text_Y),
+                        Localized ("error.selection.empty"),
+                        Muted_Text_Color,
+                        Fit => True);
+                  end if;
+               end;
+            end if;
 
             if Natural (Snapshot.Selected_Info.Length) >= 2 then
                declare
@@ -2384,7 +2505,14 @@ separate (Files.Rendering)
                      if Y >= Integer (Info_Pane.Y)
                        and then Y < Integer (Info_Bottom)
                      then
-                        Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => Fit);
+                        Add_Text
+                          (Text_X,
+                           Natural (Y),
+                           Text_W,
+                           Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
+                           Text,
+                           Color,
+                           Fit => Fit);
                      end if;
                   end Add_Info_Text;
 
@@ -2407,7 +2535,7 @@ separate (Files.Rendering)
                                 (Saturating_Add (Text_X, 1),
                                  Natural (Y),
                                  Text_W - 1,
-                                 Line_Height,
+                                 Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
                                  Text,
                                  Text_Color,
                                  Fit => True);
@@ -2427,7 +2555,12 @@ separate (Files.Rendering)
                           and then Tip_Y < Integer (Info_Bottom)
                           and then Files.Localization.Text (Tip_Key) /= Tip_Key
                         then
-                           Add_Tooltip (Text_X, Natural (Tip_Y), Text_W, Line_Height, Tip_Key);
+                           Add_Tooltip
+                             (Text_X,
+                              Natural (Tip_Y),
+                              Text_W,
+                              Natural'Min (Line_Height, Info_Bottom - Natural (Tip_Y)),
+                              Tip_Key);
                         end if;
                      end;
                   end Add_Info_Label;
@@ -2435,7 +2568,7 @@ separate (Files.Rendering)
                   procedure Add_Info_Wrapped_Value
                     (Row   : Natural;
                      Text  : UString;
-                     Color : Render_Color := Muted_Text_Color)
+                     Color : Render_Color := Text_Color)
                   is
                      Raw        : constant String := To_String (Text);
                      Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
@@ -2453,12 +2586,11 @@ separate (Files.Rendering)
                            return;
                         end if;
 
+                        Start := Skip_Wrap_Whitespace (Raw, Start, Segment_Last);
                         while Start <= Segment_Last loop
                            declare
-                              Prefix : constant String :=
-                                Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
                               Last   : constant Integer :=
-                                (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                                Wrapped_Line_Last (Raw, Start, Segment_Last, Capacity);
                            begin
                               Add_Info_Text
                                 (Saturating_Add (Row, Line_Index),
@@ -2466,7 +2598,7 @@ separate (Files.Rendering)
                                  Color,
                                  Fit => False);
                               exit when Last >= Segment_Last;
-                              Start := Last + 1;
+                              Start := Skip_Wrap_Whitespace (Raw, Last + 1, Segment_Last);
                               Line_Index := Saturating_Add (Line_Index, 1);
                            end;
                         end loop;
@@ -2539,7 +2671,8 @@ separate (Files.Rendering)
                                     Info_Pane.X,
                                     Natural (Visible_Y),
                                     Text_W,
-                                    Line_Height,
+                                    Natural'Min
+                                      (Line_Height, Info_Bottom - Natural (Visible_Y)),
                                     Info.Name,
                                     Description);
                               end if;
@@ -2585,7 +2718,14 @@ separate (Files.Rendering)
                         if Y >= Integer (Info_Pane.Y)
                           and then Y < Integer (Info_Bottom)
                         then
-                           Add_Text (Text_X, Natural (Y), Text_W, Line_Height, Text, Color, Fit => Fit);
+                           Add_Text
+                             (Text_X,
+                              Natural (Y),
+                              Text_W,
+                              Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
+                              Text,
+                              Color,
+                              Fit => Fit);
                         end if;
                      end Add_Info_Text;
 
@@ -2608,7 +2748,7 @@ separate (Files.Rendering)
                                    (Saturating_Add (Text_X, 1),
                                     Natural (Y),
                                     Text_W - 1,
-                                    Line_Height,
+                                    Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
                                     Text,
                                     Text_Color,
                                     Fit => True);
@@ -2628,7 +2768,12 @@ separate (Files.Rendering)
                              and then Tip_Y < Integer (Info_Bottom)
                              and then Files.Localization.Text (Tip_Key) /= Tip_Key
                            then
-                              Add_Tooltip (Text_X, Natural (Tip_Y), Text_W, Line_Height, Tip_Key);
+                              Add_Tooltip
+                                (Text_X,
+                                 Natural (Tip_Y),
+                                 Text_W,
+                                 Natural'Min (Line_Height, Info_Bottom - Natural (Tip_Y)),
+                                 Tip_Key);
                            end if;
                         end;
                      end Add_Info_Label;
@@ -2636,7 +2781,7 @@ separate (Files.Rendering)
                      procedure Add_Info_Wrapped_Value
                        (Row   : Natural;
                         Text  : UString;
-                        Color : Render_Color := Muted_Text_Color)
+                        Color : Render_Color := Text_Color)
                      is
                         Raw        : constant String := To_String (Text);
                         Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
@@ -2654,12 +2799,11 @@ separate (Files.Rendering)
                               return;
                            end if;
 
+                           Start := Skip_Wrap_Whitespace (Raw, Start, Segment_Last);
                            while Start <= Segment_Last loop
                               declare
-                                 Prefix : constant String :=
-                                   Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
                                  Last   : constant Integer :=
-                                   (if Prefix'Length = 0 then Start else Start + Prefix'Length - 1);
+                                   Wrapped_Line_Last (Raw, Start, Segment_Last, Capacity);
                               begin
                                  Add_Info_Text
                                    (Saturating_Add (Row, Line_Index),
@@ -2667,7 +2811,7 @@ separate (Files.Rendering)
                                     Color,
                                     Fit => False);
                                  exit when Last >= Segment_Last;
-                                 Start := Last + 1;
+                                 Start := Skip_Wrap_Whitespace (Raw, Last + 1, Segment_Last);
                                  Line_Index := Saturating_Add (Line_Index, 1);
                               end;
                            end loop;
@@ -2698,17 +2842,36 @@ separate (Files.Rendering)
 
                      Current_Row : Natural := 0;
 
+                     procedure Add_Info_Heading is
+                        Y : constant Integer :=
+                          Saturating_Integer_Add
+                            (Row_Y, Saturating_Multiply (Current_Row, Line_Height));
+                     begin
+                        Add_Info_Text (Current_Row, Info.Name, Text_Color, Fit => True);
+                        if Text_W > 1
+                          and then Y >= Integer (Info_Pane.Y)
+                          and then Y < Integer (Info_Bottom)
+                        then
+                           Add_Text
+                             (Saturating_Add (Text_X, 1),
+                              Natural (Y),
+                              Text_W - 1,
+                              Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
+                              Info.Name,
+                              Text_Color,
+                              Fit => True);
+                        end if;
+                        Current_Row := Saturating_Add (Current_Row, 2);
+                     end Add_Info_Heading;
+
                      procedure Add_Info_Field
                        (Key   : String;
                         Value : UString;
                         Field : Natural;
-                        Color : Render_Color := Muted_Text_Color)
+                        Color : Render_Color := Text_Color)
                      is
-                        --  Postfix the value with the item name (dropping the Name
-                        --  field), matching Info_Section_Row_Count's row accounting.
                         Display_Value : constant UString :=
-                          (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value)
-                          & Info_Postfix (Info);
+                          (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value);
                         Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
                      begin
                         Add_Info_Label (Current_Row, Key);
@@ -2754,7 +2917,10 @@ separate (Files.Rendering)
                              and then Y < Integer (Info_Bottom)
                            then
                               Add_Text
-                                (X, Natural (Y), Width, Line_Height,
+                                (X,
+                                 Natural (Y),
+                                 Width,
+                                 Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
                                  To_Unbounded_String (Text), Muted_Text_Color, Fit => True);
                            end if;
                         end Add_At;
@@ -2849,7 +3015,7 @@ separate (Files.Rendering)
                         Cell_Y :=
                           Saturating_Integer_Add (Row_Y, Saturating_Multiply (Value_Row, Line_Height));
                         if Cell_Y >= Integer (Info_Pane.Y)
-                          and then Cell_Y < Integer (Info_Bottom)
+                          and then Cell_Y + Integer (Line_Height) <= Integer (Info_Bottom)
                           and then Text_W > 0
                         then
                            Result.Ownership_Hits.Append
@@ -2890,7 +3056,7 @@ separate (Files.Rendering)
                         Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
                      end Add_Ownership_Field;
                   begin
-                     --  No Name field: the item name is postfixed onto every value.
+                     Add_Info_Heading;
                      Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
                      --  Filesize is a file-only field; a folder shows Contents.
                      if not Info.Is_Directory then
@@ -2950,14 +3116,16 @@ separate (Files.Rendering)
                               Files.Localization.Text (To_String (Info.Error_Key)));
                         end if;
 
-                        Add_Accessibility_Node
-                          (Role_List_Item,
-                           Info_Pane.X,
-                           Natural (Visible_Y),
-                           Text_W,
-                           Visible_H,
-                           Info.Name,
-                           Description);
+                        if Visible_H > 0 and then Text_W > 0 then
+                           Add_Accessibility_Node
+                             (Role_List_Item,
+                              Info_Pane.X,
+                              Natural (Visible_Y),
+                              Text_W,
+                              Visible_H,
+                              Info.Name,
+                              Description);
+                        end if;
                      end;
                      Section_Offset_Rows :=
                        Saturating_Add
@@ -2988,6 +3156,31 @@ separate (Files.Rendering)
             Overlay => False);
       end if;
 
+      --  The ordinary folder tree is persistent rather than modal. Draw it
+      --  before transient overlays so Quick Look, label/root/sort menus, and
+      --  dialogs cover it in the same order in which they own input.
+      Draw_Overlay_Commands (Persistent_Overlay_Phase);
+
+      --  Popups and modal panels own the pointer while they are open.  Drop
+      --  tooltip regions registered by the inactive toolbar, grid, and status
+      --  bar before drawing the active overlay; otherwise a tooltip from a
+      --  covered control can be painted over the popup.  Overlay-specific
+      --  tooltips (for example root rows) are registered afterwards by
+      --  Draw_Overlay_Commands and remain available.
+      if Snapshot.Root_Selector_Open
+        or else Snapshot.Context_Menu_Open
+        or else Snapshot.Paste_Conflict_Open
+        or else Snapshot.Paste_Progress_Open
+        or else Snapshot.Quick_Look_Open
+        or else Snapshot.Label_Picker_Open
+        or else Snapshot.Sort_Menu_Open
+        or else Snapshot.Tree_Pick_Active
+        or else Snapshot.Command_Palette_Open
+        or else Snapshot.Settings_Pane_Open
+      then
+         Result.Tooltips.Clear;
+      end if;
+
       if Snapshot.Quick_Look_Open then
          declare
             QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
@@ -2998,12 +3191,18 @@ separate (Files.Rendering)
               (if QL.Width > Saturating_Multiply (Margin, 2)
                then QL.Width - Saturating_Multiply (Margin, 2) else QL.Width);
          begin
+            --  Quick Look owns pointer and keyboard input while open.  Keep
+            --  inactive file-view controls out of the accessibility frame;
+            --  the dialog description identifies the item being previewed and
+            --  updates as keyboard navigation changes the selection.
+            Result.Accessibility.Clear;
             Add_Overlay_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
             Add_Overlay_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
             Add_Overlay_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
             Add_Overlay_Rect (QL.X, QL.Y, QL.Width, Natural'Min (3, QL.Height), Selection_Color);
             Add_Accessibility_Node
-              (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height, Localized ("accessibility.quick_look"));
+              (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height,
+               Localized ("accessibility.quick_look"), Snapshot.Quick_Look_Name);
             --  Panel title: the previewed item's name, which also serves as the
             --  content marker tests assert on for every kind.
             Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Snapshot.Quick_Look_Name, Fit => True);
@@ -3061,17 +3260,25 @@ separate (Files.Rendering)
                   declare
                      Max_Lines : constant Natural :=
                        (if QL.Content_Height >= Line_Height then QL.Content_Height / Line_Height else 0);
+                     Source_Lines : constant Natural :=
+                       Natural (Snapshot.Quick_Look_Text_Lines.Length);
+                     Content_Omitted : constant Boolean :=
+                       Snapshot.Quick_Look_Text_Truncated or else Source_Lines > Max_Lines;
+                     Preview_Lines : constant Natural :=
+                       (if Content_Omitted and then Max_Lines > 0
+                        then Max_Lines - 1
+                        else Max_Lines);
                      Row       : Natural := 0;
                   begin
                      for Line of Snapshot.Quick_Look_Text_Lines loop
-                        exit when Row >= Max_Lines;
+                        exit when Row >= Preview_Lines;
                         Add_Overlay_Text
                           (QL.Content_X,
                            Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
                            QL.Content_Width, Line_Height, Line, Fit => True);
                         Row := Row + 1;
                      end loop;
-                     if Snapshot.Quick_Look_Text_Truncated and then Row < Max_Lines then
+                     if Content_Omitted and then Max_Lines > 0 then
                         Add_Overlay_Text
                           (QL.Content_X,
                            Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
@@ -3081,10 +3288,24 @@ separate (Files.Rendering)
                   end;
                when Files.Quick_Look.Info_Content =>
                   declare
+                     Text_Height : constant Natural := Saturating_Multiply (Line_Height, 2);
+                     Reserved_H  : constant Natural :=
+                       Saturating_Add (Margin, Text_Height);
+                     Icon_Height_Available : constant Natural :=
+                       (if QL.Content_Height > Reserved_H
+                        then QL.Content_Height - Reserved_H
+                        else 0);
                      Icon_Size : constant Natural :=
-                       Natural'Min (Saturating_Multiply (Line_Height, 3), QL.Content_Width);
+                       Natural'Min
+                         (Saturating_Multiply (Line_Height, 3),
+                          Natural'Min (QL.Content_Width, Icon_Height_Available));
+                     Content_End_Y : constant Natural :=
+                       Saturating_Add (QL.Content_Y, QL.Content_Height);
                      Row_Y     : Natural :=
-                       Saturating_Add (QL.Content_Y, Saturating_Add (Icon_Size, Margin));
+                       Saturating_Add
+                         (QL.Content_Y,
+                          Saturating_Add
+                            (Icon_Size, (if Icon_Size > 0 then Margin else 0)));
                      Size_Value : constant UString :=
                        (if Snapshot.Quick_Look_Size_Available
                         then To_Unbounded_String (Size_Text (Snapshot.Quick_Look_Size))
@@ -3107,13 +3328,19 @@ separate (Files.Rendering)
                               Draw_Height      => 0,
                               others           => <>));
                      end if;
-                     Add_Overlay_Text
-                       (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,
-                        Snapshot.Quick_Look_Type, Muted_Text_Color, Fit => True);
-                     Row_Y := Saturating_Add (Row_Y, Line_Height);
-                     Add_Overlay_Text
-                       (QL.Content_X, Row_Y, QL.Content_Width, Line_Height,
-                        Size_Value, Muted_Text_Color, Fit => True);
+                     if Row_Y < Content_End_Y then
+                        Add_Overlay_Text
+                          (QL.Content_X, Row_Y, QL.Content_Width,
+                           Natural'Min (Line_Height, Content_End_Y - Row_Y),
+                           Snapshot.Quick_Look_Type, Muted_Text_Color, Fit => True);
+                        Row_Y := Saturating_Add (Row_Y, Line_Height);
+                     end if;
+                     if Row_Y < Content_End_Y then
+                        Add_Overlay_Text
+                          (QL.Content_X, Row_Y, QL.Content_Width,
+                           Natural'Min (Line_Height, Content_End_Y - Row_Y),
+                           Size_Value, Muted_Text_Color, Fit => True);
+                     end if;
                   end;
             end case;
 
@@ -3132,14 +3359,21 @@ separate (Files.Rendering)
               (if Picker.Width > Saturating_Multiply (Margin, 2)
                then Picker.Width - Saturating_Multiply (Margin, 2) else Picker.Width);
          begin
-            Add_Drop_Shadow (Picker.X, Picker.Y, Picker.Width, Picker.Height);
-            Add_Rect (Picker.X, Picker.Y, Picker.Width, Picker.Height, Pane_Color);
-            Add_Border (Picker.X, Picker.Y, Picker.Width, Picker.Height, Border_Color);
-            Add_Rect (Picker.X, Picker.Y, Picker.Width, Natural'Min (3, Picker.Height), Selection_Color);
+            --  The picker consumes all background input until a color is
+            --  chosen or it is dismissed, so expose only the picker controls
+            --  to assistive technology while it is open.
+            Result.Accessibility.Clear;
+            Add_Overlay_Drop_Shadow (Picker.X, Picker.Y, Picker.Width, Picker.Height);
+            Add_Overlay_Rect (Picker.X, Picker.Y, Picker.Width, Picker.Height, Pane_Color);
+            Add_Overlay_Border (Picker.X, Picker.Y, Picker.Width, Picker.Height, Border_Color);
+            Add_Overlay_Rect
+              (Picker.X, Picker.Y, Picker.Width, Natural'Min (3, Picker.Height), Selection_Color);
             Add_Accessibility_Node
               (Role_Dialog, Picker.X, Picker.Y, Picker.Width, Picker.Height,
                Localized ("accessibility.label_picker"));
-            Add_Text (Title_X, Title_Y, Title_W, Line_Height, Localized ("label_picker.title"), Fit => True);
+            Add_Overlay_Text
+              (Title_X, Title_Y, Title_W, Line_Height,
+               Localized ("label_picker.title"), Fit => True);
 
             for Index in Picker.Swatches'Range loop
                declare
@@ -3164,17 +3398,20 @@ separate (Files.Rendering)
                   if Label = Files.Types.No_Label then
                      --  The clear swatch is an empty bordered box rather than a
                      --  filled color, so it reads as "remove any label".
-                     Add_Rect (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Pane_Color);
+                     Add_Overlay_Rect
+                       (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Pane_Color);
                   else
-                     Add_Rect (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height, Label_Render_Color (Label));
+                     Add_Overlay_Rect
+                       (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height,
+                        Label_Render_Color (Label));
                   end if;
-                  Add_Border
+                  Add_Overlay_Border
                     (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height,
                      (if Hovered or else Highlighted then Selection_Color else Border_Color));
                   if Highlighted and then Swatch.Width > 4 and then Swatch.Height > 4 then
                      --  A second inset ring so the keyboard highlight reads
                      --  distinctly from a plain mouse hover.
-                     Add_Border
+                     Add_Overlay_Border
                        (Swatch.X + 2, Swatch.Y + 2, Swatch.Width - 4, Swatch.Height - 4,
                         Selection_Color);
                   end if;
@@ -3183,7 +3420,7 @@ separate (Files.Rendering)
                end;
             end loop;
 
-            Draw_Close_Button (Picker.X, Picker.Y, Picker.Width, Picker.Height, Overlay => False);
+            Draw_Close_Button (Picker.X, Picker.Y, Picker.Width, Picker.Height, Overlay => True);
          end;
       end if;
 
@@ -3198,7 +3435,9 @@ separate (Files.Rendering)
             Menu_X    : constant Natural := Bottom.Sort_Button_X;
             Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
             --  The dropdown fits the widest field, not the (snug) sort button.
-            Menu_W    : constant Natural := Files.UI.Sort_Menu_Width (Line_Height);
+            Menu_W    : constant Natural :=
+              Files.UI.Sort_Menu_Visible_Width
+                (Width, Snapshot.Sort_Field, Line_Height);
             Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Guikit.Layout.Sort_Menu_Padding);
             Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
@@ -3211,6 +3450,10 @@ separate (Files.Rendering)
                Files.Model.Sort_Created,
                Files.Model.Sort_Changed];
          begin
+            --  Keyboard and pointer routing are confined to the open menu;
+            --  publish the same scope to assistive technology.
+            Result.Accessibility.Clear;
+            Add_Overlay_Drop_Shadow (Menu_X, Menu_Y, Menu_W, Menu_H);
             Add_Overlay_Rect (Menu_X, Menu_Y, Menu_W, Menu_H, Overlay_Color);
             Add_Overlay_Border (Menu_X, Menu_Y, Menu_W, Menu_H, Border_Color);
             Add_Accessibility_Node
@@ -3313,7 +3556,7 @@ separate (Files.Rendering)
          end;
       end if;
 
-      Draw_Overlay_Commands;
+      Draw_Overlay_Commands (Modal_Overlay_Phase);
 
       Add_Hover_Tooltip;
 

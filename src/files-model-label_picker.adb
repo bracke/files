@@ -22,6 +22,7 @@ package body Label_Picker is
      (Model : in out Window_Model) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Claim_Overlay_Input (Model);
       Model.Label_Picker_Active := True;
       --  Start the keyboard highlight on the clear swatch; the item's current
       --  label lives in the settings, which this model operation does not see.

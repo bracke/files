@@ -8,6 +8,7 @@ package body Quick_Look is
       Content : Files.Quick_Look.Quick_Look_Content) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Claim_Overlay_Input (Model);
       Model.Quick_Look_Active        := True;
       Model.Quick_Look_Path_Value    := Selected_Item (Model).Full_Path;
       Model.Quick_Look_Content_Value := Content;
@@ -27,6 +28,7 @@ package body Quick_Look is
       if Model.Quick_Look_Active then
          Reset_Quick_Look (Model);
       elsif Selected_Count (Model) = 1 then
+         Claim_Overlay_Input (Model);
          declare
             Item    : constant Files.File_System.Directory_Item := Selected_Item (Model);
             Content : constant Files.Quick_Look.Quick_Look_Content :=

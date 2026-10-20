@@ -49,6 +49,7 @@ package body Files.Application.Windows is
    use type Files.Commands.Command_Id;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
+   use type Files.Types.Detail_Column;
    use type Files.Types.Item_Kind;
    use type Files.Types.View_Mode;
    use type Files.Rendering.Text_Render_Status;
@@ -961,6 +962,46 @@ package body Files.Application.Windows is
          return 0;
    end Scale_Coordinate;
 
+   function Scrollbar_Drag_Offset
+     (Thumb_Top    : Natural;
+      Track_Length : Natural;
+      Thumb_Length : Natural;
+      Maximum      : Natural)
+      return Natural
+   is
+      Travel  : constant Natural :=
+        (if Track_Length > Thumb_Length then Track_Length - Thumb_Length else 0);
+      Clamped : constant Natural := Natural'Min (Thumb_Top, Travel);
+   begin
+      if Travel = 0 or else Maximum = 0 then
+         return 0;
+      end if;
+
+      return
+        Natural
+          (Long_Long_Integer (Clamped)
+             * Long_Long_Integer (Maximum)
+             / Long_Long_Integer (Travel));
+   end Scrollbar_Drag_Offset;
+
+   function Cursor_Is_Inside_Window
+     (X      : Glfw.Input.Mouse.Coordinate;
+      Y      : Glfw.Input.Mouse.Coordinate;
+      Width  : Glfw.Size;
+      Height : Glfw.Size)
+      return Boolean is
+   begin
+      return Width > 0
+        and then Height > 0
+        and then X >= 0.0
+        and then Y >= 0.0
+        and then X < Glfw.Input.Mouse.Coordinate (Width)
+        and then Y < Glfw.Input.Mouse.Coordinate (Height);
+   exception
+      when Constraint_Error =>
+         return False;
+   end Cursor_Is_Inside_Window;
+
    procedure Dispatch_Click_Action
      (Runtime  : in out Runtime_Window;
       Action   : Files.Events.Input_Action;
@@ -980,6 +1021,13 @@ package body Files.Application.Windows is
       --  resize is applied per frame by Update_Column_Resize_Drag. The action's
       --  payload is packed into the shared fields (see the Input_Action comment).
       if Action.Kind = Files.Events.Column_Resize_Begin_Input_Action then
+         if Action.Item_Index not in
+           Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'First)
+             .. Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'Last)
+           or else Action.Scroll_Drag_Anchor < 0
+         then
+            return;
+         end if;
          Runtime.Column_Resize_Active := True;
          Runtime.Column_Resize_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
          Runtime.Column_Resize_Origin_X := Action.Cursor_Position;
@@ -992,6 +1040,12 @@ package body Files.Application.Windows is
       --  Update_Column_Reorder_Drag. The payload is packed into the shared
       --  fields (see the Input_Action comment).
       if Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action then
+         if Action.Item_Index not in
+           Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'First)
+             .. Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'Last)
+         then
+            return;
+         end if;
          Runtime.Column_Reorder_Active := True;
          Runtime.Column_Reorder_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
          Runtime.Column_Reorder_Origin_X := Action.Cursor_Position;
@@ -1042,21 +1096,30 @@ package body Files.Application.Windows is
       Modifiers : Guikit.Input.Modifier_Set)
       return Files.Events.Input_Action
    is
-      X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
-      Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-      Snapshot : constant Files.Rendering.View_Snapshot :=
-        Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
    begin
-      return
-        Files.Events.Translate_Click
-          (Snapshot    => Snapshot,
-           Frame       => Runtime.Cached_Frame,
-           X           => X,
-           Y           => Y,
-           Width       => Natural (Frame_W),
-           Height      => Natural (Frame_H),
-           Modifiers   => Modifiers,
-           Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+      if not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
+        or else Frame_W <= 0 or else Frame_H <= 0
+      then
+         return (Kind => Files.Events.No_Input_Action, others => <>);
+      end if;
+
+      declare
+         X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
+         Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+      begin
+         return
+           Files.Events.Translate_Click
+             (Snapshot    => Snapshot,
+              Frame       => Runtime.Cached_Frame,
+              X           => X,
+              Y           => Y,
+              Width       => Natural (Frame_W),
+              Height      => Natural (Frame_H),
+              Modifiers   => Modifiers,
+              Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+      end;
    end Current_Click_Action;
 
    function Selected_File_Paths
@@ -1083,7 +1146,10 @@ package body Files.Application.Windows is
         (if Modifiers (Guikit.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
       Result  : Files.Operations.Operation_Result;
    begin
-      if Target_Index = 0 or else Sources.Is_Empty then
+      if Target_Index = 0
+        or else Target_Index > Files.Model.Visible_Count (Runtime.Model)
+        or else Sources.Is_Empty
+      then
          return;
       end if;
 
@@ -1405,6 +1471,8 @@ package body Files.Application.Windows is
          return;
       elsif Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
          Runtime.Column_Reorder_Active := False;
+         Runtime.Column_Reorder_Started := False;
+         Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
          return;
       end if;
 
@@ -1419,8 +1487,15 @@ package body Files.Application.Windows is
 
       --  Mouse released: end the gesture. A crossed threshold applies the
       --  reorder at the drop target; otherwise the press was a plain click and
-      --  falls back to the column's sort command (if any).
+      --  falls back to the column's sort command (if any), but only when the
+      --  release still lands on the cell that was pressed.
       Runtime.Column_Reorder_Active := False;
+
+      if not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
+         Runtime.Column_Reorder_Started := False;
+         Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
+         return;
+      end if;
 
       if Runtime.Column_Reorder_Started then
          declare
@@ -1447,13 +1522,34 @@ package body Files.Application.Windows is
             end if;
          end;
       elsif Runtime.Column_Reorder_Sort /= Files.Commands.No_Command then
-         Dispatch_Click_Action
-           (Runtime,
-            (Kind    => Files.Events.Command_Input_Action,
-             Command => Runtime.Column_Reorder_Sort,
-             others  => <>),
-            Guikit.Input.No_Modifiers);
+         declare
+            Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Layout   : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+            Cell     : constant Files.Rendering.Detail_Header_Cell :=
+              Files.Rendering.Details_Header_Cell_At
+                (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
+         begin
+            if Cell.Present
+              and then Cell.Column = Runtime.Column_Reorder_Target
+              and then Cell.Command = Runtime.Column_Reorder_Sort
+            then
+               Dispatch_Click_Action
+                 (Runtime,
+                  (Kind    => Files.Events.Command_Input_Action,
+                   Command => Runtime.Column_Reorder_Sort,
+                   others  => <>),
+                  Guikit.Input.No_Modifiers);
+            end if;
+         end;
       end if;
+
+      Runtime.Column_Reorder_Started := False;
+      Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
    end Update_Column_Reorder_Drag;
 
    --  Minimum pointer travel, in frame pixels, before an armed empty-space press
@@ -1471,6 +1567,54 @@ package body Files.Application.Windows is
       Frame_H    : Glfw.Size;
       Mouse_Down : Boolean)
  is separate;
+
+   --  Pointer gestures are tracked outside the model so they can update every
+   --  frame.  If a keyboard shortcut opens an overlay while the button remains
+   --  held, cancel every background gesture before its next update; otherwise
+   --  scrolling, selection, or column settings can continue changing invisibly.
+   procedure Cancel_Background_Gestures_For_Overlay
+     (Runtime : in out Runtime_Window)
+   is
+      use type Files.Events.Scroll_Target;
+      --  The destination picker is modal, but its tree scrollbar belongs to the
+      --  modal surface rather than the background. Preserve only that gesture;
+      --  every file-grid drag and any scrollbar owned by covered content still
+      --  gets canceled below.
+      Keep_Tree_Scrollbar : constant Boolean :=
+        Files.Model.Tree_Pick_Is_Active (Runtime.Model)
+        and then Files.Model.Tree_Panel_Is_Open (Runtime.Model)
+        and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
+        and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
+        and then not Files.Model.Root_Selector_Is_Open (Runtime.Model)
+        and then not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+        and then not Files.Model.Sort_Menu_Is_Open (Runtime.Model)
+        and then not Files.Model.Context_Menu_Is_Open (Runtime.Model)
+        and then not Files.Model.Label_Picker_Is_Open (Runtime.Model)
+        and then not Files.Model.Quick_Look_Is_Open (Runtime.Model)
+        and then not Files.Model.Paste_Conflict_Is_Active (Runtime.Model)
+        and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model);
+   begin
+      if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
+         return;
+      end if;
+
+      Runtime.Drag_Source_Index := 0;
+      if not Keep_Tree_Scrollbar then
+         Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
+         Runtime.Scrollbar_Drag_Anchor := 0;
+      end if;
+      Runtime.Column_Resize_Active := False;
+      Runtime.Column_Reorder_Active := False;
+      Runtime.Column_Reorder_Started := False;
+      Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
+      Runtime.Marquee_Active := False;
+      Runtime.Marquee_Moved := False;
+      Runtime.Marquee_Base.Clear;
+      Runtime.Marquee_Rect_X := 0;
+      Runtime.Marquee_Rect_Y := 0;
+      Runtime.Marquee_Rect_W := 0;
+      Runtime.Marquee_Rect_H := 0;
+   end Cancel_Background_Gestures_For_Overlay;
 
    --  Append a component overlay's draw commands (its rectangles, text, icons and
    --  accessibility nodes) onto the window frame.
@@ -1503,6 +1647,40 @@ package body Files.Application.Windows is
          Frame.Accessibility.Append (N);
       end loop;
    end Append_Overlay;
+
+   --  Prepare the topmost modal layer. Cached frames can already contain a
+   --  tooltip, root selector, Quick Look, or another overlay; their rectangles
+   --  and text are batched in separate GPU passes and therefore cannot safely
+   --  interleave with a newer modal. Remove those visual and accessibility
+   --  commands, retain ordinary grid icons, and dim the inactive file view.
+   procedure Append_Modal_Backdrop
+     (Frame  : in out Files.Rendering.Frame_Commands;
+      Width  : Natural;
+      Height : Natural)
+   is
+      Main_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
+   begin
+      for Command of Frame.Icons loop
+         if not Command.Overlay then
+            Main_Icons.Append (Command);
+         end if;
+      end loop;
+      Frame.Icons := Main_Icons;
+      Frame.Overlay_Rectangles.Clear;
+      Frame.Overlay_Text.Clear;
+      Frame.Tooltips.Clear;
+      Frame.Accessibility.Clear;
+
+      if Width > 0 and then Height > 0 then
+         Frame.Overlay_Rectangles.Append
+           (Guikit.Draw.Rectangle_Command'
+              (X      => 0,
+               Y      => 0,
+               Width  => Width,
+               Height => Height,
+               Color  => Guikit.Draw.Modal_Backdrop_Color));
+      end if;
+   end Append_Modal_Backdrop;
 
    procedure Render_Window
      (Runtime : in out Runtime_Window)

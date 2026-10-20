@@ -42,6 +42,34 @@ package body Files.Archive_Writing is
      1024 * 1024 * 1024;
    Max_Free_Inode_Reserve : constant Interfaces.Unsigned_64 := 1_024;
 
+   function Safe_Archive_Name
+     (Name                     : String;
+      Allow_Trailing_Separator : Boolean := False) return Boolean
+   is
+      First : Positive := Name'First;
+   begin
+      if Name = "" then
+         return False;
+      end if;
+      for I in Name'Range loop
+         if Name (I) = ASCII.NUL or else Name (I) = '\' or else Name (I) = ':' then
+            return False;
+         elsif Name (I) = '/' then
+            if I = First
+              or else Name (First .. I - 1) in "." | ".."
+              or else (I = Name'Last and then not Allow_Trailing_Separator)
+            then
+               return False;
+            end if;
+            First := I + 1;
+         end if;
+      end loop;
+      return
+        (Allow_Trailing_Separator and then First = Name'Last + 1)
+        or else
+          (First <= Name'Last and then Name (First .. Name'Last) not in "." | "..");
+   end Safe_Archive_Name;
+
    function Extraction_Is_Within_Limits
      (Entries            : Zlib.Archive_Entry_Array;
       Free_Bytes         : Long_Long_Integer;
@@ -53,6 +81,7 @@ package body Files.Archive_Writing is
       Total_Uncompressed : U64 := 0;
       Total_Compressed   : U64 := 0;
       Total_Path_Bytes   : U64 := 0;
+      Names_Seen         : Archive_Name_Sets.Set;
 
       function Add_Would_Overflow (Left, Right : U64) return Boolean is
         (Left > U64'Last - Right);
@@ -72,15 +101,21 @@ package body Files.Archive_Writing is
 
       for Member of Entries loop
          declare
+            Name : constant String := To_String (Member.Name);
             Path_Bytes : constant U64 :=
               U64 (Ada.Strings.Unbounded.Length (Member.Name));
          begin
-            if Add_Would_Overflow (Total_Uncompressed, Member.Uncompressed_Size)
+            if not Safe_Archive_Name
+              (Name, Allow_Trailing_Separator =>
+                 Name /= "" and then Name (Name'Last) = '/')
+              or else Names_Seen.Contains (Name)
+              or else Add_Would_Overflow (Total_Uncompressed, Member.Uncompressed_Size)
               or else Add_Would_Overflow (Total_Compressed, Member.Compressed_Size)
               or else Add_Would_Overflow (Total_Path_Bytes, Path_Bytes)
             then
                return False;
             end if;
+            Names_Seen.Insert (Name);
             Total_Uncompressed := Total_Uncompressed + Member.Uncompressed_Size;
             Total_Compressed := Total_Compressed + Member.Compressed_Size;
             Total_Path_Bytes := Total_Path_Bytes + Path_Bytes;
@@ -145,25 +180,6 @@ package body Files.Archive_Writing is
       Central_Offset, Central_Size : U32 := 0;
       End_Record : Stream_Element_Array (1 .. 22);
       Last : Stream_Element_Offset;
-
-      function Safe_Name (Name : String) return Boolean is
-         First : Positive := Name'First;
-      begin
-         if Name = "" then
-            return False;
-         end if;
-         for I in Name'Range loop
-            if Name (I) = ASCII.NUL or else Name (I) = '\' or else Name (I) = ':' then
-               return False;
-            elsif Name (I) = '/' then
-               if I = First or else Name (First .. I - 1) in "." | ".." then
-                  return False;
-               end if;
-               First := I + 1;
-            end if;
-         end loop;
-         return First <= Name'Last and then Name (First .. Name'Last) not in "." | "..";
-      end Safe_Name;
 
       function Number (First : Stream_Element_Offset; Width : Positive) return U32 is
          Value : U32 := 0;
@@ -239,7 +255,7 @@ package body Files.Archive_Writing is
             Path : constant String := To_String (Input_Paths (Input_Paths'First + I));
             Name : constant String := To_String (Entry_Names (Entry_Names'First + I));
          begin
-            if not Safe_Name (Name) or else Name'Length >= 65_535 then
+            if not Safe_Archive_Name (Name) or else Name'Length >= 65_535 then
                return;
             end if;
             if Names_Seen.Contains (Name) then

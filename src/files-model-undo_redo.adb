@@ -374,6 +374,7 @@ package body Undo_Redo is
       Discard_Retained (Model.Redo_Stack);
       Model.Undo_Stack.Clear;
       Model.Redo_Stack.Clear;
+      Files.History_Journal.Save (Model);
    end Clear_Undo;
 
    function Undo_Available

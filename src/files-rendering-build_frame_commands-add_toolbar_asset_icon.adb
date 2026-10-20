@@ -6,6 +6,12 @@ separate (Files.Rendering.Build_Frame_Commands)
       Size    : Natural;
       Enabled : Boolean)
    is
+      Draw_Size  : constant Natural :=
+        Natural'Min
+          (Size,
+           Natural'Min
+             (Clipped_Size (X, Size, Layout.Width),
+              Clipped_Size (Y, Size, Layout.Height)));
       Icon_Name : constant String :=
         (case Id is
            when Files.Commands.Navigate_Home_Command => "toolbar-home",
@@ -20,12 +26,12 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       function SX (Numerator : Natural) return Float is
       begin
-         return Float (X) + Float (Size * Numerator) / 16.0;
+         return Float (X) + Float (Draw_Size * Numerator) / 16.0;
       end SX;
 
       function SY (Numerator : Natural) return Float is
       begin
-         return Float (Y) + Float (Size * Numerator) / 16.0;
+         return Float (Y) + Float (Draw_Size * Numerator) / 16.0;
       end SY;
 
       --  Draw an icon rectangle (in 16-grid units) as a pair of triangles at
@@ -91,7 +97,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          Add_Local_Rect (9, 8, 1, 4);
       end Draw_Delete;
    begin
-      if Size = 0 then
+      if Draw_Size = 0 then
          return;
       end if;
 
@@ -99,7 +105,7 @@ separate (Files.Rendering.Build_Frame_Commands)
         (Icon_Command'
            (X          => X,
             Y          => Y,
-            Size       => Size,
+            Size       => Draw_Size,
             Icon_Id    => To_Unbounded_String (Icon_Name),
             Theme_Name => To_Unbounded_String (Icon_Theme_Name),
             Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon"),

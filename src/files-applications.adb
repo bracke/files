@@ -26,18 +26,26 @@ package body Files.Applications is
    package Desktop_Id_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_Type => String);
 
-   --  Strip a trailing or leading run of ASCII spaces and tabs from Text.
+   --  Strip a trailing or leading run of desktop-file whitespace from Text.
+   --  Lines are split on LF, so accepting a trailing CR is what makes ordinary
+   --  CRLF desktop files parse the same way as their LF equivalents.
    function Trim_Blanks (Text : String) return String is
       First : Integer := Text'First;
       Last  : Integer := Text'Last;
    begin
       while First <= Last
-        and then (Text (First) = ' ' or else Text (First) = ASCII.HT)
+        and then
+          (Text (First) = ' '
+           or else Text (First) = ASCII.HT
+           or else Text (First) = ASCII.CR)
       loop
          First := First + 1;
       end loop;
       while Last >= First
-        and then (Text (Last) = ' ' or else Text (Last) = ASCII.HT)
+        and then
+          (Text (Last) = ' '
+           or else Text (Last) = ASCII.HT
+           or else Text (Last) = ASCII.CR)
       loop
          Last := Last - 1;
       end loop;
@@ -346,6 +354,7 @@ package body Files.Applications is
       Current : constant String := Environment_Value ("XDG_CURRENT_DESKTOP");
       First   : Integer := Current'First;
       Last    : Integer;
+      Only_Matched : Boolean := False;
    begin
       --  Both keys may be present, but one desktop name cannot occur in both.
       if Have_Only and then Have_Not
@@ -362,22 +371,24 @@ package body Files.Applications is
          declare
             Desktop : constant String := Current (First .. Last - 1);
          begin
-            if Have_Only
-              and then List_Contains (Only_Show_In, Desktop)
-            then
-               return True;
-            elsif Have_Not
-              and then List_Contains (Not_Show_In, Desktop)
-            then
+            --  An exclusion applies to the complete current-desktop set and
+            --  must not be bypassed by an earlier OnlyShowIn match. Keep the
+            --  positive match while scanning, but decide it only after every
+            --  desktop name has had a chance to exclude the entry.
+            if Have_Not and then List_Contains (Not_Show_In, Desktop) then
                return False;
             end if;
+            Only_Matched :=
+              Only_Matched
+              or else (Have_Only
+                       and then List_Contains (Only_Show_In, Desktop));
          end;
          First := Last + 1;
       end loop;
 
       --  An unmatched OnlyShowIn hides the entry. An unmatched NotShowIn does
       --  not restrict it.
-      return not Have_Only;
+      return not Have_Only or else Only_Matched;
    end Desktop_Environment_Allows;
 
    --  Desktop Exec values are argument vectors, not shell command lines. Quotes

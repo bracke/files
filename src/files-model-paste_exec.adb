@@ -48,6 +48,7 @@ package body Paste_Exec is
       Files.Process_Jobs.Reset (Model.Refresh_Job);
       Model.Operation_Label_Key := Null_Unbounded_String;
       Model.Revision_Value := Model.Revision_Value + 1;
+      Claim_Overlay_Input (Model);
       for Action of Actions loop
          if not Action.Skip then
             Writes := Writes + 1;

@@ -244,6 +244,41 @@ package Files.Application.Windows is
       Target : Glfw.Size)
       return Natural;
 
+   --  Convert a scrollbar thumb position into its logical scroll offset.
+   --
+   --  Thumb_Top is relative to the beginning of the track. Positions beyond
+   --  the usable thumb travel are clamped, so the bottom of the track maps to
+   --  Maximum exactly even when the content's final page is partial.
+   --
+   --  @param Thumb_Top Relative top of the dragged thumb.
+   --  @param Track_Length Total scrollbar track length.
+   --  @param Thumb_Length Length of the draggable thumb.
+   --  @param Maximum Largest valid logical scroll offset.
+   --  @return Proportional logical offset in the range 0 .. Maximum.
+   function Scrollbar_Drag_Offset
+     (Thumb_Top    : Natural;
+      Track_Length : Natural;
+      Thumb_Length : Natural;
+      Maximum      : Natural)
+      return Natural;
+
+   --  Return whether raw GLFW cursor coordinates name a pixel inside a window.
+   --  Test this before scaling: Scale_Coordinate clamps negative values to zero,
+   --  which intentionally loses the distinction between outside-left/top and
+   --  the first pixel.
+   --
+   --  @param X Raw horizontal cursor coordinate.
+   --  @param Y Raw vertical cursor coordinate.
+   --  @param Width Window width in screen coordinates.
+   --  @param Height Window height in screen coordinates.
+   --  @return True when the coordinate lies inside the half-open window bounds.
+   function Cursor_Is_Inside_Window
+     (X      : Glfw.Input.Mouse.Coordinate;
+      Y      : Glfw.Input.Mouse.Coordinate;
+      Width  : Glfw.Size;
+      Height : Glfw.Size)
+      return Boolean;
+
    --  Return the live-window smoke-test plan for the current environment.
    --
    --  @param Width Requested smoke window width in pixels.

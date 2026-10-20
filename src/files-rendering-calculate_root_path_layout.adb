@@ -10,10 +10,10 @@ separate (Files.Rendering)
         (if Layout.Height > Saturating_Multiply (Root_Selector_Padding, 2)
          then Layout.Height - Saturating_Multiply (Root_Selector_Padding, 2)
          else 0);
+      Horizontal_Padding : constant Natural :=
+        Natural'Min (Root_Selector_Padding, Layout.Width / 2);
       Content_W    : constant Natural :=
-        (if Layout.Width > Saturating_Multiply (Root_Selector_Padding, 2)
-         then Layout.Width - Saturating_Multiply (Root_Selector_Padding, 2)
-         else Layout.Width);
+        Layout.Width - Saturating_Multiply (Horizontal_Padding, 2);
       Visible_Rows : constant Natural := Visible_Row_Count (Content_H, Layout.Row_Height);
       Start_Index  : Natural := 1;
       Selected_Index : Natural := Snapshot.Root_Selected_Index;
@@ -56,7 +56,7 @@ separate (Files.Rendering)
                Result.Append
                  (Root_Path_Layout'
                     (Root_Index => Index,
-                     X          => Saturating_Add (Layout.X, Root_Selector_Padding),
+                     X          => Saturating_Add (Layout.X, Horizontal_Padding),
                      Y          => Row_Y,
                      Width      => Content_W,
                      Height     => Row_H,

@@ -11,8 +11,12 @@ package body Files.Platform_Regular_Files is
    subtype C_Int is Interfaces.C.int;
    subtype C_U16 is Interfaces.C.unsigned_short;
    subtype C_U32 is Interfaces.C.unsigned;
-   subtype C_U64 is Interfaces.C.unsigned_long;
-   subtype C_S64 is Interfaces.C.long;
+   --  statx uses fixed-width __u64/__s64 fields.  C long is 64 bits on the
+   --  currently common LP64 targets but only 32 bits on 32-bit Linux, where it
+   --  would shift every field after Attributes and corrupt the kernel ABI.
+   subtype C_U64 is Interfaces.Unsigned_64;
+   subtype C_S64 is Interfaces.Integer_64;
+   subtype File_Offset is Interfaces.C.long;
 
    O_Nonblock : constant C_Int := 16#800#;
    O_Nofollow : constant C_Int := 16#2_0000#;
@@ -66,9 +70,14 @@ package body Files.Platform_Regular_Files is
       Mask       : C_U32;
       Info       : access Statx_Record) return C_Int
      with Import, Convention => C, External_Name => "statx";
-   function C_Lseek (Descriptor : C_Int; Offset : C_S64; Origin : C_Int) return C_S64
+   function C_Lseek
+     (Descriptor : C_Int;
+      Offset     : File_Offset;
+      Origin     : C_Int) return File_Offset
      with Import, Convention => C, External_Name => "lseek";
-   function C_Truncate (Descriptor : C_Int; Length : C_S64) return C_Int
+   function C_Truncate
+     (Descriptor : C_Int;
+      Length     : File_Offset) return C_Int
      with Import, Convention => C, External_Name => "ftruncate";
 
    function Open_Read
@@ -123,10 +132,10 @@ package body Files.Platform_Regular_Files is
    function Skip_Zeros
      (Descriptor : GNAT.OS_Lib.File_Descriptor;
       Count      : Integer) return Boolean is
-     (C_Lseek (C_Int (Descriptor), C_S64 (Count), 1) >= 0);
+     (C_Lseek (C_Int (Descriptor), File_Offset (Count), 1) >= 0);
 
    function Finish_Sparse (Descriptor : GNAT.OS_Lib.File_Descriptor) return Boolean is
-      Position : constant C_S64 := C_Lseek (C_Int (Descriptor), 0, 1);
+      Position : constant File_Offset := C_Lseek (C_Int (Descriptor), 0, 1);
    begin
       return Position >= 0 and then C_Truncate (C_Int (Descriptor), Position) = 0;
    end Finish_Sparse;

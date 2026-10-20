@@ -28,24 +28,32 @@ separate (Files.Commands)
               and then not Files.Model.In_Recent_View (Model)
               and then Files.File_System.Parent_Directory
                          (Files.Model.Current_Path (Model)) /= "";
-         when Delete_Selected_Items_Command | Open_Selected_Items_Command
-            | Open_With_Command =>
+         when Delete_Selected_Items_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
+         when Open_Selected_Items_Command | Open_With_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
          when Compress_Zip_Command | Compress_7z_Command =>
             return Files.Model.Selected_Count (Model) > 0
-              and then not Files.Model.Selection_Includes_Temporary (Model);
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
          when Extract_Archive_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model)
               and then Selection_Has_Archive (Model);
          when Delete_Selected_Permanently_Command | Generate_Thumbnails_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
-         when Copy_Selected_Items_Command | Cut_Selected_Items_Command
-            | Duplicate_Selected_Command =>
+         when Copy_Selected_Items_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model);
+         when Cut_Selected_Items_Command | Duplicate_Selected_Command =>
+            return Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model)
+              and then not In_Trash_View (Model);
          when Copy_To_Command | Move_To_Command =>
             --  Choosing a destination copies/moves the current selection, so at
             --  least one real (non-temporary) item must be selected in an
@@ -56,15 +64,25 @@ separate (Files.Commands)
               and then not Files.Model.In_Recent_View (Model);
          when Paste_Items_Command =>
             return Files.Model.Clipboard_Has_Items (Model)
-              and then not Files.Model.Temporary_Item_Is_Active (Model);
+              and then not Files.Model.Temporary_Item_Is_Active (Model)
+              and then Files.Model.Current_Path (Model) /= ""
+              and then not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when Create_File_Command | New_Folder_Command =>
-            return not Files.Model.Temporary_Item_Is_Active (Model);
+            return not Files.Model.Temporary_Item_Is_Active (Model)
+              and then Files.Model.Current_Path (Model) /= ""
+              and then not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model);
          when Toggle_Info_Pane_Command =>
             --  The info pane can always be toggled, even with no selection: an
             --  empty selection simply shows an empty pane.
             return True;
          when Rename_Selected_Items_Command =>
-            return Files.Model.Rename_Is_Enabled (Model) or else Files.Model.Rename_Is_Active (Model);
+            return not In_Trash_View (Model)
+              and then not Files.Model.In_Recent_View (Model)
+              and then
+                (Files.Model.Rename_Is_Enabled (Model)
+                 or else Files.Model.Rename_Is_Active (Model));
          when Close_Command_Palette_Command =>
             return Files.Model.Context_Menu_Is_Open (Model)
               or else Files.Model.Command_Palette_Is_Open (Model)
@@ -86,7 +104,9 @@ separate (Files.Commands)
          when Clear_Filter_Command =>
             return Files.Model.Filter_Text (Model) /= "";
          when Search_Recursive_Command | Search_Contents_Command =>
-            return Files.Model.Filter_Text (Model) /= "";
+            return Files.Model.Filter_Text (Model) /= ""
+              and then Files.Model.Current_Path (Model) /= ""
+              and then not Files.Model.In_Recent_View (Model);
          when Select_All_Command =>
             return Files.Model.Visible_Count (Model) > 0
               and then not Files.Model.Temporary_Item_Is_Active (Model);
@@ -102,21 +122,19 @@ separate (Files.Commands)
             --  Favoriting works on the selection when present, otherwise on the
             --  current directory. Enabled in an ordinary directory view (not the
             --  trash payload) whenever there is a selection or a navigable path.
+            --  A temporary create row counts as selected but has no real path;
+            --  do not mistake it for the empty-selection folder fallback.
             return not In_Trash_View (Model)
               and then not Files.Model.In_Recent_View (Model)
+              and then not Files.Model.Selection_Includes_Temporary (Model)
               and then (Files.Model.Selected_Count (Model) > 0
                         or else Files.Model.Current_Path (Model) /= "");
          when Navigate_Trash_Command =>
             return Files.File_System.Trash_Files_Directory /= "";
          when Restore_From_Trash_Command =>
-            declare
-               Trash_Dir : constant String := Files.File_System.Trash_Files_Directory;
-            begin
-               return Trash_Dir /= ""
-                 and then Normalized_Path (Files.Model.Current_Path (Model)) = Normalized_Path (Trash_Dir)
-                 and then Files.Model.Selected_Count (Model) > 0
-                 and then not Files.Model.Selection_Includes_Temporary (Model);
-            end;
+            return In_Trash_View (Model)
+              and then Files.Model.Selected_Count (Model) > 0
+              and then not Files.Model.Selection_Includes_Temporary (Model);
          when Empty_Trash_Command =>
             --  Emptying is only meaningful in the trash payload view and only
             --  when at least one trashed entry is present to purge.
@@ -127,10 +145,9 @@ separate (Files.Commands)
             --  opens onto an empty view.
             return True;
          when Clear_Recent_Command =>
-            --  Clearing is only meaningful in the recent view and only when at
-            --  least one recent entry is present to purge.
-            return Files.Model.In_Recent_View (Model)
-              and then Files.Model.Item_Count (Model) > 0;
+            --  Stale recent paths are omitted from the virtual listing, so an
+            --  empty view can still have persisted entries that need clearing.
+            return Files.Model.In_Recent_View (Model);
          when Undo_Command =>
             return Files.Model.Undo_Available (Model);
          when Redo_Command =>
@@ -139,7 +156,8 @@ separate (Files.Commands)
             --  A terminal can be opened for any real directory view, but not the
             --  trash payload directory or the virtual recent view.
             return not In_Trash_View (Model)
-              and then not Files.Model.In_Recent_View (Model);
+              and then not Files.Model.In_Recent_View (Model)
+              and then Files.Model.Current_Path (Model) /= "";
          when Create_Symlink_Command | Create_Hardlink_Command =>
             return Files.Model.Selected_Count (Model) > 0
               and then not Files.Model.Selection_Includes_Temporary (Model)

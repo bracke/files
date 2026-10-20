@@ -74,7 +74,10 @@ separate (Files.Rendering)
                   end;
                end loop;
                if not Fitted then
-                  Shown := Files.Breadcrumbs.Elide (Full, Positive'Max (1, Natural'Min (3, Count)));
+                  --  Even the usual head/ellipsis/tail form can be wider than a
+                  --  compact toolbar. Fall back to the current directory alone;
+                  --  its draw box is clipped below if the name itself is long.
+                  Shown := Files.Breadcrumbs.Elide (Full, 1);
                end if;
             end;
          end if;
@@ -84,9 +87,14 @@ separate (Files.Rendering)
                Seg        : constant Files.Breadcrumbs.Segment := Shown.Element (Positive (I));
                Cells      : constant Natural := Files.UTF8.Display_Units (To_String (Seg.Label));
                Seg_W      : constant Natural := Saturating_Multiply (Cells, Advance);
+               Field_End  : constant Natural := Saturating_Add (Inner_X, Inner_W);
+               Remaining  : constant Natural :=
+                 (if Field_End > Cursor_X then Field_End - Cursor_X else 0);
+               Draw_W     : constant Natural := Natural'Min (Seg_W, Remaining);
                Clickable  : constant Boolean := not Files.Breadcrumbs.Is_Ellipsis (Seg);
                Full_Index : Natural := 0;
             begin
+               exit when Draw_W = 0;
                if Clickable then
                   for F in 1 .. Count loop
                      if Full.Element (Positive (F)).Ancestor_Path = Seg.Ancestor_Path then
@@ -100,13 +108,16 @@ separate (Files.Rendering)
                     (Segment_Index => Full_Index,
                      X             => Cursor_X,
                      Y             => Input_Y,
-                     Width         => Seg_W,
+                     Width         => Draw_W,
                      Height        => Input_H,
                      Clickable     => Clickable and then Full_Index /= 0));
+               --  A clipped directory name consumes the remainder of the field;
+               --  there is no room for another separator or segment.
+               exit when Draw_W < Seg_W;
                Cursor_X :=
                  Saturating_Add
                    (Cursor_X,
-                    Saturating_Add (Seg_W, Saturating_Multiply (Sep_Cells, Advance)));
+                    Saturating_Add (Draw_W, Saturating_Multiply (Sep_Cells, Advance)));
             end;
          end loop;
       end;

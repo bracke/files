@@ -117,7 +117,8 @@ separate (Files.Application.Windows)
                     Has_Drag        => Width > 0 and then Height > 0);
             begin
                if Natural (Drag_Frame.Icons.Length) > Natural (Frame.Icons.Length)
-                 and then Natural (Drag_Frame.Rectangles.Length) > Natural (Frame.Rectangles.Length)
+                 and then Natural (Drag_Frame.Overlay_Rectangles.Length) >
+                   Natural (Frame.Overlay_Rectangles.Length)
                then
                   Result.Drag_Preview_Frames := Result.Drag_Preview_Frames + 1;
                end if;

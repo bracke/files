@@ -44,6 +44,7 @@ package Files.Events is
      (Scroll_Auto,
       Scroll_Main_View,
       Scroll_Info_Pane,
+      Scroll_Tree_Panel,
       Scroll_Settings_Pane,
       Scroll_Command_Palette);
 

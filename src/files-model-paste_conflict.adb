@@ -10,6 +10,7 @@ package body Paste_Conflict is
       Clear_Clipboard : Boolean := True) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Claim_Overlay_Input (Model);
       Model.Paste_Conflict_Active_Value := True;
       Model.Paste_Conflict_Items_Value := Items;
       Model.Paste_Conflict_Existing_Value := Existing;

@@ -143,6 +143,9 @@ package Files.Rendering is
       Visible_Count        : Natural := 0;
       Hidden_Count         : Natural := 0;
       Selected_Count        : Natural := 0;
+      --  One selected row owns keyboard focus even when selection contains
+      --  several rows. This is the one-based visible index, or zero.
+      Primary_Selected_Visible_Index : Natural := 0;
       Free_Space_Known      : Boolean := False;
       Free_Space_Bytes      : Long_Long_Integer := 0;
       Total_Space_Bytes     : Long_Long_Integer := 0;
@@ -190,6 +193,7 @@ package Files.Rendering is
       Root_Paths                     : Files.Types.String_Vectors.Vector;
       Root_Labels                    : Files.Types.String_Vectors.Vector;
       Tree_Panel_Open       : Boolean := False;
+      Tree_Panel_Scroll_Rows : Natural := 0;
       Tree_Rows             : Files.Folder_Tree.Visible_Row_Vectors.Vector;
       --  Copy to.../Move to... destination picker state driving the tree: when
       --  active the panel shows a Choose/Cancel bar, the title names the copy or
@@ -283,6 +287,9 @@ package Files.Rendering is
       Row_Height       : Natural := 0;
       Separator_Height : Natural := 0;
       Padding          : Natural := 0;
+      Column_Count     : Positive := 1;
+      Column_Width     : Natural := 0;
+      Column_Break_Row : Natural := 0;
       Row_Count        : Natural := 0;
       Commands         : Context_Menu_Command_Array :=
         [others => Files.Commands.No_Command];
@@ -325,6 +332,27 @@ package Files.Rendering is
    --  @param Row Row index between 1 and Row_Count.
    --  @return Top window Y coordinate of the row.
    function Context_Menu_Row_Top
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the left edge of the column containing a menu row.
+   --  Compact menus can split at a group boundary into two columns.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Left window coordinate of the row's column.
+   function Context_Menu_Row_Left
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the width of the column containing a menu row.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Width of the row's column.
+   function Context_Menu_Row_Width
      (Menu : Context_Menu_Layout;
       Row  : Positive)
       return Natural;
@@ -429,6 +457,10 @@ package Files.Rendering is
       Y            : Natural := 0;
       Width        : Natural := 0;
       Height       : Natural := 0;
+      Message_X      : Natural := 0;
+      Message_Y      : Natural := 0;
+      Message_Width  : Natural := 0;
+      Message_Height : Natural := 0;
       Apply_X      : Natural := 0;
       Apply_Y      : Natural := 0;
       Apply_Width  : Natural := 0;
@@ -449,6 +481,10 @@ package Files.Rendering is
       Y             : Natural := 0;
       Width         : Natural := 0;
       Height        : Natural := 0;
+      Message_X      : Natural := 0;
+      Message_Y      : Natural := 0;
+      Message_Width  : Natural := 0;
+      Message_Height : Natural := 0;
       Bar_X         : Natural := 0;
       Bar_Y         : Natural := 0;
       Bar_Width     : Natural := 0;
@@ -502,9 +538,17 @@ package Files.Rendering is
       Width      : Natural := 0;
       Height     : Natural := 0;
       Row_Height : Natural := 0;
+      Scrollbar_Visible : Boolean := False;
+      Scrollbar_X       : Natural := 0;
+      Scrollbar_Y       : Natural := 0;
+      Scrollbar_Thumb_Y : Natural := 0;
+      Scrollbar_Width   : Natural := 0;
+      Scrollbar_Height  : Natural := 0;
+      Scrollbar_Track_Height : Natural := 0;
    end record;
 
    type Tree_Row_Layout is record
+      Visible_Row_Index : Natural := 0;
       Node_Index   : Natural := 0;
       X            : Natural := 0;
       Y            : Natural := 0;
@@ -898,6 +942,14 @@ package Files.Rendering is
    --  @return True when the field should draw the used/free bar.
    function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean;
 
+   --  Whether the cached capacity sample still covers Path and is within its
+   --  refresh interval.  The window frame cache uses this to avoid keeping a
+   --  time-sensitive free-space snapshot forever while the model is idle.
+   --
+   --  @param Path Directory whose containing volume is displayed.
+   --  @return True when Build_Snapshot may reuse the current capacity sample.
+   function Free_Space_Cache_Is_Current (Path : String) return Boolean;
+
    --  The rendered pixel width of Free_Space_Label, or zero when there is no
    --  free field.
    --
@@ -1223,6 +1275,17 @@ package Files.Rendering is
       Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Tree_Panel_Layout;
+
+   --  Return the number of tree rows that fit below the title and above any
+   --  destination-picker button bar.
+   --
+   --  @param Snapshot View snapshot containing tree-picker state.
+   --  @param Layout Tree sidebar panel layout.
+   --  @return Number of whole or partially visible rows in the viewport.
+   function Tree_Row_Capacity
+     (Snapshot : View_Snapshot;
+      Layout   : Tree_Panel_Layout)
+      return Natural;
 
    --  Calculate folder-tree row rectangles with per-depth indentation.
    --

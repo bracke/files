@@ -57,6 +57,7 @@ package body Panes is
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
       if Model.Settings_Pane_Open then
+         Claim_Overlay_Input (Model);
          Clear_Edit_State (Model);
          Clear_Root_Selector_State (Model);
          Model.Command_Palette_Open := False;
@@ -85,6 +86,7 @@ package body Panes is
       Normalize_Settings_Draft (Normalized_Draft);
       Model.Settings_Draft_Value := Normalized_Draft;
       Model.Settings_Pane_Open := True;
+      Claim_Overlay_Input (Model);
       Clear_Edit_State (Model);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
@@ -136,9 +138,13 @@ package body Panes is
    end Settings_Scroll;
 
    function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
+      Clicked : constant Boolean :=
+        Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      return Guikit.Settings_Panel.Click (Model.Settings_Panel_View, X, Y);
+      if Clicked then
+         Model.Revision_Value := Model.Revision_Value + 1;
+      end if;
+      return Clicked;
    end Settings_Click;
 
    function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change is
@@ -214,7 +220,6 @@ package body Panes is
    is
       Config : Guikit.Settings_Panel.Configuration;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
       Config.Line_Height := Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
@@ -249,23 +254,26 @@ package body Panes is
 
    procedure Scroll_Info_Pane
      (Model : in out Window_Model;
-      Lines : Integer) is
+      Lines : Integer)
+   is
+      Current : constant Natural := Model.Info_Pane_Scroll;
+      Wanted  : Natural;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
       if not Model.Info_Pane_Open or else Lines = 0 then
          return;
       elsif Lines < 0 then
          declare
             Step : constant Natural := Scroll_Step (Lines);
          begin
-            if Step >= Model.Info_Pane_Scroll then
-               Model.Info_Pane_Scroll := 0;
-            else
-               Model.Info_Pane_Scroll := Model.Info_Pane_Scroll - Step;
-            end if;
+            Wanted := (if Step >= Current then 0 else Current - Step);
          end;
       else
-         Model.Info_Pane_Scroll := Saturating_Add (Model.Info_Pane_Scroll, Scroll_Step (Lines));
+         Wanted := Saturating_Add (Current, Scroll_Step (Lines));
+      end if;
+
+      if Wanted /= Current then
+         Model.Revision_Value := Model.Revision_Value + 1;
+         Model.Info_Pane_Scroll := Wanted;
       end if;
    end Scroll_Info_Pane;
 
@@ -280,6 +288,10 @@ package body Panes is
      (Model : in out Window_Model;
       Lines : Natural) is
    begin
+      if Model.Info_Pane_Scroll = Lines then
+         return;
+      end if;
+
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Info_Pane_Scroll := Lines;
    end Set_Info_Pane_Scroll_Lines;
@@ -288,29 +300,36 @@ package body Panes is
      (Model : in out Window_Model;
       Lines : Natural) is
    begin
+      if Model.Main_View_Scroll = Lines then
+         return;
+      end if;
+
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Main_View_Scroll := Lines;
    end Set_Main_View_Scroll_Lines;
 
    procedure Scroll_Main_View
      (Model : in out Window_Model;
-      Lines : Integer) is
+      Lines : Integer)
+   is
+      Current : constant Natural := Model.Main_View_Scroll;
+      Wanted  : Natural;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
       if Lines = 0 then
          return;
       elsif Lines < 0 then
          declare
             Step : constant Natural := Scroll_Step (Lines);
          begin
-            if Step >= Model.Main_View_Scroll then
-               Model.Main_View_Scroll := 0;
-            else
-               Model.Main_View_Scroll := Model.Main_View_Scroll - Step;
-            end if;
+            Wanted := (if Step >= Current then 0 else Current - Step);
          end;
       else
-         Model.Main_View_Scroll := Saturating_Add (Model.Main_View_Scroll, Scroll_Step (Lines));
+         Wanted := Saturating_Add (Current, Scroll_Step (Lines));
+      end if;
+
+      if Wanted /= Current then
+         Model.Revision_Value := Model.Revision_Value + 1;
+         Model.Main_View_Scroll := Wanted;
       end if;
    end Scroll_Main_View;
 

@@ -419,6 +419,39 @@ package body Files.Model is
       return Model.Revision_Value;
    end Revision;
 
+   function Listing_Revision
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Listing_Revision_Value;
+   end Listing_Revision;
+
+   function Input_Owning_Overlay_Is_Open
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return
+        Model.Settings_Pane_Open
+        or else Model.Command_Palette_Open
+        or else Model.Root_Selector_Open
+        or else Model.Sort_Menu_Open
+        or else Model.Context_Menu_Open_Value
+        or else Model.Label_Picker_Active
+        or else Model.Quick_Look_Active
+        or else Model.Tree_Pick_Mode_Value /= Pick_None
+        or else Model.Paste_Conflict_Active_Value
+        or else Model.Paste_Exec_Active_Value;
+   end Input_Owning_Overlay_Is_Open;
+
+   --  Opening an overlay ends the grid's current type-to-select session.  Every
+   --  caller already advances the model revision, so clear the private buffer
+   --  directly rather than adding a second revision for Reset_Type_Ahead.
+   procedure Claim_Overlay_Input
+     (Model : in out Window_Model) is
+   begin
+      Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
+   end Claim_Overlay_Input;
+
    procedure Initialize
      (Model             : out Window_Model;
       Directory_Path    : String;
@@ -428,6 +461,7 @@ package body Files.Model is
    begin
       Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Files.Process_Jobs.Reset (Model.Refresh_Job);
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
@@ -817,6 +851,11 @@ package body Files.Model is
         (Model : Window_Model)
          return Files.File_System.Item_Vectors.Vector;
 
+      procedure Restore_Selection
+        (Model        : in out Window_Model;
+         Items        : Files.File_System.Item_Vectors.Vector;
+         Primary_Path : String);
+
       function Selected_Item_Is_Temporary
         (Model : Window_Model)
          return Boolean;
@@ -900,6 +939,12 @@ package body Files.Model is
    function Selected_Items (Model : Window_Model) return Files.File_System.Item_Vectors.Vector
      renames Selection.Selected_Items;
 
+   procedure Restore_Selection
+     (Model        : in out Window_Model;
+      Items        : Files.File_System.Item_Vectors.Vector;
+      Primary_Path : String)
+     renames Selection.Restore_Selection;
+
    function Selected_Item_Is_Temporary (Model : Window_Model) return Boolean
      renames Selection.Selected_Item_Is_Temporary;
 
@@ -937,6 +982,7 @@ package body Files.Model is
    begin
       Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       --  Leaving the virtual recent view does not preserve it in history (its
       --  path is synthetic); an ordinary directory change pushes back history as
       --  usual.
@@ -977,6 +1023,7 @@ package body Files.Model is
    begin
       Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       --  Only the initial entry into the view records the departure point; a
       --  refresh or clear re-enters while already active and just swaps items.
       if not Model.Recent_View_Active then
@@ -1017,6 +1064,8 @@ package body Files.Model is
          return;
       end if;
 
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+
       Previous := Model.Back_History.Last_Element;
       Model.Back_History.Delete_Last;
       --  The synthetic recent view is never preserved in forward history.
@@ -1053,6 +1102,8 @@ package body Files.Model is
       if not Can_Go_Forward (Model) then
          return;
       end if;
+
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
 
       Next := Model.Forward_History.Last_Element;
       Model.Forward_History.Delete_Last;
@@ -1670,6 +1721,23 @@ package body Files.Model is
         (Model : Window_Model)
          return Boolean;
 
+      procedure Scroll_Tree_Panel
+        (Model : in out Window_Model;
+         Rows  : Integer);
+
+      function Tree_Panel_Scroll_Rows
+        (Model : Window_Model)
+         return Natural;
+
+      procedure Set_Tree_Panel_Scroll_Rows
+        (Model : in out Window_Model;
+         Rows  : Natural);
+
+      procedure Ensure_Tree_Row_Visible
+        (Model       : in out Window_Model;
+         Visible_Row : Positive;
+         Page_Rows   : Natural);
+
       function Tree_Is_Seeded
         (Model : Window_Model)
          return Boolean;
@@ -1759,6 +1827,23 @@ package body Files.Model is
 
    function Tree_Panel_Is_Open (Model : Window_Model) return Boolean
      renames Tree_Panel.Tree_Panel_Is_Open;
+
+   procedure Scroll_Tree_Panel (Model : in out Window_Model; Rows : Integer)
+     renames Tree_Panel.Scroll_Tree_Panel;
+
+   function Tree_Panel_Scroll_Rows (Model : Window_Model) return Natural
+     renames Tree_Panel.Tree_Panel_Scroll_Rows;
+
+   procedure Set_Tree_Panel_Scroll_Rows
+     (Model : in out Window_Model;
+      Rows  : Natural)
+     renames Tree_Panel.Set_Tree_Panel_Scroll_Rows;
+
+   procedure Ensure_Tree_Row_Visible
+     (Model       : in out Window_Model;
+      Visible_Row : Positive;
+      Page_Rows   : Natural)
+     renames Tree_Panel.Ensure_Tree_Row_Visible;
 
    function Tree_Is_Seeded (Model : Window_Model) return Boolean
      renames Tree_Panel.Tree_Is_Seeded;
@@ -2180,6 +2265,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Reset_Rename_State (Model);
       Model.Temporary_Active := False;
       Model.Temporary_Is_Directory := False;
@@ -2199,6 +2285,7 @@ package body Files.Model is
    begin
       Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       if Model.Temporary_Active then
          Cancel_Create_File (Model);
       elsif Model.Rename_Active then

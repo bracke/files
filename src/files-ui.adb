@@ -83,6 +83,22 @@ package body Files.UI is
            Saturating_Add (Widest, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)));
    end Sort_Menu_Width;
 
+   function Sort_Menu_Visible_Width
+     (Width       : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
+      Line_Height : Positive := 20)
+      return Natural
+   is
+      Bottom : constant Bottom_Bar_Layout :=
+        Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
+   begin
+      if Bottom.Sort_Button_Width = 0 or else Bottom.Sort_Button_X >= Width then
+         return 0;
+      end if;
+      return Natural'Min
+        (Sort_Menu_Width (Line_Height), Width - Bottom.Sort_Button_X);
+   end Sort_Menu_Visible_Width;
+
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector is
       Result : Guikit.Segmented.Segment_Vectors.Vector;
 
@@ -199,15 +215,23 @@ package body Files.UI is
       Toggle_Width     : out Natural;
       Divider_X        : out Natural;
       Free_Field_X     : out Natural;
-      Free_Field_Width : out Natural)
+      Free_Field_Width : out Natural;
+      Line_Height      : Positive := 20)
    is
-      Pad     : constant Natural := 4;
-      Div_Gap : constant Natural := 8;
+      Pad        : constant Natural := 4;
+      Div_Gap    : constant Natural := 8;
+      Count_Cell : constant Natural := Caret_Advance_Width (Line_Height);
+      --  Preserve enough room for a representative compact count such as
+      --  "0/31/0", including the renderer's horizontal padding. Disk-space
+      --  information yields before these primary counts become an ellipsis.
+      Minimum_Counts : constant Natural :=
+        Saturating_Add (Saturating_Multiply (Count_Cell, 6), 2 * Pad);
       --  Only split when there is a free label and room for it plus the divider
-      --  gaps and some counts (matching the renderer's threshold).
+      --  gaps and a complete compact count summary.
       Show    : constant Boolean :=
         Free_Label_Width > 0
-        and then Info_Width > Saturating_Add (Free_Label_Width, 2 * Div_Gap + 3 * Pad);
+        and then Info_Width >=
+          Saturating_Add (Free_Label_Width, Saturating_Add (2 * Div_Gap, Minimum_Counts));
    begin
       if not Show then
          Toggle_Width     := Info_Width;
@@ -236,7 +260,6 @@ package body Files.UI is
       Bottom   : constant Bottom_Bar_Layout := Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Bottom_H : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
-      Content_Y : constant Natural := Saturating_Add (Bottom_Y, Bottom_Bar_Padding);
       --  The hidden-files toggle occupies only the counts area; when a free-space
       --  field is split off, the toggle stops at the divider and the free field
       --  is its own, non-interactive region.
@@ -244,11 +267,12 @@ package body Files.UI is
    begin
       Split_Status_Region
         (Bottom.Info_X, Bottom.Info_Width, Free_Label_Width,
-         Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width);
+         Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width, Line_Height);
       if Width = 0
         or else Height = 0
-        or else Y < Content_Y
-        or else Y >= Saturating_Add (Content_Y, Line_Height)
+        or else X >= Width
+        or else Y < Bottom_Y
+        or else Y >= Height
       then
          return Files.Commands.No_Command;
       elsif Within (X, Bottom.View_Mode_X, Bottom.View_Mode_Width) then
@@ -302,10 +326,13 @@ package body Files.UI is
       Menu_Y       : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
       Rows_Y       : constant Natural := Saturating_Add (Menu_Y, Sort_Menu_Padding);
       --  The dropdown is as wide as the widest field, not the (snug) sort button.
-      Menu_W       : constant Natural := Sort_Menu_Width (Line_Height);
+      Menu_W       : constant Natural :=
+        Sort_Menu_Visible_Width (Width, Sort_Field, Line_Height);
       Relative_Row : Natural := 0;
    begin
       if Bottom.Sort_Button_Width = 0
+        or else X >= Width
+        or else Y >= Height
         or else X < Bottom.Sort_Button_X
         or else X >= Saturating_Add (Bottom.Sort_Button_X, Menu_W)
         or else Y < Rows_Y
@@ -350,13 +377,18 @@ package body Files.UI is
       Bottom_H  : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
       Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
-      Menu_W    : constant Natural := Sort_Menu_Width (Line_Height);
+      Menu_W    : constant Natural :=
+        Sort_Menu_Visible_Width (Width, Sort_Field, Line_Height);
+      Menu_Bottom : constant Natural :=
+        Natural'Min (Height, Saturating_Add (Menu_Y, Menu_H));
    begin
       return Bottom.Sort_Button_Width > 0
+        and then X < Width
+        and then Y < Height
         and then X >= Bottom.Sort_Button_X
         and then X < Saturating_Add (Bottom.Sort_Button_X, Menu_W)
         and then Y >= Menu_Y
-        and then Y < Bottom_Y;
+        and then Y < Menu_Bottom;
    end Bottom_Bar_Sort_Menu_Contains;
 
 end Files.UI;

@@ -47,11 +47,20 @@ package body Files.Rendering is
    Cached_Free_Ready : Boolean := False;
    Cached_Free_Time  : Ada.Calendar.Time;  --  meaningful only once Ready
 
+   function Free_Space_Cache_Is_Current (Path : String) return Boolean is
+   begin
+      return Cached_Free_Ready
+        and then Ada.Strings.Unbounded.To_String (Cached_Free_Path) = Path
+        and then Ada.Calendar."-" (Ada.Calendar.Clock, Cached_Free_Time) <=
+          Free_Space_Refresh_Interval;
+   end Free_Space_Cache_Is_Current;
+
    --  Text rendering is provided by the guikit toolkit; this process-wide
    --  renderer holds the shared font/atlas the whole app draws through.
    The_Renderer : Guikit.Text.Renderer;
 
    use Ada.Strings.Unbounded;
+   use type Ada.Containers.Count_Type;
    use type Ada.Calendar.Time;
    use type Files.Commands.Registered_Command_Id;
    use type Files.Model.Sort_Field;
@@ -481,6 +490,7 @@ package body Files.Rendering is
      (Snapshot.Show_Space_Bar
       and then Snapshot.Free_Space_Known
       and then Length (Snapshot.Last_Error_Key) = 0
+      and then Snapshot.Free_Space_Bytes >= 0
       and then Snapshot.Total_Space_Bytes > 0
       and then Snapshot.Total_Space_Bytes >= Snapshot.Free_Space_Bytes);
 
@@ -849,7 +859,16 @@ package body Files.Rendering is
         Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2));
       Used_Y     : constant Natural := Saturating_Add (Toolbar, Bottom);
       Main_H     : constant Natural := (if Height > Used_Y then Height - Used_Y else 0);
-      Pane_W     : constant Natural := (if Snapshot.Info_Pane_Open then Width / 4 else 0);
+      --  A quarter-width pane is too narrow for ordinary metadata at the
+      --  default window size (dates and short prose wrap after only a handful
+      --  of words). Prefer sixteen text rows' worth of width while retaining
+      --  at least half of the window for the file view on compact windows.
+      Pane_W     : constant Natural :=
+        (if not Snapshot.Info_Pane_Open
+         then 0
+         else Natural'Min
+           (Width / 2,
+            Natural'Max (Width / 4, Saturating_Multiply (Line_Height, 16))));
       Main_W     : constant Natural := (if Width > Pane_W then Width - Pane_W else 0);
       Command_W  : constant Natural := Scaled_Down (Width, 8, 10);
       Command_H  : constant Natural := Scaled_Down (Height, 8, 10);
@@ -981,8 +1000,12 @@ package body Files.Rendering is
       return Natural
    is
       Top : Natural := Saturating_Add (Menu.Y, Menu.Padding);
+      First_Row : constant Positive :=
+        (if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row
+         then Positive (Menu.Column_Break_Row + 1)
+         else 1);
    begin
-      for Preceding in 1 .. Row - 1 loop
+      for Preceding in First_Row .. Row - 1 loop
          Top :=
            Saturating_Add
              (Top,
@@ -993,17 +1016,45 @@ package body Files.Rendering is
       return Top;
    end Context_Menu_Row_Top;
 
+   function Context_Menu_Row_Left
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural is
+   begin
+      if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row then
+         return Saturating_Add (Menu.X, Menu.Column_Width);
+      else
+         return Menu.X;
+      end if;
+   end Context_Menu_Row_Left;
+
+   function Context_Menu_Row_Width
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural is
+   begin
+      if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row then
+         return
+           (if Menu.Width > Menu.Column_Width
+            then Menu.Width - Menu.Column_Width
+            else 0);
+      else
+         return Menu.Column_Width;
+      end if;
+   end Context_Menu_Row_Width;
+
    function Context_Menu_Row_At
      (Menu : Context_Menu_Layout;
       X    : Natural;
       Y    : Natural)
       return Natural is
-      First_Row_Y : constant Natural :=
-        Saturating_Add (Menu.Y, Menu.Padding);
+      First_Row_Y : constant Natural := Saturating_Add (Menu.Y, Menu.Padding);
    begin
       if not Menu.Visible
         or else X < Menu.X
         or else X - Menu.X >= Menu.Width
+        or else Y < Menu.Y
+        or else Y - Menu.Y >= Menu.Height
         or else Y < First_Row_Y
         or else Menu.Row_Height = 0
       then
@@ -1011,12 +1062,21 @@ package body Files.Rendering is
       end if;
 
       --  Rows have variable heights (separators are shorter), so walk them in
-      --  order and return the command row containing Y. Separator rows are not
-      --  selectable and resolve to no row.
+      --  the column under X and return the command row containing Y. Separator
+      --  rows are not selectable and resolve to no row.
       declare
+         Second_Column : constant Boolean :=
+           Menu.Column_Count > 1
+           and then X - Menu.X >= Menu.Column_Width;
+         First_Row : constant Positive :=
+           (if Second_Column then Positive (Menu.Column_Break_Row + 1) else 1);
+         Last_Row  : constant Natural :=
+           (if Second_Column then Menu.Row_Count
+            elsif Menu.Column_Count > 1 then Menu.Column_Break_Row
+            else Menu.Row_Count);
          Row_Top : Natural := First_Row_Y;
       begin
-         for Row in 1 .. Menu.Row_Count loop
+         for Row in First_Row .. Last_Row loop
             declare
                Row_H : constant Natural :=
                  (if Menu.Row_Kinds (Row) = Separator_Row
@@ -1296,11 +1356,14 @@ package body Files.Rendering is
       Panel_Y   : constant Natural :=
         (if Layout.Height > Panel_H then (Layout.Height - Panel_H) / 2 else 0);
       --  The title band reserves one line height plus padding at the top.
-      Title_H   : constant Natural := Saturating_Add (Line_Height, Padding);
-      Content_X : constant Natural := Saturating_Add (Panel_X, Padding);
+      Desired_Title_H : constant Natural := Saturating_Add (Line_Height, Padding);
+      Title_H   : constant Natural := Natural'Min (Desired_Title_H, Panel_H);
+      Horizontal_Padding : constant Natural := Natural'Min (Padding, Panel_W / 2);
+      Remaining_H : constant Natural := Panel_H - Title_H;
+      Bottom_Padding : constant Natural := Natural'Min (Padding, Remaining_H);
+      Content_X : constant Natural := Saturating_Add (Panel_X, Horizontal_Padding);
       Content_Y : constant Natural := Saturating_Add (Panel_Y, Title_H);
-      Used_W    : constant Natural := Saturating_Multiply (Padding, 2);
-      Used_H    : constant Natural := Saturating_Add (Title_H, Padding);
+      Used_W    : constant Natural := Saturating_Multiply (Horizontal_Padding, 2);
    begin
       return
         (X              => Panel_X,
@@ -1309,8 +1372,8 @@ package body Files.Rendering is
          Height         => Panel_H,
          Content_X      => Content_X,
          Content_Y      => Content_Y,
-         Content_Width  => (if Panel_W > Used_W then Panel_W - Used_W else 0),
-         Content_Height => (if Panel_H > Used_H then Panel_H - Used_H else 0));
+         Content_Width  => Panel_W - Used_W,
+         Content_Height => Remaining_H - Bottom_Padding);
    end Calculate_Quick_Look_Layout;
 
    function Calculate_Label_Picker_Layout
@@ -1318,29 +1381,55 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Label_Picker_Layout
    is
-      Count    : constant Positive := Label_Picker_Swatch_Count;
-      Padding  : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
-      Gap      : constant Natural := Natural'Max (4, Line_Height / 4);
+      Count           : constant Positive := Label_Picker_Swatch_Count;
+      Padding         : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+      Desired_Gap     : constant Natural := Natural'Max (4, Line_Height / 4);
       --  A compact centered panel: a single row of square swatches under a
-      --  one-line title band. The swatch edge tracks the line height.
-      Swatch   : constant Natural := Saturating_Multiply (Line_Height, 2);
-      Title_H  : constant Natural := Saturating_Add (Line_Height, Padding);
-      Row_W    : constant Natural :=
+      --  one-line title band. The preferred swatch edge tracks the line height;
+      --  narrow/short windows shrink the row below that preference.
+      Desired_Swatch : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Desired_Title_H : constant Natural := Saturating_Add (Line_Height, Padding);
+      Desired_Row_W : constant Natural :=
         Saturating_Add
-          (Saturating_Multiply (Swatch, Count),
-           Saturating_Multiply (Gap, Count - 1));
+          (Saturating_Multiply (Desired_Swatch, Count),
+           Saturating_Multiply (Desired_Gap, Count - 1));
       Panel_W  : constant Natural :=
-        Natural'Min (Layout.Width, Saturating_Add (Row_W, Saturating_Multiply (Padding, 2)));
+        Natural'Min
+          (Layout.Width,
+           Saturating_Add (Desired_Row_W, Saturating_Multiply (Padding, 2)));
       Panel_H  : constant Natural :=
         Natural'Min
           (Layout.Height,
-           Saturating_Add (Title_H, Saturating_Add (Swatch, Saturating_Multiply (Padding, 2))));
+           Saturating_Add
+             (Desired_Title_H,
+              Saturating_Add (Desired_Swatch, Saturating_Multiply (Padding, 2))));
       Panel_X  : constant Natural :=
         (if Layout.Width > Panel_W then (Layout.Width - Panel_W) / 2 else 0);
       Panel_Y  : constant Natural :=
         (if Layout.Height > Panel_H then (Layout.Height - Panel_H) / 2 else 0);
-      Row_X    : constant Natural := Saturating_Add (Panel_X, Padding);
-      Row_Y    : constant Natural := Saturating_Add (Panel_Y, Title_H);
+      Horizontal_Padding : constant Natural := Natural'Min (Padding, Panel_W / 2);
+      Inner_W            : constant Natural :=
+        Panel_W - Saturating_Multiply (Horizontal_Padding, 2);
+      --  Keep at least one pixel per swatch before assigning inter-swatch gaps.
+      --  On extremely narrow panels the gaps collapse completely.
+      Gap : constant Natural :=
+        (if Count > 1 and then Inner_W > Count
+         then Natural'Min (Desired_Gap, (Inner_W - Count) / (Count - 1))
+         else 0);
+      Gaps_W : constant Natural := Saturating_Multiply (Gap, Count - 1);
+      Horizontal_Swatch : constant Natural :=
+        (if Inner_W > Gaps_W
+         then Natural'Min (Desired_Swatch, (Inner_W - Gaps_W) / Count)
+         else 0);
+      Title_H     : constant Natural := Natural'Min (Desired_Title_H, Panel_H);
+      Remaining_H : constant Natural := Panel_H - Title_H;
+      Swatch      : constant Natural := Natural'Min (Horizontal_Swatch, Remaining_H);
+      Row_W            : constant Natural :=
+        Saturating_Add
+          (Saturating_Multiply (Swatch, Count), Gaps_W);
+      Row_X            : constant Natural :=
+        Saturating_Add (Panel_X, (Panel_W - Row_W) / 2);
+      Row_Y            : constant Natural := Saturating_Add (Panel_Y, Title_H);
       Result   : Label_Picker_Layout;
    begin
       Result.X           := Panel_X;
@@ -1495,13 +1584,87 @@ package body Files.Rendering is
          return (others => <>);
       end if;
 
-      return
-        (X          => 0,
-         Y          => Layout.Toolbar_Height,
-         Width      => Panel_Width,
-         Height     => Layout.Main_Height,
-         Row_Height => Row_Height);
+      declare
+         Base : constant Tree_Panel_Layout :=
+           (X          => 0,
+            Y          => Layout.Toolbar_Height,
+            Width      => Panel_Width,
+            Height     => Layout.Main_Height,
+            Row_Height => Row_Height,
+            others     => <>);
+         Footer_H : constant Natural :=
+           (if Snapshot.Tree_Pick_Active
+              and then Base.Width > 0
+              and then Base.Row_Height > 0
+              and then Base.Height > Saturating_Multiply (Base.Row_Height, 2)
+            then Base.Row_Height
+            else 0);
+         Reserved : constant Natural := Saturating_Add (Base.Row_Height, Footer_H);
+         Track_H  : constant Natural :=
+           (if Base.Height > Reserved then Base.Height - Reserved else 0);
+         Capacity : constant Natural := Tree_Row_Capacity (Snapshot, Base);
+         Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
+         Maximum  : constant Natural :=
+           (if Count > Capacity then Count - Capacity else 0);
+         Scroll   : constant Natural :=
+           Natural'Min (Snapshot.Tree_Panel_Scroll_Rows, Maximum);
+         Bar_W    : constant Natural := Natural'Min (Scrollbar_Width, Base.Width);
+         Thumb    : constant Guikit.Layout.Scrollbar_Thumb :=
+           Guikit.Layout.Calculate_Scrollbar_Thumb
+             (Track_Length    => Track_H,
+              Visible_Amount  => Capacity,
+              Total_Amount    => Count,
+              Scroll_Position => Scroll,
+              Max_Scroll      => Maximum,
+              Min_Length      => Line_Height);
+         Visible  : constant Boolean :=
+           Count > Capacity
+           and then Capacity > 0
+           and then Bar_W > 0
+           and then Thumb.Length > 0;
+         Track_Y  : constant Natural := Saturating_Add (Base.Y, Base.Row_Height);
+      begin
+         return
+           (X          => Base.X,
+            Y          => Base.Y,
+            Width      => Base.Width,
+            Height     => Base.Height,
+            Row_Height => Base.Row_Height,
+            Scrollbar_Visible => Visible,
+            Scrollbar_X       =>
+              (if Visible then Saturating_Add (Base.X, Base.Width - Bar_W) else 0),
+            Scrollbar_Y       => (if Visible then Track_Y else 0),
+            Scrollbar_Thumb_Y =>
+              (if Visible then Saturating_Add (Track_Y, Thumb.Offset) else 0),
+            Scrollbar_Width   => (if Visible then Bar_W else 0),
+            Scrollbar_Height  => (if Visible then Thumb.Length else 0),
+            Scrollbar_Track_Height => (if Visible then Track_H else 0));
+      end;
    end Calculate_Tree_Panel_Layout;
+
+   function Tree_Row_Capacity
+     (Snapshot : View_Snapshot;
+      Layout   : Tree_Panel_Layout)
+      return Natural
+   is
+      Footer_H : constant Natural :=
+        (if Snapshot.Tree_Pick_Active
+           and then Layout.Width > 0
+           and then Layout.Row_Height > 0
+           and then Layout.Height > Saturating_Multiply (Layout.Row_Height, 2)
+         then Layout.Row_Height
+         else 0);
+      Reserved : constant Natural :=
+        Saturating_Add (Layout.Row_Height, Footer_H);
+      Content_H : constant Natural :=
+        (if Layout.Height > Reserved then Layout.Height - Reserved else 0);
+   begin
+      if Layout.Row_Height = 0 or else Content_H = 0 then
+         return 0;
+      end if;
+
+      return 1 + (Content_H - 1) / Layout.Row_Height;
+   end Tree_Row_Capacity;
 
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;
@@ -1667,6 +1830,54 @@ package body Files.Rendering is
       end;
    end Info_Field_Display_Value;
 
+   --  Return the last byte of the next display line. Prefer an ASCII word
+   --  boundary when one exists; an individual word longer than Capacity is
+   --  still split at a valid UTF-8 display boundary.
+   function Wrapped_Line_Last
+     (Raw          : String;
+      Start        : Integer;
+      Segment_Last : Integer;
+      Capacity     : Natural)
+      return Integer
+   is
+      Prefix : constant String :=
+        Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
+      Limit  : constant Integer :=
+        (if Prefix'Length = 0
+         then Start
+           + Integer (Files.UTF8.Next_Boundary (Raw (Start .. Segment_Last), 0)) - 1
+         else Start + Prefix'Length - 1);
+   begin
+      if Limit >= Segment_Last then
+         return Segment_Last;
+      end if;
+
+      for Position in reverse Start + 1 .. Limit loop
+         if Raw (Position) = ' ' or else Raw (Position) = ASCII.HT then
+            return Position - 1;
+         end if;
+      end loop;
+
+      return Limit;
+   end Wrapped_Line_Last;
+
+   --  Whitespace used as a wrap boundary belongs to neither rendered line.
+   function Skip_Wrap_Whitespace
+     (Raw          : String;
+      Start        : Integer;
+      Segment_Last : Integer)
+      return Integer
+   is
+      Result : Integer := Start;
+   begin
+      while Result <= Segment_Last
+        and then (Raw (Result) = ' ' or else Raw (Result) = ASCII.HT)
+      loop
+         Result := Result + 1;
+      end loop;
+      return Result;
+   end Skip_Wrap_Whitespace;
+
    function Wrapped_Line_Count
      (Text        : UString;
       Text_W      : Natural;
@@ -1682,14 +1893,30 @@ package body Files.Rendering is
          Last  : Integer)
          return Natural
       is
-         Units : constant Natural :=
-           (if Last < First then 0 else Files.UTF8.Display_Units (Raw (First .. Last)));
+         Start : Integer := First;
+         Count : Natural := 0;
       begin
-         if Capacity = 0 or else Units = 0 then
+         if Capacity = 0 or else Last < First then
             return 1;
          end if;
 
-         return Units / Capacity + (if Units mod Capacity = 0 then 0 else 1);
+         Start := Skip_Wrap_Whitespace (Raw, Start, Last);
+         if Start > Last then
+            return 1;
+         end if;
+
+         while Start <= Last loop
+            declare
+               Line_Last : constant Integer :=
+                 Wrapped_Line_Last (Raw, Start, Last, Capacity);
+            begin
+               Count := Saturating_Add (Count, 1);
+               exit when Line_Last >= Last;
+               Start := Skip_Wrap_Whitespace (Raw, Line_Last + 1, Last);
+            end;
+         end loop;
+
+         return Count;
       end Segment_Row_Count;
 
       Rows       : Natural := 0;
@@ -1729,9 +1956,9 @@ package body Files.Rendering is
          else 0);
    end Info_Text_Width;
 
-   --  The " (<name>)" suffix appended to each info-pane value so a row shows the
-   --  item it describes. Applied uniformly (single and multi selection); the
-   --  dedicated Name field is dropped since the name now rides on every row.
+   --  The " (<name>)" suffix appended to coalesced multi-selection values so a
+   --  row shows which item it describes. A single-item pane renders the name
+   --  once as its heading instead of repeating it after every value.
    --
    --  @param Info The selected-item info block.
    --  @return The parenthesised item-name suffix.
@@ -1740,17 +1967,19 @@ package body Files.Rendering is
       return " (" & To_String (Info.Name) & ")";
    end Info_Postfix;
 
-   --  The display value of a numbered info field with the item-name suffix.
+   --  The display value of a numbered info field. Single-item panes no longer
+   --  repeat the item name after each value; the function remains the shared
+   --  layout-side display transformation for those fields.
    --
    --  @param Info The selected-item info block.
    --  @param Field Field index (see Info_Field_Value).
-   --  @return The postfixed display value used for both layout and rendering.
+   --  @return The display value used for single-item layout and rendering.
    function Info_Field_Postfixed_Value
      (Info  : Info_Snapshot;
       Field : Natural)
       return UString is
    begin
-      return Info_Field_Display_Value (Info, Field) & Info_Postfix (Info);
+      return Info_Field_Display_Value (Info, Field);
    end Info_Field_Postfixed_Value;
 
    function Info_Section_Row_Count

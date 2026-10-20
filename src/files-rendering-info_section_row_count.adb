@@ -5,10 +5,12 @@ separate (Files.Rendering)
       Line_Height : Positive)
       return Natural
    is
-      Rows : Natural := 0;
+      --  The selected item's name is rendered once as a heading followed by a
+      --  breathing row before the metadata sections.
+      Rows : Natural := 2;
    begin
-      --  Field 0 (Name) is omitted: the name rides on every value as a suffix.
-      --  Field 2 (Filesize) is omitted for folders: they carry no byte size and
+      --  Field 0 (Name) is the heading accounted for above. Field 2 (Filesize)
+      --  is omitted for folders: they carry no byte size and
       --  show Contents instead. Field 5 (Permissions) is drawn as the matrix
       --  below, not as text. Field 7 (Kind) is omitted: it duplicates Filetype.
       --  Field 6 (Metadata Error) only appears when metadata actually failed.
@@ -50,7 +52,7 @@ separate (Files.Rendering)
              (Rows,
               Saturating_Add
                 (2, Wrapped_Line_Count
-                      (Folder_Contents_Text (Info) & Info_Postfix (Info), Text_W, Line_Height)));
+                      (Folder_Contents_Text (Info), Text_W, Line_Height)));
       end if;
 
       return Rows;

@@ -1870,6 +1870,20 @@ package body Files_Suite.Settings is
          and then Loaded.Settings.Default_View = Files.Types.Details,
          "a rejected NUL-containing save preserves the existing settings file");
       declare
+         Oversized_Text : constant String :=
+           [1 .. 1 * 1024 * 1024 + 1 => 'x'];
+      begin
+         Saved := Files.Settings.Save_Text (Saved_Path, Oversized_Text);
+         Assert
+           (not Saved.Success,
+            "settings saving rejects text that its bounded loader cannot read");
+         Loaded := Files.Settings.Load_File (Saved_Path);
+         Assert
+           (Loaded.Success
+            and then Loaded.Settings.Default_View = Files.Types.Details,
+            "a rejected oversized save preserves the existing settings file");
+      end;
+      declare
          Temp_Path : constant String := Saved_Path & ".tmp";
          Victim : constant String := Join (Root, "settings-temp-victim");
       begin

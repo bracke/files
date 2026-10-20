@@ -165,20 +165,14 @@ package body Files.UTF8 is
       end loop;
 
       declare
-         Lead_Code : constant Natural := Character'Pos (Content (Content'First + Lead));
-         Expected  : Natural := 0;
+         Lead_Index : constant Integer := Content'First + Integer (Lead);
+         Length     : constant Positive := Unit_Length (Content, Lead_Index);
       begin
-         if Lead_Code in 16#C2# .. 16#DF# then
-            Expected := 1;
-         elsif Lead_Code in 16#E0# .. 16#EF# then
-            Expected := 2;
-         elsif Lead_Code in 16#F0# .. 16#F4# then
-            Expected := 3;
-         else
-            return False;
-         end if;
-
-         return Position - Lead <= Expected;
+         --  Unit_Length performs the complete UTF-8 validity check, including
+         --  overlong, surrogate, out-of-range and truncated sequences.  Merely
+         --  counting continuation bytes here would incorrectly merge the bytes
+         --  of those malformed sequences into one cursor/deletion unit.
+         return Length > 1 and then Position - Lead < Natural (Length);
       end;
    end Continuation_At;
 

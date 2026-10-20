@@ -56,9 +56,52 @@ package body Files.Localization is
       Raw    : constant String := Ada.Strings.Fixed.Trim (Value, Ada.Strings.Both);
       Last   : Natural := Raw'Last;
       Result : Unbounded_String;
-      Region : Boolean := False;
+
+      function Is_Ascii_Alphanumeric (Item : Character) return Boolean is
+        (Item in 'a' .. 'z' or else Item in 'A' .. 'Z' or else Item in '0' .. '9');
+
+      function Is_Ascii_Letter (Item : Character) return Boolean is
+        (Item in 'a' .. 'z' or else Item in 'A' .. 'Z');
+
+      function Is_Ascii_Digit (Item : Character) return Boolean is
+        (Item in '0' .. '9');
+
+      procedure Append_Component
+        (Component : String;
+         First     : Boolean)
+      is
+         Is_Script : constant Boolean :=
+           not First
+           and then Component'Length = 4
+           and then (for all Item of Component => Is_Ascii_Letter (Item));
+         Is_Region : constant Boolean :=
+           not First
+           and then
+             ((Component'Length = 2
+               and then (for all Item of Component => Is_Ascii_Letter (Item)))
+              or else
+                (Component'Length = 3
+                 and then (for all Item of Component => Is_Ascii_Digit (Item))));
+      begin
+         if not First then
+            Append (Result, '-');
+         end if;
+
+         for Index in Component'Range loop
+            if Is_Script and then Index = Component'First then
+               Append (Result, Ada.Characters.Handling.To_Upper (Component (Index)));
+            elsif Is_Region then
+               Append (Result, Ada.Characters.Handling.To_Upper (Component (Index)));
+            else
+               Append (Result, Ada.Characters.Handling.To_Lower (Component (Index)));
+            end if;
+         end loop;
+      end Append_Component;
    begin
-      if Raw'Length = 0 then
+      --  The normalized value is retained and is also embedded in a locale
+      --  catalog pathname. Keep it a small locale identifier, never an
+      --  attacker-controlled path or an unbounded cache key.
+      if Raw'Length = 0 or else Raw'Length > 64 then
          return "en";
       end if;
 
@@ -75,21 +118,34 @@ package body Files.Localization is
 
       declare
          Base : constant String := Raw (Raw'First .. Last);
+         Component_First : Natural := Base'First;
+         First_Component : Boolean := True;
       begin
          if Base = "C" or else Base = "POSIX" then
             return "en";
          end if;
 
-         for Character of Base loop
-            if Character = '_' or else Character = '-' then
-               Append (Result, '-');
-               Region := True;
-            elsif Region then
-               Append (Result, Ada.Characters.Handling.To_Upper (Character));
-            else
-               Append (Result, Ada.Characters.Handling.To_Lower (Character));
+         for Index in Base'Range loop
+            if Base (Index) = '_' or else Base (Index) = '-' then
+               if Index = Component_First then
+                  return "en";
+               end if;
+
+               Append_Component
+                 (Base (Component_First .. Index - 1), First_Component);
+               First_Component := False;
+               Component_First := Index + 1;
+            elsif not Is_Ascii_Alphanumeric (Base (Index)) then
+               return "en";
             end if;
          end loop;
+
+         if Component_First > Base'Last then
+            return "en";
+         end if;
+
+         Append_Component
+           (Base (Component_First .. Base'Last), First_Component);
       end;
 
       if Length (Result) = 0 then

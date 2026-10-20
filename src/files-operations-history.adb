@@ -612,6 +612,7 @@ package body History is
       end if;
       Files.Model.Take_Undo (Model, Action, Found);
       if not Found then
+         Files.Model.Set_Error (Model, "error.undo.failed");
          return Make_Result (Operation_Failed, "error.undo.failed", Directory);
       end if;
 
@@ -642,6 +643,7 @@ package body History is
          if Found and then not Returned_Action then
             Files.Model.Push_Undo (Model, Action);
          end if;
+         Files.Model.Set_Error (Model, "error.undo.failed");
          return Make_Result (Operation_Failed, "error.undo.failed", Directory);
    end Undo_Last;
 
@@ -661,6 +663,7 @@ package body History is
       end if;
       Files.Model.Take_Redo (Model, Action, Found);
       if not Found then
+         Files.Model.Set_Error (Model, "error.undo.failed");
          return Make_Result (Operation_Failed, "error.undo.failed", Directory);
       end if;
 
@@ -685,6 +688,7 @@ package body History is
          if Found and then not Returned_Action then
             Files.Model.Push_Redo (Model, Action);
          end if;
+         Files.Model.Set_Error (Model, "error.undo.failed");
          return Make_Result (Operation_Failed, "error.undo.failed", Directory);
    end Redo_Last;
 

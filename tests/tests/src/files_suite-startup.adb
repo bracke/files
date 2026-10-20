@@ -912,14 +912,15 @@ package body Files_Suite.Startup is
          Assert (Event_Profile.Event_Source_Backend, "drop event backend profile exposes event-source support");
          Paths.Append (To_Unbounded_String (""));
          Paths.Append (To_Unbounded_String ("  " & Dir & "  "));
-         Paths.Append (To_Unbounded_String ("  "));
          Files.Drop_Events.Queue (Source, Paths, Files.File_System.Drop_Move);
          Assert (Files.Drop_Events.Has_Pending (Source), "drop event source queues non-empty paths");
          Assert (Files.Drop_Events.Pending_Count (Source) = 1, "drop event source filters empty paths");
          Files.Drop_Events.Take (Source, Drained, Mode);
          Assert (Mode = Files.File_System.Drop_Move, "drop event source preserves queued import mode");
          Assert (Natural (Drained.Length) = 1, "drop event source drains one filtered path");
-         Assert (To_String (Drained.Element (1)) = Dir, "drop event source trims queued path text");
+         Assert
+           (To_String (Drained.Element (1)) = "  " & Dir & "  ",
+            "drop event source preserves native path whitespace");
          Assert (not Files.Drop_Events.Has_Pending (Source), "drop event source clears after drain");
       end;
       Assert (Caps.Directory_Watch_Polling, "runtime capabilities expose directory watch polling");
@@ -988,6 +989,50 @@ package body Files_Suite.Startup is
       Assert
         (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (0)) = 0,
          "runtime coordinate scaling rejects zero target dimensions");
+      Assert
+        (Files.Application.Windows.Scrollbar_Drag_Offset
+           (Thumb_Top => 0, Track_Length => 100, Thumb_Length => 20, Maximum => 17) = 0,
+         "scrollbar dragging maps the top of the track to zero");
+      Assert
+        (Files.Application.Windows.Scrollbar_Drag_Offset
+           (Thumb_Top => 40, Track_Length => 100, Thumb_Length => 20, Maximum => 17) = 8,
+         "scrollbar dragging maps intermediate thumb travel proportionally");
+      Assert
+        (Files.Application.Windows.Scrollbar_Drag_Offset
+           (Thumb_Top => 80, Track_Length => 100, Thumb_Length => 20, Maximum => 17) = 17,
+         "scrollbar dragging reaches a partial final page exactly");
+      Assert
+        (Files.Application.Windows.Scrollbar_Drag_Offset
+           (Thumb_Top => 200, Track_Length => 100, Thumb_Length => 20, Maximum => 17) = 17,
+         "scrollbar dragging clamps positions beyond the track");
+      Assert
+        (Files.Application.Windows.Scrollbar_Drag_Offset
+           (Thumb_Top => 1, Track_Length => 20, Thumb_Length => 20, Maximum => 17) = 0,
+         "scrollbar dragging is inert when the thumb has no travel");
+      Assert
+        (Files.Application.Windows.Cursor_Is_Inside_Window
+           (0.0, 0.0, Glfw.Size (100), Glfw.Size (80)),
+         "the first window pixel is inside the raw cursor bounds");
+      Assert
+        (Files.Application.Windows.Cursor_Is_Inside_Window
+           (99.5, 79.5, Glfw.Size (100), Glfw.Size (80)),
+         "fractional coordinates before the far edges remain inside");
+      Assert
+        (not Files.Application.Windows.Cursor_Is_Inside_Window
+           (-0.01, 20.0, Glfw.Size (100), Glfw.Size (80)),
+         "a raw cursor left of the window is outside rather than pixel zero");
+      Assert
+        (not Files.Application.Windows.Cursor_Is_Inside_Window
+           (20.0, -0.01, Glfw.Size (100), Glfw.Size (80)),
+         "a raw cursor above the window is outside rather than pixel zero");
+      Assert
+        (not Files.Application.Windows.Cursor_Is_Inside_Window
+           (100.0, 20.0, Glfw.Size (100), Glfw.Size (80)),
+         "the right window extent is outside");
+      Assert
+        (not Files.Application.Windows.Cursor_Is_Inside_Window
+           (20.0, 80.0, Glfw.Size (100), Glfw.Size (80)),
+         "the bottom window extent is outside");
       Plan := Files.Application.Windows.Live_Window_Smoke_Plan (Width => 640, Height => 360);
       Assert (Plan.Width = 640, "live smoke plan records requested width");
       Assert (Plan.Height = 360, "live smoke plan records requested height");
@@ -1667,10 +1712,28 @@ package body Files_Suite.Startup is
            (Files.Localization.Normalize_Locale ("en_us") = "en-US",
             "locale normalization canonicalizes language and region case");
          Assert
+           (Files.Localization.Normalize_Locale ("zh_hant_tw.UTF-8") = "zh-Hant-TW",
+            "locale normalization preserves script catalog casing");
+         Assert
+           (Files.Localization.Normalize_Locale ("es_419.UTF-8") = "es-419",
+            "locale normalization preserves numeric region subtags");
+         Assert
            (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin") = "sr-RS",
             "locale normalization removes locale modifiers");
          Assert (Files.Localization.Normalize_Locale ("C") = "en", "C locale falls back to English");
          Assert (Files.Localization.Normalize_Locale ("POSIX") = "en", "POSIX locale falls back to English");
+         Assert
+           (Files.Localization.Normalize_Locale ("../../tmp/hostile") = "en",
+            "path-bearing locale text falls back to English");
+         Assert
+           (Files.Localization.Normalize_Locale ("da" & Character'Val (0) & "DK") = "en",
+            "a locale containing NUL falls back to English");
+         Assert
+           (Files.Localization.Normalize_Locale (String'(1 .. 65 => 'a')) = "en",
+            "an oversized locale falls back to English");
+         Assert
+           (Files.Localization.Normalize_Locale ("en--US") = "en",
+            "an empty locale component falls back to English");
 
          Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
          Ada.Environment_Variables.Set ("LC_MESSAGES", "en_US.UTF-8");

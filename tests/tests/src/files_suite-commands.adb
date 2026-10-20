@@ -160,6 +160,7 @@ package body Files_Suite.Commands is
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Empty    : Files.File_System.Item_Vectors.Vector;
+      Clipboard : Files.Types.String_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
@@ -522,6 +523,42 @@ package body Files_Suite.Commands is
       Files.Model.Close_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before history enablement check");
+
+      Clipboard.Append (To_Unbounded_String (Join (Root, "Alpha.txt")));
+      Files.Model.Set_Clipboard (Model, Clipboard, Files.Model.Clipboard_Copy);
+      Files.Model.Navigate_Recent (Model, Empty);
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model)
+         and then not Files.Commands.Is_Enabled (Files.Commands.New_Folder_Command, Model),
+         "create commands are disabled in the virtual recent view");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
+         "paste is disabled in the virtual recent view even with clipboard items");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+         "rename is disabled in the virtual recent view without a destination directory");
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.file.parent_missing"
+         and then not Files.Model.Temporary_Item_Is_Active (Model),
+         "disabled recent-view create reports the missing parent without starting an edit");
+      Result := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.drop.invalid_destination",
+         "disabled recent-view paste reports an invalid destination");
+      Files.Model.Set_Filter (Model, "alpha");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Search_Recursive_Command, Model)
+         and then not Files.Commands.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
+         "filesystem searches are disabled when the current view has no directory root");
+      Result :=
+        Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.directory.load",
+         "disabled recent-view search reports the missing directory root");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/next", Empty);
       Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back enabled after navigation");
    end Test_Command_Enablement;
@@ -1451,6 +1488,17 @@ package body Files_Suite.Commands is
       Assert
         (Files.UTF8.Word_Separator_Length ("x", Natural'Last) = 0,
          "word-separator lookup rejects an extreme out-of-range offset without raising");
+      declare
+         Malformed : constant String :=
+           [Character'Val (16#E0#), Character'Val (16#80#),
+            Character'Val (16#80#)];
+      begin
+         Assert
+           (Files.UTF8.Next_Boundary (Malformed, 0) = 1
+              and then Files.UTF8.Next_Boundary (Malformed, 1) = 2
+              and then Files.UTF8.Previous_Boundary (Malformed, 3) = 2,
+            "overlong UTF-8 bytes remain separate cursor and deletion units");
+      end;
       Files.Controller.Replace_Focused_Text (Model, "beta");
 
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");

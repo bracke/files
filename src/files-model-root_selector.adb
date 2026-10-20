@@ -32,6 +32,9 @@ package body Root_Selector is
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Root_Entries := Roots;
       Model.Root_Selector_Open := not Roots.Is_Empty;
+      if Model.Root_Selector_Open then
+         Claim_Overlay_Input (Model);
+      end if;
       Model.Root_Selected := (if Model.Root_Selector_Open then 1 else 0);
       Model.Settings_Pane_Open := False;
       Model.Command_Palette_Open := False;

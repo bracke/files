@@ -21,6 +21,7 @@ with Files.Interaction;
 with Files.Localization;
 with Files.Model;
 with Files.Operations;
+with Files.Paste;
 with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;
@@ -97,6 +98,10 @@ package body Files_Suite.Interaction is
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Entry_Contained_By_Overlays (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Contained_By_Overlays (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Metadata_Clicks_Contained_By_Overlays
+     (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -133,6 +138,7 @@ package body Files_Suite.Interaction is
    procedure Test_Extract_Enablement_By_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Enablement_By_Context (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Conflict_Action_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Disabled_Command_Does_Not_Act (T : in out AUnit.Test_Cases.Test_Case'Class);
    --  Pass 2 -- deep multi-step sequences.
    procedure Test_Sequence_Rename_Then_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -174,6 +180,15 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Entry_Updates_Focused_Input'Access,
          "typed text routes to the focused filter and command-palette inputs");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Entry_Contained_By_Overlays'Access,
+         "non-text overlays contain native character input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Contained_By_Overlays'Access,
+         "input-owning overlays contain native file drops");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Metadata_Clicks_Contained_By_Overlays'Access,
+         "input-owning overlays contain stale metadata clicks");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Right_Click_Opens_Menu'Access, "right-click selects and opens the context menu");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -274,6 +289,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Enablement_Reflects_Clipboard'Access,
          "paste enables only when the clipboard holds items");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Conflict_Action_Guards'Access,
+         "stale or malformed paste-conflict actions are ignored");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Disabled_Command_Does_Not_Act'Access,
          "dispatching a disabled menu command is gated and changes no state");
@@ -492,7 +510,9 @@ package body Files_Suite.Interaction is
    --  fetching the bytes from the OS is GLFW-bound), so it is exercised here.
    procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Model : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Roots    : Files.Types.String_Vectors.Vector;
    begin
       Files.Model.Focus_Filter_Input (Model);
       declare
@@ -513,7 +533,336 @@ package body Files_Suite.Interaction is
       begin
          null;
       end;
+      Assert (Files.Model.Palette_Query (Model) = "view", "typed text lands in the command-palette input");
+
+      --  The root selector is allowed to remain beneath the command palette.
+      --  Its modal key guard must not intercept editing keys owned by the
+      --  visible palette above it.
+      Files.Model.Close_Command_Palette (Model);
+      Roots.Append
+        (Ada.Strings.Unbounded.To_Unbounded_String (Files.Model.Current_Path (Model)));
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Files.Model.Open_Command_Palette (Model);
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Append_Focused_Text (Model, "find");
+      begin
+         Assert
+           (Outcome.Status = Files.Controller.Controller_Text_Updated,
+            "printable text edits the palette stacked above the root selector");
+      end;
+      Assert
+        (Files.Model.Palette_Query (Model) = "find",
+         "the stacked palette receives native character input");
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
+      begin
+         Assert
+           (Outcome.Status = Files.Controller.Controller_Text_Updated,
+            "Backspace edits the palette stacked above the root selector");
+      end;
+      Assert
+        (Files.Model.Palette_Query (Model) = "fin",
+         "the stacked palette query loses its final character");
+      Assert
+        (Files.Model.Root_Selector_Is_Open (Model)
+         and then Files.Model.Command_Palette_Is_Open (Model),
+         "editing the stacked palette preserves both overlay states");
    end Test_Text_Entry_Updates_Focused_Input;
+
+   procedure Test_Text_Entry_Contained_By_Overlays
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Roots    : Files.Types.String_Vectors.Vector;
+      Sources  : Files.Types.String_Vectors.Vector;
+
+      procedure Prepare_Background is
+      begin
+         Files.Model.Set_Filter (Model, "");
+         Files.Model.Reset_Type_Ahead (Model);
+         Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+         --  A retained field focus makes this exercise hidden-field editing as
+         --  well as the no-focus grid type-ahead path.
+         Files.Model.Focus_Filter_Input (Model);
+      end Prepare_Background;
+
+      procedure Assert_Contained (Name : String) is
+         Text_Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Append_Focused_Text (Model, "G");
+         Click_Outcome : Files.Controller.Controller_Result;
+         Reduced       : Files.Interaction.Interaction_Result;
+         Path_Before   : constant String := Files.Model.Current_Path (Model);
+         Favorite_Before : constant Boolean :=
+           Files.Settings.Is_Favorite (Settings, Path_Before);
+         Scope_Before : constant Files.Types.Search_Scope :=
+           Files.Model.Search_Scope_Of (Model);
+      begin
+         Assert
+           (Text_Outcome.Status = Files.Controller.Controller_Ignored,
+            Name & " ignores native character input");
+         Assert (Files.Model.Filter_Text (Model) = "", Name & " leaves a hidden focused field unchanged");
+         Assert (Files.Model.Type_Ahead_Buffer (Model) = "", Name & " leaves grid type-ahead unchanged");
+         Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", Name & " leaves the grid selection unchanged");
+
+         Click_Outcome :=
+           Files.Controller.Handle_Text_Click
+             (Model, Files.Types.Focus_Filter_Input, 0);
+         Assert
+           (Click_Outcome.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Filter_Text (Model) = "",
+            Name & " rejects a delayed background text-field click");
+
+         Click_Outcome :=
+           Files.Controller.Handle_Item_Click
+             (Model, Settings, Visible_Index => 2);
+         Assert
+           (Click_Outcome.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Selected_Name (Model) = "Alpha.txt",
+            Name & " rejects a delayed background item click");
+
+         Click_Outcome :=
+           Files.Controller.Handle_Breadcrumb_Click (Model, Settings, 1);
+         Assert
+           (Click_Outcome.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Current_Path (Model) = Path_Before,
+            Name & " rejects a delayed breadcrumb click");
+
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "",
+            (Kind => Files.Events.Path_Favorite_Toggle_Input_Action,
+             others => <>),
+            Base_Font, Guikit.Input.No_Modifiers, Reduced);
+         Assert
+           (Files.Settings.Is_Favorite (Settings, Path_Before) = Favorite_Before
+            and then not Reduced.Settings_Changed,
+            Name & " rejects a delayed path-star click");
+
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "",
+            (Kind => Files.Events.Search_Scope_Toggle_Input_Action,
+             others => <>),
+            Base_Font, Guikit.Input.No_Modifiers, Reduced);
+         Assert
+           (Files.Model.Search_Scope_Of (Model) = Scope_Before
+            and then not Reduced.Directory_Reloaded,
+            Name & " rejects a delayed search-scope click");
+      end Assert_Contained;
+   begin
+      Roots.Append
+        (Ada.Strings.Unbounded.To_Unbounded_String (Files.Model.Current_Path (Model)));
+      Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/source"));
+
+      Prepare_Background;
+      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_None,
+         "the settings pane can remain open after focus is cancelled");
+      Assert_Contained ("an unfocused settings pane");
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Prepare_Background;
+      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_None,
+         "the command palette can remain open after focus is cancelled");
+      Assert_Contained ("an unfocused command palette");
+      Files.Model.Close_Command_Palette (Model);
+
+      Files.Model.Toggle_Settings_Pane (Model);
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+         "opening settings focuses its input surface");
+      Files.Model.Open_Command_Palette (Model);
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette,
+         "the command palette takes focus above settings");
+      Files.Model.Close_Command_Palette (Model);
+      Assert
+        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+         "closing the command palette restores settings focus");
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Prepare_Background;
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Assert_Contained ("the root selector");
+      Files.Model.Close_Root_Selector (Model);
+
+      Prepare_Background;
+      Files.Model.Toggle_Sort_Menu (Model);
+      Assert_Contained ("the sort menu");
+      Files.Model.Close_Sort_Menu (Model);
+
+      Prepare_Background;
+      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Model.Context_Menu_Empty);
+      Assert_Contained ("the context menu");
+      Files.Model.Close_Context_Menu (Model);
+
+      Prepare_Background;
+      Files.Model.Open_Label_Picker (Model);
+      Assert_Contained ("the label picker");
+      Files.Model.Close_Label_Picker (Model);
+
+      Prepare_Background;
+      Files.Model.Toggle_Quick_Look (Model);
+      Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look opens for the containment test");
+      Assert_Contained ("Quick Look");
+      Files.Model.Close_Quick_Look (Model);
+
+      Prepare_Background;
+      Files.Model.Begin_Tree_Pick
+        (Model, Files.Model.Pick_Copy, Sources, Files.Model.Current_Path (Model));
+      Assert_Contained ("the destination picker");
+      Files.Model.Clear_Tree_Pick (Model);
+   end Test_Text_Entry_Contained_By_Overlays;
+
+   procedure Test_Drop_Contained_By_Overlays
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Roots    : Files.Types.String_Vectors.Vector;
+      Sources  : Files.Types.String_Vectors.Vector;
+
+      procedure Seed_Type_Ahead is
+         Matched : Boolean;
+      begin
+         Files.Model.Reset_Type_Ahead (Model);
+         Files.Model.Type_Ahead_Input (Model, "A", Matched);
+         Assert (Matched and then Files.Model.Type_Ahead_Buffer (Model) = "A",
+                 "prepare a live grid type-ahead prefix before opening an overlay");
+      end Seed_Type_Ahead;
+
+      procedure Assert_Contained (Name : String) is
+         Revision : constant Natural := Files.Model.Revision (Model);
+         Outcome  : constant Files.Controller.Controller_Result :=
+           Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
+      begin
+         Assert
+           (Files.Model.Input_Owning_Overlay_Is_Open (Model),
+            Name & " is covered by the shared input-overlay policy");
+         Assert
+           (Files.Model.Type_Ahead_Buffer (Model) = "",
+            Name & " ends the previous grid type-ahead session when it opens");
+         Assert
+           (Outcome.Status = Files.Controller.Controller_Ignored,
+            Name & " rejects a native file drop");
+         Assert (Files.Model.Revision (Model) = Revision, Name & " leaves the model unchanged");
+         Assert
+           (not Files.Model.Paste_Conflict_Is_Active (Model)
+            and then not Files.Model.Paste_Execution_Is_Active (Model),
+            Name & " cannot start a hidden paste operation");
+      end Assert_Contained;
+   begin
+      Roots.Append
+        (Ada.Strings.Unbounded.To_Unbounded_String (Files.Model.Current_Path (Model)));
+      --  The path need not exist: the overlay guard must reject the drop before
+      --  planning examines any source path.
+      Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/files-overlay-drop-source"));
+
+      Seed_Type_Ahead;
+      Files.Model.Toggle_Settings_Pane (Model);
+      Assert_Contained ("the settings pane");
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Seed_Type_Ahead;
+      Files.Model.Open_Command_Palette (Model);
+      Assert_Contained ("the command palette");
+      Files.Model.Close_Command_Palette (Model);
+
+      Seed_Type_Ahead;
+      Files.Model.Open_Root_Selector (Model, Roots);
+      Assert_Contained ("the root selector");
+      Files.Model.Close_Root_Selector (Model);
+
+      Seed_Type_Ahead;
+      Files.Model.Toggle_Sort_Menu (Model);
+      Assert_Contained ("the sort menu");
+      Files.Model.Close_Sort_Menu (Model);
+
+      Seed_Type_Ahead;
+      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Model.Context_Menu_Empty);
+      Assert_Contained ("the context menu");
+      Files.Model.Close_Context_Menu (Model);
+
+      Seed_Type_Ahead;
+      Files.Model.Open_Label_Picker (Model);
+      Assert_Contained ("the label picker");
+      Files.Model.Close_Label_Picker (Model);
+
+      Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+      Seed_Type_Ahead;
+      Files.Model.Toggle_Quick_Look (Model);
+      Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look opens for the drop-containment test");
+      Assert_Contained ("Quick Look");
+      Files.Model.Close_Quick_Look (Model);
+
+      Seed_Type_Ahead;
+      Files.Model.Begin_Tree_Pick
+        (Model, Files.Model.Pick_Copy, Sources, Files.Model.Current_Path (Model));
+      Assert_Contained ("the destination picker");
+      Files.Model.Clear_Tree_Pick (Model);
+   end Test_Drop_Contained_By_Overlays;
+
+   procedure Test_Metadata_Clicks_Contained_By_Overlays
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Before   : Natural;
+   begin
+      Files.Model.Toggle_Info_Pane (Model);
+      Files.Model.Open_Command_Palette (Model);
+      Before := Files.Model.Revision (Model);
+
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "",
+         (Kind       => Files.Events.Permission_Toggle_Input_Action,
+          Item_Index => 0,
+          others     => <>),
+         Base_Font, Guikit.Input.No_Modifiers, Result);
+      Assert
+        (Files.Model.Revision (Model) = Before
+         and then Files.Model.Command_Palette_Is_Open (Model),
+         "a stale permission click cannot mutate behind the command palette");
+      Assert
+        (not Result.Directory_Reloaded,
+         "a contained permission click reports no directory mutation");
+
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "",
+         (Kind       => Files.Events.Ownership_Edit_Input_Action,
+          Item_Index => 0,
+          others     => <>),
+         Base_Font, Guikit.Input.No_Modifiers, Result);
+      Assert
+        (Files.Model.Revision (Model) = Before
+         and then Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette,
+         "a stale ownership click cannot steal focus from the command palette");
+
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "",
+         (Kind    => Files.Events.Command_Input_Action,
+          Command => Files.Commands.Toggle_Info_Pane_Command,
+          others  => <>),
+         Base_Font, Guikit.Input.No_Modifiers, Result);
+      Assert
+        (Files.Model.Revision (Model) = Before
+         and then Files.Model.Info_Pane_Is_Open (Model)
+         and then Files.Model.Command_Palette_Is_Open (Model),
+         "a stale background command cannot mutate behind the command palette");
+      Assert
+        (Result.Status = Files.Controller.Controller_Ignored,
+         "a contained stale command reports no execution");
+   end Test_Metadata_Clicks_Contained_By_Overlays;
 
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -549,22 +898,77 @@ package body Files_Suite.Interaction is
             Y          => Y,
             Result     => Result);
       end Right_Click;
+
+      procedure Assert_Right_Click_Suppressed (Overlay_Name : String) is
+      begin
+         Right_Click (2);
+         Assert
+           (not Files.Model.Context_Menu_Is_Open (Model),
+            "right-click behind " & Overlay_Name & " leaves the context menu closed");
+      end Assert_Right_Click_Suppressed;
    begin
+      Result.Settings_Changed := True;
+      Result.Font_Size_Changed := True;
+      Result.Needs_Glyph_Rebuild := True;
+      Result.Directory_Reloaded := True;
+      Result.Clear_Pending_Text := True;
       Right_Click (2);
       Assert (Found, "a layout cell exists for the right-clicked item");
       Assert (Files.Model.Context_Menu_Is_Open (Model), "right-click opens the context menu");
       Assert (Files.Model.Is_Selected (Model, 2), "right-click selects the unselected item under the cursor");
       Assert (Result.Context_Menu_Changed, "the result reports the context-menu change");
+      Assert
+        (not Result.Settings_Changed
+         and then not Result.Font_Size_Changed
+         and then not Result.Needs_Glyph_Rebuild
+         and then not Result.Directory_Reloaded
+         and then not Result.Clear_Pending_Text,
+         "right-click clears follow-up flags left by an earlier interaction");
+
+      --  A queued click can carry an index from an older layout. It must not
+      --  open an item menu whose commands would act on the current selection.
+      Files.Interaction.Apply_Right_Click
+        (Model      => Model,
+         Settings   => Settings,
+         In_Main    => True,
+         Item_Index => Files.Model.Visible_Count (Model) + 1,
+         X          => X,
+         Y          => Y,
+         Result     => Result);
+      Assert
+        (not Files.Model.Context_Menu_Is_Open (Model),
+         "a stale right-click item index leaves the context menu closed");
+      Assert
+        (Files.Model.Is_Selected (Model, 2),
+         "a stale right-click item index preserves the current selection");
 
       --  With a modal overlay open the same right-click must be swallowed: the
       --  menu stays closed (the shell suppresses it behind modals).
       Files.Model.Close_Context_Menu (Model);
       Files.Model.Toggle_Settings_Pane (Model);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings overlay is open for the suppression case");
-      Right_Click (2);
-      Assert
-        (not Files.Model.Context_Menu_Is_Open (Model),
-         "right-click behind a modal overlay leaves the context menu closed");
+      Assert_Right_Click_Suppressed ("Settings");
+      Files.Model.Toggle_Settings_Pane (Model);
+
+      Files.Model.Open_Label_Picker (Model);
+      Assert_Right_Click_Suppressed ("the label picker");
+      Files.Model.Close_Label_Picker (Model);
+
+      Files.Model.Toggle_Quick_Look (Model);
+      Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look opens for right-click suppression");
+      Assert_Right_Click_Suppressed ("Quick Look");
+      Files.Model.Close_Quick_Look (Model);
+
+      declare
+         Sources : Files.Types.String_Vectors.Vector;
+      begin
+         Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/source"));
+         Files.Model.Begin_Tree_Pick (Model, Files.Model.Pick_Copy, Sources, "");
+         Files.Model.Open_Tree_Panel (Model);
+         Assert_Right_Click_Suppressed ("the destination picker");
+         Files.Model.Clear_Tree_Pick (Model);
+         Files.Model.Close_Tree_Panel (Model);
+      end;
    end Test_Right_Click_Opens_Menu;
 
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -640,6 +1044,82 @@ package body Files_Suite.Interaction is
         (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Copy,
          "the copy command records a copy clipboard intent");
       Assert (Files.Model.Clipboard_Has_Items (Model), "the copy command captured the selected item");
+
+      --  Replaying that row after its menu has closed must not execute it
+      --  against whatever selection exists at reduction time.
+      Files.Model.Clear_Clipboard (Model);
+      Files.Interaction.Apply_Context_Menu_Command
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Command           => Files.Commands.Copy_Selected_Items_Command,
+         Current_Font_Size => Base_Font,
+         Modifiers         => Guikit.Input.No_Modifiers,
+         Result            => Result);
+      Assert
+        (not Files.Model.Clipboard_Has_Items (Model)
+         and then not Result.Command_Executed
+         and then not Result.Context_Menu_Changed,
+         "a stale menu-row action is inert after its menu closes");
+
+      --  A click that misses every menu row still closes the menu and must not
+      --  leak follow-up flags from an earlier result stored in the same object.
+      Files.Model.Open_Context_Menu (Model, X, Y, Files.Model.Context_Menu_Empty);
+      Files.Interaction.Apply_Context_Menu_Command
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Command           => Files.Commands.Copy_Selected_Items_Command,
+         Current_Font_Size => Base_Font,
+         Modifiers         => Guikit.Input.No_Modifiers,
+         Result            => Result);
+      Assert
+        (Files.Model.Context_Menu_Is_Open (Model)
+         and then not Files.Model.Clipboard_Has_Items (Model)
+         and then not Result.Command_Executed
+         and then not Result.Context_Menu_Changed,
+         "an item-only command is rejected by the open empty-area menu");
+
+      Result.Settings_Changed := True;
+      Result.Font_Size_Changed := True;
+      Result.Needs_Glyph_Rebuild := True;
+      Result.Directory_Reloaded := True;
+      Result.Clear_Pending_Text := True;
+      Files.Interaction.Apply_Context_Menu_Command
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Command           => Files.Commands.No_Command,
+         Current_Font_Size => Base_Font,
+         Modifiers         => Guikit.Input.No_Modifiers,
+         Result            => Result);
+      Assert (not Files.Model.Context_Menu_Is_Open (Model), "a missed menu row still closes the menu");
+      Assert
+        (Result.Context_Menu_Changed
+         and then Result.Command = Files.Commands.No_Command
+         and then not Result.Command_Executed
+         and then not Result.Settings_Changed
+         and then not Result.Font_Size_Changed
+         and then not Result.Needs_Glyph_Rebuild
+         and then not Result.Directory_Reloaded
+         and then not Result.Clear_Pending_Text,
+         "a missed menu row returns only its own context-menu follow-up");
+
+      --  Keyboard open/close routes mutate the same menu state through the
+      --  controller and must report the transition through the reducer result.
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_F10, Shift, Base_Font, Result);
+      Assert
+        (Files.Model.Context_Menu_Is_Open (Model)
+         and then Result.Context_Menu_Changed,
+         "Shift+F10 reports opening the context menu");
+      Files.Interaction.Handle_Key
+        (Model, Settings, "", Guikit.Input.Key_Escape,
+         Guikit.Input.No_Modifiers, Base_Font, Result);
+      Assert
+        (not Files.Model.Context_Menu_Is_Open (Model)
+         and then Result.Context_Menu_Changed,
+         "Escape reports closing the context menu");
    end Test_Menu_Row_Dispatch;
 
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -809,6 +1289,40 @@ package body Files_Suite.Interaction is
            (Files.Model.Info_Pane_Is_Open (Model),
             "the key seam toggles the info pane open in the model");
       end;
+
+      --  (4) A navigation operation installs a newly loaded directory listing;
+      --  the interaction result must expose that fact to every caller of the
+      --  key seam, not merely change the model path silently.
+      declare
+         Child : constant String :=
+           Files_Suite.Support.Join (Files_Suite.Support.Root, "key-nav-child");
+         Model    : Files.Model.Window_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Result   : Files.Interaction.Interaction_Result;
+      begin
+         Ada.Directories.Create_Path (Child);
+         declare
+            Load : constant Files.File_System.Directory_Load_Result :=
+              Files.File_System.Load_Directory (Child, Settings);
+         begin
+            Files.Model.Initialize
+              (Model, Child, Load.Items, Files_Suite.Support.Root);
+         end;
+         Files.Interaction.Handle_Key
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => "",
+            Key               => Guikit.Input.Key_Up,
+            Modifiers         => Alt,
+            Current_Font_Size => Base_Font,
+            Result            => Result);
+         Assert
+           (Files.Model.Current_Path (Model) = Files_Suite.Support.Root,
+            "Alt+Up through the key seam navigates to the parent directory");
+         Assert
+           (Result.Directory_Reloaded,
+            "successful key navigation reports the installed directory listing");
+      end;
    end Test_Keyboard_Dispatch_Path;
 
    --  With a settings Shortcut row armed, the key seam routes the next physical
@@ -944,6 +1458,10 @@ package body Files_Suite.Interaction is
       Rects    : Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Text     : Guikit.Draw.Text_Command_Vectors.Vector;
       Nodes    : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+      Hit_X    : Natural := 0;
+      Hit_Y    : Natural := 0;
+      Found_Hit : Boolean := False;
+      Revision_Before : Natural;
 
       procedure Tab (Mods : Guikit.Input.Modifier_Set) is
       begin
@@ -960,10 +1478,61 @@ package body Files_Suite.Interaction is
         (Model => Model, Settings => Settings, Settings_Path => Path,
          Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
          Current_Font_Size => Base_Font, Result => Result);
+      Revision_Before := Files.Model.Revision (Model);
       Files.Model.Settings_Build_Frame
         (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
          Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
          Rectangles => Rects, Text => Text, Accessibility => Nodes);
+      Assert
+        (Files.Model.Revision (Model) = Revision_Before,
+         "building a settings frame does not manufacture a semantic model revision");
+
+      --  Resolve a genuine settings control from the component's accessibility
+      --  output and prove a newer top-most overlay owns that same click.
+      for Node of Nodes loop
+         if Node.Role = Guikit.Draw.Role_Button
+           and then Node.Enabled
+           and then Node.Width > 0
+           and then Node.Height > 0
+         then
+            Hit_X := Node.X + Node.Width / 2;
+            Hit_Y := Node.Y + Node.Height / 2;
+            declare
+               Outcome : constant Files.Controller.Controller_Result :=
+                 Files.Controller.Handle_Settings_Click
+                   (Model, Integer (Hit_X), Integer (Hit_Y));
+            begin
+               if Outcome.Status /= Files.Controller.Controller_Ignored then
+                  Found_Hit := True;
+                  exit;
+               end if;
+            end;
+         end if;
+      end loop;
+      Assert (Found_Hit, "the live settings component exposes a clickable button");
+
+      Files.Model.Open_Label_Picker (Model);
+      declare
+         Revision : constant Natural := Files.Model.Revision (Model);
+         Outcome  : constant Files.Controller.Controller_Result :=
+           Files.Controller.Handle_Settings_Click
+             (Model, Integer (Hit_X), Integer (Hit_Y));
+      begin
+         Assert
+           (Outcome.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Revision (Model) = Revision,
+            "a delayed settings click is contained by the label picker");
+      end;
+      Files.Model.Close_Label_Picker (Model);
+
+      declare
+         Revision : constant Natural := Files.Model.Revision (Model);
+         Clicked  : constant Boolean := Files.Model.Settings_Click (Model, -1, -1);
+      begin
+         Assert
+           (not Clicked and then Files.Model.Revision (Model) = Revision,
+            "a settings-panel miss does not advance the model revision");
+      end;
 
       declare
          Count : constant Natural := Files.Model.Settings_Section_Count (Model);
@@ -1094,6 +1663,25 @@ package body Files_Suite.Interaction is
         (Settings.Font_Pixel_Size = Files.Settings.Min_Font_Pixel_Size,
          "Ctrl+Minus clamps at the minimum font size");
       Assert (not Result.Font_Size_Changed, "a no-op zoom at the floor reports no font-size change");
+
+      --  Zoom is background UI state and must obey the same ownership rule as
+      --  scrolling, clicks, and drops while a modal overlay is open.
+      Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size;
+      Files.Model.Toggle_Sort_Menu (Model);
+      Zoom (Guikit.Input.Key_Equal, Ctrl);
+      Assert
+        (Settings.Font_Pixel_Size = Files.Settings.Default_Font_Pixel_Size,
+         "an input-owning overlay blocks keyboard zoom behind it");
+      Assert
+        (not Result.Settings_Changed
+         and then not Result.Font_Size_Changed
+         and then not Result.Needs_Glyph_Rebuild,
+         "blocked keyboard zoom reports no settings or glyph change");
+      Assert
+        (Result.Clear_Pending_Text,
+         "a blocked zoom chord still consumes its parallel character event");
+      Assert (Files.Model.Sort_Menu_Is_Open (Model), "blocked zoom leaves the owning overlay open");
+      Files.Model.Close_Sort_Menu (Model);
    end Test_Keyboard_Zoom;
 
    procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1101,6 +1689,10 @@ package body Files_Suite.Interaction is
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
+      Info_X, Info_Y : Natural;
+      Main_X, Main_Y : Natural;
+      Target_W : constant Natural := 600;
+      Target_H : constant Natural := 180;
 
       --  Scroll down (negative GLFW offset) at (X, Y) through the real translator.
       procedure Scroll_At (X : Natural; Y : Natural) is
@@ -1108,7 +1700,7 @@ package body Files_Suite.Interaction is
            Files.Rendering.Build_Snapshot (Model, Settings);
          Action   : constant Files.Events.Input_Action :=
            Files.Events.Translate_Scroll_At
-             (Snapshot, X, Y, Window_W, Window_H, Y_Offset => -1, Line_Height => Line);
+             (Snapshot, X, Y, Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
       begin
          Files.Interaction.Apply_Input_Action
            (Model             => Model,
@@ -1120,9 +1712,22 @@ package body Files_Suite.Interaction is
             Result            => Result);
       end Scroll_At;
 
-      Info_X, Info_Y : Natural;
-      Main_X, Main_Y : Natural;
+      procedure Assert_Overlay_Swallows_Scroll
+        (Snapshot : Files.Rendering.View_Snapshot;
+         Name     : String)
+      is
+         Action : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot, Target_W - 1, Main_Y, Target_W, Target_H,
+              Y_Offset => -1, Line_Height => Line);
+      begin
+         Assert
+           (Action.Kind = Files.Events.No_Input_Action,
+            Name & " swallows wheel input instead of scrolling the view behind it");
+      end Assert_Overlay_Swallows_Scroll;
+
    begin
+      Files.Model.Set_View_Mode (Model, Files.Types.Details);
       Files_Suite.Support.Select_Name (Model, "Gamma.md");
       Files.Model.Toggle_Info_Pane (Model);
       Assert (Files.Model.Info_Pane_Is_Open (Model), "the info pane is open for the scroll-target test");
@@ -1131,15 +1736,44 @@ package body Files_Suite.Interaction is
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Window_W, Window_H, Line);
+           Files.Rendering.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
          Info     : constant Files.Rendering.Info_Pane_Layout :=
            Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
+         Main     : constant Files.Rendering.Main_View_Layout :=
+           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line);
       begin
          Assert (Info.Width > 0 and then Info.Height > 0, "the info pane has a hittable region");
+         Assert
+           (Info.Scrollbar_Visible and then Main.Scrollbar_Visible,
+            "the compact targeted-scroll fixture overflows both scrollable panes");
          Info_X := Info.X + Info.Width / 2;
          Info_Y := Info.Y + Info.Height / 2;
          Main_X := Layout.Main_X + Layout.Main_Width / 2;
          Main_Y := Layout.Main_Y + Layout.Main_Height / 2;
+
+         declare
+            Info_Max : constant Natural :=
+              1 + (Info.Content_Height - Info.Height - 1) / Line;
+            Main_Max : constant Natural :=
+              1
+              + (Main.Content_Height - Main.Scrollbar_Track_Height - 1) / Line;
+            At_End : Files.Rendering.View_Snapshot := Snapshot;
+         begin
+            At_End.Info_Pane_Scroll_Lines := Info_Max;
+            At_End.Main_View_Scroll_Lines := Main_Max;
+            Assert
+              (Files.Events.Translate_Scroll_At
+                 (At_End, Info_X, Info_Y, Target_W, Target_H,
+                  Y_Offset => -1, Line_Height => Line).Kind
+                 = Files.Events.No_Input_Action,
+               "the info pane does not accumulate wheel input beyond its final page");
+            Assert
+              (Files.Events.Translate_Scroll_At
+                 (At_End, Main_X, Main_Y, Target_W, Target_H,
+                  Y_Offset => -1, Line_Height => Line).Kind
+                 = Files.Events.No_Input_Action,
+               "the main view does not accumulate wheel input beyond its final page");
+         end;
       end;
 
       Scroll_At (Info_X, Info_Y);
@@ -1160,6 +1794,205 @@ package body Files_Suite.Interaction is
          Assert
            (Files.Model.Info_Pane_Scroll_Lines (Model) = Info_Before,
             "scrolling over the main view leaves the info-pane offset unchanged");
+      end;
+
+      Files.Model.Set_Main_View_Scroll_Lines (Model, 0);
+      declare
+         Fits   : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Wide   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Fits, Window_W, Window_H, Line);
+         Action : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Scroll_At
+             (Fits,
+              Wide.Main_X + Wide.Main_Width / 2,
+              Wide.Main_Y + Wide.Main_Height / 2,
+              Window_W, Window_H, Y_Offset => -1, Line_Height => Line);
+      begin
+         Assert
+           (Action.Kind = Files.Events.No_Input_Action,
+            "wheel input is inert when the entire main view already fits");
+      end;
+
+      --  Controller entry points must preserve the same overlay ownership rule
+      --  when no pointer geometry is available (for example while minimized).
+      declare
+         Main_Before : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
+         Info_Before : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
+         Outcome     : Files.Controller.Controller_Result;
+      begin
+         Files.Model.Toggle_Sort_Menu (Model);
+         Outcome := Files.Controller.Handle_Scroll (Model, 3);
+         Assert
+           (Outcome.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Main_View_Scroll_Lines (Model) = Main_Before
+            and then Files.Model.Info_Pane_Scroll_Lines (Model) = Info_Before,
+            "auto scrolling is contained while a non-scrolling overlay owns input");
+         Outcome :=
+           Files.Controller.Handle_Targeted_Scroll
+             (Model, Files.Events.Scroll_Main_View, 3);
+         Assert
+           (Outcome.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Main_View_Scroll_Lines (Model) = Main_Before,
+            "direct targeted scrolling cannot move content behind an overlay");
+         Files.Model.Close_Sort_Menu (Model);
+      end;
+
+      --  Every non-scrolling pointer overlay must contain wheel input.  These
+      --  flags are tested directly on the rendering snapshot so each overlay's
+      --  translation contract is covered without depending on how it is opened.
+      declare
+         Base : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Overlay : Files.Rendering.View_Snapshot;
+      begin
+         Overlay := Base;
+         Overlay.Sort_Menu_Open := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "the sort menu");
+
+         Overlay := Base;
+         Overlay.Context_Menu_Open := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "the context menu");
+
+         Overlay := Base;
+         Overlay.Tree_Panel_Open := True;
+         Overlay.Tree_Rows.Clear;
+         for Index in 1 .. 40 loop
+            Overlay.Tree_Rows.Append
+              (Files.Folder_Tree.Visible_Row'
+                 (Node_Index   => Index,
+                  Path         => Ada.Strings.Unbounded.To_Unbounded_String
+                    ("/tree/" & Natural'Image (Index)),
+                  Name         => Ada.Strings.Unbounded.To_Unbounded_String
+                    ("row" & Natural'Image (Index)),
+                  Depth        => 0,
+                  Expanded     => False,
+                  Loaded       => True,
+                  Has_Children => False));
+         end loop;
+         declare
+            Tree_Layout : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Overlay, Target_W, Target_H, Line);
+            Tree : constant Files.Rendering.Tree_Panel_Layout :=
+              Files.Rendering.Calculate_Tree_Panel_Layout
+                (Overlay, Tree_Layout, Line);
+            Tree_Frame : constant Files.Rendering.Frame_Commands :=
+              Files.Rendering.Build_Frame_Commands
+                (Overlay, Target_W, Target_H, Line);
+            Capacity : constant Natural :=
+              Files.Rendering.Tree_Row_Capacity (Overlay, Tree);
+            Maximum : constant Natural :=
+              (if Natural (Overlay.Tree_Rows.Length) > Capacity
+               then Natural (Overlay.Tree_Rows.Length) - Capacity
+               else 0);
+            Action : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Scroll_At
+                (Overlay,
+                 Tree.X + Tree.Width / 2,
+                 Tree.Y + Tree.Height / 2,
+                 Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
+            Drag_Action : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Overlay, Tree_Frame,
+                 Tree.Scrollbar_X + Tree.Scrollbar_Width / 2,
+                 Tree.Scrollbar_Thumb_Y + Tree.Scrollbar_Height / 2,
+                 Target_W, Target_H, Line_Height => Line);
+         begin
+            Assert
+              (Action.Kind = Files.Events.Scroll_Input_Action
+               and then Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+               "wheel input over the folder tree targets the tree rather than the main view");
+            Assert
+              (Tree.Scrollbar_Visible
+               and then Drag_Action.Kind = Files.Events.Scrollbar_Drag_Begin_Input_Action
+               and then Drag_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+               "the long folder tree exposes a draggable tree scrollbar thumb");
+
+            if Maximum > 1 then
+               declare
+                  Near_End : constant Natural := Maximum / 2;
+                  Expected : constant Natural :=
+                    Natural'Min (Capacity, Maximum - Near_End);
+               begin
+                  Overlay.Tree_Panel_Scroll_Rows := Near_End;
+                  declare
+                     Paged_Tree : constant Files.Rendering.Tree_Panel_Layout :=
+                       Files.Rendering.Calculate_Tree_Panel_Layout
+                         (Overlay, Tree_Layout, Line);
+                     Paged_Frame : constant Files.Rendering.Frame_Commands :=
+                       Files.Rendering.Build_Frame_Commands
+                         (Overlay, Target_W, Target_H, Line);
+                     Page_Action : constant Files.Events.Input_Action :=
+                       Files.Events.Translate_Click
+                         (Overlay, Paged_Frame,
+                          Paged_Tree.Scrollbar_X + Paged_Tree.Scrollbar_Width / 2,
+                          Paged_Tree.Scrollbar_Y
+                            + Paged_Tree.Scrollbar_Track_Height - 1,
+                          Target_W, Target_H, Line_Height => Line);
+                  begin
+                     Assert
+                       (Page_Action.Kind = Files.Events.Scroll_Input_Action
+                        and then Page_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel
+                        and then Page_Action.Scroll_Lines = Integer (Expected),
+                        "tree track paging clamps its delta at the final full page");
+                  end;
+               end;
+            end if;
+
+            Overlay.Tree_Panel_Scroll_Rows := Maximum;
+            declare
+               End_Action : constant Files.Events.Input_Action :=
+                 Files.Events.Translate_Scroll_At
+                   (Overlay,
+                    Tree.X + Tree.Width / 2,
+                    Tree.Y + Tree.Height / 2,
+                    Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
+            begin
+               Assert
+                 (End_Action.Kind = Files.Events.No_Input_Action,
+                  "wheel input at the final full tree page does not accumulate an invisible offset");
+            end;
+            Overlay.Tree_Panel_Scroll_Rows := 0;
+         end;
+
+         Overlay.Tree_Pick_Active := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "the destination picker");
+         declare
+            Tree_Layout : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Overlay, Target_W, Target_H, Line);
+            Tree : constant Files.Rendering.Tree_Panel_Layout :=
+              Files.Rendering.Calculate_Tree_Panel_Layout
+                (Overlay, Tree_Layout, Line);
+            Action : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Scroll_At
+                (Overlay,
+                 Tree.X + Tree.Width / 2,
+                 Tree.Y + Tree.Height / 2,
+                 Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
+         begin
+            Assert
+              (Action.Kind = Files.Events.Scroll_Input_Action
+               and then Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+               "the modal destination picker still scrolls inside its tree");
+         end;
+
+         Overlay := Base;
+         Overlay.Paste_Conflict_Open := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "the paste-conflict dialog");
+
+         Overlay := Base;
+         Overlay.Paste_Progress_Open := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "the paste-progress dialog");
+
+         Overlay := Base;
+         Overlay.Quick_Look_Open := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "Quick Look");
+
+         Overlay := Base;
+         Overlay.Label_Picker_Open := True;
+         Assert_Overlay_Swallows_Scroll (Overlay, "the label picker");
       end;
    end Test_Targeted_Scroll;
 
@@ -1567,6 +2400,26 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Root_Click_Input_Action,
             "a root-row coordinate translates to a root click");
          Assert (Action.Root_Index = 2, "the root click carries the second root index");
+
+         --  The command palette may be stacked above the root selector. A root
+         --  row action translated before that transition must not navigate
+         --  through the newer top-most overlay.
+         declare
+            Path_Before : constant String := Files.Model.Current_Path (Model);
+         begin
+            Files.Model.Open_Command_Palette (Model);
+            Files.Interaction.Apply_Input_Action
+              (Model, Settings, "", Action, Base_Font,
+               Guikit.Input.No_Modifiers, Result);
+            Assert
+              (Files.Model.Current_Path (Model) = Path_Before
+               and then Files.Model.Root_Selector_Is_Open (Model)
+               and then Files.Model.Command_Palette_Is_Open (Model)
+               and then Result.Status = Files.Controller.Controller_Ignored,
+               "a delayed root-row click is contained by the stacked palette");
+            Files.Model.Close_Command_Palette (Model);
+         end;
+
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
@@ -1586,6 +2439,14 @@ package body Files_Suite.Interaction is
       Files.Model.Open_Command_Palette (Model);
       Assert (Files.Model.Command_Palette_Is_Open (Model), "the command palette is open before the close click");
       declare
+         Revision : constant Natural := Files.Model.Revision (Model);
+         Clicked  : constant Boolean := Files.Model.Palette_Click (Model, -1, -1);
+      begin
+         Assert
+           (not Clicked and then Files.Model.Revision (Model) = Revision,
+            "a command-palette miss does not advance the model revision");
+      end;
+      declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Layout   : constant Files.Rendering.Layout_Metrics :=
@@ -1595,7 +2456,29 @@ package body Files_Suite.Interaction is
          Close    : constant Files.Rendering.Close_Button_Layout :=
            Files.Rendering.Panel_Close_Button
              (Palette.X, Palette.Y, Palette.Width, Palette.Height, Line);
+         P_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+         P_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
+         P_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
+         P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+         Revision : constant Natural := Files.Model.Revision (Model);
       begin
+         Files.Model.Palette_Build_Frame
+           (Model         => Model,
+            Region_X      => Palette.X,
+            Region_Y      => Palette.Y,
+            Region_Width  => Palette.Width,
+            Region_Height => Palette.Height,
+            Clip_Width    => Window_W,
+            Clip_Height   => Window_H,
+            Line_Height   => Line,
+            Focused       => True,
+            Rectangles    => P_Rects,
+            Text          => P_Text,
+            Icons         => P_Icons,
+            Accessibility => P_Nodes);
+         Assert
+           (Files.Model.Revision (Model) = Revision,
+            "building a palette frame does not manufacture a semantic model revision");
          Assert (Close.Visible, "the open command palette exposes a close (X) button");
          Click
            (Model, Settings, Close.X + Close.Width / 2, Close.Y + Close.Height / 2,
@@ -1745,6 +2628,48 @@ package body Files_Suite.Interaction is
            (Action.Scroll_Area = Files.Events.Scroll_Main_View,
             "the drag-begin action targets the main view");
 
+         --  A track click pages only as far as the real end.  In particular,
+         --  the fixed ten-line page size must not leave an oversized model
+         --  offset that later consumes wheel input invisibly.
+         declare
+            Maximum : constant Natural :=
+              1
+              + (Main.Content_Height - Main.Scrollbar_Track_Height - 1) / Line;
+            Near_End : constant Natural := Maximum - 5;
+            Paged_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
+         begin
+            Assert (Maximum > 5, "the scrollbar fixture has room for a near-end page click");
+            Paged_Snapshot.Main_View_Scroll_Lines := Near_End;
+            declare
+               Paged_Frame : constant Files.Rendering.Frame_Commands :=
+                 Files.Rendering.Build_Frame_Commands
+                   (Paged_Snapshot, Window_W, Window_H, Line);
+               Paged_Layout : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout
+                   (Paged_Snapshot, Window_W, Window_H, Line);
+               Paged_Main : constant Files.Rendering.Main_View_Layout :=
+                 Files.Rendering.Calculate_Main_View_Layout
+                   (Paged_Snapshot, Paged_Layout, Line);
+               Page_Action : constant Files.Events.Input_Action :=
+                 Files.Events.Translate_Click
+                   (Paged_Snapshot,
+                    Paged_Frame,
+                    Paged_Main.Scrollbar_X + Paged_Main.Scrollbar_Width / 2,
+                    Paged_Main.Scrollbar_Y + Paged_Main.Scrollbar_Track_Height - 1,
+                    Window_W,
+                    Window_H,
+                    Line_Height => Line);
+            begin
+               Assert
+                 (Page_Action.Kind = Files.Events.Scroll_Input_Action
+                  and then Page_Action.Scroll_Area = Files.Events.Scroll_Main_View,
+                  "a click below the thumb translates to main-view paging");
+               Assert
+                 (Page_Action.Scroll_Lines = 5,
+                  "a near-end track click is bounded to the five remaining lines");
+            end;
+         end;
+
          --  The reducer treats scrollbar-drag begin as a no-op: continuous drag
          --  state is owned by the GLFW shell, not the model (see the reducer
          --  comment). Applying it must therefore leave the model untouched.
@@ -1870,6 +2795,27 @@ package body Files_Suite.Interaction is
          Assert (Settings.Column_Widths (Files.Types.Size_Column) =
                    Files.Types.Minimum_Detail_Column_Width,
                  "a drag that shrinks the column past the minimum clamps up to it");
+
+         --  The public reducer must clamp extreme synthetic coordinates rather
+         --  than overflowing before the ordinary width rules can run.
+         Files.Interaction.Apply_Column_Resize
+           (Settings, "", Files.Types.Size_Column,
+            Origin_X     => Integer'Last,
+            Origin_Width => Natural'Last,
+            Current_X    => Integer'First,
+            Result       => Result);
+         Assert
+           (Settings.Column_Widths (Files.Types.Size_Column) = Natural'Last,
+            "an overflowing positive resize delta saturates at Natural'Last");
+         Files.Interaction.Apply_Column_Resize
+           (Settings, "", Files.Types.Size_Column,
+            Origin_X     => Integer'First,
+            Origin_Width => 0,
+            Current_X    => Integer'Last,
+            Result       => Result);
+         Assert
+           (Settings.Column_Widths (Files.Types.Size_Column) = 0,
+            "an overflowing negative resize delta clamps to the default width");
       end;
    end Test_Column_Resize_Drag;
 
@@ -2470,7 +3416,7 @@ package body Files_Suite.Interaction is
 
    procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "menu-contents");
       Model    : Files.Model.Window_Model;
@@ -2556,6 +3502,37 @@ package body Files_Suite.Interaction is
               "Extract is disabled on a non-archive selection");
       Assert (not Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
               "Restore From Trash is disabled outside the trash directory");
+
+      --  Enter on Copy to belongs to the context menu that was open at the
+      --  start of dispatch. It opens the destination picker, but the newly
+      --  opened picker must not consume that same Enter and confirm immediately.
+      declare
+         Rows : constant Files.Commands.Context_Menu_Rows :=
+           Files.Commands.Context_Menu_Rows_For
+             (Files.Model.Context_Menu_Target_Of (Model));
+         Copy_To_Row : Natural := 0;
+      begin
+         for Row in 1 .. Rows.Count loop
+            if Rows.Rows (Row).Command = Files.Commands.Copy_To_Command then
+               Copy_To_Row := Row;
+               exit;
+            end if;
+         end loop;
+         Assert (Copy_To_Row > 0, "the live item menu has a Copy to row for keyboard dispatch");
+         Files.Model.Set_Context_Menu_Highlight (Model, Copy_To_Row);
+         Files.Interaction.Handle_Key
+           (Model, Settings, "", Guikit.Input.Key_Return,
+            Guikit.Input.No_Modifiers, Base_Font, Result);
+      end;
+      Assert
+        (not Files.Model.Context_Menu_Is_Open (Model)
+         and then Files.Model.Tree_Pick_Is_Active (Model)
+         and then Files.Model.Tree_Panel_Is_Open (Model),
+         "context-menu Enter opens Copy to without immediately confirming it");
+      Assert
+        (not Files.Model.Paste_Conflict_Is_Active (Model)
+         and then not Files.Model.Paste_Execution_Is_Active (Model),
+         "the newly opened picker does not start a transfer from the same Enter");
    end Test_Item_Menu_Contents_And_Enablement;
 
    procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2849,6 +3826,86 @@ package body Files_Suite.Interaction is
       Assert (Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
               "Paste is enabled once the clipboard holds items");
    end Test_Paste_Enablement_Reflects_Clipboard;
+
+   procedure Test_Conflict_Action_Guards
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Items    : Files.Paste.Work_Item_Vectors.Vector;
+      Existing : Files.Types.String_Vectors.Vector;
+
+      function Click (Button : Natural) return Files.Events.Input_Action is
+        (Kind           => Files.Events.Conflict_Click_Input_Action,
+         Settings_Field => Button,
+         others         => <>);
+
+      procedure Apply (Button : Natural) is
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", Click (Button), Base_Font,
+            Guikit.Input.No_Modifiers, Result);
+      end Apply;
+   begin
+      --  A queued event from a dialog that has already closed is inert.
+      declare
+         Revision : constant Natural := Files.Model.Revision (Model);
+      begin
+         Apply (Files.Events.Conflict_Button_Apply_All);
+         Assert
+           (Files.Model.Revision (Model) = Revision
+            and then not Files.Model.Paste_Conflict_Apply_All (Model),
+            "a stale apply-all click does not mutate hidden conflict state");
+      end;
+
+      declare
+         Revision : constant Natural := Files.Model.Revision (Model);
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "",
+            (Kind => Files.Events.Paste_Cancel_Input_Action, others => <>),
+            Base_Font, Guikit.Input.No_Modifiers, Result);
+         Assert
+           (Files.Model.Revision (Model) = Revision
+            and then not Result.Directory_Reloaded,
+            "a stale paste-cancel action is inert when no paste is active");
+      end;
+
+      Items.Append
+        (Files.Paste.Work_Item'
+           (Source_Path => Ada.Strings.Unbounded.To_Unbounded_String ("/src/a.txt"),
+            Dest_Dir    => Ada.Strings.Unbounded.To_Unbounded_String ("/dest"),
+            Dest_Name   => Ada.Strings.Unbounded.To_Unbounded_String ("a.txt")));
+      Existing.Append
+        (Ada.Strings.Unbounded.To_Unbounded_String ("/dest/a.txt"));
+      Files.Model.Begin_Paste_Conflict
+        (Model, Items, Existing, Files.File_System.Drop_Copy, 1);
+
+      --  The public action payload is numeric. An unknown value must not take
+      --  the destructive fallback path and cancel the transfer.
+      declare
+         Revision : constant Natural := Files.Model.Revision (Model);
+      begin
+         Apply (Natural'Last);
+         Assert
+           (Files.Model.Paste_Conflict_Is_Active (Model)
+            and then Files.Model.Revision (Model) = Revision,
+            "an unknown conflict button leaves the active dialog untouched");
+      end;
+
+      Apply (Files.Events.Conflict_Button_Apply_All);
+      Assert
+        (Files.Model.Paste_Conflict_Is_Active (Model)
+         and then Files.Model.Paste_Conflict_Apply_All (Model),
+         "the valid apply-all control still toggles the active dialog");
+
+      Apply (Files.Events.Conflict_Button_Cancel);
+      Assert
+        (not Files.Model.Paste_Conflict_Is_Active (Model),
+         "the explicit cancel control still closes the conflict dialog");
+   end Test_Conflict_Action_Guards;
 
    procedure Test_Disabled_Command_Does_Not_Act (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -3399,6 +4456,11 @@ package body Files_Suite.Interaction is
       Assert (Result.Settings_Changed, "the column toggle reports a settings change");
 
       --  The group command advances the persisted grouping mode.
+      Result.Font_Size_Changed := True;
+      Result.Needs_Glyph_Rebuild := True;
+      Result.Directory_Reloaded := True;
+      Result.Clear_Pending_Text := True;
+      Result.Context_Menu_Changed := True;
       Files.Interaction.Execute_Command
         (Model             => Model,
          Settings          => Settings,
@@ -3408,6 +4470,13 @@ package body Files_Suite.Interaction is
          Result            => Result);
       Assert (Settings.Group_By = Files.Types.Group_By_Type,
               "the group-by command advances the grouping mode");
+      Assert
+        (not Result.Font_Size_Changed
+         and then not Result.Needs_Glyph_Rebuild
+         and then not Result.Directory_Reloaded
+         and then not Result.Clear_Pending_Text
+         and then not Result.Context_Menu_Changed,
+         "direct command execution clears unrelated follow-up flags");
 
       --  With grouping active in the details view, Build_Snapshot inserts a
       --  non-selectable header row (Visible_Index zero) ahead of the items.
@@ -3577,6 +4646,13 @@ package body Files_Suite.Interaction is
            (Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
             "clicking the parent breadcrumb navigates to the parent directory");
       end;
+      Assert
+        (Result.Status = Files.Controller.Controller_Command_Executed
+         and then Result.Command_Executed,
+         "breadcrumb navigation reports the controller command execution");
+      Assert
+        (Result.Directory_Reloaded,
+         "breadcrumb navigation reports the installed directory listing");
    end Test_Breadcrumb_Click_Navigates;
 
    procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3625,6 +4701,32 @@ package body Files_Suite.Interaction is
       Assert
         (Rows.Element (2).Depth = 1 and then Rows.Element (3).Depth = 1,
          "the loaded children sit at depth one");
+
+      Ignored :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model, Files.Events.Scroll_Tree_Panel, 1);
+      Assert
+        (Ignored.Status = Files.Controller.Controller_Command_Executed
+         and then Files.Model.Tree_Panel_Scroll_Rows (Model) = 1,
+         "targeted folder-tree scrolling advances the first requested row");
+      Ignored :=
+        Files.Controller.Handle_Targeted_Scroll
+          (Model, Files.Events.Scroll_Tree_Panel, -1);
+      Assert
+        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 0,
+         "folder-tree scrolling saturates back at the first row");
+      declare
+         Before : constant Natural := Files.Model.Revision (Model);
+      begin
+         Ignored :=
+           Files.Controller.Handle_Targeted_Scroll
+             (Model, Files.Events.Scroll_Tree_Panel, -1);
+         Assert
+           (Ignored.Status = Files.Controller.Controller_Ignored
+            and then Files.Model.Revision (Model) = Before,
+            "ignored tree scrolling at the first row leaves the model unchanged");
+      end;
+
       Assert (Row_Named (Rows, ".secret") = 0, "hidden directories are excluded when Show_Hidden_Files is off");
       Assert (Row_Named (Rows, "file.txt") = 0, "regular files are excluded from the tree");
 
@@ -3646,9 +4748,22 @@ package body Files_Suite.Interaction is
          Assert (Depth_Two, "expanding alpha reveals its child at depth two");
       end;
 
+      Files.Model.Set_Tree_Panel_Scroll_Rows (Model, 3);
+      Assert
+        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 3,
+         "the expanded tree can scroll to its final visible row");
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
       Rows := Files.Model.Tree_Visible_Rows (Model);
       Assert (Natural (Rows.Length) = 1, "collapsing the root hides all its descendants");
+      Assert
+        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 0,
+         "collapsing a branch clamps its now-hidden tree scroll offset");
+
+      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
+      Assert
+        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 0,
+         "re-expanding a branch does not resurrect its obsolete scroll offset");
+      Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
 
       declare
          Hidden_On : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -3716,6 +4831,14 @@ package body Files_Suite.Interaction is
         (CResult.Status = Files.Controller.Controller_Selection_Moved
          and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (2).Path),
          "Down moves the highlight to the next row");
+      CResult :=
+        Files.Controller.Handle_Key
+          (Model, Settings, Guikit.Input.Key_Down, Tree_Page_Rows => 2);
+      Assert
+        (CResult.Status = Files.Controller.Controller_Selection_Moved
+         and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (3).Path)
+         and then Files.Model.Tree_Panel_Scroll_Rows (Model) = 1,
+         "keyboard tree navigation reveals a highlight that crosses the viewport edge");
 
       --  Right on the alpha folder (which has a child) expands it; Left collapses.
       Files.Model.Set_Tree_Pick_Target (Model, Alpha);
@@ -3727,11 +4850,34 @@ package body Files_Suite.Interaction is
            (CResult.Status = Files.Controller.Controller_Command_Executed
             and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) > Before,
             "Right expands the highlighted folder");
-         CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
+
+         --  Select alpha's child, then collapse alpha through the independent
+         --  disclosure-triangle path. The now-hidden child must not remain the
+         --  destination that Choose would silently use.
+         CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
+         Assert
+           (Files.Model.Tree_Pick_Target (Model) = A1,
+            "Right on an expanded destination enters its first child");
+         declare
+            Expanded_Rows : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
+              Files.Model.Tree_Visible_Rows (Model);
+            Alpha_Node : Natural := 0;
+         begin
+            for Row of Expanded_Rows loop
+               if To_String (Row.Path) = Alpha then
+                  Alpha_Node := Row.Node_Index;
+               end if;
+            end loop;
+            Assert (Alpha_Node /= 0, "the expanded picker still exposes alpha");
+            CResult :=
+              Files.Controller.Handle_Tree_Click
+                (Model, Settings, Alpha_Node, Toggle => True);
+         end;
          Assert
            (CResult.Status = Files.Controller.Controller_Command_Executed
-            and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) = Before,
-            "Left collapses it again");
+            and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) = Before
+            and then Files.Model.Tree_Pick_Target (Model) = Alpha,
+            "collapsing an ancestor retargets a hidden destination to that ancestor");
       end;
 
       --  Enter confirms the pick: copy the source into the highlighted folder
@@ -3789,6 +4935,27 @@ package body Files_Suite.Interaction is
            (Action.Kind = Files.Events.Tree_Click_Input_Action,
             "a tree label coordinate translates to a tree click");
          Assert (not Action.Toggle_Selection, "clicking the label navigates rather than toggles");
+
+         --  A tree action queued before another overlay opens must not navigate
+         --  through that top-most surface.
+         Files.Model.Open_Context_Menu
+           (Model, X, Y, Files.Model.Context_Menu_Empty);
+         declare
+            Path_Before : constant String := Files.Model.Current_Path (Model);
+            Revision    : constant Natural := Files.Model.Revision (Model);
+         begin
+            Files.Interaction.Apply_Input_Action
+              (Model, Settings, "", Action, Base_Font,
+               Guikit.Input.No_Modifiers, Result);
+            Assert
+              (Files.Model.Current_Path (Model) = Path_Before
+               and then Files.Model.Revision (Model) = Revision
+               and then Files.Model.Context_Menu_Is_Open (Model)
+               and then Result.Status = Files.Controller.Controller_Ignored,
+               "a delayed tree-row click is contained by the context menu");
+         end;
+         Files.Model.Close_Context_Menu (Model);
+
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert
@@ -3922,6 +5089,26 @@ package body Files_Suite.Interaction is
       Assert (Has_Favorite (Settings, Item), "favoriting a selected file stores its path");
       Assert (Result.Settings_Changed, "favoriting reports a settings change");
 
+      Files.Interaction.Apply_Input_Action
+        (Model,
+         Settings,
+         Path,
+         (Kind => Files.Events.No_Input_Action, others => <>),
+         Base_Font,
+         Guikit.Input.No_Modifiers,
+         Result);
+      Assert
+        (Result.Status = Files.Controller.Controller_Ignored
+         and then Result.Command = Files.Commands.No_Command
+         and then not Result.Command_Executed
+         and then not Result.Settings_Changed
+         and then not Result.Font_Size_Changed
+         and then not Result.Needs_Glyph_Rebuild
+         and then not Result.Directory_Reloaded
+         and then not Result.Clear_Pending_Text
+         and then not Result.Context_Menu_Changed,
+         "a reused interaction result does not retain follow-up flags from the prior action");
+
       --  Toggling the same selection again removes the favorite.
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
@@ -3935,6 +5122,31 @@ package body Files_Suite.Interaction is
       Assert
         (Has_Favorite (Settings, Files.Model.Current_Path (Model)),
          "with no selection the toggle favorites the current folder");
+
+      --  A selected inline-create placeholder has no filesystem path. It must
+      --  not be confused with the empty-selection fallback and toggle the
+      --  current directory behind the active editor.
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+      Assert
+        (not Has_Favorite (Settings, Files.Model.Current_Path (Model)),
+         "the setup removes the current-folder favorite");
+      Files.Model.Begin_Create_File (Model, "untitled.txt");
+      Assert
+        (Files.Model.Selection_Includes_Temporary (Model),
+         "the pending create row is selected before the favorite command");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Toggle_Favorite_Command, Model),
+         "favorite is disabled for a temporary selection");
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+      Assert
+        (not Has_Favorite (Settings, Files.Model.Current_Path (Model)),
+         "favoriting a temporary row does not toggle the current folder");
+      Assert
+        (Files.Model.Last_Error_Key (Model) = "error.create.pending"
+         and then not Result.Settings_Changed,
+         "the rejected favorite reports the pending create without persisting settings");
    end Test_Favorite_Toggle_On_Selection;
 
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4031,8 +5243,31 @@ package body Files_Suite.Interaction is
       Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Green, "the third item is labeled green");
       Assert (Result.Settings_Changed, "labeling reports a settings change");
 
-      --  Choosing None clears every selected item's label.
+      --  A delayed choice from the closed picker is inert. In particular, it
+      --  must not relabel the selection if another event was already queued.
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "", Choose (Files.Types.Red), Base_Font,
+         Guikit.Input.No_Modifiers, Result);
+      Assert (not Files.Model.Label_Picker_Is_Open (Model),
+              "a stale choice does not reopen the picker");
+      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green,
+              "a stale choice does not relabel the selection");
+
+      --  Public input actions carry a numeric payload. Reject a malformed
+      --  value without raising or dismissing the active picker.
       Files.Model.Open_Label_Picker (Model);
+      Files.Interaction.Apply_Input_Action
+        (Model, Settings, "",
+         (Kind       => Files.Events.Label_Picker_Choice_Input_Action,
+          Item_Index => Files.Types.Color_Label'Pos (Files.Types.Color_Label'Last) + 1,
+          others     => <>),
+         Base_Font, Guikit.Input.No_Modifiers, Result);
+      Assert (Files.Model.Label_Picker_Is_Open (Model),
+              "an invalid choice leaves the picker available");
+      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green,
+              "an invalid choice does not change labels");
+
+      --  Choosing None clears every selected item's label.
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.No_Label, "None clears the first label");
@@ -4452,6 +5687,40 @@ package body Files_Suite.Interaction is
          Open_Empty_Context_Menu (Menu_Model, Settings, Menu_Result);
          Assert (Menu_Offers (Menu_Model, Settings, Files.Commands.Clear_Recent_Command),
                  "the empty-area menu lists Clear Recent");
+      end;
+
+      --  Missing recent paths are intentionally omitted from the listing, but
+      --  they still need a usable Clear Recent command so stale persisted state
+      --  is not trapped behind an empty view.
+      Files.Settings.Clear_Recent (Settings);
+      Files.Settings.Note_Recent
+        (Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "missing-recent"));
+      declare
+         Rebuilt : constant Files.Operations.Operation_Result :=
+           Files.Operations.Navigate_Recent (Model, Settings);
+         Clear_Action : constant Files.Events.Input_Action :=
+           (Kind    => Files.Events.Command_Input_Action,
+            Command => Files.Commands.Clear_Recent_Command,
+            others  => <>);
+         pragma Unreferenced (Rebuilt);
+      begin
+         Assert
+           (Files.Model.Item_Count (Model) = 0
+            and then Files.Commands.Is_Enabled
+              (Files.Commands.Clear_Recent_Command, Model),
+            "Clear Recent remains enabled when every persisted path is stale");
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings,
+            Settings_Path     => "",
+            Action            => Clear_Action,
+            Current_Font_Size => Base_Font,
+            Modifiers         => Guikit.Input.No_Modifiers,
+            Result            => Result);
+         Assert
+           (Files.Settings.Recent_Paths (Settings).Is_Empty
+            and then Result.Settings_Changed,
+            "Clear Recent removes stale persisted paths from an empty virtual view");
       end;
    end Test_Recent_Commands_Registry;
 

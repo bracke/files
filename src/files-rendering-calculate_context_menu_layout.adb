@@ -34,6 +34,10 @@ separate (Files.Rendering)
          end loop;
       end;
 
+      if Result.Row_Count = 0 then
+         return Result;
+      end if;
+
       Result.Padding := 4;
       Result.Row_Height :=
         Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
@@ -42,9 +46,8 @@ separate (Files.Rendering)
       Result.Separator_Height :=
         Saturating_Add (1, Saturating_Multiply (Result.Padding, 2));
 
-      --  Size the menu to the widest command label (using the same monospace
-      --  cell metric and edge padding the renderer draws rows with) so labels
-      --  are not truncated, then clamp to the available screen width.
+      --  Size one column to the widest command label (using the same monospace
+      --  cell metric and edge padding the renderer draws rows with).
       declare
          Cell_W    : constant Positive :=
            Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
@@ -70,26 +73,73 @@ separate (Files.Rendering)
            Natural'Max
              (Natural'Max (Saturating_Multiply (Line_Height, 9), 180),
               Saturating_Add (Max_Label, Edge_Pad));
-
-         if Width > 0 and then Result.Width > Width then
-            Result.Width := Width;
-         end if;
       end;
 
       declare
-         Rows_Height : Natural := 0;
+         Single_Column_Width : constant Natural := Result.Width;
+         Outer_Padding       : constant Natural := Saturating_Multiply (Result.Padding, 2);
+         Minimum_Column_W    : constant Natural :=
+           Natural'Max (Saturating_Multiply (Line_Height, 9), 180);
+
+         function Rows_Height (First_Row, Last_Row : Positive) return Natural is
+            Value : Natural := 0;
+         begin
+            for Row in First_Row .. Last_Row loop
+               Value :=
+                 Saturating_Add
+                   (Value,
+                    (if Result.Row_Kinds (Row) = Separator_Row
+                     then Result.Separator_Height
+                     else Result.Row_Height));
+            end loop;
+            return Value;
+         end Rows_Height;
+
+         Total_Rows_Height : constant Natural := Rows_Height (1, Positive (Result.Row_Count));
+         Best_Break        : Natural := 0;
+         Best_Tallest      : Natural := Natural'Last;
       begin
-         for Row in 1 .. Result.Row_Count loop
-            Rows_Height :=
-              Saturating_Add
-                (Rows_Height,
-                 (if Result.Row_Kinds (Row) = Separator_Row
-                  then Result.Separator_Height
-                  else Result.Row_Height));
-         end loop;
-         Result.Height :=
-           Saturating_Add
-             (Rows_Height, Saturating_Multiply (Result.Padding, 2));
+         Result.Height := Saturating_Add (Total_Rows_Height, Outer_Padding);
+
+         --  At compact heights, split only at a group separator.  This keeps
+         --  every command mouse-reachable without shrinking text below its
+         --  configured line height or cutting the menu off-screen.
+         if Result.Height > Height
+           and then Result.Row_Count > 1
+           and then Width >= Saturating_Multiply (Minimum_Column_W, 2)
+         then
+            for Row in 1 .. Result.Row_Count - 1 loop
+               if Result.Row_Kinds (Row) = Separator_Row then
+                  declare
+                     Left_H  : constant Natural := Rows_Height (1, Row);
+                     Right_H : constant Natural :=
+                       Rows_Height (Positive (Row + 1), Positive (Result.Row_Count));
+                     Tallest : constant Natural := Natural'Max (Left_H, Right_H);
+                  begin
+                     if Tallest < Best_Tallest then
+                        Best_Tallest := Tallest;
+                        Best_Break := Row;
+                     end if;
+                  end;
+               end if;
+            end loop;
+
+            if Best_Break > 0
+              and then Saturating_Add (Best_Tallest, Outer_Padding) <= Height
+            then
+               Result.Column_Count := 2;
+               Result.Column_Break_Row := Best_Break;
+               Result.Width :=
+                 Natural'Min (Width, Saturating_Multiply (Single_Column_Width, 2));
+               Result.Column_Width := Result.Width / 2;
+               Result.Height := Saturating_Add (Best_Tallest, Outer_Padding);
+            end if;
+         end if;
+
+         if Result.Column_Count = 1 then
+            Result.Width := Natural'Min (Width, Single_Column_Width);
+            Result.Column_Width := Result.Width;
+         end if;
       end;
 
       --  Anchor to the cursor but keep the menu fully on-screen.

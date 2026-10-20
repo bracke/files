@@ -6,6 +6,9 @@ package body Error is
       Error_Key : String) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      --  Refresh requests also snapshot the current error so a completed load
+      --  cannot clear or restore an error recorded after the request began.
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Last_Error := To_Unbounded_String (Error_Key);
    end Set_Error;
 

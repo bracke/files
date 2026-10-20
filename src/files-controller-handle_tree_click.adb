@@ -7,6 +7,15 @@ separate (Files.Controller)
       return Controller_Result is
    begin
       if not Files.Model.Tree_Panel_Is_Open (Model)
+        or else Files.Model.Command_Palette_Is_Open (Model)
+        or else Files.Model.Settings_Pane_Is_Open (Model)
+        or else Files.Model.Root_Selector_Is_Open (Model)
+        or else Files.Model.Sort_Menu_Is_Open (Model)
+        or else Files.Model.Context_Menu_Is_Open (Model)
+        or else Files.Model.Label_Picker_Is_Open (Model)
+        or else Files.Model.Quick_Look_Is_Open (Model)
+        or else Files.Model.Paste_Conflict_Is_Active (Model)
+        or else Files.Model.Paste_Execution_Is_Active (Model)
         or else Node_Index = 0
         or else Node_Index > Files.Model.Tree_Node_Count (Model)
       then

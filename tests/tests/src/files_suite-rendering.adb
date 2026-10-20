@@ -9,10 +9,12 @@ with AUnit.Test_Cases;
 with System;
 
 with Files.Commands;
+with Files.Breadcrumbs;
 with Files.Events;
 with Files.Extension_Labels;
 with Files.File_System;
 with Files.Fonts;
+with Files.Folder_Tree;
 with Files.Localization;
 with Files.Model;
 with Files.UI;
@@ -21,6 +23,8 @@ with Files.Quick_Look;
 with Guikit.Draw;
 with Files.Rendering;
 with Files.Accessibility;
+with Files.Settings;
+with Files_Suite.Support;
 with A11y.Platforms;
 with A11y.Results;
 with A11ykit.Compatibility;
@@ -61,9 +65,12 @@ package body Files_Suite.Rendering is
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Compact_Frame_Commands_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Compact_Overlay_Commands_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extension_Label_Extreme_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Large_Icons_Rename_Caret (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Large_Icon_Badges_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -77,8 +84,12 @@ package body Files_Suite.Rendering is
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Overlay_Suppresses_Background_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Uses_Shadow_Color (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Conflict_Has_Modal_Backdrop (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Floating_Menus_Have_Elevation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -104,12 +115,18 @@ package body Files_Suite.Rendering is
    procedure Test_Marquee_Items_In_Rect (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Auto_Scroll_Step (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drag_Preview_Uses_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Compact_Breadcrumbs_Stay_In_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Compact_Empty_State_Stays_In_View (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Empty_Info_Pane_Message (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Label_Picker_Drawn_In_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Rendering_Test_Case) return AUnit.Message_String is
@@ -129,6 +146,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Frame_Rendering_Invariants'Access, "frame rendering invariants");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Compact_Frame_Commands_Bounded'Access,
+         "compact frame commands have positive framebuffer-bounded geometry");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Compact_Overlay_Commands_Bounded'Access,
+         "compact overlay commands and hit regions stay inside the framebuffer");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Extreme_Size_Saturation'Access, "layout saturates at extreme sizes without overflow");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Extension_Label_Extreme_Height'Access,
@@ -136,6 +159,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Large_Icons_Rename_Caret'Access,
          "large-icons rename edits left-aligned across the cell with the caret in the label region");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Large_Icon_Badges_Bounded'Access,
+         "large-icon extension badges stay inside the main viewport");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Multi_Rename_Fields_And_Carets'Access,
          "two renaming rows draw two rename fields and two carets at their own cursors");
@@ -171,11 +197,23 @@ package body Files_Suite.Rendering is
         (T, Test_Context_Menu_Suppresses_Item_Hover'Access,
          "an open context menu suppresses the main-grid item hover highlight");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Overlay_Suppresses_Background_Tooltips'Access,
+         "an open overlay suppresses tooltips from controls behind it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Uses_Shadow_Color'Access,
+         "the root selector uses the theme's translucent shadow role");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Conflict_Has_Modal_Backdrop'Access,
+         "the modal paste-conflict dialog dims the inactive file view");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tooltip_Wraps_When_Narrow'Access,
          "a narrow window wraps a long tooltip onto multiple rows");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Context_Menu_Separators'Access,
          "the item context menu groups its commands with non-selectable separators");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Floating_Menus_Have_Elevation'Access,
+         "context and sort menus use the shared overlay surface and shadow");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Panels_Expose_Close_Button'Access,
          "each open overlay panel emits a close-button accessibility node");
@@ -189,8 +227,11 @@ package body Files_Suite.Rendering is
         (T, Test_Quick_Look_Drawn_In_Overlay'Access,
          "the quick look panel composites in the overlay layer, not the main grid layer");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Label_Picker_Drawn_In_Overlay'Access,
+         "the label picker composites in the overlay layer, not beneath file icons");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Theme_Palette_Selection'Access,
-         "the light palette differs from dark while high contrast keeps the dark base");
+         "light and high-contrast palettes are visually distinct from dark");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Column_Customization'Access,
          "detail columns honour visibility and custom widths and always keep the name column");
@@ -261,8 +302,23 @@ package body Files_Suite.Rendering is
         (T, Test_Marquee_Frame_Draws_Rectangle'Access,
          "an active marquee draws a translucent selection rectangle over the grid");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drag_Preview_Uses_Overlay'Access,
+         "the drag preview is a bounded overlay above file-view content");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Toolbar_Text_Optically_Centered'Access,
          "toolbar input text aligns vertically with the toolbar icons and star");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Compact_Breadcrumbs_Stay_In_Field'Access,
+         "compact breadcrumbs stay inside the path field");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Compact_Empty_State_Stays_In_View'Access,
+         "compact empty-state content stays inside the main view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Empty_Info_Pane_Message'Access,
+         "an open information pane explains an empty selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Content_Clipped'Access,
+         "information-pane content stays above the bottom bar at compact heights");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scope_Chip_Has_Own_Tooltip'Access,
          "the search-scope chip has its own tooltip describing the scope");
@@ -374,6 +430,183 @@ package body Files_Suite.Rendering is
       Assert (abs (Icon_Center - Field_Ctr) <= 1,
               "the toolbar icon is centred in the toolbar field");
    end Test_Toolbar_Text_Optically_Centered;
+
+   procedure Test_Compact_Breadcrumbs_Stay_In_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width   : constant Natural := 640;
+      Snap    : View_Snapshot := Sample_Snapshot (0, Files.Types.Details);
+      Toolbar : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
+      Margin  : constant Natural := 6;
+      End_X   : constant Natural :=
+        Toolbar.Middle_X + Toolbar.Middle_Width - Natural'Min (Margin, Toolbar.Middle_Width);
+   begin
+      Snap.Breadcrumb_Segments :=
+        Files.Breadcrumbs.Segments ("/home/example/projects/ada/files");
+      declare
+         Rows : constant Breadcrumb_Segment_Layout_Vectors.Vector :=
+           Calculate_Breadcrumb_Layout (Snap, Width, 20);
+      begin
+         Assert (not Rows.Is_Empty, "a compact path still shows its current directory");
+         for Row of Rows loop
+            Assert
+              (Row.X <= End_X and then Row.Width <= End_X - Row.X,
+               "every compact breadcrumb remains inside the path field");
+         end loop;
+      end;
+   end Test_Compact_Breadcrumbs_Stay_In_Field;
+
+   procedure Test_Compact_Empty_State_Stays_In_View
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      LH      : constant Positive := 20;
+      Height  : constant Natural :=
+        3 * LH + 2 * Guikit.Layout.Bottom_Bar_Padding + 1;
+      Snap    : constant View_Snapshot := Sample_Snapshot (0, Files.Types.Small_Icons);
+      Found   : Boolean := False;
+   begin
+      for Width in 1 .. 120 loop
+         declare
+            Layout : constant Guikit.Draw.Layout_Metrics :=
+              Calculate_Layout (Snap, Width, Height, LH);
+            Frame  : constant Frame_Commands :=
+              Build_Frame_Commands (Snap, Width, Height, LH);
+         begin
+            Assert (Layout.Main_Height = 1, "the compact case has a one-pixel main view");
+            for Command of Frame.Text loop
+               if Command.Y >= Layout.Main_Y
+                 and then Command.Y < Layout.Main_Y + Layout.Main_Height
+               then
+                  Found := True;
+                  Assert
+                    (Command.X >= Layout.Main_X
+                     and then Command.X + Command.Width <= Layout.Main_X + Layout.Main_Width
+                     and then Command.Y >= Layout.Main_Y
+                     and then Command.Y + Command.Height <= Layout.Main_Y + Layout.Main_Height,
+                     "empty-state text stays inside the compact main view");
+               end if;
+            end loop;
+         end;
+      end loop;
+      Assert (Found, "the compact cases exercise visible empty-state text");
+   end Test_Compact_Empty_State_Stays_In_View;
+
+   procedure Test_Empty_Info_Pane_Message (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+      Message : constant String := Files.Localization.Text ("error.selection.empty");
+      Found   : Boolean := False;
+   begin
+      Snap.Info_Pane_Open := True;
+      declare
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snap, 640, 480, 20);
+      begin
+         for Command of Frame.Text loop
+            if To_String (Command.Text) = Message then
+               Found := True;
+            end if;
+         end loop;
+      end;
+      Assert (Found, "the empty information pane renders its localized empty-selection message");
+   end Test_Empty_Info_Pane_Message;
+
+   procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width         : constant Natural := 640;
+      LH            : constant Positive := 20;
+      Found_Clipped : Boolean := False;
+      Sample_Info   : Info_Snapshot;
+   begin
+      Sample_Info.Name := To_Unbounded_String ("compact.txt");
+      Sample_Info.Filetype := To_Unbounded_String ("text/plain");
+      Sample_Info.Size_Available := True;
+      Sample_Info.Size := 1_024;
+      Sample_Info.Mode_Available := True;
+      Sample_Info.Mode_Bits := 8#640#;
+      Sample_Info.Ownership_Available := True;
+      Sample_Info.Owner_Name := To_Unbounded_String ("owner");
+      Sample_Info.Group_Name := To_Unbounded_String ("group");
+      Sample_Info.Filetype_Extra := To_Unbounded_String ("compact metadata");
+
+      for Selection_Count in 0 .. 2 loop
+         declare
+            Snap : View_Snapshot := Sample_Snapshot (3, Files.Types.Details);
+         begin
+            Snap.Info_Pane_Open := True;
+            Snap.Permissions_Editable := True;
+            Snap.Ownership_Editable := True;
+            Snap.Info_Pane_Scroll_Lines :=
+              (if Selection_Count = 1 then 19 elsif Selection_Count = 2 then 2 else 0);
+            for Index in 1 .. Selection_Count loop
+               Sample_Info.Name := To_Unbounded_String ("compact" & Integer'Image (Index) & ".txt");
+               Snap.Selected_Info.Append (Sample_Info);
+            end loop;
+
+            for Height in 90 .. 150 loop
+               declare
+                  Layout : constant Guikit.Draw.Layout_Metrics :=
+                    Calculate_Layout (Snap, Width, Height, LH);
+                  Info   : constant Info_Pane_Layout :=
+                    Calculate_Info_Pane_Layout (Snap, Layout, LH);
+                  Frame  : constant Frame_Commands :=
+                    Build_Frame_Commands (Snap, Width, Height, LH);
+                  Right  : constant Natural := Info.X + Info.Width;
+                  Bottom : constant Natural := Info.Y + Info.Height;
+               begin
+                  for Command of Frame.Text loop
+                     if Command.X >= Info.X and then Command.X < Right
+                       and then Command.Y >= Info.Y and then Command.Y < Bottom
+                     then
+                        Assert
+                          (Command.Height <= Bottom - Command.Y,
+                           "information-pane text stays above the bottom bar");
+                        Found_Clipped := Found_Clipped or else Command.Height < LH;
+                     end if;
+                  end loop;
+
+                  for Tip of Frame.Tooltips loop
+                     if Tip.X >= Info.X and then Tip.X < Right
+                       and then Tip.Y >= Info.Y and then Tip.Y < Bottom
+                     then
+                        Assert
+                          (Tip.Height <= Bottom - Tip.Y,
+                           "information-pane tooltip regions stay inside the pane");
+                     end if;
+                  end loop;
+
+                  for Node of Frame.Accessibility loop
+                     if Node.X >= Info.X and then Node.X < Right
+                       and then (Node.Role = Role_Pane or else Node.Role = Role_List_Item)
+                     then
+                        Assert
+                          (Node.Y >= Info.Y
+                           and then Node.Y <= Bottom
+                           and then Node.Height <= Bottom - Node.Y,
+                           "information-pane accessibility nodes stay inside the pane");
+                     end if;
+                  end loop;
+
+                  for Hit of Frame.Permission_Hits loop
+                     Assert
+                       (Hit.Y >= Info.Y
+                        and then Hit.Y <= Bottom
+                        and then Hit.Height <= Bottom - Hit.Y,
+                        "permission hit regions stay inside the information pane");
+                  end loop;
+                  for Hit of Frame.Ownership_Hits loop
+                     Assert
+                       (Hit.Y >= Info.Y
+                        and then Hit.Y <= Bottom
+                        and then Hit.Height <= Bottom - Hit.Y,
+                        "ownership hit regions stay inside the information pane");
+                  end loop;
+               end;
+            end loop;
+         end;
+      end loop;
+
+      Assert (Found_Clipped, "the compact-height cases exercise a partially visible metadata row");
+   end Test_Info_Pane_Content_Clipped;
 
    --  Hovering the search-scope chip shows a tooltip describing the scope, not
    --  the filter field's tooltip that spans the same toolbar section.
@@ -686,6 +919,188 @@ package body Files_Suite.Rendering is
       end;
    end Test_Frame_Rendering_Invariants;
 
+   procedure Test_Compact_Frame_Commands_Bounded
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Widths  : constant array (Positive range <>) of Natural :=
+        [0, 1, 7, 40, 119, 279, 280, 639, 640];
+      Heights : constant array (Positive range <>) of Natural :=
+        [0, 1, 7, 8, 9, 20, 39, 40, 41, 72, 73, 100];
+      Snap    : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+   begin
+      --  Exercise both the filled-star triangles and the toolbar asset icons.
+      Snap.Current_Path_Is_Favorite := True;
+      for Width of Widths loop
+         for Height of Heights loop
+            declare
+               Frame : constant Frame_Commands :=
+                 Build_Frame_Commands (Snap, Width, Height, 20);
+            begin
+               for Command of Frame.Rectangles loop
+                  Assert
+                    (Command.Width > 0 and then Command.Height > 0
+                     and then Command.X + Command.Width <= Width
+                     and then Command.Y + Command.Height <= Height,
+                     "rectangle commands stay inside the compact framebuffer");
+               end loop;
+               for Command of Frame.Text loop
+                  Assert
+                    (Command.Width > 0 and then Command.Height > 0
+                     and then Command.X + Command.Width <= Width
+                     and then Command.Y + Command.Height <= Height,
+                     "text commands stay inside the compact framebuffer");
+               end loop;
+               for Tip of Frame.Tooltips loop
+                  Assert
+                    (Tip.Width > 0 and then Tip.Height > 0
+                     and then Tip.X + Tip.Width <= Width
+                     and then Tip.Y + Tip.Height <= Height,
+                     "tooltip regions stay inside the compact framebuffer");
+               end loop;
+               for Node of Frame.Accessibility loop
+                  Assert
+                    (Node.Width > 0 and then Node.Height > 0
+                     and then Node.X + Node.Width <= Width
+                     and then Node.Y + Node.Height <= Height,
+                     "accessibility nodes stay inside the compact framebuffer");
+               end loop;
+               for Icon of Frame.Icons loop
+                  declare
+                     Draw_W : constant Natural :=
+                       (if Icon.Draw_Width > 0 then Icon.Draw_Width else Icon.Size);
+                     Draw_H : constant Natural :=
+                       (if Icon.Draw_Height > 0 then Icon.Draw_Height else Icon.Size);
+                  begin
+                     Assert
+                       (Draw_W > 0 and then Draw_H > 0
+                        and then Icon.X + Draw_W <= Width
+                        and then Icon.Y + Draw_H <= Height,
+                        "icon commands stay inside the compact framebuffer");
+                  end;
+               end loop;
+               for Triangle of Frame.Triangles loop
+                  Assert
+                    (Triangle.X1 >= 0.0 and then Triangle.X1 <= Float (Width)
+                     and then Triangle.X2 >= 0.0 and then Triangle.X2 <= Float (Width)
+                     and then Triangle.X3 >= 0.0 and then Triangle.X3 <= Float (Width)
+                     and then Triangle.Y1 >= 0.0 and then Triangle.Y1 <= Float (Height)
+                     and then Triangle.Y2 >= 0.0 and then Triangle.Y2 <= Float (Height)
+                     and then Triangle.Y3 >= 0.0 and then Triangle.Y3 <= Float (Height),
+                     "triangle commands stay inside the compact framebuffer");
+               end loop;
+            end;
+         end loop;
+      end loop;
+   end Test_Compact_Frame_Commands_Bounded;
+
+   procedure Test_Compact_Overlay_Commands_Bounded
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Widths  : constant array (Positive range <>) of Natural :=
+        [0, 1, 5, 20, 80, 279, 360, 640];
+      Heights : constant array (Positive range <>) of Natural :=
+        [0, 1, 2, 20, 72, 100, 200];
+   begin
+      for Scenario in 1 .. 10 loop
+         declare
+            Snap : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         begin
+            Snap.Command_Enabled := [others => True];
+            case Scenario is
+               when 1 =>
+                  Snap.Paste_Conflict_Open := True;
+                  Snap.Paste_Conflict_Name := To_Unbounded_String ("conflict.txt");
+               when 2 =>
+                  Snap.Paste_Progress_Open := True;
+                  Snap.Paste_Progress_Done := 1;
+                  Snap.Paste_Progress_Total := 2;
+                  Snap.Paste_Progress_Name := To_Unbounded_String ("copy.txt");
+               when 3 =>
+                  Snap.Quick_Look_Open := True;
+                  Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
+                  Snap.Quick_Look_Name := To_Unbounded_String ("preview.txt");
+               when 4 =>
+                  Snap.Label_Picker_Open := True;
+               when 5 =>
+                  Snap.Sort_Menu_Open := True;
+               when 6 =>
+                  Snap.Command_Palette_Open := True;
+               when 7 =>
+                  Snap.Settings_Pane_Open := True;
+               when 8 =>
+                  Snap.Context_Menu_Open := True;
+                  Snap.Context_Menu_Target := Files.Model.Context_Menu_Item;
+                  Snap.Context_Menu_X := 10;
+                  Snap.Context_Menu_Y := 10;
+               when 9 =>
+                  Snap.Root_Selector_Open := True;
+                  Snap.Root_Selected_Index := 1;
+                  Snap.Root_Paths.Append (To_Unbounded_String ("/"));
+                  Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+               when others =>
+                  Snap.Tree_Panel_Open := True;
+            end case;
+
+            for Width of Widths loop
+               for Height of Heights loop
+                  declare
+                     Frame : constant Frame_Commands :=
+                       Build_Frame_Commands (Snap, Width, Height, 20);
+                  begin
+                     for Command of Frame.Overlay_Rectangles loop
+                        Assert
+                          (Command.Width > 0 and then Command.Height > 0
+                           and then Command.X + Command.Width <= Width
+                           and then Command.Y + Command.Height <= Height,
+                           "overlay rectangles stay inside the compact framebuffer");
+                     end loop;
+                     for Command of Frame.Overlay_Text loop
+                        Assert
+                          (Command.Width > 0 and then Command.Height > 0
+                           and then Command.X + Command.Width <= Width
+                           and then Command.Y + Command.Height <= Height,
+                           "overlay text stays inside the compact framebuffer");
+                     end loop;
+                     for Node of Frame.Accessibility loop
+                        Assert
+                          (Node.Width > 0 and then Node.Height > 0
+                           and then Node.X + Node.Width <= Width
+                           and then Node.Y + Node.Height <= Height,
+                           "overlay accessibility stays inside the compact framebuffer");
+                     end loop;
+                     for Hit of Frame.Conflict_Hits loop
+                        Assert
+                          (Hit.Kind /= Conflict_Hit_None
+                           and then Hit.Width > 0 and then Hit.Height > 0
+                           and then Hit.X + Hit.Width <= Width
+                           and then Hit.Y + Hit.Height <= Height,
+                           "dialog hit regions stay inside the compact framebuffer");
+                     end loop;
+                     for Icon of Frame.Icons loop
+                        if Icon.Overlay then
+                           declare
+                              Draw_W : constant Natural :=
+                                (if Icon.Draw_Width > 0 then Icon.Draw_Width else Icon.Size);
+                              Draw_H : constant Natural :=
+                                (if Icon.Draw_Height > 0 then Icon.Draw_Height else Icon.Size);
+                           begin
+                              Assert
+                                (Draw_W > 0 and then Draw_H > 0
+                                 and then Icon.X + Draw_W <= Width
+                                 and then Icon.Y + Draw_H <= Height,
+                                 "overlay icons stay inside the compact framebuffer");
+                           end;
+                        end if;
+                     end loop;
+                  end;
+               end loop;
+            end loop;
+         end;
+      end loop;
+   end Test_Compact_Overlay_Commands_Bounded;
+
    procedure Test_Extreme_Size_Saturation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : View_Snapshot := Sample_Snapshot (8, Files.Types.Details);
@@ -894,6 +1309,58 @@ package body Files_Suite.Rendering is
             "the advanced caret stays contained in the cell's label region");
       end;
    end Test_Large_Icons_Rename_Caret;
+
+   procedure Test_Large_Icon_Badges_Bounded
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Widths : constant array (Positive range <>) of Natural :=
+        [20, 40, 80, 139, 140, 141, 280, 421, 640];
+      Heights : constant array (Positive range <>) of Natural := [173, 300];
+      Snap   : View_Snapshot := Sample_Snapshot (12, Files.Types.Large_Icons);
+      Found  : Boolean := False;
+   begin
+      for Index in 1 .. Natural (Snap.Items.Length) loop
+         declare
+            Item : Item_Snapshot := Snap.Items.Element (Positive (Index));
+         begin
+            Item.Name := To_Unbounded_String ("item" & Integer'Image (Index) & ".txt");
+            Snap.Items.Replace_Element (Positive (Index), Item);
+         end;
+      end loop;
+
+      for Width of Widths loop
+         for Height of Heights loop
+            declare
+               Layout : constant Guikit.Draw.Layout_Metrics :=
+                 Calculate_Layout (Snap, Width, Height, 20);
+               Frame  : constant Frame_Commands :=
+                 Build_Frame_Commands (Snap, Width, Height, 20);
+               Main_Right : constant Natural := Layout.Main_X + Layout.Main_Width;
+               Main_Bottom : constant Natural := Layout.Main_Y + Layout.Main_Height;
+            begin
+               for Rect of Frame.Overlay_Rectangles loop
+                  Assert
+                    (Rect.X >= Layout.Main_X and then Rect.Y >= Layout.Main_Y
+                     and then Rect.X + Rect.Width <= Main_Right
+                     and then Rect.Y + Rect.Height <= Main_Bottom,
+                     "extension-badge backgrounds stay inside the main viewport");
+               end loop;
+               for Icon of Frame.Icons loop
+                  if Ada.Strings.Fixed.Index (To_String (Icon.Icon_Id), "extlabel:") = 1 then
+                     Found := True;
+                     Assert
+                       (Icon.X >= Layout.Main_X and then Icon.Y >= Layout.Main_Y
+                        and then Icon.X + Icon.Draw_Width <= Main_Right
+                        and then Icon.Y + Icon.Draw_Height <= Main_Bottom,
+                        "extension-label bitmaps stay inside the main viewport");
+                  end if;
+               end loop;
+            end;
+         end loop;
+      end loop;
+      Assert (Found, "the large-icon cases render at least one extension badge");
+   end Test_Large_Icon_Badges_Bounded;
 
    --  A synchronized multi-rename must draw one field and one caret per renaming
    --  row, each caret at that row's own cursor.
@@ -1111,6 +1578,30 @@ package body Files_Suite.Rendering is
       Assert
         (Outside.Kind /= Files.Events.Marquee_Begin_Input_Action,
          "pressing the chrome outside the grid never begins a marquee");
+      declare
+         Edge_Snapshot : View_Snapshot := Snapshot;
+      begin
+         Edge_Snapshot.Sort_Menu_Open := True;
+         declare
+            Edge_Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Edge_Snapshot, 1000, 800, 20);
+            Right_Edge : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Edge_Snapshot, Edge_Frame,
+                 X => 1000, Y => 400, Width => 1000, Height => 800);
+            Bottom_Edge : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Edge_Snapshot, Edge_Frame,
+                 X => 500, Y => 800, Width => 1000, Height => 800);
+         begin
+            Assert
+              (Right_Edge.Kind = Files.Events.No_Input_Action,
+               "the right framebuffer extent is not an actionable pixel");
+            Assert
+              (Bottom_Edge.Kind = Files.Events.No_Input_Action,
+               "the bottom framebuffer extent is not an actionable pixel");
+         end;
+      end;
    end Test_Click_Translation_Behavior;
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1378,19 +1869,47 @@ package body Files_Suite.Rendering is
       Frame := Build_Frame_Commands (Unknown, Width => 1200, Height => 800, Line_Height => 20);
       Assert (not Frame_Has_Text (Frame, Free_Word),
               "the bottom bar omits the free-space indicator when the value is unknown");
+
+      declare
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Built    : constant View_Snapshot := Build_Snapshot (Model, Settings);
+         pragma Unreferenced (Built);
+         Path     : constant String := Files.Model.Current_Path (Model);
+      begin
+         Assert
+           (Free_Space_Cache_Is_Current (Path),
+            "building a snapshot installs a current capacity sample");
+         Assert
+           (not Free_Space_Cache_Is_Current (Path & "/different"),
+            "a capacity sample cannot validate a different path's frame cache");
+      end;
    end Test_Bottom_Bar_Free_Space;
 
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
-      Frame    : constant Frame_Commands :=
-        Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
-      Tree     : constant A11ykit.Tree.Accessibility_Tree :=
-        Files.Accessibility.To_A11ykit_Tree (Frame);
+      Frame    : Frame_Commands;
+      Tree     : A11ykit.Tree.Accessibility_Tree;
       Profile  : constant Files.Rendering.Accessibility_Integration_Profile :=
         Files.Accessibility.Integration_Profile;
       Roots    : Natural := 0;
+      Focused  : Natural := 0;
    begin
+      for Index in 1 .. 2 loop
+         declare
+            Item : Item_Snapshot := Snapshot.Items.Element (Index);
+         begin
+            Item.Selected := True;
+            Snapshot.Items.Replace_Element (Index, Item);
+         end;
+      end loop;
+      Snapshot.Selected_Count := 2;
+      Snapshot.Primary_Selected_Visible_Index := 2;
+      Frame := Build_Frame_Commands
+        (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
+      Tree := Files.Accessibility.To_A11ykit_Tree (Frame);
+
       Assert
         (not Tree.Nodes.Is_Empty,
          "the frame's accessibility nodes map to a non-empty a11ykit tree");
@@ -1403,8 +1922,14 @@ package body Files_Suite.Rendering is
          if Tree.Nodes (Index).Parent = 0 then
             Roots := Roots + 1;
          end if;
+         if Tree.Nodes (Index).Node_State.Focused then
+            Focused := Focused + 1;
+         end if;
       end loop;
       Assert (Roots >= 1, "the mapped tree has at least one root node");
+      Assert
+        (Focused = 1,
+         "multi-selection exports exactly one primary keyboard-focus node");
       Assert
         (A11ykit.Compatibility.Validate_Tree (Tree).Status =
            A11y.Results.Success,
@@ -1561,6 +2086,167 @@ package body Files_Suite.Rendering is
          end;
       end;
    end Test_Context_Menu_Suppresses_Item_Hover;
+
+   --  A root selector opens directly beneath the toolbar.  Hovering the
+   --  toolbar button that opened it must not draw that button's tooltip over
+   --  the selector; only regions belonging to the active selector survive.
+   procedure Test_Overlay_Suppresses_Background_Tooltips
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Snap    : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Layout  : Guikit.Draw.Layout_Metrics;
+      Root    : Root_Selector_Layout;
+      Toolbar : Guikit.Layout.Toolbar_Layout;
+   begin
+      Snap.Root_Selector_Open := True;
+      Snap.Root_Selected_Index := 1;
+      Snap.Root_Paths.Append (To_Unbounded_String ("/"));
+      Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+      Layout  := Calculate_Layout (Snap, 480, 360, 20);
+      Root    := Calculate_Root_Selector_Layout (Snap, Layout, 20);
+      Toolbar := Guikit.Layout.Calculate_Toolbar_Layout (480);
+
+      declare
+         Button_X : constant Natural := Guikit.Layout.Toolbar_Left_Button_X (Toolbar, 0);
+         Button_W : constant Natural := Guikit.Layout.Toolbar_Left_Button_Width (Toolbar, 0);
+         Frame    : constant Frame_Commands :=
+           Build_Frame_Commands
+             (Snap,
+              480,
+              360,
+              20,
+              Hover_X   => Button_X + Button_W / 2,
+              Hover_Y   => Guikit.Layout.Toolbar_Input_Y (20) + 10,
+              Has_Hover => True);
+      begin
+         for Tip of Frame.Tooltips loop
+            Assert
+              (Tip.Y >= Root.Y,
+               "the active root selector retains no tooltip region from the toolbar behind it");
+         end loop;
+      end;
+   end Test_Overlay_Suppresses_Background_Tooltips;
+
+   --  The selector floats over file content.  Its two offset strips are a
+   --  drop shadow, not an opaque second pane: using Pane_Color here produces
+   --  a conspicuous solid ledge in the light theme.
+   procedure Test_Root_Selector_Uses_Shadow_Color
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Snap         : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Shadow_Count : Natural := 0;
+   begin
+      Snap.Root_Selector_Open := True;
+      Snap.Root_Selected_Index := 1;
+      Snap.Root_Paths.Append (To_Unbounded_String ("/"));
+      Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+
+      declare
+         Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 480, 360, 20);
+         Root   : constant Root_Selector_Layout := Calculate_Root_Selector_Layout (Snap, Layout, 20);
+         Frame  : constant Frame_Commands := Build_Frame_Commands (Snap, 480, 360, 20);
+         Dismiss : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Click
+             (Snap, Frame, X => 479, Y => 359, Width => 480, Height => 360, Line_Height => 20);
+         A11y_Count : Natural := 0;
+      begin
+         for Rect of Frame.Overlay_Rectangles loop
+            if Rect.Color = Shadow_Color then
+               Shadow_Count := Shadow_Count + 1;
+            end if;
+         end loop;
+         Assert
+           (Dismiss.Kind = Files.Events.Command_Input_Action
+            and then Dismiss.Command = Files.Commands.Close_Command_Palette_Command,
+            "a click outside the root selector dismisses it without activating the background");
+         for Node of Frame.Accessibility loop
+            A11y_Count := A11y_Count + 1;
+            Assert
+              (Node.X >= Root.X
+               and then Node.Y >= Root.Y
+               and then Node.X + Node.Width <= Root.X + Root.Width
+               and then Node.Y + Node.Height <= Root.Y + Root.Height,
+               "the root selector exposes no background accessibility nodes");
+         end loop;
+         Assert (A11y_Count > 1, "the root selector retains its list choices and close button");
+      end;
+
+      Assert
+        (Shadow_Count = 2,
+         "the root selector emits the shared two-strip translucent drop shadow");
+   end Test_Root_Selector_Uses_Shadow_Color;
+
+   --  Conflict resolution consumes every click while it is open.  Dim the
+   --  inactive file view so the visual hierarchy communicates the same modal
+   --  state as the event reducer, and place the dialog above that scrim.
+   procedure Test_Paste_Conflict_Has_Modal_Backdrop
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 640;
+      Height : constant Natural  := 480;
+      LH     : constant Positive := 20;
+      Snap   : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      Layout : Guikit.Draw.Layout_Metrics;
+      Dialog : Conflict_Dialog_Layout;
+      Backdrop_Seen     : Boolean := False;
+      Panel_Seen        : Boolean := False;
+      Shadow_Before_Panel : Natural := 0;
+      Accessibility_Count : Natural := 0;
+   begin
+      Snap.Paste_Conflict_Open := True;
+      Snap.Paste_Conflict_Name := To_Unbounded_String ("report.txt");
+      Layout := Calculate_Layout (Snap, Width, Height, LH);
+      Dialog := Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
+
+      declare
+         Frame : constant Frame_Commands := Build_Frame_Commands (Snap, Width, Height, LH);
+      begin
+         for Rect of Frame.Overlay_Rectangles loop
+            if Rect.Color = Modal_Backdrop_Color
+              and then Rect.X = 0
+              and then Rect.Y = 0
+              and then Rect.Width = Width
+              and then Rect.Height = Height
+            then
+               Backdrop_Seen := True;
+            elsif Rect.Color = Shadow_Color and then not Panel_Seen then
+               Shadow_Before_Panel := Shadow_Before_Panel + 1;
+            elsif Rect.Color = Overlay_Color
+              and then Rect.X = Dialog.X
+              and then Rect.Y = Dialog.Y
+              and then Rect.Width = Dialog.Width
+              and then Rect.Height = Dialog.Height
+            then
+               Assert
+                 (Backdrop_Seen,
+                  "the modal backdrop is emitted before the conflict-dialog surface");
+               Panel_Seen := True;
+            end if;
+         end loop;
+
+         for Node of Frame.Accessibility loop
+            Accessibility_Count := Accessibility_Count + 1;
+            Assert
+              (Node.X >= Dialog.X
+               and then Node.Y >= Dialog.Y
+               and then Node.X + Node.Width <= Dialog.X + Dialog.Width
+               and then Node.Y + Node.Height <= Dialog.Y + Dialog.Height,
+               "a modal conflict dialog exposes no background accessibility nodes");
+         end loop;
+      end;
+
+      Assert (Backdrop_Seen, "the paste-conflict dialog emits a full-window modal backdrop");
+      Assert (Panel_Seen, "the paste-conflict dialog emits its panel surface");
+      Assert
+        (Shadow_Before_Panel = 2,
+         "the paste-conflict dialog emits the shared shadow before its panel surface");
+      Assert
+        (Accessibility_Count > 0,
+         "the modal conflict dialog retains its own accessibility nodes");
+   end Test_Paste_Conflict_Has_Modal_Backdrop;
 
    --  Hover the toolbar button whose tooltip text is longest, then count the
    --  overlay rows that render that tooltip: a narrow window wraps it onto
@@ -1774,8 +2460,138 @@ package body Files_Suite.Rendering is
 
          Assert (Command_Count = Expected'Length, "all real commands are laid out");
          Assert (Separator_Count = 5, "five separators divide the six command groups");
+
+         declare
+            Clipped : Context_Menu_Layout := Menu;
+            Probe_X : constant Natural := Menu.X + Menu.Width / 2;
+            Probe_Y : constant Natural := Menu.Y + Menu.Padding;
+         begin
+            --  Model the renderer clipping the panel before its first row. The
+            --  hit test must honor the declared surface, not the latent rows.
+            Clipped.Height := Menu.Padding;
+            Assert
+              (Context_Menu_Row_At (Clipped, Probe_X, Probe_Y) = 0,
+               "a row outside the declared context-menu height is not clickable");
+         end;
+      end;
+
+      --  The complete item menu must remain on-screen and mouse-reachable at
+      --  the compact live-smoke height.  It uses two columns, split at a group
+      --  boundary, rather than clipping its lower commands.
+      declare
+         Menu : constant Context_Menu_Layout :=
+           Calculate_Context_Menu_Layout (Snapshot, 480, 360, 20);
+      begin
+         Assert (Menu.Column_Count = 2, "the compact item menu uses two columns");
+         Assert (Menu.Height <= 360, "the compact item menu stays within the window height");
+         Assert
+           (Menu.Column_Break_Row > 0 and then Menu.Column_Break_Row < Menu.Row_Count,
+            "the compact item menu splits between two non-empty columns");
+
+         for Row in 1 .. Menu.Row_Count loop
+            if Menu.Row_Kinds (Row) = Command_Row then
+               declare
+                  Probe_X : constant Natural :=
+                    Context_Menu_Row_Left (Menu, Row) + Context_Menu_Row_Width (Menu, Row) / 2;
+                  Probe_Y : constant Natural :=
+                    Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
+               begin
+                  Assert
+                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y) = Row,
+                     "every compact-menu command hit-tests in its displayed column");
+               end;
+            end if;
+         end loop;
       end;
    end Test_Context_Menu_Separators;
+
+   --  Menus float over the file view.  Use the same opaque overlay surface and
+   --  translucent two-strip shadow as the root selector instead of rendering a
+   --  flat pane that visually merges with the content beneath it.
+   procedure Test_Floating_Menus_Have_Elevation
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+   begin
+      declare
+         Snap : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
+      begin
+         Snap.Context_Menu_Open := True;
+         Snap.Context_Menu_Target := Files.Model.Context_Menu_Item;
+         Snap.Context_Menu_X := 100;
+         Snap.Context_Menu_Y := 100;
+
+         declare
+            Menu : constant Context_Menu_Layout :=
+              Calculate_Context_Menu_Layout (Snap, Width, Height, LH);
+            Frame : constant Frame_Commands := Build_Frame_Commands (Snap, Width, Height, LH);
+            Shadow_Count : Natural := 0;
+            Surface_Seen : Boolean := False;
+            A11y_Count : Natural := 0;
+         begin
+            for Rect of Frame.Overlay_Rectangles loop
+               if Rect.Color = Shadow_Color then
+                  Shadow_Count := Shadow_Count + 1;
+               elsif Rect.Color = Overlay_Color
+                 and then Rect.X = Menu.X
+                 and then Rect.Y = Menu.Y
+                 and then Rect.Width = Menu.Width
+                 and then Rect.Height = Menu.Height
+               then
+                  Surface_Seen := True;
+               end if;
+            end loop;
+            Assert (Shadow_Count = 2, "the context menu uses the shared two-strip shadow");
+            Assert (Surface_Seen, "the context menu uses the opaque overlay surface role");
+            for Node of Frame.Accessibility loop
+               A11y_Count := A11y_Count + 1;
+               Assert
+                 (Node.X >= Menu.X
+                  and then Node.Y >= Menu.Y
+                  and then Node.X + Node.Width <= Menu.X + Menu.Width
+                  and then Node.Y + Node.Height <= Menu.Y + Menu.Height,
+                  "the context menu exposes no background accessibility nodes");
+            end loop;
+            Assert (A11y_Count > 1, "the context menu retains its list and command choices");
+         end;
+      end;
+
+      declare
+         Snap : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      begin
+         Snap.Sort_Menu_Open := True;
+         declare
+            Frame : constant Frame_Commands := Build_Frame_Commands (Snap, Width, Height, LH);
+            Shadow_Count : Natural := 0;
+            A11y_Count : Natural := 0;
+            Dismiss : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Snap, Frame, X => Width / 2, Y => 10,
+                 Width => Width, Height => Height, Line_Height => LH);
+         begin
+            for Rect of Frame.Overlay_Rectangles loop
+               if Rect.Color = Shadow_Color then
+                  Shadow_Count := Shadow_Count + 1;
+               end if;
+            end loop;
+            Assert (Shadow_Count = 2, "the sort menu uses the shared two-strip shadow");
+            Assert
+              (Dismiss.Kind = Files.Events.Command_Input_Action
+               and then Dismiss.Command = Files.Commands.Close_Command_Palette_Command,
+               "a click outside the sort menu dismisses it without activating the background");
+            for Node of Frame.Accessibility loop
+               A11y_Count := A11y_Count + 1;
+               Assert
+                 (Node.Role = Role_List or else Node.Role = Role_List_Item,
+                  "the open sort menu exposes no background accessibility nodes");
+            end loop;
+            Assert (A11y_Count = 6, "the sort menu exposes its list and five sort choices");
+         end;
+      end;
+   end Test_Floating_Menus_Have_Elevation;
 
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1828,6 +2644,22 @@ package body Files_Suite.Rendering is
          Assert
            (Has_Close_Button_Node (Frame, Close),
             "the open root selector emits a close-button accessibility node");
+         declare
+            Compact_Layout : constant Guikit.Draw.Layout_Metrics :=
+              Calculate_Layout (Snap, 12, 200, LH);
+            Compact_Root : constant Root_Selector_Layout :=
+              Calculate_Root_Selector_Layout (Snap, Compact_Layout, LH);
+            Compact_Rows : constant Root_Path_Layout_Vectors.Vector :=
+              Calculate_Root_Path_Layout (Snap, Compact_Root);
+         begin
+            Assert (not Compact_Rows.Is_Empty, "the compact root selector retains a visible row");
+            for Row of Compact_Rows loop
+               Assert
+                 (Row.X >= Compact_Root.X
+                  and then Row.X + Row.Width <= Compact_Root.X + Compact_Root.Width,
+                  "compact root rows stay within the selector width");
+            end loop;
+         end;
       end;
 
       --  Folder-tree sidebar.
@@ -1835,18 +2667,136 @@ package body Files_Suite.Rendering is
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
          Layout : Guikit.Draw.Layout_Metrics;
          Panel  : Tree_Panel_Layout;
+         Rows   : Tree_Row_Layout_Vectors.Vector;
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
       begin
          Snap.Tree_Panel_Open := True;
+         Snap.Tree_Rows.Append
+           (Files.Folder_Tree.Visible_Row'
+              (Node_Index   => 1,
+               Path         => To_Unbounded_String ("/deep"),
+               Name         => To_Unbounded_String ("deep"),
+               Depth        => 20,
+               Expanded     => False,
+               Loaded       => True,
+               Has_Children => True));
          Layout := Calculate_Layout (Snap, Width, Height, LH);
          Panel  := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+         Rows   := Calculate_Tree_Row_Layout (Snap, Panel, LH);
          Close  := Panel_Close_Button (Panel.X, Panel.Y, Panel.Width, Panel.Height, LH);
          Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
          Assert (Close.Visible, "the folder tree hosts a close button");
          Assert
            (Has_Close_Button_Node (Frame, Close),
             "the open folder tree emits a close-button accessibility node");
+         Assert
+           (not Rows.Is_Empty
+            and then Rows.First_Element.Triangle_W = 0,
+            "a deeply indented expander clipped outside the sidebar is not clickable");
+
+         --  The tree can remain visible beneath the modal settings pane. Its
+         --  close button must not receive a click through that overlay.
+         Snap.Settings_Pane_Open := True;
+         Frame := Build_Frame_Commands (Snap, Width, Height, LH);
+         declare
+            Covered_Close : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Snap, Frame,
+                 Close.X + Close.Width / 2,
+                 Close.Y + Close.Height / 2,
+                 Width, Height, Line_Height => LH);
+         begin
+            Assert
+              (Covered_Close.Kind /= Files.Events.Command_Input_Action
+               or else Covered_Close.Command /= Files.Commands.Toggle_Folder_Tree_Command,
+               "the modal settings pane owns clicks above the visible folder tree");
+         end;
+
+         --  Quick Look is a higher modal layer than the persistent tree. It
+         --  clears the tree from the active accessibility surface after the
+         --  tree has been drawn underneath it.
+         Snap.Settings_Pane_Open := False;
+         Snap.Quick_Look_Open := True;
+         Snap.Quick_Look_Name := To_Unbounded_String ("preview.txt");
+         Frame := Build_Frame_Commands (Snap, Width, Height, LH);
+         declare
+            Tree_Accessible : Boolean := False;
+         begin
+            for Node of Frame.Accessibility loop
+               Tree_Accessible :=
+                 Tree_Accessible
+                 or else To_String (Node.Name) =
+                   Files.Localization.Text ("accessibility.tree_panel");
+            end loop;
+            Assert
+              (not Tree_Accessible,
+               "Quick Look hides the covered folder tree from accessibility");
+         end;
+      end;
+
+      --  A scrolled destination tree maps its clipped layout rows back to the
+      --  correct source rows and leaves the picker footer unobstructed.
+      declare
+         Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Layout     : Guikit.Draw.Layout_Metrics;
+         Panel      : Tree_Panel_Layout;
+         Buttons    : Tree_Pick_Button_Layout;
+         Rows       : Tree_Row_Layout_Vectors.Vector;
+         Frame      : Frame_Commands;
+         Fourth_Seen : Boolean := False;
+      begin
+         Snap.Tree_Panel_Open := True;
+         Snap.Tree_Pick_Active := True;
+         Snap.Tree_Panel_Scroll_Rows := 3;
+         for Index in 1 .. 12 loop
+            Snap.Tree_Rows.Append
+              (Files.Folder_Tree.Visible_Row'
+                 (Node_Index   => Index,
+                  Path         => To_Unbounded_String
+                    ("/tree/" & Natural'Image (Index)),
+                  Name         => To_Unbounded_String
+                    ("tree-row" & Natural'Image (Index)),
+                  Depth        => 0,
+                  Expanded     => False,
+                  Loaded       => True,
+                  Has_Children => False));
+         end loop;
+
+         Layout  := Calculate_Layout (Snap, Width, 200, LH);
+         Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+         Buttons := Tree_Pick_Buttons (Panel, LH);
+         Rows    := Calculate_Tree_Row_Layout (Snap, Panel, LH);
+         Frame   := Build_Frame_Commands (Snap, Width, 200, LH);
+
+         Assert
+           (not Rows.Is_Empty
+            and then Rows.First_Element.Visible_Row_Index = 4
+            and then Rows.First_Element.Node_Index = 4,
+            "tree scrolling lays out the requested source row first");
+         Assert
+           (Panel.Scrollbar_Visible
+            and then Panel.Scrollbar_Height > 0
+            and then Panel.Scrollbar_Track_Height > Panel.Scrollbar_Height,
+            "an overflowing tree exposes a bounded scrollbar thumb");
+         Assert
+           (not Buttons.Visible
+            or else Panel.Scrollbar_Y + Panel.Scrollbar_Track_Height <= Buttons.Y,
+            "the tree scrollbar track stays above the destination-picker footer");
+         for Row of Rows loop
+            Assert
+              (not Buttons.Visible
+               or else Row.Y + Row.Height <= Buttons.Y,
+               "scrolled destination rows stay above the picker button bar");
+         end loop;
+         for Node of Frame.Accessibility loop
+            if To_String (Node.Name) = "tree-row 4" then
+               Fourth_Seen := True;
+            end if;
+         end loop;
+         Assert
+           (Fourth_Seen,
+            "rendering and accessibility use the scrolled row's source data");
       end;
 
       --  Folder-tree destination picker: the Choose/Cancel button bar. Covers the
@@ -1856,14 +2806,19 @@ package body Files_Suite.Rendering is
          Layout     : Guikit.Draw.Layout_Metrics;
          Panel      : Tree_Panel_Layout;
          Buttons    : Tree_Pick_Button_Layout;
+         Frame      : Frame_Commands;
          Choose_Hit : Files.Events.Input_Action;
          Cancel_Hit : Files.Events.Input_Action;
+         Outside_Hit : Files.Events.Input_Action;
+         Backdrop_Seen : Boolean := False;
+         A11y_Count : Natural := 0;
       begin
          Snap.Tree_Panel_Open  := True;
          Snap.Tree_Pick_Active := True;
          Layout  := Calculate_Layout (Snap, Width, Height, LH);
          Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
          Buttons := Tree_Pick_Buttons (Panel, LH);
+         Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
 
          Assert (Buttons.Visible, "the active tree destination picker shows a Choose/Cancel bar");
          Assert
@@ -1881,16 +2836,23 @@ package body Files_Suite.Rendering is
          --  Each button center is hit-testable and routes to the right action.
          Choose_Hit :=
            Files.Events.Translate_Click
-             (Snap, Build_Frame_Commands (Snap, Width, Height, LH),
+             (Snap, Frame,
               X      => Buttons.Choose_X + Buttons.Button_Width / 2,
               Y      => Buttons.Y + Buttons.Height / 2,
               Width  => Width,
               Height => Height);
          Cancel_Hit :=
            Files.Events.Translate_Click
-             (Snap, Build_Frame_Commands (Snap, Width, Height, LH),
+             (Snap, Frame,
               X      => Buttons.Cancel_X + Buttons.Button_Width / 2,
               Y      => Buttons.Y + Buttons.Height / 2,
+              Width  => Width,
+              Height => Height);
+         Outside_Hit :=
+           Files.Events.Translate_Click
+             (Snap, Frame,
+              X      => Panel.X + Panel.Width + 20,
+              Y      => Panel.Y + 20,
               Width  => Width,
               Height => Height);
          Assert
@@ -1900,6 +2862,34 @@ package body Files_Suite.Rendering is
            (Cancel_Hit.Kind = Files.Events.Command_Input_Action
               and then Cancel_Hit.Command = Files.Commands.Toggle_Folder_Tree_Command,
             "clicking Cancel closes the picker");
+         Assert
+           (Outside_Hit.Kind = Files.Events.No_Input_Action,
+            "a destination-picker click outside the tree cannot activate the background");
+
+         for Rect of Frame.Overlay_Rectangles loop
+            if Rect.Color = Modal_Backdrop_Color
+              and then Rect.X = 0
+              and then Rect.Y = 0
+              and then Rect.Width = Width
+              and then Rect.Height = Height
+            then
+               Backdrop_Seen := True;
+            end if;
+         end loop;
+         Assert (Backdrop_Seen, "the modal destination picker dims the inactive file view");
+
+         for Node of Frame.Accessibility loop
+            A11y_Count := A11y_Count + 1;
+            Assert
+              (Node.X >= Panel.X
+               and then Node.Y >= Panel.Y
+               and then Node.X + Node.Width <= Panel.X + Panel.Width
+               and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+               "the modal destination picker exposes no background accessibility nodes");
+         end loop;
+         Assert
+           (A11y_Count >= 3,
+            "the destination picker retains its tree and Choose/Cancel accessibility nodes");
       end;
 
       --  Quick Look overlay.
@@ -1974,6 +2964,9 @@ package body Files_Suite.Rendering is
          Panel  : Paste_Progress_Layout;
          Frame  : Frame_Commands;
          Expected_Fill : Natural;
+         Backdrop_Seen : Boolean := False;
+         Shadow_Count  : Natural := 0;
+         Accessibility_Count : Natural := 0;
       begin
          Snap.Paste_Progress_Open := True;
          Snap.Paste_Progress_Done := 3;
@@ -1994,6 +2987,99 @@ package body Files_Suite.Rendering is
          Assert
            (Frame_Has_Text (Frame, "3 of 10"),
             "the progress overlay keeps the completed and total item counts when no label is present");
+         for Rect of Frame.Overlay_Rectangles loop
+            if Rect.Color = Modal_Backdrop_Color
+              and then Rect.X = 0
+              and then Rect.Y = 0
+              and then Rect.Width = Width
+              and then Rect.Height = Height
+            then
+               Backdrop_Seen := True;
+            elsif Rect.Color = Shadow_Color then
+               Shadow_Count := Shadow_Count + 1;
+            end if;
+         end loop;
+         Assert (Backdrop_Seen, "blocking paste progress dims the inactive file view");
+         Assert (Shadow_Count = 2, "paste progress uses the shared two-strip panel shadow");
+
+         for Node of Frame.Accessibility loop
+            Accessibility_Count := Accessibility_Count + 1;
+            Assert
+              (Node.X >= Panel.X
+               and then Node.Y >= Panel.Y
+               and then Node.X + Node.Width <= Panel.X + Panel.Width
+               and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+               "blocking paste progress exposes no background accessibility nodes");
+         end loop;
+         Assert
+           (Accessibility_Count > 0,
+            "blocking paste progress retains its dialog and Cancel accessibility nodes");
+      end;
+
+      --  Blocking dialogs must remain fully operable in a short/narrow window:
+      --  previously their fixed desktop height left live controls below the
+      --  framebuffer even though the panel started at its top edge.
+      declare
+         Compact_W : constant Natural := 80;
+         Compact_H : constant Natural := 100;
+         Snap      : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
+         Layout    : Guikit.Draw.Layout_Metrics;
+      begin
+         Snap.Paste_Conflict_Open := True;
+         Snap.Paste_Conflict_Name := To_Unbounded_String ("conflict.txt");
+         Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
+         declare
+            Dialog : constant Conflict_Dialog_Layout :=
+              Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
+         begin
+            Assert
+              (Dialog.X + Dialog.Width <= Compact_W
+               and then Dialog.Y + Dialog.Height <= Compact_H,
+               "the compact conflict dialog stays inside the framebuffer");
+            Assert
+              (Dialog.Cancel_X + Dialog.Button_Width <= Dialog.X + Dialog.Width
+               and then Dialog.Button_Y + Dialog.Button_Height <= Dialog.Y + Dialog.Height,
+               "the compact conflict action row stays inside its panel");
+            for Node of Frame.Accessibility loop
+               Assert
+                 (Node.X >= Dialog.X
+                  and then Node.Y >= Dialog.Y
+                  and then Node.X + Node.Width <= Dialog.X + Dialog.Width
+                  and then Node.Y + Node.Height <= Dialog.Y + Dialog.Height,
+                  "compact conflict accessibility controls stay inside the panel");
+            end loop;
+         end;
+
+         Snap.Paste_Conflict_Open := False;
+         Snap.Paste_Progress_Open := True;
+         Snap.Paste_Progress_Total := 2;
+         Snap.Paste_Progress_Done := 1;
+         Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
+         declare
+            Panel : constant Paste_Progress_Layout :=
+              Calculate_Paste_Progress_Layout (Snap, Layout, LH);
+            Frame : constant Frame_Commands :=
+              Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
+         begin
+            Assert
+              (Panel.X + Panel.Width <= Compact_W
+               and then Panel.Y + Panel.Height <= Compact_H,
+               "the compact paste-progress panel stays inside the framebuffer");
+            Assert
+              (Panel.Cancel_X + Panel.Cancel_Width <= Panel.X + Panel.Width
+               and then Panel.Cancel_Y + Panel.Cancel_Height <= Panel.Y + Panel.Height,
+               "the compact progress Cancel button stays inside its panel");
+            for Node of Frame.Accessibility loop
+               Assert
+                 (Node.X >= Panel.X
+                  and then Node.Y >= Panel.Y
+                  and then Node.X + Node.Width <= Panel.X + Panel.Width
+                  and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+                  "compact progress accessibility controls stay inside the panel");
+            end loop;
+         end;
       end;
    end Test_Panels_Expose_Close_Button;
 
@@ -2033,6 +3119,29 @@ package body Files_Suite.Rendering is
          Assert (Frame_Has_Text (Frame, "first preview line"), "the quick look text body shows the first line");
       end;
 
+      --  When the compact panel cannot display every loaded line, its final
+      --  row explicitly says the preview is truncated instead of silently
+      --  ending at an arbitrary source line.
+      declare
+         Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Frame : Frame_Commands;
+      begin
+         Snap.Quick_Look_Open := True;
+         Snap.Quick_Look_Kind := Files.Quick_Look.Text_Content;
+         Snap.Quick_Look_Name := To_Unbounded_String ("long.txt");
+         for Line in 1 .. 30 loop
+            Snap.Quick_Look_Text_Lines.Append
+              (To_Unbounded_String ("preview line" & Integer'Image (Line)));
+         end loop;
+         Frame := Build_Frame_Commands (Snap, 480, 360, LH);
+         Assert
+           (Frame_Has_Text (Frame, Files.Localization.Text ("quick_look.truncated")),
+            "a compact quick look marks panel-height truncation");
+         Assert
+           (not Frame_Has_Text (Frame, "preview line 30"),
+            "a compact quick look reserves its final visible row for the truncation notice");
+      end;
+
       --  When closed the overlay draws nothing.
       declare
          Snap  : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
@@ -2067,7 +3176,9 @@ package body Files_Suite.Rendering is
          return False;
       end Panel_Bg_In;
 
-      Icon_Overlay : Boolean := False;
+      Icon_Overlay      : Boolean := False;
+      A11y_Count       : Natural := 0;
+      Dialog_Described : Boolean := False;
    begin
       Snap.Quick_Look_Open := True;
       Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
@@ -2088,7 +3199,154 @@ package body Files_Suite.Rendering is
          end if;
       end loop;
       Assert (Icon_Overlay, "the quick look preview icon is flagged as an overlay icon");
+
+      for Node of Frame.Accessibility loop
+         A11y_Count := A11y_Count + 1;
+         Assert
+           (Node.X >= QL.X
+            and then Node.Y >= QL.Y
+            and then Node.X + Node.Width <= QL.X + QL.Width
+            and then Node.Y + Node.Height <= QL.Y + QL.Height,
+            "Quick Look exposes no background accessibility nodes");
+         if Node.Role = Role_Dialog
+           and then Node.Description = Snap.Quick_Look_Name
+         then
+            Dialog_Described := True;
+         end if;
+      end loop;
+      Assert (A11y_Count > 0, "Quick Look retains its own accessibility nodes");
+      Assert
+        (Dialog_Described,
+         "the Quick Look dialog identifies the item currently being previewed");
+
+      --  The generic info preview used to size its icon from width alone, so a
+      --  short panel drew the icon and following metadata through its bottom
+      --  border.  Every emitted preview command must fit the compact panel.
+      declare
+         Compact_W      : constant Natural := 160;
+         Compact_H      : constant Natural := 80;
+         Compact_Layout : constant Guikit.Draw.Layout_Metrics :=
+           Calculate_Layout (Snap, Compact_W, Compact_H, LH);
+         Compact_QL     : constant Quick_Look_Layout :=
+           Calculate_Quick_Look_Layout (Compact_Layout, LH);
+         Compact_Frame  : constant Frame_Commands :=
+           Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
+      begin
+         Assert
+           (Compact_QL.Content_X + Compact_QL.Content_Width
+              <= Compact_QL.X + Compact_QL.Width
+            and then Compact_QL.Content_Y + Compact_QL.Content_Height
+              <= Compact_QL.Y + Compact_QL.Height,
+            "the compact Quick Look content box stays inside its panel");
+         for Icon of Compact_Frame.Icons loop
+            if Icon.Overlay then
+               Assert
+                 (Icon.X + Icon.Size <= Compact_QL.X + Compact_QL.Width
+                  and then Icon.Y + Icon.Size <= Compact_QL.Y + Compact_QL.Height,
+                  "a compact Quick Look info icon stays inside the panel");
+            end if;
+         end loop;
+         for Text of Compact_Frame.Overlay_Text loop
+            Assert
+              (Text.X + Text.Width <= Compact_QL.X + Compact_QL.Width
+               and then Text.Y + Text.Height <= Compact_QL.Y + Compact_QL.Height,
+               "compact Quick Look text stays inside the panel");
+         end loop;
+      end;
    end Test_Quick_Look_Drawn_In_Overlay;
+
+   --  File icons are submitted after main-layer rectangles and text.  A
+   --  floating picker therefore has to live wholly in the overlay layer or a
+   --  grid icon beneath it can punch through the panel.
+   procedure Test_Label_Picker_Drawn_In_Overlay
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Layout : Guikit.Draw.Layout_Metrics;
+      Picker : Label_Picker_Layout;
+      Frame  : Frame_Commands;
+      A11y_Count : Natural := 0;
+
+      function Panel_Bg_In (Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector) return Boolean is
+      begin
+         for Rect of Rects loop
+            if Rect.Color = Pane_Color
+              and then Rect.X = Picker.X
+              and then Rect.Y = Picker.Y
+              and then Rect.Width = Picker.Width
+              and then Rect.Height = Picker.Height
+            then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Panel_Bg_In;
+   begin
+      Snap.Label_Picker_Open := True;
+      Layout := Calculate_Layout (Snap, Width, Height, LH);
+      Picker := Calculate_Label_Picker_Layout (Layout, LH);
+      Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+
+      Assert
+        (Panel_Bg_In (Frame.Overlay_Rectangles),
+         "the label picker panel background is drawn in the overlay layer");
+      Assert
+        (not Panel_Bg_In (Frame.Rectangles),
+         "the label picker panel background does not remain beneath grid icons");
+      for Node of Frame.Accessibility loop
+         A11y_Count := A11y_Count + 1;
+         Assert
+           (Node.X >= Picker.X
+            and then Node.Y >= Picker.Y
+            and then Node.X + Node.Width <= Picker.X + Picker.Width
+            and then Node.Y + Node.Height <= Picker.Y + Picker.Height,
+            "the label picker exposes no background accessibility nodes");
+      end loop;
+      Assert
+        (A11y_Count > 1,
+         "the label picker retains its dialog and color-choice accessibility nodes");
+
+      --  A compact window clips the panel itself.  Its swatches and assistive
+      --  hit regions must shrink with it instead of retaining desktop-sized
+      --  geometry outside the visible panel.
+      declare
+         Compact_W      : constant Natural := 160;
+         Compact_H      : constant Natural := 55;
+         Compact_Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+         Compact_Layout : Guikit.Draw.Layout_Metrics;
+         Compact_Picker : Label_Picker_Layout;
+         Compact_Frame  : Frame_Commands;
+      begin
+         Compact_Snap.Label_Picker_Open := True;
+         Compact_Layout := Calculate_Layout (Compact_Snap, Compact_W, Compact_H, LH);
+         Compact_Picker := Calculate_Label_Picker_Layout (Compact_Layout, LH);
+         Compact_Frame := Build_Frame_Commands (Compact_Snap, Compact_W, Compact_H, LH);
+
+         Assert
+           (Compact_Picker.Swatch_Size > 0,
+            "a compact but usable picker retains visible color swatches");
+         for Swatch of Compact_Picker.Swatches loop
+            Assert
+              (Swatch.X >= Compact_Picker.X
+               and then Swatch.Y >= Compact_Picker.Y
+               and then Swatch.X + Swatch.Width <= Compact_Picker.X + Compact_Picker.Width
+               and then Swatch.Y + Swatch.Height <= Compact_Picker.Y + Compact_Picker.Height,
+               "every compact color swatch stays inside the picker panel");
+         end loop;
+         for Node of Compact_Frame.Accessibility loop
+            Assert
+              (Node.X >= Compact_Picker.X
+               and then Node.Y >= Compact_Picker.Y
+               and then Node.X + Node.Width <= Compact_Picker.X + Compact_Picker.Width
+               and then Node.Y + Node.Height <= Compact_Picker.Y + Compact_Picker.Height,
+               "compact picker accessibility regions stay inside the visible panel");
+         end loop;
+      end;
+   end Test_Label_Picker_Drawn_In_Overlay;
 
    --  A Quick Look image preview carries the full-resolution decoded image (not
    --  the 64px thumbnail) and draws at its aspect ratio.
@@ -2130,8 +3388,8 @@ package body Files_Suite.Rendering is
    --  The palette is theme-aware through Guikit.Draw.Color_For. This is a
    --  legitimate palette assertion (the role-to-color mapping), not a fragile
    --  whole-frame color assertion: the light theme must differ from dark for a
-   --  representative role, and high contrast must keep the dark base so its
-   --  rendering is not regressed.
+   --  representative role, and high contrast must use its own stronger dark
+   --  palette rather than silently aliasing the ordinary dark theme.
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Guikit.Draw.Palette_Color;
@@ -2139,6 +3397,10 @@ package body Files_Suite.Rendering is
       Light_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Light);
       Dark_Text   : constant Palette_Color := Color_For (Text_Color, Theme_Dark);
       Light_Text  : constant Palette_Color := Color_For (Text_Color, Theme_Light);
+      Contrast_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_High_Contrast);
+      Contrast_Text   : constant Palette_Color := Color_For (Text_Color, Theme_High_Contrast);
+      Contrast_Border : constant Palette_Color := Color_For (Border_Color, Theme_High_Contrast);
+      Dark_Border     : constant Palette_Color := Color_For (Border_Color, Theme_Dark);
    begin
       Assert
         (Light_Canvas /= Dark_Canvas,
@@ -2152,9 +3414,12 @@ package body Files_Suite.Rendering is
       Assert
         (Light_Text.R < Dark_Text.R,
          "the light theme text is darker than the dark text");
-      Assert
-        (Color_For (Canvas_Color, Theme_High_Contrast) = Dark_Canvas,
-         "high contrast keeps the dark base canvas color (no regression)");
+      Assert (Contrast_Canvas /= Dark_Canvas,
+              "high contrast has a distinct canvas palette");
+      Assert (Contrast_Text.R > Dark_Text.R,
+              "high contrast text is brighter than dark-theme text");
+      Assert (Contrast_Border.R > Dark_Border.R,
+              "high contrast borders are stronger than dark-theme borders");
       Assert
         (Color_For (Canvas_Color) = Dark_Canvas,
          "the palette defaults to the dark theme");
@@ -2320,11 +3585,30 @@ package body Files_Suite.Rendering is
    --  field), while the sort dropdown is sized to the widest field so no row clips.
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      function Find_Clipped_Width return Natural is
+      begin
+         for Width in 1 .. 1_000 loop
+            declare
+               Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
+                 Files.UI.Calculate_Bottom_Bar_Layout
+                   (Width, Files.Model.Sort_Name, 20);
+            begin
+               if Bar.Sort_Button_Width > 0
+                 and then Bar.Sort_Button_X + Files.UI.Sort_Menu_Width (20) > Width
+               then
+                  return Width;
+               end if;
+            end;
+         end loop;
+         return 0;
+      end Find_Clipped_Width;
+
       Name_Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
         Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Name, 20);
       Chg_Bar  : constant Guikit.Layout.Bottom_Bar_Layout :=
         Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Changed, 20);
       Menu_W   : constant Natural := Files.UI.Sort_Menu_Width (20);
+      Compact_W : constant Natural := Find_Clipped_Width;
    begin
       Assert (Name_Bar.Sort_Button_Width > 0 and then Chg_Bar.Sort_Button_Width > 0,
               "the sort button is laid out for both fields");
@@ -2334,6 +3618,61 @@ package body Files_Suite.Rendering is
               "the sort menu is at least as wide as the widest field's button");
       Assert (Menu_W > Name_Bar.Sort_Button_Width,
               "the sort menu is wider than the snug button for a short field");
+      Assert (Compact_W > 0, "a compact width clips the preferred sort menu");
+      if Compact_W > 0 then
+         declare
+            Height   : constant Natural := 800;
+            Row_H    : constant Natural :=
+              20 + 2 * Guikit.Layout.Bottom_Bar_Padding;
+            Bottom_Y : constant Natural := Height - Row_H;
+            Menu_H   : constant Natural :=
+              5 * Row_H + 2 * Guikit.Layout.Sort_Menu_Padding;
+            Rows_Y   : constant Natural :=
+              Bottom_Y - Menu_H + Guikit.Layout.Sort_Menu_Padding;
+            Row_Y    : constant Natural := Rows_Y + Row_H / 2;
+            Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
+              Files.UI.Calculate_Bottom_Bar_Layout
+                (Compact_W, Files.Model.Sort_Name, 20);
+            Visible_W : constant Natural :=
+              Files.UI.Sort_Menu_Visible_Width
+                (Compact_W, Files.Model.Sort_Name, 20);
+         begin
+            Assert
+              (Bar.Sort_Button_X + Visible_W = Compact_W,
+               "the visible sort menu stops at the right framebuffer edge");
+            Assert
+              (Visible_W < Menu_W,
+               "the compact sort menu is clipped from its preferred width");
+            Assert
+              (Files.UI.Bottom_Bar_Sort_Menu_Command_At
+                 (Compact_W, Row_Y, Compact_W, Height,
+                  Files.Model.Sort_Name, 20) = Files.Commands.No_Command,
+               "the clipped sort-menu edge cannot select a row");
+            Assert
+              (not Files.UI.Bottom_Bar_Sort_Menu_Contains
+                 (Compact_W, Row_Y, Compact_W, Height,
+                  Files.Model.Sort_Name, 20),
+               "the clipped sort-menu edge is outside the menu");
+         end;
+      end if;
+
+      declare
+         Short_H : constant Natural := 20;
+         Bar     : constant Guikit.Layout.Bottom_Bar_Layout :=
+           Files.UI.Calculate_Bottom_Bar_Layout
+             (1000, Files.Model.Sort_Name, 20);
+      begin
+         Assert
+           (Files.UI.Bottom_Bar_Sort_Menu_Command_At
+              (Bar.Sort_Button_X, 0, 1000, Short_H,
+               Files.Model.Sort_Name, 20) = Files.Commands.No_Command,
+            "compact sort-menu padding does not select a row");
+         Assert
+           (Files.UI.Bottom_Bar_Sort_Menu_Contains
+              (Bar.Sort_Button_X, 0, 1000, Short_H,
+               Files.Model.Sort_Name, 20),
+            "visible compact sort-menu padding remains inside the clipped panel");
+      end;
    end Test_Sort_Button_Fits_Field;
 
    --  The sort button's content (the field label plus its direction arrow) sits
@@ -2584,6 +3923,12 @@ package body Files_Suite.Rendering is
       Assert (TW = 80 and then FW = 0,
               "a too-narrow region keeps the toggle spanning the whole width");
 
+      --  A long disk-space label must not squeeze a complete compact count into
+      --  an ellipsis; in that case the secondary free-space field yields.
+      Files.UI.Split_Status_Region (200, 256, 168, TW, DX, FX, FW);
+      Assert (TW = 256 and then FW = 0,
+              "free space yields before truncating the compact count summary");
+
       --  Room for the free field: carved off on the right, divider one gap left.
       Files.UI.Split_Status_Region (200, 300, 60, TW, DX, FX, FW);
       Assert (FX = 436, "the free field sits right-aligned within the region");
@@ -2621,6 +3966,26 @@ package body Files_Suite.Rendering is
            (Files.UI.Bottom_Bar_Command_At (Free_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20)
               = Files.Commands.Toggle_Free_Space_Display_Command,
             "clicking the free-space field toggles free/used space");
+         Assert
+           (Files.UI.Bottom_Bar_Command_At
+              (Counts_X, Bottom_Y + 1, 1000, 800, Snap.Sort_Field, Free_W, 20)
+              = Files.Commands.Toggle_Hidden_Files_Command,
+            "the visible top of the counts area toggles hidden files");
+         Assert
+           (Files.UI.Bottom_Bar_Command_At
+              (Counts_X, 799, 1000, 800, Snap.Sort_Field, Free_W, 20)
+              = Files.Commands.Toggle_Hidden_Files_Command,
+            "the visible bottom of the counts area toggles hidden files");
+         Assert
+           (Files.UI.Bottom_Bar_Command_At
+              (Free_X, Bottom_Y + 1, 1000, 800, Snap.Sort_Field, Free_W, 20)
+              = Files.Commands.Toggle_Free_Space_Display_Command,
+            "the visible top of the free-space field toggles its display");
+         Assert
+           (Files.UI.Bottom_Bar_Command_At
+              (Free_X, 799, 1000, 800, Snap.Sort_Field, Free_W, 20)
+              = Files.Commands.Toggle_Free_Space_Display_Command,
+            "the visible bottom of the free-space field toggles its display");
       end;
    end Test_Free_Space_Click_Toggles;
 
@@ -2735,6 +4100,18 @@ package body Files_Suite.Rendering is
          end loop;
          Assert (Has_Red, "the fill is red when 10% or less is free");
          Assert (not Has_Blue, "the fill is not blue when free space is low");
+      end;
+
+      --  Host capacity values are signed machine-wide integers.  Comparing the
+      --  low-space threshold must not multiply a large valid value by ten.
+      Snap.Total_Space_Bytes := Long_Long_Integer'Last;
+      Snap.Free_Space_Bytes := Long_Long_Integer'Last;
+      declare
+         Frame : constant Frame_Commands :=
+           Build_Frame_Commands (Snap, 1000, 800, 20);
+      begin
+         Assert (not Frame.Rectangles.Is_Empty,
+                 "extreme capacity values render without threshold overflow");
       end;
    end Test_Space_Bar_Renders;
 
@@ -3277,5 +4654,74 @@ package body Files_Suite.Rendering is
       Assert (Has_Rectangle_Colored (Active, Marquee_Color),
               "an active marquee draws a translucent marquee-colored fill over the grid");
    end Test_Marquee_Frame_Draws_Rectangle;
+
+   procedure Test_Drag_Preview_Uses_Overlay
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Snap : constant View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Base : constant Frame_Commands := Build_Frame_Commands (Snap, 640, 480, 20);
+      Drag : constant Frame_Commands :=
+        Build_Frame_Commands
+          (Snap, 640, 480, 20,
+           Drag_Item_Index => 1,
+           Drag_X          => 620,
+           Drag_Y          => 460,
+           Has_Drag        => True);
+      Found_Icon : Boolean := False;
+      Found_Name : Boolean := False;
+      Widths  : constant array (Positive range <>) of Natural := [1, 7, 40, 120, 640];
+      Heights : constant array (Positive range <>) of Natural := [1, 7, 20, 44, 100];
+   begin
+      Assert
+        (Natural (Drag.Rectangles.Length) = Natural (Base.Rectangles.Length),
+         "the drag preview adds no panel geometry to the base layer");
+      Assert
+        (Natural (Drag.Overlay_Rectangles.Length) > Natural (Base.Overlay_Rectangles.Length),
+         "the drag preview panel is emitted in the overlay layer");
+      for Icon of Drag.Icons loop
+         Found_Icon := Found_Icon or else Icon.Overlay;
+      end loop;
+      for Command of Drag.Overlay_Text loop
+         Found_Name := Found_Name or else To_String (Command.Text) = "item 1";
+      end loop;
+      Assert (Found_Icon, "the dragged item's icon is emitted in the overlay layer");
+      Assert (Found_Name, "the dragged item's name is emitted in the overlay layer");
+
+      for Width of Widths loop
+         for Height of Heights loop
+            declare
+               Frame : constant Frame_Commands :=
+                 Build_Frame_Commands
+                   (Snap, Width, Height, 20,
+                    Drag_Item_Index => 1,
+                    Drag_X          => Width - 1,
+                    Drag_Y          => Height - 1,
+                    Has_Drag        => True);
+            begin
+               for Rect of Frame.Overlay_Rectangles loop
+                  Assert
+                    (Rect.Width > 0 and then Rect.Height > 0
+                     and then Rect.X + Rect.Width <= Width
+                     and then Rect.Y + Rect.Height <= Height,
+                     "compact drag-preview rectangles stay inside the framebuffer");
+               end loop;
+               for Icon of Frame.Icons loop
+                  if Icon.Overlay then
+                     Assert
+                       (Icon.X + Icon.Size <= Width and then Icon.Y + Icon.Size <= Height,
+                        "compact drag-preview icons stay inside the framebuffer");
+                  end if;
+               end loop;
+               for Command of Frame.Overlay_Text loop
+                  Assert
+                    (Command.X + Command.Width <= Width
+                     and then Command.Y + Command.Height <= Height,
+                     "compact drag-preview text stays inside the framebuffer");
+               end loop;
+            end;
+         end loop;
+      end loop;
+   end Test_Drag_Preview_Uses_Overlay;
 
 end Files_Suite.Rendering;

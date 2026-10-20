@@ -105,6 +105,7 @@ package body Files.Model.Support is
      (Model : in out Window_Model) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Rename_Active := False;
       Model.Rename_Fields.Clear;
    end Reset_Rename_State;
@@ -154,6 +155,7 @@ package body Files.Model.Support is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
       if Field.Item_Index = 0 and then Model.Temporary_Active then
+         Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
          Model.Temporary_Name_Value := Field.Value;
       end if;
    end Sync_Temporary_From_Field;
@@ -806,6 +808,7 @@ package body Files.Model.Support is
        Is_Directory : Boolean) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Clear_Overlay_State_For_Edit (Model);
       Model.Temporary_Active := True;
       Model.Temporary_Is_Directory := Is_Directory;

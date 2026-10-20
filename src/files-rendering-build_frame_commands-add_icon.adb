@@ -4,7 +4,8 @@ separate (Files.Rendering.Build_Frame_Commands)
       X    : Natural;
       Y    : Natural;
       Size : Natural;
-      Use_Thumbnail : Boolean := False)
+      Use_Thumbnail : Boolean := False;
+      Overlay       : Boolean := False)
    is
       Base_Color : constant Render_Color := Icon_Color (Item.Kind);
       Type_Name  : constant String := To_String (Item.Filetype);
@@ -196,42 +197,58 @@ separate (Files.Rendering.Build_Frame_Commands)
             Band_W   : constant Natural := Saturating_Add (Lbl.Width, 2 * Pad_X);
             Band_H   : constant Natural := Saturating_Add (Lbl.Height, 2 * Pad_Y);
             Overhang : constant Natural := Band_W / 3;
-            Band_X   : constant Natural :=
-              Saturating_Add
-                (X, (if Draw_Size + Overhang > Band_W then Draw_Size + Overhang - Band_W else 0));
-            Band_Y   : constant Natural :=
-              Saturating_Add (Y, (if Draw_Size > Band_H then Draw_Size - Band_H else 0));
-            Text_X   : constant Natural := Saturating_Add (Band_X, Pad_X);
-            Text_Y   : constant Natural := Saturating_Add (Band_Y, Pad_Y);
+            Main_Right : constant Natural :=
+              Natural'Min
+                (Layout.Width, Saturating_Add (Layout.Main_X, Layout.Main_Width));
+            Main_Bottom : constant Natural :=
+              Natural'Min
+                (Layout.Height, Saturating_Add (Layout.Main_Y, Layout.Main_Height));
          begin
-            if Lbl.Width > 0 then
+            if Lbl.Width > 0
+              and then Band_W <= Layout.Main_Width
+              and then Band_H <= Layout.Main_Height
+            then
+               declare
+                  Raw_X : constant Natural :=
+                    Saturating_Add
+                      (X,
+                       (if Draw_Size + Overhang > Band_W
+                        then Draw_Size + Overhang - Band_W
+                        else 0));
+                  Raw_Y : constant Natural :=
+                    Saturating_Add
+                      (Y, (if Draw_Size > Band_H then Draw_Size - Band_H else 0));
+                  Band_X : constant Natural :=
+                    Natural'Max
+                      (Layout.Main_X, Natural'Min (Raw_X, Main_Right - Band_W));
+                  Band_Y : constant Natural :=
+                    Natural'Max
+                      (Layout.Main_Y, Natural'Min (Raw_Y, Main_Bottom - Band_H));
+                  Text_X : constant Natural := Saturating_Add (Band_X, Pad_X);
+                  Text_Y : constant Natural := Saturating_Add (Band_Y, Pad_Y);
+               begin
                --  A small near-white index tab at the icon's bottom-right, drawn on
-               --  the overlay layer so it sits on top of the opaque icon and allowed
-               --  to stick out past the icon's right edge. The extension is a bitmap
-               --  prerendered at this height (crisp small text, not downscaled),
-               --  drawn 1:1 as an overlay image over a Text_Color background rect.
-               Result.Overlay_Rectangles.Append
-                 (Rectangle_Command'
-                    (X      => Band_X,
-                     Y      => Band_Y,
-                     Width  => Band_W,
-                     Height => Band_H,
-                     Color  => Text_Color));
-               Result.Icons.Append
-                 (Icon_Command'
-                    (X                => Text_X,
-                     Y                => Text_Y,
-                     Size             => Lbl.Width,
-                     Icon_Id          => To_Unbounded_String ("extlabel:" & Shown),
-                     Theme_Name       => Snapshot.Theme_Name,
-                     Asset_Path       => Null_Unbounded_String,
-                     Thumbnail_Width  => Lbl.Width,
-                     Thumbnail_Height => Lbl.Height,
-                     Thumbnail_Pixels => Lbl.Pixels,
-                     Overlay          => True,
-                     Draw_Width       => Lbl.Width,
-                     Draw_Height      => Lbl.Height,
-                     others           => <>));
+               --  the overlay layer so it sits on top of the opaque icon. It may
+               --  overhang the icon, but is clamped to the main viewport so a
+               --  compact last column cannot leak into the info or bottom pane.
+                  Add_Overlay_Rect
+                    (Band_X, Band_Y, Band_W, Band_H, Text_Color);
+                  Result.Icons.Append
+                    (Icon_Command'
+                       (X                => Text_X,
+                        Y                => Text_Y,
+                        Size             => Lbl.Width,
+                        Icon_Id          => To_Unbounded_String ("extlabel:" & Shown),
+                        Theme_Name       => Snapshot.Theme_Name,
+                        Asset_Path       => Null_Unbounded_String,
+                        Thumbnail_Width  => Lbl.Width,
+                        Thumbnail_Height => Lbl.Height,
+                        Thumbnail_Pixels => Lbl.Pixels,
+                        Overlay          => True,
+                        Draw_Width       => Lbl.Width,
+                        Draw_Height      => Lbl.Height,
+                        others           => <>));
+               end;
             end if;
          end;
       end Add_Extension_Badge;
@@ -258,10 +275,17 @@ separate (Files.Rendering.Build_Frame_Commands)
             Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
             Thumbnail_Pixels =>
               (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Types.Byte_Vectors.Empty_Vector),
-            Overlay          => False,
+            Overlay          => Overlay,
             Draw_Width       => 0,
             Draw_Height      => 0,
             others           => <>));
+
+      --  Overlay icons are rasterized from the same asset path, but must not
+      --  also emit their vector fallback into the base rectangle/triangle
+      --  layer or background content would paint over the drag preview.
+      if Overlay then
+         return;
+      end if;
 
       if Use_Thumbnail
         and then Item.Thumbnail_Available

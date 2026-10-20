@@ -26,7 +26,7 @@ package body Files.Refresh_Jobs is
 
    type Request is record
       Root : Files.Types.UString;
-      Revision : Natural;
+      Context_Revision : Natural;
       Settings : Files.Settings.Settings_Model;
       Previous : Files.File_System.Directory_Signature;
       Recent : Boolean;
@@ -95,7 +95,7 @@ package body Files.Refresh_Jobs is
       String'Output (Stream, Request_Header);
       Files.Job_Records.Write_String
         (Stream, To_String (Work.Root), Files.Job_Records.Max_Path_Length);
-      Natural'Output (Stream, Work.Revision);
+      Natural'Output (Stream, Work.Context_Revision);
       Files.Job_Records.Write_Settings (Stream, Work.Settings);
       Files.Job_Records.Write_Signature (Stream, Work.Previous);
       Boolean'Output (Stream, Work.Recent);
@@ -129,7 +129,7 @@ package body Files.Refresh_Jobs is
       Work.Root := To_Unbounded_String
         (Files.Job_Records.Read_String
            (Input'Access, Files.Job_Records.Max_Path_Length));
-      Work.Revision := Natural'Input (Input'Access);
+      Work.Context_Revision := Natural'Input (Input'Access);
       Work.Settings := Files.Job_Records.Read_Settings (Input'Access);
       Work.Previous := Files.Job_Records.Read_Signature (Input'Access);
       Work.Recent := Boolean'Input (Input'Access);
@@ -159,7 +159,7 @@ package body Files.Refresh_Jobs is
    procedure Read_Request_Identity
      (Path : String;
       Root : out Files.Types.UString;
-      Revision : out Natural)
+      Context_Revision : out Natural)
    is
       Input : aliased Files.Lease_Streams.Input_Stream;
    begin
@@ -172,7 +172,7 @@ package body Files.Refresh_Jobs is
       Root := To_Unbounded_String
         (Files.Job_Records.Read_String
            (Input'Access, Files.Job_Records.Max_Path_Length));
-      Revision := Natural'Input (Input'Access);
+      Context_Revision := Natural'Input (Input'Access);
       if Length (Root) > 0
         and then not Valid_Absolute_Path (To_String (Root))
       then
@@ -258,14 +258,15 @@ package body Files.Refresh_Jobs is
       Previous_Error : constant String := Files.Model.Last_Error_Key (Model);
       Work : constant Request :=
         (Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
-         Revision => Files.Model.Revision (Model), Settings => Settings,
+         Context_Revision => Files.Model.Listing_Revision (Model), Settings => Settings,
          Previous => Files.Model.Directory_Signature_Of (Model),
          --  A failed listing must be retried even when the directory signature
          --  is unchanged. Preserve operation errors, which a reload cannot fix.
          Recent => Files.Model.In_Recent_View (Model),
          Force => Force or else Previous_Error = "error.directory.load",
-         Selection => To_Unbounded_String
-           (if Select_Name = "" then Files.Model.Selected_Name (Model) else Select_Name),
+         --  An empty value means preserve the selection that is current when
+         --  the read completes. A nonempty operation-requested name wins.
+         Selection => To_Unbounded_String (Select_Name),
          Error_Key => (if Previous_Error = "error.directory.load" then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
@@ -309,7 +310,7 @@ package body Files.Refresh_Jobs is
       Finished, Cancelled : Boolean;
       Matching : Boolean := False;
       Requested_Root : Files.Types.UString;
-      Requested_Revision : Natural;
+      Requested_Context_Revision : Natural;
    begin
       if not Files.Process_Jobs.Active (Job) then
          return False;
@@ -322,9 +323,9 @@ package body Files.Refresh_Jobs is
       --  must discard even a helper still blocked on the previous directory.
       Read_Request_Identity
         (Files.Process_Jobs.Path (Job, "request"),
-         Requested_Root, Requested_Revision);
+         Requested_Root, Requested_Context_Revision);
       if Requested_Root /= Files.Model.Current_Path (Model)
-        or else Requested_Revision /= Files.Model.Revision (Model)
+        or else Requested_Context_Revision /= Files.Model.Listing_Revision (Model)
       then
          Cancel (Model);
          return False;
@@ -337,7 +338,8 @@ package body Files.Refresh_Jobs is
       Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
       Matching := Work.Root = Files.Model.Current_Path (Model)
         and then Work.Recent = Files.Model.In_Recent_View (Model)
-        and then Work.Revision = Files.Model.Revision (Model) and then Work.Settings = Settings;
+        and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
+        and then Work.Settings = Settings;
       if not Matching or else Cancelled then
          return False;
       end if;
@@ -349,20 +351,31 @@ package body Files.Refresh_Jobs is
          return False;
       end if;
       if Done.Reloaded then
-         if Work.Recent then
-            Files.Model.Navigate_Recent (Model, Done.Items);
-         else
-            Files.Model.Replace_Items (Model, Done.Items);
-            Files.Model.Clear_Search_Results (Model);
-         end if;
-         if Length (Work.Selection) > 0 then
-            declare
-               Selected : constant Boolean := Files.Model.Select_By_Name (Model, To_String (Work.Selection));
-               pragma Unreferenced (Selected);
-            begin
-               null;
-            end;
-         end if;
+         declare
+            Previous_Selection : constant Files.File_System.Item_Vectors.Vector :=
+              Files.Model.Selected_Items (Model);
+            Previous_Primary : constant Files.Types.UString :=
+              Files.Model.Selected_Item (Model).Full_Path;
+         begin
+            if Work.Recent then
+               Files.Model.Navigate_Recent (Model, Done.Items);
+            else
+               Files.Model.Replace_Items (Model, Done.Items);
+               Files.Model.Clear_Search_Results (Model);
+            end if;
+            if Length (Work.Selection) > 0 then
+               declare
+                  Selected : constant Boolean :=
+                    Files.Model.Select_By_Name (Model, To_String (Work.Selection));
+                  pragma Unreferenced (Selected);
+               begin
+                  null;
+               end;
+            else
+               Files.Model.Restore_Selection
+                 (Model, Previous_Selection, To_String (Previous_Primary));
+            end if;
+         end;
       end if;
       if Files.Model.Last_Error_Key (Model) /= To_String (Work.Error_Key) then
          Files.Model.Set_Error (Model, To_String (Work.Error_Key));

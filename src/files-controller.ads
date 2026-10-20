@@ -336,12 +336,15 @@ package Files.Controller is
    --  @param Settings Settings model used by operations.
    --  @param Key Key code.
    --  @param Modifiers Active modifier keys.
+   --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
+   --    zero when geometry is unavailable.
    --  @return Controller result with any operation details.
    function Handle_Key
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
       return Controller_Result;
 
 end Files.Controller;

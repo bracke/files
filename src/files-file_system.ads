@@ -660,6 +660,14 @@ package Files.File_System is
    --  @return Trashed-payload directory, or an empty string when unavailable.
    function Trash_Files_Directory return String;
 
+   --  Return whether Path identifies the active trash payload directory.
+   --  Filesystem identity is used when possible so aliases such as symbolic
+   --  links cannot bypass trash-view safety rules.
+   --
+   --  @param Path Existing directory path to compare with the trash payload.
+   --  @return True only when Path identifies the active payload directory.
+   function Is_Trash_Files_Directory (Path : String) return Boolean;
+
    --  Capture a payload's original path before recording restore history.
    --  @param Trashed_Path Trash or replacement recovery payload pathname.
    --  @return Original path from its sidecar, or empty on failure.

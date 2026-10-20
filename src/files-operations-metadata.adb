@@ -29,7 +29,8 @@ package body Metadata is
         and then not Files.Model.Selection_Includes_Temporary (Model)
         and then Files.File_System.Supports_Permissions
         and then Item.Mode_Available
-        and then Files.Model.Current_Path (Model) /= Files.File_System.Trash_Files_Directory;
+        and then not Files.File_System.Is_Trash_Files_Directory
+                       (Files.Model.Current_Path (Model));
    end Permissions_Editable_Selection;
 
    function Set_Permissions_For
@@ -108,6 +109,7 @@ package body Metadata is
             else Mode + Mask);
       begin
          if not Available then
+            Files.Model.Set_Error (Model, "error.permissions.failed");
             return Make_Result (Operation_Failed, "error.permissions.failed", To_String (Item.Full_Path));
          end if;
          return Set_Permissions_For (Model, New_Mode, Settings);
@@ -124,7 +126,8 @@ package body Metadata is
         and then not Files.Model.Selection_Includes_Temporary (Model)
         and then Files.File_System.Supports_Ownership
         and then Item.Ownership_Available
-        and then Files.Model.Current_Path (Model) /= Files.File_System.Trash_Files_Directory;
+        and then not Files.File_System.Is_Trash_Files_Directory
+                       (Files.Model.Current_Path (Model));
    end Ownership_Editable_Selection;
 
    function Set_Ownership_For

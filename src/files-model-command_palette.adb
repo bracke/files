@@ -22,6 +22,7 @@ package body Command_Palette is
       Model.Command_Palette_Open := True;
       Model.Command_Palette_Mode := Palette_Commands;
       Model.Open_With_Targets_Value.Clear;
+      Claim_Overlay_Input (Model);
       Guikit.Command_Palette.Set_Configuration
         (Model.Command_Palette_View, Palette_Config (20, Palette_Commands));
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
@@ -39,7 +40,13 @@ package body Command_Palette is
       Model.Open_With_Targets_Value.Clear;
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
-         Model.Focus_Value := Files.Types.Focus_None;
+         --  Settings intentionally remains open beneath the palette.  Return
+         --  keyboard focus to that revealed input surface when the palette
+         --  closes instead of leaving the hidden file grid active.
+         Model.Focus_Value :=
+           (if Model.Settings_Pane_Open
+            then Files.Types.Focus_Settings_Input
+            else Files.Types.Focus_None);
       end if;
    end Close_Command_Palette;
 
@@ -97,9 +104,13 @@ package body Command_Palette is
    end Palette_Page;
 
    function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is
+      Clicked : constant Boolean :=
+        Guikit.Command_Palette.Click (Model.Command_Palette_View, X, Y);
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      return Guikit.Command_Palette.Click (Model.Command_Palette_View, X, Y);
+      if Clicked then
+         Model.Revision_Value := Model.Revision_Value + 1;
+      end if;
+      return Clicked;
    end Palette_Click;
 
    function Palette_Selected_Id (Model : Window_Model) return Natural is
@@ -127,7 +138,6 @@ package body Command_Palette is
       Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
       --  Refresh the config (line height) and the command list (fresh enablement)
       --  each frame; the component preserves the query and selection.
       Guikit.Command_Palette.Set_Configuration

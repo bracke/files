@@ -200,7 +200,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          then Natural'Min (Hover_Y, Height - Tip_H - Margin)
          else 0);
    begin
-      if not Has_Hover or else Text_Len = 0 or else Text_W = 0 then
+      if not Has_Hover or else Has_Drag or else Text_Len = 0 or else Text_W = 0 then
          return;
       end if;
 

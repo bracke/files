@@ -7,6 +7,37 @@ separate (Files.Application.Windows)
       Now       : Ada.Calendar.Time;
       Pending   : Natural;
       Fire_Count : Natural := 0;
+
+      function Tree_Page_Rows return Natural
+      is
+         Frame_W : Glfw.Size := 0;
+         Frame_H : Glfw.Size := 0;
+      begin
+         if not Files.Model.Tree_Pick_Is_Active (Runtime.Model) then
+            return 0;
+         end if;
+
+         Glfw.Windows.Get_Framebuffer_Size
+           (As_Window (Runtime.Handle), Frame_W, Frame_H);
+         if Frame_W = 0 or else Frame_H = 0 then
+            return 0;
+         end if;
+
+         declare
+            Line_Height : constant Positive :=
+              Cell_Height_For (Runtime.Font_Pixel_Size);
+            Snapshot : constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Layout : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+            Tree : constant Files.Rendering.Tree_Panel_Layout :=
+              Files.Rendering.Calculate_Tree_Panel_Layout
+                (Snapshot, Layout, Line_Height);
+         begin
+            return Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
+         end;
+      end Tree_Page_Rows;
    begin
       if Runtime.Handle = null then
          return;
@@ -69,7 +100,8 @@ separate (Files.Application.Windows)
                Key               => To_Key_Code (Key),
                Modifiers         => To_Modifiers (As_Window (Runtime.Handle)),
                Current_Font_Size => Runtime.Font_Pixel_Size,
-               Result            => Result);
+               Result            => Result,
+               Tree_Page_Rows    => Tree_Page_Rows);
             Apply_Interaction_Result (Runtime, Result);
          end;
       end loop;

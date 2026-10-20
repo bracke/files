@@ -41,6 +41,8 @@ separate (Files.Events)
         Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
       Tree_Rows_L    : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
         Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
+      Tree_Page_Rows : constant Natural :=
+        Files.Rendering.Tree_Row_Capacity (Snapshot, Tree_Panel_L);
       Root_Index     : constant Natural := Files.Rendering.Root_Path_At (Root_Rows, X, Y);
       Breadcrumb_Index    : constant Natural := Files.Rendering.Breadcrumb_At (Breadcrumb_Rows, X, Y);
       Tree_Triangle_Index : constant Natural := Files.Rendering.Tree_Triangle_At (Tree_Rows_L, X, Y);
@@ -131,14 +133,18 @@ separate (Files.Events)
       end Text_Click;
 
       function Scroll_Click
-        (Target  : Scroll_Target;
-         Thumb_Y : Natural;
+        (Target       : Scroll_Target;
+         Thumb_Y      : Natural;
          Thumb_Height : Natural;
-         Y_Pos   : Natural;
-         Step    : Positive)
+         Y_Pos        : Natural;
+         Step         : Positive;
+         Raw          : Natural;
+         Maximum      : Natural)
          return Input_Action
       is
-         Lines : constant Integer := (if Y_Pos < Thumb_Y then -Integer (Step) else Integer (Step));
+         Current    : constant Natural := Natural'Min (Raw, Maximum);
+         Requested  : Natural;
+         Adjustment : Integer;
       begin
          if Thumb_Height > 0
            and then Y_Pos >= Thumb_Y
@@ -149,8 +155,84 @@ separate (Files.Events)
                 (Target, Integer (Y_Pos) - Integer (Thumb_Y), Activate);
          end if;
 
-         return Scroll_Action (Target, Lines, Activate);
+         if Y_Pos < Thumb_Y then
+            Requested := (if Step >= Current then 0 else Current - Step);
+         else
+            Requested :=
+              (if Step >= Maximum - Current
+               then Maximum
+               else Current + Step);
+         end if;
+
+         --  Raw may exceed Maximum after a resize. Include that stale excess in
+         --  the exact adjustment so a page click cannot preserve hidden scroll.
+         Adjustment := Integer (Requested) - Integer (Raw);
+         if Adjustment = 0 then
+            return No_Action (Activate);
+         end if;
+
+         return Scroll_Action (Target, Adjustment, Activate);
       end Scroll_Click;
+
+      function Maximum_Line_Offset
+        (Content_Height  : Natural;
+         Viewport_Height : Natural;
+         Scrollbar_Shown : Boolean)
+         return Natural
+      is
+         Difference : Natural;
+      begin
+         if not Scrollbar_Shown or else Content_Height <= Viewport_Height then
+            return 0;
+         end if;
+
+         Difference := Content_Height - Viewport_Height;
+         return 1 + (Difference - 1) / Line_Height;
+      end Maximum_Line_Offset;
+
+      function Tree_Scroll_Click return Input_Action
+      is
+         Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
+         Maximum  : constant Natural :=
+           (if Count > Tree_Page_Rows then Count - Tree_Page_Rows else 0);
+         Raw      : constant Natural := Snapshot.Tree_Panel_Scroll_Rows;
+         Current  : constant Natural := Natural'Min (Raw, Maximum);
+         Requested : Natural;
+         Adjustment : Integer;
+      begin
+         if Tree_Panel_L.Scrollbar_Height > 0
+           and then Y >= Tree_Panel_L.Scrollbar_Thumb_Y
+           and then Y - Tree_Panel_L.Scrollbar_Thumb_Y
+             < Tree_Panel_L.Scrollbar_Height
+         then
+            return
+              Scroll_Drag_Begin_Action
+                (Scroll_Tree_Panel,
+                 Integer (Y) - Integer (Tree_Panel_L.Scrollbar_Thumb_Y),
+                 Activate);
+         elsif Tree_Page_Rows = 0 or else Count = 0 then
+            return No_Action (Activate);
+         elsif Y < Tree_Panel_L.Scrollbar_Thumb_Y then
+            Requested :=
+              (if Tree_Page_Rows >= Current
+               then 0
+               else Current - Tree_Page_Rows);
+         else
+            Requested :=
+              (if Tree_Page_Rows >= Maximum - Current
+               then Maximum
+               else Current + Tree_Page_Rows);
+         end if;
+
+         --  Raw may be stale after a resize. Include its excess in the exact
+         --  adjustment so a track click cannot leave an invisible offset.
+         Adjustment := Integer (Requested) - Integer (Raw);
+         if Adjustment = 0 then
+            return No_Action (Activate);
+         end if;
+
+         return Scroll_Action (Scroll_Tree_Panel, Adjustment, Activate);
+      end Tree_Scroll_Click;
 
       --  Any click inside the open settings pane becomes a settings click
       --  carrying the coordinates; Guikit.Settings_Panel hit-tests it (focusing /
@@ -246,6 +328,13 @@ separate (Files.Events)
             Scroll_Drag_Anchor => 0);
       end Breadcrumb_Action;
    begin
+      --  Window-system coordinates on the right/bottom edge can round to the
+      --  framebuffer extent during scaling. They name no drawable pixel and
+      --  must never activate a clipped control or dismiss a modal overlay.
+      if Width = 0 or else Height = 0 or else X >= Width or else Y >= Height then
+         return No_Action (Activate);
+      end if;
+
       --  The paste-progress overlay is a modal-lite top-most panel: while a long
       --  copy/move runs, a click either hits its Cancel button or is swallowed so
       --  nothing behind it reacts.
@@ -344,38 +433,14 @@ separate (Files.Events)
          end;
       end if;
 
-      --  Route a close-button click through the same command Escape uses for
-      --  each panel, before the panel body/scrollbar hit-tests below consume it.
+      --  Route and contain panels in visual ownership order. A modal overlay
+      --  must get first refusal before any lower panel's close button, rows, or
+      --  chrome are tested; otherwise a click can mutate a surface behind it.
       if Snapshot.Command_Palette_Open
         and then Close_Button_Hit
           (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height)
       then
          return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
-      elsif Snapshot.Settings_Pane_Open
-        and then Close_Button_Hit
-          (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height)
-      then
-         return Command_Action (Files.Commands.Toggle_Settings_Pane_Command, Activate);
-      elsif Snapshot.Root_Selector_Open
-        and then Close_Button_Hit
-          (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
-      then
-         return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
-      elsif Snapshot.Tree_Panel_Open
-        and then Close_Button_Hit
-          (Tree_Panel_L.X, Tree_Panel_L.Y, Tree_Panel_L.Width, Tree_Panel_L.Height)
-      then
-         return Command_Action (Files.Commands.Toggle_Folder_Tree_Command, Activate);
-      elsif Snapshot.Info_Pane_Open
-        and then Close_Button_Hit
-          (Info_Pane.X,
-           Info_Pane.Y,
-           (if Info_Pane.Scrollbar_Visible and then Info_Pane.Width > Info_Pane.Scrollbar_Width
-            then Info_Pane.Width - Info_Pane.Scrollbar_Width
-            else Info_Pane.Width),
-           Info_Pane.Height)
-      then
-         return Command_Action (Files.Commands.Toggle_Info_Pane_Command, Activate);
       end if;
 
       --  Any click inside the open palette becomes a palette click carrying the
@@ -394,6 +459,30 @@ separate (Files.Events)
          else
             return No_Action (Activate);
          end if;
+      end if;
+
+      if Snapshot.Settings_Pane_Open
+        and then Close_Button_Hit
+          (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height)
+      then
+         return Command_Action (Files.Commands.Toggle_Settings_Pane_Command, Activate);
+      end if;
+
+      declare
+         Hit : constant Input_Action := Settings_Click_Hit;
+      begin
+         if Hit.Kind /= No_Input_Action then
+            return Hit;
+         elsif Snapshot.Settings_Pane_Open then
+            return No_Action (Activate);
+         end if;
+      end;
+
+      if Snapshot.Root_Selector_Open
+        and then Close_Button_Hit
+          (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
+      then
+         return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
       end if;
 
       if Root_Index /= 0 then
@@ -423,12 +512,51 @@ separate (Files.Events)
          begin
             if Root_Command = Files.Commands.Select_Drive_Command then
                return Command_Action (Root_Command, Activate);
+            elsif Within (X, Root_Layout.X, Root_Layout.Width)
+              and then Within (Y, Root_Layout.Y, Root_Layout.Height)
+            then
+               return No_Action (Activate);
             end if;
          end;
-         return No_Action (Activate);
+         return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      end if;
+
+      --  The open sort menu owns pointer input just as it owns the keyboard.
+      --  A click outside dismisses it without activating a toolbar, grid, or
+      --  bottom-bar control behind the transient menu.
+      if Snapshot.Sort_Menu_Open then
+         Command :=
+           Files.UI.Bottom_Bar_Sort_Menu_Command_At
+             (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
+         if Command /= Files.Commands.No_Command then
+            return Command_Action (Command, Activate);
+         elsif Files.UI.Bottom_Bar_Sort_Menu_Contains
+                 (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height)
+         then
+            --  Padding inside the menu is inert and must not fall through.
+            return No_Action (Activate);
+         else
+            return Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+         end if;
       end if;
 
       if Snapshot.Tree_Panel_Open then
+         if Close_Button_Hit
+              (Tree_Panel_L.X, Tree_Panel_L.Y,
+               Tree_Panel_L.Width, Tree_Panel_L.Height)
+         then
+            return Command_Action (Files.Commands.Toggle_Folder_Tree_Command, Activate);
+         end if;
+
+         if Tree_Panel_L.Scrollbar_Visible
+           and then Within
+             (X, Tree_Panel_L.Scrollbar_X, Tree_Panel_L.Scrollbar_Width)
+           and then Within
+             (Y, Tree_Panel_L.Scrollbar_Y, Tree_Panel_L.Scrollbar_Track_Height)
+         then
+            return Tree_Scroll_Click;
+         end if;
+
          --  While the destination picker is active its Choose/Cancel button bar
          --  sits over the bottom of the tree and is hit-tested before the rows.
          if Snapshot.Tree_Pick_Active then
@@ -460,17 +588,25 @@ separate (Files.Events)
             --  through to items drawn behind the sidebar.
             return No_Action (Activate);
          end if;
-      end if;
 
-      declare
-         Hit : constant Input_Action := Settings_Click_Hit;
-      begin
-         if Hit.Kind /= No_Input_Action then
-            return Hit;
-         elsif Snapshot.Settings_Pane_Open then
+         --  Destination picking is modal: only the tree and its Choose/Cancel
+         --  controls are active until the operation is confirmed or cancelled.
+         if Snapshot.Tree_Pick_Active then
             return No_Action (Activate);
          end if;
-      end;
+      end if;
+
+      if Snapshot.Info_Pane_Open
+        and then Close_Button_Hit
+          (Info_Pane.X,
+           Info_Pane.Y,
+           (if Info_Pane.Scrollbar_Visible and then Info_Pane.Width > Info_Pane.Scrollbar_Width
+            then Info_Pane.Width - Info_Pane.Scrollbar_Width
+            else Info_Pane.Width),
+           Info_Pane.Height)
+      then
+         return Command_Action (Files.Commands.Toggle_Info_Pane_Command, Activate);
+      end if;
 
       if Snapshot.Info_Pane_Open and then Snapshot.Permissions_Editable then
          declare
@@ -510,7 +646,12 @@ separate (Files.Events)
               Info_Pane.Scrollbar_Thumb_Y,
               Info_Pane.Scrollbar_Height,
               Y,
-              10);
+              10,
+              Snapshot.Info_Pane_Scroll_Lines,
+              Maximum_Line_Offset
+                (Info_Pane.Content_Height,
+                 Info_Pane.Height,
+                 Info_Pane.Scrollbar_Visible));
       elsif Main_View.Scrollbar_Visible
         and then Within (X, Main_View.Scrollbar_X, Main_View.Scrollbar_Width)
         and then Within (Y, Main_View.Scrollbar_Y, Main_View.Scrollbar_Track_Height)
@@ -521,7 +662,12 @@ separate (Files.Events)
               Main_View.Scrollbar_Thumb_Y,
               Main_View.Scrollbar_Height,
               Y,
-              10);
+              10,
+              Snapshot.Main_View_Scroll_Lines,
+              Maximum_Line_Offset
+                (Main_View.Content_Height,
+                 Main_View.Scrollbar_Track_Height,
+                 Main_View.Scrollbar_Visible));
       end if;
 
       if Path_Star.Visible
@@ -565,19 +711,6 @@ separate (Files.Events)
                  (Text        => Snapshot.Filter_Text,
                   Text_X      => Saturating_Add (Toolbar.Right_X, Guikit.Layout.Input_Field_Padding),
                   Click_X     => X));
-      end if;
-
-      if Snapshot.Sort_Menu_Open then
-         Command :=
-           Files.UI.Bottom_Bar_Sort_Menu_Command_At (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
-         if Command /= Files.Commands.No_Command then
-            return Command_Action (Command, Activate);
-         elsif Files.UI.Bottom_Bar_Sort_Menu_Contains (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height) then
-            --  Click inside the open menu's rectangle but not on a row (its
-            --  padding bands): consume it so it cannot fall through and select
-            --  the item drawn underneath the menu.
-            return No_Action (Activate);
-         end if;
       end if;
 
       Command := Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);

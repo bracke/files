@@ -2,22 +2,19 @@ with Guikit.List_Panel;
 with Guikit.Menu_Tree;
 
 separate (Files.Rendering.Build_Frame_Commands)
-   procedure Draw_Overlay_Commands is
+   procedure Draw_Overlay_Commands
+     (Phase : Overlay_Draw_Phase) is
    begin
-      if Snapshot.Root_Selector_Open then
+      if Phase = Modal_Overlay_Phase and then Snapshot.Root_Selector_Open then
+         --  The selector owns pointer and keyboard input while open.  Keep the
+         --  inactive file view out of the accessibility frame.
+         Result.Accessibility.Clear;
          if Root_Selector.Width > 0 and then Root_Selector.Height > 0 then
-            Add_Overlay_Rect
-              (Saturating_Add (Root_Selector.X, 3),
-               Saturating_Add (Root_Selector.Y, Root_Selector.Height),
+            Add_Overlay_Drop_Shadow
+              (Root_Selector.X,
+               Root_Selector.Y,
                Root_Selector.Width,
-               3,
-               Pane_Color);
-            Add_Overlay_Rect
-              (Saturating_Add (Root_Selector.X, Root_Selector.Width),
-               Saturating_Add (Root_Selector.Y, 3),
-               3,
-               Root_Selector.Height,
-               Pane_Color);
+               Root_Selector.Height);
             Add_Overlay_Rect
               (Root_Selector.X,
                Root_Selector.Y,
@@ -152,7 +149,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Overlay => True);
       end if;
 
-      if Snapshot.Tree_Panel_Open then
+      if Phase = Persistent_Overlay_Phase and then Snapshot.Tree_Panel_Open then
          declare
             Title : constant UString :=
               (if Snapshot.Tree_Pick_Active
@@ -177,7 +174,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                declare
                   Row  : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
                   Data : constant Files.Folder_Tree.Visible_Row :=
-                    Snapshot.Tree_Rows.Element (Positive (I));
+                    Snapshot.Tree_Rows.Element (Positive (Row.Visible_Row_Index));
                begin
                   Rows.Append
                     (Guikit.Menu_Tree.Menu_Tree_Row'
@@ -225,6 +222,14 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Pressed => Is_Pressed (Pick.Cancel_X, Pick.Y, Pick.Button_Width, Pick.Height)));
             end if;
 
+            if Snapshot.Tree_Pick_Active then
+               --  Destination picking blocks the rest of the window.  Dim and
+               --  hide that inactive content while leaving the ordinary folder
+               --  tree sidebar non-modal.
+               Result.Accessibility.Clear;
+               Add_Overlay_Rect (0, 0, Width, Height, Modal_Backdrop_Color);
+            end if;
+
             Guikit.Menu_Tree.Draw_Frame
               (Rectangles    => Result.Overlay_Rectangles,
                Text          => Result.Overlay_Text,
@@ -239,6 +244,22 @@ separate (Files.Rendering.Build_Frame_Commands)
                Rows          => Rows,
                Buttons       => Buttons);
 
+            if Tree_Panel.Scrollbar_Visible then
+               Guikit.Widgets.Draw_Scrollbar
+                 (Rectangles   => Result.Overlay_Rectangles,
+                  Clip_Width   => Layout.Width,
+                  Clip_Height  => Layout.Height,
+                  Track_X      => Tree_Panel.Scrollbar_X,
+                  Track_Y      => Tree_Panel.Scrollbar_Y,
+                  Track_Width  => Tree_Panel.Scrollbar_Width,
+                  Track_Height => Tree_Panel.Scrollbar_Track_Height,
+                  Thumb_Y      => Tree_Panel.Scrollbar_Thumb_Y,
+                  Thumb_Height => Tree_Panel.Scrollbar_Height,
+                  Track_Color  => Border_Color,
+                  Thumb_Color  => Selection_Color,
+                  Grip_Color   => Muted_Text_Color);
+            end if;
+
             --  Accessibility stays caller-side (it carries the node path + focus).
             Add_Accessibility_Node
               (Role_List,
@@ -251,7 +272,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                declare
                   Row  : constant Tree_Row_Layout := Tree_Rows_Layout.Element (Positive (I));
                   Data : constant Files.Folder_Tree.Visible_Row :=
-                    Snapshot.Tree_Rows.Element (Positive (I));
+                    Snapshot.Tree_Rows.Element (Positive (Row.Visible_Row_Index));
                begin
                   Add_Accessibility_Node
                     (Role_List_Item,
@@ -280,12 +301,16 @@ separate (Files.Rendering.Build_Frame_Commands)
            (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => True);
       end if;
 
-      if Snapshot.Context_Menu_Open then
+      if Phase = Modal_Overlay_Phase and then Snapshot.Context_Menu_Open then
          declare
             Menu : constant Context_Menu_Layout :=
               Calculate_Context_Menu_Layout (Snapshot, Width, Height, Line_Height);
          begin
             if Menu.Visible then
+               --  The shell consumes the next click to choose or dismiss this
+               --  menu, so publish only its active choices to screen readers.
+               Result.Accessibility.Clear;
+               Add_Overlay_Drop_Shadow (Menu.X, Menu.Y, Menu.Width, Menu.Height);
                Guikit.Widgets.Draw_Menu_Panel
                  (Rectangles   => Result.Overlay_Rectangles,
                   Clip_Width   => Layout.Width,
@@ -294,7 +319,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Y            => Menu.Y,
                   Width        => Menu.Width,
                   Height       => Menu.Height,
-                  Fill_Color   => Pane_Color,
+                  Fill_Color   => Overlay_Color,
                   Border_Color => Border_Color);
 
                Add_Accessibility_Node
@@ -308,135 +333,143 @@ separate (Files.Rendering.Build_Frame_Commands)
                   --  reproduces the former per-row overlay text byte for byte.
                   Cell_W : constant Positive :=
                     Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
-
-                  Row_Y : Natural := Menu.Y + Menu.Padding;
                begin
                   for Row in 1 .. Menu.Row_Count loop
-                     if Menu.Row_Kinds (Row) = Separator_Row then
-                        --  Draw a thin divider centered in the separator row so
-                        --  the command groups above and below read as distinct.
-                        declare
-                           Line_Inset : constant Natural := Menu.Padding;
-                           Line_Width : constant Natural :=
-                             (if Menu.Width > 2 * Line_Inset
-                              then Menu.Width - 2 * Line_Inset
-                              else Menu.Width);
-                           Line_Y     : constant Natural :=
-                             Row_Y + Menu.Separator_Height / 2;
-                        begin
-                           Guikit.Widgets.Draw_Menu_Row
-                             (Rectangles      => Result.Overlay_Rectangles,
-                              Text            => Result.Overlay_Text,
-                              Clip_Width      => Layout.Width,
-                              Clip_Height     => Layout.Height,
-                              Row_X           => Menu.X,
-                              Row_Y           => Row_Y,
-                              Row_Width       => Menu.Width,
-                              Row_Height      => Menu.Separator_Height,
-                              Is_Separator    => True,
-                              Separator_X     => Menu.X + Line_Inset,
-                              Separator_Y     => Line_Y,
-                              Separator_Width => Line_Width,
-                              Separator_Color => Border_Color,
-                              Highlight       => False,
-                              Highlight_Color => Hover_Color,
-                              Label_X         => 0,
-                              Label_Y         => 0,
-                              Label_Width     => 0,
-                              Label_Height    => 0,
-                              Label_Text      => Null_Unbounded_String,
-                              Label_Truncated => False,
-                              Label_Color     => Text_Color);
-                        end;
-                        Row_Y := Row_Y + Menu.Separator_Height;
-                     else
-                        declare
-                           Command : constant Files.Commands.Command_Id :=
-                             Menu.Commands (Row);
-                           Enabled : constant Boolean :=
-                             Command /= Files.Commands.No_Command
-                             and then Snapshot.Command_Enabled (Command);
-                           Hovered : constant Boolean :=
-                             Has_Hover
-                             and then Contains_Point
-                               (Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
-                                Hover_X, Hover_Y);
-                           Pressed : constant Boolean :=
-                             Is_Pressed
-                               (Menu.X, Row_Y, Menu.Width, Menu.Row_Height);
-                           Text_X  : constant Natural :=
-                             Menu.X + Guikit.Layout.Input_Field_Padding;
-                           Text_Y_Off : constant Natural :=
-                             (if Menu.Row_Height > Line_Height
-                              then (Menu.Row_Height - Line_Height) / 2
-                              else 0);
-                           Label_W : constant Natural :=
-                             (if Menu.Width > 2 * Guikit.Layout.Input_Field_Padding
-                              then Menu.Width - 2 * Guikit.Layout.Input_Field_Padding
-                              else 0);
-                           Draw_W  : constant Natural :=
-                             Clipped_Size (Text_X, Label_W, Layout.Width);
-                           Capacity : constant Natural := Draw_W / Cell_W;
-                           Raw_Label : constant UString := Command_Label (Command);
-                           Fitted    : constant UString :=
-                             Fitted_Text_For (Raw_Label, Capacity);
-                           --  Highlight fires on press, on an enabled hover, or on
-                           --  the keyboard-highlighted row (arrow navigation), so
-                           --  a keyboard user sees which command Enter will run.
-                           Highlight : constant Boolean :=
-                             Pressed
-                             or else (Hovered and then Enabled)
-                             or else Row = Snapshot.Context_Menu_Highlight;
-                        begin
-                           Guikit.Widgets.Draw_Menu_Row
-                             (Rectangles      => Result.Overlay_Rectangles,
-                              Text            => Result.Overlay_Text,
-                              Clip_Width      => Layout.Width,
-                              Clip_Height     => Layout.Height,
-                              Row_X           => Menu.X,
-                              Row_Y           => Row_Y,
-                              Row_Width       => Menu.Width,
-                              Row_Height      => Menu.Row_Height,
-                              Is_Separator    => False,
-                              Separator_X     => 0,
-                              Separator_Y     => 0,
-                              Separator_Width => 0,
-                              Separator_Color => Border_Color,
-                              Highlight       => Highlight,
-                              Highlight_Color =>
-                                (if Pressed then Pressed_Color else Hover_Color),
-                              Label_X         => Text_X,
-                              Label_Y         => Row_Y + Text_Y_Off,
-                              Label_Width     => Label_W,
-                              Label_Height    => Line_Height,
-                              Label_Text      => Fitted,
-                              Label_Truncated =>
-                                To_String (Fitted) /= To_String (Raw_Label),
-                              Label_Color     =>
-                                (if Enabled then Text_Color else Disabled_Text_Color));
-                           Add_Accessibility_Node
-                             (Role_Button,
-                              Menu.X, Row_Y, Menu.Width, Menu.Row_Height,
-                              Command_Label (Command),
-                              Localized (Files.Commands.Description_Key (Command)),
-                              Enabled => Enabled);
-                        end;
-                        Row_Y := Row_Y + Menu.Row_Height;
-                     end if;
+                     declare
+                        Row_X : constant Natural := Context_Menu_Row_Left (Menu, Row);
+                        Row_Y : constant Natural := Context_Menu_Row_Top (Menu, Row);
+                        Row_W : constant Natural := Context_Menu_Row_Width (Menu, Row);
+                     begin
+                        if Menu.Row_Kinds (Row) = Separator_Row then
+                           --  Draw a thin divider centered in the separator row so
+                           --  the command groups above and below read as distinct.
+                           declare
+                              Line_Inset : constant Natural := Menu.Padding;
+                              Line_Width : constant Natural :=
+                                (if Row_W > 2 * Line_Inset
+                                 then Row_W - 2 * Line_Inset
+                                 else Row_W);
+                              Line_Y     : constant Natural :=
+                                Row_Y + Menu.Separator_Height / 2;
+                           begin
+                              Guikit.Widgets.Draw_Menu_Row
+                                (Rectangles      => Result.Overlay_Rectangles,
+                                 Text            => Result.Overlay_Text,
+                                 Clip_Width      => Layout.Width,
+                                 Clip_Height     => Layout.Height,
+                                 Row_X           => Row_X,
+                                 Row_Y           => Row_Y,
+                                 Row_Width       => Row_W,
+                                 Row_Height      => Menu.Separator_Height,
+                                 Is_Separator    => True,
+                                 Separator_X     => Row_X + Line_Inset,
+                                 Separator_Y     => Line_Y,
+                                 Separator_Width => Line_Width,
+                                 Separator_Color => Border_Color,
+                                 Highlight       => False,
+                                 Highlight_Color => Hover_Color,
+                                 Label_X         => 0,
+                                 Label_Y         => 0,
+                                 Label_Width     => 0,
+                                 Label_Height    => 0,
+                                 Label_Text      => Null_Unbounded_String,
+                                 Label_Truncated => False,
+                                 Label_Color     => Text_Color);
+                           end;
+                        else
+                           declare
+                              Command : constant Files.Commands.Command_Id :=
+                                Menu.Commands (Row);
+                              Enabled : constant Boolean :=
+                                Command /= Files.Commands.No_Command
+                                and then Snapshot.Command_Enabled (Command);
+                              Hovered : constant Boolean :=
+                                Has_Hover
+                                and then Contains_Point
+                                  (Row_X, Row_Y, Row_W, Menu.Row_Height,
+                                   Hover_X, Hover_Y);
+                              Pressed : constant Boolean :=
+                                Is_Pressed
+                                  (Row_X, Row_Y, Row_W, Menu.Row_Height);
+                              Text_X  : constant Natural :=
+                                Row_X + Guikit.Layout.Input_Field_Padding;
+                              Text_Y_Off : constant Natural :=
+                                (if Menu.Row_Height > Line_Height
+                                 then (Menu.Row_Height - Line_Height) / 2
+                                 else 0);
+                              Label_W : constant Natural :=
+                                (if Row_W > 2 * Guikit.Layout.Input_Field_Padding
+                                 then Row_W - 2 * Guikit.Layout.Input_Field_Padding
+                                 else 0);
+                              Draw_W  : constant Natural :=
+                                Clipped_Size (Text_X, Label_W, Layout.Width);
+                              Capacity : constant Natural := Draw_W / Cell_W;
+                              Raw_Label : constant UString := Command_Label (Command);
+                              Fitted    : constant UString :=
+                                Fitted_Text_For (Raw_Label, Capacity);
+                              --  Highlight fires on press, on an enabled hover,
+                              --  or on the keyboard-highlighted row (arrow
+                              --  navigation), so a keyboard user sees which
+                              --  command Enter will run.
+                              Highlight : constant Boolean :=
+                                Pressed
+                                or else (Hovered and then Enabled)
+                                or else Row = Snapshot.Context_Menu_Highlight;
+                           begin
+                              Guikit.Widgets.Draw_Menu_Row
+                                (Rectangles      => Result.Overlay_Rectangles,
+                                 Text            => Result.Overlay_Text,
+                                 Clip_Width      => Layout.Width,
+                                 Clip_Height     => Layout.Height,
+                                 Row_X           => Row_X,
+                                 Row_Y           => Row_Y,
+                                 Row_Width       => Row_W,
+                                 Row_Height      => Menu.Row_Height,
+                                 Is_Separator    => False,
+                                 Separator_X     => 0,
+                                 Separator_Y     => 0,
+                                 Separator_Width => 0,
+                                 Separator_Color => Border_Color,
+                                 Highlight       => Highlight,
+                                 Highlight_Color =>
+                                   (if Pressed then Pressed_Color else Hover_Color),
+                                 Label_X         => Text_X,
+                                 Label_Y         => Row_Y + Text_Y_Off,
+                                 Label_Width     => Label_W,
+                                 Label_Height    => Line_Height,
+                                 Label_Text      => Fitted,
+                                 Label_Truncated =>
+                                   To_String (Fitted) /= To_String (Raw_Label),
+                                 Label_Color     =>
+                                   (if Enabled then Text_Color else Disabled_Text_Color));
+                              Add_Accessibility_Node
+                                (Role_Button,
+                                 Row_X, Row_Y, Row_W, Menu.Row_Height,
+                                 Command_Label (Command),
+                                 Localized (Files.Commands.Description_Key (Command)),
+                                 Enabled => Enabled);
+                           end;
+                        end if;
+                     end;
                   end loop;
+
+                  if Menu.Column_Count > 1 and then Menu.Column_Width > 0 then
+                     Add_Overlay_Rect
+                       (Saturating_Add (Menu.X, Menu.Column_Width),
+                        Menu.Y,
+                        1,
+                        Menu.Height,
+                        Border_Color);
+                  end if;
                end;
             end if;
          end;
       end if;
 
-      if Snapshot.Paste_Conflict_Open then
+      if Phase = Modal_Overlay_Phase and then Snapshot.Paste_Conflict_Open then
          declare
             Dialog : constant Conflict_Dialog_Layout :=
               Calculate_Conflict_Dialog_Layout (Snapshot, Layout, Line_Height);
-            Pad    : constant Natural := 12;
-            Text_W : constant Natural :=
-              (if Dialog.Width > Saturating_Multiply (Pad, 2) then Dialog.Width - Saturating_Multiply (Pad, 2)
-               else Dialog.Width);
 
             procedure Draw_Button (Kind : Conflict_Hit_Kind; Button_X : Natural; Label_Key : String) is
                Hovered : constant Boolean :=
@@ -467,16 +500,20 @@ separate (Files.Rendering.Build_Frame_Commands)
                Add_Accessibility_Node
                  (Role_Button, Button_X, Dialog.Button_Y, Dialog.Button_Width, Dialog.Button_Height,
                   Localized (Label_Key));
-               Result.Conflict_Hits.Append
-                 (Conflict_Hit_Region'
-                    (Kind   => Kind,
-                     X      => Button_X,
-                     Y      => Dialog.Button_Y,
-                     Width  => Dialog.Button_Width,
-                     Height => Dialog.Button_Height));
+               Add_Conflict_Hit
+                 (Kind, Button_X, Dialog.Button_Y,
+                  Dialog.Button_Width, Dialog.Button_Height);
             end Draw_Button;
          begin
+            --  The conflict dialog owns input until it is resolved.  Hide the
+            --  inactive view from assistive technology as well as dimming it;
+            --  otherwise screen readers can still navigate controls that the
+            --  click reducer deliberately makes unavailable.
+            Result.Accessibility.Clear;
+
             --  Modal backdrop and panel body.
+            Add_Overlay_Rect (0, 0, Width, Height, Modal_Backdrop_Color);
+            Add_Overlay_Drop_Shadow (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height);
             Add_Overlay_Rect (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Overlay_Color);
             Add_Overlay_Border (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, Border_Color);
             Add_Accessibility_Node
@@ -484,49 +521,66 @@ separate (Files.Rendering.Build_Frame_Commands)
                Localized ("dialog.paste_conflict.title"));
 
             --  Conflicting name and the "already exists" line.
-            Add_Overlay_Text
-              (Saturating_Add (Dialog.X, Pad), Saturating_Add (Dialog.Y, Pad), Text_W, Line_Height,
-               Snapshot.Paste_Conflict_Name, Text_Color, Fit => True);
-            Add_Overlay_Text
-              (Saturating_Add (Dialog.X, Pad), Saturating_Add (Dialog.Y, Saturating_Add (Pad, Line_Height)),
-               Text_W, Line_Height, Localized ("dialog.paste_conflict.exists"), Text_Color, Fit => True);
+            if Dialog.Message_Height > 0 then
+               Add_Overlay_Text
+                 (Dialog.Message_X, Dialog.Message_Y,
+                  Dialog.Message_Width, Natural'Min (Line_Height, Dialog.Message_Height),
+                  Snapshot.Paste_Conflict_Name, Text_Color, Fit => True);
+            end if;
+            if Dialog.Message_Height > Line_Height then
+               Add_Overlay_Text
+                 (Dialog.Message_X, Saturating_Add (Dialog.Message_Y, Line_Height),
+                  Dialog.Message_Width,
+                  Natural'Min (Line_Height, Dialog.Message_Height - Line_Height),
+                  Localized ("dialog.paste_conflict.exists"), Text_Color, Fit => True);
+            end if;
 
             --  "Apply to all remaining" toggle row.
             declare
                Box_Size : constant Natural := Natural'Min (Line_Height, Dialog.Apply_Height);
+               Text_Offset : constant Natural :=
+                 Saturating_Add (Box_Size, Guikit.Layout.Input_Field_Padding);
                Hovered  : constant Boolean :=
                  Has_Hover
                  and then Contains_Point
                             (Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height,
                              Hover_X, Hover_Y);
             begin
-               if Hovered then
+               if Dialog.Apply_Width > 0 and then Dialog.Apply_Height > 0 then
+                  if Hovered then
+                     Add_Overlay_Rect
+                       (Dialog.Apply_X, Dialog.Apply_Y,
+                        Dialog.Apply_Width, Dialog.Apply_Height, Hover_Color);
+                  end if;
                   Add_Overlay_Rect
-                    (Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height, Hover_Color);
+                    (Dialog.Apply_X, Dialog.Apply_Y, Box_Size, Box_Size, Border_Color);
+                  Add_Overlay_Rect
+                    (Saturating_Add (Dialog.Apply_X, 1), Saturating_Add (Dialog.Apply_Y, 1),
+                     (if Box_Size > 2 then Box_Size - 2 else 0),
+                     (if Box_Size > 2 then Box_Size - 2 else 0),
+                     (if Snapshot.Paste_Conflict_Apply_All
+                      then Selection_Color else Overlay_Color));
+                  Add_Overlay_Text
+                    (Saturating_Add (Dialog.Apply_X, Text_Offset),
+                     Dialog.Apply_Y,
+                     (if Dialog.Apply_Width > Text_Offset
+                      then Dialog.Apply_Width - Text_Offset
+                      else 0),
+                     Natural'Min (Line_Height, Dialog.Apply_Height),
+                     Localized ("dialog.paste_conflict.apply_to_all"),
+                     Text_Color,
+                     Fit => True);
+                  Add_Accessibility_Node
+                    (Role_Button,
+                     Dialog.Apply_X, Dialog.Apply_Y,
+                     Dialog.Apply_Width, Dialog.Apply_Height,
+                     Localized ("dialog.paste_conflict.apply_to_all"),
+                     Selected => Snapshot.Paste_Conflict_Apply_All);
+                  Add_Conflict_Hit
+                    (Conflict_Hit_Apply_All,
+                     Dialog.Apply_X, Dialog.Apply_Y,
+                     Dialog.Apply_Width, Dialog.Apply_Height);
                end if;
-               Add_Overlay_Rect (Dialog.Apply_X, Dialog.Apply_Y, Box_Size, Box_Size, Border_Color);
-               Add_Overlay_Rect
-                 (Saturating_Add (Dialog.Apply_X, 1), Saturating_Add (Dialog.Apply_Y, 1),
-                  (if Box_Size > 2 then Box_Size - 2 else 0), (if Box_Size > 2 then Box_Size - 2 else 0),
-                  (if Snapshot.Paste_Conflict_Apply_All then Selection_Color else Overlay_Color));
-               Add_Overlay_Text
-                 (Saturating_Add (Dialog.Apply_X, Saturating_Add (Box_Size, Guikit.Layout.Input_Field_Padding)),
-                  Dialog.Apply_Y,
-                  (if Dialog.Apply_Width > Saturating_Add (Box_Size, Guikit.Layout.Input_Field_Padding)
-                   then Dialog.Apply_Width - Saturating_Add (Box_Size, Guikit.Layout.Input_Field_Padding)
-                   else Dialog.Apply_Width),
-                  Line_Height, Localized ("dialog.paste_conflict.apply_to_all"), Text_Color, Fit => True);
-               Add_Accessibility_Node
-                 (Role_Button, Dialog.Apply_X, Dialog.Apply_Y, Dialog.Apply_Width, Dialog.Apply_Height,
-                  Localized ("dialog.paste_conflict.apply_to_all"),
-                  Selected => Snapshot.Paste_Conflict_Apply_All);
-               Result.Conflict_Hits.Append
-                 (Conflict_Hit_Region'
-                    (Kind   => Conflict_Hit_Apply_All,
-                     X      => Dialog.Apply_X,
-                     Y      => Dialog.Apply_Y,
-                     Width  => Dialog.Apply_Width,
-                     Height => Dialog.Apply_Height));
             end;
 
             Draw_Button (Conflict_Hit_Replace, Dialog.Replace_X, "dialog.paste_conflict.button.replace");
@@ -539,14 +593,10 @@ separate (Files.Rendering.Build_Frame_Commands)
          end;
       end if;
 
-      if Snapshot.Paste_Progress_Open then
+      if Phase = Modal_Overlay_Phase and then Snapshot.Paste_Progress_Open then
          declare
             Panel  : constant Paste_Progress_Layout :=
               Calculate_Paste_Progress_Layout (Snapshot, Layout, Line_Height);
-            Pad    : constant Natural := 12;
-            Text_W : constant Natural :=
-              (if Panel.Width > Saturating_Multiply (Pad, 2) then Panel.Width - Saturating_Multiply (Pad, 2)
-               else Panel.Width);
             Verb_Key : constant String :=
               (if Length (Snapshot.Paste_Progress_Operation_Label) > 0
                then To_String (Snapshot.Paste_Progress_Operation_Label)
@@ -568,7 +618,15 @@ separate (Files.Rendering.Build_Frame_Commands)
             Cancel_Pressed : constant Boolean :=
               Is_Pressed (Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height);
          begin
-            --  Modal-lite panel body and border.
+            --  Progress owns pointer, keyboard, and text input until completion
+            --  or cancellation.  Match that blocking behavior visually and in
+            --  the accessibility tree instead of leaving inactive controls
+            --  apparently available behind the panel.
+            Result.Accessibility.Clear;
+            Add_Overlay_Rect (0, 0, Width, Height, Modal_Backdrop_Color);
+            Add_Overlay_Drop_Shadow (Panel.X, Panel.Y, Panel.Width, Panel.Height);
+
+            --  Blocking progress panel body and border.
             Add_Overlay_Rect (Panel.X, Panel.Y, Panel.Width, Panel.Height, Overlay_Color);
             Add_Overlay_Border (Panel.X, Panel.Y, Panel.Width, Panel.Height, Border_Color);
             Add_Accessibility_Node
@@ -577,13 +635,19 @@ separate (Files.Rendering.Build_Frame_Commands)
                 else Localized ("dialog.paste_progress.title")));
 
             --  "Copying/Moving N of M" plus the current item name.
-            Add_Overlay_Text
-              (Saturating_Add (Panel.X, Pad), Saturating_Add (Panel.Y, Pad), Text_W, Line_Height,
-               Count_Line, Text_Color, Fit => True);
-            Add_Overlay_Text
-              (Saturating_Add (Panel.X, Pad),
-               Saturating_Add (Panel.Y, Saturating_Add (Pad, Line_Height)),
-               Text_W, Line_Height, Snapshot.Paste_Progress_Name, Muted_Text_Color, Fit => True);
+            if Panel.Message_Height > 0 then
+               Add_Overlay_Text
+                 (Panel.Message_X, Panel.Message_Y,
+                  Panel.Message_Width, Natural'Min (Line_Height, Panel.Message_Height),
+                  Count_Line, Text_Color, Fit => True);
+            end if;
+            if Panel.Message_Height > Line_Height then
+               Add_Overlay_Text
+                 (Panel.Message_X, Saturating_Add (Panel.Message_Y, Line_Height),
+                  Panel.Message_Width,
+                  Natural'Min (Line_Height, Panel.Message_Height - Line_Height),
+                  Snapshot.Paste_Progress_Name, Muted_Text_Color, Fit => True);
+            end if;
 
             --  Progress bar: track + fill proportional to Done/Total, top border.
             Guikit.Widgets.Draw_Meter
@@ -616,13 +680,10 @@ separate (Files.Rendering.Build_Frame_Commands)
             Add_Accessibility_Node
               (Role_Button, Panel.Cancel_X, Panel.Cancel_Y, Panel.Cancel_Width, Panel.Cancel_Height,
                Localized ("dialog.paste_progress.button.cancel"));
-            Result.Conflict_Hits.Append
-              (Conflict_Hit_Region'
-                 (Kind   => Conflict_Hit_Progress_Cancel,
-                  X      => Panel.Cancel_X,
-                  Y      => Panel.Cancel_Y,
-                  Width  => Panel.Cancel_Width,
-                  Height => Panel.Cancel_Height));
+            Add_Conflict_Hit
+              (Conflict_Hit_Progress_Cancel,
+               Panel.Cancel_X, Panel.Cancel_Y,
+               Panel.Cancel_Width, Panel.Cancel_Height);
          end;
       end if;
    end Draw_Overlay_Commands;

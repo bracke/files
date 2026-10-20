@@ -37,6 +37,20 @@ package Files.UI is
      (Line_Height : Positive := 20)
       return Natural;
 
+   --  Width of the visible sort dropdown at a particular window width. This
+   --  clamps the preferred width at the right framebuffer edge and is shared by
+   --  rendering and hit-testing.
+   --
+   --  @param Width Available framebuffer width in pixels.
+   --  @param Sort_Field Currently selected sort field.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Visible dropdown width in pixels.
+   function Sort_Menu_Visible_Width
+     (Width       : Natural;
+      Sort_Field  : Files.Model.Sort_Field;
+      Line_Height : Positive := 20)
+      return Natural;
+
    --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
    --  right, labelled with their short localized names. The renderer and the
    --  click hit-test share this single definition so the variable-width cells
@@ -98,6 +112,7 @@ package Files.UI is
    --  @param Divider_X X of the dividing rule, or zero when there is no field.
    --  @param Free_Field_X Left edge of the free-space text box, or zero.
    --  @param Free_Field_Width Width of the free-space text box, or zero.
+   --  @param Line_Height Text line height used to reserve a legible count field.
    procedure Split_Status_Region
      (Info_X           : Natural;
       Info_Width       : Natural;
@@ -105,7 +120,8 @@ package Files.UI is
       Toggle_Width     : out Natural;
       Divider_X        : out Natural;
       Free_Field_X     : out Natural;
-      Free_Field_Width : out Natural);
+      Free_Field_Width : out Natural;
+      Line_Height      : Positive := 20);
 
    --  Return the bottom-bar command at a window position.
    --

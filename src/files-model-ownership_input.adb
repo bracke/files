@@ -10,16 +10,17 @@ package body Ownership_Input is
    is
       Item : constant Files.File_System.Directory_Item := Selected_Item (Model);
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
       if Selected_Count (Model) /= 1
         or else Selection_Includes_Temporary (Model)
         or else not Files.File_System.Supports_Ownership
         or else not Item.Ownership_Available
-        or else Current_Path (Model) = Files.File_System.Trash_Files_Directory
+        or else Files.File_System.Is_Trash_Files_Directory
+                       (Current_Path (Model))
       then
          return;
       end if;
 
+      Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       Model.Focus_Value := Files.Types.Focus_Ownership_Input;
       Model.Ownership_Editing_Group_Value := Editing_Group;

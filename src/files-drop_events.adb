@@ -1,5 +1,3 @@
-with Ada.Strings.Fixed;
-
 package body Files.Drop_Events is
    use Ada.Strings.Unbounded;
 
@@ -29,13 +27,12 @@ package body Files.Drop_Events is
       for Path of Paths loop
          exit when Natural (Source.Pending_Paths.Length) >= Max_Drop_Paths;
 
-         declare
-            Text : constant String := Ada.Strings.Fixed.Trim (To_String (Path), Ada.Strings.Both);
-         begin
-            if Text'Length > 0 then
-               Source.Pending_Paths.Append (To_Unbounded_String (Text));
-            end if;
-         end;
+         if Length (Path) > 0 then
+            --  GLFW supplies native path bytes, not user-entered text. Leading
+            --  and trailing spaces are valid filename bytes and must survive
+            --  the event queue unchanged.
+            Source.Pending_Paths.Append (Path);
+         end if;
       end loop;
    end Queue;
 

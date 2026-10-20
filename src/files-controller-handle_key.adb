@@ -3,7 +3,8 @@ separate (Files.Controller)
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
       return Controller_Result
    is
       Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
@@ -136,7 +137,14 @@ separate (Files.Controller)
          end if;
       end if;
 
-      if Files.Model.Root_Selector_Is_Open (Model) then
+      --  The command palette may intentionally be stacked above the root
+      --  selector.  In that state the palette remains the keyboard owner so
+      --  its general text-editing paths (Backspace, Delete, word deletion)
+      --  below are reachable; command execution is still constrained by the
+      --  root-selector allowlist in Execute_Command.
+      if Files.Model.Root_Selector_Is_Open (Model)
+        and then not Files.Model.Command_Palette_Is_Open (Model)
+      then
          if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
             Files.Model.Close_Root_Selector (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
@@ -283,6 +291,14 @@ separate (Files.Controller)
                  Files.Model.Tree_Visible_Rows (Model);
                Target  : constant String := Files.Model.Tree_Pick_Target (Model);
                Current : Natural := 0;
+
+               procedure Select_Row (Index : Positive) is
+               begin
+                  Files.Model.Set_Tree_Pick_Target
+                    (Model, To_String (Rows (Index).Path));
+                  Files.Model.Ensure_Tree_Row_Visible
+                    (Model, Index, Tree_Page_Rows);
+               end Select_Row;
             begin
                if Rows.Is_Empty then
                   return Make_Result (Controller_Ignored);
@@ -296,21 +312,18 @@ separate (Files.Controller)
                if Current = 0 then
                   --  No destination highlighted yet: the first arrow lands on the
                   --  first row so the rest of the navigation has an anchor.
-                  Files.Model.Set_Tree_Pick_Target
-                    (Model, To_String (Rows (Rows.First_Index).Path));
+                  Select_Row (Rows.First_Index);
                   return Make_Result (Controller_Selection_Moved);
                end if;
 
                case Key is
                   when Guikit.Input.Key_Up =>
                      if Current > Rows.First_Index then
-                        Files.Model.Set_Tree_Pick_Target
-                          (Model, To_String (Rows (Current - 1).Path));
+                        Select_Row (Current - 1);
                      end if;
                   when Guikit.Input.Key_Down =>
                      if Current < Rows.Last_Index then
-                        Files.Model.Set_Tree_Pick_Target
-                          (Model, To_String (Rows (Current + 1).Path));
+                        Select_Row (Current + 1);
                      end if;
                   when Guikit.Input.Key_Right =>
                      if Rows (Current).Has_Children and then not Rows (Current).Expanded then
@@ -319,8 +332,7 @@ separate (Files.Controller)
                         return Handle_Tree_Click
                           (Model, Settings, Rows (Current).Node_Index, Toggle => True);
                      elsif Rows (Current).Expanded and then Current < Rows.Last_Index then
-                        Files.Model.Set_Tree_Pick_Target
-                          (Model, To_String (Rows (Current + 1).Path));
+                        Select_Row (Current + 1);
                      end if;
                   when Guikit.Input.Key_Left =>
                      if Rows (Current).Expanded then
@@ -330,8 +342,7 @@ separate (Files.Controller)
                         --  Step out to the parent: the nearest earlier, shallower row.
                         for Up_Idx in reverse Rows.First_Index .. Current - 1 loop
                            if Rows (Up_Idx).Depth < Rows (Current).Depth then
-                              Files.Model.Set_Tree_Pick_Target
-                                (Model, To_String (Rows (Up_Idx).Path));
+                              Select_Row (Up_Idx);
                               exit;
                            end if;
                         end loop;

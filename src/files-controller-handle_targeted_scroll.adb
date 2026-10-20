@@ -24,6 +24,15 @@ separate (Files.Controller)
         and then Target /= Files.Events.Scroll_Settings_Pane
       then
          return Make_Result (Controller_Ignored);
+      elsif Non_Text_Overlay_Owns_Input (Model)
+        and then not
+          (Files.Model.Tree_Pick_Is_Active (Model)
+           and then Target = Files.Events.Scroll_Tree_Panel)
+      then
+         --  Targeted calls can legitimately identify the destination tree,
+         --  but every other non-text overlay contains scrolling just as it
+         --  contains clicks and native character input.
+         return Make_Result (Controller_Ignored);
       end if;
 
       case Target is
@@ -41,6 +50,10 @@ separate (Files.Controller)
          when Files.Events.Scroll_Info_Pane =>
             if Files.Model.Info_Pane_Is_Open (Model) then
                return Scroll_Info_Result (Model, Lines);
+            end if;
+         when Files.Events.Scroll_Tree_Panel =>
+            if Files.Model.Tree_Panel_Is_Open (Model) then
+               return Scroll_Tree_Result (Model, Lines);
             end if;
          when Files.Events.Scroll_Settings_Pane =>
             if Files.Model.Settings_Pane_Is_Open (Model) then

@@ -25,20 +25,25 @@ separate (Files.Application.Windows)
            To_Modifiers (As_Window (Runtime.Handle));
       begin
          if Modifiers (Guikit.Input.Control_Key) then
-            declare
-               New_Size : constant Positive :=
-                 Files.Settings.Clamp_Font_Pixel_Size
-                   (Add_Pending_Scroll
-                      (Integer (Runtime.Font_Pixel_Size), Offset));
-            begin
-               if New_Size /= Runtime.Font_Pixel_Size then
-                  Runtime.Font_Pixel_Size := New_Size;
-                  Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
-                  Runtime.Text_Ready := False;
-                  Runtime.Text_Glyph_Key := Null_Unbounded_String;
-                  Persist_Settings (Runtime);
-               end if;
-            end;
+            --  Modal overlays own wheel input just as they own ordinary key,
+            --  click, drop, and scroll events. Consume Ctrl+wheel without
+            --  changing persisted UI state while any such overlay is open.
+            if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
+               declare
+                  New_Size : constant Positive :=
+                    Files.Settings.Clamp_Font_Pixel_Size
+                      (Add_Pending_Scroll
+                         (Integer (Runtime.Font_Pixel_Size), Offset));
+               begin
+                  if New_Size /= Runtime.Font_Pixel_Size then
+                     Runtime.Font_Pixel_Size := New_Size;
+                     Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
+                     Runtime.Text_Ready := False;
+                     Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                     Persist_Settings (Runtime);
+                  end if;
+               end;
+            end if;
             return;
          end if;
       end;
@@ -48,7 +53,12 @@ separate (Files.Application.Windows)
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
 
       if Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
-         Action := Files.Events.Translate_Scroll (Offset);
+         --  Without viewport geometry there is no meaningful scroll target or
+         --  maximum offset. Discard the event instead of accumulating invisible
+         --  main/info offsets while the window is minimized.
+         Action := (Kind => Files.Events.No_Input_Action, others => <>);
+      elsif not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
+         Action := (Kind => Files.Events.No_Input_Action, others => <>);
       else
          declare
             X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);

@@ -34,7 +34,11 @@ separate (Files.Settings)
             null;
       end Remove_Owned_Temp;
    begin
-      if Path = "" or else Contains_Nul (Path) or else Contains_Nul (Text) then
+      if Path = ""
+        or else Contains_Nul (Path)
+        or else Contains_Nul (Text)
+        or else Text'Length > Max_Settings_Text_Bytes
+      then
          return
            (Success   => False,
             Durable   => False,

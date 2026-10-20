@@ -54,6 +54,27 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Return the generation of model state that a background listing depends
+   --  on. Unlike Revision, ordinary interaction such as selection,
+   --  scrolling, focus, and overlay changes does not advance this value.
+   --
+   --  @param Model Model to inspect.
+   --  @return Current listing-context generation.
+   function Listing_Revision
+     (Model : Window_Model)
+      return Natural;
+
+   --  Return whether a transient surface currently owns window input.  Native
+   --  callback paths and shell-owned continuous gestures use this common policy
+   --  because they do not pass through the ordinary click/key translators.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while any menu, picker, preview, pane, palette, or paste
+   --    overlay is open.
+   function Input_Owning_Overlay_Is_Open
+     (Model : Window_Model)
+      return Boolean;
+
    --  Return the model current path.
    --
    --  @param Model Model to inspect.
@@ -512,6 +533,18 @@ package Files.Model is
      (Model : Window_Model)
       return Files.File_System.Item_Vectors.Vector;
 
+   --  Restore the loaded, visible items present in a previous selection. Item
+   --  paths provide identity across sorting and reloads; Primary_Path restores
+   --  the keyboard anchor when that item still exists.
+   --
+   --  @param Model Model whose selection is replaced.
+   --  @param Items Previously selected items to match by full path.
+   --  @param Primary_Path Full path of the previous primary item, or empty.
+   procedure Restore_Selection
+     (Model        : in out Window_Model;
+      Items        : Files.File_System.Item_Vectors.Vector;
+      Primary_Path : String);
+
    --  Return whether the current selection is the temporary create-file item.
    --
    --  @param Model Model to inspect.
@@ -799,6 +832,43 @@ package Files.Model is
    function Tree_Panel_Is_Open
      (Model : Window_Model)
       return Boolean;
+
+   --  Scroll the visible folder-tree rows. Positive values move down and
+   --  negative values move up.
+   --
+   --  @param Model Model to update.
+   --  @param Rows Signed number of rows to scroll.
+   procedure Scroll_Tree_Panel
+     (Model : in out Window_Model;
+      Rows  : Integer);
+
+   --  Zero-based index of the first requested folder-tree row.
+   --
+   --  @param Model Model to inspect.
+   --  @return Current zero-based folder-tree row offset.
+   function Tree_Panel_Scroll_Rows
+     (Model : Window_Model)
+      return Natural;
+
+   --  Set the zero-based first requested tree row, clamped to the available
+   --  rows. Used by direct scrollbar manipulation.
+   --
+   --  @param Model Model to update.
+   --  @param Rows Requested zero-based folder-tree row offset.
+   procedure Set_Tree_Panel_Scroll_Rows
+     (Model : in out Window_Model;
+      Rows  : Natural);
+
+   --  Adjust the tree offset only when a visible row lies outside the current
+   --  viewport. Page_Rows is the number of rows supplied by the live layout.
+   --
+   --  @param Model Model to update.
+   --  @param Visible_Row One-based visible row that must remain in view.
+   --  @param Page_Rows Number of visible rows in the current viewport.
+   procedure Ensure_Tree_Row_Visible
+     (Model       : in out Window_Model;
+      Visible_Row : Positive;
+      Page_Rows   : Natural);
 
    --  Return whether the folder tree has been seeded with root nodes.
    --
@@ -2764,6 +2834,7 @@ private
       Root_Entries         : Files.File_System.Root_Entry_Vectors.Vector;
       Root_Selected        : Natural := 0;
       Tree_Panel_Open      : Boolean := False;
+      Tree_Panel_Scroll    : Natural := 0;
       Folder_Tree_Value    : Files.Folder_Tree.Tree;
       Tree_Pick_Mode_Value    : Tree_Pick_Mode := Pick_None;
       Tree_Pick_Sources_Value : Files.Types.String_Vectors.Vector;
@@ -2842,5 +2913,8 @@ private
       --  differs, so snapshot invalidation follows the model automatically
       --  rather than relying on each call site to remember.
       Revision_Value : Natural := 0;
+      --  Narrower generation used to reject stale background directory reads
+      --  without treating harmless interaction as a listing-context change.
+      Listing_Revision_Value : Natural := 0;
    end record;
 end Files.Model;

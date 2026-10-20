@@ -372,6 +372,19 @@ package body Files.File_System is
    function Trash_Files_Directory return String
      renames Trash.Trash_Files_Directory;
 
+   function Is_Trash_Files_Directory (Path : String) return Boolean is
+      Trash_Dir : constant String := Trash_Files_Directory;
+   begin
+      return Path /= ""
+        and then Trash_Dir /= ""
+        and then
+          (Path = Trash_Dir
+           or else Hostkit.Metadata.Same_File (Path, Trash_Dir));
+   exception
+      when others =>
+         return False;
+   end Is_Trash_Files_Directory;
+
    function Trash_Original_Path (Trashed_Path : String) return String is
    begin
       if Recovery.Recognizes (Trashed_Path) then

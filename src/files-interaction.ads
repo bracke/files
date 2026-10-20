@@ -79,6 +79,8 @@ package Files.Interaction is
    --  @param Modifiers Active modifier keys.
    --  @param Current_Font_Size Live font pixel size, used to detect a saved font-size change.
    --  @param Result Follow-up flags describing what the key dispatch did.
+   --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
+   --    zero when geometry is unavailable.
    procedure Handle_Key
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
@@ -86,7 +88,8 @@ package Files.Interaction is
       Key               : Guikit.Input.Key_Code;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Current_Font_Size : Positive;
-      Result            : out Interaction_Result);
+      Result            : out Interaction_Result;
+      Tree_Page_Rows    : Natural := 0);
 
    --  Apply a translated input action to the model and settings. Mirrors the
    --  former Dispatch_Click_Action ladder: command, item-click, root-click,

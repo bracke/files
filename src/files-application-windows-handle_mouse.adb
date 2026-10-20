@@ -46,16 +46,24 @@ separate (Files.Application.Windows)
                 (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
             Result : Files.Interaction.Interaction_Result;
          begin
-            Files.Interaction.Apply_Right_Click
-              (Model             => Runtime.Model,
-               Settings          => Runtime.Settings,
-               In_Main           => In_Main,
-               Item_Index        => Item_Index,
-               X                 => X,
-               Y                 => Y,
-               Result            => Result,
-               In_Details_Header => In_Details_Header);
-            Apply_Interaction_Result (Runtime, Result);
+            --  Scale_Coordinate deliberately returns the framebuffer extent for
+            --  a cursor on/beyond the bottom or right edge. Such a coordinate
+            --  names no pixel and must not close or replace a context menu.
+            if Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
+              and then Frame_W > 0 and then Frame_H > 0
+              and then X < Natural (Frame_W) and then Y < Natural (Frame_H)
+            then
+               Files.Interaction.Apply_Right_Click
+                 (Model             => Runtime.Model,
+                  Settings          => Runtime.Settings,
+                  In_Main           => In_Main,
+                  Item_Index        => Item_Index,
+                  X                 => X,
+                  Y                 => Y,
+                  Result            => Result,
+                  In_Details_Header => In_Details_Header);
+               Apply_Interaction_Result (Runtime, Result);
+            end if;
          end;
       end loop;
 
@@ -80,15 +88,20 @@ separate (Files.Application.Windows)
                   else Files.Commands.No_Command);
                Result   : Files.Interaction.Interaction_Result;
             begin
-               Files.Interaction.Apply_Context_Menu_Command
-                 (Model             => Runtime.Model,
-                  Settings          => Runtime.Settings,
-                  Settings_Path     => To_String (Runtime.Settings_Path),
-                  Command           => Command,
-                  Current_Font_Size => Runtime.Font_Pixel_Size,
-                  Modifiers         => Modifiers,
-                  Result            => Result);
-               Apply_Interaction_Result (Runtime, Result);
+               if Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
+                 and then Frame_W > 0 and then Frame_H > 0
+                 and then X < Natural (Frame_W) and then Y < Natural (Frame_H)
+               then
+                  Files.Interaction.Apply_Context_Menu_Command
+                    (Model             => Runtime.Model,
+                     Settings          => Runtime.Settings,
+                     Settings_Path     => To_String (Runtime.Settings_Path),
+                     Command           => Command,
+                     Current_Font_Size => Runtime.Font_Pixel_Size,
+                     Modifiers         => Modifiers,
+                     Result            => Result);
+                  Apply_Interaction_Result (Runtime, Result);
+               end if;
             end;
             goto Continue_Left_Click_Loop;
          end if;

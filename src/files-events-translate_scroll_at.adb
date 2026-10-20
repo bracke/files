@@ -16,6 +16,10 @@ separate (Files.Events)
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
       Info    : constant Files.Rendering.Info_Pane_Layout :=
         Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
+      Main    : constant Files.Rendering.Main_View_Layout :=
+        Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+      Tree    : constant Files.Rendering.Tree_Panel_Layout :=
+        Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
 
       function Within
         (Value  : Natural;
@@ -27,6 +31,89 @@ separate (Files.Events)
            and then Value >= Start
            and then Value - Start < Extent;
       end Within;
+
+      function Maximum_Line_Offset
+        (Content_Height  : Natural;
+         Viewport_Height : Natural;
+         Scrollbar_Shown : Boolean)
+         return Natural
+      is
+         Difference : Natural;
+      begin
+         if not Scrollbar_Shown or else Content_Height <= Viewport_Height then
+            return 0;
+         end if;
+
+         Difference := Content_Height - Viewport_Height;
+         return 1 + (Difference - 1) / Line_Height;
+      end Maximum_Line_Offset;
+
+      function Bounded_Scroll_Action
+        (Target  : Scroll_Target;
+         Raw     : Natural;
+         Maximum : Natural)
+         return Input_Action
+      is
+         Current   : constant Natural := Natural'Min (Raw, Maximum);
+         Step      : Natural;
+         Requested : Natural;
+         Adjustment : Integer;
+      begin
+         if Action.Scroll_Lines < 0 then
+            Step :=
+              (if Action.Scroll_Lines = Integer'First
+               then Natural'Last
+               else Natural (-Action.Scroll_Lines));
+            Requested := (if Step >= Current then 0 else Current - Step);
+         else
+            Step := Natural (Action.Scroll_Lines);
+            Requested :=
+              (if Step >= Maximum - Current
+               then Maximum
+               else Current + Step);
+         end if;
+
+         --  Raw can exceed Maximum after the window grows. Fold that stale
+         --  offset into this event so the next wheel step is never consumed by
+         --  an invisible part of the old, smaller viewport.
+         Adjustment := Integer (Requested) - Integer (Raw);
+         if Adjustment = 0 then
+            return No_Action;
+         end if;
+
+         return Scroll_Action (Target, Adjustment);
+      end Bounded_Scroll_Action;
+
+      function Tree_Scroll_Action return Input_Action
+      is
+         Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
+         Capacity : constant Natural :=
+           Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
+         Maximum  : constant Natural :=
+           (if Count > Capacity then Count - Capacity else 0);
+      begin
+         if Count = 0 or else Capacity = 0 then
+            return No_Action;
+         end if;
+
+         return
+           Bounded_Scroll_Action
+             (Scroll_Tree_Panel,
+              Snapshot.Tree_Panel_Scroll_Rows,
+              Maximum);
+      end Tree_Scroll_Action;
+
+      --  These overlays own pointer input but do not currently expose a
+      --  scrollable region.  Swallow the wheel event while one is open so it
+      --  cannot move the main view or info pane behind the overlay.
+      function Non_Scrolling_Overlay_Is_Open return Boolean is
+        (Snapshot.Sort_Menu_Open
+         or else Snapshot.Context_Menu_Open
+         or else Snapshot.Tree_Pick_Active
+         or else Snapshot.Paste_Conflict_Open
+         or else Snapshot.Paste_Progress_Open
+         or else Snapshot.Quick_Look_Open
+         or else Snapshot.Label_Picker_Open);
    begin
       if Action.Kind /= Scroll_Input_Action then
          return Action;
@@ -63,19 +150,48 @@ separate (Files.Events)
          return No_Action;
       end if;
 
+      if Snapshot.Tree_Pick_Active
+        and then Snapshot.Tree_Panel_Open
+        and then Within (X, Tree.X, Tree.Width)
+        and then Within (Y, Tree.Y, Tree.Height)
+      then
+         return Tree_Scroll_Action;
+      end if;
+
+      if Non_Scrolling_Overlay_Is_Open then
+         return No_Action;
+      end if;
+
+      if Snapshot.Tree_Panel_Open
+        and then Within (X, Tree.X, Tree.Width)
+        and then Within (Y, Tree.Y, Tree.Height)
+      then
+         return Tree_Scroll_Action;
+      end if;
+
       if Snapshot.Info_Pane_Open
         and then Within (X, Info.X, Info.Width)
         and then Within (Y, Info.Y, Info.Height)
       then
-         Action.Scroll_Area := Scroll_Info_Pane;
-         return Action;
+         return
+           Bounded_Scroll_Action
+             (Scroll_Info_Pane,
+              Snapshot.Info_Pane_Scroll_Lines,
+              Maximum_Line_Offset
+                (Info.Content_Height, Info.Height, Info.Scrollbar_Visible));
       end if;
 
       if Within (X, Layout.Main_X, Layout.Main_Width)
         and then Within (Y, Layout.Main_Y, Layout.Main_Height)
       then
-         Action.Scroll_Area := Scroll_Main_View;
-         return Action;
+         return
+           Bounded_Scroll_Action
+             (Scroll_Main_View,
+              Snapshot.Main_View_Scroll_Lines,
+              Maximum_Line_Offset
+                (Main.Content_Height,
+                 Main.Scrollbar_Track_Height,
+                 Main.Scrollbar_Visible));
       end if;
 
       return No_Action;

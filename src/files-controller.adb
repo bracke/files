@@ -26,6 +26,40 @@ package body Files.Controller is
    use type Guikit.Input.Navigation_Direction;
    use type Files.Types.String_Vectors.Vector;
 
+   --  Overlays without a text-entry surface own native character input.  This
+   --  predicate lives at the controller boundary because GLFW character and
+   --  file-drop callbacks bypass the ordinary key/click translators.
+   function Non_Text_Overlay_Owns_Input
+     (Model : Files.Model.Window_Model) return Boolean is
+     ((Files.Model.Root_Selector_Is_Open (Model)
+       and then not Files.Model.Command_Palette_Is_Open (Model))
+      or else Files.Model.Sort_Menu_Is_Open (Model)
+      or else Files.Model.Context_Menu_Is_Open (Model)
+      or else Files.Model.Label_Picker_Is_Open (Model)
+      or else Files.Model.Quick_Look_Is_Open (Model)
+      or else Files.Model.Tree_Pick_Is_Active (Model)
+      or else Files.Model.Paste_Conflict_Is_Active (Model)
+      or else Files.Model.Paste_Execution_Is_Active (Model));
+
+   --  Settings and the command palette accept native character input only while
+   --  their own text surface holds focus.  This also contains characters after
+   --  focus has been cancelled without closing the overlay.
+   function Text_Overlay_Rejects_Character_Input
+     (Model : Files.Model.Window_Model) return Boolean is
+     (if Files.Model.Command_Palette_Is_Open (Model) then
+         Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
+      elsif Files.Model.Settings_Pane_Is_Open (Model) then
+         Files.Model.Focus (Model) /= Files.Types.Focus_Settings_Input
+      else
+         False);
+
+   --  External file drops have no overlay-specific destination, so every
+   --  input-owning overlay blocks them rather than allowing a hidden filesystem
+   --  mutation in the current directory.
+   function Any_Overlay_Owns_Input
+     (Model : Files.Model.Window_Model) return Boolean is
+     (Files.Model.Input_Owning_Overlay_Is_Open (Model));
+
    function Empty_Operation return Files.Operations.Operation_Result is
    begin
       return
@@ -520,6 +554,15 @@ package body Files.Controller is
       return Controller_Result is
    begin
       if not Files.Model.Root_Selector_Is_Open (Model)
+        or else Files.Model.Command_Palette_Is_Open (Model)
+        or else Files.Model.Settings_Pane_Is_Open (Model)
+        or else Files.Model.Sort_Menu_Is_Open (Model)
+        or else Files.Model.Context_Menu_Is_Open (Model)
+        or else Files.Model.Label_Picker_Is_Open (Model)
+        or else Files.Model.Quick_Look_Is_Open (Model)
+        or else Files.Model.Tree_Pick_Is_Active (Model)
+        or else Files.Model.Paste_Conflict_Is_Active (Model)
+        or else Files.Model.Paste_Execution_Is_Active (Model)
         or else Root_Index = 0
         or else Root_Index > Files.Model.Root_Count (Model)
       then
@@ -565,7 +608,10 @@ package body Files.Controller is
       Segments : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
         Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
    begin
-      if Segment_Index = 0 or else Segment_Index > Natural (Segments.Length) then
+      if Files.Model.Input_Owning_Overlay_Is_Open (Model)
+        or else Segment_Index = 0
+        or else Segment_Index > Natural (Segments.Length)
+      then
          return Make_Result (Controller_Ignored);
       end if;
 
@@ -709,6 +755,13 @@ package body Files.Controller is
          end;
       end if;
 
+      --  Guikit normally supplies an Id copied from the command registry, but
+      --  keep this public controller boundary safe if a stale or malformed
+      --  palette model supplies a value outside the enumeration.
+      if Id > Files.Commands.Command_Id'Pos (Files.Commands.Command_Id'Last) then
+         return Make_Result (Controller_Ignored);
+      end if;
+
       declare
          Command : constant Files.Commands.Command_Id := Files.Commands.Command_Id'Val (Id);
          Result  : constant Controller_Result := Execute_Command (Command, Model, Settings, Modifiers);
@@ -743,7 +796,7 @@ package body Files.Controller is
       --  unrelated clipboard selection on finalize.
       Operation : Files.Operations.Operation_Result;
    begin
-      if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
+      if Any_Overlay_Owns_Input (Model) then
          return Make_Result (Controller_Ignored);
       end if;
       Operation := Files.Operations.Begin_Paste
@@ -765,6 +818,21 @@ package body Files.Controller is
            then Controller_Ignored
            else Controller_Command_Executed);
    end Scroll_Info_Result;
+
+   function Scroll_Tree_Result
+     (Model : in out Files.Model.Window_Model;
+      Rows  : Integer)
+      return Controller_Result
+   is
+      Old_Rows : constant Natural := Files.Model.Tree_Panel_Scroll_Rows (Model);
+   begin
+      Files.Model.Scroll_Tree_Panel (Model, Rows);
+      return
+        Make_Result
+          (if Files.Model.Tree_Panel_Scroll_Rows (Model) = Old_Rows
+           then Controller_Ignored
+           else Controller_Command_Executed);
+   end Scroll_Tree_Result;
 
    function Scroll_Settings_Result
      (Model : in out Files.Model.Window_Model;
@@ -810,6 +878,12 @@ package body Files.Controller is
          end if;
       elsif Files.Model.Settings_Pane_Is_Open (Model) then
          return Scroll_Settings_Result (Model, Lines);
+      elsif Non_Text_Overlay_Owns_Input (Model) then
+         --  Auto-targeted scrolling has no cursor geometry with which to find
+         --  the destination tree. Every non-text modal therefore contains it,
+         --  matching the ordinary pointer translator instead of moving content
+         --  behind the overlay.
+         return Make_Result (Controller_Ignored);
       elsif Files.Model.Info_Pane_Is_Open (Model) then
          return Scroll_Info_Result (Model, Lines);
       end if;
@@ -879,6 +953,14 @@ package body Files.Controller is
    begin
       if Files.Model.Command_Palette_Is_Open (Model)
         or else not Files.Model.Settings_Pane_Is_Open (Model)
+        or else Files.Model.Root_Selector_Is_Open (Model)
+        or else Files.Model.Sort_Menu_Is_Open (Model)
+        or else Files.Model.Context_Menu_Is_Open (Model)
+        or else Files.Model.Label_Picker_Is_Open (Model)
+        or else Files.Model.Quick_Look_Is_Open (Model)
+        or else Files.Model.Tree_Pick_Is_Active (Model)
+        or else Files.Model.Paste_Conflict_Is_Active (Model)
+        or else Files.Model.Paste_Execution_Is_Active (Model)
         or else not Files.Model.Settings_Click (Model, X, Y)
       then
          return Make_Result (Controller_Ignored);
@@ -975,7 +1057,8 @@ package body Files.Controller is
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Key       : Guikit.Input.Key_Code;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
       return Controller_Result
  is separate;
 

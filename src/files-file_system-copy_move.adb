@@ -183,28 +183,49 @@ package body Copy_Move is
          return To_String (Full);
       end Available_Destination;
 
+      function Resolved_Directory (Path : String) return String is
+      begin
+         return GNAT.OS_Lib.Normalize_Pathname
+           (Path, Resolve_Links => True);
+      exception
+         when others =>
+            return "";
+      end Resolved_Directory;
+
+      function Same_Directory (Left, Right : String) return Boolean is
+         Resolved_Left  : constant String := Resolved_Directory (Left);
+         Resolved_Right : constant String := Resolved_Directory (Right);
+      begin
+         return
+           (Resolved_Left /= ""
+            and then Resolved_Right /= ""
+            and then Resolved_Left = Resolved_Right)
+           or else Hostkit.Metadata.Same_File (Left, Right);
+      end Same_Directory;
+
       --  True when Inner is Outer itself or a descendant of Outer (normalized).
       function Is_Within_Tree (Inner : String; Outer : String) return Boolean is
-         I : constant String := Ada.Directories.Full_Name (Inner);
-         O : constant String :=
-           (if Hostkit.Fs.Is_Link (Outer) then GNAT.OS_Lib.Normalize_Pathname (Outer, Resolve_Links => False)
-            else Ada.Directories.Full_Name (Outer));
+         I : constant String := Resolved_Directory (Inner);
+         O : constant String := Resolved_Directory (Outer);
+
+         function Is_Separator (Value : Character) return Boolean is
+           (Value = '/'
+            or else (Files_Config.Alire_Host_OS = "windows" and then Value = '\'));
       begin
          if Hostkit.Fs.Is_Link (Outer) then
             return False; --  Copying a link never traverses its target tree.
+         elsif I = "" or else O = "" then
+            return True; --  An unresolved directory relationship is not safe.
          end if;
-         --  The boundary is whichever separator the host writes. This accepted
-         --  only '/', and Full_Name spells a Windows path with '\', so no
-         --  directory was ever inside its own tree there -- and dropping a folder
-         --  into its own subfolder, which this exists to refuse, was allowed
-         --  straight through into an unbounded recursive copy.
+         --  Resolve links before the boundary check. A destination alias can
+         --  otherwise conceal that it points into the source tree. A root path
+         --  already ends in a separator, so every longer path is beneath it.
          return I = O
            or else (I'Length > O'Length
                     and then I (I'First .. I'First + O'Length - 1) = O
-                    and then (I (I'First + O'Length) = '/'
-                              or else
-                                (Files_Config.Alire_Host_OS = "windows"
-                                 and then I (I'First + O'Length) = '\')));
+                    and then
+                      (Is_Separator (O (O'Last))
+                       or else Is_Separator (I (I'First + O'Length))));
       end Is_Within_Tree;
    begin
       if not Files.Fs.Directory_Exists (Destination_Directory)
@@ -242,9 +263,9 @@ package body Copy_Move is
                else
                   Plan.Valid := True;
                   if Mode = Drop_Move
-                    and then Ada.Directories.Full_Name
-                               (Ada.Directories.Containing_Directory (Source_Text))
-                             = Ada.Directories.Full_Name (Destination_Directory)
+                    and then Same_Directory
+                      (Ada.Directories.Containing_Directory (Source_Text),
+                       Destination_Directory)
                   then
                      --  Moving an item into the directory it already lives in is
                      --  a no-op; keep its own path so Execute_Drop_Import skips

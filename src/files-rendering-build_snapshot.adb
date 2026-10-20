@@ -16,6 +16,22 @@ separate (Files.Rendering)
          return Image;
       end Natural_Text;
 
+      function Complete_RGBA_Image
+        (Width, Height : Natural;
+         Pixel_Count   : Ada.Containers.Count_Type) return Boolean
+      is
+         Area : Natural;
+      begin
+         if Width = 0 or else Height = 0
+           or else Width > Natural'Last / Height
+         then
+            return False;
+         end if;
+         Area := Width * Height;
+         return Area <= Natural'Last / 4
+           and then Pixel_Count = Ada.Containers.Count_Type (Area * 4);
+      end Complete_RGBA_Image;
+
       Theme : constant Render_Theme :=
         (case Settings.Theme is
             when Files.Settings.Theme_High_Contrast => High_Contrast_Theme,
@@ -56,6 +72,8 @@ separate (Files.Rendering)
       Snapshot.Visible_Count := Files.Model.Visible_Count (Model);
       Snapshot.Hidden_Count := Files.Model.Hidden_Item_Count (Model);
       Snapshot.Selected_Count := Files.Model.Selected_Count (Model);
+      Snapshot.Primary_Selected_Visible_Index :=
+        Files.Model.Selected_Index (Model);
       declare
          --  Free-space comes from the current directory's filesystem via a
          --  statvfs syscall. The platform accessor reports Available = False when
@@ -67,9 +85,7 @@ separate (Files.Rendering)
          Now  : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          use type Ada.Calendar.Time;
       begin
-         if not Cached_Free_Ready
-           or else Ada.Strings.Unbounded.To_String (Cached_Free_Path) /= Path
-           or else Now - Cached_Free_Time > Free_Space_Refresh_Interval
+         if not Free_Space_Cache_Is_Current (Path)
          then
             Cached_Free_Cap := Hostkit.Metadata.Volume_Capacity_Of (Path);
             Cached_Free_Path := Ada.Strings.Unbounded.To_Unbounded_String (Path);
@@ -127,12 +143,18 @@ separate (Files.Rendering)
             when Files.Settings.Theme_Light         => Theme_Light,
             when Files.Settings.Theme_High_Contrast => Theme_High_Contrast);
       Snapshot.Theme_Focus_Ring := Theme.Focus_Ring;
-      Snapshot.Root_Selector_Open := Files.Model.Root_Selector_Is_Open (Model);
-      Snapshot.Root_Selected_Index := Files.Model.Root_Selected_Index (Model);
       --  The command palette owns its query/selection/results and renders itself
       --  (Guikit.Command_Palette, merged at the window layer); the snapshot only
       --  records that it is open, for overlay hit-testing.
       Snapshot.Command_Palette_Open := Files.Model.Command_Palette_Is_Open (Model);
+      --  The root selector remains logically open while the palette temporarily
+      --  takes focus, but must not be painted underneath it: overlay rectangles
+      --  and overlay text are separate GPU passes, so its text would otherwise
+      --  bleed through the palette panel.
+      Snapshot.Root_Selector_Open :=
+        Files.Model.Root_Selector_Is_Open (Model)
+        and then not Snapshot.Command_Palette_Open;
+      Snapshot.Root_Selected_Index := Files.Model.Root_Selected_Index (Model);
 
       Snapshot.Label_Picker_Open := Files.Model.Label_Picker_Is_Open (Model);
       Snapshot.Label_Picker_Highlight := Files.Model.Label_Picker_Highlight (Model);
@@ -155,10 +177,9 @@ separate (Files.Rendering)
             --  Prefer the original image decoded at preview resolution; fall
             --  back to the item's small thumbnail when decoding was unavailable.
             if Content.Kind = Files.Quick_Look.Image_Content
-              and then Content.Image_Width > 0
-              and then Content.Image_Height > 0
-              and then Natural (Content.Image_Pixels.Length)
-                       = Content.Image_Width * Content.Image_Height * 4
+              and then Complete_RGBA_Image
+                (Content.Image_Width, Content.Image_Height,
+                 Content.Image_Pixels.Length)
             then
                Snapshot.Quick_Look_Image_Width  := Content.Image_Width;
                Snapshot.Quick_Look_Image_Height := Content.Image_Height;
@@ -188,6 +209,8 @@ separate (Files.Rendering)
       end loop;
 
       Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel_Is_Open (Model);
+      Snapshot.Tree_Panel_Scroll_Rows :=
+        Files.Model.Tree_Panel_Scroll_Rows (Model);
       Snapshot.Tree_Rows := Files.Model.Tree_Visible_Rows (Model);
       Snapshot.Tree_Pick_Active := Files.Model.Tree_Pick_Is_Active (Model);
       Snapshot.Tree_Pick_Moving :=
@@ -666,7 +689,8 @@ separate (Files.Rendering)
             Single_Item : constant Files.File_System.Directory_Item :=
               Files.Model.Selected_Item (Model);
             In_Trash    : constant Boolean :=
-              Files.Model.Current_Path (Model) = Files.File_System.Trash_Files_Directory;
+              Files.File_System.Is_Trash_Files_Directory
+                (Files.Model.Current_Path (Model));
          begin
             Snapshot.Permissions_Editable :=
               Files.Model.Selected_Count (Model) = 1

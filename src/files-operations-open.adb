@@ -249,7 +249,12 @@ package body Open is
       Directory : constant String := Files.Model.Current_Path (Model);
       Terminal  : constant String := Detected_Terminal;
    begin
-      if Terminal = "" then
+      if Directory = ""
+        or else Files.Model.In_Recent_View (Model)
+        or else Files.File_System.Is_Trash_Files_Directory (Directory)
+      then
+         return Disabled (Model, "error.terminal.unavailable");
+      elsif Terminal = "" then
          Files.Model.Set_Error (Model, "error.terminal.unavailable");
          return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
       end if;

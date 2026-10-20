@@ -28,6 +28,8 @@ separate (Files.Application.Windows)
         Glfw.Windows.Mouse_Button_State (As_Window (Runtime.Handle), Glfw.Input.Mouse.Left_Button) =
         Glfw.Input.Pressed;
 
+      Cancel_Background_Gestures_For_Overlay (Runtime);
+
       Update_Scrollbar_Drag
         (Runtime    => Runtime,
          Cursor_X   => Cursor_X,
@@ -83,7 +85,9 @@ separate (Files.Application.Windows)
          Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);
          Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
          Has_Hover_Now : constant Boolean :=
-           Width > 0 and then Height > 0 and then Window_W > 0 and then Window_H > 0;
+           Width > 0 and then Height > 0
+           and then Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H);
+         Has_Press_Now : constant Boolean := Mouse_Down and then Has_Hover_Now;
          Has_Drag_Now  : constant Boolean :=
            Mouse_Down
            and then Runtime.Drag_Source_Index /= 0
@@ -98,6 +102,11 @@ separate (Files.Application.Windows)
            and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
            and then Files.Settings.Same_Snapshot_Settings
                       (Runtime.Settings, Runtime.Cached_Settings_Key)
+           and then
+             (not (Runtime.Settings.Show_Used_Space
+                   or else Runtime.Settings.Show_Space_Bar)
+              or else Files.Rendering.Free_Space_Cache_Is_Current
+                        (Files.Model.Current_Path (Runtime.Model)))
            and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
            and then not Runtime.Marquee_Active;
          Inputs_Match : constant Boolean :=
@@ -108,7 +117,7 @@ separate (Files.Application.Windows)
            and then Runtime.Cached_Hover_X = Hover_X
            and then Runtime.Cached_Hover_Y = Hover_Y
            and then Runtime.Cached_Has_Hover = Has_Hover_Now
-           and then Runtime.Cached_Has_Press = Mouse_Down
+           and then Runtime.Cached_Has_Press = Has_Press_Now
            and then Runtime.Cached_Drag_Item = Runtime.Drag_Source_Index
            and then Runtime.Cached_Has_Drag = Has_Drag_Now
            and then Runtime.Cached_Marquee_Active = Runtime.Marquee_Active
@@ -134,7 +143,7 @@ separate (Files.Application.Windows)
                  Has_Hover   => Has_Hover_Now,
                  Pressed_X   => Hover_X,
                  Pressed_Y   => Hover_Y,
-                 Has_Press   => Mouse_Down,
+                 Has_Press   => Has_Press_Now,
                  Drag_Item_Index => Runtime.Drag_Source_Index,
                  Drag_X      => Hover_X,
                  Drag_Y      => Hover_Y,
@@ -150,7 +159,7 @@ separate (Files.Application.Windows)
             Runtime.Cached_Hover_X := Hover_X;
             Runtime.Cached_Hover_Y := Hover_Y;
             Runtime.Cached_Has_Hover := Has_Hover_Now;
-            Runtime.Cached_Has_Press := Mouse_Down;
+            Runtime.Cached_Has_Press := Has_Press_Now;
             Runtime.Cached_Drag_Item := Runtime.Drag_Source_Index;
             Runtime.Cached_Has_Drag := Has_Drag_Now;
             Runtime.Cached_Marquee_Active := Runtime.Marquee_Active;
@@ -238,6 +247,7 @@ separate (Files.Application.Windows)
                P_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
                P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
             begin
+               Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
                Files.Model.Palette_Build_Frame
                  (Model         => Runtime.Model,
                   Region_X      => Layout.Command_X,
@@ -257,7 +267,12 @@ separate (Files.Application.Windows)
             end;
          end if;
 
-         if Files.Model.Settings_Pane_Is_Open (Runtime.Model) then
+         --  Settings remains logically open when Commands is invoked from it,
+         --  but Commands is the active top-level modal and owns the pixels until
+         --  it closes. Rendering both would interleave their batched text layers.
+         if Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+           and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
+         then
             declare
                Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
                Layout : constant Files.Rendering.Layout_Metrics :=
@@ -270,6 +285,7 @@ separate (Files.Application.Windows)
                S_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
                S_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
             begin
+               Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
                Files.Model.Settings_Build_Frame
                  (Model         => Runtime.Model,
                   Region_X      => Pane.X,

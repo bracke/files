@@ -7,10 +7,7 @@ separate (Files.Controller)
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result is
    begin
-      if Files.Model.Command_Palette_Is_Open (Model)
-        or else Files.Model.Root_Selector_Is_Open (Model)
-        or else Files.Model.Settings_Pane_Is_Open (Model)
-      then
+      if Files.Model.Input_Owning_Overlay_Is_Open (Model) then
          return Make_Result (Controller_Ignored);
       elsif Visible_Index = 0 or else Visible_Index > Files.Model.Visible_Count (Model) then
          return Make_Result (Controller_Ignored);

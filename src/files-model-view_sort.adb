@@ -69,6 +69,7 @@ package body View_Sort is
       --  Open the menu with the keyboard highlight on the current sort field
       --  (rows 1 .. 5 mirror Sort_Field'Val 0 .. 4).
       if Model.Sort_Menu_Open then
+         Claim_Overlay_Input (Model);
          Model.Sort_Menu_Highlight_Value := Sort_Field'Pos (Model.Sort_Field_Value) + 1;
       end if;
    end Toggle_Sort_Menu;

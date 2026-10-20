@@ -40,9 +40,10 @@ package body Navigation is
       if Files.Model.In_Recent_View (Model) then
          return Navigate_Recent (Model, Settings);
       end if;
-      --  Preserve the current selection across a manual refresh when the item
-      --  still exists (Reload re-selects by name; empty name => no selection).
-      return Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
+      --  Preserve the complete current selection across a manual refresh when
+      --  those items still exist.
+      return Reload_Current_Directory
+        (Model, Settings, Preserve_Selection => True);
    end Refresh;
 
    function Refresh_If_Changed
@@ -68,9 +69,10 @@ package body Navigation is
             return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
          end if;
 
-         --  Preserve the selection across an auto-refresh triggered by a
-         --  background directory change, when the item still exists.
-         return Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
+         --  Preserve the complete selection across an auto-refresh triggered by
+         --  a directory change, when those items still exist.
+         return Reload_Current_Directory
+           (Model, Settings, Preserve_Selection => True);
       end;
    end Refresh_If_Changed;
 
@@ -233,7 +235,11 @@ package body Navigation is
         Files.File_System.Parent_Directory (Files.Model.Current_Path (Model));
    begin
       --  A filesystem root has no parent, so navigating up is a safe no-op.
-      if Parent = "" then
+      if Parent = ""
+        or else Files.Model.In_Recent_View (Model)
+        or else Files.File_System.Is_Trash_Files_Directory
+                       (Files.Model.Current_Path (Model))
+      then
          return Disabled (Model, "error.navigate.no_parent");
       end if;
 

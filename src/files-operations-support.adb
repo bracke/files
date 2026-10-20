@@ -121,9 +121,14 @@ package body Files.Operations.Support is
    function Reload_Current_Directory
      (Model       : in out Files.Model.Window_Model;
       Settings    : Files.Settings.Settings_Model;
-      Select_Name : String := "")
+      Select_Name : String := "";
+      Preserve_Selection : Boolean := False)
       return Operation_Result
    is
+      Previous_Selection : constant Files.File_System.Item_Vectors.Vector :=
+        Files.Model.Selected_Items (Model);
+      Previous_Primary : constant String :=
+        To_String (Files.Model.Selected_Item (Model).Full_Path);
    begin
       if Files.Model.Background_Transfers (Model) then
          return Files.Refresh_Jobs.Start (Model, Settings, Force => True, Select_Name => Select_Name);
@@ -151,6 +156,10 @@ package body Files.Operations.Support is
                end;
             end loop;
             Files.Model.Navigate_Recent (Model, Items);
+            if Preserve_Selection and then Select_Name = "" then
+               Files.Model.Restore_Selection
+                 (Model, Previous_Selection, Previous_Primary);
+            end if;
             Files.Model.Set_Error (Model, "");
          end;
          return Make_Result (Operation_Success);
@@ -177,6 +186,9 @@ package body Files.Operations.Support is
             begin
                null;
             end;
+         elsif Preserve_Selection then
+            Files.Model.Restore_Selection
+              (Model, Previous_Selection, Previous_Primary);
          end if;
          Files.Model.Set_Error (Model, "");
          Files.Model.Ensure_Selected_Item_Extra (Model);

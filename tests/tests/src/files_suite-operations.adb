@@ -174,6 +174,7 @@ package body Files_Suite.Operations is
    procedure Test_Window_Folder_Measurements (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Destructive_Helper_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Pending_Create_Mutation_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -649,6 +650,9 @@ package body Files_Suite.Operations is
          "destructive helpers preserve history and remain cancellable while stalled");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Creation_History'Access, "batch creation has one Undo entry and preserves replacement files");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Pending_Create_Mutation_Guards'Access,
+         "pending inline creation blocks direct selection mutations");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Drops_While_Busy'Access, "drops cannot replace active jobs or conflict dialogs");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1426,6 +1430,30 @@ package body Files_Suite.Operations is
       Assert
         (not Ada.Directories.Exists (Join (Trash_Info, "restore-me.txt.trashinfo")),
          "restore removes the trashinfo sidecar");
+
+      Write_File (Source_Path, "permanent payload");
+      Mutation := Files.File_System.Move_To_Trash (Source_Path);
+      Assert (Mutation.Success, "permanent-delete setup moves source file to trash");
+      Assert
+        (Ada.Directories.Exists (Join (Trash_File, "restore-me.txt"))
+         and then Ada.Directories.Exists
+           (Join (Trash_Info, "restore-me.txt.trashinfo")),
+         "permanent-delete setup creates a payload and sidecar");
+      Load := Files.File_System.Load_Directory
+        (Files.File_System.Trash_Files_Directory, Settings);
+      Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
+      Select_Name (Model, "restore-me.txt");
+      Result :=
+        Files.Controller.Execute_Command
+          (Files.Commands.Delete_Selected_Permanently_Command, Model, Settings);
+      Assert
+        (Result.Operation.Status = Files.Operations.Operation_Success,
+         "permanent delete succeeds for a selected trash entry");
+      Assert
+        (not Ada.Directories.Exists (Join (Trash_File, "restore-me.txt"))
+         and then not Ada.Directories.Exists
+           (Join (Trash_Info, "restore-me.txt.trashinfo")),
+         "permanent delete removes both the trash payload and its sidecar");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Restore_Environment;
@@ -2710,8 +2738,10 @@ package body Files_Suite.Operations is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model;
       Items    : Files.File_System.Item_Vectors.Vector;
+      Paths    : Files.Types.String_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Operations.Operation_Result;
+      Guard_Name : constant String := "files-aunit-recent-create-must-not-write-7f62b1";
    begin
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
@@ -2726,6 +2756,55 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Rename_Is_Active (Model), "create commit clears rename state");
       Assert (Files.Model.Item_Count (Model) = 1, "create commit reloads the directory model");
       Assert (Files.Model.Selected_Name (Model) = "created.txt", "created item is selected after reload");
+
+      Items := Files.Model.Selected_Items (Model);
+      Files.Model.Navigate_Recent (Model, Items);
+      Result := Files.Operations.Open_Terminal (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled,
+         "direct terminal launch is rejected before resolving an empty recent-view path");
+      Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "recent-renamed-must-not-write-7f62b1");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.rename.disabled"
+         and then Ada.Directories.Exists (Join (Root, "created.txt"))
+         and then not Ada.Directories.Exists ("recent-renamed-must-not-write-7f62b1"),
+         "direct recent-view rename cannot move an item into the process directory");
+      Files.Model.Cancel_Focus_Or_Edit (Model);
+      Files.Model.Begin_Create_File (Model, Guard_Name);
+      Result := Files.Operations.Commit_Create_File (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.file.parent_missing",
+         "direct create commit rejects the virtual recent view");
+      Assert
+        (not Ada.Directories.Exists (Guard_Name),
+         "a rejected recent-view create does not write relative to the process directory");
+
+      Paths.Append (To_Unbounded_String (Join (Root, "created.txt")));
+      Result := Files.Operations.Begin_Paste (Model, Settings, Paths);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.drop.invalid_destination",
+         "direct paste rejects the virtual recent view's empty destination");
+
+      Files.Model.Set_Filter (Model, "created");
+      Files.Model.Set_Background_Transfers (Model, True);
+      Result := Files.Operations.Run_Recursive_Search (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.directory.load"
+         and then not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
+         "recent-view name search is rejected before a background helper starts");
+      Result := Files.Operations.Run_Content_Search (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Disabled
+         and then Files.Model.Last_Error_Key (Model) = "error.directory.load"
+         and then not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
+         "recent-view content search is rejected before a background helper starts");
    end Test_Commit_Create_File;
 
    procedure Test_Commit_Create_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5337,6 +5416,8 @@ package body Files_Suite.Operations is
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 2000, Height => 1200, Line_Height => 20);
       declare
          Found_Name         : Boolean := False;
+         Found_Name_Heading : Boolean := False;
+         Found_Heading_Bold : Boolean := False;
          Found_Top_Value    : Boolean := False;
          Found_Top_Bold     : Boolean := False;
          Found_Top_Label    : Boolean := False;
@@ -5369,37 +5450,42 @@ package body Files_Suite.Operations is
                Postfixed : constant Boolean :=
                  Raw'Length > Suffix'Length
                  and then Raw (Raw'Last - Suffix'Length + 1 .. Raw'Last) = Suffix;
-               --  Match against the value with its item-name postfix removed so
-               --  the field checks below are unaffected by the postfix.
-               Value : constant String :=
-                 (if Postfixed then Raw (Raw'First .. Raw'Last - Suffix'Length) else Raw);
+               Value : constant String := Raw;
             begin
                if Postfixed and then Text.X = Info_X then
                   Found_Postfixed_Value := True;
                end if;
 
-               if Value = Files.Localization.Text ("info.name")
+               if Value = "meta.txt"
+                 and then Text.X = Info_X
+                 and then Text.Y = Info_Y
+               then
+                  Found_Name_Heading := True;
+               elsif Value = "meta.txt"
+                 and then Text.X = Info_X + 1
+                 and then Text.Y = Info_Y
+               then
+                  Found_Heading_Bold := True;
+               elsif Value = Files.Localization.Text ("info.name")
                  and then Text.X >= Info_X
                then
-                  --  Must not happen: the info pane's Name field is replaced by
-                  --  the postfix (a "Name" column header may exist in the grid).
                   Found_Name := True;
                elsif Value = Files.Localization.Text ("info.filetype")
                  and then Text.X = Info_X
-                 and then Text.Y = Info_Y
+                 and then Text.Y = Info_Y + 40
                then
                   Found_Top_Label := True;
                   Found_Filetype := True;
                elsif Value = Files.Localization.Text ("info.filetype")
                  and then Text.X = Info_X + 1
-                 and then Text.Y = Info_Y
+                 and then Text.Y = Info_Y + 40
                then
                   Found_Top_Bold := True;
                elsif Value = Files.Localization.Text ("info.filetype") then
                   Found_Filetype := True;
                elsif Value = Files.Localization.Text ("info.kind.text")
                  and then Text.X = Info_X
-                 and then Text.Y = Info_Y + 20
+                 and then Text.Y = Info_Y + 60
                then
                   Found_Top_Value := True;
                   Found_Filetype_Value := True;
@@ -5477,11 +5563,14 @@ package body Files_Suite.Operations is
             end if;
          end loop;
 
-         Assert (not Found_Name, "info pane has no dedicated Name row (name is postfixed onto each value)");
-         Assert (Found_Top_Label, "info pane top row is the filetype label");
+         Assert (not Found_Name, "info pane does not waste a row on a Name label");
+         Assert (Found_Name_Heading and then Found_Heading_Bold,
+                 "info pane renders the selected item name once as a heading");
+         Assert (Found_Top_Label, "info pane places filetype below the item heading");
          Assert (Found_Top_Bold, "info pane label renders with bold offset");
          Assert (Found_Top_Value, "info pane value follows label on next row");
-         Assert (Found_Postfixed_Value, "info pane single-item values are postfixed with the item name");
+         Assert (not Found_Postfixed_Value,
+                 "info pane single-item values do not repeat the item name");
          Assert (Found_Filetype, "info pane frame includes localized filetype row");
          Assert (Found_Filetype_Value, "info pane filetype value is separate from label");
          Assert (Found_Size, "info pane frame includes localized size row");
@@ -5505,6 +5594,36 @@ package body Files_Suite.Operations is
          Assert (Found_Extra_Second, "info pane details renders second metadata item on separate row");
          Assert (Found_Relative_Time, "info pane humanizes recent metadata timestamps");
          Assert (Found_A11y_Section, "info pane frame exposes accessible selected-file section");
+      end;
+
+      declare
+         Narrow_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
+         Narrow_Info     : Files.Rendering.Info_Snapshot :=
+           Narrow_Snapshot.Selected_Info.Element (1);
+         Narrow_Frame    : Files.Rendering.Frame_Commands;
+         Found_First     : Boolean := False;
+         Found_Second    : Boolean := False;
+         Found_Broken    : Boolean := False;
+      begin
+         Narrow_Info.Filetype_Extra :=
+           To_Unbounded_String ("Markdown document has 233 lines.");
+         Narrow_Snapshot.Selected_Info.Replace_Element (1, Narrow_Info);
+         Narrow_Frame :=
+           Files.Rendering.Build_Frame_Commands
+             (Narrow_Snapshot, Width => 640, Height => 800, Line_Height => 20);
+
+         for Text of Narrow_Frame.Text loop
+            Found_First :=
+              Found_First or else To_String (Text.Text) = "Markdown document has";
+            Found_Second := Found_Second or else To_String (Text.Text) = "233 lines.";
+            Found_Broken :=
+              Found_Broken
+              or else To_String (Text.Text) = "Markdown document has 2"
+              or else To_String (Text.Text) = "33 lines.";
+         end loop;
+
+         Assert (Found_First and then Found_Second and then not Found_Broken,
+                 "info metadata wraps at word boundaries instead of splitting words");
       end;
 
       declare
@@ -8086,6 +8205,7 @@ package body Files_Suite.Operations is
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
+      Plans : Files.File_System.Drop_Import_Result;
       procedure Check_Source is
       begin
          Load := Files.File_System.Load_Directory (Child, Settings);
@@ -8121,6 +8241,36 @@ package body Files_Suite.Operations is
          Assert (Step.Status = Files.Operations.Operation_Success, "Undo the copy");
          Ada.Directories.Delete_Directory (Parent);
          Assert (Hostkit.Fs.Create_Link (Child, Parent), "redirect the destination parent into the source");
+         Paths.Clear;
+         Paths.Append (To_Unbounded_String (Source));
+         Plans := Files.File_System.Plan_Drop_Import
+           (Paths, Parent, Files.File_System.Drop_Copy);
+         Assert
+           (not Plans.Success
+            and then To_String (Plans.Error_Key) = "error.drop.into_self",
+            "planning resolves a destination alias into the source tree");
+
+         declare
+            Stay : constant String := Join (Child, "stay.txt");
+         begin
+            Write_Binary_File (Stay, "stay");
+            Paths.Clear;
+            Paths.Append (To_Unbounded_String (Stay));
+            Plans := Files.File_System.Plan_Drop_Import
+              (Paths, Parent, Files.File_System.Drop_Move);
+            Assert
+              (Plans.Success
+               and then Natural (Plans.Plans.Length) = 1
+               and then To_String (Plans.Plans.First_Element.Destination_Path) = Stay,
+               "a move through an alias to the same directory is planned as a no-op");
+            Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+            Assert
+              (Mutation.Success
+               and then File_Has_Bytes (Stay, "stay")
+               and then not Ada.Directories.Exists (Join (Child, "stay 2.txt")),
+               "the aliased same-directory move keeps the original name and bytes");
+            Ada.Directories.Delete_File (Stay);
+         end;
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Assert (not Mutation.Success, "direct copies resolve destination-parent aliases");
          Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
@@ -9264,6 +9414,27 @@ package body Files_Suite.Operations is
                        and then Natural (Files.Model.Undo_History (Model).Length) = 2
                        and then Natural (Created.Length) = (if Partial then 1 else 2),
                        "successful and partial batches add one action without replacing prior history");
+               if Partial then
+                  declare
+                     Expected_Name : constant String :=
+                       (if Extracting then "a" else "a (copy).txt");
+                     Found : Boolean := False;
+                  begin
+                     --  The first item committed before the second failed. It
+                     --  must be present in the refreshed model, not merely on
+                     --  disk and in the Undo entry.
+                     Files.Model.Set_Filter (Model, "");
+                     for Index in 1 .. Files.Model.Visible_Count (Model) loop
+                        Found := Found or else
+                          To_String (Files.Model.Visible_Item (Model, Index).Name) = Expected_Name;
+                     end loop;
+                     Assert
+                       (Found
+                        and then Files.Model.Last_Error_Key (Model) =
+                          (if Extracting then "error.extract.failed" else "error.duplicate.failed"),
+                        "partial batches refresh committed outputs and retain their diagnostic");
+                  end;
+               end if;
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                for Path of Created loop
@@ -9292,6 +9463,125 @@ package body Files_Suite.Operations is
    exception
       when others => Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Batch_Creation_History;
+
+   procedure Test_Pending_Create_Mutation_Guards
+     (T : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      type Mutation_Kind is
+        (Duplicate_Item, Compress_Item, Extract_Item,
+         Create_Symbolic_Link, Create_Hard_Link);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model : Files.Model.Window_Model;
+      Load : Files.File_System.Directory_Load_Result;
+      Step : Files.Operations.Operation_Result;
+      Routed : Files.Controller.Controller_Result;
+   begin
+      for Background in Boolean loop
+         for Kind in Mutation_Kind loop
+            Reset_Root;
+            Write_Binary_File (Join (Root, "source.zip"), "not an archive");
+            Load := Files.File_System.Load_Directory (Root, Settings);
+            Files.Model.Initialize (Model, Root, Load.Items, Root);
+            Files.Model.Clear_Undo (Model);
+            Files.Model.Set_Background_Transfers (Model, Background);
+            Files.Model.Begin_Create_File (Model, "pending.txt");
+            Files.Model.Toggle_Visible_Selection (Model, 1);
+            Assert
+              (Files.Model.Selection_Includes_Temporary (Model)
+               and then Files.Model.Selected_Count (Model) = 2,
+               "prepare a real-plus-temporary mixed selection");
+
+            Step :=
+              (case Kind is
+                  when Duplicate_Item =>
+                    Files.Operations.Duplicate_Selected (Model, Settings),
+                  when Compress_Item =>
+                    Files.Operations.Compress_Selected
+                      (Model, Settings, Files.Operations.Zip_Archive),
+                  when Extract_Item =>
+                    Files.Operations.Extract_Selected (Model, Settings),
+                  when Create_Symbolic_Link =>
+                    Files.Operations.Create_Symlink_Selected (Model, Settings),
+                  when Create_Hard_Link =>
+                    Files.Operations.Create_Hardlink_Selected (Model, Settings));
+            Assert
+              (Step.Status = Files.Operations.Operation_Disabled
+               and then Files.Model.Last_Error_Key (Model) = "error.create.pending"
+               and then Files.Model.Temporary_Item_Is_Active (Model)
+               and then not Files.Model.Undo_Available (Model)
+               and then not Files.Process_Jobs.Active
+                 (Files.Model.Background_Operation (Model))
+               and then not Ada.Directories.Exists (Join (Root, "source (copy).zip"))
+               and then not Ada.Directories.Exists (Join (Root, "source (1).zip"))
+               and then not Ada.Directories.Exists (Join (Root, "source"))
+               and then not Ada.Directories.Exists (Join (Root, "source (link).zip"))
+               and then not Hostkit.Fs.Is_Link (Join (Root, "source (link).zip")),
+               "direct selection mutations preserve a pending inline creation");
+
+            if Kind = Duplicate_Item then
+               Routed := Files.Controller.Execute_Command
+                 (Files.Commands.Duplicate_Selected_Command, Model, Settings);
+               Assert
+                 (Routed.Status = Files.Controller.Controller_Ignored
+                  and then Routed.Operation.Status = Files.Operations.Operation_Disabled
+                  and then To_String (Routed.Operation.Error_Key) = "error.create.pending",
+                  "the disabled command reports the pending edit instead of failing silently");
+            end if;
+         end loop;
+      end loop;
+
+      --  Clipboard paste, native file drops, and item-targeted drops all share
+      --  Begin_Paste_To. None may write underneath the active inline editor.
+      Reset_Root;
+      Ada.Directories.Create_Directory (Join (Root, "inbox"));
+      Ada.Directories.Create_Directory (Join (Root, "view"));
+      Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
+      Load := Files.File_System.Load_Directory (Join (Root, "view"), Settings);
+      Files.Model.Initialize (Model, Join (Root, "view"), Load.Items, Root);
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      declare
+         Sources : Files.Types.String_Vectors.Vector;
+         Outcome : Files.Controller.Controller_Result;
+      begin
+         Sources.Append
+           (To_Unbounded_String (Join (Join (Root, "inbox"), "incoming.txt")));
+         Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
+         Assert
+           (Step.Status = Files.Operations.Operation_Disabled
+            and then To_String (Step.Error_Key) = "error.create.pending"
+            and then Files.Model.Temporary_Item_Is_Active (Model)
+            and then not Files.Model.Paste_Execution_Is_Active (Model)
+            and then not Files.Model.Paste_Conflict_Is_Active (Model)
+            and then not Ada.Directories.Exists
+              (Join (Join (Root, "view"), "incoming.txt")),
+            "clipboard paste cannot write beneath a pending inline creation");
+         Outcome := Files.Controller.Handle_Drop_Import
+           (Model, Settings, Sources);
+         Assert
+           (Outcome.Operation.Status = Files.Operations.Operation_Disabled
+            and then To_String (Outcome.Operation.Error_Key) = "error.create.pending"
+            and then Files.Model.Temporary_Item_Is_Active (Model)
+            and then not Ada.Directories.Exists
+              (Join (Join (Root, "view"), "incoming.txt")),
+            "external drops share the pending-create paste guard");
+         Step := Files.Operations.Begin_Paste_To
+           (Model, Settings, Sources, Join (Root, "view"),
+            Files.File_System.Drop_Move, From_Clipboard => False);
+         Assert
+           (Step.Status = Files.Operations.Operation_Disabled
+            and then Ada.Directories.Exists
+              (Join (Join (Root, "inbox"), "incoming.txt"))
+            and then not Ada.Directories.Exists
+              (Join (Join (Root, "view"), "incoming.txt")),
+            "targeted moves preserve both the pending editor and their source");
+      end;
+   exception
+      when others =>
+         Files.Model.Clear_Paste_Execution (Model);
+         Files.Refresh_Jobs.Cancel (Model);
+         raise;
+   end Test_Pending_Create_Mutation_Guards;
 
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9487,6 +9777,7 @@ package body Files_Suite.Operations is
            (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          Assert (Step.Status = Files.Operations.Operation_Failed
                  and then To_String (Step.Error_Key) = "error.compress.failed"
+                 and then Files.Model.Last_Error_Key (Model) = "error.compress.failed"
                  and then not Ada.Directories.Exists (Join (Root, "a.zip"))
                  and then not Files.Model.Undo_Available (Model),
                  "a missing selected source cannot produce a successful incomplete archive or Undo entry");
@@ -10143,12 +10434,16 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Selected_Item_Is_Temporary (Model), "refresh clears temporary selection");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "refresh resets info pane scroll");
       Files.Model.Select_Visible (Model, 1);
+      Files.Model.Toggle_Visible_Selection (Model, 2);
       Write_File (Join (First, "later.txt"));
       Files.Model.Open_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second refresh operation succeeds");
       Assert (Files.Model.Item_Count (Model) = 3, "second refresh loads later item");
-      Assert (Files.Model.Selected_Count (Model) = 1, "refresh preserves the selection by name");
+      Assert
+        (Files.Model.Selected_Count (Model) = 2
+         and then Files.Model.Selected_Name (Model) = "one.txt",
+         "synchronous refresh preserves a multi-selection and its primary item by path");
 
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Open_Command_Palette (Model);
@@ -10334,13 +10629,109 @@ package body Files_Suite.Operations is
             Trash_Load  : constant Files.File_System.Directory_Load_Result :=
               Files.File_System.Load_Directory (Trash_Dir, Settings);
             Trash_Model : Files.Model.Window_Model;
+            Source_Load : constant Files.File_System.Item_Load_Result :=
+              Files.File_System.Load_Item (Join (Full_Child, "leaf.txt"), Settings);
+            Trash_Items : Files.File_System.Item_Vectors.Vector;
+            Trash_Sources : Files.Types.String_Vectors.Vector;
+            Trash_Result  : Files.Operations.Operation_Result;
          begin
-            if Trash_Load.Success then
+            if Trash_Load.Success and then Source_Load.Success then
+               Trash_Items.Append (Source_Load.Item);
                Files.Model.Initialize
-                 (Trash_Model, To_String (Trash_Load.Path), Trash_Load.Items, Full_Child);
+                 (Trash_Model, To_String (Trash_Load.Path), Trash_Items, Full_Child);
+               Files.Model.Select_Visible (Trash_Model, 1);
                Assert
                  (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Trash_Model),
                   "navigate-parent is disabled in the trash view");
+               Assert
+                 (Files.File_System.Is_Trash_Files_Directory
+                    (Files.Model.Current_Path (Trash_Model)),
+                  "the shared identity check recognizes the active trash payload directory");
+               Trash_Result := Files.Operations.Navigate_Parent (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then Files.Model.Current_Path (Trash_Model) = To_String (Trash_Load.Path),
+                  "direct parent navigation cannot expose trash metadata beside the payload directory");
+               Trash_Result := Files.Operations.Open_Terminal (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled,
+                  "direct terminal launch is rejected in the trash payload directory");
+               Trash_Sources.Append (To_Unbounded_String (Join (Full_Child, "leaf.txt")));
+               Files.Model.Set_Clipboard
+                 (Trash_Model, Trash_Sources, Files.Model.Clipboard_Copy);
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Trash_Model)
+                  and then not Files.Commands.Is_Enabled (Files.Commands.New_Folder_Command, Trash_Model)
+                  and then not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Trash_Model),
+                  "create and paste commands are disabled in the trash payload view");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Trash_Model)
+                  and then not Files.Commands.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Trash_Model)
+                  and then not Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Trash_Model)
+                  and then not Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Trash_Model)
+                  and then not Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
+                  "commands that would desynchronize trash metadata are disabled");
+               Files.Model.Set_Background_Transfers (Trash_Model, True);
+               Trash_Result := Files.Operations.Delete_Selected (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then not Files.Process_Jobs.Active
+                    (Files.Model.Background_Operation (Trash_Model)),
+                  "direct delete cannot re-trash a trash payload or launch a helper");
+               Trash_Result := Files.Operations.Duplicate_Selected (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then not Files.Process_Jobs.Active
+                    (Files.Model.Background_Operation (Trash_Model)),
+                  "direct duplicate cannot create an orphaned trash payload");
+               Trash_Result :=
+                 Files.Operations.Compress_Selected
+                   (Trash_Model, Settings, Files.Operations.Zip_Archive);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then not Files.Process_Jobs.Active
+                    (Files.Model.Background_Operation (Trash_Model)),
+                  "direct compression cannot create an orphaned trash payload");
+               Trash_Result := Files.Operations.Extract_Selected (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then not Files.Process_Jobs.Active
+                    (Files.Model.Background_Operation (Trash_Model)),
+                  "direct extraction cannot create an orphaned trash payload");
+               Trash_Result := Files.Operations.Create_Symlink_Selected (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled,
+                  "direct link creation cannot create an orphaned trash payload");
+               Files.Model.Toggle_Rename (Trash_Model);
+               Files.Model.Set_Rename_Text (Trash_Model, "renamed-payload");
+               Trash_Result := Files.Operations.Commit_Rename (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled,
+                  "direct rename cannot desynchronize a trash payload from its metadata");
+               Trash_Result :=
+                 Files.Operations.Begin_Paste_To
+                   (Trash_Model, Settings, Trash_Sources, Trash_Dir);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then Files.Model.Last_Error_Key (Trash_Model) = "error.drop.invalid_destination",
+                  "direct paste cannot create an orphaned trash payload");
+               Trash_Sources.Clear;
+               Trash_Sources.Append
+                 (To_Unbounded_String (Join (Trash_Dir, "untracked-payload")));
+               Trash_Result :=
+                 Files.Operations.Begin_Paste_To
+                   (Trash_Model, Settings, Trash_Sources, Full_Child,
+                    Files.File_System.Drop_Move, From_Clipboard => False);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then Files.Model.Last_Error_Key (Trash_Model) = "error.drop.invalid_source",
+                  "direct move cannot detach a trash payload from its metadata");
+               Files.Model.Begin_Create_File (Trash_Model, "orphaned-payload");
+               Trash_Result := Files.Operations.Commit_Create_File (Trash_Model, Settings);
+               Assert
+                 (Trash_Result.Status = Files.Operations.Operation_Disabled
+                  and then Files.Model.Last_Error_Key (Trash_Model) = "error.file.parent_missing",
+                  "direct create cannot create an orphaned trash payload");
             end if;
          end;
       end if;
@@ -10485,6 +10876,18 @@ package body Files_Suite.Operations is
         (Files.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "a small archive fits within known destination resources");
+      Catalogue (1).Name := To_Unbounded_String ("../report.txt");
+      Assert
+        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 100, True),
+         "archive traversal names are rejected before extraction");
+      Catalogue (1).Name := To_Unbounded_String ("report.txt");
+      Catalogue (2).Name := To_Unbounded_String ("report.txt");
+      Assert
+        (not Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 100, True),
+         "duplicate archive names are rejected before extraction");
+      Catalogue (2).Name := To_Unbounded_String ("notes.txt");
       Assert
         (not Files.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 25, True, 100, True),
@@ -10592,6 +10995,20 @@ package body Files_Suite.Operations is
       Assert (Ada.Directories.Exists (Original), "undo restored the original name");
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
+
+      Files.Model.Clear_Undo (Model);
+      Files.Model.Set_Error (Model, "error.directory.load");
+      Result := Files.Operations.Undo_Last (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Failed
+         and then Files.Model.Last_Error_Key (Model) = "error.undo.failed",
+         "a direct empty Undo replaces a stale diagnostic with its failure");
+      Files.Model.Set_Error (Model, "error.directory.load");
+      Result := Files.Operations.Redo_Last (Model, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Failed
+         and then Files.Model.Last_Error_Key (Model) = "error.undo.failed",
+         "a direct empty Redo replaces a stale diagnostic with its failure");
    end Test_Undo_Operations;
 
    function Mode_Of (Path : String) return Natural is
@@ -10651,6 +11068,15 @@ package body Files_Suite.Operations is
       Assert (Result.Status = Files.Operations.Operation_Success, "undo of chmod succeeds");
       Assert (Mode_Of (Target) = 8#644#, "undo restores the previous 0644 mode");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chmod undo");
+
+      Select_Name (Model, "modeable.txt");
+      Ada.Directories.Delete_File (Target);
+      Files.Model.Set_Error (Model, "error.directory.load");
+      Result := Files.Operations.Toggle_Permission_Bit (Model, 8, Settings);
+      Assert
+        (Result.Status = Files.Operations.Operation_Failed
+         and then Files.Model.Last_Error_Key (Model) = "error.permissions.failed",
+         "a vanished permission target replaces stale diagnostics with its read failure");
    end Test_Set_Permissions_And_Undo;
 
    procedure Test_Failed_Undo_Keeps_Entry (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11065,6 +11491,37 @@ package body Files_Suite.Operations is
             "clicking a permission cell yields a permission-toggle action");
          Assert (Action.Item_Index = Target_Bit, "the toggle action carries the clicked cell bit");
 
+         --  A delayed click from a pane that has since closed must not chmod
+         --  whichever item happens to be selected when it is reduced.
+         Files.Model.Toggle_Info_Pane (Model);
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings_Var,
+            Settings_Path     => "",
+            Action            => Action,
+            Current_Font_Size => 16,
+            Modifiers         => Guikit.Input.No_Modifiers,
+            Result            => Result);
+         Assert
+           (Mode_Of (Sub) = Before,
+            "a stale permission action is inert after the info pane closes");
+
+         Files.Model.Toggle_Info_Pane (Model);
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings_Var,
+            Settings_Path     => "",
+            Action            =>
+              (Kind       => Files.Events.Permission_Toggle_Input_Action,
+               Item_Index => 9,
+               others     => <>),
+            Current_Font_Size => 16,
+            Modifiers         => Guikit.Input.No_Modifiers,
+            Result            => Result);
+         Assert
+           (Mode_Of (Sub) = Before,
+            "an invalid permission-bit payload does not change the mode");
+
          Files.Interaction.Apply_Input_Action
            (Model             => Model,
             Settings          => Settings_Var,
@@ -11330,6 +11787,35 @@ package body Files_Suite.Operations is
            (Action.Kind = Files.Events.Ownership_Edit_Input_Action,
             "clicking the owner value yields an ownership-edit action");
          Assert (Action.Item_Index = 0, "the owner action targets the owner (not group)");
+
+         Files.Model.Toggle_Info_Pane (Model);
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings_Var,
+            Settings_Path     => "",
+            Action            => Action,
+            Current_Font_Size => 16,
+            Modifiers         => Guikit.Input.No_Modifiers,
+            Result            => Reduce);
+         Assert
+           (Files.Model.Focus (Model) /= Files.Types.Focus_Ownership_Input,
+            "a stale ownership action cannot focus an editor in a closed pane");
+
+         Files.Model.Toggle_Info_Pane (Model);
+         Files.Interaction.Apply_Input_Action
+           (Model             => Model,
+            Settings          => Settings_Var,
+            Settings_Path     => "",
+            Action            =>
+              (Kind       => Files.Events.Ownership_Edit_Input_Action,
+               Item_Index => 2,
+               others     => <>),
+            Current_Font_Size => 16,
+            Modifiers         => Guikit.Input.No_Modifiers,
+            Result            => Reduce);
+         Assert
+           (Files.Model.Focus (Model) /= Files.Types.Focus_Ownership_Input,
+            "an invalid ownership target does not focus the editor");
 
          Files.Interaction.Apply_Input_Action
            (Model             => Model,
@@ -11672,6 +12158,34 @@ package body Files_Suite.Operations is
          "undo of a created hard link succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created hard link");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original file");
+
+      --  A later selected source can disappear after the listing was loaded.
+      --  The earlier committed link must still be visible and covered by the
+      --  batch's single Undo entry when that happens.
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_File (Join (Dir, "a.txt"), "first");
+      Write_File (Join (Dir, "b.txt"), "second");
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Files.Model.Clear_Undo (Model);
+      Files.Model.Select_All_Visible (Model);
+      Ada.Directories.Delete_File (Join (Dir, "b.txt"));
+      Routed := Files.Controller.Execute_Command
+        (Files.Commands.Create_Hardlink_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Failed
+         and then Files.Model.Last_Error_Key (Model) = "error.link.failed"
+         and then Ada.Directories.Exists (Join (Dir, "a (link).txt"))
+         and then Files.Model.Select_By_Name (Model, "a (link).txt")
+         and then Natural (Files.Model.Undo_From_Paths (Model).Length) = 1,
+         "a partial link batch refreshes and retains one undoable committed link");
+      Routed := Files.Controller.Execute_Command
+        (Files.Commands.Undo_Command, Model, Settings);
+      Assert
+        (Routed.Operation.Status = Files.Operations.Operation_Success
+         and then not Ada.Directories.Exists (Join (Dir, "a (link).txt")),
+         "Undo removes the committed prefix of a partial link batch");
    end Test_Create_Hardlink_Operation;
 
    procedure Test_Hardlink_Dangling_Symlink
@@ -12581,6 +13095,7 @@ package body Files_Suite.Operations is
    procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       LF         : constant Character := ASCII.LF;
+      CRLF       : constant String := "" & ASCII.CR & ASCII.LF;
       App_Base   : constant String := Join (Root, "xdg_apps");
       Apps_Dir   : constant String := Join (App_Base, "applications");
       System_Base : constant String := Join (Root, "xdg_system");
@@ -12705,6 +13220,11 @@ package body Files_Suite.Operations is
         (Join (Apps_Dir, "editor.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF
          & "Name=Text Editor" & LF & "Exec=editor %F" & LF);
+      Write_File
+        (Join (Apps_Dir, "crlf.desktop"),
+         "[Desktop Entry]" & CRLF & "Type=Application" & CRLF
+         & "Name=ZZ CRLF Application" & CRLF
+         & "Exec=viewer %F" & CRLF);
       Write_File
         (Join (Root, "linked-application-target.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF
@@ -12875,6 +13395,11 @@ package body Files_Suite.Operations is
          & "Name=X Both Visibility Lists" & LF & "Exec=viewer %F" & LF
          & "OnlyShowIn=FilesTest;" & LF & "NotShowIn=KDE;" & LF);
       Write_File
+        (Join (Apps_Dir, "excluded-later.desktop"),
+         "[Desktop Entry]" & LF & "Type=Application" & LF
+         & "Name=Excluded By Later Desktop" & LF & "Exec=viewer %F" & LF
+         & "OnlyShowIn=FilesTest;" & LF & "NotShowIn=GNOME;" & LF);
+      Write_File
         (Join (Apps_Dir, "escaped-desktop.desktop"),
          "[Desktop Entry]" & LF & "Type=Application" & LF
          & "Name=Y Escaped Desktop Name" & LF & "Exec=viewer %F" & LF
@@ -12945,7 +13470,7 @@ package body Files_Suite.Operations is
            Find (Apps, "Dansk Program");
       begin
          Assert
-           (Natural (Apps.Length) = 12,
+           (Natural (Apps.Length) = 13,
             "valid desktop IDs are returned without collapsing shared display names");
          Assert
            (To_String (Apps.First_Element.Name) = "Dansk Program",
@@ -12970,6 +13495,9 @@ package body Files_Suite.Operations is
            (To_String (Find (Apps, "Excessive Exec").Exec) = "",
             "desktop entries with excessive Exec vectors are rejected");
          Assert
+           (To_String (Find (Apps, "ZZ CRLF Application").Exec) = "viewer %F",
+            "desktop entries with CRLF line endings are accepted");
+         Assert
            (To_String (Find (Apps, "Invalid Boolean").Exec) = ""
             and then To_String (Find (Apps, "Duplicate Key").Exec) = ""
             and then To_String (Find (Apps, "Duplicate Group").Exec) = "",
@@ -12992,11 +13520,13 @@ package body Files_Suite.Operations is
             "desktop visibility keys are applied to every current desktop name");
          Assert
            (To_String (Find (Apps, "X Both Visibility Lists").Exec) /= ""
+            and then To_String
+              (Find (Apps, "Excluded By Later Desktop").Exec) = ""
             and then To_String (Find (Apps, "Y Escaped Desktop Name").Exec) /= ""
             and then To_String (Find (Apps, "Invalid List Escape").Exec) = ""
             and then To_String
               (Find (Apps, "Overlapping Visibility Lists").Exec) = "",
-            "visibility lists decode escapes and permit only disjoint coexistence");
+            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence");
          Assert
            (To_String (Editor.Exec) = "editor %F",
             "the desktop Exec template is retained for positional expansion");
@@ -13191,7 +13721,7 @@ package body Files_Suite.Operations is
             Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
             Files.Model.Palette_Select_Last (Model);
             Assert
-              (Files.Model.Palette_Selected_Id (Model) = 12,
+              (Files.Model.Palette_Selected_Id (Model) = 13,
                "the missing executable fixture is selected from the Open With palette");
 
             Routed := Files.Controller.Activate_Palette_Command
@@ -13980,15 +14510,17 @@ package body Files_Suite.Operations is
    procedure Test_Copy_To_Into_Self_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Src_Dir  : constant String := Join (Root, "selfguard-src");
-      Box_Dir  : constant String := Join (Src_Dir, "box");
-      Inside   : constant String := Join (Box_Dir, "inside.txt");
-      Load     : Files.File_System.Directory_Load_Result;
-      Model    : Files.Model.Window_Model;
-      Routed   : Files.Controller.Controller_Result;
+      Src_Dir   : constant String := Join (Root, "selfguard-src");
+      Box_Dir   : constant String := Join (Src_Dir, "box");
+      Retry_Dir : constant String := Join (Root, "selfguard-retry");
+      Inside    : constant String := Join (Box_Dir, "inside.txt");
+      Load      : Files.File_System.Directory_Load_Result;
+      Model     : Files.Model.Window_Model;
+      Routed    : Files.Controller.Controller_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Box_Dir);
+      Ada.Directories.Create_Path (Retry_Dir);
       Write_File (Inside, "IN");
 
       Load := Files.File_System.Load_Directory (Src_Dir, Settings);
@@ -14007,11 +14539,25 @@ package body Files_Suite.Operations is
          "targeting inside the selection reports the into-self error");
       Assert (not Ada.Directories.Exists (Join (Box_Dir, "box")), "nothing is copied into the selected folder");
       Assert (Ada.Directories.Exists (Inside), "the selected folder is unchanged");
+
+      Assert
+        (Files.Model.Tree_Pick_Is_Active (Model)
+         and then Files.Model.Tree_Panel_Is_Open (Model),
+         "a rejected destination leaves the picker open for correction");
+      Files.Model.Set_Tree_Pick_Target (Model, Retry_Dir);
+      Confirm_Pick (Model, Settings);
+      Assert
+        (Ada.Directories.Exists (Join (Retry_Dir, "box")),
+         "choosing a valid destination after the rejection completes the copy");
+      Assert
+        (not Files.Model.Tree_Pick_Is_Active (Model)
+         and then not Files.Model.Tree_Panel_Is_Open (Model),
+         "a successful retry closes the destination picker");
    end Test_Copy_To_Into_Self_Guard;
 
    procedure Test_Copy_To_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Src_Dir  : constant String := Join (Root, "cancel-src");
       Dest_Dir : constant String := Join (Root, "cancel-dest");
       A_Src    : constant String := Join (Src_Dir, "a.txt");
@@ -14043,6 +14589,15 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "cancelling closes the folder tree");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "cancelling copies nothing");
       Assert (Ada.Directories.Exists (A_Src), "cancelling leaves the source unchanged");
+
+      --  A queued Choose click can arrive after cancellation. It must not close
+      --  a subsequently opened ordinary folder-tree panel.
+      Files.Model.Open_Tree_Panel (Model);
+      Confirm_Pick (Model, Settings);
+      Assert
+        (Files.Model.Tree_Panel_Is_Open (Model)
+         and then not Files.Model.Tree_Pick_Is_Active (Model),
+         "a stale picker-confirm action leaves an ordinary tree panel open");
    end Test_Copy_To_Cancel;
 
    procedure Test_Copy_To_Tree_Label_Sets_Target (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -15286,6 +15841,20 @@ package body Files_Suite.Operations is
       Await_Refresh (True);
       Assert (Files.Model.Item_Count (Model) = 2 and then Files.Model.Selected_Name (Model) = "alpha",
               "a changed snapshot adds the new item and preserves selection");
+      Step := Files.Operations.Refresh (Model, Settings);
+      Await_Ready;
+      Select_Name (Model, "beta");
+      Await_Refresh (True);
+      Assert (Files.Model.Selected_Name (Model) = "beta",
+              "selection changes neither stale a directory read nor get overwritten by its old selection");
+      Step := Files.Operations.Refresh (Model, Settings);
+      Await_Ready;
+      Files.Model.Toggle_Visible_Selection (Model, 1);
+      Await_Refresh (True);
+      Assert
+        (Files.Model.Selected_Count (Model) = 2
+         and then Files.Model.Selected_Name (Model) = "alpha",
+         "a completed directory read preserves a newer multi-selection and its primary item");
       Write_Binary_File (Join (Root, "inconsistent"), "inconsistent");
       Ada.Environment_Variables.Set (Fault_Name, "1");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
@@ -15296,6 +15865,12 @@ package body Files_Suite.Operations is
       Assert (Files.Model.Item_Count (Model) = 2
               and then Files.Model.Last_Error_Key (Model) = "error.directory.load",
               "an inconsistent helper outcome is rejected without replacing the listing");
+      Files.Interaction.Apply_Right_Click
+        (Model, Settings, In_Main => True, Item_Index => 0,
+         X => 0, Y => 0, Result => Routed);
+      Assert
+        (Files.Model.Context_Menu_Is_Open (Model),
+         "the refresh recovery path opens the empty-area context menu");
       Files.Interaction.Apply_Context_Menu_Command
         (Model, Settings, "", Files.Commands.Refresh_Directory_Command, 16, Guikit.Input.No_Modifiers, Routed);
       Await_Refresh (True);
@@ -15796,6 +16371,7 @@ package body Files_Suite.Operations is
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
+      Other    : constant String := Join (Root, "other-view");
       Had_Stall : constant Boolean :=
         Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
       Old_Stall : constant String :=
@@ -15935,6 +16511,131 @@ package body Files_Suite.Operations is
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");
+
+      Step := Files.Operations.Refresh (Model, Settings);
+      Await_View (Model, Settings);
+      Select_Name (Model, "a.txt");
+      Ada.Directories.Create_Directory (Other);
+      Write_Binary_File (Join (Other, "other.txt"), "other");
+      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      declare
+         Job : constant Files.Process_Jobs.Session :=
+           Files.Model.Background_Operation (Model);
+         Finished, Cancelled : Boolean;
+      begin
+         for Attempt in 1 .. 5_000 loop
+            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+            exit when Finished;
+            delay 0.001;
+         end loop;
+         Assert (Finished and then not Cancelled,
+                 "the duplicate result is ready before the view changes");
+      end;
+      Load := Files.File_System.Load_Directory (Other, Settings);
+      Files.Model.Navigate_To (Model, Other, Load.Items);
+      Finish;
+      Assert
+        (Files.Model.Current_Path (Model) = Other
+         and then Files.Model.Item_Count (Model) = 1
+         and then To_String (Files.Model.Visible_Item (Model, 1).Name) = "other.txt",
+         "a completed operation cannot replace a newer directory view with its old snapshot");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
+         and then Files.Model.Undo_Available (Model),
+         "the stale-view duplicate still publishes its file and recoverable history");
+      Step := Complete_Operation
+        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Await_View (Model, Settings);
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "a (copy).txt"))
+         and then Files.Model.Current_Path (Model) = Other
+         and then Files.Model.Item_Count (Model) = 1,
+         "undoing the stale-view operation leaves the newer directory view intact");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Navigate_To (Model, Root, Load.Items);
+
+      Select_Name (Model, "a.txt");
+      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      declare
+         Job : constant Files.Process_Jobs.Session :=
+           Files.Model.Background_Operation (Model);
+         Finished, Cancelled : Boolean;
+      begin
+         for Attempt in 1 .. 5_000 loop
+            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+            exit when Finished;
+            delay 0.001;
+         end loop;
+         Assert (Finished and then not Cancelled,
+                 "the duplicate result is ready before the round-trip navigation");
+      end;
+      Load := Files.File_System.Load_Directory (Other, Settings);
+      Files.Model.Navigate_To (Model, Other, Load.Items);
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Navigate_To (Model, Root, Load.Items);
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Set_Error (Model, "error.trash.restore_exists");
+      Finish;
+      Assert
+        (Files.Model.Current_Path (Model) = Root
+         and then Files.Model.Temporary_Item_Is_Active (Model)
+         and then Files.Model.Last_Error_Key (Model) =
+           "error.trash.restore_exists",
+         "an old result cannot overwrite a newer incarnation of the same directory view");
+      Assert
+        (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
+         and then Files.Model.Undo_Available (Model),
+         "the round-trip stale result retains its file and Undo history");
+      Files.Model.Cancel_Create_File (Model);
+      Step := Complete_Operation
+        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Await_View (Model, Settings);
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
+         "the round-trip stale operation remains safely undoable");
+
+      Select_Name (Model, "a.txt");
+      Step := Files.Operations.Delete_Selected (Model, Settings);
+      declare
+         Job : constant Files.Process_Jobs.Session :=
+           Files.Model.Background_Operation (Model);
+         Finished, Cancelled : Boolean;
+      begin
+         for Attempt in 1 .. 5_000 loop
+            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+            exit when Finished;
+            delay 0.001;
+         end loop;
+         Assert (Finished and then not Cancelled,
+                 "the destructive result is ready before the view changes");
+      end;
+      Load := Files.File_System.Load_Directory (Other, Settings);
+      Files.Model.Navigate_To (Model, Other, Load.Items);
+      Files.Model.Begin_Create_File (Model, "pending.txt");
+      Files.Model.Set_Error (Model, "error.trash.restore_exists");
+      Finish;
+      Assert
+        (Files.Model.Current_Path (Model) = Other
+         and then Files.Model.Temporary_Item_Is_Active (Model)
+         and then Files.Model.Last_Error_Key (Model) = "error.trash.restore_exists"
+         and then not Files.Process_Jobs.Active
+           (Files.Model.Background_Refresh (Model)),
+         "an old destructive result cannot refresh or alter newer view state");
+      Assert
+        (not Ada.Directories.Exists (Join (Root, "a.txt"))
+         and then Files.Model.Undo_Available (Model),
+         "the stale-view destructive result retains its mutation and Undo history");
+      Files.Model.Cancel_Create_File (Model);
+      Step := Complete_Operation
+        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Await_View (Model, Settings);
+      Assert
+        (Ada.Directories.Exists (Join (Root, "a.txt"))
+         and then Files.Model.Current_Path (Model) = Other
+         and then Files.Model.Item_Count (Model) = 1,
+         "undoing the stale destructive result leaves the newer view intact");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Navigate_To (Model, Root, Load.Items);
 
       Step := Files.Operations.Refresh (Model, Settings);
       Files.Model.Clear_Search_Results (Model);

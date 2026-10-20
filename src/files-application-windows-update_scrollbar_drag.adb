@@ -11,6 +11,12 @@ separate (Files.Application.Windows)
    is
       use type Files.Events.Scroll_Target;
       pragma Unreferenced (Cursor_X);
+
+      procedure Cancel_Drag is
+      begin
+         Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
+         Runtime.Scrollbar_Drag_Anchor := 0;
+      end Cancel_Drag;
    begin
       if Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Auto then
          return;
@@ -18,7 +24,7 @@ separate (Files.Application.Windows)
         or else Window_W = 0 or else Window_H = 0
         or else Frame_W = 0 or else Frame_H = 0
       then
-         Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
+         Cancel_Drag;
          return;
       end if;
 
@@ -35,17 +41,23 @@ separate (Files.Application.Windows)
            (Track_Y     : Natural;
             Track_H     : Natural;
             Thumb_H     : Natural;
-            Content_H   : Natural;
-            View_H      : Natural;
+            Maximum     : Natural;
             Apply_Lines : access procedure (Lines : Natural))
          is
-            Drag_Range    : constant Integer := Integer'Max (0, Integer (Track_H) - Integer (Thumb_H));
-            Max_Scroll_Px : constant Integer := Integer'Max (0, Integer (Content_H) - Integer (View_H));
-            Wanted_Top    : constant Integer := Integer (Y_Frame) - Runtime.Scrollbar_Drag_Anchor;
-            Rel_Y         : Integer := Wanted_Top - Integer (Track_Y);
-            Scroll_Px     : Integer := 0;
+            --  Scroll_Drag_Anchor is a packed event payload. Use a wider type
+            --  for the subtraction so even a malformed extreme value is
+            --  clamped instead of overflowing before validation can contain it.
+            Drag_Range : constant Long_Long_Integer :=
+              Long_Long_Integer'Max
+                (0, Long_Long_Integer (Track_H) - Long_Long_Integer (Thumb_H));
+            Wanted_Top : constant Long_Long_Integer :=
+              Long_Long_Integer (Y_Frame)
+              - Long_Long_Integer (Runtime.Scrollbar_Drag_Anchor);
+            Rel_Y      : Long_Long_Integer :=
+              Wanted_Top - Long_Long_Integer (Track_Y);
          begin
-            if Drag_Range <= 0 or else Max_Scroll_Px <= 0 then
+            if Drag_Range <= 0 or else Maximum = 0 then
+               Cancel_Drag;
                return;
             end if;
             if Rel_Y < 0 then
@@ -53,13 +65,28 @@ separate (Files.Application.Windows)
             elsif Rel_Y > Drag_Range then
                Rel_Y := Drag_Range;
             end if;
-            Scroll_Px :=
-              Integer
-                (Long_Long_Integer (Rel_Y)
-                   * Long_Long_Integer (Max_Scroll_Px)
-                   / Long_Long_Integer (Drag_Range));
-            Apply_Lines.all (Natural'Max (0, Scroll_Px / Line_Height));
+            Apply_Lines.all
+              (Scrollbar_Drag_Offset
+                 (Thumb_Top    => Natural (Rel_Y),
+                  Track_Length => Track_H,
+                  Thumb_Length => Thumb_H,
+                  Maximum      => Maximum));
          end Apply_Drag;
+
+         function Maximum_Line_Offset
+           (Content_Height  : Natural;
+            Viewport_Height : Natural)
+            return Natural
+         is
+            Difference : Natural;
+         begin
+            if Content_Height <= Viewport_Height then
+               return 0;
+            end if;
+
+            Difference := Content_Height - Viewport_Height;
+            return 1 + (Difference - 1) / Line_Height;
+         end Maximum_Line_Offset;
 
          procedure Set_Main_Lines (Lines : Natural) is
          begin
@@ -70,6 +97,11 @@ separate (Files.Application.Windows)
          begin
             Files.Model.Set_Info_Pane_Scroll_Lines (Runtime.Model, Lines);
          end Set_Info_Lines;
+
+         procedure Set_Tree_Rows (Rows : Natural) is
+         begin
+            Files.Model.Set_Tree_Panel_Scroll_Rows (Runtime.Model, Rows);
+         end Set_Tree_Rows;
       begin
          case Runtime.Scrollbar_Drag_Target is
             when Files.Events.Scroll_Main_View =>
@@ -83,9 +115,13 @@ separate (Files.Application.Windows)
                        (Track_Y     => Main_View.Scrollbar_Y,
                         Track_H     => Main_View.Scrollbar_Track_Height,
                         Thumb_H     => Main_View.Scrollbar_Height,
-                        Content_H   => Main_View.Content_Height,
-                        View_H      => Main_View.Scrollbar_Track_Height,
+                        Maximum     =>
+                          Maximum_Line_Offset
+                            (Main_View.Content_Height,
+                             Main_View.Scrollbar_Track_Height),
                         Apply_Lines => Set_Main_Lines'Access);
+                  else
+                     Cancel_Drag;
                   end if;
                end;
             when Files.Events.Scroll_Info_Pane =>
@@ -99,13 +135,41 @@ separate (Files.Application.Windows)
                        (Track_Y     => Info_Pane.Scrollbar_Y,
                         Track_H     => Info_Pane.Scrollbar_Track_Height,
                         Thumb_H     => Info_Pane.Scrollbar_Height,
-                        Content_H   => Info_Pane.Content_Height,
-                        View_H      => Info_Pane.Height,
+                        Maximum     =>
+                          Maximum_Line_Offset
+                            (Info_Pane.Content_Height, Info_Pane.Height),
                         Apply_Lines => Set_Info_Lines'Access);
+                  else
+                     Cancel_Drag;
+                  end if;
+               end;
+            when Files.Events.Scroll_Tree_Panel =>
+               declare
+                  Tree_Panel : constant Files.Rendering.Tree_Panel_Layout :=
+                    Files.Rendering.Calculate_Tree_Panel_Layout
+                      (Snapshot, Layout, Line_Height);
+                  Tree_Count : constant Natural :=
+                    Natural (Snapshot.Tree_Rows.Length);
+                  Capacity : constant Natural :=
+                    Files.Rendering.Tree_Row_Capacity (Snapshot, Tree_Panel);
+                  Maximum : constant Natural :=
+                    (if Tree_Count > Capacity then Tree_Count - Capacity else 0);
+               begin
+                  if Tree_Panel.Scrollbar_Visible
+                    and then Tree_Panel.Row_Height > 0
+                  then
+                     Apply_Drag
+                       (Track_Y     => Tree_Panel.Scrollbar_Y,
+                        Track_H     => Tree_Panel.Scrollbar_Track_Height,
+                        Thumb_H     => Tree_Panel.Scrollbar_Height,
+                        Maximum     => Maximum,
+                        Apply_Lines => Set_Tree_Rows'Access);
+                  else
+                     Cancel_Drag;
                   end if;
                end;
             when others =>
-               null;
+               Cancel_Drag;
          end case;
       end;
    end Update_Scrollbar_Drag;

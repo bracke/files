@@ -8,8 +8,12 @@ separate (Files.Controller)
       Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
       New_Text : Unbounded_String;
    begin
-      if Text = "" or else Files.Model.Paste_Execution_Is_Active (Model)
-        or else Files.Model.Paste_Conflict_Is_Active (Model)
+      --  Printable characters arrive through GLFW's character callback rather
+      --  than the normal key translator.  Contain them while a non-text overlay
+      --  owns input, including when a field underneath still holds model focus.
+      if Text = ""
+        or else Non_Text_Overlay_Owns_Input (Model)
+        or else Text_Overlay_Rejects_Character_Input (Model)
       then
          return Make_Result (Controller_Ignored);
       end if;

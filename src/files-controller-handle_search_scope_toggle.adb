@@ -10,6 +10,10 @@ separate (Files.Controller)
       Has_Query   : constant Boolean := Files.Model.Filter_Text (Model) /= "";
       Operation   : Files.Operations.Operation_Result;
    begin
+      if Files.Model.Input_Owning_Overlay_Is_Open (Model) then
+         return Make_Result (Controller_Ignored);
+      end if;
+
       Files.Model.Set_Search_Scope (Model, Next);
 
       case Next is

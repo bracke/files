@@ -9,6 +9,7 @@ package body Context_Menu is
       Item_Index : Natural := 0) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
+      Claim_Overlay_Input (Model);
       Model.Context_Menu_Open_Value := True;
       Model.Context_Menu_X_Value := X;
       Model.Context_Menu_Y_Value := Y;

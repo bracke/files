@@ -2607,6 +2607,11 @@ package body Files_Suite.Model is
       Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "root selector allows palette shortcut");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over root selector from shortcut");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "palette shortcut keeps root selector available");
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Assert (Snapshot.Command_Palette_Open, "snapshot exposes the active palette overlay");
+      Assert
+        (not Snapshot.Root_Selector_Open,
+         "snapshot suppresses root selector drawing while the palette is above it");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
       Assert
         (Result.Status = Files.Controller.Controller_Ignored,
@@ -2732,8 +2737,24 @@ package body Files_Suite.Model is
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane toggles open");
       Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "info pane opens unscrolled");
 
-      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of info pane is ignored");
+      declare
+         Before : constant Natural := Files.Model.Revision (Model);
+      begin
+         Files.Model.Set_Info_Pane_Scroll_Lines (Model, 0);
+         Assert
+           (Files.Model.Revision (Model) = Before,
+            "holding an unmoved info-pane scrollbar does not revise the model");
+      end;
+
+      declare
+         Before : constant Natural := Files.Model.Revision (Model);
+      begin
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
+         Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of info pane is ignored");
+         Assert
+           (Files.Model.Revision (Model) = Before,
+            "ignored info-pane PageUp leaves the model revision unchanged");
+      end;
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, -1);
       Assert (Result.Status = Files.Controller.Controller_Ignored, "negative info scroll at top is ignored");
@@ -2832,8 +2853,15 @@ package body Files_Suite.Model is
       Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageUp on the first item is ignored");
       Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp keeps the first item selected");
 
-      Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "negative main scroll at top is ignored");
+      declare
+         Before : constant Natural := Files.Model.Revision (Model);
+      begin
+         Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
+         Assert (Result.Status = Files.Controller.Controller_Ignored, "negative main scroll at top is ignored");
+         Assert
+           (Files.Model.Revision (Model) = Before,
+            "ignored main-view scrolling leaves the model revision unchanged");
+      end;
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
       Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageDown pages the selection");
@@ -2858,6 +2886,14 @@ package body Files_Suite.Model is
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'First);
       Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative main scroll is handled");
       Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "large negative main scroll clamps to top");
+      declare
+         Before : constant Natural := Files.Model.Revision (Model);
+      begin
+         Files.Model.Set_Main_View_Scroll_Lines (Model, 0);
+         Assert
+           (Files.Model.Revision (Model) = Before,
+            "holding an unmoved main scrollbar does not revise the model");
+      end;
       Result :=
         Files.Controller.Execute_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
@@ -3415,6 +3451,22 @@ package body Files_Suite.Model is
       Assert
         (Files.Model.Quick_Look_Content_Of (Model).Kind = Files.Quick_Look.Info_Content,
          "the pure toggle prepares metadata-only info content");
+
+      declare
+         Content  : Files.Quick_Look.Quick_Look_Content :=
+           (Kind         => Files.Quick_Look.Image_Content,
+            Image_Width  => Natural'Last,
+            Image_Height => Natural'Last,
+            others       => <>);
+         Snapshot : Files.Rendering.View_Snapshot;
+      begin
+         Files.Model.Open_Quick_Look (Model, Content);
+         Snapshot := Files.Rendering.Build_Snapshot (Model);
+         Assert
+           (Snapshot.Quick_Look_Image_Width = 0
+              and then Snapshot.Quick_Look_Image_Height = 0,
+            "impossible quick-look dimensions are rejected without arithmetic overflow");
+      end;
 
       Files.Model.Toggle_Quick_Look (Model);
       Assert (not Files.Model.Quick_Look_Is_Open (Model), "toggling again closes quick look");

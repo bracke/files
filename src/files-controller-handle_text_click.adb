@@ -23,18 +23,15 @@ separate (Files.Controller)
          return Make_Result (Controller_Ignored);
       end if;
 
-      if Files.Model.Command_Palette_Is_Open (Model)
-        and then Target /= Files.Types.Focus_Command_Palette
-      then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Root_Selector_Is_Open (Model)
-        and then Target /= Files.Types.Focus_Command_Palette
-      then
-         return Make_Result (Controller_Ignored);
-      elsif Files.Model.Settings_Pane_Is_Open (Model)
-        and then Target /= Files.Types.Focus_Settings_Input
-        and then Target /= Files.Types.Focus_Command_Palette
-      then
+      if Files.Model.Command_Palette_Is_Open (Model) then
+         if Target /= Files.Types.Focus_Command_Palette then
+            return Make_Result (Controller_Ignored);
+         end if;
+      elsif Files.Model.Settings_Pane_Is_Open (Model) then
+         if Target /= Files.Types.Focus_Settings_Input then
+            return Make_Result (Controller_Ignored);
+         end if;
+      elsif Files.Model.Input_Owning_Overlay_Is_Open (Model) then
          return Make_Result (Controller_Ignored);
       end if;
 
