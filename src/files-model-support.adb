@@ -551,16 +551,26 @@ package body Files.Model.Support is
          Settings_Sort_Field (Model.Sort_Field_Value),
          Model.Sort_Ascending);
 
-      Model.Selected_Item_Indexes.Clear;
-      for Item of Previous_Selection loop
-         declare
-            New_Index : constant Natural := Index_Of (Item.Full_Path);
-         begin
-            if New_Index /= 0 then
-               Model.Selected_Item_Indexes.Append (New_Index);
-            end if;
-         end;
-      end loop;
+      declare
+         --  The pending create row is selected through a marker, not an item
+         --  index; keep it, or the row being named loses its highlight.
+         Temporary_Selected : constant Boolean :=
+           Model.Selected_Item_Indexes.Contains (Temporary_Item_Index);
+      begin
+         Model.Selected_Item_Indexes.Clear;
+         for Item of Previous_Selection loop
+            declare
+               New_Index : constant Natural := Index_Of (Item.Full_Path);
+            begin
+               if New_Index /= 0 then
+                  Model.Selected_Item_Indexes.Append (New_Index);
+               end if;
+            end;
+         end loop;
+         if Temporary_Selected then
+            Model.Selected_Item_Indexes.Append (Temporary_Item_Index);
+         end if;
+      end;
 
       if not Primary_Sentinel then
          Model.Selected_Item_Index := Index_Of (Primary_Path);

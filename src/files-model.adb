@@ -1127,6 +1127,11 @@ package body Files.Model is
       end if;
 
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      --  Leave the current view as Navigate_To does: a search result list or
+      --  folder sizes from it must not carry over to the history entry.
+      Clear_Folder_Size (Model);
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
 
       Previous := Model.Back_History.Last_Element;
       Model.Back_History.Delete_Last;
@@ -1167,12 +1172,20 @@ package body Files.Model is
       end if;
 
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      --  Leave the current view as Navigate_To does: a search result list or
+      --  folder sizes from it must not carry over to the history entry.
+      Clear_Folder_Size (Model);
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
 
       Next := Model.Forward_History.Last_Element;
       Model.Forward_History.Delete_Last;
       --  The synthetic recent view is never preserved in back history.
       if not Model.Recent_View_Active then
          Model.Back_History.Append (Model.Current_Path_Value);
+         while Natural (Model.Back_History.Length) > Max_Back_History loop
+            Model.Back_History.Delete_First;
+         end loop;
       end if;
       Model.Recent_View_Active := False;
       Model.Current_Path_Value := Next;
