@@ -152,36 +152,63 @@ package body Files.Folder_Tree is
       return Visible_Row_Vectors.Vector
    is
       Result : Visible_Row_Vectors.Vector;
-
-      procedure Visit (Index : Positive) is
-         N : constant Node := T.Nodes.Element (Index);
-      begin
-         Result.Append
-           (Visible_Row'
-              (Node_Index   => Index,
-               Path         => N.Path,
-               Name         => N.Name,
-               Depth        => N.Depth,
-               Expanded     => N.Expanded,
-               Loaded       => N.Loaded,
-               Has_Children => N.Has_Children));
-         if N.Expanded then
-            for Child in T.Nodes.First_Index .. T.Nodes.Last_Index loop
-               if T.Nodes.Element (Child).Parent = Index then
-                  Visit (Child);
-               end if;
-            end loop;
-         end if;
-      end Visit;
    begin
       if T.Nodes.Is_Empty then
          return Result;
       end if;
-      for Index in T.Nodes.First_Index .. T.Nodes.Last_Index loop
-         if T.Nodes.Element (Index).Parent = 0 then
-            Visit (Index);
-         end if;
-      end loop;
+
+      declare
+         subtype Node_Range is Positive range T.Nodes.First_Index .. T.Nodes.Last_Index;
+         type Link_Array is array (Node_Range) of Natural;
+         --  Children of each node as a linked list in attach order, built in
+         --  one pass. Scanning every node per expanded node made a deeply
+         --  expanded tree quadratic on every snapshot.
+         First_Child : Link_Array := [others => 0];
+         Last_Child  : Link_Array := [others => 0];
+         Next_Child  : Link_Array := [others => 0];
+
+         procedure Visit (Index : Positive) is
+            N     : Node renames T.Nodes (Index);
+            Child : Natural;
+         begin
+            Result.Append
+              (Visible_Row'
+                 (Node_Index   => Index,
+                  Path         => N.Path,
+                  Name         => N.Name,
+                  Depth        => N.Depth,
+                  Expanded     => N.Expanded,
+                  Loaded       => N.Loaded,
+                  Has_Children => N.Has_Children));
+            if N.Expanded then
+               Child := First_Child (Index);
+               while Child /= 0 loop
+                  Visit (Child);
+                  Child := Next_Child (Child);
+               end loop;
+            end if;
+         end Visit;
+      begin
+         for Index in Node_Range loop
+            declare
+               Parent : constant Natural := T.Nodes (Index).Parent;
+            begin
+               if Parent in Node_Range then
+                  if First_Child (Parent) = 0 then
+                     First_Child (Parent) := Index;
+                  else
+                     Next_Child (Last_Child (Parent)) := Index;
+                  end if;
+                  Last_Child (Parent) := Index;
+               end if;
+            end;
+         end loop;
+         for Index in Node_Range loop
+            if T.Nodes (Index).Parent = 0 then
+               Visit (Index);
+            end if;
+         end loop;
+      end;
       return Result;
    end Visible_Rows;
 
