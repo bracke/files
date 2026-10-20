@@ -112,9 +112,9 @@ package body Filter is
       --  Snapshot the visible projection in display order so the pure matcher's
       --  returned index maps straight back to a visible index. Temporary
       --  create-file items are never type-ahead targets.
-      for Visible_Index in 1 .. Count loop
-         if Visible_To_Item_Index (Model, Visible_Index) /= 0 then
-            Visible.Append (Visible_Item (Model, Visible_Index));
+      for Row of Visible_Rows (Model) loop
+         if Row.Item_Index /= 0 then
+            Visible.Append (Row.Item);
          else
             Visible.Append (Files.File_System.Directory_Item'(others => <>));
          end if;

@@ -741,17 +741,29 @@ package body Files.Application.Windows is
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
 
       declare
-         Snapshot  : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-         Layout    : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout
-             (Snapshot, Natural (Frame_W), Natural (Frame_H),
-              Cell_Height_For (Runtime.Font_Pixel_Size));
-         Main_View : constant Files.Rendering.Main_View_Layout :=
-           Files.Rendering.Calculate_Main_View_Layout
-             (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
+         procedure Apply (Snapshot : Files.Rendering.View_Snapshot) is
+            Layout    : constant Files.Rendering.Layout_Metrics :=
+              Files.Rendering.Calculate_Layout
+                (Snapshot, Natural (Frame_W), Natural (Frame_H),
+                 Cell_Height_For (Runtime.Font_Pixel_Size));
+            Main_View : constant Files.Rendering.Main_View_Layout :=
+              Files.Rendering.Calculate_Main_View_Layout
+                (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
+         begin
+            Files.Model.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
+         end Apply;
       begin
-         Files.Model.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
+         --  Runs before every key fire, auto-repeat included. The last
+         --  rendered snapshot is current unless the model or settings moved
+         --  since, so reuse it rather than rebuilding O(items) per keystroke.
+         if Runtime.Frame_Cache_Valid
+           and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
+           and then Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key)
+         then
+            Apply (Runtime.Cached_Snapshot);
+         else
+            Apply (Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings));
+         end if;
       end;
    end Refresh_Selection_Grid_Columns;
 

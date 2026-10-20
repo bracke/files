@@ -1475,6 +1475,13 @@ package body Files.Model is
          Value         : out UString;
          Cursor        : out Natural);
 
+      procedure Rename_State_For_Item
+        (Model      : Window_Model;
+         Item_Index : Natural;
+         Active     : out Boolean;
+         Value      : out UString;
+         Cursor     : out Natural);
+
       function Rename_Targets
         (Model : Window_Model)
          return Rename_Target_Vectors.Vector;
@@ -1554,6 +1561,14 @@ package body Files.Model is
       Value         : out UString;
       Cursor        : out Natural)
      renames Rename.Rename_State_For_Visible;
+
+   procedure Rename_State_For_Item
+     (Model      : Window_Model;
+      Item_Index : Natural;
+      Active     : out Boolean;
+      Value      : out UString;
+      Cursor     : out Natural)
+     renames Rename.Rename_State_For_Item;
 
    function Rename_Targets (Model : Window_Model) return Rename_Target_Vectors.Vector
      renames Rename.Rename_Targets;

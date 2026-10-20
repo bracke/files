@@ -138,7 +138,8 @@ package body Navigation is
                  or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), Filter)
                then
                   Rows.Append
-                    (Visible_Row'(Item     => Item,
+                    (Visible_Row'(Item_Index => Natural (Index),
+                                  Item     => Item,
                                   Selected => Selected.Contains (Natural (Index))));
                end if;
             end;
@@ -161,7 +162,8 @@ package body Navigation is
                      Filetype    => "text/plain"));
          begin
             Rows.Append
-              (Visible_Row'(Item     => Temp,
+              (Visible_Row'(Item_Index => 0,
+                            Item     => Temp,
                             Selected => Selected.Contains (Temporary_Item_Index)));
          end;
       end if;

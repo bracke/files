@@ -1,4 +1,6 @@
 with Ada.Calendar;
+with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Strings.Hash;
 
 with Files.Localization;
 with Files.Settings_Form;
@@ -308,6 +310,21 @@ package body Files.Model.Support is
       return False;
    end Selection_Contains;
 
+   function Selected_Flags
+     (Model : Window_Model)
+      return Selection_Flags
+   is
+      Last  : constant Natural := Natural (Model.Items.Length);
+      Flags : Selection_Flags (1 .. Last) := [others => False];
+   begin
+      for Selected of Model.Selected_Item_Indexes loop
+         if Selected in 1 .. Last then
+            Flags (Selected) := True;
+         end if;
+      end loop;
+      return Flags;
+   end Selected_Flags;
+
    procedure Add_Selected_Index
      (Model      : in out Window_Model;
       Item_Index : Natural)
@@ -516,17 +533,22 @@ package body Files.Model.Support is
          end if;
       end Path_At;
 
+      --  New index of each path after the sort, built once: a per-item scan
+      --  made re-sorting a Select All quadratic.
+      package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+        (Key_Type        => String,
+         Element_Type    => Positive,
+         Hash            => Ada.Strings.Hash,
+         Equivalent_Keys => "=");
+      Sorted_Index : Index_Maps.Map;
+
       function Index_Of (Path : Unbounded_String) return Natural is
+         Found : constant Index_Maps.Cursor := Sorted_Index.Find (To_String (Path));
       begin
-         if Path = Null_Unbounded_String then
+         if Path = Null_Unbounded_String or else not Index_Maps.Has_Element (Found) then
             return 0;
          end if;
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Model.Items.Element (Index).Full_Path = Path then
-               return Natural (Index);
-            end if;
-         end loop;
-         return 0;
+         return Natural (Index_Maps.Element (Found));
       end Index_Of;
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
@@ -550,6 +572,10 @@ package body Files.Model.Support is
         (Model.Items,
          Settings_Sort_Field (Model.Sort_Field_Value),
          Model.Sort_Ascending);
+      Sorted_Index.Reserve_Capacity (Model.Items.Length);
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         Sorted_Index.Include (To_String (Model.Items (Index).Full_Path), Index);
+      end loop;
 
       declare
          --  The pending create row is selected through a marker, not an item
@@ -774,13 +800,17 @@ package body Files.Model.Support is
          return Result;
       end if;
 
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Selection_Contains (Model, Natural (Index))
-           and then Item_Is_Visible (Model, Model.Items.Element (Index))
-         then
-            Result.Append (Natural (Index));
-         end if;
-      end loop;
+      declare
+         Selected : constant Selection_Flags := Selected_Flags (Model);
+      begin
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            if Selected (Index)
+              and then Item_Is_Visible (Model, Model.Items (Index))
+            then
+               Result.Append (Natural (Index));
+            end if;
+         end loop;
+      end;
 
       return Result;
    end Selected_Loaded_Indexes;

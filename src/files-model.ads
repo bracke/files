@@ -300,8 +300,11 @@ package Files.Model is
 
    --  One visible row: the directory item plus whether it is selected.
    type Visible_Row is record
-      Item     : Files.File_System.Directory_Item;
-      Selected : Boolean := False;
+      Item       : Files.File_System.Directory_Item;
+      Selected   : Boolean := False;
+      --  Index into the loaded items, or zero for the pending create row.
+      --  Lets a caller walking the rows skip a per-row visible-to-item scan.
+      Item_Index : Natural := 0;
    end record;
 
    package Visible_Row_Vectors is new Ada.Containers.Vectors
@@ -1812,6 +1815,21 @@ package Files.Model is
       Active        : out Boolean;
       Value         : out UString;
       Cursor        : out Natural);
+
+   --  Rename state for a row already resolved to its item, as Visible_Rows
+   --  reports it; avoids a visible-to-item scan per row during a rename.
+   --
+   --  @param Model Model to inspect.
+   --  @param Item_Index Row's item index (zero for the pending create row).
+   --  @param Active Set True when that row has an active rename field.
+   --  @param Value Field text (empty when inactive).
+   --  @param Cursor Field caret byte offset (zero when inactive).
+   procedure Rename_State_For_Item
+     (Model      : Window_Model;
+      Item_Index : Natural;
+      Active     : out Boolean;
+      Value      : out UString;
+      Cursor     : out Natural);
 
    type Rename_Target is record
       Item_Index    : Natural := 0;

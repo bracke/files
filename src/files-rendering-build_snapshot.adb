@@ -260,8 +260,8 @@ separate (Files.Rendering)
                Rename_Value  : Ada.Strings.Unbounded.Unbounded_String;
                Rename_Cursor : Natural;
             begin
-               Files.Model.Rename_State_For_Visible
-                 (Model, Index, Rename_On, Rename_Value, Rename_Cursor);
+               Files.Model.Rename_State_For_Item
+                 (Model, Row.Item_Index, Rename_On, Rename_Value, Rename_Cursor);
                Snapshot.Items.Append
                  (Item_Snapshot'
                     (Name               => Item.Name,

@@ -56,18 +56,6 @@ package body Selection is
       First : Natural;
       Last  : Natural;
 
-      procedure Add_Visible_Index (Visible_Index : Positive) is
-         Item_Index : Natural := Visible_To_Item_Index (Model, Visible_Index);
-      begin
-         if Item_Index = 0
-           and then Temporary_Is_Visible (Model)
-           and then Visible_Index = Count
-         then
-            Item_Index := Temporary_Item_Index;
-         end if;
-
-         Add_Selected_Index (Model, Item_Index);
-      end Add_Visible_Index;
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
@@ -83,9 +71,19 @@ package body Selection is
       Last := Natural'Max (Natural (Anchor_Index), Natural (Target_Index));
 
       Model.Selected_Item_Indexes.Clear;
-      for Visible_Index in First .. Last loop
-         Add_Visible_Index (Positive (Visible_Index));
-      end loop;
+      declare
+         --  Map rows to items in one pass; a per-row scan made a long
+         --  shift-click range quadratic.
+         Rows : constant Visible_Row_Vectors.Vector := Visible_Rows (Model);
+      begin
+         for Visible_Index in First .. Natural'Min (Last, Natural (Rows.Length)) loop
+            --  Rows are distinct and the list was just cleared, so append
+            --  directly rather than pay Add_Selected_Index's duplicate scan.
+            Model.Selected_Item_Indexes.Append
+              (if Rows (Visible_Index).Item_Index /= 0 then Rows (Visible_Index).Item_Index
+               else Temporary_Item_Index);
+         end loop;
+      end;
 
       Model.Selected_Item_Index := Visible_To_Item_Index (Model, Target_Index);
       if Model.Selected_Item_Index = 0
@@ -112,8 +110,9 @@ package body Selection is
       end if;
 
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Item_Is_Visible (Model, Model.Items.Element (Index)) then
-            Add_Selected_Index (Model, Natural (Index));
+         if Item_Is_Visible (Model, Model.Items (Index)) then
+            --  The list was cleared and indexes ascend, so each is new.
+            Model.Selected_Item_Indexes.Append (Natural (Index));
             if Model.Selected_Item_Index = 0 then
                Model.Selected_Item_Index := Natural (Index);
             end if;
@@ -148,15 +147,23 @@ package body Selection is
          return;
       end if;
 
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Item_Is_Visible (Model, Model.Items.Element (Index)) then
-            if Selection_Contains (Model, Natural (Index)) then
-               Remove_Selected_Index (Model, Natural (Index));
-            else
-               Add_Selected_Index (Model, Natural (Index));
+      declare
+         --  Rebuild in one pass: visible items flip, hidden ones keep their
+         --  state, and the pending create row's marker survives.
+         Was_Selected : constant Selection_Flags := Selected_Flags (Model);
+         Temporary    : constant Boolean :=
+           Model.Selected_Item_Indexes.Contains (Temporary_Item_Index);
+      begin
+         Model.Selected_Item_Indexes.Clear;
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            if Item_Is_Visible (Model, Model.Items (Index)) /= Was_Selected (Index) then
+               Model.Selected_Item_Indexes.Append (Natural (Index));
             end if;
+         end loop;
+         if Temporary then
+            Model.Selected_Item_Indexes.Append (Temporary_Item_Index);
          end if;
-      end loop;
+      end;
 
       --  Items are stored in visible order, so the lowest selected index is
       --  the first visible selected item and makes a deterministic primary.
@@ -312,6 +319,11 @@ package body Selection is
      (Model   : in out Window_Model;
       Columns : Positive) is
    begin
+      --  Called before every key dispatch; an unconditional bump invalidated
+      --  the render cache and forced a full snapshot rebuild per keystroke.
+      if Model.Selection_Columns = Columns then
+         return;
+      end if;
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Selection_Columns := Columns;
    end Set_Selection_Grid_Columns;
@@ -422,11 +434,15 @@ package body Selection is
          return Result;
       end if;
 
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Selection_Contains (Model, Natural (Index)) then
-            Result.Append (Model.Items.Element (Index));
-         end if;
-      end loop;
+      declare
+         Selected : constant Selection_Flags := Selected_Flags (Model);
+      begin
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            if Selected (Index) then
+               Result.Append (Model.Items (Index));
+            end if;
+         end loop;
+      end;
 
       return Result;
    end Selected_Items;

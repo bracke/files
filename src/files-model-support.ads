@@ -201,6 +201,17 @@ private package Files.Model.Support is
       Item_Index : Natural)
       return Boolean;
 
+   --  One flag per loaded item, True when selected. Built in one pass over the
+   --  selection, so a loop over the items can test membership in O(1) instead
+   --  of rescanning the selection list per item (quadratic after Select All).
+   type Selection_Flags is array (Positive range <>) of Boolean with Pack;
+
+   --  @param Model Model to inspect.
+   --  @return Selection flags for item indexes 1 .. item count.
+   function Selected_Flags
+     (Model : Window_Model)
+      return Selection_Flags;
+
    --  Add Item_Index to the multi-selection (no-op when already present).
    --
    --  @param Model Model to update.
