@@ -37,6 +37,17 @@ package body Files.Settings is
       return False;
    end Contains_Nul;
 
+   --  A row the settings form just added and the user has not filled in yet
+   --  (empty key and value). It is neither a validation error nor saved, so
+   --  pressing Add does not block every other setting until it is completed.
+   function Blank_Row
+     (Keys   : String_Vectors.Vector;
+      Values : String_Vectors.Vector;
+      Index  : Positive)
+      return Boolean is
+     (Length (Keys.Element (Index)) = 0
+      and then (Index > Natural (Values.Length) or else Length (Values.Element (Index)) = 0));
+
    function Contains_Line_Break (Text : String) return Boolean;
 
    --  The settings file is line-oriented, so a path holding a line break

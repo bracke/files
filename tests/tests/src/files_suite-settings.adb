@@ -3025,6 +3025,10 @@ package body Files_Suite.Settings is
       Saved := Files.Settings_Form.Apply (Model, Button ("add"));
       Assert (Saved, "adding an entry saves");
       Assert (Count = 3, "Add appends a mapping entry");
+      Assert
+        (Files.Settings.Apply_Draft
+           (Files.Settings.Default_Settings, Files.Model.Settings_Draft_Of (Model)).Success,
+         "a freshly added, still blank row does not block saving other settings");
 
       Saved := Files.Settings_Form.Apply (Model, Button ("remove"));
       Assert (Saved, "removing an entry saves");

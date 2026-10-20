@@ -83,26 +83,32 @@ separate (Files.Settings)
 
       Result.Extension_Filetypes.Clear;
       for Index in 1 .. Natural (Filetype_Keys.Length) loop
-         Add_Extension_Mapping
-           (Result,
-            To_String (Filetype_Keys.Element (Index)),
-            To_String (Filetype_Values.Element (Index)));
+         if not Blank_Row (Filetype_Keys, Filetype_Values, Index) then
+            Add_Extension_Mapping
+              (Result,
+               To_String (Filetype_Keys.Element (Index)),
+               To_String (Filetype_Values.Element (Index)));
+         end if;
       end loop;
 
       Result.Icon_Mappings.Clear;
       for Index in 1 .. Natural (Icon_Keys.Length) loop
-         Add_Icon_Mapping
-           (Result,
-            To_String (Icon_Keys.Element (Index)),
-            To_String (Icon_Values.Element (Index)));
+         if not Blank_Row (Icon_Keys, Icon_Values, Index) then
+            Add_Icon_Mapping
+              (Result,
+               To_String (Icon_Keys.Element (Index)),
+               To_String (Icon_Values.Element (Index)));
+         end if;
       end loop;
 
       Result.Open_Actions.Clear;
       for Index in 1 .. Natural (Action_Keys.Length) loop
-         Add_Open_Action
-           (Result,
-            To_String (Action_Keys.Element (Index)),
-            Parse_Action (To_String (Action_Values.Element (Index))));
+         if not Blank_Row (Action_Keys, Action_Values, Index) then
+            Add_Open_Action
+              (Result,
+               To_String (Action_Keys.Element (Index)),
+               Parse_Action (To_String (Action_Values.Element (Index))));
+         end if;
       end loop;
       return
         (Success   => True,

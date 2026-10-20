@@ -9,8 +9,11 @@ separate (Files.Settings)
          return "error.settings.invalid_mapping";
       end if;
 
-      for Key of Draft.Filetype_Keys loop
-         if not Mapping_Key_Is_Valid (Normalize_Extension (To_String (Key))) then
+      for Index in 1 .. Natural (Draft.Filetype_Keys.Length) loop
+         if not Blank_Row (Draft.Filetype_Keys, Draft.Filetype_Values, Index)
+           and then not Mapping_Key_Is_Valid
+             (Normalize_Extension (To_String (Draft.Filetype_Keys.Element (Index))))
+         then
             return "error.settings.invalid_mapping";
          end if;
       end loop;
@@ -21,8 +24,10 @@ separate (Files.Settings)
          return "error.settings.invalid_mapping";
       end if;
 
-      for Key of Draft.Icon_Keys loop
-         if not Mapping_Key_Is_Valid (Trim (To_String (Key))) then
+      for Index in 1 .. Natural (Draft.Icon_Keys.Length) loop
+         if not Blank_Row (Draft.Icon_Keys, Draft.Icon_Values, Index)
+           and then not Mapping_Key_Is_Valid (Trim (To_String (Draft.Icon_Keys.Element (Index))))
+         then
             return "error.settings.invalid_mapping";
          end if;
       end loop;
@@ -43,12 +48,15 @@ separate (Files.Settings)
          end;
       end if;
 
-      for Key of Draft.Open_Action_Keys loop
+      for Index in 1 .. Natural (Draft.Open_Action_Keys.Length) loop
          declare
+            Key   : constant UString := Draft.Open_Action_Keys.Element (Index);
             Token : constant String := Normalize_Action_Token (To_String (Key));
             Plus  : constant Natural := Modifier_Suffix_Start (Token);
          begin
-            if Token = ""
+            if Blank_Row (Draft.Open_Action_Keys, Draft.Open_Action_Commands, Index) then
+               null;
+            elsif Token = ""
               or else (Plus = Token'First)
               or else not Open_Action_Base_Key_Is_Valid
                 ((if Plus = 0 then Token else Token (Token'First .. Plus - 1)))

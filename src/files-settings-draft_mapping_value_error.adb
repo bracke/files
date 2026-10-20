@@ -9,8 +9,10 @@ separate (Files.Settings)
          return "error.settings.invalid_mapping";
       end if;
 
-      for Value of Draft.Filetype_Values loop
-         if not Mapping_Value_Is_Valid (Trim (To_String (Value))) then
+      for Index in 1 .. Natural (Draft.Filetype_Values.Length) loop
+         if not Blank_Row (Draft.Filetype_Keys, Draft.Filetype_Values, Index)
+           and then not Mapping_Value_Is_Valid (Trim (To_String (Draft.Filetype_Values.Element (Index))))
+         then
             return "error.settings.invalid_mapping";
          end if;
       end loop;
@@ -21,8 +23,10 @@ separate (Files.Settings)
          return "error.settings.invalid_mapping";
       end if;
 
-      for Value of Draft.Icon_Values loop
-         if not Mapping_Value_Is_Valid (Trim (To_String (Value))) then
+      for Index in 1 .. Natural (Draft.Icon_Values.Length) loop
+         if not Blank_Row (Draft.Icon_Keys, Draft.Icon_Values, Index)
+           and then not Mapping_Value_Is_Valid (Trim (To_String (Draft.Icon_Values.Element (Index))))
+         then
             return "error.settings.invalid_mapping";
          end if;
       end loop;

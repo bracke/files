@@ -95,27 +95,34 @@ separate (Files.Settings)
       if not Filetype_Keys.Is_Empty then
          Append_Line ("[filetypes]");
          for Index in 1 .. Natural (Filetype_Keys.Length) loop
-            Append_Line
-              (To_String (Filetype_Keys.Element (Index))
-               & " = "
-               & Action_Token_Text (To_String (Filetype_Values.Element (Index))));
+            if not Blank_Row (Filetype_Keys, Filetype_Values, Index) then
+               Append_Line
+                 (To_String (Filetype_Keys.Element (Index))
+                  & " = "
+                  & Action_Token_Text (To_String (Filetype_Values.Element (Index))));
+            end if;
          end loop;
       end if;
 
       if not Icon_Keys.Is_Empty then
          Append_Line ("[icons]");
          for Index in 1 .. Natural (Icon_Keys.Length) loop
-            Append_Line
-              (To_String (Icon_Keys.Element (Index))
-               & " = "
-               & Action_Token_Text (To_String (Icon_Values.Element (Index))));
+            if not Blank_Row (Icon_Keys, Icon_Values, Index) then
+               Append_Line
+                 (To_String (Icon_Keys.Element (Index))
+                  & " = "
+                  & Action_Token_Text (To_String (Icon_Values.Element (Index))));
+            end if;
          end loop;
       end if;
 
       if not Action_Keys.Is_Empty then
          Append_Line ("[open-actions]");
          for Index in 1 .. Natural (Action_Keys.Length) loop
-            Append_Line (To_String (Action_Keys.Element (Index)) & " = " & To_String (Action_Values.Element (Index)));
+            if not Blank_Row (Action_Keys, Action_Values, Index) then
+               Append_Line
+                 (To_String (Action_Keys.Element (Index)) & " = " & To_String (Action_Values.Element (Index)));
+            end if;
          end loop;
       end if;
 
