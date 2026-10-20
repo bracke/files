@@ -5,7 +5,15 @@ separate (Files.Settings)
       return Settings_Write_Result
    is
       use type GNAT.OS_Lib.File_Descriptor;
-      Parent : constant String := Parent_Directory (Path);
+      --  Publishing renames a temporary over the target, which would replace
+      --  a symlinked settings file (stow, home-manager, a dotfiles repo) with
+      --  a plain file and silently detach it. Write through to the link's
+      --  target instead; results still name the path the user configured.
+      Target : constant String :=
+        (if Hostkit.Fs.Is_Link (Path)
+         then GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => True)
+         else Path);
+      Parent : constant String := Parent_Directory (Target);
       Temp   : Unbounded_String;
       Temp_Identity : Unbounded_String;
       Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
@@ -44,8 +52,8 @@ separate (Files.Settings)
             Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
-      elsif Ada.Directories.Exists (Path)
-        and then Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
+      elsif Ada.Directories.Exists (Target)
+        and then Ada.Directories.Kind (Target) /= Ada.Directories.Ordinary_File
       then
             return
               (Success   => False,
@@ -78,7 +86,7 @@ separate (Files.Settings)
       for Index in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
-              Path & ".tmp" & (if Index = 1 then "" else "-" &
+              Target & ".tmp" & (if Index = 1 then "" else "-" &
                 Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Both));
          begin
             Descriptor := GNAT.OS_Lib.Create_New_File (Candidate, GNAT.OS_Lib.Binary);
@@ -122,7 +130,7 @@ separate (Files.Settings)
       if Files.File_Identities.Token (To_String (Temp)) /= To_String (Temp_Identity) then
          raise Ada.Directories.Use_Error;
       end if;
-      Publication := Files.Durable_Writes.Publish (To_String (Temp), Path);
+      Publication := Files.Durable_Writes.Publish (To_String (Temp), Target);
       if not Files.Durable_Writes.Published (Publication) then
          raise Ada.Directories.Use_Error;
       end if;
