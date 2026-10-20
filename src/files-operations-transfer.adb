@@ -547,8 +547,6 @@ package body Transfer is
       Progress_Recorded : Boolean := False;
       Verified_Count : Natural := 0;
 
-      Copy_Batch : constant Files.Copy_Context.Session := Files.Copy_Context.Create;
-
       procedure Record_Progress is
          Previous : Files.Model.Undo_Entry;
          Found : Boolean;
@@ -625,59 +623,67 @@ package body Transfer is
          return Failed;
       end if;
 
-      for Item of Items loop
-         exit when Files.Job_Context.Cancelled;
-         declare
-            Source : constant String := To_String (Item.Full_Path);
-            --  Recent can select paths from several folders; each duplicate
-            --  belongs beside its source rather than in a virtual view's path.
-            Destination_Directory : constant String :=
-              (if Files.Model.In_Recent_View (Model) then Ada.Directories.Containing_Directory (Source) else Directory);
-            Name   : constant String := To_String (Item.Name);
-            Ext    : constant String := Leaf_Extension (Name);
-            Base   : constant String := Leaf_Base (Name);
+      --  Created only now: the background path above hands the work to a
+      --  helper, and the handler below must cover a failed reservation.
+      declare
+         Copy_Batch : constant Files.Copy_Context.Session := Files.Copy_Context.Create;
+      begin
+         for Item of Items loop
+            exit when Files.Job_Context.Cancelled;
+            declare
+               Source : constant String := To_String (Item.Full_Path);
+               --  Recent can select paths from several folders; each duplicate
+               --  belongs beside its source rather than in a virtual view's path.
+               Destination_Directory : constant String :=
+                 (if Files.Model.In_Recent_View (Model)
+                  then Ada.Directories.Containing_Directory (Source)
+                  else Directory);
+               Name   : constant String := To_String (Item.Name);
+               Ext    : constant String := Leaf_Extension (Name);
+               Base   : constant String := Leaf_Base (Name);
 
-            --  A directory-unique copy stem (without extension), e.g. "report
-            --  (copy)" or "report (copy 2)" when earlier choices already exist.
-            function Unique_Stem return String is
+               --  A directory-unique copy stem (without extension), e.g. "report
+               --  (copy)" or "report (copy 2)" when earlier choices already exist.
+               function Unique_Stem return String is
+               begin
+                  for N in 1 .. 9_999 loop
+                     declare
+                        Candidate : constant String := Base & Copy_Marker (N);
+                     begin
+                        if not Exists_Safely
+                                 (Ada.Directories.Compose (Destination_Directory, Candidate, Ext))
+                        then
+                           return Candidate;
+                        end if;
+                     end;
+                  end loop;
+
+                  return Base & Copy_Marker (1);
+               end Unique_Stem;
+
+               Dest_Path : constant String :=
+                 Ada.Directories.Compose (Destination_Directory, Unique_Stem, Ext);
+               Dest_Name : constant String := Ada.Directories.Simple_Name (Dest_Path);
+               Identity, Revision : Files.Types.UString;
+               Mutation  : constant Files.File_System.Mutation_Result :=
+                 Files.File_System.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);
             begin
-               for N in 1 .. 9_999 loop
-                  declare
-                     Candidate : constant String := Base & Copy_Marker (N);
-                  begin
-                     if not Exists_Safely
-                              (Ada.Directories.Compose (Destination_Directory, Candidate, Ext))
-                     then
-                        return Candidate;
-                     end if;
-                  end;
-               end loop;
+               if not Mutation.Success then
+                  return Failed;
+               end if;
 
-               return Base & Copy_Marker (1);
-            end Unique_Stem;
-
-            Dest_Path : constant String :=
-              Ada.Directories.Compose (Destination_Directory, Unique_Stem, Ext);
-            Dest_Name : constant String := Ada.Directories.Simple_Name (Dest_Path);
-            Identity, Revision : Files.Types.UString;
-            Mutation  : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Copy_Tree (Source, Dest_Path, Identity, Revision, Copy_Batch);
-         begin
-            if not Mutation.Success then
-               return Failed;
-            end if;
-
-            Created.Append (To_Unbounded_String (Dest_Path));
-            Sources.Append (To_Unbounded_String (Source));
-            Identities.Append (Identity);
-            Tree_Revisions.Append (Revision);
-            Record_Progress;
-            if not Created_Any then
-               First_Created := To_Unbounded_String (Dest_Name);
-               Created_Any := True;
-            end if;
-         end;
-      end loop;
+               Created.Append (To_Unbounded_String (Dest_Path));
+               Sources.Append (To_Unbounded_String (Source));
+               Identities.Append (Identity);
+               Tree_Revisions.Append (Revision);
+               Record_Progress;
+               if not Created_Any then
+                  First_Created := To_Unbounded_String (Dest_Name);
+                  Created_Any := True;
+               end if;
+            end;
+         end loop;
+      end;
 
       if not Created_Any then
          return Failed;
