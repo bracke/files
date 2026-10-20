@@ -189,7 +189,7 @@ separate (Files.Rendering)
             then
                Snapshot.Quick_Look_Image_Width  := Item.Thumbnail_Width;
                Snapshot.Quick_Look_Image_Height := Item.Thumbnail_Height;
-               Snapshot.Quick_Look_Image_Pixels := Item.Thumbnail_Pixels;
+               Snapshot.Quick_Look_Image_Pixels := Files.Shared_Bytes.To_Vector (Item.Thumbnail_Pixels);
             end if;
          end;
       end if;

@@ -82,6 +82,7 @@ with Guikit.Draw;
 with Files.Rendering;
 with Guikit.Vulkan;
 with Files.Settings;
+with Files.Shared_Bytes;
 with Guikit.Input;
 with Files.Types;
 with Files.Transfer_Jobs;
@@ -3626,7 +3627,7 @@ package body Files_Suite.Operations is
                Assert (Item.Thumbnail_Width = 64, "auto-generated thumbnail records default width");
                Assert (Item.Thumbnail_Height = 64, "auto-generated thumbnail records default height");
                Assert
-                 (Natural (Item.Thumbnail_Pixels.Length) = 64 * 64 * 4,
+                 (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) = 64 * 64 * 4,
                   "auto-generated thumbnail loads renderable pixels");
             end if;
          end loop;
@@ -3644,7 +3645,7 @@ package body Files_Suite.Operations is
                  (Item.Thumbnail_Available,
                   "directory loading auto-generates thumbnails for image extensions");
                Assert
-                 (Natural (Item.Thumbnail_Pixels.Length) = 64 * 64 * 4,
+                 (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) = 64 * 64 * 4,
                   "image-extension thumbnail loads renderable pixels");
             end if;
          end loop;
@@ -3686,7 +3687,7 @@ package body Files_Suite.Operations is
                     (Item.Thumbnail_Width = 2 and then Item.Thumbnail_Height = 2,
                      "and reports the dimensions its own header declares");
                   Assert
-                    (Natural (Item.Thumbnail_Pixels.Length) = 2 * 2 * 4,
+                    (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) = 2 * 2 * 4,
                      "and yields renderable pixels");
                end if;
             end loop;
@@ -3738,7 +3739,7 @@ package body Files_Suite.Operations is
                   Found_Trailing := True;
                   Assert
                     (not Item.Thumbnail_Available
-                     and then Item.Thumbnail_Pixels.Is_Empty,
+                     and then Files.Shared_Bytes.Is_Empty (Item.Thumbnail_Pixels),
                      "a binary cached PPM rejects bytes beyond its declared raster");
                end if;
             end loop;
@@ -3774,7 +3775,7 @@ package body Files_Suite.Operations is
                   Found_Corrupt := True;
                   Assert
                     (not Item.Thumbnail_Available
-                     and then Item.Thumbnail_Pixels.Is_Empty,
+                     and then Files.Shared_Bytes.Is_Empty (Item.Thumbnail_Pixels),
                      "a cached PPM sample above maxval is rejected");
                end if;
             end loop;
@@ -4056,7 +4057,7 @@ package body Files_Suite.Operations is
               (Item.Thumbnail_Available,
                "a text file with a thumbnail in the cache still shows it when listed");
             Assert
-              (Natural (Item.Thumbnail_Pixels.Length) > 0,
+              (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) > 0,
                "and the pixels come with it");
          end if;
       end loop;
@@ -17541,8 +17542,8 @@ package body Files_Suite.Operations is
            (Stream, To_String (Value.Thumbnail_Path), Files.Job_Records.Max_Path_Length);
          Natural'Output (Stream, Value.Thumbnail_Width);
          Natural'Output (Stream, Value.Thumbnail_Height);
-         Natural'Output (Stream, Natural (Value.Thumbnail_Pixels.Length));
-         for Byte of Value.Thumbnail_Pixels loop
+         Natural'Output (Stream, Files.Shared_Bytes.Length (Value.Thumbnail_Pixels));
+         for Byte of Files.Shared_Bytes.To_Vector (Value.Thumbnail_Pixels) loop
             Interfaces.Unsigned_8'Output (Stream, Byte);
          end loop;
          Boolean'Output (Stream, Value.Metadata_Error);
@@ -17639,7 +17640,7 @@ package body Files_Suite.Operations is
       Item.Thumbnail_Available := True;
       Item.Thumbnail_Width := Natural'Last;
       Item.Thumbnail_Height := 1;
-      Item.Thumbnail_Pixels.Append (0);
+      Item.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared ([1 => 0]);
       Items.Append (Item);
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
       begin

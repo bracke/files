@@ -1577,7 +1577,7 @@ package body Directory is
          Thumbnail_Path      => Null_Unbounded_String,
          Thumbnail_Width     => 0,
          Thumbnail_Height    => 0,
-         Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
+         Thumbnail_Pixels    => Files.Shared_Bytes.Empty,
          Metadata_Error     => False,
          Error_Key          => Null_Unbounded_String);
    begin
@@ -1606,7 +1606,7 @@ package body Directory is
                Item.Thumbnail_Path := To_Unbounded_String (Thumbnail_Path);
                Item.Thumbnail_Width := Thumbnail.Width;
                Item.Thumbnail_Height := Thumbnail.Height;
-               Item.Thumbnail_Pixels := Thumbnail.Pixels;
+               Item.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared (Thumbnail.Pixels);
             end if;
          end if;
          Item.Creation_Time :=
@@ -1872,7 +1872,7 @@ package body Directory is
          Thumbnail_Path      => Null_Unbounded_String,
          Thumbnail_Width     => 0,
          Thumbnail_Height    => 0,
-         Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
+         Thumbnail_Pixels    => Files.Shared_Bytes.Empty,
          Metadata_Error     => False,
          Error_Key          => Null_Unbounded_String);
    end Make_Item;
@@ -1911,7 +1911,7 @@ package body Directory is
          Thumbnail_Path      => Null_Unbounded_String,
          Thumbnail_Width     => 0,
          Thumbnail_Height    => 0,
-         Thumbnail_Pixels    => Files.Types.Byte_Vectors.Empty_Vector,
+         Thumbnail_Pixels    => Files.Shared_Bytes.Empty,
          Metadata_Error     => False,
          Error_Key          => Null_Unbounded_String);
    end Make_Item;

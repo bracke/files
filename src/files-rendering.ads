@@ -5,6 +5,7 @@ with Files.Breadcrumbs;
 with Files.Commands;
 with Files.File_System;
 with Files.Folder_Tree;
+with Files.Shared_Bytes;
 with Guikit.Draw;
 with Guikit.Item_Grid;
 with Guikit.Layout;
@@ -35,7 +36,7 @@ package Files.Rendering is
    --  change also changes the item's Modified_Time or Size (which ARE compared),
    --  and thumbnails only (re)load on a directory re-listing.
    type Thumbnail_Bitmap is record
-      Pixels : Files.Types.Byte_Vectors.Vector;
+      Pixels : Files.Shared_Bytes.Bytes;
    end record;
    overriding function "=" (Left, Right : Thumbnail_Bitmap) return Boolean;
 

@@ -274,7 +274,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
             Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
             Thumbnail_Pixels =>
-              (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Types.Byte_Vectors.Empty_Vector),
+              (if Use_Thumbnail
+               then Files.Shared_Bytes.To_Vector (Item.Thumbnail.Pixels)
+               else Files.Types.Byte_Vectors.Empty_Vector),
             Overlay          => Overlay,
             Draw_Width       => 0,
             Draw_Height      => 0,

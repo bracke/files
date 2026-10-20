@@ -4,6 +4,7 @@ with Ada.Streams;
 with Ada.Containers.Vectors;
 
 with Files.Settings;
+with Files.Shared_Bytes;
 with Files.Types;
 
 --  Filesystem inspection, directory loading, and mutation result modeling.
@@ -46,7 +47,9 @@ package Files.File_System is
       Thumbnail_Path      : UString;
       Thumbnail_Width     : Natural := 0;
       Thumbnail_Height    : Natural := 0;
-      Thumbnail_Pixels    : Files.Types.Byte_Vectors.Vector;
+      --  Shared, immutable: copying an item (into rows, snapshots, caches)
+      --  must not copy its decoded thumbnail.
+      Thumbnail_Pixels    : Files.Shared_Bytes.Bytes;
       Metadata_Error     : Boolean := False;
       Error_Key          : UString;
    end record;

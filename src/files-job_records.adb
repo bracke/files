@@ -9,6 +9,7 @@ with GNAT.OS_Lib;
 with Interfaces;
 
 with Files.Bounded_Streams;
+with Files.Shared_Bytes;
 with Files.Types;
 
 package body Files.Job_Records is
@@ -59,7 +60,7 @@ package body Files.Job_Records is
      (Value : Files.File_System.Directory_Item) return Boolean
    is
       Pixel_Count : constant Ada.Containers.Count_Type :=
-        Value.Thumbnail_Pixels.Length;
+        Ada.Containers.Count_Type (Files.Shared_Bytes.Length (Value.Thumbnail_Pixels));
    begin
       if Value.Thumbnail_Width > Max_Thumbnail_Dimension
         or else Value.Thumbnail_Height > Max_Thumbnail_Dimension
@@ -235,7 +236,7 @@ package body Files.Job_Records is
       Write_String (Stream, To_String (Value.Thumbnail_Path), Max_Path_Length);
       Natural'Output (Stream, Value.Thumbnail_Width);
       Natural'Output (Stream, Value.Thumbnail_Height);
-      Write_Bytes (Stream, Value.Thumbnail_Pixels);
+      Write_Bytes (Stream, Files.Shared_Bytes.To_Vector (Value.Thumbnail_Pixels));
       Boolean'Output (Stream, Value.Metadata_Error);
       Write_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
    end Write_Item;
@@ -270,7 +271,7 @@ package body Files.Job_Records is
       Result.Thumbnail_Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Thumbnail_Width := Natural'Input (Stream);
       Result.Thumbnail_Height := Natural'Input (Stream);
-      Result.Thumbnail_Pixels := Read_Bytes (Stream);
+      Result.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared (Read_Bytes (Stream));
       Result.Metadata_Error := Boolean'Input (Stream);
       Result.Error_Key := To_Unbounded_String (Read_String (Stream, Max_Error_Length));
       if not Item_Is_Consistent (Result) then

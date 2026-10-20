@@ -86,7 +86,7 @@ separate (Files.Application.Windows)
                      Thumbnail_Path      => Null_Unbounded_String,
                      Thumbnail_Width     => 0,
                      Thumbnail_Height    => 0,
-                     Thumbnail           => (Pixels => Files.Types.Byte_Vectors.Empty_Vector),
+                     Thumbnail           => (Pixels => Files.Shared_Bytes.Empty),
                      Metadata_Error     => False,
                      Error_Key          => Null_Unbounded_String,
                      Selected           => True,

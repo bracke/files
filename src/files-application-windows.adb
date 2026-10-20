@@ -22,6 +22,7 @@ with Glfw.Windows.Vulkan;
 with Files.Accessibility;
 with Files.Commands;
 with Files.Drop_Events;
+with Files.Shared_Bytes;
 with Files.Events;
 with Files.File_System;
 with Files.Folder_Size;
