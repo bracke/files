@@ -25,7 +25,7 @@ package body Files.Operation_Jobs is
    use type Files.Settings.Settings_Model;
    use type Hostkit.Lease_Files.Open_Outcome;
 
-   Request_Header : constant String := "files-operation-request-2";
+   Request_Header : constant String := "files-operation-request-3";
    Result_Header : constant String := "files-operation-result-1";
 
    type Request is record
@@ -36,6 +36,7 @@ package body Files.Operation_Jobs is
       Selected : Files.File_System.Item_Vectors.Vector;
       Settings : Files.Settings.Settings_Model;
       Context_Revision : Natural;
+      View_Incarnation : Natural;
    end record;
 
    type Outcome is record
@@ -93,6 +94,7 @@ package body Files.Operation_Jobs is
       Files.Job_Records.Write_Items (Stream, Work.Selected);
       Files.Job_Records.Write_Settings (Stream, Work.Settings);
       Natural'Output (Stream, Work.Context_Revision);
+      Natural'Output (Stream, Work.View_Incarnation);
    end Write_Request;
 
    function Read_Request (Path : String) return Request
@@ -123,6 +125,7 @@ package body Files.Operation_Jobs is
       Work.Selected := Files.Job_Records.Read_Items (Input'Access);
       Work.Settings := Files.Job_Records.Read_Settings (Input'Access);
       Work.Context_Revision := Natural'Input (Input'Access);
+      Work.View_Incarnation := Natural'Input (Input'Access);
       if not Files.Lease_Streams.End_Of_Stream (Input) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -207,7 +210,8 @@ package body Files.Operation_Jobs is
         (Kind => Kind, Root => To_Unbounded_String (Files.Model.Current_Path (Model)),
          Recent => Files.Model.In_Recent_View (Model), Query => To_Unbounded_String (Files.Model.Filter_Text (Model)),
          Selected => Files.Model.Selected_Items (Model), Settings => Settings,
-         Context_Revision => 0);
+         Context_Revision => 0,
+         View_Incarnation => Files.Model.View_Incarnation (Model));
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
       if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
@@ -294,16 +298,37 @@ package body Files.Operation_Jobs is
       Cancelled : Boolean := False;
       Done      : Outcome;
       Work      : Request;
+      Same_View       : Boolean := False;
       Context_Matches : Boolean := False;
+      Reload_Owed     : Boolean := False;
 
-      function Matches_Current_Context
+      --  The view the job started from is still on screen: no navigation since
+      --  (not even away and back), so it may refresh that view and report its
+      --  diagnostic there even though edits in the view moved its revision.
+      function Matches_Current_View
         (Candidate : Request)
          return Boolean is
         (Candidate.Root = Files.Model.Current_Path (Model)
          and then Candidate.Recent = Files.Model.In_Recent_View (Model)
          and then Candidate.Settings = Settings
+         and then Candidate.View_Incarnation = Files.Model.View_Incarnation (Model));
+
+      --  Additionally nothing listing-visible changed since the job started,
+      --  so its directory snapshot can replace the items directly.
+      function Matches_Current_Context
+        (Candidate : Request)
+         return Boolean is
+        (Matches_Current_View (Candidate)
          and then Candidate.Context_Revision =
            Files.Model.Listing_Revision (Model));
+
+      procedure Reload_Current_View (Select_Name : String := "") is
+         Reload : constant Files.Operations.Operation_Result :=
+           Files.Refresh_Jobs.Start (Model, Settings, True, Select_Name);
+         pragma Unreferenced (Reload);
+      begin
+         null;
+      end Reload_Current_View;
 
       procedure Recover_Undo is
          Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
@@ -384,6 +409,7 @@ package body Files.Operation_Jobs is
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
+      Same_View := Matches_Current_View (Work);
       Context_Matches := Matches_Current_Context (Work);
       if Done.Kind in Search_Names | Search_Contents then
          if not Context_Matches
@@ -401,19 +427,14 @@ package body Files.Operation_Jobs is
         or else (Done.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract
                  and then (Cancelled or else Done.Result.Status /= Files.Operations.Operation_Success))
       then
-         if Context_Matches then
+         if Same_View then
             --  Finalize error/history before the refresh captures this
             --  revision. A result from an older view must not refresh or alter
-            --  the diagnostic of the directory now displayed.
+            --  the diagnostic of the view now displayed, but an edit within the
+            --  same view must not cost it the reload either.
             Files.Model.Set_Error
               (Model, (if Cancelled then "" else To_String (Done.Visible_Error)));
-            declare
-               Reload : constant Files.Operations.Operation_Result :=
-                 Files.Refresh_Jobs.Start (Model, Settings, True);
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_Current_View;
          end if;
          return (if Cancelled then (Status => Files.Operations.Operation_Success, others => <>) else Done.Result);
       end if;
@@ -441,8 +462,17 @@ package body Files.Operation_Jobs is
                end;
             end if;
          end if;
+      elsif not Cancelled
+        and then Done.Result.Status = Files.Operations.Operation_Success
+        and then Same_View
+        and then Done.Kind not in Search_Names | Search_Contents
+      then
+         --  Same view, but its snapshot predates a later listing change:
+         --  reread it rather than leave the operation's new entries unlisted.
+         --  Started below, once the diagnostic it must preserve is final.
+         Reload_Owed := True;
       end if;
-      if not Context_Matches then
+      if not Same_View then
          --  The filesystem work and restored history remain valid, but its
          --  directory snapshot and diagnostic belong to the view it started
          --  from, not the one now displayed -- even when it was cancelled.
@@ -454,6 +484,9 @@ package body Files.Operation_Jobs is
          return (Status => Files.Operations.Operation_Success, others => <>);
       end if;
       Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
+      if Reload_Owed then
+         Reload_Current_View (To_String (Done.Selection));
+      end if;
       Files.Model.Ensure_Selected_Item_Extra (Model);
       return Done.Result;
    exception
@@ -463,10 +496,10 @@ package body Files.Operation_Jobs is
          --  while an old job cannot disturb a newer view.
          begin
             Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
-            Context_Matches := Matches_Current_Context (Work);
+            Same_View := Matches_Current_View (Work);
          exception
             when others =>
-               Context_Matches := False;
+               Same_View := False;
          end;
          Files.Model.Clear_Paste_Execution (Model);
          declare
@@ -479,16 +512,10 @@ package body Files.Operation_Jobs is
          Recover_Undo;
          --  Even an interrupted destructive operation may have changed its
          --  original view, but it must not refresh a different current view.
-         if Context_Matches then
+         if Same_View then
             Files.Model.Set_Error
               (Model, (if Cancelled then "" else "error.drop.failed"));
-            declare
-               Reload : constant Files.Operations.Operation_Result :=
-                 Files.Refresh_Jobs.Start (Model, Settings, True);
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_Current_View;
          end if;
          if Cancelled then
             return (Status => Files.Operations.Operation_Success, others => <>);

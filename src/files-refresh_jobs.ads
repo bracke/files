@@ -24,6 +24,17 @@ package Files.Refresh_Jobs is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) return Boolean;
 
+   --  Relaunch a reload that Advance had to discard because the listing
+   --  context moved while it ran (see Files.Model.Note_Owed_Refresh). Call it
+   --  from the window's poll; it does nothing while a read is in flight, and
+   --  Start's usual policy decides when an owed unforced reload may run.
+   --
+   --  @param Model Window that may owe a reload of its current view.
+   --  @param Settings Current directory settings.
+   procedure Resume_Owed
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
    --  @param Model Window whose pending read to stop without waiting.
    procedure Cancel (Model : in out Files.Model.Window_Model);
 

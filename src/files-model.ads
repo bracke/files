@@ -64,6 +64,57 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Return the generation of the displayed directory view. It advances only
+   --  when the window navigates (even back to the same path), never on edits
+   --  within a view, so a background result can tell "the view it started
+   --  from is still on screen" apart from "nothing listing-visible changed".
+   --
+   --  @param Model Model to inspect.
+   --  @return Current view incarnation.
+   function View_Incarnation
+     (Model : Window_Model)
+      return Natural;
+
+   --  Remember that a reload of the current view is still owed: a background
+   --  read was discarded because the listing context moved while it ran, so
+   --  its answer could not be applied. A later owed request merges with an
+   --  earlier one (Force wins; a nonempty selection replaces the old one).
+   --
+   --  @param Model Model to update.
+   --  @param Force Whether the discarded read was a forced reload.
+   --  @param Select_Name Item name the discarded read was asked to select.
+   procedure Note_Owed_Refresh
+     (Model       : in out Window_Model;
+      Force       : Boolean;
+      Select_Name : String);
+
+   --  Return whether a reload is owed for the view that is on screen now.
+   --  Navigation makes an earlier debt moot, since it loads the new view.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while an owed reload is pending for this incarnation.
+   function Refresh_Is_Owed
+     (Model : Window_Model)
+      return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return Whether the owed reload must be forced.
+   function Owed_Refresh_Force
+     (Model : Window_Model)
+      return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return Item name the owed reload should select, or "".
+   function Owed_Refresh_Selection
+     (Model : Window_Model)
+      return String;
+
+   --  Settle any owed reload, typically because a new read was launched.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Owed_Refresh
+     (Model : in out Window_Model);
+
    --  Return whether a transient surface currently owns window input.  Native
    --  callback paths and shell-owned continuous gestures use this common policy
    --  because they do not pass through the ordinary click/key translators.
@@ -2916,5 +2967,13 @@ private
       --  Narrower generation used to reject stale background directory reads
       --  without treating harmless interaction as a listing-context change.
       Listing_Revision_Value : Natural := 0;
+      --  Generation of the displayed view; advanced only by navigation.
+      View_Incarnation_Value : Natural := 0;
+      --  A discarded background read whose reload is still owed, and the view
+      --  incarnation it is owed to.
+      Owed_Refresh            : Boolean := False;
+      Owed_Refresh_Incarnation : Natural := 0;
+      Owed_Refresh_Forced     : Boolean := False;
+      Owed_Refresh_Select     : UString;
    end record;
 end Files.Model;

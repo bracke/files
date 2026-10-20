@@ -17,6 +17,7 @@ with Hostkit.Watch;
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
+   use type Files.Operations.Operation_Status;
    use type Files.Settings.Settings_Model;
    use type Hostkit.Lease_Files.Open_Outcome;
 
@@ -289,6 +290,8 @@ package body Files.Refresh_Jobs is
       Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Job, "--files-refresh");
       Files.Model.Set_Background_Refresh (Model, Job);
+      --  This read covers the current view, so any reload owed to it is paid.
+      Files.Model.Clear_Owed_Refresh (Model);
       return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
    exception
       when others =>
@@ -299,6 +302,31 @@ package body Files.Refresh_Jobs is
          return (Status => Files.Operations.Operation_Failed,
                  Error_Key => To_Unbounded_String (Files.Model.Last_Error_Key (Model)), others => <>);
    end Start;
+
+   procedure Resume_Owed
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      if not Files.Model.Refresh_Is_Owed (Model)
+        or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
+        or else Files.Model.Paste_Execution_Is_Active (Model)
+      then
+         return;
+      end if;
+
+      declare
+         Retry : constant Files.Operations.Operation_Result :=
+           Start (Model, Settings,
+                  Force       => Files.Model.Owed_Refresh_Force (Model),
+                  Select_Name => Files.Model.Owed_Refresh_Selection (Model));
+      begin
+         --  A launch settles the debt inside Start. A launch failure has
+         --  already reported its error; retrying it every poll would not help.
+         if Retry.Status = Files.Operations.Operation_Failed then
+            Files.Model.Clear_Owed_Refresh (Model);
+         end if;
+      end;
+   end Resume_Owed;
 
    function Advance
      (Model : in out Files.Model.Window_Model;
@@ -311,6 +339,24 @@ package body Files.Refresh_Jobs is
       Matching : Boolean := False;
       Requested_Root : Files.Types.UString;
       Requested_Context_Revision : Natural;
+
+      --  A read of the directory still on screen went stale because something
+      --  listing-visible changed (an error, an edit, Settings). Its answer must
+      --  not be applied, but the reload it stood for is still owed; Resume_Owed
+      --  reissues it against the current state on a later poll.
+      procedure Owe_Reload is
+      begin
+         declare
+            Stale : constant Request :=
+              Read_Request (Files.Process_Jobs.Path (Job, "request"));
+         begin
+            Files.Model.Note_Owed_Refresh
+              (Model, Stale.Force, To_String (Stale.Selection));
+         end;
+      exception
+         when others =>
+            Files.Model.Note_Owed_Refresh (Model, False, "");
+      end Owe_Reload;
    begin
       if not Files.Process_Jobs.Active (Job) then
          return False;
@@ -324,9 +370,11 @@ package body Files.Refresh_Jobs is
       Read_Request_Identity
         (Files.Process_Jobs.Path (Job, "request"),
          Requested_Root, Requested_Context_Revision);
-      if Requested_Root /= Files.Model.Current_Path (Model)
-        or else Requested_Context_Revision /= Files.Model.Listing_Revision (Model)
-      then
+      if Requested_Root /= Files.Model.Current_Path (Model) then
+         Cancel (Model);
+         return False;
+      elsif Requested_Context_Revision /= Files.Model.Listing_Revision (Model) then
+         Owe_Reload;
          Cancel (Model);
          return False;
       end if;
@@ -340,6 +388,11 @@ package body Files.Refresh_Jobs is
         and then Work.Recent = Files.Model.In_Recent_View (Model)
         and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
         and then Work.Settings = Settings;
+      if not Matching and then not Cancelled
+        and then Work.Root = Files.Model.Current_Path (Model)
+      then
+         Owe_Reload;
+      end if;
       if not Matching or else Cancelled then
          return False;
       end if;

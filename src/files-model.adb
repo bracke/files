@@ -426,6 +426,60 @@ package body Files.Model is
       return Model.Listing_Revision_Value;
    end Listing_Revision;
 
+   function View_Incarnation
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.View_Incarnation_Value;
+   end View_Incarnation;
+
+   procedure Note_Owed_Refresh
+     (Model       : in out Window_Model;
+      Force       : Boolean;
+      Select_Name : String) is
+   begin
+      if not Refresh_Is_Owed (Model) then
+         Model.Owed_Refresh_Forced := False;
+         Model.Owed_Refresh_Select := Null_Unbounded_String;
+      end if;
+      Model.Owed_Refresh := True;
+      Model.Owed_Refresh_Incarnation := Model.View_Incarnation_Value;
+      Model.Owed_Refresh_Forced := Model.Owed_Refresh_Forced or else Force;
+      if Select_Name /= "" then
+         Model.Owed_Refresh_Select := To_Unbounded_String (Select_Name);
+      end if;
+   end Note_Owed_Refresh;
+
+   function Refresh_Is_Owed
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Owed_Refresh
+        and then Model.Owed_Refresh_Incarnation = Model.View_Incarnation_Value;
+   end Refresh_Is_Owed;
+
+   function Owed_Refresh_Force
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Refresh_Is_Owed (Model) and then Model.Owed_Refresh_Forced;
+   end Owed_Refresh_Force;
+
+   function Owed_Refresh_Selection
+     (Model : Window_Model)
+      return String is
+   begin
+      return (if Refresh_Is_Owed (Model) then To_String (Model.Owed_Refresh_Select) else "");
+   end Owed_Refresh_Selection;
+
+   procedure Clear_Owed_Refresh
+     (Model : in out Window_Model) is
+   begin
+      Model.Owed_Refresh := False;
+      Model.Owed_Refresh_Forced := False;
+      Model.Owed_Refresh_Select := Null_Unbounded_String;
+   end Clear_Owed_Refresh;
+
    function Input_Owning_Overlay_Is_Open
      (Model : Window_Model)
       return Boolean is
@@ -463,6 +517,7 @@ package body Files.Model is
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
+      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
       Files.Process_Jobs.Reset (Model.Refresh_Job);
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
@@ -994,6 +1049,7 @@ package body Files.Model is
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
+      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
       Model.Selected_Item_Index := 0;
@@ -1032,6 +1088,7 @@ package body Files.Model is
 
       Model.Recent_View_Active := True;
       Model.Current_Path_Value := Null_Unbounded_String;
+      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items ("", Items);
       Model.Selected_Item_Index := 0;
@@ -1074,6 +1131,7 @@ package body Files.Model is
       end if;
       Model.Recent_View_Active := False;
       Model.Current_Path_Value := Previous;
+      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
       Model.Path_Input_Value := Previous;
       Model.Path_Input_Cursor := Length (Previous);
       Model.Path_Input_Valid := True;
@@ -1113,6 +1171,7 @@ package body Files.Model is
       end if;
       Model.Recent_View_Active := False;
       Model.Current_Path_Value := Next;
+      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
       Model.Path_Input_Value := Next;
       Model.Path_Input_Cursor := Length (Next);
       Model.Path_Input_Valid := True;
