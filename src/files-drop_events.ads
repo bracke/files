@@ -24,7 +24,9 @@ package Files.Drop_Events is
    --  @return Structured backend capability metadata.
    function Profile return Drop_Event_Source_Profile;
 
-   --  Queue a drop event, filtering empty path entries and capping path count.
+   --  Queue a drop event, filtering empty path entries. A drop of more paths
+   --  than the backend limit is refused whole (see Take_Overflow) rather than
+   --  silently imported in part.
    --
    --  @param Source Drop event source to update.
    --  @param Paths Source paths reported by the native event source.
@@ -50,6 +52,14 @@ package Files.Drop_Events is
      (Source : Drop_Event_Source)
       return Natural;
 
+   --  Report, once, that a drop was refused for exceeding the path limit.
+   --
+   --  @param Source Drop event source to drain.
+   --  @return True when a drop was refused since the last call.
+   function Take_Overflow
+     (Source : in out Drop_Event_Source)
+      return Boolean;
+
    --  Drain queued paths and clear the source.
    --
    --  @param Source Drop event source to drain.
@@ -64,6 +74,7 @@ private
    type Drop_Event_Source is record
       Pending_Paths : Files.Types.String_Vectors.Vector;
       Pending_Mode  : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Overflowed    : Boolean := False;
    end record;
 
 end Files.Drop_Events;

@@ -544,7 +544,8 @@ package body Files.Application.Windows is
          Raw_Paths : constant C_Path_Array_Pointers.Object_Pointer :=
            C_Path_Array_Pointers.To_Pointer (Paths);
          Last      : constant Natural :=
-           Natural'Min (Natural (Count), Files.Drop_Events.Profile.Max_Paths);
+           --  One past the limit, so Queue can tell an oversized drop apart.
+           Natural'Min (Natural (Count), Files.Drop_Events.Profile.Max_Paths + 1);
          Drops     : Files.Types.String_Vectors.Vector;
       begin
          if Raw_Paths = null then
@@ -848,7 +849,14 @@ package body Files.Application.Windows is
       Drops  : Files.Types.String_Vectors.Vector;
       Mode   : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
    begin
-      if Runtime.Handle = null or else not Files.Drop_Events.Has_Pending (Runtime.Handle.Drop_Source) then
+      if Runtime.Handle = null then
+         return;
+      end if;
+      if Files.Drop_Events.Take_Overflow (Runtime.Handle.Drop_Source) then
+         Files.Model.Set_Error (Runtime.Model, "error.drop.failed");
+         return;
+      end if;
+      if not Files.Drop_Events.Has_Pending (Runtime.Handle.Drop_Source) then
          return;
       end if;
 

@@ -925,6 +925,18 @@ package body Files_Suite.Startup is
            (To_String (Drained.Element (1)) = "  " & Dir & "  ",
             "drop event source preserves native path whitespace");
          Assert (not Files.Drop_Events.Has_Pending (Source), "drop event source clears after drain");
+         declare
+            Too_Many : Files.Types.String_Vectors.Vector;
+         begin
+            for Index in 1 .. Event_Profile.Max_Paths + 1 loop
+               Too_Many.Append (To_Unbounded_String (Dir));
+            end loop;
+            Files.Drop_Events.Queue (Source, Too_Many);
+            Assert (not Files.Drop_Events.Has_Pending (Source),
+                    "a drop over the path limit is refused whole, not imported in part");
+            Assert (Files.Drop_Events.Take_Overflow (Source), "the refused drop is reported once");
+            Assert (not Files.Drop_Events.Take_Overflow (Source), "the refusal report clears after it is taken");
+         end;
       end;
       Assert (Caps.Directory_Watch_Polling, "runtime capabilities expose directory watch polling");
       Assert (Caps.Native_File_Watching, "runtime capabilities expose native file watching");

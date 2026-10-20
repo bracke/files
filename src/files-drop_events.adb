@@ -1,7 +1,7 @@
 package body Files.Drop_Events is
    use Ada.Strings.Unbounded;
 
-   Max_Drop_Paths : constant Positive := 256;
+   Max_Drop_Paths : constant Positive := 65_536;
 
    function Profile return Drop_Event_Source_Profile is
    begin
@@ -23,9 +23,14 @@ package body Files.Drop_Events is
    begin
       Source.Pending_Paths.Clear;
       Source.Pending_Mode := Mode;
+      if Natural (Paths.Length) > Max_Drop_Paths then
+         --  Importing only the first part would report success for a drop
+         --  that silently left files behind.
+         Source.Overflowed := True;
+         return;
+      end if;
 
       for Path of Paths loop
-         exit when Natural (Source.Pending_Paths.Length) >= Max_Drop_Paths;
 
          if Length (Path) > 0 then
             --  GLFW supplies native path bytes, not user-entered text. Leading
@@ -49,6 +54,16 @@ package body Files.Drop_Events is
    begin
       return Natural (Source.Pending_Paths.Length);
    end Pending_Count;
+
+   function Take_Overflow
+     (Source : in out Drop_Event_Source)
+      return Boolean
+   is
+      Overflowed : constant Boolean := Source.Overflowed;
+   begin
+      Source.Overflowed := False;
+      return Overflowed;
+   end Take_Overflow;
 
    procedure Take
      (Source : in out Drop_Event_Source;
