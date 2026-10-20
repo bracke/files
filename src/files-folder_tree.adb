@@ -185,4 +185,39 @@ package body Files.Folder_Tree is
       return Result;
    end Visible_Rows;
 
+   function Visible_Row_Count
+     (T : Tree)
+      return Natural
+   is
+      type Flag_Array is array (Positive range <>) of Boolean;
+      Count : Natural := 0;
+   begin
+      if T.Nodes.Is_Empty then
+         return 0;
+      end if;
+
+      declare
+         --  Set_Children appends children after their parent, so one forward
+         --  pass sees each parent's visibility before any of its children.
+         Shown : Flag_Array (T.Nodes.First_Index .. T.Nodes.Last_Index) :=
+           [others => False];
+      begin
+         for Index in Shown'Range loop
+            declare
+               Parent : constant Natural := T.Nodes.Element (Index).Parent;
+            begin
+               Shown (Index) :=
+                 Parent = 0
+                 or else (Parent < Index
+                          and then Shown (Parent)
+                          and then T.Nodes.Element (Parent).Expanded);
+               if Shown (Index) then
+                  Count := Count + 1;
+               end if;
+            end;
+         end loop;
+      end;
+      return Count;
+   end Visible_Row_Count;
+
 end Files.Folder_Tree;

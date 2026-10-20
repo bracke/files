@@ -9,13 +9,7 @@ separate (Files.Rendering)
       Padding     : constant Natural := Root_Selector_Padding;
       Indent_W    : constant Natural := Line_Height;
       Header_H    : constant Natural := Layout.Row_Height;
-      Footer_H    : constant Natural :=
-        (if Snapshot.Tree_Pick_Active
-           and then Layout.Width > 0
-           and then Layout.Row_Height > 0
-           and then Layout.Height > Saturating_Multiply (Layout.Row_Height, 2)
-         then Layout.Row_Height
-         else 0);
+      Footer_H    : constant Natural := Tree_Footer_Height (Snapshot, Layout);
       Content_X   : constant Natural := Saturating_Add (Layout.X, Padding);
       Panel_End_X : constant Natural := Saturating_Add (Layout.X, Layout.Width);
       Panel_End_Y : constant Natural :=

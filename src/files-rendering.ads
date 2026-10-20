@@ -1281,11 +1281,28 @@ package Files.Rendering is
    --
    --  @param Snapshot View snapshot containing tree-picker state.
    --  @param Layout Tree sidebar panel layout.
-   --  @return Number of whole or partially visible rows in the viewport.
+   --  @return Number of fully visible rows in the viewport (at least one
+   --  when any content height remains).
    function Tree_Row_Capacity
      (Snapshot : View_Snapshot;
       Layout   : Tree_Panel_Layout)
       return Natural;
+
+   --  Largest line offset a scrollable region can take: enough lines to
+   --  bring the content's bottom edge into the viewport. Shared by wheel,
+   --  track-click, and thumb-drag handling so their limits cannot drift.
+   --
+   --  @param Content_Height Total content height in pixels.
+   --  @param Viewport_Height Visible height in pixels.
+   --  @param Line_Height Pixels scrolled per line.
+   --  @return Maximum scroll offset in lines; zero when everything fits.
+   function Max_Scroll_Lines
+     (Content_Height  : Natural;
+      Viewport_Height : Natural;
+      Line_Height     : Positive)
+      return Natural is
+     (if Content_Height <= Viewport_Height then 0
+      else 1 + (Content_Height - Viewport_Height - 1) / Line_Height);
 
    --  Calculate folder-tree row rectangles with per-depth indentation.
    --

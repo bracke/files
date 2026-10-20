@@ -5,7 +5,7 @@ package body Tree_Panel is
      (Model : in out Window_Model)
    is
       Count : constant Natural :=
-        Natural (Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value).Length);
+        Files.Folder_Tree.Visible_Row_Count (Model.Folder_Tree_Value);
       Maximum : constant Natural := (if Count = 0 then 0 else Count - 1);
    begin
       Model.Tree_Panel_Scroll := Natural'Min (Model.Tree_Panel_Scroll, Maximum);
@@ -147,7 +147,7 @@ package body Tree_Panel is
       return Natural
    is
       Count : constant Natural :=
-        Natural (Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value).Length);
+        Files.Folder_Tree.Visible_Row_Count (Model.Folder_Tree_Value);
    begin
       return
         (if Count = 0 then 0
@@ -159,7 +159,7 @@ package body Tree_Panel is
       Rows  : Natural)
    is
       Count : constant Natural :=
-        Natural (Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value).Length);
+        Files.Folder_Tree.Visible_Row_Count (Model.Folder_Tree_Value);
       Maximum : constant Natural := (if Count = 0 then 0 else Count - 1);
       Value   : constant Natural := Natural'Min (Rows, Maximum);
    begin
@@ -177,7 +177,7 @@ package body Tree_Panel is
    is
       Current : constant Natural := Tree_Panel_Scroll_Rows (Model);
       Count   : constant Natural :=
-        Natural (Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value).Length);
+        Files.Folder_Tree.Visible_Row_Count (Model.Folder_Tree_Value);
       Maximum : constant Natural := (if Count = 0 then 0 else Count - 1);
       Step    : Natural;
       Wanted  : Natural;
@@ -209,7 +209,7 @@ package body Tree_Panel is
       Page_Rows   : Natural)
    is
       Count : constant Natural :=
-        Natural (Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value).Length);
+        Files.Folder_Tree.Visible_Row_Count (Model.Folder_Tree_Value);
       Maximum : constant Natural :=
         (if Count > Page_Rows then Count - Page_Rows else 0);
       Current : constant Natural :=

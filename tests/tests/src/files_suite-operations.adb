@@ -10887,6 +10887,13 @@ package body Files_Suite.Operations is
         (not Files.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "duplicate archive names are rejected before extraction");
+      Catalogue (1).Name := To_Unbounded_String ("docs/");
+      Catalogue (2).Name := To_Unbounded_String ("docs/");
+      Assert
+        (Files.Archive_Writing.Extraction_Is_Within_Limits
+           (Catalogue, 1_000, True, 100, True),
+         "a repeated directory entry does not block extraction");
+      Catalogue (1).Name := To_Unbounded_String ("report.txt");
       Catalogue (2).Name := To_Unbounded_String ("notes.txt");
       Assert
         (not Files.Archive_Writing.Extraction_Is_Within_Limits

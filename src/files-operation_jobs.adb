@@ -442,15 +442,16 @@ package body Files.Operation_Jobs is
             end if;
          end if;
       end if;
-      if Cancelled then
-         Files.Model.Set_Error (Model, "");
-         return (Status => Files.Operations.Operation_Success, others => <>);
-      end if;
       if not Context_Matches then
          --  The filesystem work and restored history remain valid, but its
          --  directory snapshot and diagnostic belong to the view it started
-         --  from, not the one now displayed.
-         return Done.Result;
+         --  from, not the one now displayed -- even when it was cancelled.
+         return (if Cancelled then (Status => Files.Operations.Operation_Success, others => <>)
+                 else Done.Result);
+      end if;
+      if Cancelled then
+         Files.Model.Set_Error (Model, "");
+         return (Status => Files.Operations.Operation_Success, others => <>);
       end if;
       Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
       Files.Model.Ensure_Selected_Item_Extra (Model);

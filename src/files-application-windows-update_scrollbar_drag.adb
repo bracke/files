@@ -76,17 +76,8 @@ separate (Files.Application.Windows)
          function Maximum_Line_Offset
            (Content_Height  : Natural;
             Viewport_Height : Natural)
-            return Natural
-         is
-            Difference : Natural;
-         begin
-            if Content_Height <= Viewport_Height then
-               return 0;
-            end if;
-
-            Difference := Content_Height - Viewport_Height;
-            return 1 + (Difference - 1) / Line_Height;
-         end Maximum_Line_Offset;
+            return Natural is
+           (Files.Rendering.Max_Scroll_Lines (Content_Height, Viewport_Height, Line_Height));
 
          procedure Set_Main_Lines (Lines : Natural) is
          begin

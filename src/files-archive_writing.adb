@@ -102,20 +102,23 @@ package body Files.Archive_Writing is
       for Member of Entries loop
          declare
             Name : constant String := To_String (Member.Name);
+            Is_Directory_Entry : constant Boolean :=
+              Name /= "" and then Name (Name'Last) = '/';
             Path_Bytes : constant U64 :=
               U64 (Ada.Strings.Unbounded.Length (Member.Name));
          begin
+            --  A repeated directory entry is harmless (some writers emit one
+            --  per member); only a repeated file would silently overwrite.
             if not Safe_Archive_Name
-              (Name, Allow_Trailing_Separator =>
-                 Name /= "" and then Name (Name'Last) = '/')
-              or else Names_Seen.Contains (Name)
+              (Name, Allow_Trailing_Separator => Is_Directory_Entry)
+              or else (not Is_Directory_Entry and then Names_Seen.Contains (Name))
               or else Add_Would_Overflow (Total_Uncompressed, Member.Uncompressed_Size)
               or else Add_Would_Overflow (Total_Compressed, Member.Compressed_Size)
               or else Add_Would_Overflow (Total_Path_Bytes, Path_Bytes)
             then
                return False;
             end if;
-            Names_Seen.Insert (Name);
+            Names_Seen.Include (Name);
             Total_Uncompressed := Total_Uncompressed + Member.Uncompressed_Size;
             Total_Compressed := Total_Compressed + Member.Compressed_Size;
             Total_Path_Bytes := Total_Path_Bytes + Path_Bytes;

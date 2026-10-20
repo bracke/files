@@ -36,17 +36,10 @@ separate (Files.Events)
         (Content_Height  : Natural;
          Viewport_Height : Natural;
          Scrollbar_Shown : Boolean)
-         return Natural
-      is
-         Difference : Natural;
-      begin
-         if not Scrollbar_Shown or else Content_Height <= Viewport_Height then
-            return 0;
-         end if;
-
-         Difference := Content_Height - Viewport_Height;
-         return 1 + (Difference - 1) / Line_Height;
-      end Maximum_Line_Offset;
+         return Natural is
+        (if Scrollbar_Shown
+         then Files.Rendering.Max_Scroll_Lines (Content_Height, Viewport_Height, Line_Height)
+         else 0);
 
       function Bounded_Scroll_Action
         (Target  : Scroll_Target;

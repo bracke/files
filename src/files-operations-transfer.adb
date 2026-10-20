@@ -683,36 +683,36 @@ package body Transfer is
       Undo_Sources  : Files.Types.String_Vectors.Vector;
       Identities    : Files.Types.String_Vectors.Vector;
       Tree_Revisions : Files.Types.String_Vectors.Vector;
-      Progress_Recorded : Boolean := False;
-      Verified_Count : Natural := 0;
+      Undo_Recorded : Boolean := False;
 
-      procedure Record_Progress is
-         Previous : Files.Model.Undo_Entry;
-         Found : Boolean;
+      --  Record one undo entry for every link created so far, exactly once,
+      --  whether the batch completes or stops part-way. A created link is
+      --  undone by deleting it and redone by re-creating it from its source.
+      procedure Record_Created is
       begin
-         if Progress_Recorded then
-            Files.Model.Take_Undo (Model, Previous, Found);
+         if Undo_Recorded or else Undo_From.Is_Empty then
+            return;
          end if;
-         Progress_Recorded := Files.Model.Try_Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To,
-            Forward     => Undo_Sources,
-            Create_Kind =>
-              (if Hard
-               then Files.Model.Create_Hard_Link
-               else Files.Model.Create_Symbolic_Link),
-            Original_Identities => Identities,
-            Original_Tree_Revisions => Tree_Revisions,
-            Retain_Verified_Main => Verified_Count);
-         if Progress_Recorded
-           and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
-             Natural (Undo_From.Length)
-         then
-            Verified_Count := Natural (Undo_From.Length);
-         end if;
-      end Record_Progress;
+         Undo_Recorded := True;
+         declare
+            Recorded : constant Boolean := Files.Model.Try_Record_Undo
+              (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To,
+               Forward     => Undo_Sources,
+               Create_Kind =>
+                 (if Hard
+                  then Files.Model.Create_Hard_Link
+                  else Files.Model.Create_Symbolic_Link),
+               Original_Identities => Identities,
+               Original_Tree_Revisions => Tree_Revisions);
+            pragma Unreferenced (Recorded);
+         begin
+            null;
+         end;
+      end Record_Created;
 
       function Failed (Error_Key : String) return Operation_Result is
       begin
+         Record_Created;
          Files.Model.Set_Error (Model, Error_Key);
          if not Undo_From.Is_Empty then
             declare
@@ -807,7 +807,6 @@ package body Transfer is
               (To_Unbounded_String (Files.File_Identities.Token (Dest_Path)));
             Tree_Revisions.Append
               (To_Unbounded_String (Files.File_System.Tree_Revision (Dest_Path)));
-            Record_Progress;
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);
                Created_Any := True;
@@ -818,6 +817,7 @@ package body Transfer is
       if not Created_Any then
          return Failed ("error.link.failed");
       end if;
+      Record_Created;
 
       --  Reload so the new links appear, and select the first one.
       return Reload_Current_Directory (Model, Settings, To_String (First_Created));

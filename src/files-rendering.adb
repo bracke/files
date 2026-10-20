@@ -998,23 +998,7 @@ package body Files.Rendering is
      (Menu : Context_Menu_Layout;
       Row  : Positive)
       return Natural
-   is
-      Top : Natural := Saturating_Add (Menu.Y, Menu.Padding);
-      First_Row : constant Positive :=
-        (if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row
-         then Positive (Menu.Column_Break_Row + 1)
-         else 1);
-   begin
-      for Preceding in First_Row .. Row - 1 loop
-         Top :=
-           Saturating_Add
-             (Top,
-              (if Menu.Row_Kinds (Preceding) = Separator_Row
-               then Menu.Separator_Height
-               else Menu.Row_Height));
-      end loop;
-      return Top;
-   end Context_Menu_Row_Top;
+ is separate;
 
    function Context_Menu_Row_Left
      (Menu : Context_Menu_Layout;
@@ -1568,102 +1552,54 @@ package body Files.Rendering is
       return 0;
    end Breadcrumb_At;
 
+   --  Height of the Choose/Cancel footer the tree panel reserves in pick
+   --  mode; zero otherwise or when the panel is too short to spare a row.
+   function Tree_Footer_Height
+     (Snapshot : View_Snapshot;
+      Layout   : Tree_Panel_Layout)
+      return Natural is
+     (if Snapshot.Tree_Pick_Active
+        and then Layout.Width > 0
+        and then Layout.Row_Height > 0
+        and then Layout.Height > Saturating_Multiply (Layout.Row_Height, 2)
+      then Layout.Row_Height
+      else 0);
+
+   --  Height left for folder rows below the header and above any footer.
+   function Tree_Content_Height
+     (Snapshot : View_Snapshot;
+      Layout   : Tree_Panel_Layout)
+      return Natural
+   is
+      Reserved : constant Natural :=
+        Saturating_Add (Layout.Row_Height, Tree_Footer_Height (Snapshot, Layout));
+   begin
+      return (if Layout.Height > Reserved then Layout.Height - Reserved else 0);
+   end Tree_Content_Height;
+
    function Calculate_Tree_Panel_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Tree_Panel_Layout
-   is
-      Preferred_Width : constant Natural :=
-        Natural'Max (Layout.Width / 4, Saturating_Multiply (Line_Height, 16));
-      Panel_Width     : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
-      Row_Height      : constant Natural :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2));
-   begin
-      if not Snapshot.Tree_Panel_Open then
-         return (others => <>);
-      end if;
-
-      declare
-         Base : constant Tree_Panel_Layout :=
-           (X          => 0,
-            Y          => Layout.Toolbar_Height,
-            Width      => Panel_Width,
-            Height     => Layout.Main_Height,
-            Row_Height => Row_Height,
-            others     => <>);
-         Footer_H : constant Natural :=
-           (if Snapshot.Tree_Pick_Active
-              and then Base.Width > 0
-              and then Base.Row_Height > 0
-              and then Base.Height > Saturating_Multiply (Base.Row_Height, 2)
-            then Base.Row_Height
-            else 0);
-         Reserved : constant Natural := Saturating_Add (Base.Row_Height, Footer_H);
-         Track_H  : constant Natural :=
-           (if Base.Height > Reserved then Base.Height - Reserved else 0);
-         Capacity : constant Natural := Tree_Row_Capacity (Snapshot, Base);
-         Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
-         Maximum  : constant Natural :=
-           (if Count > Capacity then Count - Capacity else 0);
-         Scroll   : constant Natural :=
-           Natural'Min (Snapshot.Tree_Panel_Scroll_Rows, Maximum);
-         Bar_W    : constant Natural := Natural'Min (Scrollbar_Width, Base.Width);
-         Thumb    : constant Guikit.Layout.Scrollbar_Thumb :=
-           Guikit.Layout.Calculate_Scrollbar_Thumb
-             (Track_Length    => Track_H,
-              Visible_Amount  => Capacity,
-              Total_Amount    => Count,
-              Scroll_Position => Scroll,
-              Max_Scroll      => Maximum,
-              Min_Length      => Line_Height);
-         Visible  : constant Boolean :=
-           Count > Capacity
-           and then Capacity > 0
-           and then Bar_W > 0
-           and then Thumb.Length > 0;
-         Track_Y  : constant Natural := Saturating_Add (Base.Y, Base.Row_Height);
-      begin
-         return
-           (X          => Base.X,
-            Y          => Base.Y,
-            Width      => Base.Width,
-            Height     => Base.Height,
-            Row_Height => Base.Row_Height,
-            Scrollbar_Visible => Visible,
-            Scrollbar_X       =>
-              (if Visible then Saturating_Add (Base.X, Base.Width - Bar_W) else 0),
-            Scrollbar_Y       => (if Visible then Track_Y else 0),
-            Scrollbar_Thumb_Y =>
-              (if Visible then Saturating_Add (Track_Y, Thumb.Offset) else 0),
-            Scrollbar_Width   => (if Visible then Bar_W else 0),
-            Scrollbar_Height  => (if Visible then Thumb.Length else 0),
-            Scrollbar_Track_Height => (if Visible then Track_H else 0));
-      end;
-   end Calculate_Tree_Panel_Layout;
+ is separate;
 
    function Tree_Row_Capacity
      (Snapshot : View_Snapshot;
       Layout   : Tree_Panel_Layout)
       return Natural
    is
-      Footer_H : constant Natural :=
-        (if Snapshot.Tree_Pick_Active
-           and then Layout.Width > 0
-           and then Layout.Row_Height > 0
-           and then Layout.Height > Saturating_Multiply (Layout.Row_Height, 2)
-         then Layout.Row_Height
-         else 0);
-      Reserved : constant Natural :=
-        Saturating_Add (Layout.Row_Height, Footer_H);
-      Content_H : constant Natural :=
-        (if Layout.Height > Reserved then Layout.Height - Reserved else 0);
+      Content_H : constant Natural := Tree_Content_Height (Snapshot, Layout);
    begin
       if Layout.Row_Height = 0 or else Content_H = 0 then
          return 0;
       end if;
 
-      return 1 + (Content_H - 1) / Layout.Row_Height;
+      --  Count only fully visible rows, so the furthest scroll position
+      --  shows the last folder whole rather than clipped by the panel edge
+      --  or the pick-mode footer. A panel shorter than one row still shows
+      --  that row, clipped.
+      return Natural'Max (1, Content_H / Layout.Row_Height);
    end Tree_Row_Capacity;
 
    function Calculate_Tree_Row_Layout
@@ -1839,27 +1775,7 @@ package body Files.Rendering is
       Segment_Last : Integer;
       Capacity     : Natural)
       return Integer
-   is
-      Prefix : constant String :=
-        Files.UTF8.Prefix_By_Units (Raw (Start .. Segment_Last), Capacity);
-      Limit  : constant Integer :=
-        (if Prefix'Length = 0
-         then Start
-           + Integer (Files.UTF8.Next_Boundary (Raw (Start .. Segment_Last), 0)) - 1
-         else Start + Prefix'Length - 1);
-   begin
-      if Limit >= Segment_Last then
-         return Segment_Last;
-      end if;
-
-      for Position in reverse Start + 1 .. Limit loop
-         if Raw (Position) = ' ' or else Raw (Position) = ASCII.HT then
-            return Position - 1;
-         end if;
-      end loop;
-
-      return Limit;
-   end Wrapped_Line_Last;
+ is separate;
 
    --  Whitespace used as a wrap boundary belongs to neither rendered line.
    function Skip_Wrap_Whitespace

@@ -150,6 +150,14 @@ package Files.Folder_Tree is
      (T : Tree)
       return Visible_Row_Vectors.Vector;
 
+   --  Count the rows Visible_Rows would return, without building them.
+   --
+   --  @param T Tree to inspect.
+   --  @return Number of currently visible rows.
+   function Visible_Row_Count
+     (T : Tree)
+      return Natural;
+
 private
    type Node is record
       Path         : UString;

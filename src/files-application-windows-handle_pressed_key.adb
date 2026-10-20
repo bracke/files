@@ -26,16 +26,33 @@ separate (Files.Application.Windows)
          declare
             Line_Height : constant Positive :=
               Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-            Layout : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
-                (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-            Tree : constant Files.Rendering.Tree_Panel_Layout :=
-              Files.Rendering.Calculate_Tree_Panel_Layout
-                (Snapshot, Layout, Line_Height);
+
+            function Capacity_For
+              (Snapshot : Files.Rendering.View_Snapshot)
+               return Natural
+            is
+               Layout : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout
+                   (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+               Tree : constant Files.Rendering.Tree_Panel_Layout :=
+                 Files.Rendering.Calculate_Tree_Panel_Layout
+                   (Snapshot, Layout, Line_Height);
+            begin
+               return Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
+            end Capacity_For;
          begin
-            return Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
+            --  Key repeats arrive between frames; the last rendered snapshot
+            --  is current unless the model or settings moved since, so reuse
+            --  it rather than paying the O(items) rebuild on every keystroke.
+            if Runtime.Frame_Cache_Valid
+              and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
+              and then Files.Settings.Same_Snapshot_Settings
+                         (Runtime.Settings, Runtime.Cached_Settings_Key)
+            then
+               return Capacity_For (Runtime.Cached_Snapshot);
+            end if;
+            return Capacity_For
+              (Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings));
          end;
       end Tree_Page_Rows;
    begin

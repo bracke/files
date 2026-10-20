@@ -1,3 +1,5 @@
+with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Strings.Hash;
 with Files.Model.Support;
 
 separate (Files.Model)
@@ -434,32 +436,35 @@ package body Selection is
       Items        : Files.File_System.Item_Vectors.Vector;
       Primary_Path : String)
    is
+      --  Runs on every refresh, so a large Select All must stay linear:
+      --  hash the previous paths once instead of rescanning them per item.
+      package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+        (Element_Type        => String,
+         Hash                => Ada.Strings.Hash,
+         Equivalent_Elements => "=");
+
       First_Selected   : Natural := 0;
       Primary_Selected : Natural := 0;
-
-      function Was_Selected
-        (Item : Files.File_System.Directory_Item)
-         return Boolean is
-      begin
-         for Previous of Items loop
-            if Previous.Full_Path = Item.Full_Path then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end Was_Selected;
+      Previous_Paths   : Path_Sets.Set;
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Reset_Quick_Look (Model);
 
-      if not Model.Items.Is_Empty then
+      Previous_Paths.Reserve_Capacity (Items.Length);
+      for Previous of Items loop
+         Previous_Paths.Include (To_String (Previous.Full_Path));
+      end loop;
+
+      if not Model.Items.Is_Empty and then not Previous_Paths.Is_Empty then
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
             if Item_Is_Visible (Model, Model.Items.Element (Index))
-              and then Was_Selected (Model.Items.Element (Index))
+              and then Previous_Paths.Contains (To_String (Model.Items.Element (Index).Full_Path))
             then
-               Add_Selected_Index (Model, Natural (Index));
+               --  Indexes ascend and the list was cleared above, so each is
+               --  new; appending directly avoids a linear duplicate check.
+               Model.Selected_Item_Indexes.Append (Natural (Index));
                if First_Selected = 0 then
                   First_Selected := Natural (Index);
                end if;
