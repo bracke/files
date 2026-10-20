@@ -1,4 +1,4 @@
-with Ada.Strings.UTF_Encoding.Wide_Strings;
+with Ada.Strings.UTF_Encoding.Conversions;
 with Interfaces.C;
 with System;
 with System.Storage_Elements;
@@ -79,8 +79,11 @@ package body Files.Platform_Regular_Files is
    function Truncate (Descriptor : C_Int; Length : C_S64) return C_Int
      with Import, Convention => C, External_Name => "_chsize_s";
 
+   --  UTF-16 for the wide Win32 calls. Wide_Strings.Decode raises for any
+   --  code point above U+FFFF (it does not emit surrogates), which made every
+   --  path holding an emoji or other non-BMP character unopenable.
    function Wide (Value : String) return Wide_String is
-     (Ada.Strings.UTF_Encoding.Wide_Strings.Decode (Value) & Wide_Character'Val (0));
+     (Ada.Strings.UTF_Encoding.Conversions.Convert (Value) & Wide_Character'Val (0));
 
    function Open_Read
      (Path         : String;
