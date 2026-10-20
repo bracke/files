@@ -1640,9 +1640,11 @@ package body Directory is
       return Item;
    end Item_For_Path;
 
-   function Load_Directory
+   function Load_Directory_Filtered
      (Path     : String;
-      Settings : Files.Settings.Settings_Model)
+      Settings : Files.Settings.Settings_Model;
+      Include  : access function
+        (Name : String; Kind : Files.Types.Item_Kind) return Boolean)
       return Directory_Load_Result
    is
       Items : Item_Vectors.Vector;
@@ -1654,9 +1656,14 @@ package body Directory is
          Full : constant String := Join_Path (To_String (Normalized_Path), Name);
       begin
          if Settings.Show_Hidden_Files or else Name (Name'First) /= '.' then
-            Items.Append
-              (Item_For_Path (Full, Name, To_String (Normalized_Path),
-                              Kind_From_Path (Full), Settings, Cached));
+            declare
+               Kind : constant Files.Types.Item_Kind := Kind_From_Path (Full);
+            begin
+               if Include = null or else Include (Name, Kind) then
+                  Items.Append
+                    (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached));
+               end if;
+            end;
          end if;
       exception
          when others =>
@@ -1677,6 +1684,14 @@ package body Directory is
       when others =>
          return (Success => False, Path => To_Unbounded_String (Path),
                  Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"));
+   end Load_Directory_Filtered;
+
+   function Load_Directory
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result is
+   begin
+      return Load_Directory_Filtered (Path, Settings, null);
    end Load_Directory;
 
    function Load_Item

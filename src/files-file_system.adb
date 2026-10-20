@@ -170,6 +170,17 @@ package body Files.File_System is
          Settings : Files.Settings.Settings_Model)
          return Directory_Load_Result;
 
+      --  Load_Directory building full items (metadata, thumbnails) only for
+      --  entries Include accepts (null accepts all); the others are skipped after a cheap kind
+      --  check. Recursive search uses it so a walk does not stat, hash and
+      --  thumbnail every non-matching file it passes.
+      function Load_Directory_Filtered
+        (Path     : String;
+         Settings : Files.Settings.Settings_Model;
+         Include  : access function
+           (Name : String; Kind : Files.Types.Item_Kind) return Boolean)
+         return Directory_Load_Result;
+
       function Load_Item
         (Full_Path : String;
          Settings  : Files.Settings.Settings_Model)

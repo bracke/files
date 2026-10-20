@@ -40,6 +40,16 @@ package body Search is
              (Files.Types.To_Lower (To_String (Name)), Normalized_Query) > 0;
       end Matches;
 
+      --  Every listed entry counts toward the scan cap; only names that match
+      --  and folders to descend into are built into full items.
+      function Include (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
+         use type Files.Types.Item_Kind;
+      begin
+         Scanned := Scanned + 1;
+         return Kind = Files.Types.Directory_Item
+           or else Matches (To_Unbounded_String (Name));
+      end Include;
+
       procedure Visit (Directory_Path : String; Depth : Natural) is
       begin
          if Files.Job_Context.Cancelled then
@@ -52,7 +62,8 @@ package body Search is
             return;
          end if;
          declare
-            Load : constant Directory_Load_Result := Load_Directory (Directory_Path, Settings);
+            Load : constant Directory_Load_Result :=
+              Directory.Load_Directory_Filtered (Directory_Path, Settings, Include'Access);
          begin
             if not Load.Success then
                Result.Error_Key := To_Unbounded_String
@@ -61,11 +72,10 @@ package body Search is
             end if;
             for Item of Load.Items loop
                exit when Files.Job_Context.Cancelled;
-               if Natural (Result.Items.Length) >= Max_Items or else Scanned >= Max_Entries_Scanned then
+               if Natural (Result.Items.Length) >= Max_Items or else Scanned > Max_Entries_Scanned then
                   Result.Error_Key := To_Unbounded_String ("error.search.failed");
                   return;
                end if;
-               Scanned := Scanned + 1;
                if Matches (Item.Name) then
                   Result.Items.Append (Item);
                end if;

@@ -418,10 +418,16 @@ package body Thumbnails is
          exit when Total <= Budget_Bytes;
 
          begin
+            --  The cache directory is private and owned by this app, so an
+            --  identity-checked unlink is enough. The full recoverable-delete
+            --  protocol cost a stage directory, sidecars and about eight fsyncs
+            --  per evicted thumbnail, all on the directory-listing path.
             if Length (Candidate.Identity) > 0
-              and then Delete_Staging_Entry
-                (To_String (Candidate.Path), To_String (Candidate.Identity)).Success
+              and then not Hostkit.Fs.Is_Link (To_String (Candidate.Path))
+              and then Files.File_Identities.Token (To_String (Candidate.Path)) =
+                To_String (Candidate.Identity)
             then
+               Ada.Directories.Delete_File (To_String (Candidate.Path));
                Total := Total - Candidate.Size;
             end if;
          exception
