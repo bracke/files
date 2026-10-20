@@ -487,6 +487,23 @@ package body Trash is
       Uses_Native_Trash : constant Boolean :=
         Trash_Backend_For_Base in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
 
+      --  A filesystem root ("/", "C:\"): its containing directory is itself,
+      --  or does not exist at all.
+      function Is_Filesystem_Root return Boolean is
+      begin
+         if Hostkit.Fs.Is_Link (Path) then
+            return False;
+         end if;
+         declare
+            Full : constant String := Ada.Directories.Full_Name (Path);
+         begin
+            return Full = "" or else Ada.Directories.Containing_Directory (Full) = Full;
+         end;
+      exception
+         when Ada.Directories.Use_Error => return True;
+         when others => return False;
+      end Is_Filesystem_Root;
+
       function Source_Exists return Boolean is
       begin
          return Path /= "" and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
@@ -556,7 +573,7 @@ package body Trash is
       --
       --  A native backend gets the same checks as any other: it still may not
       --  swallow a path that does not exist, or the filesystem root.
-      if not Source_Exists then
+      if not Source_Exists or else Is_Filesystem_Root then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));

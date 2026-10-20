@@ -2429,10 +2429,19 @@ package body Files_Suite.Operations is
          Assert (Files.Operations.Shell_Executable = "/bin/custom-sh", "explicit shell uses SHELL fallback");
          Assert (Files.Operations.Shell_Command_Option = "-c", "SHELL fallback uses POSIX command option");
          Ada.Environment_Variables.Set ("COMSPEC", "C:\Windows\System32\cmd.exe");
-         Assert
-           (Files.Operations.Shell_Executable = "C:\Windows\System32\cmd.exe",
-            "explicit shell prefers COMSPEC when present");
-         Assert (Files.Operations.Shell_Command_Option = "/C", "COMSPEC shell uses Windows command option");
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Assert
+              (Files.Operations.Shell_Executable = "C:\Windows\System32\cmd.exe",
+               "explicit shell uses COMSPEC on Windows");
+            Assert (Files.Operations.Shell_Command_Option = "/C", "COMSPEC shell uses Windows command option");
+         else
+            --  COMSPEC is set on Linux machines that run Wine; it must not
+            --  switch a POSIX host to cmd and its quoting.
+            Assert
+              (Files.Operations.Shell_Executable = "/bin/custom-sh",
+               "a COMSPEC in a POSIX environment does not replace the POSIX shell");
+            Assert (Files.Operations.Shell_Command_Option = "-c", "a POSIX host keeps the POSIX command option");
+         end if;
          Restore_Shell_Environment;
       exception
          when others =>

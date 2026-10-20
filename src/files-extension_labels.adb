@@ -37,6 +37,9 @@ package body Files.Extension_Labels is
    Cache          : Label_Maps.Map;
    R              : Guikit.Text.Renderer;
    R_Pixel_Height : Natural := 0;
+   --  Height whose initialization last failed. Retrying it for every label
+   --  drawn reloaded and parsed each fallback font from disk per call.
+   Failed_Height  : Natural := 0;
 
    function Theme_Tag (Theme : Guikit.Draw.Theme_Kind) return String is
      (case Theme is
@@ -56,6 +59,8 @@ package body Files.Extension_Labels is
    begin
       if R_Pixel_Height = Height and then Guikit.Text.Loaded (R) then
          return;
+      elsif Failed_Height = Height then
+         return;
       end if;
       for Path of Files.Fonts.Fallback_Font_Paths loop
          Fallbacks.Append (Ada.Strings.Unbounded.To_String (Path));
@@ -69,6 +74,7 @@ package body Files.Extension_Labels is
            Cell_Width     => Positive'Max (1, Height * 3 / 5),
            Cell_Height    => Height);
       R_Pixel_Height := Height;
+      Failed_Height := (if Guikit.Text.Loaded (R) then 0 else Height);
       Cache.Clear;
    end Ensure_Renderer;
 
