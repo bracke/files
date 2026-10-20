@@ -215,6 +215,9 @@ package body Files.Application.Windows is
       Handle          : Window_Access;
       Model           : Files.Model.Window_Model;
       Settings        : Files.Settings.Settings_Model;
+      --  Settings as of the last cross-window sync; a difference means this
+      --  window changed them since (see Sync_Settings_Across_Windows).
+      Synced_Settings : Files.Settings.Settings_Model;
       Settings_Path   : Unbounded_String;
       Pressed_Keys    : Pressed_Key_Map := [others => False];
       Key_Pressed_At  : Key_Time_Map := [others => Key_Epoch];
@@ -936,6 +939,40 @@ package body Files.Application.Windows is
       end loop;
    end Handle_All_Scroll_Input;
 
+   --  Every window writes its whole settings model to the one shared file, so
+   --  each must see the others' changes: otherwise closing (or zooming) a
+   --  window with a stale copy silently reverts a theme, favourite or label
+   --  changed in another. A window whose settings moved since the last sync
+   --  hands them to every other window.
+   procedure Sync_Settings_Across_Windows
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector)
+   is
+      use type Files.Settings.Settings_Model;
+      Changed : Natural := 0;
+   begin
+      for Index in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
+         if Runtime_Windows (Index).Settings /= Runtime_Windows (Index).Synced_Settings then
+            Changed := Index;
+            exit;
+         end if;
+      end loop;
+      if Changed = 0 then
+         return;
+      end if;
+
+      declare
+         Shared : constant Files.Settings.Settings_Model := Runtime_Windows (Changed).Settings;
+      begin
+         for Runtime of Runtime_Windows loop
+            if Runtime.Settings /= Shared then
+               Runtime.Settings := Shared;
+               Runtime.Frame_Cache_Valid := False;
+            end if;
+            Runtime.Synced_Settings := Shared;
+         end loop;
+      end;
+   end Sync_Settings_Across_Windows;
+
    function Scale_Coordinate
      (Value  : Glfw.Input.Mouse.Coordinate;
       Source : Glfw.Size;
@@ -1328,6 +1365,7 @@ package body Files.Application.Windows is
            (Handle          => Handle,
             Model           => Startup_Window.Model,
             Settings        => Settings,
+            Synced_Settings => Settings,
             Settings_Path   => Settings_Path,
             Pressed_Keys    => [others => False],
             Key_Pressed_At  => [others => Key_Epoch],
@@ -2046,6 +2084,7 @@ package body Files.Application.Windows is
    begin
       Runtime.Model := Base.Model;
       Runtime.Settings := Base.Settings;
+      Runtime.Synced_Settings := Base.Settings;
       Runtime.Font_Pixel_Size := Base.Font;
       Runtime.Text_Ready := False;
       Runtime.Text_Glyph_Key := Null_Unbounded_String;
@@ -2236,6 +2275,7 @@ package body Files.Application.Windows is
             Handle_All_Mouse (Runtime_Windows);
             Handle_All_Drop_Input (Runtime_Windows);
             Handle_All_Scroll_Input (Runtime_Windows);
+            Sync_Settings_Across_Windows (Runtime_Windows);
             if not Recovery_Reported
               and then Files.Job_Scavenger.Has_Unrecoverable
             then
