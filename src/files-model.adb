@@ -1051,6 +1051,10 @@ package body Files.Model is
       Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
       Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
       Model.Items := Items;
+      --  The model's order is the displayed order: keyboard and range
+      --  selection walk it, so it must already be sorted by the model's field.
+      Files.File_System.Sort_Items
+        (Model.Items, Settings_Sort_Field (Model.Sort_Field_Value), Model.Sort_Ascending);
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
@@ -1089,6 +1093,7 @@ package body Files.Model is
       Model.Recent_View_Active := True;
       Model.Current_Path_Value := Null_Unbounded_String;
       Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      --  Recent keeps its recency order, which is also the order drawn.
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items ("", Items);
       Model.Selected_Item_Index := 0;

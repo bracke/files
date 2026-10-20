@@ -1819,6 +1819,9 @@ package body Files_Suite.Model is
             Files.Types.Directory_Item,
             "inode/directory"));
       Files.Model.Initialize (Model, Root, Items, Root);
+      --  Startup applies the persisted sort right after Initialize
+      --  (Apply_Persisted_UI_State); the drawn order is the model's order.
+      Files.Model.Apply_Sort (Model, Files.Model.Sort_Name, Ascending => True);
 
       Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Name, "default runtime sort field is name");
       Assert (Files.Model.Sort_Is_Ascending (Model), "default runtime sort direction is ascending");
