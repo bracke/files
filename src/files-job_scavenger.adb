@@ -154,15 +154,36 @@ package body Files.Job_Scavenger is
       end Mark_If_New;
    end Terminal_Reports;
 
+   --  The localized report label, rendered on the main thread by Scavenge.
+   --  Report_Unrecoverable also runs on the Coordinator_Monitor task, and
+   --  Files.Localization keeps unsynchronized state the UI reads every frame,
+   --  so the task must not look the text up itself.
+   protected Report_Label is
+      procedure Set (Text : String);
+      function Get return String;
+   private
+      Value : Unbounded_String;
+   end Report_Label;
+
+   protected body Report_Label is
+      procedure Set (Text : String) is
+      begin
+         Value := To_Unbounded_String (Text);
+      end Set;
+
+      function Get return String is (To_String (Value));
+   end Report_Label;
+
    procedure Report_Unrecoverable (Directory : String) is
       New_Report : Boolean;
       Report : Hostkit.Lease_Files.Lease;
+      Label  : constant String := Report_Label.Get;
    begin
       Terminal_Reports.Mark_If_New (Directory, New_Report);
       if New_Report then
          Ada.Text_IO.Put_Line
            (Ada.Text_IO.Standard_Error,
-            Files.Localization.Text ("recovery.unsafe_transport") & ": " & Directory);
+            (if Label /= "" then Label else "recovery.unsafe_transport") & ": " & Directory);
          declare
             Target_Directory : constant String :=
               Ada.Environment_Variables.Value (Report_Environment, "");
@@ -354,6 +375,7 @@ package body Files.Job_Scavenger is
         (if Coordinator = "" then Hostkit.Fs.Own_Executable else Coordinator);
       Resolved  : constant String := Hostkit.Process.Locate (Program);
    begin
+      Report_Label.Set (Files.Localization.Text ("recovery.unsafe_transport"));
       --  One coordinator bounds recovery to a single process regardless of
       --  how many abandoned transports exist. It performs the scan outside
       --  application startup and serializes each transport through its lease.
@@ -550,6 +572,11 @@ package body Files.Job_Scavenger is
       Retry_Needed : Boolean;
       Grace            : constant Duration := Duration'Max (0.0, Minimum_Unmarked_Age);
    begin
+      --  Called non-interruptibly only on a main thread (a helper process
+      --  runs it directly), where looking the label up is safe.
+      if not Interruptible and then Report_Label.Get = "" then
+         Report_Label.Set (Files.Localization.Text ("recovery.unsafe_transport"));
+      end if;
       Scan (Retry_Needed);
       if Wait_For_Grace and then Retry_Needed and then Grace > 0.0 then
          delay Grace;
