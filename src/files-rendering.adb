@@ -1493,7 +1493,7 @@ package body Files.Rendering is
       return Path_Favorite_Star_Bounds
    is
       Toolbar      : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
-      Field_Margin : constant Natural := 6;
+      Field_Margin : constant Natural := Toolbar_Field_Margin;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Pad          : constant Natural := Guikit.Layout.Input_Field_Padding;
       --  Box for the drawn favourite star (a filled/outline vector shape); a
@@ -1583,6 +1583,24 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Tree_Panel_Layout
  is separate;
+
+   function Input_Scroll_Columns
+     (Text        : String;
+      Cursor      : Natural;
+      Text_Width  : Natural;
+      Line_Height : Positive)
+      return Natural
+   is
+      Char_W   : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+      Capacity : constant Natural := Text_Width / Char_W;
+      Caret    : constant Natural :=
+        Files.UTF8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length));
+   begin
+      if Capacity = 0 or else Caret < Capacity then
+         return 0;
+      end if;
+      return Caret - Capacity + 1;
+   end Input_Scroll_Columns;
 
    function Tree_Row_Capacity
      (Snapshot : View_Snapshot;

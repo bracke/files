@@ -7,7 +7,7 @@ separate (Files.Rendering)
    is
       Result       : Breadcrumb_Segment_Layout_Vectors.Vector;
       Toolbar      : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
-      Field_Margin : constant Natural := 6;
+      Field_Margin : constant Natural := Toolbar_Field_Margin;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Path_W       : constant Natural :=
         (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)

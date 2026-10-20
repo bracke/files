@@ -87,22 +87,32 @@ separate (Files.Events)
          end if;
       end Saturating_Multiply;
 
+      --  Text_Width and Focused let a click on a focused, scrolled field
+      --  (see Files.Rendering.Input_Scroll_Columns) land on the character
+      --  drawn under it rather than one from the unscrolled text.
       function Cursor_At
         (Text        : Unbounded_String;
          Text_X      : Natural;
-         Click_X     : Natural)
+         Click_X     : Natural;
+         Text_Width  : Natural := 0;
+         Focused     : Boolean := False)
          return Natural
       is
          Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
+         Scroll : constant Natural :=
+           (if Focused
+            then Files.Rendering.Input_Scroll_Columns
+                   (Raw, Snapshot.Text_Cursor_Position, Text_Width, Line_Height)
+            else 0);
          Click_Column : Natural;
       begin
          if Click_X <= Text_X then
-            return 0;
+            return Files.UTF8.Byte_Offset_For_Display_Column (Raw, Scroll);
          end if;
 
          Click_Column := Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
-         return Files.UTF8.Byte_Offset_For_Display_Column (Raw, Click_Column);
+         return Files.UTF8.Byte_Offset_For_Display_Column (Raw, Saturating_Add (Click_Column, Scroll));
       end Cursor_At;
 
       function Text_Click
@@ -683,9 +693,21 @@ separate (Files.Events)
                  (Text        => Snapshot.Path_Input_Text,
                  Text_X      =>
                     Saturating_Add
-                      (Saturating_Add (Toolbar.Middle_X, Guikit.Layout.Input_Field_Padding),
+                      (Saturating_Add
+                         (Saturating_Add (Toolbar.Middle_X, Files.Rendering.Toolbar_Field_Margin),
+                          Guikit.Layout.Input_Field_Padding),
                        Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
-                 Click_X     => X));
+                 Click_X     => X,
+                 Text_Width  =>
+                   (declare
+                      Path_W : constant Natural :=
+                        (if Toolbar.Middle_Width > 2 * Files.Rendering.Toolbar_Field_Margin
+                         then Toolbar.Middle_Width - 2 * Files.Rendering.Toolbar_Field_Margin else 0);
+                      Used   : constant Natural :=
+                        2 * Guikit.Layout.Input_Field_Padding
+                        + Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height);
+                    begin (if Path_W > Used then Path_W - Used else 0)),
+                 Focused     => Snapshot.Focus = Files.Types.Focus_Path_Input));
       elsif Scope_Chip.Visible
         and then Within (X, Scope_Chip.X, Scope_Chip.Width)
         and then Within (Y, Scope_Chip.Y, Scope_Chip.Height)
@@ -702,8 +724,20 @@ separate (Files.Events)
              (Files.Types.Focus_Filter_Input,
               Cursor_At
                  (Text        => Snapshot.Filter_Text,
-                  Text_X      => Saturating_Add (Toolbar.Right_X, Guikit.Layout.Input_Field_Padding),
-                  Click_X     => X));
+                  Text_X      =>
+                    Saturating_Add
+                      (Saturating_Add (Toolbar.Right_X, Files.Rendering.Toolbar_Field_Margin),
+                       Guikit.Layout.Input_Field_Padding),
+                  Click_X     => X,
+                  Text_Width  =>
+                    (declare
+                       Filter_W : constant Natural :=
+                         Guikit.Layout.Filter_Input_Field_Width
+                           (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
+                     begin
+                       (if Filter_W > 2 * Guikit.Layout.Input_Field_Padding
+                        then Filter_W - 2 * Guikit.Layout.Input_Field_Padding else 0)),
+                  Focused     => Snapshot.Focus = Files.Types.Focus_Filter_Input));
       end if;
 
       Command := Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);

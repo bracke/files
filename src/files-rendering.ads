@@ -1252,6 +1252,28 @@ package Files.Rendering is
       Line_Height : Positive := 20)
       return Path_Favorite_Star_Bounds;
 
+   --  Inset of the path and filter input boxes inside their toolbar sections.
+   --  Drawing, breadcrumb layout and click-to-caret mapping must all use it,
+   --  or a click lands the caret beside the character it was aimed at.
+   Toolbar_Field_Margin : constant := 6;
+
+   --  Display columns a focused single-line input scrolls off its left edge so
+   --  the caret stays visible: typing at the end of a long path used to happen
+   --  behind the field's ellipsis. Stateless, so drawing and click-to-caret
+   --  mapping derive the same offset from the same text, cursor and width.
+   --
+   --  @param Text Field text (UTF-8).
+   --  @param Cursor Caret byte offset within Text.
+   --  @param Text_Width Pixel width available to the text.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Columns hidden on the left; zero when the caret already fits.
+   function Input_Scroll_Columns
+     (Text        : String;
+      Cursor      : Natural;
+      Text_Width  : Natural;
+      Line_Height : Positive)
+      return Natural;
+
    --  Horizontal space reserved at the left of the path bar's interior for the
    --  favorite star, in pixels. Breadcrumbs and the editable path field start
    --  this many pixels further right so they never overlap the star.

@@ -1117,7 +1117,7 @@ separate (Files.Rendering)
       end if;
 
       declare
-         Field_Margin : constant Natural := 6;
+         Field_Margin : constant Natural := Toolbar_Field_Margin;
          Path_X : constant Natural :=
            Saturating_Add (Toolbar.Middle_X, Field_Margin);
          Path_W : constant Natural :=
@@ -1129,6 +1129,21 @@ separate (Files.Rendering)
          Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
          Text_Start   : constant Natural :=
            Saturating_Add (Saturating_Add (Path_X, Guikit.Layout.Input_Field_Padding), Star_Reserve);
+         Path_Text_W  : constant Natural :=
+           (if Path_W > 2 * Guikit.Layout.Input_Field_Padding + Star_Reserve
+            then Path_W - 2 * Guikit.Layout.Input_Field_Padding - Star_Reserve
+            else 0);
+         Path_Raw     : constant String := To_String (Snapshot.Path_Input_Text);
+         --  While focused, start the text far enough in that the caret shows.
+         Path_Skip    : constant Natural :=
+           (if Snapshot.Focus = Files.Types.Focus_Path_Input
+            then Files.UTF8.Byte_Offset_For_Display_Column
+                   (Path_Raw,
+                    Input_Scroll_Columns
+                      (Path_Raw, Snapshot.Text_Cursor_Position, Path_Text_W, Line_Height))
+            else 0);
+         Path_Shown   : constant UString :=
+           To_Unbounded_String (Path_Raw (Path_Raw'First + Natural'Min (Path_Skip, Path_Raw'Length) .. Path_Raw'Last));
       begin
          Add_Input_Field
            (Path_X,
@@ -1188,11 +1203,9 @@ separate (Files.Rendering)
             Add_Text
               (Text_Start,
                Toolbar_Input_Text_Y,
-               (if Path_W > 2 * Guikit.Layout.Input_Field_Padding + Star_Reserve
-                then Path_W - 2 * Guikit.Layout.Input_Field_Padding - Star_Reserve
-                else 0),
+               Path_Text_W,
                Toolbar_Input_Text_H,
-               Snapshot.Path_Input_Text,
+               Path_Shown,
                Fit => True);
          else
             for I in 1 .. Natural (Breadcrumb_Rows.Length) loop
@@ -1268,8 +1281,9 @@ separate (Files.Rendering)
                Toolbar_Input_Y,
                (if Path_W > Star_Reserve then Path_W - Star_Reserve else 0),
                Toolbar_Input_H,
-               Snapshot.Path_Input_Text,
-               Snapshot.Text_Cursor_Position);
+               Path_Shown,
+               (if Snapshot.Text_Cursor_Position > Path_Skip
+                then Snapshot.Text_Cursor_Position - Path_Skip else 0));
          end if;
       end;
       Add_Command_Tooltip
@@ -1289,7 +1303,7 @@ separate (Files.Rendering)
          Enabled => True,
          Focused => Snapshot.Focus = Files.Types.Focus_Path_Input);
       declare
-         Field_Margin : constant Natural := 6;
+         Field_Margin : constant Natural := Toolbar_Field_Margin;
          Filter_X : constant Natural :=
            Saturating_Add (Toolbar.Right_X, Field_Margin);
          --  The chip is sized to its localized label so it never abbreviates;
@@ -1299,6 +1313,21 @@ separate (Files.Rendering)
            Guikit.Layout.Filter_Input_Field_Width (Toolbar, Scope_Chip_W, Line_Height);
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
            Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
+         Filter_Text_W : constant Natural :=
+           (if Filter_W > 2 * Guikit.Layout.Input_Field_Padding
+            then Filter_W - 2 * Guikit.Layout.Input_Field_Padding
+            else 0);
+         Filter_Raw    : constant String := To_String (Snapshot.Filter_Text);
+         Filter_Skip   : constant Natural :=
+           (if Snapshot.Focus = Files.Types.Focus_Filter_Input
+            then Files.UTF8.Byte_Offset_For_Display_Column
+                   (Filter_Raw,
+                    Input_Scroll_Columns
+                      (Filter_Raw, Snapshot.Text_Cursor_Position, Filter_Text_W, Line_Height))
+            else 0);
+         Filter_Shown  : constant UString :=
+           To_Unbounded_String
+             (Filter_Raw (Filter_Raw'First + Natural'Min (Filter_Skip, Filter_Raw'Length) .. Filter_Raw'Last));
          Scope_Key : constant String :=
            (case Snapshot.Search_Scope is
               when Files.Types.Filter_Here => "search.scope.here",
@@ -1315,13 +1344,11 @@ separate (Files.Rendering)
          Add_Text
            (Saturating_Add (Filter_X, Guikit.Layout.Input_Field_Padding),
             Toolbar_Input_Text_Y,
-            (if Filter_W > 2 * Guikit.Layout.Input_Field_Padding
-             then Filter_W - 2 * Guikit.Layout.Input_Field_Padding
-             else 0),
+            Filter_Text_W,
             Toolbar_Input_Text_H,
             (if Length (Snapshot.Filter_Text) = 0
              then To_Unbounded_String (Files.Localization.Text ("filter.placeholder"))
-             else Snapshot.Filter_Text),
+             else Filter_Shown),
             (if Length (Snapshot.Filter_Text) = 0 then Muted_Text_Color else Text_Color),
             Fit => True);
          if Snapshot.Focus = Files.Types.Focus_Filter_Input then
@@ -1332,8 +1359,9 @@ separate (Files.Rendering)
                Toolbar_Input_Y,
                Filter_W,
                Toolbar_Input_H,
-               Snapshot.Filter_Text,
-               Snapshot.Text_Cursor_Position);
+               Filter_Shown,
+               (if Snapshot.Text_Cursor_Position > Filter_Skip
+                then Snapshot.Text_Cursor_Position - Filter_Skip else 0));
          elsif Has_Hover
            and then Contains_Point
              (Filter_X, Toolbar_Input_Y, Filter_W, Toolbar_Input_H, Hover_X, Hover_Y)

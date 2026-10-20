@@ -88,6 +88,7 @@ package body Files_Suite.Rendering is
    procedure Test_Root_Selector_Uses_Shadow_Color (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Has_Modal_Backdrop (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Input_Scroll_Keeps_Caret_Visible (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Floating_Menus_Have_Elevation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -205,6 +206,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Conflict_Has_Modal_Backdrop'Access,
          "the modal paste-conflict dialog dims the inactive file view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Input_Scroll_Keeps_Caret_Visible'Access,
+         "a focused input scrolls just far enough to keep its caret visible");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tooltip_Wraps_When_Narrow'Access,
          "a narrow window wraps a long tooltip onto multiple rows");
@@ -2251,6 +2255,23 @@ package body Files_Suite.Rendering is
    --  Hover the toolbar button whose tooltip text is longest, then count the
    --  overlay rows that render that tooltip: a narrow window wraps it onto
    --  several rows, a wide one keeps it on a single row.
+   procedure Test_Input_Scroll_Keeps_Caret_Visible (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Line_Height : constant Positive := 20;
+      Char_W      : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+      Text        : constant String (1 .. 100) := [others => 'a'];
+      Width       : constant Natural := 20 * Char_W;
+      Scroll      : constant Natural :=
+        Files.Rendering.Input_Scroll_Columns (Text, Text'Length, Width, Line_Height);
+   begin
+      Assert (Files.Rendering.Input_Scroll_Columns (Text, 5, Width, Line_Height) = 0,
+              "a caret within the field needs no scroll");
+      Assert (Scroll > 0 and then Text'Length - Scroll < 20,
+              "a caret at the end of overlong text is scrolled into the field");
+      Assert (Files.Rendering.Input_Scroll_Columns ("short", 5, Width, Line_Height) = 0,
+              "text that fits is never scrolled");
+   end Test_Input_Scroll_Keeps_Caret_Visible;
+
    procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Base : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
