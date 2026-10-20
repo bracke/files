@@ -16,7 +16,12 @@ package body Files.Job_Records is
    use type Ada.Containers.Count_Type;
 
    Max_Settings_Length : constant := 1 * 1024 * 1024;
-   Max_Item_Count : constant := 100_000;
+   --  Matches the per-directory listing cap; the transport byte limit bounds
+   --  what a real record can hold.
+   Max_Item_Count : constant := 1_000_000;
+   --  Items reserved up front before any are read, so a forged count cannot
+   --  force a large allocation; a genuine long listing grows past it.
+   Max_Item_Reserve : constant := 10_000;
    Max_Argument_Count : constant := 256;
    Max_Thumbnail_Dimension : constant := 2_048;
    Max_Thumbnail_Bytes : constant := 2_048 * 2_048 * 4;
@@ -298,7 +303,7 @@ package body Files.Job_Records is
       if Count > Max_Item_Count then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      Result.Reserve_Capacity (Ada.Containers.Count_Type (Count));
+      Result.Reserve_Capacity (Ada.Containers.Count_Type (Natural'Min (Count, Max_Item_Reserve)));
       for Index in 1 .. Count loop
          Result.Append (Read_Item (Stream));
       end loop;

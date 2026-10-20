@@ -23,7 +23,10 @@ package body Files.File_System.Support is
    procedure For_Each_Entry
      (Path : String; Visit : not null access procedure (Name : String))
    is
-      Max_Entries : constant Natural := 100_000;
+      --  Memory is bounded by the name bytes; the entry cap only stops a
+      --  pathological directory. At 100_000 an ordinary large folder (a
+      --  maildir, a cache, a dataset) could not be opened, copied or deleted.
+      Max_Entries : constant Natural := 1_000_000;
       Max_Name_Bytes : constant Natural := 64 * 1024 * 1024;
       Dir : GNAT.Directory_Operations.Dir_Type;
       type Name_Buffer is access String;
