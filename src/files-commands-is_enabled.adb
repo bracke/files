@@ -182,10 +182,12 @@ separate (Files.Commands)
          when Toggle_Quick_Look_Command =>
             --  Quick Look previews exactly one real (non-temporary) item in an
             --  ordinary directory view; it never opens in the trash payload view
-            --  or on an empty/multi selection.
-            return Files.Model.Selected_Count (Model) = 1
+            --  or on an empty/multi selection. Closing an open preview is
+            --  always allowed, even after a reload emptied the selection.
+            return Files.Model.Quick_Look_Is_Open (Model)
+              or else (Files.Model.Selected_Count (Model) = 1
               and then not Files.Model.Selection_Includes_Temporary (Model)
-              and then not In_Trash_View (Model);
+              and then not In_Trash_View (Model));
          when Set_Color_Label_Command =>
             --  Color labels apply to the current selection, so at least one real
             --  (non-temporary) item must be selected in an ordinary directory
