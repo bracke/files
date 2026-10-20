@@ -346,8 +346,12 @@ package body Files.Application.Windows is
      (Index_Type   => Positive,
       Element_Type => Scenario_Base_State);
 
+   --  The text renderer is process-wide; these record what it was last
+   --  initialized for. Windows zoom independently, so the pixel size is part
+   --  of the key: a window may only build glyphs once it matches its own size.
    Process_Text_Font_Ready : Boolean := False;
    Process_Text_Font_Path  : Unbounded_String;
+   Process_Text_Font_Size  : Natural := 0;
    File_Watch_Poll_Interval : constant Duration := 1.0;
    Type_Ahead_Timeout : constant Duration := 1.0;
    --  The event loop always waits this long: input, window refresh, and posted
@@ -1331,6 +1335,7 @@ package body Files.Application.Windows is
       Runtime_Windows.Clear;
       Process_Text_Font_Ready := False;
       Process_Text_Font_Path := Null_Unbounded_String;
+      Process_Text_Font_Size := 0;
    end Release_All;
 
    function Any_Window_Open

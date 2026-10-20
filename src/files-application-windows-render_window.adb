@@ -359,6 +359,7 @@ separate (Files.Application.Windows)
                   Process_Text_Font_Ready := Runtime.Text_Ready;
                   Process_Text_Font_Path :=
                     (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
+                  Process_Text_Font_Size := (if Runtime.Text_Ready then Runtime.Font_Pixel_Size else 0);
                end;
             end if;
 
@@ -372,6 +373,29 @@ separate (Files.Application.Windows)
                      Glyphs := Runtime.Text_Glyphs;
                      Glyphs.Atlas_Dirty := False;
                   else
+                     --  Another window may have re-initialized the shared
+                     --  renderer at its own size since; rasterizing now would
+                     --  put that size's glyphs into this window's cells.
+                     if Process_Text_Font_Size /= Runtime.Font_Pixel_Size
+                       or else not Process_Text_Font_Ready
+                       or else Process_Text_Font_Path /= Frame_Font_Path
+                     then
+                        declare
+                           Status : constant Files.Rendering.Text_Render_Status :=
+                             Files.Rendering.Initialize_Text
+                               (Renderer    => Runtime.Text,
+                                Font_Path   => To_String (Frame_Font_Path),
+                                Pixel_Size  => Runtime.Font_Pixel_Size,
+                                Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
+                                Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+                           Ready : constant Boolean := Status = Files.Rendering.Text_Render_Success;
+                        begin
+                           Process_Text_Font_Ready := Ready;
+                           Process_Text_Font_Path :=
+                             (if Ready then Frame_Font_Path else Null_Unbounded_String);
+                           Process_Text_Font_Size := (if Ready then Runtime.Font_Pixel_Size else 0);
+                        end;
+                     end if;
                      Glyphs := Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
                      Runtime.Text_Glyphs := Glyphs;
                      Runtime.Text_Glyph_Key := Current_Text_Key;
