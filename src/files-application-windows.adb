@@ -649,6 +649,13 @@ package body Files.Application.Windows is
             --  Drop a press that follows the previous accepted one too closely to
             --  be a real click -- a switch bounce that would otherwise double-fire.
             if Now - Object.Last_Left_Press_Time < Left_Press_Debounce then
+               --  The bounce's release came first and was counted. The button
+               --  is physically down again, so withdraw that phantom release:
+               --  left in place it ends a drag that is still being held.
+               if Object.Pending_Left_Releases > 0 then
+                  Object.Pending_Left_Releases := Object.Pending_Left_Releases - 1;
+               end if;
+               Object.Left_Mouse_Down := True;
                return;
             end if;
             Object.Last_Left_Press_Time := Now;
@@ -756,12 +763,29 @@ package body Files.Application.Windows is
       end loop;
    end Handle_Keyboard;
 
+   --  Run one per-window step for every window, each behind its own exception
+   --  boundary. A step that fails for one window's state must not starve the
+   --  others of input, rendering, file watching or folder sizes, which a single
+   --  handler around the whole loop pass did. The failing window's frame cache
+   --  is dropped so its next frame is rebuilt rather than left stale.
+   procedure For_Each_Window
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
+      Step            : not null access procedure (Runtime : in out Runtime_Window)) is
+   begin
+      for Runtime of Runtime_Windows loop
+         begin
+            Step (Runtime);
+         exception
+            when others =>
+               Runtime.Frame_Cache_Valid := False;
+         end;
+      end loop;
+   end For_Each_Window;
+
    procedure Handle_All_Keyboard
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_Keyboard (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_Keyboard'Access);
    end Handle_All_Keyboard;
 
    procedure Handle_Text_Input
@@ -791,9 +815,7 @@ package body Files.Application.Windows is
    procedure Handle_All_Text_Input
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_Text_Input (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_Text_Input'Access);
    end Handle_All_Text_Input;
 
    --  Clear a stale grid type-ahead prefix once the user has paused. Driven from
@@ -812,9 +834,7 @@ package body Files.Application.Windows is
    procedure Handle_All_Type_Ahead_Timeout
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_Type_Ahead_Timeout (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_Type_Ahead_Timeout'Access);
    end Handle_All_Type_Ahead_Timeout;
 
    procedure Handle_Drop_Input
@@ -836,9 +856,7 @@ package body Files.Application.Windows is
    procedure Handle_All_Drop_Input
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_Drop_Input (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_Drop_Input'Access);
    end Handle_All_Drop_Input;
 
    procedure Release_Window_Jobs
@@ -911,20 +929,20 @@ package body Files.Application.Windows is
    procedure Handle_All_File_Watch_Poll
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_File_Watch_Poll (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_File_Watch_Poll'Access);
    end Handle_All_File_Watch_Poll;
 
    --  Each window polls and publishes only its own folder measurements.
    procedure Poll_All_Folder_Sizes (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
-   begin
-      for Runtime of Runtime_Windows loop
+      procedure Poll (Runtime : in out Runtime_Window) is
+      begin
          if Runtime.Handle /= null then
             Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
             Files.Model.Poll_Folder_Sizes (Runtime.Model);
          end if;
-      end loop;
+      end Poll;
+   begin
+      For_Each_Window (Runtime_Windows, Poll'Access);
    end Poll_All_Folder_Sizes;
 
    procedure Handle_Scroll_Input
@@ -934,9 +952,7 @@ package body Files.Application.Windows is
    procedure Handle_All_Scroll_Input
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_Scroll_Input (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_Scroll_Input'Access);
    end Handle_All_Scroll_Input;
 
    --  Every window writes its whole settings model to the one shared file, so
@@ -1222,9 +1238,7 @@ package body Files.Application.Windows is
    procedure Handle_All_Mouse
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Handle_Mouse (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Handle_Mouse'Access);
    end Handle_All_Mouse;
 
    function Frame_Text_Key
@@ -1728,9 +1742,7 @@ package body Files.Application.Windows is
    procedure Render_All
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         Render_Window (Runtime);
-      end loop;
+      For_Each_Window (Runtime_Windows, Render_Window'Access);
    end Render_All;
 
    function Any_Runtime_Frame_Rendered

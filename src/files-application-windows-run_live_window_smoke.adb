@@ -85,7 +85,11 @@ separate (Files.Application.Windows)
 
                for Frame_Index in 1 .. Plan.Frame_Count loop
                   Result.Frames_Attempted := Result.Frames_Attempted + 1;
-                  Render_All (Runtime_Windows);
+                  --  Render directly rather than through Render_All, whose
+                  --  per-window boundary would hide a failing frame from the smoke.
+                  for Runtime of Runtime_Windows loop
+                     Render_Window (Runtime);
+                  end loop;
                   Result.Frame_Rendered :=
                     Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
                   for Runtime of Runtime_Windows loop
