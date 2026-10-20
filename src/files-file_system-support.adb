@@ -1120,11 +1120,14 @@ package body Files.File_System.Support is
    procedure Delete_Owned_Tree (Path : String) is
       Available : Boolean;
       Mode : Natural;
-      Lease_Present : Boolean := False;
+      Lease_Present  : Boolean := False;
+      Marker_Present : Boolean := False;
       procedure Delete_Entry (Name : String) is
       begin
          if Name = ".files-job-owner" then
             Lease_Present := True;
+         elsif Name = ".files-job-transport" then
+            Marker_Present := True;
          else
             Delete_Owned_Tree (Join_Path (Path, Name));
          end if;
@@ -1143,8 +1146,13 @@ package body Files.File_System.Support is
          end if;
       end if;
       For_Each_Entry (Path, Delete_Entry'Access);
-      --  Keep the lease available if an earlier child cannot be removed.
-      --  After it is removed, only the empty directory remains to delete.
+      --  Keep the lease and the transport marker until every other child is
+      --  gone. If one cannot be removed (a Windows sharing violation, EACCES),
+      --  the restored directory still carries its marker and stays
+      --  reclaimable; without it, cleanup and the scavenger refuse it forever.
+      if Marker_Present then
+         Delete_Owned_Tree (Join_Path (Path, ".files-job-transport"));
+      end if;
       if Lease_Present then
          Delete_Owned_Tree (Join_Path (Path, ".files-job-owner"));
       end if;

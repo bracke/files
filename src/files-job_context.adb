@@ -247,7 +247,10 @@ package body Files.Job_Context is
       if Size < 0 or else Size > Long_Long_Integer (Max_Journal_Bytes) then
          raise Ada.Directories.Use_Error;
       end if;
-      if not Existing then
+      --  Key on the content, not on whether the file existed: a first append
+      --  whose write failed leaves an empty journal behind, and records added
+      --  to it without a header would make every later read reject it all.
+      if Size = 0 then
          String'Output (Buffer'Access, Header);
       end if;
       Write_Record (Buffer'Access);
