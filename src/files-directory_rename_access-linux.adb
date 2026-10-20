@@ -19,9 +19,42 @@ package body Files.Directory_Rename_Access is
    subtype C_U64 is Interfaces.C.unsigned_long;
    subtype C_S64 is Interfaces.C.long;
 
+   --  asm-generic/fcntl.h is right for x86, riscv and most targets, but arm,
+   --  arm64, powerpc and m68k define their own O_DIRECTORY and O_NOFOLLOW (and
+   --  give the generic O_NOFOLLOW bit to O_LARGEFILE), so a hard-coded x86
+   --  value silently follows a final symlink there. Pick by the machine.
+   function Uses_Alternate_Open_Flags return Boolean is
+      use type Interfaces.C.char;
+      type Uts_Field is array (1 .. 65) of Interfaces.C.char with Convention => C;
+      type Uts_Name is record
+         Sysname, Nodename, Release, Version, Machine, Domainname : Uts_Field;
+      end record with Convention => C;
+      function uname (Buffer : access Uts_Name) return C_Int
+        with Import, Convention => C, External_Name => "uname";
+      Info    : aliased Uts_Name;
+      Machine : String (1 .. Uts_Field'Length);
+      Last    : Natural := 0;
+
+      function Starts (Prefix : String) return Boolean is
+        (Last >= Prefix'Length and then Machine (1 .. Prefix'Length) = Prefix);
+   begin
+      if uname (Info'Access) /= 0 then
+         return False;
+      end if;
+      for Char of Info.Machine loop
+         exit when Char = Interfaces.C.nul;
+         Last := Last + 1;
+         Machine (Last) := Interfaces.C.To_Ada (Char);
+      end loop;
+      return Starts ("arm") or else Starts ("aarch64") or else Starts ("ppc")
+        or else Starts ("powerpc") or else Starts ("m68k");
+   end Uses_Alternate_Open_Flags;
+
+   Alternate_Open_Flags : constant Boolean := Uses_Alternate_Open_Flags;
+
    O_Path      : constant C_Int := 16#20_0000#;
-   O_Directory : constant C_Int := 16#1_0000#;
-   O_Nofollow  : constant C_Int := 16#2_0000#;
+   O_Directory : constant C_Int := (if Alternate_Open_Flags then 16#4000# else 16#1_0000#);
+   O_Nofollow  : constant C_Int := (if Alternate_Open_Flags then 16#8000# else 16#2_0000#);
    O_Cloexec   : constant C_Int := 16#8_0000#;
    At_Empty_Path : constant C_Int := 16#1000#;
    Statx_Mode_User : constant C_U32 := 16#00A#;
