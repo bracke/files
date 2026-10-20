@@ -4,6 +4,8 @@ with Files.Settings;
 with Files.Process_Jobs;
 with Files.Types;
 
+private with Ada.Real_Time;
+
 --  Nonmodal directory reads and native watches execute outside the UI process.
 package Files.Refresh_Jobs is
    --  @param Model Window to refresh without waiting for storage.
@@ -78,5 +80,9 @@ private
    type Watch_Session is record
       Process : Files.Process_Jobs.Session;
       Path : Files.Types.UString;
+      --  A helper for Failed_Path failed to start or exited on its own; do
+      --  not relaunch it for that path before Retry_At (polling covers it).
+      Failed_Path : Files.Types.UString;
+      Retry_At    : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
    end record;
 end Files.Refresh_Jobs;

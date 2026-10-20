@@ -513,14 +513,29 @@ package body Files.Refresh_Jobs is
       Job.Path := Null_Unbounded_String;
    end Release_Watch;
 
+   Watch_Retry_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
+
    procedure Watch_Path (Job : in out Watch_Session; Path : String) is
+      use type Ada.Real_Time.Time;
       File : aliased Files.Exclusive_Streams.Output_Stream;
+
+      procedure Note_Failure is
+      begin
+         Job.Failed_Path := To_Unbounded_String (Path);
+         Job.Retry_At := Ada.Real_Time.Clock + Watch_Retry_Delay;
+      end Note_Failure;
    begin
       if Job.Path = Path then
          return;
       end if;
       Release_Watch (Job);
       if Path = "" then
+         return;
+      end if;
+      --  The window calls this every loop pass. Without a back-off, a helper
+      --  that cannot start (or exits at once, e.g. mid package upgrade) was
+      --  relaunched, with a fresh transport and fsyncs, on every pass.
+      if Job.Failed_Path = Path and then Ada.Real_Time.Clock < Job.Retry_At then
          return;
       end if;
       if not Watch_Path_Is_Consistent (Path) then
@@ -541,6 +556,7 @@ package body Files.Refresh_Jobs is
       when others =>
          Close (File);
          Release_Watch (Job);
+         Note_Failure;
    end Watch_Path;
 
    function Claim_Watch_Notification (Directory : String) return Boolean is
@@ -552,14 +568,31 @@ package body Files.Refresh_Jobs is
       File      : Files.Exclusive_Streams.Output_Stream;
       Temporary : constant String := Hostkit.Fs.Join (Directory, "changed.tmp");
       Target    : constant String := Hostkit.Fs.Join (Directory, "changed");
+      --  A temporary left by a failed publish would make every later
+      --  create-new fail, silently ending native watching for this helper.
+      procedure Remove_Temporary is
+      begin
+         if not Hostkit.Fs.Is_Link (Temporary)
+           and then Ada.Directories.Exists (Temporary)
+           and then Ada.Directories.Kind (Temporary) = Ada.Directories.Ordinary_File
+         then
+            Ada.Directories.Delete_File (Temporary);
+         end if;
+      exception
+         when others => null;
+      end Remove_Temporary;
    begin
       Files.Exclusive_Streams.Create (File, Temporary);
       Files.Exclusive_Streams.Close (File);
-      return Files.Durable_Writes.Published
-        (Files.Durable_Writes.Publish (Temporary, Target));
+      if Files.Durable_Writes.Published (Files.Durable_Writes.Publish (Temporary, Target)) then
+         return True;
+      end if;
+      Remove_Temporary;
+      return False;
    exception
       when others =>
          Close (File);
+         Remove_Temporary;
          return False;
    end Post_Watch_Notification;
 
@@ -591,6 +624,10 @@ package body Files.Refresh_Jobs is
       end if;
       Files.Process_Jobs.Poll (Job.Process, Finished, Cancelled);
       if Finished then
+         --  A watch helper runs until released; finishing on its own means it
+         --  failed, so hold off relaunching it for this path (see Watch_Path).
+         Job.Failed_Path := Job.Path;
+         Job.Retry_At := Ada.Real_Time."+" (Ada.Real_Time.Clock, Watch_Retry_Delay);
          Release_Watch (Job);
          return False;
       end if;

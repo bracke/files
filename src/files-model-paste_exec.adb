@@ -284,11 +284,25 @@ package body Paste_Exec is
 
    procedure Cancel_Paste_Execution
      (Model : in out Window_Model) is
+      Requested : Boolean := True;
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Paste_Exec_Cancelled_Value := True;
-      Files.Transfer_Jobs.Cancel (Model.Paste_Exec_Job);
-      Files.Process_Jobs.Cancel (Model.Operation_Job);
+      --  Each cancel can fail (Process_Jobs refuses when it cannot write a
+      --  trustworthy marker and stays retryable). Try both, and only show the
+      --  operation as cancelled when both requests went through; otherwise the
+      --  UI said "cancelled" while the helper ran to completion, and a second
+      --  Cancel was never possible.
+      begin
+         Files.Transfer_Jobs.Cancel (Model.Paste_Exec_Job);
+      exception
+         when others => Requested := False;
+      end;
+      begin
+         Files.Process_Jobs.Cancel (Model.Operation_Job);
+      exception
+         when others => Requested := False;
+      end;
+      Model.Paste_Exec_Cancelled_Value := Requested;
    end Cancel_Paste_Execution;
 
    procedure Clear_Paste_Execution
