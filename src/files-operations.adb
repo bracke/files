@@ -514,6 +514,8 @@ package body Files.Operations is
       Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       First_Path : Unbounded_String;
       First_Name : Unbounded_String;
+      Unsupported_Key  : Unbounded_String;
+      Unsupported_Path : Unbounded_String;
 
       function Cache_Directory return String is
       begin
@@ -529,7 +531,12 @@ package body Files.Operations is
             Thumbnail : constant Files.File_System.Thumbnail_Result :=
               Files.File_System.Generate_Thumbnail (To_String (Item.Full_Path), Cache_Directory);
          begin
-            if Thumbnail.Status /= Files.File_System.Thumbnail_Generated then
+            if Thumbnail.Status = Files.File_System.Thumbnail_Unsupported then
+               --  A folder or non-image in a mixed selection is not a failure;
+               --  stopping here skipped every image after it.
+               Unsupported_Key := Thumbnail.Error_Key;
+               Unsupported_Path := Item.Full_Path;
+            elsif Thumbnail.Status /= Files.File_System.Thumbnail_Generated then
                --  Refresh so thumbnails already generated for earlier items in
                --  the batch are shown, then restore the failure diagnostic.
                Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
@@ -547,6 +554,12 @@ package body Files.Operations is
             end if;
          end;
       end loop;
+
+      if Length (First_Path) = 0 and then Length (Unsupported_Key) > 0 then
+         --  Nothing in the selection could have a thumbnail.
+         Files.Model.Set_Error (Model, To_String (Unsupported_Key));
+         return Make_Result (Operation_Failed, To_String (Unsupported_Key), To_String (Unsupported_Path));
+      end if;
 
       Files.Model.Set_Error (Model, "");
       declare

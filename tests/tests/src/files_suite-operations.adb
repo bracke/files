@@ -10853,6 +10853,21 @@ package body Files_Suite.Operations is
       Assert
         (Project_Tools.Files.Read_Raw_File (Copy_Path) = Project_Tools.Files.Read_Raw_File (Source),
          "duplicate has identical contents to the original");
+
+      --  A dotfile has no extension: its copy is ".bashrc (copy)", not " (copy).bashrc".
+      Write_File (Join (Dir, ".bashrc"), "rc");
+      declare
+         Hidden : Files.Settings.Settings_Model := Settings;
+      begin
+         Hidden.Show_Hidden_Files := True;
+         Load := Files.File_System.Load_Directory (Dir, Hidden);
+         Files.Model.Initialize (Model, Dir, Load.Items, Root);
+         Select_Name (Model, ".bashrc");
+         Routed := Files.Controller.Execute_Command (Files.Commands.Duplicate_Selected_Command, Model, Hidden);
+         Assert (Ada.Directories.Exists (Join (Dir, ".bashrc (copy)"))
+                   and then not Ada.Directories.Exists (Join (Dir, " (copy).bashrc")),
+                 "a dotfile duplicate keeps the leading-dot name whole");
+      end;
    end Test_Duplicate_Selected_Operation;
 
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is

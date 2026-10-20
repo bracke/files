@@ -503,6 +503,32 @@ package body Transfer is
          return Failed;
    end Extract_Selected;
 
+   --  Split a leaf name for "(copy)" / "(link)" naming. GNAT treats a leading
+   --  dot as the extension separator (".bashrc" has base "" and extension
+   --  "bashrc"), which produced " (copy).bashrc"; a leading-dot name has no
+   --  extension here, matching Files.Paste.
+   function Leaf_Extension_Start (Name : String) return Natural is
+   begin
+      for Index in reverse Name'Range loop
+         if Name (Index) = '.' then
+            return (if Index > Name'First and then Index < Name'Last then Index else 0);
+         end if;
+      end loop;
+      return 0;
+   end Leaf_Extension_Start;
+
+   function Leaf_Extension (Name : String) return String is
+      Dot : constant Natural := Leaf_Extension_Start (Name);
+   begin
+      return (if Dot = 0 then "" else Name (Dot + 1 .. Name'Last));
+   end Leaf_Extension;
+
+   function Leaf_Base (Name : String) return String is
+      Dot : constant Natural := Leaf_Extension_Start (Name);
+   begin
+      return (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
+   end Leaf_Base;
+
    function Duplicate_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -608,8 +634,8 @@ package body Transfer is
             Destination_Directory : constant String :=
               (if Files.Model.In_Recent_View (Model) then Ada.Directories.Containing_Directory (Source) else Directory);
             Name   : constant String := To_String (Item.Name);
-            Ext    : constant String := Ada.Directories.Extension (Name);
-            Base   : constant String := Ada.Directories.Base_Name (Name);
+            Ext    : constant String := Leaf_Extension (Name);
+            Base   : constant String := Leaf_Base (Name);
 
             --  A directory-unique copy stem (without extension), e.g. "report
             --  (copy)" or "report (copy 2)" when earlier choices already exist.
@@ -767,8 +793,8 @@ package body Transfer is
          declare
             Source : constant String := To_String (Item.Full_Path);
             Name   : constant String := To_String (Item.Name);
-            Ext    : constant String := Ada.Directories.Extension (Name);
-            Base   : constant String := Ada.Directories.Base_Name (Name);
+            Ext    : constant String := Leaf_Extension (Name);
+            Base   : constant String := Leaf_Base (Name);
 
             --  A directory-unique link stem (without extension), e.g. "report
             --  (link)" or "report (link 2)" when earlier choices already exist.
