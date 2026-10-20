@@ -322,6 +322,10 @@ package body Files.Application.Windows is
       Cached_Marquee_Y     : Natural := 0;
       Cached_Marquee_W     : Natural := 0;
       Cached_Marquee_H     : Natural := 0;
+      --  Wall-clock minute the cached snapshot and frame were built in.
+      --  Relative times ("now", "Today 23:50") and the Today / This week
+      --  group bands are computed from the clock, which no other key covers.
+      Cached_Minute        : Natural := 0;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
@@ -1470,6 +1474,7 @@ package body Files.Application.Windows is
             Cached_Marquee_Y     => 0,
             Cached_Marquee_W     => 0,
             Cached_Marquee_H     => 0,
+            Cached_Minute        => 0,
             Last_Glyph_Count => 0,
             Last_Missing_Glyph_Count => 0,
             Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,

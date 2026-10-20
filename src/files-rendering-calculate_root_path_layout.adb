@@ -14,7 +14,11 @@ separate (Files.Rendering)
         Natural'Min (Root_Selector_Padding, Layout.Width / 2);
       Content_W    : constant Natural :=
         Layout.Width - Saturating_Multiply (Horizontal_Padding, 2);
-      Visible_Rows : constant Natural := Visible_Row_Count (Content_H, Layout.Row_Height);
+      --  Fully visible rows only: the keyboard selection must never land on
+      --  the half-hidden last row the dropdown clips.
+      Visible_Rows : constant Natural :=
+        (if Layout.Row_Height = 0 then 0
+         else Natural'Max (1, Content_H / Layout.Row_Height));
       Start_Index  : Natural := 1;
       Selected_Index : Natural := Snapshot.Root_Selected_Index;
    begin

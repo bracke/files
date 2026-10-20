@@ -104,9 +104,12 @@ separate (Files.Rendering)
          --  At compact heights, split only at a group separator.  This keeps
          --  every command mouse-reachable without shrinking text below its
          --  configured line height or cutting the menu off-screen.
+         --  A narrow window still splits (columns then share its width and
+         --  labels may be fitted): rows laid out below the window edge were
+         --  unreachable by mouse, which is worse than shortened labels.
          if Result.Height > Height
            and then Result.Row_Count > 1
-           and then Width >= Saturating_Multiply (Minimum_Column_W, 2)
+           and then Width >= Saturating_Multiply (Line_Height, 8)
          then
             for Row in 1 .. Result.Row_Count - 1 loop
                if Result.Row_Kinds (Row) = Separator_Row then

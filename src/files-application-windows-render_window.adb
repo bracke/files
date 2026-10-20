@@ -92,6 +92,11 @@ separate (Files.Application.Windows)
            Mouse_Down
            and then Runtime.Drag_Source_Index /= 0
            and then Runtime.Handle.Drag_Moved;
+         Current_Minute : constant Natural :=
+           Natural
+             ((Long_Long_Integer
+                 (Ada.Calendar."-" (Ada.Calendar.Clock, Ada.Calendar.Time_Of (2000, 1, 1)))
+               / 60) mod Long_Long_Integer (Natural'Last));
          --  Reuse the cached snapshot when the model and settings are unchanged
          --  since it was built. Build_Snapshot is O(items) with a sort and
          --  per-item work, so skipping it on unchanged frames is the main saving.
@@ -99,6 +104,7 @@ separate (Files.Application.Windows)
          --  model as they run above, so always rebuild while they are active.
          Reuse_Snapshot : constant Boolean :=
            Runtime.Frame_Cache_Valid
+           and then Runtime.Cached_Minute = Current_Minute
            and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
            and then Files.Settings.Same_Snapshot_Settings
                       (Runtime.Settings, Runtime.Cached_Settings_Key)
@@ -111,6 +117,7 @@ separate (Files.Application.Windows)
            and then not Runtime.Marquee_Active;
          Inputs_Match : constant Boolean :=
            Runtime.Frame_Cache_Valid
+           and then Runtime.Cached_Minute = Current_Minute
            and then Runtime.Cached_Frame_W = Natural (Width)
            and then Runtime.Cached_Frame_H = Natural (Height)
            and then Runtime.Cached_Line_Height = Line_Height
@@ -167,6 +174,7 @@ separate (Files.Application.Windows)
             Runtime.Cached_Marquee_Y := Runtime.Marquee_Rect_Y;
             Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
+            Runtime.Cached_Minute := Current_Minute;
             Runtime.Frame_Cache_Valid := True;
             --  Publish the new frame's accessibility tree to the host screen
             --  reader, only when the frame actually changed. A no-op until an

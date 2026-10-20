@@ -89,7 +89,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Region_X      => First_Row.X,
                   Region_Y      => First_Row.Y,
                   Region_Width  => First_Row.Width,
-                  Region_Height => Saturating_Multiply (Natural (Root_Rows.Length), Row_H),
+                  --  The layout trims the last row to the dropdown; size the
+                  --  region from the rows themselves so it is not drawn past it.
+                  Region_Height =>
+                    (declare
+                       Last_Row : constant Root_Path_Layout := Root_Rows.Last_Element;
+                       Bottom   : constant Natural := Saturating_Add (Last_Row.Y, Last_Row.Height);
+                     begin (if Bottom > First_Row.Y then Bottom - First_Row.Y else 0)),
                   Config        => Config,
                   Rows          => List_Rows,
                   Draw_Chrome   => False,
