@@ -288,6 +288,7 @@ package body Files.Application is
       Settings       : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result         : Startup_Result;
       Resolved       : Startup_Result;
+      Load_Failed    : Boolean := False;
    begin
       declare
          Ensured : constant Files.Settings.Settings_Write_Result :=
@@ -309,6 +310,11 @@ package body Files.Application is
                   Result.Errors.Append
                     (Startup_Error'
                        (Input_Path => To_Unbounded_String (Effective_Path), Error_Key => Loaded.Error_Key));
+                  --  The session runs on defaults. Writing them back would
+                  --  replace every bookmark, label and mapping in a file that
+                  --  is merely unreadable to this build, so run read-only and
+                  --  leave the file for the user to fix.
+                  Load_Failed := True;
                end if;
             end;
          else
@@ -319,7 +325,8 @@ package body Files.Application is
       end;
 
       Result.Settings := Settings;
-      Result.Settings_Path := To_Unbounded_String (Effective_Path);
+      Result.Settings_Path :=
+        (if Load_Failed then Null_Unbounded_String else To_Unbounded_String (Effective_Path));
       Apply_Shortcut_Overrides (Settings);
       Resolved := Resolve_Startup_Paths (Arguments, Settings);
       Result.Windows := Resolved.Windows;

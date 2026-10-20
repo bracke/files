@@ -2672,6 +2672,11 @@ package body Files_Suite.Settings is
       Assert
         (Count (Base) = 0,
          "a NUL-containing path is not recorded as a recent item");
+      Files.Settings.Note_Recent (Base, File_Path & ASCII.LF & "b");
+      Files.Settings.Note_Recent (Base, File_Path & ASCII.CR);
+      Assert
+        (Count (Base) = 0,
+         "a path with a line break is not recorded, since it cannot round-trip the line-based file");
 
       --  Note records most-recent-first (a file and a folder both round in).
       Files.Settings.Note_Recent (Base, File_Path);

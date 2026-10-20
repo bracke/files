@@ -719,6 +719,9 @@ package body Files_Suite.Startup is
         (To_String (Startup.Errors.Element (1).Error_Key) = "error.settings.invalid_boolean",
          "settings diagnostic records the parse error");
       Assert
+        (To_String (Startup.Settings_Path) = "",
+         "an unreadable settings file makes the session read-only so defaults never overwrite it");
+      Assert
         (Startup.Settings.Default_View = Files.Settings.Default_Settings.Default_View,
          "invalid settings leave startup result on default settings");
       Assert

@@ -37,10 +37,16 @@ package body Files.Settings is
       return False;
    end Contains_Nul;
 
+   function Contains_Line_Break (Text : String) return Boolean;
+
+   --  The settings file is line-oriented, so a path holding a line break
+   --  cannot round-trip: written raw it splits into a bogus line that fails
+   --  the next load. Such paths (legal on POSIX) are simply not persisted.
    function Persistent_Path_Is_Valid (Path : String) return Boolean is
    begin
       return Path /= ""
-        and then not Contains_Nul (Path);
+        and then not Contains_Nul (Path)
+        and then not Contains_Line_Break (Path);
    end Persistent_Path_Is_Valid;
 
    function Snapshot_Settings_Key_Of

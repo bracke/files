@@ -26,7 +26,9 @@ separate (Files.Application.Windows)
            (Runtime_Windows => Runtime_Windows,
             Startup_Window  => Startup_Window,
             Settings        => Startup.Settings,
-            Settings_Path   => Startup.Settings_Path,
+            --  A smoke run drives scripted windows at the plan's size; it
+            --  must not persist that size (or anything else) to the user's file.
+            Settings_Path   => Null_Unbounded_String,
             Width           => Plan.Width,
             Height          => Plan.Height);
       end loop;
