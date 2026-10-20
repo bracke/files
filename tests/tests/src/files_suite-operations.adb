@@ -13900,6 +13900,27 @@ package body Files_Suite.Operations is
                  "replace-all writes the non-colliding item unchanged");
       end;
 
+      --  Two sources with one leaf name: only the first replaces; the second
+      --  must not replace the copy the batch has just written.
+      declare
+         Twins   : Files.Paste.Work_Item_Vectors.Vector;
+         Actions : Files.Paste.Resolved_Action_Vectors.Vector;
+      begin
+         Twins.Append (Work_Item ("a.txt"));
+         Twins.Append
+           (Files.Paste.Work_Item'
+              (Source_Path => To_Unbounded_String ("/other/a.txt"),
+               Dest_Dir    => To_Unbounded_String ("/dest"),
+               Dest_Name   => To_Unbounded_String ("a.txt")));
+         Actions := Files.Paste.Resolve (Twins, Files.Paste.Policy_Replace_All, None, Existing);
+         Assert (Actions.Element (1).Replaced
+                   and then To_String (Actions.Element (1).Dest_Path) = "/dest/a.txt",
+                 "the first same-named item replaces the existing entry");
+         Assert (not Actions.Element (2).Replaced and then not Actions.Element (2).Skip
+                   and then To_String (Actions.Element (2).Dest_Path) /= "/dest/a.txt",
+                 "a second same-named item is kept under a unique name instead of replacing the first");
+      end;
+
       --  Skip_All: colliding ones are skipped, the free one is written.
       declare
          Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=

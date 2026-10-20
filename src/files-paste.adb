@@ -208,7 +208,17 @@ package body Files.Paste is
             else
                case Effective_Decision (Policy, Override_At (Overrides, Index)) is
                   when Decision_Replace =>
-                     Emit_Write (Item.Source_Path, Desired, True);
+                     --  Only the first item may replace the existing entry. A
+                     --  later same-named item would otherwise replace the copy
+                     --  this batch just wrote (sending it to the trash) and
+                     --  leave Undo two entries for one path; keep both instead.
+                     if Claimed.Contains (Desired) then
+                        Emit_Write
+                          (Item.Source_Path,
+                           Unique_Path (Dir, Name, Existing_Set, Claimed), False);
+                     else
+                        Emit_Write (Item.Source_Path, Desired, True);
+                     end if;
                   when Decision_Rename =>
                      Emit_Write
                        (Item.Source_Path,
