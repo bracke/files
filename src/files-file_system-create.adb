@@ -321,11 +321,13 @@ package body Create is
          end if;
          Committed := True;
          declare
-            Removed : constant Mutation_Result := Delete_Permanently
-              (Ada.Directories.Containing_Directory (To_String (Backup)));
+            Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
+            Removed : constant Mutation_Result := Delete_Permanently (Stage);
             pragma Unreferenced (Removed);
          begin
-            null;
+            if not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
+               Recovery.Unregister (To_String (Backup));
+            end if;
          end;
          return (Success => True, Error_Key => Null_Unbounded_String);
       exception

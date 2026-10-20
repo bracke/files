@@ -15,6 +15,11 @@ private package Files.File_System.Recovery is
    --  @return Mutation result with a localized error key on failure.
    function Discard (Path : String) return Mutation_Result;
 
+   --  Drop the registry record for a payload whose stage was removed by a
+   --  caller other than Discard or Restore (which unregister themselves).
+   --  @param Payload Payload path returned by Preserve.
+   procedure Unregister (Payload : String);
+
    --  @param Path Payload returned by Preserve.
    --  @return Original path from the recovery sidecar, or empty on failure.
    function Original_Path (Path : String) return String;

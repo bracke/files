@@ -1,7 +1,9 @@
 with Files.File_Identities;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
@@ -21,6 +23,11 @@ package body Files.File_System.Recovery is
    use type Files.Private_Directories.Create_Result;
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Lease_Files.Open_Outcome;
+
+   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
 
    Owner_Name : constant String := ".files-recovery-owner";
    Owner_Magic : constant String := "files-recovery-v1";
@@ -316,6 +323,25 @@ package body Files.File_System.Recovery is
          end if;
    end Delete_Registry_Record;
 
+   --  A record whose stage directory is gone describes nothing recoverable.
+   --  Preserve creates the stage before registering, so a live record always
+   --  has one; an unreadable (possibly half-written) record is never stale.
+   function Is_Stale_Record (Directory : String) return Boolean is
+      Payload, Identity : UString;
+   begin
+      if not Read_Registry_Record (Directory, Payload, Identity) then
+         return False;
+      end if;
+      declare
+         Stage : constant String :=
+           Ada.Directories.Containing_Directory (To_String (Payload));
+      begin
+         return not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage);
+      end;
+   exception
+      when others => return False;
+   end Is_Stale_Record;
+
    function Register (Payload : String) return String is
       Root : constant String := Registry_Root (Create => True);
       Directory : UString;
@@ -324,6 +350,10 @@ package body Files.File_System.Recovery is
       if Root = "" or else not Valid_Absolute_Path (Payload) then
          raise Ada.Directories.Use_Error;
       end if;
+      --  Preserve registers a stage it has just created exclusively, and stage
+      --  names are reused once freed, so any record already naming this
+      --  payload belongs to an earlier, finished stage of the same name.
+      Unregister (Payload);
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
@@ -332,7 +362,17 @@ package body Files.File_System.Recovery is
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision
             then
-               goto Continue;
+               --  Reclaim a slot left by a stage that is already gone, so
+               --  leaked records cannot exhaust the bounded name space.
+               if not Is_Stale_Record (Candidate) then
+                  goto Continue;
+               end if;
+               Delete_Registry_Record (Candidate);
+               if Files.Private_Directories.Try_Create (Candidate) =
+                 Files.Private_Directories.Collision
+               then
+                  goto Continue;
+               end if;
             end if;
             Directory := To_Unbounded_String (Candidate);
             exit;
@@ -642,6 +682,7 @@ package body Files.File_System.Recovery is
       Item : Ada.Directories.Directory_Entry_Type;
       Open : Boolean := False;
       Result : Files.Types.String_Vectors.Vector;
+      Seen   : Path_Sets.Set;
    begin
       if Root = "" then
          return Result;
@@ -655,15 +696,25 @@ package body Files.File_System.Recovery is
             Payload, Expected : UString;
             Directory : constant String := Ada.Directories.Full_Name (Item);
          begin
-            if Read_Registry_Record (Directory, Payload, Expected)
-              and then Recognizes (To_String (Payload))
-              and then
-                (Length (Expected) = 0
-                 or else Files.File_Identities.Token
-                   (Ada.Directories.Containing_Directory (To_String (Payload))) =
-                     To_String (Expected))
-            then
-               Result.Append (Payload);
+            if Is_Stale_Record (Directory) then
+               Delete_Registry_Record (Directory);
+            elsif Read_Registry_Record (Directory, Payload, Expected) then
+               if Seen.Contains (To_String (Payload)) then
+                  --  A duplicate left by a reused stage name (see Register);
+                  --  one record per payload is all Unregister and recovery need.
+                  Delete_Registry_Record (Directory);
+               else
+                  Seen.Include (To_String (Payload));
+                  if Recognizes (To_String (Payload))
+                    and then
+                      (Length (Expected) = 0
+                       or else Files.File_Identities.Token
+                         (Ada.Directories.Containing_Directory (To_String (Payload))) =
+                           To_String (Expected))
+                  then
+                     Result.Append (Payload);
+                  end if;
+               end if;
             end if;
          end;
       end loop;

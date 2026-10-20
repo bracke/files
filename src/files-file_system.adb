@@ -1006,10 +1006,15 @@ package body Files.File_System is
          end if;
       end;
       declare
-         Removed : constant Mutation_Result := Delete_Permanently (Ada.Directories.Containing_Directory
-           (To_String (Backup)));
+         Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
+         Removed : constant Mutation_Result := Delete_Permanently (Stage);
          pragma Unreferenced (Removed);
       begin
+         --  Preserve registered the backup; once its stage is gone the record
+         --  would otherwise leak and slowly exhaust the registry.
+         if not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
+            Recovery.Unregister (To_String (Backup));
+         end if;
          return (Success => True, Error_Key => Null_Unbounded_String);
       end;
    exception
