@@ -130,7 +130,11 @@ package body Navigation is
                --  with no copy; only the retained Rows entry copies it.
                Item : Files.File_System.Directory_Item renames Model.Items (Index);
             begin
-               if Filter = ""
+               --  Same test as Item_Is_Visible, which every index mapping
+               --  (clicks, selection, rename) uses: search results show every
+               --  hit, including content matches whose name lacks the query.
+               if Model.Search_Results_Active
+                 or else Filter = ""
                  or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), Filter)
                then
                   Rows.Append

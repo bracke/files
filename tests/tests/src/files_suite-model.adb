@@ -1589,6 +1589,18 @@ package body Files_Suite.Model is
       Missing_Item := Files.Model.Visible_Item (Model, 99);
       Assert (To_String (Missing_Item.Name) = "", "invalid visible item index returns empty item");
       Assert (Missing_Item.Kind = Files.Types.Unknown_Item, "invalid visible item index returns unknown kind");
+      declare
+         --  Content-search hits whose names lack the query stay listed, and the
+         --  drawn rows agree with the count that clicks and selection use.
+         Search_Model : Files.Model.Window_Model := Sample_Model;
+      begin
+         Files.Model.Set_Filter (Search_Model, "zzz-not-in-any-name");
+         Files.Model.Note_Search_Results (Search_Model, Files.Types.Search_Contents);
+         Assert
+           (Natural (Files.Model.Visible_Rows (Search_Model).Length) = Files.Model.Visible_Count (Search_Model)
+            and then Files.Model.Visible_Count (Search_Model) = Files.Model.Item_Count (Search_Model),
+            "search results draw every hit, matching the rows clicks map to");
+      end;
       Files.Model.Select_Visible (Model, 3);
       Files.Model.Set_Filter (Model, "alp");
       Assert (Files.Model.Visible_Count (Model) = 1, "filter matches item names case-insensitively");
