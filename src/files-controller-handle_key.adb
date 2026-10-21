@@ -359,12 +359,11 @@ separate (Files.Controller)
          end if;
       end if;
 
-      --  Shift+F10 opens the context menu on the current selection -- the
-      --  keyboard equivalent of a right-click -- so its rows are reachable and
-      --  navigable without a mouse. (The Menu/Application key is not in the key
-      --  set; Shift+F10 is its universal stand-in.)
-      if Key = Guikit.Input.Key_F10
-        and then Modifiers (Guikit.Input.Shift_Key)
+      --  The Menu key, or Shift+F10 where a keyboard has none, opens the
+      --  context menu on the current selection -- the keyboard equivalent of a
+      --  right-click -- so its rows are reachable and navigable without a mouse.
+      if ((Key = Guikit.Input.Key_F10 and then Modifiers (Guikit.Input.Shift_Key))
+          or else (Key = Guikit.Input.Key_Menu and then Modifiers = Guikit.Input.No_Modifiers))
         and then Files.Model.Focus (Model) = Files.Types.Focus_None
       then
          if Files.Model.Selected_Count (Model) > 0 then

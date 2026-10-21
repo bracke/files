@@ -107,6 +107,7 @@ separate (Files.Commands)
          when Guikit.Input.Key_F12 => return "f12";
          when Guikit.Input.Key_Tab => return "tab";
          when Guikit.Input.Key_Insert => return "insert";
+         when Guikit.Input.Key_Menu => return "menu";
          when Guikit.Input.Key_Unknown =>
             return "";
       end case;

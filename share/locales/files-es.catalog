@@ -614,6 +614,7 @@ es.key.name.end = Fin
 es.key.name.escape = Esc
 es.key.name.home = Inicio
 es.key.name.insert = Insert
+es.key.name.menu = Menú
 es.key.name.pagedown = Av Pág
 es.key.name.pageup = Re Pág
 es.key.name.return = Enter

@@ -614,6 +614,7 @@ nl.key.name.end = End
 nl.key.name.escape = Esc
 nl.key.name.home = Home
 nl.key.name.insert = Insert
+nl.key.name.menu = Menu
 nl.key.name.pagedown = Page Down
 nl.key.name.pageup = Page Up
 nl.key.name.return = Enter

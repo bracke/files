@@ -1959,6 +1959,12 @@ package body Files_Suite.Commands is
       Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
       Files.Model.Initialize (Model, Root, Items, Root);
 
+      --  The Menu key opens the context menu; Escape closes it again.
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Menu);
+      Assert (Files.Model.Context_Menu_Is_Open (Model), "the Menu key opens the context menu");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Assert (not Files.Model.Context_Menu_Is_Open (Model), "Escape closes the context menu");
+
       --  Shift+F10 opens the context menu (empty-area, since nothing is selected).
       Shift (Guikit.Input.Shift_Key) := True;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F10, Shift);

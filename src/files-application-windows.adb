@@ -110,7 +110,7 @@ package body Files.Application.Windows is
       Tracked_Q, Tracked_T, Tracked_U, Tracked_W, Tracked_Y,
       Tracked_F1, Tracked_F3, Tracked_F4, Tracked_F6, Tracked_F7, Tracked_F8, Tracked_F9,
       Tracked_F10, Tracked_F11, Tracked_F12,
-      Tracked_Tab, Tracked_Insert);
+      Tracked_Tab, Tracked_Insert, Tracked_Menu);
 
    --  Keyboard input in arrival order. Draining key presses and typed text as
    --  separate batches ran them out of order: text typed before Enter in a

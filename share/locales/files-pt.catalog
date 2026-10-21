@@ -614,6 +614,7 @@ pt.key.name.end = End
 pt.key.name.escape = Esc
 pt.key.name.home = Home
 pt.key.name.insert = Insert
+pt.key.name.menu = Menu
 pt.key.name.pagedown = Page Down
 pt.key.name.pageup = Page Up
 pt.key.name.return = Enter

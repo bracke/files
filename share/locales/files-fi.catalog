@@ -614,6 +614,7 @@ fi.key.name.end = End
 fi.key.name.escape = Esc
 fi.key.name.home = Home
 fi.key.name.insert = Insert
+fi.key.name.menu = Valikko
 fi.key.name.pagedown = Page Down
 fi.key.name.pageup = Page Up
 fi.key.name.return = Enter

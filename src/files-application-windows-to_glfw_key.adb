@@ -146,5 +146,7 @@ separate (Files.Application.Windows)
             return Glfw.Input.Keys.Tab;
          when Tracked_Insert =>
             return Glfw.Input.Keys.Insert;
+         when Tracked_Menu =>
+            return Glfw.Input.Keys.Menu;
       end case;
    end To_Glfw_Key;

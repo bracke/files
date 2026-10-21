@@ -141,5 +141,7 @@ separate (Files.Application.Windows)
             return Guikit.Input.Key_Tab;
          when Tracked_Insert =>
             return Guikit.Input.Key_Insert;
+         when Tracked_Menu =>
+            return Guikit.Input.Key_Menu;
       end case;
    end To_Key_Code;

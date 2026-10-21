@@ -614,6 +614,7 @@ da.key.name.end = End
 da.key.name.escape = Esc
 da.key.name.home = Home
 da.key.name.insert = Insert
+da.key.name.menu = Menu
 da.key.name.pagedown = Page Down
 da.key.name.pageup = Page Up
 da.key.name.return = Enter

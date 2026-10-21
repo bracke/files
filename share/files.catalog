@@ -681,6 +681,7 @@ en.key.name.end = End
 en.key.name.escape = Esc
 en.key.name.home = Home
 en.key.name.insert = Insert
+en.key.name.menu = Menu
 en.key.name.pagedown = Page Down
 en.key.name.pageup = Page Up
 en.key.name.return = Enter

@@ -614,6 +614,7 @@ sv.key.name.end = End
 sv.key.name.escape = Esc
 sv.key.name.home = Home
 sv.key.name.insert = Insert
+sv.key.name.menu = Meny
 sv.key.name.pagedown = Page Down
 sv.key.name.pageup = Page Up
 sv.key.name.return = Enter
