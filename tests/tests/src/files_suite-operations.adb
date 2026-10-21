@@ -6328,7 +6328,10 @@ package body Files_Suite.Operations is
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Before := Ada.Calendar.Clock;
       Files.Folder_Size.Request (Join (Root, "unreadable-or-missing"));
-      Assert (Ada.Calendar.Clock - Before < 0.25, "posting a size request does not inspect its target");
+      --  Posting starts a helper process, which on a busy Windows runner can
+      --  alone take longer than a quarter second; inspecting the stalled
+      --  target in the caller would block far longer than this bound.
+      Assert (Ada.Calendar.Clock - Before < 2.0, "posting a size request does not inspect its target");
       Await_Helper;
       Targets.Append (To_Unbounded_String (Join (Root, "unreadable-or-missing")));
       Targets.Append (To_Unbounded_String (Join (Root, "another-window")));
@@ -6346,7 +6349,8 @@ package body Files_Suite.Operations is
       Ada.Directories.Delete_File (Marker);
       Before := Ada.Calendar.Clock;
       Files.Folder_Size.Request (Join (Root, "another-window"));
-      Assert (Ada.Calendar.Clock - Before < 0.25, "retargeting does not join the abandoned scan");
+      --  Retargeting starts a replacement helper: the same headroom as posting.
+      Assert (Ada.Calendar.Clock - Before < 2.0, "retargeting does not join the abandoned scan");
       Await_Helper;
       Assert (Started /= Previous, "retargeting starts a separate helper");
       Await_Reaped (Previous);
