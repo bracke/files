@@ -2190,6 +2190,8 @@ package body Files.Application.Windows is
             return "settings_light";
          when Scenario_Settings_Large_Font =>
             return "settings_large_font";
+         when Scenario_Settings_Keyboard =>
+            return "settings_keyboard";
          when Scenario_Large_Font =>
             return "large_font";
          when Scenario_Light_Theme =>
@@ -2223,6 +2225,12 @@ package body Files.Application.Windows is
       --  or DPI-scaling regression), even though the structural Analyze passed.
       if Outcomes (Scenario).Region_Checked
         and then not Outcomes (Scenario).Region_Ink_Present
+      then
+         return False;
+      end if;
+
+      if Outcomes (Scenario).Keys_Checked
+        and then Outcomes (Scenario).Keys_Failed_Step /= 0
       then
          return False;
       end if;
@@ -2279,6 +2287,17 @@ package body Files.Application.Windows is
    procedure Apply_Scenario
      (Runtime  : in out Runtime_Window;
       Scenario : Live_Smoke_Scenario)
+ is separate;
+
+   --  Drive the settings panel with a scripted key sequence queued exactly as
+   --  the window's key callback queues presses, so each key takes the live
+   --  dispatch path. A frame is rendered after every key.
+   --
+   --  @param Runtime Window to drive, in its scenario baseline state.
+   --  @param Failed_Step First step whose expected effect did not happen, or 0.
+   procedure Drive_Settings_Keys
+     (Runtime     : in out Runtime_Window;
+      Failed_Step : out Natural)
  is separate;
 
    --  Reset a runtime window to a captured baseline and apply one scenario.

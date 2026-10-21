@@ -97,6 +97,11 @@ separate (Files.Application.Windows)
                   Base_Index := Base_Index + 1;
                end loop;
 
+               if Scenario = Scenario_Settings_Keyboard then
+                  Outcome.Keys_Checked := True;
+                  Drive_Settings_Keys (Runtime_Windows (1), Outcome.Keys_Failed_Step);
+               end if;
+
                for Frame_Index in 1 .. Plan.Frame_Count loop
                   Result.Frames_Attempted := Result.Frames_Attempted + 1;
                   --  Render directly rather than through Render_All, whose

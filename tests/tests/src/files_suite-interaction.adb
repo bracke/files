@@ -28,6 +28,7 @@ with Files.Settings;
 with Guikit.Input;
 with Files.Types;
 with Guikit.Layout;
+with Guikit.Settings_Panel;
 with Files_Config;
 
 with Files_Suite.Support;
@@ -71,6 +72,7 @@ package body Files_Suite.Interaction is
    use type Files.Types.Focus_Target;
    use type Files.Types.Search_Scope;
    use type Files.Types.View_Mode;
+   use type Guikit.Settings_Panel.Field_Kind;
 
    Window_W   : constant Natural  := 1000;
    Window_H   : constant Natural  := 800;
@@ -1559,6 +1561,34 @@ package body Files_Suite.Interaction is
          Tab (Ctrl);
          Assert (Files.Model.Settings_Active_Section (Model) = 1,
                  "Ctrl+Tab wraps from the last section to the first");
+      end;
+
+      --  Plain Tab / Shift+Tab walk the fields like Down / Up.
+      declare
+         First : constant String := Files.Model.Settings_Focused_Key (Model);
+      begin
+         Tab (Guikit.Input.No_Modifiers);
+         Assert (Files.Model.Settings_Focused_Key (Model) /= First, "Tab moves focus to the next field");
+         Tab (Shift);
+         Assert (Files.Model.Settings_Focused_Key (Model) = First, "Shift+Tab moves focus back");
+      end;
+
+      --  Space flips a focused toggle and drops its own character.
+      for Step in 1 .. 50 loop
+         exit when Files.Model.Settings_Focused_Kind (Model) = Guikit.Settings_Panel.Toggle;
+         Tab (Guikit.Input.No_Modifiers);
+      end loop;
+      Assert (Files.Model.Settings_Focused_Kind (Model) = Guikit.Settings_Panel.Toggle,
+              "the first section has a toggle to focus");
+      declare
+         Before : constant String := Files.Model.Settings_Focused_Value (Model);
+      begin
+         Files.Interaction.Handle_Key
+           (Model => Model, Settings => Settings, Settings_Path => Path,
+            Key => Guikit.Input.Key_Space, Modifiers => Guikit.Input.No_Modifiers,
+            Current_Font_Size => Base_Font, Result => Result);
+         Assert (Files.Model.Settings_Focused_Value (Model) /= Before, "Space flips the focused toggle");
+         Assert (Result.Clear_Pending_Text, "the flipping space is not also typed");
       end;
    end Test_Settings_Tab_Keys;
 

@@ -1292,6 +1292,20 @@ package Files.Model is
    --  @return The focused field's value.
    function Settings_Focused_Value (Model : Window_Model) return String;
 
+   --  The focused field's kind (Section when none), so keys that act only on
+   --  some kinds -- Space flips a toggle but types into a text field -- can
+   --  tell them apart.
+   --
+   --  @param Model Model to inspect.
+   --  @return The focused field's kind.
+   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind;
+
+   --  The focused field's Key ("" when none).
+   --
+   --  @param Model Model to inspect.
+   --  @return The focused field's Key.
+   function Settings_Focused_Key (Model : Window_Model) return String;
+
    --  Press-to-capture routing for the settings panel's Shortcut fields. Arming
    --  a focused Shortcut row (by click, or Begin_Capture on a keyboard
    --  activation) makes Settings_Is_Capturing true; the controller then routes

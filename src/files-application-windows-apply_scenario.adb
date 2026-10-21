@@ -84,6 +84,10 @@ separate (Files.Application.Windows)
             Files.Model.Begin_Settings_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
+         when Scenario_Settings_Keyboard =>
+            --  The run drives the keys itself once the window is prepared.
+            null;
+
          when Scenario_Large_Font =>
             --  Jump to a size the baseline is not already using so the scaling
             --  path is exercised and the frame provably differs from default.

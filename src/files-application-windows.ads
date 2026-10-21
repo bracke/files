@@ -77,6 +77,10 @@ package Files.Application.Windows is
       Scenario_Settings_Tab_7,
       Scenario_Settings_Light,
       Scenario_Settings_Large_Font,
+      --  The settings panel driven by real key presses through the window's
+      --  own key queue (open, move, toggle, switch tabs, close, reopen), each
+      --  checked against the model and followed by a rendered frame.
+      Scenario_Settings_Keyboard,
       Scenario_Large_Font,
       Scenario_Light_Theme,
       Scenario_Details_View,
@@ -102,6 +106,11 @@ package Files.Application.Windows is
       --  when Region_Checked is set.
       Region_Ink_Fraction : Float := 0.0;
       --  Measured ink fraction of the checked region, retained for diagnostics.
+      Keys_Checked : Boolean := False;
+      --  True when the scenario drove a scripted key sequence.
+      Keys_Failed_Step : Natural := 0;
+      --  The first scripted key step whose expected effect did not happen, or
+      --  zero when every step passed. Meaningful only when Keys_Checked is set.
    end record;
 
    type Scenario_Outcome_Array is array (Live_Smoke_Scenario) of Scenario_Outcome;

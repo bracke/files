@@ -1,5 +1,7 @@
 with Ada.Strings.Unbounded;
 
+with Guikit.Settings_Panel;
+
 with Files.File_System;
 with Files.Operations;
 
@@ -595,9 +597,13 @@ package body Files.Interaction is
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
       --  character: when the grid owns the keyboard, drop the parallel space
       --  character event so it never leaks into type-ahead. A space typed into a
-      --  focused text field keeps its character event and types a space.
+      --  focused text field keeps its character event and types a space; one
+      --  that flipped a settings toggle or choice is dropped like the grid's.
       if Key = Guikit.Input.Key_Space
-        and then Files.Model.Focus (Model) = Files.Types.Focus_None
+        and then (Files.Model.Focus (Model) = Files.Types.Focus_None
+                  or else (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input
+                           and then Files.Model.Settings_Focused_Kind (Model) in
+                             Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice))
       then
          Result.Clear_Pending_Text := True;
       end if;

@@ -2052,6 +2052,10 @@ package body Files.Model is
 
       function Settings_Focused_Value (Model : Window_Model) return String;
 
+      function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind;
+
+      function Settings_Focused_Key (Model : Window_Model) return String;
+
       procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural);
 
       function Settings_Section_Count (Model : Window_Model) return Natural;
@@ -2156,6 +2160,12 @@ package body Files.Model is
 
    function Settings_Focused_Value (Model : Window_Model) return String
      renames Panes.Settings_Focused_Value;
+
+   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind
+     renames Panes.Settings_Focused_Kind;
+
+   function Settings_Focused_Key (Model : Window_Model) return String
+     renames Panes.Settings_Focused_Key;
 
    procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural)
      renames Panes.Settings_Set_Active_Section;

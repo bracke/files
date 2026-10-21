@@ -706,6 +706,7 @@ package body Files.Application is
                Pass_Word         : constant String := "pass";
                Fail_Word         : constant String := "fail";
                Region_Word       : constant String := "region";
+               Keys_Word         : constant String := "keys";
 
                --  Automake convention: a skipped test exits with code 77 so CI
                --  can tell "environment could not run it" apart from a pass (0)
@@ -830,6 +831,14 @@ package body Files.Application is
                                 & (if Outcome.Region_Ink_Present
                                    then Pass_Word else Fail_Word)
                                 & Space & Natural'Image (Region_Percent)
+                           else "")
+                        --  A scripted key sequence reports the first step
+                        --  whose effect was missing.
+                        & (if Outcome.Keys_Checked
+                           then Space & Keys_Word & Colon & Space
+                                & (if Outcome.Keys_Failed_Step = 0
+                                   then Pass_Word
+                                   else Fail_Word & Natural'Image (Outcome.Keys_Failed_Step))
                            else ""));
                   end;
                end loop;

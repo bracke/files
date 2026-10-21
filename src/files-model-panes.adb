@@ -158,6 +158,16 @@ package body Panes is
       return Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View);
    end Settings_Focused_Value;
 
+   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind is
+   begin
+      return Guikit.Settings_Panel.Focused_Kind (Model.Settings_Panel_View);
+   end Settings_Focused_Kind;
+
+   function Settings_Focused_Key (Model : Window_Model) return String is
+   begin
+      return Guikit.Settings_Panel.Focused_Key (Model.Settings_Panel_View);
+   end Settings_Focused_Key;
+
    procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;

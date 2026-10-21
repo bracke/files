@@ -3,6 +3,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Guikit.Layout;
+with Guikit.Settings_Panel;
 
 with Files.Applications;
 with Files.Breadcrumbs;
