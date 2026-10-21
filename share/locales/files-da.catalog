@@ -290,6 +290,7 @@ da.command.view.toggle_hidden.description = Vis eller skjul filer, hvis navne be
 da.command.view.toggle_hidden = Vis skjulte filer
 da.details.size.unit.pib = PB
 da.error.compress.failed = Arkivet kunne ikke oprettes.
+da.error.compress.unportable_name = Arkivet kunne ikke oprettes: Et navn indeholder et kolon eller en omvendt skråstreg, som arkiver ikke kan gemme.
 da.error.copy.failed = Elementet kunne ikke kopieres.
 da.error.create.no_temporary_item = Der er ingen igangværende filoprettelse.
 da.error.create.pending = En filoprettelse er allerede i gang.

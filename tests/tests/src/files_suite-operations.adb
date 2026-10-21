@@ -9826,6 +9826,30 @@ package body Files_Suite.Operations is
                  "duplicate archive entry names cannot overwrite or silently replace a selected input");
          Await_View (Model, Settings);
       end loop;
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         for Background in Boolean loop
+            for Format in Files.Operations.Archive_Format loop
+               Reset_Root;
+               Ada.Directories.Create_Path (Join (Root, "bag"));
+               Write_Binary_File (Join (Join (Root, "bag"), "notes:2024.txt"), "colon bytes");
+               Settings := Files.Settings.Default_Settings;
+               Load := Files.File_System.Load_Directory (Root, Settings);
+               Files.Model.Initialize (Model, Root, Load.Items, Root);
+               Files.Model.Clear_Undo (Model);
+               Files.Model.Set_Background_Transfers (Model, Background);
+               Select_Name (Model, "bag");
+               Step := Complete_Operation
+                 (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Format));
+               Assert (Step.Status = Files.Operations.Operation_Failed
+                       and then To_String (Step.Error_Key) = "error.compress.unportable_name"
+                       and then Files.Model.Last_Error_Key (Model) = "error.compress.unportable_name"
+                       and then not Ada.Directories.Exists (Join (Root, "bag.zip"))
+                       and then not Ada.Directories.Exists (Join (Root, "bag.7z")),
+                       "a name an archive cannot store is reported as such, not as a generic failure");
+               Await_View (Model, Settings);
+            end loop;
+         end loop;
+      end if;
    exception
       when others => Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Archive_Completeness;

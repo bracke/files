@@ -20,6 +20,15 @@ package Files.Archive_Writing is
       Free_Inodes        : Long_Long_Integer;
       Free_Inodes_Known  : Boolean) return Boolean;
 
+   --  Whether an archive entry name can be stored: ZIP and 7z entry names use
+   --  '/' as their only separator and readers treat '\' and ':' as path
+   --  syntax, so names holding those (valid on POSIX) are refused.
+   --
+   --  @param Name Relative entry name, '/'-separated.
+   --  @return True when no component holds a backslash, colon or NUL.
+   function Portable_Entry_Name (Name : String) return Boolean is
+     (for all C of Name => C not in ASCII.NUL | '\' | ':');
+
    --  @param Input_Paths Source files and directories, without following links.
    --  @param Output_Path Staged output archive, published by the caller.
    --  @param Entry_Names Distinct relative names parallel to Input_Paths.

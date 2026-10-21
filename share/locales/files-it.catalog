@@ -290,6 +290,7 @@ it.command.view.toggle_hidden.description = Mostra o nasconde i file il cui nome
 it.command.view.toggle_hidden = Mostra file nascosti
 it.details.size.unit.pib = PB
 it.error.compress.failed = Impossibile creare l'archivio.
+it.error.compress.unportable_name = Impossibile creare l'archivio: un nome contiene due punti o una barra rovesciata, che gli archivi non possono memorizzare.
 it.error.copy.failed = Impossibile copiare l'elemento.
 it.error.create.no_temporary_item = Non esiste alcuna creazione di file in sospeso.
 it.error.create.pending = Una creazione di file è già in sospeso.

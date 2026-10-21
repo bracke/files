@@ -194,6 +194,14 @@ package body Transfer is
       if Collection_Failed or else Input_Paths.Is_Empty then
          return Failed;
       end if;
+      --  Both writers refuse such names; say why rather than failing the
+      --  archive with the generic error.
+      for Name of Entry_Names loop
+         if not Files.Archive_Writing.Portable_Entry_Name (To_String (Name)) then
+            Files.Model.Set_Error (Model, "error.compress.unportable_name");
+            return Make_Result (Operation_Failed, "error.compress.unportable_name", Directory);
+         end if;
+      end loop;
 
       declare
          Extension : constant String :=

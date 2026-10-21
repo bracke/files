@@ -626,6 +626,7 @@ en.error.duplicate.failed = Could not duplicate the selected items.
 en.error.link.failed = Could not create the link.
 en.error.terminal.unavailable = No terminal emulator is available.
 en.error.compress.failed = Could not create the archive.
+en.error.compress.unportable_name = Could not create the archive: a name contains a colon or backslash, which archives cannot store.
 en.error.extract.failed = Could not extract the archive.
 en.error.undo.failed = Could not undo the last action.
 en.error.drop.failed = Dropped item could not be imported.

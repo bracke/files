@@ -290,6 +290,7 @@ fr.command.view.toggle_hidden.description = Afficher ou masquer les fichiers don
 fr.command.view.toggle_hidden = Afficher les fichiers cachés
 fr.details.size.unit.pib = Po
 fr.error.compress.failed = Impossible de créer l'archive.
+fr.error.compress.unportable_name = Impossible de créer l'archive : un nom contient un deux-points ou une barre oblique inverse, que les archives ne peuvent pas stocker.
 fr.error.copy.failed = Impossible de copier l'élément.
 fr.error.create.no_temporary_item = Aucune création de fichier en attente.
 fr.error.create.pending = Une création de fichier est déjà en attente.
