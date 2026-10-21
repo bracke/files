@@ -233,10 +233,14 @@ package body Files.Application.Windows is
            | Tracked_Right_Bracket | Tracked_Slash
            | Tracked_Numpad_Add | Tracked_Numpad_Subtract);
 
-   function Cell_Width_For  (Size : Positive) return Positive is
-     (Positive'Max (1, Size * 3 / 4));
    function Cell_Height_For (Size : Positive) return Positive is
      (Positive'Max (1, Size * 5 / 4));
+   --  The text cell width is the advance every layout measures labels with,
+   --  taken from the same line height. Derived separately (Size * 3 / 4) it
+   --  came out a pixel wider at some sizes, so labels sized to fit lost their
+   --  last character and large fonts read "Klei", "Gro", "hom".
+   function Cell_Width_For  (Size : Positive) return Positive is
+     (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
 
    type Runtime_Window is record
       Handle          : Window_Access;
