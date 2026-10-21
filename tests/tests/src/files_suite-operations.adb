@@ -16809,7 +16809,10 @@ package body Files_Suite.Operations is
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Assert (Step.Status = Files.Operations.Operation_Success
                     and then not Ada.Directories.Exists (Join (Root, Archive)),
-                    "background archive creation is undoable");
+                    "background archive creation is undoable: " & Archive
+                    & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                    & " error=" & To_String (Step.Error_Key)
+                    & " exists=" & Boolean'Image (Ada.Directories.Exists (Join (Root, Archive))));
          end;
       end loop;
       Files.Model.Set_Filter (Model, "needle");

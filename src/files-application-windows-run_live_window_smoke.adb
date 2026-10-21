@@ -1,3 +1,5 @@
+with Ada.Text_IO;
+
 separate (Files.Application.Windows)
    function Run_Live_Window_Smoke
      (Startup : Startup_Result;
@@ -7,6 +9,19 @@ separate (Files.Application.Windows)
       Runtime_Windows : Runtime_Window_Vectors.Vector;
       Initialized     : Boolean := False;
       Result          : Live_Smoke_Result := Evaluate_Live_Window_Smoke (Plan);
+
+      --  FILES_LIVE_SMOKE_HOLD=<seconds> keeps each scenario's last frame on
+      --  screen that long, announced on standard output, so a person or a
+      --  screenshot tool can look at it. Unset or invalid: no pause.
+      function Hold_Seconds return Natural is
+         Value : constant String := Safe_Environment_Value ("FILES_LIVE_SMOKE_HOLD");
+      begin
+         return (if Value = "" then 0 else Natural'Min (Natural'Value (Value), 600));
+      exception
+         when others => return 0;
+      end Hold_Seconds;
+
+      Hold : constant Natural := Hold_Seconds;
    begin
       if not Plan.Can_Run or else Startup.Windows.Is_Empty then
          if Startup.Windows.Is_Empty then
@@ -148,6 +163,17 @@ separate (Files.Application.Windows)
                end loop;
 
                Result.Scenario_Results (Scenario) := Outcome;
+               if Hold > 0 then
+                  --  A fixed marker for tools to grep, like "live-smoke:", so
+                  --  built from space-free tokens rather than prose.
+                  Ada.Text_IO.Put_Line
+                    ("live-smoke" & ' ' & "hold" & ' ' & Live_Smoke_Scenario'Image (Scenario));
+                  Ada.Text_IO.Flush;
+                  for Tick in 1 .. Hold * 10 loop
+                     Guikit.Vulkan.Poll_Events;
+                     delay 0.1;
+                  end loop;
+               end if;
             end;
          end loop;
       end;
