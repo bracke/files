@@ -2,6 +2,7 @@ with Ada.Calendar;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 
+with Files.Grouping;
 with Files.Localization;
 with Files.Settings_Form;
 with Files.UTF8;
@@ -10,6 +11,7 @@ package body Files.Model.Support is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Files.Types.Focus_Target;
+   use type Files.Types.Group_Mode;
 
    procedure Reset_Quick_Look
      (Model : in out Window_Model) is
@@ -518,7 +520,85 @@ package body Files.Model.Support is
       end case;
    end Settings_Sort_Field;
 
-   procedure Resort_Items (Model : in out Window_Model) is
+   package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Files.Types.Color_Label,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=",
+      "="             => Files.Types."=");
+
+   function Group_Labels_Map (Model : Window_Model) return Label_Maps.Map is
+      Result : Label_Maps.Map;
+   begin
+      if Model.Group_Mode_Value = Files.Types.Group_By_Label then
+         for Entry_Value of Model.Group_Labels loop
+            Result.Include (To_String (Entry_Value.Path), Entry_Value.Label);
+         end loop;
+      end if;
+      return Result;
+   end Group_Labels_Map;
+
+   function Group_Band
+     (Model  : Window_Model;
+      Labels : Label_Maps.Map;
+      Item   : Files.File_System.Directory_Item)
+      return Positive
+   is
+      Found : constant Label_Maps.Cursor := Labels.Find (To_String (Item.Full_Path));
+   begin
+      return Files.Grouping.Band_Of
+        (Model.Group_Mode_Value, Item.Kind, To_String (Item.Filetype),
+         Item.Modified_Available, Item.Modified_Time, Item.Size_Available, Item.Size,
+         (if Label_Maps.Has_Element (Found) then Label_Maps.Element (Found) else Files.Types.No_Label),
+         Model.Group_Day);
+   end Group_Band;
+
+   function Items_In_Group_Order (Model : Window_Model) return Boolean is
+      Labels   : Label_Maps.Map;
+      Previous : Positive := 1;
+   begin
+      if Model.Group_Mode_Value = Files.Types.No_Grouping then
+         return True;
+      end if;
+      Labels := Group_Labels_Map (Model);
+      for Item of Model.Items loop
+         declare
+            Band : constant Positive := Group_Band (Model, Labels, Item);
+         begin
+            if Band < Previous then
+               return False;
+            end if;
+            Previous := Band;
+         end;
+      end loop;
+      return True;
+   end Items_In_Group_Order;
+
+   --  Stable partition of the items into their bands, keeping the sort order
+   --  within each band.
+   procedure Group_Items (Model : in out Window_Model) is
+      Labels : Label_Maps.Map;
+   begin
+      if Model.Group_Mode_Value = Files.Types.No_Grouping then
+         return;
+      end if;
+      Labels := Group_Labels_Map (Model);
+      declare
+         Count : constant Positive := Files.Grouping.Band_Count (Model.Group_Mode_Value);
+         type Band_Array is array (1 .. Count) of Files.File_System.Item_Vectors.Vector;
+         Bands : Band_Array;
+      begin
+         for Item of Model.Items loop
+            Bands (Group_Band (Model, Labels, Item)).Append (Item);
+         end loop;
+         Model.Items.Clear;
+         for Band of Bands loop
+            Model.Items.Append (Band);
+         end loop;
+      end;
+   end Group_Items;
+
+   procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True) is
       Previous_Selection : Files.File_System.Item_Vectors.Vector;
       Primary_Sentinel   : constant Boolean := Model.Selected_Item_Index = Temporary_Item_Index;
       Primary_Path       : Unbounded_String := Null_Unbounded_String;
@@ -568,10 +648,13 @@ package body Files.Model.Support is
          Rename_Old_Paths.Append (Path_At (Field.Item_Index));
       end loop;
 
-      Files.File_System.Sort_Items
-        (Model.Items,
-         Settings_Sort_Field (Model.Sort_Field_Value),
-         Model.Sort_Ascending);
+      if Field_Sort then
+         Files.File_System.Sort_Items
+           (Model.Items,
+            Settings_Sort_Field (Model.Sort_Field_Value),
+            Model.Sort_Ascending);
+      end if;
+      Group_Items (Model);
       Sorted_Index.Reserve_Capacity (Model.Items.Length);
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
          Sorted_Index.Include (To_String (Model.Items (Index).Full_Path), Index);

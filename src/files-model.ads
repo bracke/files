@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Files.Copy_Context;
 with Files.Process_Jobs;
 with Ada.Containers.Ordered_Maps;
@@ -213,6 +214,30 @@ package Files.Model is
      (Model     : in out Window_Model;
       Field     : Sort_Field;
       Ascending : Boolean);
+
+   --  Keep the items in the Details view's group order (Settings.Group_By;
+   --  no grouping in other views): by band, then by the sort within a band.
+   --  Keyboard and range selection walk the stored order, so grouping only
+   --  in the renderer drew rows in an order Up/Down did not follow. Call it
+   --  before handling input or rendering a window; it returns at once when
+   --  neither the model nor the grouping inputs changed since the last call.
+   --
+   --  @param Model Model whose items are regrouped in place.
+   --  @param Settings Settings supplying the grouping mode and color labels.
+   procedure Sync_Grouping
+     (Model    : in out Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
+   --  A copy of Model in group order, for a one-off render of a model that is
+   --  not updated in place.
+   --
+   --  @param Model Model to copy.
+   --  @param Settings Settings supplying the grouping mode and color labels.
+   --  @return Model after Sync_Grouping.
+   function Grouped
+     (Model    : Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Window_Model;
 
    --  Toggle the bottom-bar sort menu visibility.
    --
@@ -2982,6 +3007,13 @@ private
       --  differs, so snapshot invalidation follows the model automatically
       --  rather than relying on each call site to remember.
       Revision_Value : Natural := 0;
+      --  The grouping the items are ordered by (Sync_Grouping): the effective
+      --  mode, the labels and day it was computed with, and the revision it
+      --  was last checked at.
+      Group_Mode_Value      : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Group_Labels          : Files.Settings.Path_Label_Vectors.Vector;
+      Group_Day             : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Group_Synced_Revision : Natural := Natural'Last;
       --  Narrower generation used to reject stale background directory reads
       --  without treating harmless interaction as a listing-context change.
       Listing_Revision_Value : Natural := 0;

@@ -62,7 +62,7 @@ package body Rename is
             for Item_Index of Indexes loop
                declare
                   Name : constant String :=
-                    To_String (Model.Items.Element (Positive (Item_Index)).Name);
+                    To_String (Model.Items.Element (Item_Index).Name);
                begin
                   Model.Rename_Fields.Append
                     (Rename_Field'

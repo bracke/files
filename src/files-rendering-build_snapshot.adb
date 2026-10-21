@@ -1,3 +1,4 @@
+with Files.Grouping;
 separate (Files.Rendering)
    function Build_Snapshot
      (Model    : Files.Model.Window_Model;
@@ -308,212 +309,41 @@ separate (Files.Rendering)
       --  sort field. Re-sorting here (with a different collation) once made the
       --  drawn order disagree with the order keyboard and range selection walk.
 
-      --  Grouping composes with the sort: the sorted items are partitioned into
-      --  fixed-order bands, each introduced by a non-selectable header row. The
-      --  header carries Visible_Index zero so hit-testing never selects it, and
-      --  items keep their sorted order within a band.
+      --  Grouping composes with the sort. The model keeps its items in band
+      --  order (Files.Model.Sync_Grouping), so this only introduces each band
+      --  with a non-selectable header row and never reorders: the drawn rows
+      --  stay in the order keyboard and range selection walk. The header
+      --  carries Visible_Index zero so hit-testing never selects it.
       if Snapshot.View_Mode = Files.Types.Details
         and then Snapshot.Group_By /= Files.Types.No_Grouping
         and then not Snapshot.Items.Is_Empty
       then
          declare
-            function Starts_With (Text : String; Prefix : String) return Boolean is
-              (Text'Length >= Prefix'Length
-               and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
-
-            function Type_Band (Item : Item_Snapshot) return Positive is
-               Mime : constant String := Files.Types.To_Lower (To_String (Item.Filetype));
-            begin
-               if Item.Kind = Files.Types.Directory_Item then
-                  return 1;
-               elsif Starts_With (Mime, "image/") then
-                  return 2;
-               elsif Starts_With (Mime, "audio/") then
-                  return 3;
-               elsif Starts_With (Mime, "video/") then
-                  return 4;
-               elsif Starts_With (Mime, "text/")
-                 or else Mime = "application/pdf"
-                 or else Starts_With (Mime, "application/json")
-                 or else Starts_With (Mime, "application/xml")
-                 or else Starts_With (Mime, "application/vnd.")
-               then
-                  return 5;
-               elsif Mime = "application/zip"
-                 or else Starts_With (Mime, "application/x-tar")
-                 or else Starts_With (Mime, "application/gzip")
-                 or else Starts_With (Mime, "application/x-7z")
-                 or else Starts_With (Mime, "application/x-rar")
-               then
-                  return 6;
-               else
-                  return 7;
-               end if;
-            end Type_Band;
-
-            function Modified_Band (Item : Item_Snapshot) return Positive is
-               Now   : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-               Today : constant Ada.Calendar.Time := Day_Start (Now);
-            begin
-               if not Item.Modified_Available then
-                  return 4;
-               elsif Day_Start (Item.Modified_Time) = Today then
-                  return 1;
-               elsif Item.Modified_Time > Today - 6.0 * 86_400.0 then
-                  return 2;
-               else
-                  return 3;
-               end if;
-            end Modified_Band;
-
-            function Size_Band (Item : Item_Snapshot) return Positive is
-            begin
-               if not Item.Size_Available then
-                  return 5;
-               elsif Item.Size <= 0 then
-                  return 1;
-               elsif Item.Size < 1024 * 1024 then
-                  return 2;
-               elsif Item.Size < 1024 * 1024 * 1024 then
-                  return 3;
-               else
-                  return 4;
-               end if;
-            end Size_Band;
-
-            --  Color-label bands in canonical order: Red .. Gray (bands 1 .. 7,
-            --  mirroring Files.Types.Real_Color_Label) then unlabeled (band 8).
-            function Label_Band (Item : Item_Snapshot) return Positive is
-            begin
-               if Item.Label = Files.Types.No_Label then
-                  return 8;
-               else
-                  return Files.Types.Color_Label'Pos (Item.Label);
-               end if;
-            end Label_Band;
-
-            function Band_Count return Positive is
-            begin
-               case Snapshot.Group_By is
-                  when Files.Types.Group_By_Type =>
-                     return 7;
-                  when Files.Types.Group_By_Modified =>
-                     return 4;
-                  when Files.Types.Group_By_Size =>
-                     return 5;
-                  when Files.Types.Group_By_Label =>
-                     return 8;
-                  when Files.Types.No_Grouping =>
-                     return 1;
-               end case;
-            end Band_Count;
-
-            function Band_Of (Item : Item_Snapshot) return Positive is
-            begin
-               case Snapshot.Group_By is
-                  when Files.Types.Group_By_Type =>
-                     return Type_Band (Item);
-                  when Files.Types.Group_By_Modified =>
-                     return Modified_Band (Item);
-                  when Files.Types.Group_By_Size =>
-                     return Size_Band (Item);
-                  when Files.Types.Group_By_Label =>
-                     return Label_Band (Item);
-                  when Files.Types.No_Grouping =>
-                     return 1;
-               end case;
-            end Band_Of;
-
-            function Band_Label (Band : Positive) return String is
-            begin
-               case Snapshot.Group_By is
-                  when Files.Types.Group_By_Type =>
-                     case Band is
-                        when 1 =>
-                           return "details.group.folders";
-                        when 2 =>
-                           return "details.group.images";
-                        when 3 =>
-                           return "details.group.audio";
-                        when 4 =>
-                           return "details.group.video";
-                        when 5 =>
-                           return "details.group.documents";
-                        when 6 =>
-                           return "details.group.archives";
-                        when others =>
-                           return "details.group.other";
-                     end case;
-                  when Files.Types.Group_By_Modified =>
-                     case Band is
-                        when 1 =>
-                           return "details.group.today";
-                        when 2 =>
-                           return "details.group.this_week";
-                        when 3 =>
-                           return "details.group.earlier";
-                        when others =>
-                           return "details.group.unknown_date";
-                     end case;
-                  when Files.Types.Group_By_Size =>
-                     case Band is
-                        when 1 =>
-                           return "details.group.size_empty";
-                        when 2 =>
-                           return "details.group.size_small";
-                        when 3 =>
-                           return "details.group.size_medium";
-                        when 4 =>
-                           return "details.group.size_large";
-                        when others =>
-                           return "details.group.size_unknown";
-                     end case;
-                  when Files.Types.Group_By_Label =>
-                     case Band is
-                        when 1 =>
-                           return "label.color.red";
-                        when 2 =>
-                           return "label.color.orange";
-                        when 3 =>
-                           return "label.color.yellow";
-                        when 4 =>
-                           return "label.color.green";
-                        when 5 =>
-                           return "label.color.blue";
-                        when 6 =>
-                           return "label.color.purple";
-                        when 7 =>
-                           return "label.color.gray";
-                        when others =>
-                           return "details.group.unlabeled";
-                     end case;
-                  when Files.Types.No_Grouping =>
-                     return "";
-               end case;
-            end Band_Label;
-
-            Grouped : Item_Snapshot_Vectors.Vector;
+            Today    : constant Ada.Calendar.Time := Files.Grouping.Day_Start (Ada.Calendar.Clock);
+            Grouped  : Item_Snapshot_Vectors.Vector;
+            Previous : Natural := 0;
          begin
-            for Band in 1 .. Band_Count loop
+            Grouped.Reserve_Capacity (Snapshot.Items.Length + Ada.Containers.Count_Type
+              (Files.Grouping.Band_Count (Snapshot.Group_By)));
+            for Item of Snapshot.Items loop
                declare
-                  Emitted_Header : Boolean := False;
+                  Band : constant Positive := Files.Grouping.Band_Of
+                    (Snapshot.Group_By, Item.Kind, To_String (Item.Filetype),
+                     Item.Modified_Available, Item.Modified_Time,
+                     Item.Size_Available, Item.Size, Item.Label, Today);
                begin
-                  for Item of Snapshot.Items loop
-                     if Band_Of (Item) = Band then
-                        if not Emitted_Header then
-                           Grouped.Append
-                             (Item_Snapshot'
-                                (Is_Group_Header => True,
-                                 Group_Label     =>
-                                   To_Unbounded_String (Files.Localization.Text (Band_Label (Band))),
-                                 Visible_Index   => 0,
-                                 others          => <>));
-                           Emitted_Header := True;
-                        end if;
-                        Grouped.Append (Item);
-                     end if;
-                  end loop;
+                  if Band /= Previous then
+                     Grouped.Append
+                       (Item_Snapshot'
+                          (Is_Group_Header => True,
+                           Group_Label     => To_Unbounded_String
+                             (Files.Localization.Text (Files.Grouping.Band_Label_Key (Snapshot.Group_By, Band))),
+                           Visible_Index   => 0,
+                           others          => <>));
+                     Previous := Band;
+                  end if;
                end;
+               Grouped.Append (Item);
             end loop;
             Snapshot.Items := Grouped;
          end;

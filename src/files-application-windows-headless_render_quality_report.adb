@@ -36,7 +36,8 @@ separate (Files.Application.Windows)
          begin
             declare
                Snapshot : constant Files.Rendering.View_Snapshot :=
-                 Files.Rendering.Build_Snapshot (Startup_Window.Model, Startup.Settings);
+                 Files.Rendering.Build_Snapshot
+                   (Files.Model.Grouped (Startup_Window.Model, Startup.Settings), Startup.Settings);
                Frame    : constant Files.Rendering.Frame_Commands :=
                  Files.Rendering.Build_Frame_Commands
                    (Snapshot    => Snapshot,

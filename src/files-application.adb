@@ -563,7 +563,7 @@ package body Files.Application is
       for Window of Result.Windows loop
          declare
             Snapshot      : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Window.Model, Result.Settings);
+              Files.Rendering.Build_Snapshot (Files.Model.Grouped (Window.Model, Result.Settings), Result.Settings);
             Frame         : constant Files.Rendering.Frame_Commands :=
               Files.Rendering.Build_Frame_Commands
                 (Snapshot    => Snapshot,

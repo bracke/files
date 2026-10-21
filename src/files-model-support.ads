@@ -276,8 +276,16 @@ private package Files.Model.Support is
    --  and rename targets are index-based, so they are re-established by item
    --  identity (full path) after the reorder.
    --
+   --  Under a grouping (Sync_Grouping) the sorted items are then stably
+   --  partitioned into bands, matching the drawn order.
+   --
    --  @param Model Model whose items are re-sorted in place.
-   procedure Resort_Items (Model : in out Window_Model);
+   --  @param Field_Sort False to keep the current order and only regroup it.
+   procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True);
+
+   --  @param Model Model to inspect.
+   --  @return True when the items are already in band order (or ungrouped).
+   function Items_In_Group_Order (Model : Window_Model) return Boolean;
 
    --  Single-select a visible item without disturbing the type-ahead prefix.
    --  Type-ahead selection uses this so its own selection jumps do not clear the

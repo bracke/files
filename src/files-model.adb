@@ -1,4 +1,3 @@
-with Ada.Calendar;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Strings.Fixed;
@@ -684,6 +683,10 @@ package body Files.Model is
          Field     : Sort_Field;
          Ascending : Boolean);
 
+      procedure Sync_Grouping
+        (Model    : in out Window_Model;
+         Settings : Files.Settings.Settings_Model);
+
       procedure Toggle_Sort_Menu
         (Model : in out Window_Model);
 
@@ -727,6 +730,16 @@ package body Files.Model is
 
    procedure Apply_Sort (Model : in out Window_Model; Field : Sort_Field; Ascending : Boolean)
      renames View_Sort.Apply_Sort;
+
+   procedure Sync_Grouping (Model : in out Window_Model; Settings : Files.Settings.Settings_Model)
+     renames View_Sort.Sync_Grouping;
+
+   function Grouped (Model : Window_Model; Settings : Files.Settings.Settings_Model) return Window_Model is
+   begin
+      return Result : Window_Model := Model do
+         Sync_Grouping (Result, Settings);
+      end return;
+   end Grouped;
 
    procedure Toggle_Sort_Menu (Model : in out Window_Model)
      renames View_Sort.Toggle_Sort_Menu;

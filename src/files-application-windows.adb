@@ -796,6 +796,9 @@ package body Files.Application.Windows is
    begin
       for Runtime of Runtime_Windows loop
          begin
+            --  Keep the items in the drawn group order before any step reads
+            --  or walks them; a no-op unless the model or grouping changed.
+            Files.Model.Sync_Grouping (Runtime.Model, Runtime.Settings);
             Step (Runtime);
          exception
             when others =>
