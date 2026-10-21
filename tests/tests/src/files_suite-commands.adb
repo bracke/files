@@ -1146,6 +1146,15 @@ package body Files_Suite.Commands is
                  and then S.Modifiers (Guikit.Input.Control_Key)
                  and then S.Modifiers (Guikit.Input.Shift_Key),
                  "control+shift+f7 parses the expanded function key with both modifiers");
+         --  Shown to people with the language's modifier names (the suite runs
+         --  in English); the stored form above is unchanged.
+         Assert (Files.Commands.Shortcut_Display_Text (S) = "Ctrl+Shift+F7",
+                 "a shortcut reads as Ctrl+Shift+F7, not control+shift+f7");
+         Assert (Files.Commands.Shortcut_Display_Text (Files.Commands.Parse_Shortcut ("control+pagedown"))
+                 = "Ctrl+Page Down",
+                 "named keys read by their catalog names");
+         Assert (Files.Commands.Shortcut_Text (S) = "shift+control+f7",
+                 "the stored form stays parseable");
       end;
 
       --  Defaults still resolve, and an override rebinds a chord to a command.

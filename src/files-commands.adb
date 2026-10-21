@@ -641,6 +641,11 @@ package body Files.Commands is
       return String
  is separate;
 
+   function Shortcut_Display_Text
+     (Value : Shortcut)
+      return String
+ is separate;
+
    function Text_To_Key (Text : String) return Guikit.Input.Key_Code is
    begin
       if Text = "" then

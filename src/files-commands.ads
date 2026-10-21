@@ -147,6 +147,16 @@ package Files.Commands is
      (Value : Shortcut)
       return String;
 
+   --  Return a shortcut as a person reads it: modifier and key names in the
+   --  current language, in the usual Ctrl, Shift, Alt, Super order ("Strg+1").
+   --  Shortcut_Text stays the stored, parseable form; this one is display only.
+   --
+   --  @param Value Shortcut metadata to format.
+   --  @return Localized shortcut text, or an empty string when absent.
+   function Shortcut_Display_Text
+     (Value : Shortcut)
+      return String;
+
    --  Parse the key name produced by Key_Text back into a key code, or
    --  Key_Unknown when the text names no key.
    --

@@ -52,7 +52,7 @@ package body Files.Command_Palette is
                      Description => Localized (Files.Commands.Description_Key (Id)),
                      Shortcut    =>
                        To_Unbounded_String
-                         (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Id))),
+                         (Files.Commands.Shortcut_Display_Text (Files.Commands.Shortcut_For (Id))),
                      Enabled     => Files.Commands.Is_Enabled (Id, Model),
                      Icon        => Guikit.Command_Palette.No_Icon));
             end if;

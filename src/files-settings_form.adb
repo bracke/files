@@ -189,7 +189,7 @@ package body Files.Settings_Form is
                   end if;
                   Append (Help, L ("settings.shortcut.secondary"));
                   Append (Help, U (" "));
-                  Append (Help, U (Files.Commands.Shortcut_Text (Secondary)));
+                  Append (Help, U (Files.Commands.Shortcut_Display_Text (Secondary)));
                end if;
                Result.Append
                  (SP.Field'
@@ -197,6 +197,9 @@ package body Files.Settings_Form is
                      Label => L (Files.Commands.Name_Key (Cmd)),
                      Kind  => SP.Shortcut,
                      Value => U (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Cmd))),
+                     --  Shown localized ("Strg+1"); Value stays the stored form
+                     --  that capture and Apply parse.
+                     Display => U (Files.Commands.Shortcut_Display_Text (Files.Commands.Shortcut_For (Cmd))),
                      Help  => Help,
                      others => <>));
             end;

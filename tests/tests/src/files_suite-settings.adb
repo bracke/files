@@ -2952,7 +2952,7 @@ package body Files_Suite.Settings is
          Sec_Cmd  : constant Files.Commands.Command_Id := Files.Commands.Refresh_Directory_Command;
          Sec_Key  : constant String := "shortcut." & Files.Commands.Identifier (Sec_Cmd);
          Sec_Text : constant String :=
-           Files.Commands.Shortcut_Text (Files.Commands.Secondary_Shortcut_For (Sec_Cmd));
+           Files.Commands.Shortcut_Display_Text (Files.Commands.Secondary_Shortcut_For (Sec_Cmd));
          Found    : Boolean := False;
       begin
          Assert (Sec_Text /= "", "the sample command has a secondary shortcut");

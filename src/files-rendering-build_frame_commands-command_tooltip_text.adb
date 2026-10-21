@@ -3,8 +3,9 @@ separate (Files.Rendering.Build_Frame_Commands)
      (Command : Files.Commands.Command_Id)
       return UString
    is
-      Primary   : constant String := Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Command));
-      Secondary : constant String := Files.Commands.Shortcut_Text (Files.Commands.Secondary_Shortcut_For (Command));
+      Primary   : constant String := Files.Commands.Shortcut_Display_Text (Files.Commands.Shortcut_For (Command));
+      Secondary : constant String := Files.Commands.Shortcut_Display_Text
+          (Files.Commands.Secondary_Shortcut_For (Command));
       Result    : UString :=
         To_Unbounded_String (Files.Localization.Text (Files.Commands.Description_Key (Command)));
    begin
