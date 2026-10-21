@@ -322,20 +322,64 @@ package body Files.Rendering is
    --  @param Column Toggleable detail column.
    --  @param Line_Height Text line height in pixels.
    --  @return Default column width in pixels.
+   --  The widest text a time column can show in the current time locale --
+   --  every relative form ("Today", each weekday) with a clock time, and a full
+   --  date with two-digit fields -- measured at the advance the renderer draws
+   --  at, plus the cell padding. A fixed multiple of the line height cut off
+   --  "Donnerstag 17:00:00" and "21.10.2026, 17:00:00". Cached per locale and
+   --  line height: layouts ask on every frame.
+   Cached_Time_Width        : Natural := 0;
+   Cached_Time_Width_Height : Natural := 0;
+   Cached_Time_Width_Locale : Ada.Strings.Unbounded.Unbounded_String;
+
+   function Time_Column_Width (Line_Height : Positive) return Natural is
+      Locale : constant String := Files.Localization.System_Time_Locale;
+   begin
+      if Cached_Time_Width_Height /= Line_Height
+        or else Ada.Strings.Unbounded.To_String (Cached_Time_Width_Locale) /= Locale
+      then
+         declare
+            Sample  : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (2026, 12, 28, 86_399.0);
+            Clock   : constant String := Clock_Time_Text (Sample);
+            Advance : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+            Widest  : Natural := Guikit.Layout.Label_Pixel_Width (Full_Time_Text (Sample), Advance);
+
+            procedure Consider (Key : String) is
+            begin
+               Widest :=
+                 Natural'Max
+                   (Widest,
+                    Guikit.Layout.Label_Pixel_Width
+                      (Files.Localization.Text (Key, Locale) & " " & Clock, Advance));
+            end Consider;
+         begin
+            Consider ("time.relative.today");
+            Consider ("time.relative.yesterday");
+            for Day in Ada.Calendar.Formatting.Day_Name loop
+               Consider (Weekday_Key (Sample + Duration (Ada.Calendar.Formatting.Day_Name'Pos (Day)) * 86_400.0));
+            end loop;
+            --  Padding before the text and a gap of the same again either side of
+            --  the column divider.
+            Cached_Time_Width := Saturating_Add (Widest, 3 * Details_Column_Padding);
+         end;
+         Cached_Time_Width_Height := Line_Height;
+         Cached_Time_Width_Locale := Ada.Strings.Unbounded.To_Unbounded_String (Locale);
+      end if;
+      return Cached_Time_Width;
+   end Time_Column_Width;
+
    function Default_Detail_Column_Width
      (Column      : Files.Types.Optional_Detail_Column;
       Line_Height : Positive)
       return Natural is
    begin
       case Column is
-         when Files.Types.Modified_Column =>
-            return Saturating_Multiply (Line_Height, 11);
+         when Files.Types.Modified_Column | Files.Types.Created_Column =>
+            return Time_Column_Width (Line_Height);
          when Files.Types.Size_Column =>
             return Saturating_Multiply (Line_Height, 6);
          when Files.Types.Filetype_Column =>
             return Saturating_Multiply (Line_Height, 9);
-         when Files.Types.Created_Column =>
-            return Saturating_Multiply (Line_Height, 11);
          when Files.Types.Permissions_Column =>
             return Saturating_Multiply (Line_Height, 8);
       end case;
