@@ -46,6 +46,26 @@ separate (Files.Application.Windows)
          Render_Window (Runtime);
       end Press;
 
+      --  A left click at a framebuffer position, as the window's click path
+      --  handles one at the matching cursor position.
+      procedure Click_At (X, Y : Natural) is
+         Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
+      begin
+         Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+         Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+         if Frame_W = 0 or else Frame_H = 0 then
+            return;
+         end if;
+         Dispatch_Click_Action
+           (Runtime,
+            Current_Click_Action
+              (Runtime, Window_W, Window_H, Frame_W, Frame_H,
+               Glfw.Input.Mouse.Coordinate (Float (X) * Float (Window_W) / Float (Frame_W)),
+               Glfw.Input.Mouse.Coordinate (Float (Y) * Float (Window_H) / Float (Frame_H)),
+               Guikit.Input.No_Modifiers),
+            Guikit.Input.No_Modifiers);
+      end Click_At;
+
       --  Record the step; the first one whose expectation fails is reported.
       procedure Expect (Holds : Boolean) is
       begin
@@ -100,6 +120,32 @@ separate (Files.Application.Windows)
          Expect (Files.Model.Last_Error_Key (Runtime.Model) = "");
          Press (Tracked_Right);
          Expect (Files.Model.Settings_Focused_Value (Runtime.Model) = Before);
+
+         --  The mouse: a click on the toggle's switch flips it, through the
+         --  path a real click takes (window position -> input action ->
+         --  dispatch). The switch sits at the focused row's right; sweep the
+         --  row from that edge until the value changes.
+         declare
+            --  A copy: each click re-renders, which replaces the shown list.
+            Shown   : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Accessibility;
+            Flipped : Boolean := False;
+         begin
+            for Node of Shown loop
+               if Node.Focused and then Node.Width > 0 then
+                  --  Clicks hit-test the last drawn layout, so no frame is
+                  --  drawn between them; 4 px steps cannot miss a switch.
+                  for Step in 0 .. Node.Width / 4 loop
+                     exit when Node.Width < 4 * Step + 1;
+                     Click_At (Node.X + Node.Width - 1 - 4 * Step, Node.Y + Node.Height / 2);
+                     Flipped := Files.Model.Settings_Focused_Value (Runtime.Model) /= Before;
+                     exit when Flipped;
+                  end loop;
+                  Render_Window (Runtime);
+                  exit;
+               end if;
+            end loop;
+            Expect (Flipped);
+         end;
       end;
 
       Press (Tracked_Tab, Ctrl);

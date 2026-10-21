@@ -248,6 +248,8 @@ package body Files.Application.Windows is
       Handle          : Window_Access;
       A11y_Key        : Files.Accessibility.Window_Key := 0;
       --  This window's part of the screen reader's tree.
+      Shown_Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+      --  The accessibility nodes of the frame last shown, overlays included.
       Model           : Files.Model.Window_Model;
       Settings        : Files.Settings.Settings_Model;
       --  Settings as of the last cross-window sync; a difference means this
@@ -1599,6 +1601,7 @@ package body Files.Application.Windows is
         (Runtime_Window'
            (Handle          => Handle,
             A11y_Key        => Files.Accessibility.New_Window_Key,
+            Shown_Accessibility => <>,
             Model           => Startup_Window.Model,
             Settings        => Settings,
             Synced_Settings => Settings,

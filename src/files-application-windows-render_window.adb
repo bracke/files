@@ -176,10 +176,6 @@ separate (Files.Application.Windows)
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Cached_Minute := Current_Minute;
             Runtime.Frame_Cache_Valid := True;
-            --  Publish the new frame's accessibility tree to the host screen
-            --  reader, only when the frame actually changed. A no-op until an
-            --  a11ykit provider exists, so it costs nothing today.
-            Files.Accessibility.Publish (Runtime.A11y_Key, Runtime.Cached_Frame);
          end Rebuild_Frame;
       begin
          if Reuse_Snapshot then
@@ -315,6 +311,19 @@ separate (Files.Application.Windows)
                Append_Overlay (Frame, S_Rects, S_Text, S_Nodes);
             end;
          end if;
+
+         --  The screen reader gets the frame as shown, overlays included --
+         --  the command palette and settings panel are merged in just above,
+         --  not into the cached frame -- when it changed or an overlay (whose
+         --  state changes from frame to frame) is up. The provider announces
+         --  only what differs from its last tree.
+         if Frame_Rebuilt
+           or else Files.Model.Command_Palette_Is_Open (Runtime.Model)
+           or else Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+         then
+            Files.Accessibility.Publish (Runtime.A11y_Key, Frame);
+         end if;
+         Runtime.Shown_Accessibility := Frame.Accessibility;
          Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
 
          Guikit.Vulkan.Ensure_Ready
