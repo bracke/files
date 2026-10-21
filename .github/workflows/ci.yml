@@ -170,16 +170,16 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
-          clone_at i18n de19e64c6838b570ac5933dc3c9a5e224bc40fe0
+          clone_at i18n 791db384993510aaedad70ec74fc9321ba807346
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
           clone_at textrender c6c1c7c665c47ced66c58fc91df953ef5ad04e25
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
-          clone_at guikit 51586a28e8dc5eb65642df042bda0492873c481b
-          clone_at hostkit 70ad378c37a405a5e9c41f7ab56865f27884931b
+          clone_at guikit a5f8fa27476f9fb330dae6f9e4158f592ceee6e2
+          clone_at hostkit 616bed71c109d3f24426269d2f92e0e08dd0ded7
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit a9bd1904d7d9a3fc9d2f4d6331fd993d8eb03823
+          clone_at a11ykit 2f1c165232731744e5bdcc22cecb0b67b60fb12b
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
