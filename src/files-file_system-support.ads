@@ -3,6 +3,7 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 with Interfaces.C;
+with Hostkit.Fs;
 with Hostkit.Metadata_Copy;
 
 --  Shared low-level helpers of Files.File_System (safe close / end-search,
@@ -108,6 +109,20 @@ private package Files.File_System.Support is
    --  @param Destination New destination pathname.
    --  @return True when the rename succeeded; False leaves the source in place.
    function Move_No_Replace (Source, Destination : String) return Boolean;
+
+   --  Move_No_Replace, saying why a refused rename failed.
+   --  @param Source Source entry to rename.
+   --  @param Destination New destination pathname.
+   --  @return Moved when the rename succeeded. Only Move_Cross_Device and
+   --          Move_Unsupported may be answered with a copy and delete.
+   function Move_No_Replace_Outcome
+     (Source, Destination : String)
+      return Hostkit.Fs.Move_Outcome;
+
+   --  @param Outcome A refused no-replace move.
+   --  @return True when a copy and delete may stand in for the rename.
+   function Copy_May_Replace_Move (Outcome : Hostkit.Fs.Move_Outcome) return Boolean is
+     (Outcome in Hostkit.Fs.Move_Cross_Device | Hostkit.Fs.Move_Unsupported);
 
    type Copied_File is record
       Path, Identity, Source_Revision, Destination_Revision, Content_Digest : Files.Types.UString;

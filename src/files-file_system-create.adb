@@ -338,6 +338,10 @@ package body Create is
             return (Success => Committed,
                     Error_Key => (if Committed then Null_Unbounded_String else Failed.Error_Key));
       end Rename_Recorded;
+
+      --  Set once the rename was refused only by a device boundary or a
+      --  filesystem without no-replace rename; nothing else may fall back.
+      May_Copy : Boolean := False;
    begin
       if Expected_Identity /= "" then
          return Rename_Recorded;
@@ -377,13 +381,30 @@ package body Create is
          return Rename_Case_Only;
       end if;
 
-      if not Support.Move_No_Replace (From_Path, To_Path) then
+      declare
+         use type Hostkit.Fs.Move_Outcome;
+         Outcome : constant Hostkit.Fs.Move_Outcome := Support.Move_No_Replace_Outcome (From_Path, To_Path);
+      begin
+         if Outcome = Hostkit.Fs.Moved then
+            return (Success => True, Error_Key => Null_Unbounded_String);
+         elsif not Support.Copy_May_Replace_Move (Outcome) then
+            --  Refused for a reason a copy would meet too (permission, busy,
+            --  vanished source, occupied target): no copy and delete.
+            return
+              (Success   => False,
+               Error_Key => To_Unbounded_String ("error.rename.failed"));
+         end if;
+         May_Copy := True;
          raise Ada.Directories.Use_Error;
-      end if;
-      return (Success => True, Error_Key => Null_Unbounded_String);
+      end;
    exception
       when others =>
-         --  Ada.Directories.Rename cannot move across filesystems (EXDEV). Fall
+         if not May_Copy then
+            return
+              (Success   => False,
+               Error_Key => To_Unbounded_String ("error.rename.failed"));
+         end if;
+         --  A rename cannot move across filesystems (EXDEV). Fall
          --  back to copy + delete, exactly as Execute_Drop_Import and
          --  Move_To_Trash do, so a cross-device move -- and, crucially, the undo
          --  of one (Move_Back routes through here) -- still succeeds instead of

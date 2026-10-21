@@ -357,15 +357,26 @@ package body Copy_Move is
             if Plan.Mode = Drop_Move then
                if Source_Path /= Destination_Path then
                   declare
+                     use type Hostkit.Fs.Move_Outcome;
                      Identity : constant String := Files.File_Identities.Token (Source_Path);
+                     Outcome  : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
                   begin
-                     if Identity = "" then
+                     if Identity /= "" then
+                        Outcome := Support.Move_No_Replace_Outcome (Source_Path, Destination_Path);
+                     end if;
+                     if Identity = ""
+                       or else (Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome))
+                     then
+                        --  A rename the filesystem refused for any reason but a
+                        --  device boundary (permission, a busy or vanished source,
+                        --  a target that appeared) would refuse a copy and delete
+                        --  too, or do what the rename would not.
                         return
                           (Success   => False,
                            Error_Key => To_Unbounded_String ("error.drop.failed"));
-                     elsif Support.Move_No_Replace (Source_Path, Destination_Path) then
-                        --  The move is committed. Only a refused rename may use
-                        --  the copy/delete fallback. A rename needs no content
+                     elsif Outcome = Hostkit.Fs.Moved then
+                        --  The move is committed. Only a cross-device rename may
+                        --  use the copy/delete fallback. A rename needs no content
                         --  snapshot: move recovery and Undo use the entry identity.
                         Published_Identity := To_Unbounded_String (Identity);
                         Published_Tree_Revision := Null_Unbounded_String;

@@ -796,12 +796,23 @@ package body Trash is
          end;
       end if;
 
+      declare
+         use type Hostkit.Fs.Move_Outcome;
+         Outcome : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
       begin
-         if not Support.Move_No_Replace (Path, To_String (Target)) then
-            raise Ada.Directories.Use_Error;
-         end if;
-      exception
-         when others =>
+         begin
+            Outcome := Support.Move_No_Replace_Outcome (Path, To_String (Target));
+         exception
+            when others =>
+               Outcome := Hostkit.Fs.Move_Refused;
+         end;
+         if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
+            --  Refused for a reason a copy would meet too: no copy and delete.
+            Delete_Info_File_If_Present;
+            return
+              (Success   => False,
+               Error_Key => To_Unbounded_String ("error.trash.failed"));
+         elsif Outcome /= Hostkit.Fs.Moved then
             --  Cross-device (EXDEV): rename cannot move across filesystems, so
             --  the home trash is on a different mount than the file. Fall back
             --  to copy-then-delete into the trash.
@@ -838,6 +849,7 @@ package body Trash is
                     (Success   => False,
                      Error_Key => To_Unbounded_String ("error.trash.failed"));
             end;
+         end if;
       end;
 
       Trashed_Path := Target;

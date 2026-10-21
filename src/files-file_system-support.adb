@@ -12,12 +12,12 @@ with Files.Platform_Regular_Files;
 with Files_Config;
 with CryptoLib.Hashes;
 
-with Hostkit.Fs;
 with Hostkit.Metadata;
 
 package body Files.File_System.Support is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
+   use type Hostkit.Fs.Move_Outcome;
    use type Interfaces.Unsigned_64;
 
    procedure For_Each_Entry
@@ -387,14 +387,22 @@ package body Files.File_System.Support is
    end Tree_Revision;
 
    function Move_No_Replace (Source, Destination : String) return Boolean is
+     (Move_No_Replace_Outcome (Source, Destination) = Hostkit.Fs.Moved);
+
+   function Move_No_Replace_Outcome
+     (Source, Destination : String)
+      return Hostkit.Fs.Move_Outcome
+   is
       Context  : Files.Directory_Rename_Access.Context;
+      Outcome  : Hostkit.Fs.Move_Outcome;
       Moved    : Boolean;
       Restored : Boolean;
    begin
       if not Files.Directory_Rename_Access.Prepare (Source, Context) then
-         return False;
+         return Hostkit.Fs.Move_Refused;
       end if;
-      Moved := Hostkit.Fs.Move_No_Replace (Source, Destination);
+      Outcome := Hostkit.Fs.Move_No_Replace_Outcome (Source, Destination);
+      Moved := Outcome = Hostkit.Fs.Moved;
       Restored := Files.Directory_Rename_Access.Finish (Context);
       if not Restored then
          --  Restore the original pathname before reporting a refused operation.
@@ -408,7 +416,7 @@ package body Files.File_System.Support is
          end if;
          raise Ada.Directories.Use_Error;
       end if;
-      return Moved;
+      return Outcome;
    exception
       when others =>
          Restored := Files.Directory_Rename_Access.Finish (Context);
@@ -416,7 +424,7 @@ package body Files.File_System.Support is
             Files.Directory_Rename_Access.Release (Context);
          end if;
          raise;
-   end Move_No_Replace;
+   end Move_No_Replace_Outcome;
 
    procedure Check_Copy_Destination (Source, Destination : String) is
    begin
