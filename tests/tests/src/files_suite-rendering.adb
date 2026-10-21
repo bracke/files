@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -81,6 +82,7 @@ package body Files_Suite.Rendering is
    procedure Test_Emoji_Draws_As_Colour_Icons (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -188,6 +190,8 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Free_Space'Access,
          "bottom bar shows filesystem free space when known and omits it when unknown");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Modified_Time_Is_Local'Access, "the Modified column shows local time, not UTC");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_A11ykit_Tree_Mapping'Access,
          "a frame's accessibility nodes map into a well-formed hierarchical a11ykit tree");
@@ -1889,6 +1893,21 @@ package body Files_Suite.Rendering is
             "a capacity sample cannot validate a different path's frame cache");
       end;
    end Test_Bottom_Bar_Free_Space;
+
+   --  Ada.Calendar.Time_Of reads its fields as local time, so a file stamped
+   --  09:30 here must show 09:30 -- not that moment's UTC clock.
+   procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Snapshot : View_Snapshot := Sample_Snapshot (1, Files.Types.Details);
+      Frame    : Frame_Commands;
+   begin
+      Snapshot.Items (1).Modified_Available := True;
+      Snapshot.Items (1).Modified_Time :=
+        Ada.Calendar.Time_Of (2025, 1, 15, Duration (9 * 3_600 + 30 * 60 + 12));
+      Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
+      --  The column may clip the seconds; the hour is what a time zone moves.
+      Assert (Frame_Has_Text (Frame, "01/15/2025 09:30"), "an older file shows its local clock time");
+   end Test_Modified_Time_Is_Local;
 
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

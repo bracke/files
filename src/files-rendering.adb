@@ -1,4 +1,5 @@
 with Ada.Calendar.Formatting;
+with Ada.Calendar.Time_Zones;
 with Ada.Containers;
 with Ada.Containers.Hashed_Sets;
 with Ada.Characters.Handling;
@@ -9,6 +10,7 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 
 with Textrender;
+with Util.Dates;
 with Util.Dates.Formats;
 with Util.Properties;
 
@@ -174,9 +176,16 @@ package body Files.Rendering is
    function Formatted_Time_Text
      (Value  : Ada.Calendar.Time;
       Format : String)
-      return String is
+      return String
+   is
+      --  Util's Time overload splits at UTC. A file manager shows local
+      --  time, at the offset in force on that date, not today's.
+      Local  : Util.Dates.Date_Record;
+      Result : Ada.Strings.Unbounded.Unbounded_String;
    begin
-      return Util.Dates.Formats.Format (Pattern => Format, Date => Value, Bundle => Date_Bundle);
+      Util.Dates.Split (Local, Value, Ada.Calendar.Time_Zones.UTC_Time_Offset (Value));
+      Util.Dates.Formats.Format (Result, Format, Local, Date_Bundle);
+      return Ada.Strings.Unbounded.To_String (Result);
    end Formatted_Time_Text;
 
    function Clock_Time_Text (Value : Ada.Calendar.Time) return String is
