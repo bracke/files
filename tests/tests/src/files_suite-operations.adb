@@ -2426,8 +2426,15 @@ package body Files_Suite.Operations is
       begin
          Ada.Environment_Variables.Clear ("COMSPEC");
          Ada.Environment_Variables.Set ("SHELL", "/bin/custom-sh");
-         Assert (Files.Operations.Shell_Executable = "/bin/custom-sh", "explicit shell uses SHELL fallback");
-         Assert (Files.Operations.Shell_Command_Option = "-c", "SHELL fallback uses POSIX command option");
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            --  The shell family follows the host, so a SHELL left over from
+            --  MSYS2 or Cygwin does not switch Windows away from cmd.
+            Assert (Files.Operations.Shell_Executable = "cmd.exe", "Windows without COMSPEC falls back to cmd");
+            Assert (Files.Operations.Shell_Command_Option = "/C", "the cmd fallback uses the Windows command option");
+         else
+            Assert (Files.Operations.Shell_Executable = "/bin/custom-sh", "explicit shell uses SHELL fallback");
+            Assert (Files.Operations.Shell_Command_Option = "-c", "SHELL fallback uses POSIX command option");
+         end if;
          Ada.Environment_Variables.Set ("COMSPEC", "C:\Windows\System32\cmd.exe");
          if Hostkit.Host.Current = Hostkit.Host.Windows then
             Assert
@@ -3802,6 +3809,10 @@ package body Files_Suite.Operations is
               (Files.File_System.Thumbnail_Path_For
                  (Revision_Source,
                   Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
+            --  The edit keeps the size, so only the timestamps tell it apart.
+            --  Windows stamps them from a clock that advances in steps of up
+            --  to about 16 ms; an edit inside one step is indistinguishable.
+            delay 0.05;
             Write_File
               (Revision_Source,
                "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "0 0 255" & ASCII.LF);
@@ -6870,9 +6881,19 @@ package body Files_Suite.Operations is
                        "retain the verified publication for the Undo replacement check");
                Write_Binary_File (Dest, "unrelated replacement");
             end if;
-            Assert (Files.Model.Undo_Available (Model)
-                    and then Files.Model.Undo_History (Model).Last_Element.Created_Identities.First_Element
-                      = Files.File_Identities.Token (Saved), "recovery uses the journaled original identity");
+            declare
+               Recorded : constant String :=
+                 (if Files.Model.Undo_Available (Model)
+                    and then not Files.Model.Undo_History (Model).Last_Element.Created_Identities.Is_Empty
+                  then To_String (Files.Model.Undo_History (Model).Last_Element.Created_Identities.First_Element)
+                  else "<none>");
+            begin
+               Assert (Files.Model.Undo_Available (Model)
+                       and then Recorded = Files.File_Identities.Token (Saved),
+                       "recovery uses the journaled original identity: redo="
+                       & Boolean'Image (Redo_Recovery) & " recorded=[" & Recorded
+                       & "] saved=[" & Files.File_Identities.Token (Saved) & "]");
+            end;
          end;
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
@@ -7528,7 +7549,9 @@ package body Files_Suite.Operations is
                Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.Undo_Available (Model),
                        "an unavailable helper result reports failure but retains committed paste history: "
                        & Files.File_System.Drop_Import_Mode'Image (Mode) & Boolean'Image (Replaced)
-                       & Integer'Image (Fault));
+                       & Integer'Image (Fault) & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                       & " error=" & To_String (Step.Error_Key)
+                       & " undo=" & Boolean'Image (Files.Model.Undo_Available (Model)));
                Assert (Ada.Directories.Exists (Source) = (Mode = Files.File_System.Drop_Copy),
                        "recovery recognizes whether the source move committed");
                if Fault = 4 then
@@ -7849,7 +7872,12 @@ package body Files_Suite.Operations is
                           and then File_Has_Bytes (Source, "unrelated replacement")
                           and then File_Has_Bytes (Dest, "owned original"),
                           "a committed move retains Undo despite lost results and a recreated source pathname: "
-                          & Boolean'Image (Cross_Device) & Boolean'Image (Replace));
+                          & Boolean'Image (Cross_Device) & Boolean'Image (Replace)
+                          & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                          & " error=" & To_String (Step.Error_Key)
+                          & " undo=" & Boolean'Image (Files.Model.Undo_Available (Model))
+                          & " source=" & Boolean'Image (File_Has_Bytes (Source, "unrelated replacement"))
+                          & " dest=" & Boolean'Image (File_Has_Bytes (Dest, "owned original")));
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.Undo_Available (Model)

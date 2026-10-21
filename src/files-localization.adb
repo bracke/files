@@ -425,8 +425,13 @@ package body Files.Localization is
                Newline : constant Natural :=
                  Ada.Strings.Fixed.Index
                    (Content (Line_First .. Content'Last), String'(1 => ASCII.LF));
-               Line_Last : constant Natural :=
+               Line_End : constant Natural :=
                  (if Newline = 0 then Content'Last else Newline - 1);
+               --  A file saved with Windows line endings keeps a CR before
+               --  each LF; it is not part of the line.
+               Line_Last : constant Natural :=
+                 (if Line_End >= Line_First and then Content (Line_End) = ASCII.CR
+                  then Line_End - 1 else Line_End);
                Line : constant String :=
                  (if Line_Last < Line_First then ""
                   else Content (Line_First .. Line_Last));
