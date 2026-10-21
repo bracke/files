@@ -62,4 +62,10 @@ package Files.Accessibility is
    --  whenever it likes, not only when a frame changes.
    procedure Service;
 
+   --  Report whether a files window has the keyboard focus; only a change
+   --  reaches the screen reader, as a window (de)activation.
+   --
+   --  @param Active True while a files window is focused.
+   procedure Set_Active (Active : Boolean);
+
 end Files.Accessibility;

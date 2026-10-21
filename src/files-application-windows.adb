@@ -2496,6 +2496,15 @@ package body Files.Application.Windows is
             Release_Closed_Windows (Runtime_Windows);
             exit when not Any_Window_Open (Runtime_Windows);
             Files.Accessibility.Service;
+            declare
+               Focused : Boolean := False;
+            begin
+               for Runtime of Runtime_Windows loop
+                  Focused := Focused
+                    or else (Runtime.Handle /= null and then Glfw.Windows.Focused (As_Window (Runtime.Handle)));
+               end loop;
+               Files.Accessibility.Set_Active (Focused);
+            end;
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
             Handle_All_Mouse (Runtime_Windows);

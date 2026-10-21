@@ -81,7 +81,8 @@ package body Files.Accessibility is
                Node_State  =>
                  (Enabled  => Node.Enabled,
                   Selected => Node.Selected,
-                  Focused  => Node.Focused),
+                  Focused  => Node.Focused,
+                  Active   => False),
                Parent      => 0));
       end loop;
 
@@ -102,6 +103,16 @@ package body Files.Accessibility is
    begin
       A11ykit.Provider.Service;
    end Service;
+
+   Was_Active : Boolean := False;
+
+   procedure Set_Active (Active : Boolean) is
+   begin
+      if Active /= Was_Active then
+         Was_Active := Active;
+         A11ykit.Provider.Set_Active (Active);
+      end if;
+   end Set_Active;
 
    procedure Publish (Frame : Files.Rendering.Frame_Commands) is
    begin
