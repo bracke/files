@@ -1,3 +1,4 @@
+with A11ykit.Provider;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
@@ -67,5 +68,12 @@ package Files.Accessibility is
    --
    --  @param Active True while a files window is focused.
    procedure Set_Active (Active : Boolean);
+
+   --  The oldest thing the screen reader asked files to do, if any: activate
+   --  or focus a node of the last published frame, given by its rectangle.
+   --
+   --  @param Item The request.
+   --  @return False when none is waiting.
+   function Next_Request (Item : out A11ykit.Provider.Request) return Boolean;
 
 end Files.Accessibility;

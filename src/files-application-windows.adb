@@ -19,6 +19,7 @@ with Glfw.Windows.Hints;
 with Glfw.Windows.Icon;
 with Glfw.Windows.Vulkan;
 
+with A11ykit.Provider;
 with Files.Accessibility;
 with Files.Commands;
 with Files.Drop_Events;
@@ -1352,6 +1353,45 @@ package body Files.Application.Windows is
       end;
    end Current_Click_Action;
 
+   --  Carry out what the screen reader asked, as a click on the node's centre
+   --  would: "focus" selects it, "activate" also opens an item (as a double
+   --  click does) or presses a button.
+   procedure Perform_Accessibility_Request
+     (Runtime : in out Runtime_Window;
+      Item    : A11ykit.Provider.Request)
+   is
+      use type A11ykit.Provider.Request_Kind;
+      Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
+   begin
+      if Runtime.Handle = null then
+         return;
+      end if;
+      Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+      if Frame_W = 0 or else Frame_H = 0 then
+         return;
+      end if;
+      declare
+         --  Node rectangles are framebuffer pixels; the click path takes
+         --  window coordinates.
+         Centre_X : constant Float := Float (Item.Bounds.X) + Float (Item.Bounds.Width) / 2.0;
+         Centre_Y : constant Float := Float (Item.Bounds.Y) + Float (Item.Bounds.Height) / 2.0;
+         Action   : Files.Events.Input_Action :=
+           Current_Click_Action
+             (Runtime, Window_W, Window_H, Frame_W, Frame_H,
+              Glfw.Input.Mouse.Coordinate (Centre_X * Float (Window_W) / Float (Frame_W)),
+              Glfw.Input.Mouse.Coordinate (Centre_Y * Float (Window_H) / Float (Frame_H)),
+              Guikit.Input.No_Modifiers);
+      begin
+         if Item.Kind = A11ykit.Provider.Activate_Request
+           and then Action.Kind = Files.Events.Item_Click_Input_Action
+         then
+            Action.Activate := True;
+         end if;
+         Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
+      end;
+   end Perform_Accessibility_Request;
+
    function Selected_File_Paths
      (Model : Files.Model.Window_Model)
       return Files.Types.String_Vectors.Vector
@@ -2496,6 +2536,14 @@ package body Files.Application.Windows is
             Release_Closed_Windows (Runtime_Windows);
             exit when not Any_Window_Open (Runtime_Windows);
             Files.Accessibility.Service;
+            declare
+               Request : A11ykit.Provider.Request;
+            begin
+               while Files.Accessibility.Next_Request (Request) loop
+                  --  The tree a screen reader sees is the first window's.
+                  Perform_Accessibility_Request (Runtime_Windows (Runtime_Windows.First_Index), Request);
+               end loop;
+            end;
             declare
                Focused : Boolean := False;
             begin

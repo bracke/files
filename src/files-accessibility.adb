@@ -1,5 +1,4 @@
 with A11ykit;
-with A11ykit.Provider;
 with A11y.Platforms;
 
 package body Files.Accessibility is
@@ -103,6 +102,9 @@ package body Files.Accessibility is
    begin
       A11ykit.Provider.Service;
    end Service;
+
+   function Next_Request (Item : out A11ykit.Provider.Request) return Boolean is
+     (A11ykit.Provider.Next_Request (Item));
 
    Was_Active : Boolean := False;
 
