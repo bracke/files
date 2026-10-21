@@ -1551,6 +1551,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.link.failed");
       Add_Error_Key ("error.terminal.unavailable");
       Add_Error_Key ("error.compress.failed");
+      Add_Error_Key ("error.compress.unportable_name");
       Add_Error_Key ("error.extract.failed");
       Add_Error_Key ("error.undo.failed");
       Add_Error_Key ("error.thumbnail.source_missing");
