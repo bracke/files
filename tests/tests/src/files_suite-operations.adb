@@ -2484,8 +2484,14 @@ package body Files_Suite.Operations is
             end if;
          end Restore_Shell_Environment;
       begin
-         Ada.Environment_Variables.Clear ("COMSPEC");
-         Ada.Environment_Variables.Set ("SHELL", Join (Root, "missing-shell"));
+         --  The host decides which variable names the shell: COMSPEC on
+         --  Windows, SHELL elsewhere. Point the host's own one at nothing.
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Ada.Environment_Variables.Set ("COMSPEC", Join (Root, "missing-shell"));
+         else
+            Ada.Environment_Variables.Clear ("COMSPEC");
+            Ada.Environment_Variables.Set ("SHELL", Join (Root, "missing-shell"));
+         end if;
          Files.Settings.Add_Open_Action
            (Missing_Shell_Settings,
             "text/plain",
