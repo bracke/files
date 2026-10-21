@@ -246,6 +246,8 @@ package body Files.Application.Windows is
 
    type Runtime_Window is record
       Handle          : Window_Access;
+      A11y_Key        : Files.Accessibility.Window_Key := 0;
+      --  This window's part of the screen reader's tree.
       Model           : Files.Model.Window_Model;
       Settings        : Files.Settings.Settings_Model;
       --  Settings as of the last cross-window sync; a difference means this
@@ -1525,6 +1527,7 @@ package body Files.Application.Windows is
          Glfw.Windows.Destroy (As_Window (Runtime.Handle));
       end if;
       Free_Window (Runtime.Handle);
+      Files.Accessibility.Forget (Runtime.A11y_Key);
    end Release_Window;
 
    procedure Release_Closed_Windows (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
@@ -1595,6 +1598,7 @@ package body Files.Application.Windows is
       Runtime_Windows.Append
         (Runtime_Window'
            (Handle          => Handle,
+            A11y_Key        => Files.Accessibility.New_Window_Key,
             Model           => Startup_Window.Model,
             Settings        => Settings,
             Synced_Settings => Settings,
@@ -2541,19 +2545,25 @@ package body Files.Application.Windows is
             exit when not Any_Window_Open (Runtime_Windows);
             Files.Accessibility.Service;
             declare
+               use type Files.Accessibility.Window_Key;
                Request : A11ykit.Provider.Request;
+               Window  : Files.Accessibility.Window_Key;
             begin
-               while Files.Accessibility.Next_Request (Request) loop
-                  --  The tree a screen reader sees is the first window's.
-                  Perform_Accessibility_Request (Runtime_Windows (Runtime_Windows.First_Index), Request);
+               while Files.Accessibility.Next_Request (Window, Request) loop
+                  for Runtime of Runtime_Windows loop
+                     if Runtime.A11y_Key = Window then
+                        Perform_Accessibility_Request (Runtime, Request);
+                     end if;
+                  end loop;
                end loop;
             end;
             declare
-               Focused : Boolean := False;
+               Focused : Files.Accessibility.Window_Key := 0;
             begin
                for Runtime of Runtime_Windows loop
-                  Focused := Focused
-                    or else (Runtime.Handle /= null and then Glfw.Windows.Focused (As_Window (Runtime.Handle)));
+                  if Runtime.Handle /= null and then Glfw.Windows.Focused (As_Window (Runtime.Handle)) then
+                     Focused := Runtime.A11y_Key;
+                  end if;
                end loop;
                Files.Accessibility.Set_Active (Focused);
             end;

@@ -1,3 +1,6 @@
+with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
+
 with A11ykit;
 with A11y.Platforms;
 
@@ -103,25 +106,121 @@ package body Files.Accessibility is
       A11ykit.Provider.Service;
    end Service;
 
-   function Next_Request (Item : out A11ykit.Provider.Request) return Boolean is
-     (A11ykit.Provider.Next_Request (Item));
+   --  Each open window's last tree, and which one has the focus. The screen
+   --  reader is given them as one tree, the windows side by side.
+   package Window_Trees is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Window_Key,
+      Element_Type => A11ykit.Tree.Accessibility_Tree,
+      "="          => A11ykit.Tree."=");
 
-   Was_Active : Boolean := False;
+   Trees       : Window_Trees.Map;
+   Focused     : Window_Key := 0;
+   Last_Key    : Window_Key := 0;
 
-   procedure Set_Active (Active : Boolean) is
+   --  Where each window's nodes start in the combined tree (one before its
+   --  first node), in the order they were combined.
+   type Window_Range is record
+      Window : Window_Key := 0;
+      Offset : Natural := 0;
+      Count  : Natural := 0;
+   end record;
+
+   package Range_Vectors is new Ada.Containers.Vectors (Positive, Window_Range);
+   Ranges : Range_Vectors.Vector;
+
+   function New_Window_Key return Window_Key is
    begin
-      if Active /= Was_Active then
-         Was_Active := Active;
-         A11ykit.Provider.Set_Active (Active);
-      end if;
-   end Set_Active;
+      Last_Key := Last_Key + 1;
+      return Last_Key;
+   end New_Window_Key;
 
-   procedure Publish (Frame : Files.Rendering.Frame_Commands) is
+   function Combined return A11ykit.Tree.Accessibility_Tree is
+      Result : A11ykit.Tree.Accessibility_Tree;
    begin
+      Ranges.Clear;
+      for Position in Trees.Iterate loop
+         declare
+            Window : constant Window_Key := Window_Trees.Key (Position);
+            Tree   : constant A11ykit.Tree.Accessibility_Tree := Window_Trees.Element (Position);
+            Offset : constant Natural := Natural (Result.Nodes.Length);
+            Root   : Boolean := True;
+         begin
+            Ranges.Append (Window_Range'(Window => Window, Offset => Offset, Count => Natural (Tree.Nodes.Length)));
+            for Item of Tree.Nodes loop
+               declare
+                  Copy : A11ykit.Tree.Node := Item;
+               begin
+                  Copy.Parent := (if Item.Parent = 0 then 0 else Item.Parent + Offset);
+                  --  The focused window's root is the active one.
+                  if Item.Parent = 0 and then Root then
+                     Copy.Node_State.Active := Window = Focused;
+                     Root := False;
+                  end if;
+                  Result.Nodes.Append (Copy);
+               end;
+            end loop;
+            if Window = Focused and then Tree.Focused /= 0 then
+               Result.Focused := Tree.Focused + Offset;
+            end if;
+         end;
+      end loop;
+      return Result;
+   end Combined;
+
+   procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands) is
+   begin
+      Trees.Include (Window, To_A11ykit_Tree (Frame));
       --  Native providers establish their host registration from the first
       --  tree, because only then is the application root known.  Available is
       --  therefore an outcome of Publish, not a precondition for calling it.
-      A11ykit.Provider.Publish (To_A11ykit_Tree (Frame));
+      A11ykit.Provider.Publish (Combined);
    end Publish;
+
+   procedure Forget (Window : Window_Key) is
+   begin
+      if Trees.Contains (Window) then
+         Trees.Delete (Window);
+         if Focused = Window then
+            Focused := 0;
+         end if;
+         if not Trees.Is_Empty then
+            A11ykit.Provider.Publish (Combined);
+         end if;
+      end if;
+   end Forget;
+
+   procedure Set_Active (Window : Window_Key) is
+   begin
+      if Window /= Focused then
+         if Focused /= 0 then
+            A11ykit.Provider.Set_Active (False);
+         end if;
+         Focused := Window;
+         if not Trees.Is_Empty then
+            A11ykit.Provider.Publish (Combined);
+         end if;
+         if Window /= 0 then
+            A11ykit.Provider.Set_Active (True);
+         end if;
+      end if;
+   end Set_Active;
+
+   function Next_Request
+     (Window : out Window_Key;
+      Item   : out A11ykit.Provider.Request)
+      return Boolean is
+   begin
+      Window := 0;
+      while A11ykit.Provider.Next_Request (Item) loop
+         for Part of Ranges loop
+            if Item.Node > Part.Offset and then Item.Node <= Part.Offset + Part.Count then
+               Window := Part.Window;
+               Item.Node := Item.Node - Part.Offset;
+               return True;
+            end if;
+         end loop;
+      end loop;
+      return False;
+   end Next_Request;
 
 end Files.Accessibility;

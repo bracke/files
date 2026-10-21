@@ -1975,7 +1975,7 @@ package body Files_Suite.Rendering is
       --  fallback and still report a successful semantic publication.
       Files.Accessibility.Start;
       Files.Accessibility.Start;
-      Files.Accessibility.Publish (Frame);
+      Files.Accessibility.Publish (Files.Accessibility.New_Window_Key, Frame);
       Assert
         (A11ykit.Provider.Last_Publish_Status = A11y.Results.Success,
          "the frame reaches the native provider or its validating fallback: "

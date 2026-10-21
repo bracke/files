@@ -50,30 +50,50 @@ package Files.Accessibility is
    procedure Start;
    procedure Stop;
 
-   --  Publish the frame's accessibility tree. On Linux, Windows, and macOS the
-   --  a11y provider attempts native registration and publication; when the host
-   --  service is unavailable it still validates the semantic tree through the
-   --  toolkit's fallback backend.
+   --  Identifies one files window to the screen reader; 0 is no window.
+   type Window_Key is new Natural;
+
+   --  A key no other window has had.
    --
+   --  @return The new key.
+   function New_Window_Key return Window_Key;
+
+   --  Publish a window's frame as that window's part of the application's
+   --  accessibility tree, which holds every open window. On Linux, Windows,
+   --  and macOS the a11y provider attempts native registration and
+   --  publication; when the host service is unavailable it still validates
+   --  the semantic tree through the toolkit's fallback backend.
+   --
+   --  @param Window The window the frame was drawn for.
    --  @param Frame Render frame containing accessibility nodes.
-   procedure Publish (Frame : Files.Rendering.Frame_Commands);
+   procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands);
+
+   --  Take a closed window out of the tree.
+   --
+   --  @param Window The window that closed.
+   procedure Forget (Window : Window_Key);
 
    --  Answer the screen reader's pending queries from the last published
    --  tree. Called on every pass of the event loop: a screen reader asks
    --  whenever it likes, not only when a frame changes.
    procedure Service;
 
-   --  Report whether a files window has the keyboard focus; only a change
-   --  reaches the screen reader, as a window (de)activation.
+   --  Report which files window has the keyboard focus (0 for none); only a
+   --  change reaches the screen reader, as a window (de)activation.
    --
-   --  @param Active True while a files window is focused.
-   procedure Set_Active (Active : Boolean);
+   --  @param Window The focused window, or 0.
+   procedure Set_Active (Window : Window_Key);
 
    --  The oldest thing the screen reader asked files to do, if any: activate
-   --  or focus a node of the last published frame, given by its rectangle.
+   --  or focus a node of a window's last frame, given by its rectangle in
+   --  that window.
    --
+   --  @param Window The window the request is for.
    --  @param Item The request.
    --  @return False when none is waiting.
-   function Next_Request (Item : out A11ykit.Provider.Request) return Boolean;
+   function Next_Request
+     (Window : out Window_Key;
+      Item   : out A11ykit.Provider.Request)
+      return Boolean;
 
 end Files.Accessibility;

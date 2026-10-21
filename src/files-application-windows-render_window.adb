@@ -179,7 +179,7 @@ separate (Files.Application.Windows)
             --  Publish the new frame's accessibility tree to the host screen
             --  reader, only when the frame actually changed. A no-op until an
             --  a11ykit provider exists, so it costs nothing today.
-            Files.Accessibility.Publish (Runtime.Cached_Frame);
+            Files.Accessibility.Publish (Runtime.A11y_Key, Runtime.Cached_Frame);
          end Rebuild_Frame;
       begin
          if Reuse_Snapshot then
