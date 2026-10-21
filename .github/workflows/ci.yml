@@ -423,9 +423,14 @@ jobs:
           export VK_LOADER_DEBUG=error,warn
           if [ "$RUNNER_OS" = "Windows" ]; then
             export PATH="/c/msys64/mingw64/bin:$PATH"
+            # One package per call: pacman drops the whole transaction when
+            # any one target is missing, and vulkaninfo is only a diagnostic.
             /c/msys64/usr/bin/pacman -S --noconfirm --needed --disable-download-timeout \
-              mingw-w64-x86_64-mesa mingw-w64-x86_64-vulkan-tools \
+              mingw-w64-x86_64-mesa \
               || echo "::warning::could not install MSYS2 mesa"
+            /c/msys64/usr/bin/pacman -S --noconfirm --needed --disable-download-timeout \
+              mingw-w64-x86_64-vulkan-tools \
+              || echo "::warning::could not install MSYS2 vulkan-tools"
             /c/msys64/usr/bin/pacman -Ql mingw-w64-x86_64-mesa | grep -iE "vulkan|icd|lvp" || true
             icd="$(ls /c/msys64/mingw64/share/vulkan/icd.d/*lvp*.json 2>/dev/null | head -1)"
             if [ -n "$icd" ]; then
@@ -433,8 +438,8 @@ jobs:
             fi
             bin=./bin/files.exe
           else
-            ls "$(brew --prefix)/share/vulkan/icd.d" 2>/dev/null || true
-            icd="$(ls "$(brew --prefix)"/share/vulkan/icd.d/MoltenVK_icd.json 2>/dev/null | head -1)"
+            ls "$(brew --prefix)/share/vulkan/icd.d" "$(brew --prefix)/etc/vulkan/icd.d" 2>/dev/null || true
+            icd="$(ls "$(brew --prefix)"/{share,etc}/vulkan/icd.d/MoltenVK_icd.json 2>/dev/null | head -1)"
             if [ -n "$icd" ]; then
               export VK_ICD_FILENAMES="$icd"
             fi
