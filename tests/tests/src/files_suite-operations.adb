@@ -6946,6 +6946,9 @@ package body Files_Suite.Operations is
         (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
       Assert (Natural (Destinations.Length) = 1 and then Natural (Identities.Length) = 1,
               "a truncated journal ignores incomplete records without losing earlier snapshots");
+      --  Leases are created hidden on Windows, and Windows refuses to create
+      --  over a hidden file, so each rewrite removes the journal first.
+      Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File, Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Set_Index
@@ -6958,6 +6961,7 @@ package body Files_Suite.Operations is
         (Destinations.Is_Empty and then Sources.Is_Empty and then Identities.Is_Empty
          and then Tree_Revisions.Is_Empty,
          "an oversized recovery journal is rejected before allocating records");
+      Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File,
          Join (Join (Root, "journal"), "created"));
@@ -6995,6 +6999,7 @@ package body Files_Suite.Operations is
         (Destinations.Is_Empty and then Sources.Is_Empty
          and then Identities.Is_Empty and then Tree_Revisions.Is_Empty,
          "recovery journal readers reject relative transport directories");
+      Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File, Join (Join (Root, "journal"), "created"));
       String'Output (Ada.Streams.Stream_IO.Stream (File), Source);
