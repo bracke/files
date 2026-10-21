@@ -146,6 +146,29 @@ separate (Files.Application.Windows)
             end loop;
             Expect (Flipped);
          end;
+
+         --  A screen reader's "activate" on the focused toggle flips it too,
+         --  through the path its requests take (a click on the node's
+         --  centre, which only focuses a settings row, then its change).
+         declare
+            Shown  : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Accessibility;
+            Was    : constant String := Files.Model.Settings_Focused_Value (Runtime.Model);
+            Asked  : Boolean := False;
+         begin
+            for Node of Shown loop
+               if Node.Focused and then Node.Width > 0 then
+                  Perform_Accessibility_Request
+                    (Runtime,
+                     (Kind   => A11ykit.Provider.Activate_Request,
+                      Node   => 0,
+                      Bounds => (X => Node.X, Y => Node.Y, Width => Node.Width, Height => Node.Height)));
+                  Render_Window (Runtime);
+                  Asked := True;
+                  exit;
+               end if;
+            end loop;
+            Expect (Asked and then Files.Model.Settings_Focused_Value (Runtime.Model) /= Was);
+         end;
       end;
 
       Press (Tracked_Tab, Ctrl);

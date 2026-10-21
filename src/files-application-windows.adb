@@ -38,6 +38,7 @@ with Guikit.Layout;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
+with Guikit.Settings_Panel;
 with Guikit.Utf8;
 with Files.Types;
 
@@ -1394,6 +1395,21 @@ package body Files.Application.Windows is
             Action.Activate := True;
          end if;
          Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
+
+         --  A click on a settings row's middle only focuses it; activating a
+         --  toggle or choice should change it, as Space on the focused field
+         --  does (saving included).
+         if Item.Kind = A11ykit.Provider.Activate_Request
+           and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input
+           and then Files.Model.Settings_Focused_Kind (Runtime.Model) in
+             Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice
+         then
+            declare
+               Consumed : Boolean;
+            begin
+               Fire_Key (Runtime, Tracked_Space, Guikit.Input.No_Modifiers, Consumed);
+            end;
+         end if;
       end;
    end Perform_Accessibility_Request;
 
