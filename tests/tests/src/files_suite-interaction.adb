@@ -1188,7 +1188,7 @@ package body Files_Suite.Interaction is
    --  Files.Interaction.Handle_Key -- rather than the Translate_Key ->
    --  Apply_Input_Action proxy. Handle_Key runs the focus-aware controller and
    --  re-routes settings-path keys through Execute_Command, exactly as
-   --  Handle_Pressed_Key did inline. Press the real Shortcut_For key codes (rule
+   --  the shell's key handler did inline. Press the real Shortcut_For key codes (rule
    --  d: never invent a binding) and assert semantic outcomes (rule b).
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -40,7 +40,6 @@ separate (Files.Application.Windows)
       for Poll_Index in 1 .. Plan.Input_Poll_Count loop
          Guikit.Vulkan.Poll_Events;
          Handle_All_Keyboard (Runtime_Windows);
-         Handle_All_Text_Input (Runtime_Windows);
          Handle_All_Mouse (Runtime_Windows);
          Handle_All_Drop_Input (Runtime_Windows);
          Handle_All_Scroll_Input (Runtime_Windows);

@@ -112,16 +112,41 @@ package body Files.Application.Windows is
       Tracked_F10, Tracked_F11, Tracked_F12,
       Tracked_Tab, Tracked_Insert);
 
-   type Tracked_Key_Counts is array (Tracked_Key) of Natural;
+   --  Keyboard input in arrival order. Draining key presses and typed text as
+   --  separate batches ran them out of order: text typed before Enter in a
+   --  fast burst reached the field after Enter had committed it, and a
+   --  shortcut's own character could swallow text typed around it.
+   type Input_Event_Kind is (Key_Press_Event, Text_Event);
+
+   type Input_Event is record
+      Kind      : Input_Event_Kind := Text_Event;
+      Key       : Tracked_Key := Tracked_Escape;
+      --  The physical key, polled for auto-repeat while it is held.
+      Physical  : Glfw.Input.Keys.Key := Glfw.Input.Keys.Unknown;
+      --  Modifiers held when the key went down, not when the queue drains.
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Text      : Unbounded_String;
+      --  Text produced by the key press just before it (its own character),
+      --  which a consumed shortcut discards.
+      Parallel  : Boolean := False;
+   end record;
+
+   package Input_Event_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Input_Event);
+
+   Max_Pending_Input_Events : constant := 256;
 
    type Desktop_Window is new Glfw.Windows.Window with record
-      Pending_Text : Unbounded_String;
+      Pending_Input : Input_Event_Vectors.Vector;
+      --  True between a tracked key press and the next callback, so that
+      --  callback's character is known to be the press's own.
+      Last_Was_Tracked_Press : Boolean := False;
       Pending_Scroll : Integer := 0;
       Pending_Scroll_Remainder : Long_Float := 0.0;
       Pending_Left_Clicks : Natural := 0;
       Pending_Left_Releases : Natural := 0;
       Pending_Right_Clicks : Natural := 0;
-      Pending_Key_Presses : Tracked_Key_Counts := [others => 0];
       Last_Mouse_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Last_Mouse_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Drag_Start_X : Glfw.Input.Mouse.Coordinate := 0.0;
@@ -193,6 +218,7 @@ package body Files.Application.Windows is
 
    type Pressed_Key_Map is array (Tracked_Key) of Boolean;
    type Key_Time_Map    is array (Tracked_Key) of Ada.Calendar.Time;
+   type Physical_Key_Map is array (Tracked_Key) of Glfw.Input.Keys.Key;
 
    Key_Epoch : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
 
@@ -223,6 +249,9 @@ package body Files.Application.Windows is
       Pressed_Keys    : Pressed_Key_Map := [others => False];
       Key_Pressed_At  : Key_Time_Map := [others => Key_Epoch];
       Key_Last_Fired  : Key_Time_Map := [others => Key_Epoch];
+      --  The physical key held for each tracked key, which differs from the
+      --  tracked key's own position when the layout moved its letter.
+      Held_Physical   : Physical_Key_Map := [others => Glfw.Input.Keys.Unknown];
       Left_Mouse_Down : Boolean := False;
       Drag_Source_Index : Natural := 0;
       Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
@@ -436,9 +465,6 @@ package body Files.Application.Windows is
          Runtime.Text_Ready := False;
          Runtime.Text_Glyph_Key := Null_Unbounded_String;
       end if;
-      if Result.Clear_Pending_Text and then Runtime.Handle /= null then
-         Runtime.Handle.Pending_Text := Null_Unbounded_String;
-      end if;
       Flush_System_Clipboard (Runtime);
    end Apply_Interaction_Result;
 
@@ -594,10 +620,73 @@ package body Files.Application.Windows is
 
    overriding procedure Character_Entered
      (Object : not null access Desktop_Window;
-      Char   : Wide_Wide_Character) is
+      Char   : Wide_Wide_Character)
+   is
+      Bytes    : constant String := Text_Input_Bytes (Char);
+      Parallel : constant Boolean := Object.Last_Was_Tracked_Press;
    begin
-      Append (Object.Pending_Text, Text_Input_Bytes (Char));
+      Object.Last_Was_Tracked_Press := False;
+      if Bytes = "" then
+         return;
+      end if;
+      --  Plain typing coalesces into one event; a key's own character stays
+      --  separate so a consumed shortcut can drop exactly that character.
+      if not Parallel
+        and then not Object.Pending_Input.Is_Empty
+        and then Object.Pending_Input.Last_Element.Kind = Text_Event
+        and then not Object.Pending_Input.Last_Element.Parallel
+      then
+         declare
+            Last : Input_Event renames Object.Pending_Input (Object.Pending_Input.Last_Index);
+         begin
+            Append (Last.Text, Bytes);
+         end;
+      elsif Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
+         Object.Pending_Input.Append
+           (Input_Event'(Kind => Text_Event, Text => To_Unbounded_String (Bytes), Parallel => Parallel, others => <>));
+      end if;
    end Character_Entered;
+
+   --  The key a press means under the active keyboard layout. GLFW names keys
+   --  by their US-layout position, so on QWERTZ the key labelled Z arrives as
+   --  Y and Ctrl+Z ran Redo. A printable key whose layout character is a
+   --  letter is taken as that letter; every other key keeps its position
+   --  (digits and punctuation already have position-based bindings, such as
+   --  the zoom keys).
+   function Layout_Key
+     (Key      : Glfw.Input.Keys.Key;
+      Scancode : Glfw.Input.Keys.Scancode)
+      return Glfw.Input.Keys.Key
+   is
+      function Get_Key_Name
+        (Key_Value : Interfaces.C.int; Scancode_Value : Interfaces.C.int)
+         return Interfaces.C.Strings.chars_ptr
+        with Import, Convention => C, External_Name => "glfwGetKeyName";
+      use type Glfw.Input.Keys.Key;
+      Name : Interfaces.C.Strings.chars_ptr;
+   begin
+      if Key = Glfw.Input.Keys.Unknown then
+         return Key;
+      end if;
+      Name := Get_Key_Name
+        (Interfaces.C.int (Glfw.Input.Keys.Key'Enum_Rep (Key)), Interfaces.C.int (Scancode));
+      if Name = Interfaces.C.Strings.Null_Ptr then
+         return Key;
+      end if;
+      declare
+         Text : constant String := Interfaces.C.Strings.Value (Name);
+      begin
+         if Text'Length = 1 and then Text (Text'First) in 'a' .. 'z' | 'A' .. 'Z' then
+            return Glfw.Input.Keys.Key'Val
+              (Glfw.Input.Keys.Key'Pos (Glfw.Input.Keys.A)
+               + Character'Pos (Files.Types.To_Lower (Text) (1)) - Character'Pos ('a'));
+         end if;
+      end;
+      return Key;
+   exception
+      when others =>
+         return Key;
+   end Layout_Key;
 
    overriding procedure Key_Changed
      (Object   : not null access Desktop_Window;
@@ -608,18 +697,31 @@ package body Files.Application.Windows is
    is
       use type Glfw.Input.Keys.Action;
       use type Glfw.Input.Keys.Key;
-      pragma Unreferenced (Scancode, Mods);
    begin
+      Object.Last_Was_Tracked_Press := False;
       if Action /= Glfw.Input.Keys.Press then
          return;
       end if;
-      for T in Tracked_Key loop
-         if To_Glfw_Key (T) = Key then
-            Object.Pending_Key_Presses (T) :=
-              Natural'Min (Object.Pending_Key_Presses (T) + 1, 16);
-            exit;
-         end if;
-      end loop;
+      declare
+         Meant : constant Glfw.Input.Keys.Key := Layout_Key (Key, Scancode);
+         Held  : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      begin
+         Held (Guikit.Input.Shift_Key) := Mods.Shift;
+         Held (Guikit.Input.Control_Key) := Mods.Control;
+         Held (Guikit.Input.Alt_Key) := Mods.Alt;
+         Held (Guikit.Input.Meta_Key) := Mods.Super;
+         for T in Tracked_Key loop
+            if To_Glfw_Key (T) = Meant then
+               if Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
+                  Object.Pending_Input.Append
+                    (Input_Event'
+                       (Kind => Key_Press_Event, Key => T, Physical => Key, Modifiers => Held, others => <>));
+                  Object.Last_Was_Tracked_Press := True;
+               end if;
+               exit;
+            end if;
+         end loop;
+      end;
    end Key_Changed;
 
    overriding procedure Mouse_Scrolled
@@ -772,16 +874,84 @@ package body Files.Application.Windows is
       end;
    end Refresh_Selection_Grid_Columns;
 
-   procedure Handle_Pressed_Key
-     (Runtime : in out Runtime_Window;
-      Key     : Tracked_Key)
+   --  Dispatch one tracked key press.
+   --
+   --  @param Runtime Window receiving the key.
+   --  @param Key Tracked key, already resolved through the keyboard layout.
+   --  @param Modifiers Modifiers held with the key.
+   --  @param Consumed True when the key's own character must be dropped.
+   procedure Fire_Key
+     (Runtime   : in out Runtime_Window;
+      Key       : Tracked_Key;
+      Modifiers : Guikit.Input.Modifier_Set;
+      Consumed  : out Boolean)
  is separate;
 
-   procedure Handle_Keyboard
-     (Runtime : in out Runtime_Window) is
+   procedure Dispatch_Text
+     (Runtime : in out Runtime_Window;
+      Text    : String)
+   is
+      Result : Files.Controller.Controller_Result;
    begin
+      --  When the grid owns the keyboard this run feeds type-ahead; stamp the
+      --  activity time so the inactivity timeout below measures from the last
+      --  keystroke rather than from the previous field edit.
+      if Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None then
+         Runtime.Type_Ahead_Input_At := Ada.Calendar.Clock;
+      end if;
+
+      Result := Files.Controller.Append_Focused_Text (Runtime.Model, Text);
+      pragma Unreferenced (Result);
+   end Dispatch_Text;
+
+   --  Run the window's key presses and typed text in the order they arrived,
+   --  then auto-repeat the repeating keys still held.
+   procedure Handle_Keyboard
+     (Runtime : in out Runtime_Window)
+   is
+      Events   : Input_Event_Vectors.Vector;
+      Fired    : Pressed_Key_Map := [others => False];
+      Consumed : Boolean := False;
+      Now      : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+   begin
+      if Runtime.Handle = null then
+         return;
+      end if;
+      Events := Runtime.Handle.Pending_Input;
+      Runtime.Handle.Pending_Input.Clear;
+      Runtime.Handle.Last_Was_Tracked_Press := False;
+
+      for Event of Events loop
+         case Event.Kind is
+            when Key_Press_Event =>
+               Runtime.Pressed_Keys (Event.Key) := True;
+               Runtime.Key_Pressed_At (Event.Key) := Now;
+               Runtime.Key_Last_Fired (Event.Key) := Now;
+               Runtime.Held_Physical (Event.Key) := Event.Physical;
+               Fired (Event.Key) := True;
+               Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
+            when Text_Event =>
+               if not (Event.Parallel and then Consumed) then
+                  Dispatch_Text (Runtime, To_String (Event.Text));
+               end if;
+               Consumed := False;
+         end case;
+      end loop;
+
       for Key in Tracked_Key loop
-         Handle_Pressed_Key (Runtime, Key);
+         if Runtime.Pressed_Keys (Key) then
+            if Glfw.Windows.Key_State (As_Window (Runtime.Handle), Runtime.Held_Physical (Key)) /= Glfw.Input.Pressed
+            then
+               Runtime.Pressed_Keys (Key) := False;
+            elsif not Fired (Key)
+              and then Key_Repeats (Key)
+              and then Now - Runtime.Key_Pressed_At (Key) >= Key_Repeat_Initial_Delay
+              and then Now - Runtime.Key_Last_Fired (Key) >= Key_Repeat_Interval
+            then
+               Runtime.Key_Last_Fired (Key) := Now;
+               Fire_Key (Runtime, Key, To_Modifiers (As_Window (Runtime.Handle)), Consumed);
+            end if;
+         end if;
       end loop;
    end Handle_Keyboard;
 
@@ -812,36 +982,6 @@ package body Files.Application.Windows is
    begin
       For_Each_Window (Runtime_Windows, Handle_Keyboard'Access);
    end Handle_All_Keyboard;
-
-   procedure Handle_Text_Input
-     (Runtime : in out Runtime_Window)
-   is
-      Result : Files.Controller.Controller_Result;
-      Text   : Unbounded_String;
-   begin
-      if Runtime.Handle = null or else Length (Runtime.Handle.Pending_Text) = 0 then
-         return;
-      end if;
-
-      Text := Runtime.Handle.Pending_Text;
-      Runtime.Handle.Pending_Text := Null_Unbounded_String;
-
-      --  When the grid owns the keyboard this run feeds type-ahead; stamp the
-      --  activity time so the inactivity timeout below measures from the last
-      --  keystroke rather than from the previous field edit.
-      if Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None then
-         Runtime.Type_Ahead_Input_At := Ada.Calendar.Clock;
-      end if;
-
-      Result := Files.Controller.Append_Focused_Text (Runtime.Model, To_String (Text));
-      pragma Unreferenced (Result);
-   end Handle_Text_Input;
-
-   procedure Handle_All_Text_Input
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
-   begin
-      For_Each_Window (Runtime_Windows, Handle_Text_Input'Access);
-   end Handle_All_Text_Input;
 
    --  Clear a stale grid type-ahead prefix once the user has paused. Driven from
    --  the event loop using the same Ada.Calendar clock as the key-repeat and
@@ -1417,6 +1557,7 @@ package body Files.Application.Windows is
             Pressed_Keys    => [others => False],
             Key_Pressed_At  => [others => Key_Epoch],
             Key_Last_Fired  => [others => Key_Epoch],
+            Held_Physical   => [others => Glfw.Input.Keys.Unknown],
             Left_Mouse_Down => False,
             Drag_Source_Index => 0,
             Scrollbar_Drag_Target => Files.Events.Scroll_Auto,
@@ -2316,7 +2457,6 @@ package body Files.Application.Windows is
             Release_Closed_Windows (Runtime_Windows);
             exit when not Any_Window_Open (Runtime_Windows);
             Handle_All_Keyboard (Runtime_Windows);
-            Handle_All_Text_Input (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
             Handle_All_Mouse (Runtime_Windows);
             Handle_All_Drop_Input (Runtime_Windows);
