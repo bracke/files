@@ -402,6 +402,52 @@ jobs:
             exit "$code"
           fi
 
+      - name: Live GPU smoke (Windows and macOS, exploratory)
+        # The live smoke on the other hosts: Windows with Mesa's lavapipe
+        # software Vulkan driver from MSYS2, macOS with MoltenVK on the
+        # runner's own GPU. Exploratory until it has passed: it reports, but
+        # does not fail the job, while we learn what these runners provide.
+        if: runner.os != 'Linux'
+        continue-on-error: true
+        shell: bash
+        working-directory: files
+        env:
+          FILES_FONT_PATH: >-
+            ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
+            || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
+            || '' }}
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            export PATH="/c/msys64/mingw64/bin:$PATH"
+            /c/msys64/usr/bin/pacman -S --noconfirm --needed --disable-download-timeout \
+              mingw-w64-x86_64-mesa || echo "::warning::could not install MSYS2 mesa"
+            /c/msys64/usr/bin/pacman -Ql mingw-w64-x86_64-mesa | grep -iE "vulkan|icd|lvp" || true
+            icd="$(ls /c/msys64/mingw64/share/vulkan/icd.d/*lvp*.json 2>/dev/null | head -1)"
+            if [ -n "$icd" ]; then
+              export VK_ICD_FILENAMES="$(cygpath -w "$icd")"
+            fi
+            bin=./bin/files.exe
+          else
+            ls "$(brew --prefix)/share/vulkan/icd.d" 2>/dev/null || true
+            icd="$(ls "$(brew --prefix)"/share/vulkan/icd.d/MoltenVK_icd.json 2>/dev/null | head -1)"
+            if [ -n "$icd" ]; then
+              export VK_ICD_FILENAMES="$icd"
+            fi
+            bin=./bin/files
+          fi
+          echo "VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-<unset>}"
+          set +e
+          "$bin" --live-smoke
+          code=$?
+          set -e
+          echo "live-smoke exit $code on ${{ matrix.os }}"
+          if [ "$code" -eq 0 ]; then
+            echo "live-smoke passed on ${{ matrix.os }}"
+          else
+            echo "::warning::live-smoke did not pass on ${{ matrix.os }} (exit $code)"
+            exit "$code"
+          fi
+
       - name: Repository lint and architecture guardrails (check_all, Linux)
         # Source-level validation that build+test do not cover: style, format,
         # GNATdoc, hard-coded user-visible text, localization-key existence, and

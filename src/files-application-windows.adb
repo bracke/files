@@ -20,6 +20,7 @@ with Glfw.Windows.Icon;
 with Glfw.Windows.Vulkan;
 
 with A11ykit.Provider;
+with Hostkit.Host;
 with Files.Accessibility;
 with Files.Commands;
 with Files.Drop_Events;
@@ -2061,11 +2062,14 @@ package body Files.Application.Windows is
  is separate;
 
    function Live_Display_Available return Boolean is
+      use type Hostkit.Host.Kind;
       Display         : constant String := Safe_Environment_Value ("DISPLAY");
       Wayland_Display : constant String := Safe_Environment_Value ("WAYLAND_DISPLAY");
       Comspec         : constant String := Safe_Environment_Value ("COMSPEC");
    begin
-      return Display /= "" or else Wayland_Display /= "" or else Comspec /= "";
+      --  A macOS session always has its window server; it sets none of these.
+      return Display /= "" or else Wayland_Display /= "" or else Comspec /= ""
+        or else Hostkit.Host.Current = Hostkit.Host.MacOS;
    end Live_Display_Available;
 
    function Vulkan_Runtime_Available return Boolean is
