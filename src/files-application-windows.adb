@@ -2170,6 +2170,22 @@ package body Files.Application.Windows is
             return "tree_panel";
          when Scenario_Settings =>
             return "settings";
+         when Scenario_Settings_Tab_2 =>
+            return "settings_tab2";
+         when Scenario_Settings_Tab_3 =>
+            return "settings_tab3";
+         when Scenario_Settings_Tab_4 =>
+            return "settings_tab4";
+         when Scenario_Settings_Tab_5 =>
+            return "settings_tab5";
+         when Scenario_Settings_Tab_6 =>
+            return "settings_tab6";
+         when Scenario_Settings_Tab_7 =>
+            return "settings_tab7";
+         when Scenario_Settings_Light =>
+            return "settings_light";
+         when Scenario_Settings_Large_Font =>
+            return "settings_large_font";
          when Scenario_Large_Font =>
             return "large_font";
          when Scenario_Light_Theme =>

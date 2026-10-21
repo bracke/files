@@ -339,6 +339,10 @@ package body Files_Suite.Rendering is
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
+   --  Rectangles in Guikit.Widgets.Draw_Drop_Shadow: four bands, each a
+   --  strip below the panel and one beside it.
+   Shadow_Rectangles : constant := 8;
+
    function Sample_Snapshot
      (Count : Natural;
       Mode  : Files.Types.View_Mode)
@@ -2197,8 +2201,8 @@ package body Files_Suite.Rendering is
       end;
 
       Assert
-        (Shadow_Count = 2,
-         "the root selector emits the shared two-strip translucent drop shadow");
+        (Shadow_Count = Shadow_Rectangles,
+         "the root selector emits the shared banded translucent drop shadow");
    end Test_Root_Selector_Uses_Shadow_Color;
 
    --  Conflict resolution consumes every click while it is open.  Dim the
@@ -2264,7 +2268,7 @@ package body Files_Suite.Rendering is
       Assert (Backdrop_Seen, "the paste-conflict dialog emits a full-window modal backdrop");
       Assert (Panel_Seen, "the paste-conflict dialog emits its panel surface");
       Assert
-        (Shadow_Before_Panel = 2,
+        (Shadow_Before_Panel = Shadow_Rectangles,
          "the paste-conflict dialog emits the shared shadow before its panel surface");
       Assert
         (Accessibility_Count > 0,
@@ -2546,7 +2550,7 @@ package body Files_Suite.Rendering is
    end Test_Context_Menu_Separators;
 
    --  Menus float over the file view.  Use the same opaque overlay surface and
-   --  translucent two-strip shadow as the root selector instead of rendering a
+   --  translucent banded shadow as the root selector instead of rendering a
    --  flat pane that visually merges with the content beneath it.
    procedure Test_Floating_Menus_Have_Elevation
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -2584,7 +2588,7 @@ package body Files_Suite.Rendering is
                   Surface_Seen := True;
                end if;
             end loop;
-            Assert (Shadow_Count = 2, "the context menu uses the shared two-strip shadow");
+            Assert (Shadow_Count = Shadow_Rectangles, "the context menu uses the shared banded shadow");
             Assert (Surface_Seen, "the context menu uses the opaque overlay surface role");
             for Node of Frame.Accessibility loop
                A11y_Count := A11y_Count + 1;
@@ -2617,7 +2621,7 @@ package body Files_Suite.Rendering is
                   Shadow_Count := Shadow_Count + 1;
                end if;
             end loop;
-            Assert (Shadow_Count = 2, "the sort menu uses the shared two-strip shadow");
+            Assert (Shadow_Count = Shadow_Rectangles, "the sort menu uses the shared banded shadow");
             Assert
               (Dismiss.Kind = Files.Events.Command_Input_Action
                and then Dismiss.Command = Files.Commands.Close_Command_Palette_Command,
@@ -3040,7 +3044,7 @@ package body Files_Suite.Rendering is
             end if;
          end loop;
          Assert (Backdrop_Seen, "blocking paste progress dims the inactive file view");
-         Assert (Shadow_Count = 2, "paste progress uses the shared two-strip panel shadow");
+         Assert (Shadow_Count = Shadow_Rectangles, "paste progress uses the shared banded panel shadow");
 
          for Node of Frame.Accessibility loop
             Accessibility_Count := Accessibility_Count + 1;

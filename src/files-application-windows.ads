@@ -66,6 +66,17 @@ package Files.Application.Windows is
       Scenario_Sort_Menu,
       Scenario_Tree_Panel,
       Scenario_Settings,
+      --  The settings panel on each further tab (by position, 2 .. 7), then
+      --  with the light theme and at a large font, so every tab and both
+      --  extremes of the panel's styling are rendered, not just the first.
+      Scenario_Settings_Tab_2,
+      Scenario_Settings_Tab_3,
+      Scenario_Settings_Tab_4,
+      Scenario_Settings_Tab_5,
+      Scenario_Settings_Tab_6,
+      Scenario_Settings_Tab_7,
+      Scenario_Settings_Light,
+      Scenario_Settings_Large_Font,
       Scenario_Large_Font,
       Scenario_Light_Theme,
       Scenario_Details_View,

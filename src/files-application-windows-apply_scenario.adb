@@ -66,6 +66,24 @@ separate (Files.Application.Windows)
             Files.Model.Begin_Settings_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
+         when Scenario_Settings_Tab_2 .. Scenario_Settings_Tab_7 =>
+            Files.Model.Begin_Settings_Edit
+              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+            Files.Model.Settings_Set_Active_Section
+              (Runtime.Model,
+               2 + Live_Smoke_Scenario'Pos (Scenario) - Live_Smoke_Scenario'Pos (Scenario_Settings_Tab_2));
+
+         when Scenario_Settings_Light =>
+            Runtime.Settings.Theme := Files.Settings.Theme_Light;
+            Files.Model.Begin_Settings_Edit
+              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+
+         when Scenario_Settings_Large_Font =>
+            Runtime.Font_Pixel_Size := Large_Font;
+            Runtime.Settings.Font_Pixel_Size := Large_Font;
+            Files.Model.Begin_Settings_Edit
+              (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
+
          when Scenario_Large_Font =>
             --  Jump to a size the baseline is not already using so the scaling
             --  path is exercised and the frame provably differs from default.
