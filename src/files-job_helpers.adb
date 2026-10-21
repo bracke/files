@@ -9,6 +9,7 @@ with Files.Transfer_Jobs;
 with Files.Refresh_Jobs;
 with Files.Folder_Size;
 with Hostkit.Fs;
+with Hostkit.Parent_Watch;
 
 package body Files.Job_Helpers is
    use Ada.Strings.Unbounded;
@@ -70,7 +71,18 @@ package body Files.Job_Helpers is
             elsif Mode = "--files-folder-size" then
                Files.Folder_Size.Run_Helper (Directory);
             else
-               Files.Refresh_Jobs.Run_Watch_Helper (Directory);
+               --  The other helpers finish on their own, and a transfer must
+               --  outlive a crashed window for its recovery to mean anything.
+               --  A watcher loops until cancelled and serves only its window,
+               --  so a window that died without cancelling it would leave it
+               --  polling forever.
+               --  Where the host cannot arrange it, cancellation still ends it.
+               declare
+                  Ignored : constant Boolean := Hostkit.Parent_Watch.End_With_Parent;
+               begin
+                  pragma Unreferenced (Ignored);
+                  Files.Refresh_Jobs.Run_Watch_Helper (Directory);
+               end;
             end if;
             return True;
          elsif Mode = "--files-cleanup" then
