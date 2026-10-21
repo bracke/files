@@ -2495,6 +2495,7 @@ package body Files.Application.Windows is
             Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
             Release_Closed_Windows (Runtime_Windows);
             exit when not Any_Window_Open (Runtime_Windows);
+            Files.Accessibility.Service;
             Handle_All_Keyboard (Runtime_Windows);
             Handle_All_Type_Ahead_Timeout (Runtime_Windows);
             Handle_All_Mouse (Runtime_Windows);

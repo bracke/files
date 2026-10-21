@@ -98,6 +98,11 @@ package body Files.Accessibility is
       A11ykit.Provider.Stop;
    end Stop;
 
+   procedure Service is
+   begin
+      A11ykit.Provider.Service;
+   end Service;
+
    procedure Publish (Frame : Files.Rendering.Frame_Commands) is
    begin
       --  Native providers establish their host registration from the first

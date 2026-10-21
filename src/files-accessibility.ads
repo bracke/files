@@ -57,4 +57,9 @@ package Files.Accessibility is
    --  @param Frame Render frame containing accessibility nodes.
    procedure Publish (Frame : Files.Rendering.Frame_Commands);
 
+   --  Answer the screen reader's pending queries from the last published
+   --  tree. Called on every pass of the event loop: a screen reader asks
+   --  whenever it likes, not only when a frame changes.
+   procedure Service;
+
 end Files.Accessibility;
