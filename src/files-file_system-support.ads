@@ -95,6 +95,8 @@ private package Files.File_System.Support is
    type Source_Snapshot is record
       Root_Revision : Files.Types.UString;
       Entries : Files.Types.String_Vectors.Vector;
+      --  Entries without their content digests, for Same_Shape.
+      Shapes : Files.Types.String_Vectors.Vector;
       Times : Source_Time_Maps.Map;
    end record;
 
@@ -185,9 +187,16 @@ private package Files.File_System.Support is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
    --  @param Path Source tree to snapshot without following links.
+   --  @param Content False to skip reading file contents: the result then
+   --    supports only Same_Shape, a cheap early check before a full one.
    --  @return Sorted identities, revisions, and regular-file content digests,
    --    raising if any entry cannot be verified.
-   function Snapshot (Path : String) return Source_Snapshot;
+   function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot;
+
+   --  @param Left First snapshot.
+   --  @param Right Second snapshot.
+   --  @return True when identities and revisions (not contents) match.
+   function Same_Shape (Left, Right : Source_Snapshot) return Boolean;
 
    --  @param Path Existing entry to inspect without following symbolic links.
    --  @return SHA-256 of a directory's recursive metadata and file contents;

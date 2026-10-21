@@ -457,7 +457,10 @@ package body Files.File_System.Recovery is
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
    begin
-      if Expected.Entries.Is_Empty or else Snapshot (Path) /= Expected then
+      --  A metadata-only early check: the full content check below runs on
+      --  the privately renamed source, which nothing else can then replace,
+      --  so reading every file here as well only doubled the cost.
+      if Expected.Entries.Is_Empty or else not Same_Shape (Snapshot (Path, Content => False), Expected) then
          return Failed;
       end if;
       declare

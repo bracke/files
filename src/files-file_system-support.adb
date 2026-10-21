@@ -173,7 +173,13 @@ package body Files.File_System.Support is
       Cancel                 : Cancellation_Check := null;
       Check_Job_Cancellation : Boolean := True) return String;
 
-   function Snapshot (Path : String) return Source_Snapshot is
+   function Same_Shape (Left, Right : Source_Snapshot) return Boolean is
+      use type Files.Types.String_Vectors.Vector;
+   begin
+      return Left.Root_Revision = Right.Root_Revision and then Left.Shapes = Right.Shapes;
+   end Same_Shape;
+
+   function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot is
       Result : Source_Snapshot;
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
       procedure Visit (Full_Path, Relative : String; Depth : Natural) is
@@ -185,7 +191,7 @@ package body Files.File_System.Support is
          Revision : constant String := Files.File_Identities.Revision
            (Full_Path, Depth /= 0 and then not Is_Directory);
          Is_Regular_File : constant Boolean :=
-           not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
+           Content and then not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
            and then Ada.Directories.Kind (Full_Path) = Ada.Directories.Ordinary_File;
          procedure Child (Name : String) is
          begin
@@ -214,6 +220,8 @@ package body Files.File_System.Support is
             end if;
             Result.Entries.Append (To_Unbounded_String
               (Natural'Image (Relative'Length) & ":" & Relative & Identity & Revision & Digest));
+            Result.Shapes.Append (To_Unbounded_String
+              (Natural'Image (Relative'Length) & ":" & Relative & Identity & Revision));
          end;
          if Is_Directory then
             For_Each_Entry (Full_Path, Child'Access);
@@ -226,6 +234,7 @@ package body Files.File_System.Support is
       end if;
       Visit (Path, "", 0);
       Sorting.Sort (Result.Entries);
+      Sorting.Sort (Result.Shapes);
       return Result;
    end Snapshot;
 
