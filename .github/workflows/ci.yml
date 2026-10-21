@@ -169,17 +169,17 @@ jobs:
             git -C "$name" fetch --depth 1 origin "$revision"
             git -C "$name" checkout --detach FETCH_HEAD
           }
-          clone_at project_tools 97a53582530e2f992611ac74b01b2a9ab19a926f
+          clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
           clone_at i18n de19e64c6838b570ac5933dc3c9a5e224bc40fe0
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
           clone_at textrender eac666b738ead8ccdc1dde875a652138c0b6ac88
-          clone_at zlib 9e67642ed381fd0d4af09cb2f3e47563295dc7bb
-          clone_at guikit 1193331ddfb0a57e23229d270721495fa17ce2c0
-          clone_at hostkit 27d28ac7f77780d50333816d104a3b591f9033a8
-          clone_at cryptolib 05c5117f89a4ec7d06633e0d9b546fd0a8f8f90f
+          clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
+          clone_at guikit 89890086b389447da03d20db3bdaba31bf1e7855
+          clone_at hostkit 30e94f01d319ddda94bf8c61d0153f73befffa72
+          clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 6bf13f621fef97a5e45efcdf227b1daa61cacfbf
+          clone_at a11ykit a9bd1904d7d9a3fc9d2f4d6331fd993d8eb03823
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
