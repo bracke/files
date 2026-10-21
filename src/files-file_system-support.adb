@@ -323,21 +323,36 @@ package body Files.File_System.Support is
          end if;
       end Add;
 
+      --  Listing a directory may advance its access time, which would undo a
+      --  copy's preserved times. Put back only that: the modification time is
+      --  left as it is now, so an entry created meanwhile is not hidden, and
+      --  a directory whose times cannot be set (another owner's) is skipped
+      --  rather than voiding the revision.
       procedure Restore_Directory_Times is
       begin
          for Cursor in State.Times.Iterate loop
             declare
                Item_Path : constant String := Source_Time_Maps.Key (Cursor);
+               Saved     : constant Copy_Times := Source_Time_Maps.Element (Cursor);
+               Current   : Copy_Times;
             begin
                if not Hostkit.Fs.Is_Link (Item_Path)
                  and then Ada.Directories.Kind (Item_Path) = Ada.Directories.Directory
+                 and then Hostkit.Metadata_Copy.Capture_Times (Item_Path, Current)
+                 and then Current (3 .. 4) = Saved (3 .. 4)
+                 and then Current (1 .. 2) /= Saved (1 .. 2)
                then
-                  if not Hostkit.Metadata_Copy.Apply_Times
-                    (Item_Path, Source_Time_Maps.Element (Cursor))
-                  then
-                     raise Ada.Directories.Use_Error;
-                  end if;
+                  Current (1 .. 2) := Saved (1 .. 2);
+                  declare
+                     Applied : constant Boolean := Hostkit.Metadata_Copy.Apply_Times (Item_Path, Current);
+                     pragma Unreferenced (Applied);
+                  begin
+                     null;
+                  end;
                end if;
+            exception
+               when others =>
+                  null;
             end;
          end loop;
       end Restore_Directory_Times;
