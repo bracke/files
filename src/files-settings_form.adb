@@ -159,7 +159,9 @@ package body Files.Settings_Form is
          Toks, Labels : SP.UString_Vectors.Vector;
       begin
          Toks.Append (U ("reset"));
-         Labels.Append (L ("settings.reset"));
+         --  Name what it resets: the button sits apart from every field, and a
+         --  bare "Reset" read as resetting the row beside it.
+         Labels.Append (L ("command.settings.reset"));
          Result.Append
            (SP.Field'(Key => U ("form.actions"), Label => Null_Unbounded_String,
                       Kind => SP.Buttons, Option_Values => Toks, Option_Labels => Labels, others => <>));
