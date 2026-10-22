@@ -588,8 +588,9 @@ jobs:
             var item_enabled: Bool? = nil
             var item_box: CGRect? = nil
             var hit_title = "?"
-            var window_index = -1
-            var folders: [String: Int] = [:]
+            // Which top-level window each folder name was reached in, by the title
+            // of the app's child the walk went through.
+            var folders: [String: String] = [:]
 
             func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
                 var value: CFTypeRef?
@@ -607,11 +608,12 @@ jobs:
                 return AXValueGetValue(value as! AXValue, .cgSize, &result) ? result : nil
             }
 
-            func walk(_ element: AXUIElement, _ depth: Int) {
+            func walk(_ element: AXUIElement, _ depth: Int, _ inside: String) {
                 count += 1
                 let role = attribute(element, kAXRoleAttribute) as? String ?? "?"
                 let title = (attribute(element, kAXTitleAttribute) as? String)
                     ?? (attribute(element, kAXDescriptionAttribute) as? String) ?? ""
+                let window = depth == 1 && role == "AXWindow" ? title : inside
                 if title.contains(needle) && item == nil {
                     found = true
                     item = element
@@ -628,31 +630,22 @@ jobs:
                         }
                     }
                 }
-                if (title == "first-window" || title == "second-window") && window_index >= 0 {
-                    folders[title] = window_index
+                if (title == "first-window" || title == "second-window") && !window.isEmpty {
+                    folders[title] = window
                 }
                 if count <= 40 || title.hasSuffix("-window") || role == "AXWindow" {
                     print(String(repeating: "  ", count: depth) + "\(role) \"\(title)\"")
                 }
                 if depth > 12 { return }
                 for child in attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
-                    walk(child, depth + 1)
+                    walk(child, depth + 1, window)
                 }
             }
 
             for _ in 0 ..< 30 where !found || folders.count < 2 {
                 count = 0
                 folders = [:]
-                let app = AXUIElementCreateApplication(pid)
-                window_index = -1
-                walk(app, 0)
-                // Each window on its own, to know which window a name is in.
-                for (index, window) in (attribute(app, kAXWindowsAttribute) as? [AXUIElement] ?? []).enumerated() {
-                    window_index = index
-                    let before = count
-                    walk(window, 1)
-                    print("window \(index) \"\(attribute(window, kAXTitleAttribute) as? String ?? "?")\": \(count - before) elements")
-                }
+                walk(AXUIElementCreateApplication(pid), 0, "")
                 print("elements", count, "folders", folders)
                 if !found || folders.count < 2 { Thread.sleep(forTimeInterval: 2) }
             }
