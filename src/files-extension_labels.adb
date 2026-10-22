@@ -15,9 +15,10 @@ package body Files.Extension_Labels is
    use type Interfaces.Unsigned_8;
    use type Guikit.Draw.Text_Render_Status;
 
-   --  Matches the renderer's atlas cap; the atlas is a single-channel (R8) alpha
+   --  Matches the renderer's atlas cap, as far as guikit lets its glyph atlas
+   --  grow (1024 wide, 8192 tall); the atlas is a single-channel (R8) alpha
    --  buffer, so one byte per pixel.
-   Max_Atlas_Bytes : constant := 4_194_304;
+   Max_Atlas_Bytes : constant := 8_388_608;
    type Atlas_Bytes_Array is array (Positive range 1 .. Max_Atlas_Bytes) of Interfaces.Unsigned_8;
    package Atlas_Conversions is new System.Address_To_Access_Conversions (Atlas_Bytes_Array);
 
@@ -148,8 +149,12 @@ package body Files.Extension_Labels is
             --  Composite every glyph into a scratch buffer, tracking the inked bounds.
             for G of Result.Glyphs loop
                declare
-                  SX0 : constant Natural := Natural (Float'Floor (G.U0 * Float (AW)));
-                  SY0 : constant Natural := Natural (Float'Floor (G.V0 * Float (AH)));
+                  --  The glyph's own pixels when it says where they are: the
+                  --  atlas may have grown taller while this text was packed.
+                  SX0 : constant Natural :=
+                    (if G.Atlas_W > 0 then G.Atlas_X else Natural (Float'Floor (G.U0 * Float (AW))));
+                  SY0 : constant Natural :=
+                    (if G.Atlas_W > 0 then G.Atlas_Y else Natural (Float'Floor (G.V0 * Float (AH))));
                   GW  : constant Natural := Natural (Float'Rounding (G.Width));
                   GH  : constant Natural := Natural (Float'Rounding (G.Height));
                   DX0 : constant Natural := Natural (Float'Rounding (G.X));
