@@ -35,8 +35,8 @@ project Tests is
          when "macos" =>
             for Default_Switches ("Ada") use
               ("-lvulkan", "-lgdk_pixbuf-2.0", "-lgobject-2.0", "-lglib-2.0",
-               "-framework", "CoreFoundation", "-framework", "CoreServices",
-               "-framework", "Foundation") & Extra_Linker_Switches;
+               "-framework", "CoreFoundation", "-framework", "Foundation",
+               "-lobjc") & Extra_Linker_Switches;
          when "windows" =>
             --  The Vulkan loader is named vulkan-1 on Windows (vulkan-1.dll),
             --  not vulkan.

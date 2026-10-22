@@ -349,7 +349,7 @@ package body Trash is
                      then Facility.Api_Name
                      elsif Request.Backend = Trash_Windows_Recycle_Bin
                      then To_Unbounded_String ("SHFileOperationW")
-                     else To_Unbounded_String ("FSMoveObjectToTrashSync")),
+                     else To_Unbounded_String ("NSFileManager.trashItemAtURL")),
                   Operation_Name   => To_Unbounded_String ("move_to_trash"),
                   --  What that trash does to an item is a property of the trash,
                   --  not of whether this build targets it -- the report describes

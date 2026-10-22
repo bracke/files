@@ -650,7 +650,7 @@ package body Roots is
                     (if Is_Target and then Facility.Api_Name /= Null_Unbounded_String
                      then Facility.Api_Name
                      elsif Windows_Adapter then To_Unbounded_String ("SHFileOperationW")
-                     else To_Unbounded_String ("FSMoveObjectToTrashSync")),
+                     else To_Unbounded_String ("NSFileManager.trashItemAtURL")),
                   Volume_API_Name       =>
                     To_Unbounded_String
                       ((if Windows_Adapter
@@ -665,7 +665,7 @@ package body Roots is
                   Required_Framework    =>
                     (if Windows_Adapter
                      then Null_Unbounded_String
-                     else To_Unbounded_String ("CoreServices")),
+                     else To_Unbounded_String ("Foundation")),
                   Current_Target        => Is_Target,
                   Trash_Can_Execute     => Is_Target and then Facility.Available,
                   Volume_Can_Query      =>

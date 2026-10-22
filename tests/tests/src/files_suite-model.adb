@@ -2074,12 +2074,12 @@ package body Files_Suite.Model is
          or else Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
          "macOS native profile is not active off macOS");
       Assert
-        (To_String (Macos_Profile.Required_Framework) = "CoreServices",
+        (To_String (Macos_Profile.Required_Framework) = "Foundation",
          "macOS native profile names the framework its trash binding actually needs");
       --  The project file no longer selects per-OS bodies -- there are none left
       --  to select. files_suite-startup asserts the single source list.
       --  The Windows and macOS trash bindings, and the C imports behind them --
-      --  SHFileOperationW, the UTF-16 path it needs, FSMoveObjectToTrashSync --
+      --  SHFileOperationW, the UTF-16 path it needs, NSFileManager's trash --
       --  moved to Hostkit.Trash, and hostkit's release checker asserts each body
       --  still binds its host's call (check_hostkit's Require_Binding). It did
       --  not when these assertions were first removed from here, which is worth
