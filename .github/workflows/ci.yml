@@ -180,8 +180,8 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
-          clone_at i18n f51084ea14b690f9f632c9a0e16ff0f33f3b92e2
-          clone_at messages 7f52465c58f3ee1e0a37d525e8818764ac7dba0f
+          clone_at i18n 6d7f2ad76544b70fbbb8ee342d2c746d8c55187a
+          clone_at messages 59f2d18b0c7a5a6a645cd0640405d7fc8e71885b
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab
@@ -845,6 +845,15 @@ jobs:
             Write-Output ("$Item selected after: $selected; focus events $([FocusWatch]::Count), last on " +
                           "'$([FocusWatch]::Last)'; selection events $([FocusWatch]::Selected), last on " +
                           "'$([FocusWatch]::LastSelected)'")
+            # A control on the client itself: a window that UI Automation
+            # certainly announces. No focus event from Notepad either means
+            # this client hears no events at all, whatever files raises.
+            $before = [FocusWatch]::Count
+            $control = Start-Process notepad -PassThru
+            Start-Sleep -Seconds 4
+            Write-Output ("control: Notepad brought {0} focus events (last on '{1}')" -f
+                          ([FocusWatch]::Count - $before), [FocusWatch]::Last)
+            Stop-Process -Id $control.Id -Force -ErrorAction SilentlyContinue
             if (-not $selected) { Write-Output "files did not select $Item"; exit 5 }
             # Announced either way a screen reader listens: the focus moving to
             # it, or ElementSelected on it.
