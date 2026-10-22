@@ -174,12 +174,12 @@ jobs:
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
           clone_at textrender c6c1c7c665c47ced66c58fc91df953ef5ad04e25
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
-          clone_at guikit ed3080d943157103317be8e134493742ac288564
+          clone_at guikit 92142f3f0f64f7ea6b366e0c0003af2c55c1560a
           clone_at hostkit 8de03a9185946a8e16ef2ade00a04874a1d48981
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 5a798ee42c66ffdf57b6ce7227a9c210af403bd9
+          clone_at a11ykit 8f0749edf08f96c4e58e26b8f5ee4b23630f75e0
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -420,7 +420,7 @@ jobs:
           # Exploratory: a missing file is information here, not a reason to
           # stop before the smoke has run.
           set +e +o pipefail
-          export VK_LOADER_DEBUG=error,warn
+          export VK_LOADER_DEBUG=error,warn,driver
           if [ "$RUNNER_OS" = "Windows" ]; then
             export PATH="/c/msys64/mingw64/bin:$PATH"
             # One package per call: pacman drops the whole transaction when
@@ -435,6 +435,11 @@ jobs:
             icd="$(ls /c/msys64/mingw64/share/vulkan/icd.d/*lvp*.json 2>/dev/null | head -1)"
             if [ -n "$icd" ]; then
               export VK_ICD_FILENAMES="$(cygpath -w "$icd")"
+              # The runner's shell is elevated, and an elevated process's
+              # loader ignores the driver variables and reads only the
+              # registry, so register the driver there too.
+              reg add 'HKLM\SOFTWARE\Khronos\Vulkan\Drivers' //v "$(cygpath -w "$icd")" //t REG_DWORD //d 0 //f \
+                || echo "::warning::could not register the lavapipe driver"
             fi
             bin=./bin/files.exe
           else
@@ -444,6 +449,8 @@ jobs:
               export VK_ICD_FILENAMES="$icd"
             fi
             bin=./bin/files
+            # MoltenVK says why it gives up (no Metal device, for one).
+            export MVK_CONFIG_LOG_LEVEL=2
             HOMEBREW_NO_AUTO_UPDATE=1 brew install vulkan-tools || true
           fi
           echo "VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-<unset>}"
