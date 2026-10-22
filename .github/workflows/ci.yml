@@ -180,7 +180,7 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
-          clone_at i18n 9da0ada41e5fc443addcdc1e7f38c9e6ff85bbe4
+          clone_at i18n d534b660d831ea13ffbb5c147869d99c19c4d3ec
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
@@ -189,7 +189,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 3bf8acef5eb7c88eb8b56d29b7f6f3154f0a1949
+          clone_at a11ykit fa2e992b929fdabd1df0e851e1ae63ee4c1dab75
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -755,17 +755,29 @@ jobs:
             # which the indented script cannot give it.
             $source = @(
               'using System;',
+              'using System.Runtime.InteropServices;',
               'using System.Windows.Automation;',
               'public static class FocusWatch {',
               '  public static int Count;',
               '  public static string Last = "";',
               '  public static int LastProcess;',
-              '  public static void Start() {',
+              '  public static int Selected;',
+              '  public static string LastSelected = "";',
+              '  [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();',
+              '  public static long Foreground() { return GetForegroundWindow().ToInt64(); }',
+              '  public static void Start(int process) {',
               '    Automation.AddAutomationFocusChangedEventHandler((sender, e) => {',
               '      Count++;',
               '      try { Last = ((AutomationElement)sender).Current.Name; } catch (Exception) { }',
               '      try { LastProcess = ((AutomationElement)sender).Current.ProcessId; } catch (Exception) { }',
               '    });',
+              '    Automation.AddAutomationEventHandler(SelectionItemPattern.ElementSelectedEvent,',
+              '      AutomationElement.RootElement, TreeScope.Subtree, (sender, e) => {',
+              '        try {',
+              '          AutomationElement item = (AutomationElement)sender;',
+              '          if (item.Current.ProcessId == process) { Selected++; LastSelected = item.Current.Name; }',
+              '        } catch (Exception) { }',
+              '      });',
               '  }',
               '}') -join "`n"
             Add-Type -ReferencedAssemblies UIAutomationClient, UIAutomationTypes, WindowsBase -TypeDefinition $source
@@ -808,7 +820,16 @@ jobs:
             if ($element -eq $null) { Write-Output "$Item not found"; Show-Windows; exit 1 }
             $pattern = $element.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
             Write-Output "$Item selected before: $($pattern.Current.IsSelected)"
-            [FocusWatch]::Start()
+            # Where the foreground is: UI Automation may not report focus moving
+            # inside a window that is not in front.
+            $frontmost = [FocusWatch]::Foreground()
+            $own = @([System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                       [System.Windows.Automation.TreeScope]::Children,
+                       (New-Object System.Windows.Automation.PropertyCondition(
+                         [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
+                         $element.Current.ProcessId))) | ForEach-Object { [long]$_.Current.NativeWindowHandle })
+            Write-Output ("foreground window {0}; files' windows {1}" -f $frontmost, ($own -join ", "))
+            [FocusWatch]::Start($element.Current.ProcessId)
             $pattern.Select()
             $selected = $false
             $until = (Get-Date).AddSeconds(15)
@@ -820,13 +841,19 @@ jobs:
               }
             }
             Start-Sleep -Seconds 2
-            Write-Output "$Item selected after: $selected; focus events $([FocusWatch]::Count), last on '$([FocusWatch]::Last)'"
+            Write-Output ("$Item selected after: $selected; focus events $([FocusWatch]::Count), last on " +
+                          "'$([FocusWatch]::Last)'; selection events $([FocusWatch]::Selected), last on " +
+                          "'$([FocusWatch]::LastSelected)'")
             if (-not $selected) { Write-Output "files did not select $Item"; exit 5 }
-            if ([FocusWatch]::Count -eq 0) { Write-Output "no focus event reached the client"; exit 6 }
+            # Announced either way a screen reader listens: the focus moving to
+            # it, or ElementSelected on it.
+            if ([FocusWatch]::Count -eq 0 -and [FocusWatch]::Selected -eq 0) {
+              Write-Output "neither a focus nor a selection event reached the client"; exit 6
+            }
             # Selecting is a single click: the focus stays in files. A file
             # opened in an editor means the request was carried out as an
             # activation instead.
-            if ([FocusWatch]::LastProcess -ne $element.Current.ProcessId) {
+            if ([FocusWatch]::Count -gt 0 -and [FocusWatch]::LastProcess -ne $element.Current.ProcessId) {
               Write-Output "the focus left files (to '$([FocusWatch]::Last)'): selecting opened $Item"; exit 7
             }
             exit 0
