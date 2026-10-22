@@ -189,7 +189,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 82198827e8b2ca328b0151b2f9107cdcf6e3e5a2
+          clone_at a11ykit 3bf8acef5eb7c88eb8b56d29b7f6f3154f0a1949
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -759,10 +759,12 @@ jobs:
               'public static class FocusWatch {',
               '  public static int Count;',
               '  public static string Last = "";',
+              '  public static int LastProcess;',
               '  public static void Start() {',
               '    Automation.AddAutomationFocusChangedEventHandler((sender, e) => {',
               '      Count++;',
               '      try { Last = ((AutomationElement)sender).Current.Name; } catch (Exception) { }',
+              '      try { LastProcess = ((AutomationElement)sender).Current.ProcessId; } catch (Exception) { }',
               '    });',
               '  }',
               '}') -join "`n"
@@ -821,6 +823,12 @@ jobs:
             Write-Output "$Item selected after: $selected; focus events $([FocusWatch]::Count), last on '$([FocusWatch]::Last)'"
             if (-not $selected) { Write-Output "files did not select $Item"; exit 5 }
             if ([FocusWatch]::Count -eq 0) { Write-Output "no focus event reached the client"; exit 6 }
+            # Selecting is a single click: the focus stays in files. A file
+            # opened in an editor means the request was carried out as an
+            # activation instead.
+            if ([FocusWatch]::LastProcess -ne $element.Current.ProcessId) {
+              Write-Output "the focus left files (to '$([FocusWatch]::Last)'): selecting opened $Item"; exit 7
+            }
             exit 0
           ACT
             powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$RUNNER_TEMP/uia_act.ps1")" -Item beta.txt
@@ -829,6 +837,7 @@ jobs:
             cat > "$RUNNER_TEMP/ax_act.swift" <<'ACT'
             // Selects an item of the running files process through the AX API and
             // waits for files to select it, counting notifications.
+            import AppKit
             import ApplicationServices
             import Foundation
 
@@ -884,6 +893,11 @@ jobs:
             print("\(wanted) selected after: \(selected); notifications \(notifications)")
             if !selected { print("files did not select \(wanted)"); exit(5) }
             if notifications.isEmpty { print("no notification reached the client"); exit(6) }
+            // Selecting is a single click: nothing is opened. TextEdit running
+            // means the request was carried out as an activation instead.
+            if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit").isEmpty {
+                print("TextEdit is running: selecting opened \(wanted)"); exit(7)
+            }
             exit(0)
           ACT
             swift "$RUNNER_TEMP/ax_act.swift" "$app_pid" beta.txt

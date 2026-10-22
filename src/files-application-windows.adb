@@ -1390,6 +1390,8 @@ package body Files.Application.Windows is
               Glfw.Input.Mouse.Coordinate (Centre_Y * Float (Window_H) / Float (Frame_H)),
               Guikit.Input.No_Modifiers);
       begin
+         --  Activate opens an item, as a double-click does; Select and Focus
+         --  are the single click, which selects it and opens nothing.
          if Item.Kind = A11ykit.Provider.Activate_Request
            and then Action.Kind = Files.Events.Item_Click_Input_Action
          then
