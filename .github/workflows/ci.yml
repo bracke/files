@@ -179,7 +179,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 1ba6febc9371c7af7972d79c4650c0aa458ed6aa
+          clone_at a11ykit 682bc91907f752093bb12336b180ea075f2c8b32
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -524,6 +524,12 @@ jobs:
                     $c = $element.Current
                     $box = $c.BoundingRectangle
                     $frame = $window.Current.BoundingRectangle
+                    # Pointing at it, as touch or the mouse does, finds an item.
+                    $hitName = ""
+                    try {
+                      $center = New-Object System.Windows.Point(($box.Left + $box.Width / 2), ($box.Top + $box.Height / 2))
+                      $hitName = [System.Windows.Automation.AutomationElement]::FromPoint($center).Current.Name
+                    } catch { $hitName = "error: $_" }
                   }
                 }
               }
@@ -544,6 +550,8 @@ jobs:
             if (-not $c.IsEnabled) { $problems += "not enabled" }
             if ($box.IsEmpty -or $box.Width -le 0 -or $box.Height -le 0) { $problems += "no bounds" }
             elseif (-not $frame.Contains($box)) { $problems += "bounds outside its window" }
+            Write-Output "pointing at it finds '$hitName'"
+            if ($hitName -notlike "*$Needle*") { $problems += "pointing finds '$hitName'" }
             if ($problems.Count -gt 0) { Write-Output ("wrong: " + ($problems -join ", ")); exit 3 }
             exit 0
           WALK
@@ -568,6 +576,7 @@ jobs:
             var item_role = "?"
             var item_enabled: Bool? = nil
             var item_box: CGRect? = nil
+            var hit_title = "?"
             var window_index = -1
             var folders: [String: Int] = [:]
 
@@ -599,6 +608,13 @@ jobs:
                     item_enabled = attribute(element, kAXEnabledAttribute) as? Bool
                     if let p = point(element, kAXPositionAttribute), let s = size(element, kAXSizeAttribute) {
                         item_box = CGRect(origin: p, size: s)
+                        // Pointing at it, as the mouse does, finds an item.
+                        var hit: AXUIElement?
+                        if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(p.x + s.width / 2),
+                                                            Float(p.y + s.height / 2), &hit) == .success, let hit = hit {
+                            hit_title = (attribute(hit, kAXTitleAttribute) as? String)
+                                ?? (attribute(hit, kAXDescriptionAttribute) as? String) ?? "?"
+                        }
                     }
                 }
                 if (title == "first-window" || title == "second-window") && window_index >= 0 {
@@ -651,6 +667,8 @@ jobs:
             } else {
                 problems.append("no position or size")
             }
+            print("pointing at it finds \"\(hit_title)\"")
+            if !hit_title.contains(needle) { problems.append("pointing finds \"\(hit_title)\"") }
             if !problems.isEmpty { print("wrong: " + problems.joined(separator: ", ")); exit(3) }
             exit(0)
           WALK
@@ -661,6 +679,151 @@ jobs:
           echo "screen-reader client walk exit $walk on ${{ matrix.os }}"
           if [ "$walk" != 0 ]; then
             echo "::error::the screen-reader client did not reach files' items on ${{ matrix.os }}"
+            exit 1
+          fi
+
+          # What a screen reader does, not only reads: run files itself on a
+          # folder, select an item as Narrator and VoiceOver do, and require
+          # files to carry it out (the item becomes selected) and announce it
+          # (an event reaches the client).
+          folder="$RUNNER_TEMP/action-folder"
+          mkdir -p "$folder"
+          for name in alpha beta gamma; do echo "$name" > "$folder/$name.txt"; done
+          "$bin" "$folder" > "$RUNNER_TEMP/files-app.txt" 2>&1 &
+          app_pid=$!
+          sleep 8
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cat > "$RUNNER_TEMP/uia_act.ps1" <<'ACT'
+            # Selects an item of the running files window through UI Automation
+            # and waits for files to select it, counting focus events.
+            param([string]$Item = "beta.txt", [int]$Seconds = 60)
+            Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+            # The source as lines: a here-string's end must start its line,
+            # which the indented script cannot give it.
+            $source = @(
+              'using System;',
+              'using System.Windows.Automation;',
+              'public static class FocusWatch {',
+              '  public static int Count;',
+              '  public static string Last = "";',
+              '  public static void Start() {',
+              '    Automation.AddAutomationFocusChangedEventHandler((sender, e) => {',
+              '      Count++;',
+              '      try { Last = ((AutomationElement)sender).Current.Name; } catch (Exception) { }',
+              '    });',
+              '  }',
+              '}') -join "`n"
+            Add-Type -ReferencedAssemblies UIAutomationClient, UIAutomationTypes, WindowsBase -TypeDefinition $source
+            function Find-Item {
+              $process = Get-Process -Name files -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($process -eq $null) { return $null }
+              $byProcess = New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+              $byName = New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::NameProperty, $Item)
+              foreach ($window in [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                         [System.Windows.Automation.TreeScope]::Children, $byProcess)) {
+                $found = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $byName)
+                if ($found -ne $null) { return $found }
+              }
+              return $null
+            }
+            $deadline = (Get-Date).AddSeconds($Seconds)
+            $element = $null
+            while ($element -eq $null -and (Get-Date) -lt $deadline) {
+              $element = Find-Item
+              if ($element -eq $null) { Start-Sleep -Milliseconds 500 }
+            }
+            if ($element -eq $null) { Write-Output "$Item not found"; exit 1 }
+            $pattern = $element.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
+            Write-Output "$Item selected before: $($pattern.Current.IsSelected)"
+            [FocusWatch]::Start()
+            $pattern.Select()
+            $selected = $false
+            $until = (Get-Date).AddSeconds(15)
+            while (-not $selected -and (Get-Date) -lt $until) {
+              Start-Sleep -Milliseconds 500
+              $now = Find-Item
+              if ($now -ne $null) {
+                $selected = $now.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected
+              }
+            }
+            Start-Sleep -Seconds 2
+            Write-Output "$Item selected after: $selected; focus events $([FocusWatch]::Count), last on '$([FocusWatch]::Last)'"
+            if (-not $selected) { Write-Output "files did not select $Item"; exit 5 }
+            if ([FocusWatch]::Count -eq 0) { Write-Output "no focus event reached the client"; exit 6 }
+            exit 0
+          ACT
+            powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$RUNNER_TEMP/uia_act.ps1")" -Item beta.txt
+            act=$?
+          else
+            cat > "$RUNNER_TEMP/ax_act.swift" <<'ACT'
+            // Selects an item of the running files process through the AX API and
+            // waits for files to select it, counting notifications.
+            import ApplicationServices
+            import Foundation
+
+            let pid = pid_t(CommandLine.arguments[1])!
+            let wanted = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "beta.txt"
+            var notifications: [String] = []
+
+            func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
+                var value: CFTypeRef?
+                return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
+            }
+            func find(_ element: AXUIElement, _ depth: Int) -> AXUIElement? {
+                let title = (attribute(element, kAXTitleAttribute) as? String)
+                    ?? (attribute(element, kAXDescriptionAttribute) as? String) ?? ""
+                if title == wanted { return element }
+                if depth > 12 { return nil }
+                for child in attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
+                    if let hit = find(child, depth + 1) { return hit }
+                }
+                return nil
+            }
+            let app = AXUIElementCreateApplication(pid)
+            var item: AXUIElement? = nil
+            for _ in 0 ..< 60 where item == nil {
+                item = find(app, 0)
+                if item == nil { Thread.sleep(forTimeInterval: 1) }
+            }
+            guard let element = item else { print("\(wanted) not found"); exit(1) }
+            print("\(wanted) selected before: \(String(describing: attribute(element, kAXSelectedAttribute)))")
+
+            var observer: AXObserver?
+            let callback: AXObserverCallback = { _, _, name, _ in
+                notifications.append(name as String)
+            }
+            if AXObserverCreate(pid, callback, &observer) == .success, let observer = observer {
+                for name in [kAXFocusedUIElementChangedNotification, kAXLayoutChangedNotification,
+                             kAXSelectedChildrenChangedNotification] {
+                    _ = AXObserverAddNotification(observer, app, name as CFString, nil)
+                }
+                CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
+            }
+
+            let set = AXUIElementSetAttributeValue(element, kAXSelectedAttribute as CFString, kCFBooleanTrue)
+            print("set AXSelected: \(set.rawValue)")
+            var selected = false
+            for _ in 0 ..< 30 where !selected {
+                CFRunLoopRunInMode(.defaultMode, 0.5, false)
+                if let now = find(app, 0) {
+                    selected = (attribute(now, kAXSelectedAttribute) as? Bool) ?? false
+                }
+            }
+            CFRunLoopRunInMode(.defaultMode, 2, false)
+            print("\(wanted) selected after: \(selected); notifications \(notifications)")
+            if !selected { print("files did not select \(wanted)"); exit(5) }
+            if notifications.isEmpty { print("no notification reached the client"); exit(6) }
+            exit(0)
+          ACT
+            swift "$RUNNER_TEMP/ax_act.swift" "$app_pid" beta.txt
+            act=$?
+          fi
+          kill "$app_pid" 2>/dev/null || true
+          echo "screen-reader action exit $act on ${{ matrix.os }}"
+          if [ "$act" != 0 ]; then
+            echo "::error::files did not carry out or announce a screen reader's selection on ${{ matrix.os }}"
             exit 1
           fi
 
