@@ -492,9 +492,19 @@ jobs:
             param([string]$Needle = "smoke-item-", [int]$Seconds = 60)
             Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
             $deadline = (Get-Date).AddSeconds($Seconds)
+            # The files process that has windows: another one, still exiting
+            # from an earlier step, may be listed first.
             $process = $null
             while ($process -eq $null -and (Get-Date) -lt $deadline) {
-              $process = Get-Process -Name files -ErrorAction SilentlyContinue | Select-Object -First 1
+              foreach ($candidate in @(Get-Process -Name files -ErrorAction SilentlyContinue)) {
+                $owns = New-Object System.Windows.Automation.PropertyCondition(
+                  [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $candidate.Id)
+                if ([System.Windows.Automation.AutomationElement]::RootElement.FindFirst(
+                      [System.Windows.Automation.TreeScope]::Children, $owns) -ne $null) {
+                  $process = $candidate
+                  break
+                }
+              }
               if ($process -eq $null) { Start-Sleep -Milliseconds 500 }
             }
             if ($process -eq $null) { Write-Output "files is not running"; exit 2 }
