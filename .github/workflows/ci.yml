@@ -179,10 +179,10 @@ jobs:
             git -C "$name" fetch --depth 1 origin "$revision"
             git -C "$name" checkout --detach FETCH_HEAD
           }
-          clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
-          clone_at i18n 0f36cb692557a4d8532df464754524f34408982b
-          clone_at messages 982600ffff2600e2c1a7d473c59461d8a172a0f0
-          clone_at humanize c6f36eaa3ca155d7bcdecb2934e1fdaa00b0b87a
+          clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
+          clone_at i18n 2b336522855d6f7e538be4cc8c9f15fbc54a4ef7
+          clone_at messages dbe63b3b894d2338722f669532a87030f1d853b8
+          clone_at humanize 7f764396ff2720acef98eb8e30093e5dc0fb75bc
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab
