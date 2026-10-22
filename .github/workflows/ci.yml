@@ -179,7 +179,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 2085a97130648fe1220d4fd2b73921c2f1d6f52a
+          clone_at a11ykit 1ba6febc9371c7af7972d79c4650c0aa458ed6aa
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -469,8 +469,11 @@ jobs:
           # The screen reader's view of the same window: run the smoke again,
           # holding each frame, and walk files' window with the host's own
           # client API (UI Automation, AXUIElement) for the smoke's items.
+          # Two windows, on two folders, so the walk can tell that each window
+          # answers for its own part of the tree.
           log="$RUNNER_TEMP/held-smoke.txt"
-          FILES_LIVE_SMOKE_HOLD=20 "$bin" --live-smoke > "$log" 2>&1 &
+          mkdir -p "$RUNNER_TEMP/first-window" "$RUNNER_TEMP/second-window"
+          FILES_LIVE_SMOKE_HOLD=20 "$bin" --live-smoke "$RUNNER_TEMP/first-window" "$RUNNER_TEMP/second-window" > "$log" 2>&1 &
           smoke_pid=$!
           for _ in $(seq 1 120); do
             grep -q "live-smoke hold" "$log" && break
@@ -495,7 +498,9 @@ jobs:
             $condition = New-Object System.Windows.Automation.PropertyCondition(
               [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
             $found = $false
-            while (-not $found -and (Get-Date) -lt $deadline) {
+            $folders = @{}
+            while ((-not $found -or $folders.Count -lt 2) -and (Get-Date) -lt $deadline) {
+              $folders = @{}
               $windows = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
                 [System.Windows.Automation.TreeScope]::Children, $condition)
               foreach ($window in $windows) {
@@ -509,6 +514,9 @@ jobs:
                     Write-Output ("  {0} [{1}]" -f $name, $element.Current.ControlType.ProgrammaticName)
                     $shown++
                   }
+                  if ($name -eq "first-window" -or $name -eq "second-window") {
+                    $folders[$name] = $window.Current.NativeWindowHandle
+                  }
                   if (-not $found -and $name -like "*$Needle*") {
                     $found = $true
                     $item = $element
@@ -516,9 +524,14 @@ jobs:
                   }
                 }
               }
-              if (-not $found) { Start-Sleep -Seconds 2 }
+              if (-not $found -or $folders.Count -lt 2) { Start-Sleep -Seconds 2 }
             }
             if (-not $found) { Write-Output "$Needle not reachable"; exit 1 }
+            # Each folder's name is reached in a window of its own.
+            Write-Output ("folders: " + (($folders.GetEnumerator() | ForEach-Object { "$($_.Key) in window $($_.Value)" }) -join ", "))
+            if ($folders.Count -lt 2 -or $folders["first-window"] -eq $folders["second-window"]) {
+              Write-Output "the two windows do not each answer for their own folder"; exit 4
+            }
             # What Narrator reads besides the name: what the element is, that
             # it is enabled, and where it is, on the screen inside its window.
             $c = $item.Current
@@ -549,6 +562,8 @@ jobs:
             var count = 0
             var found = false
             var item: AXUIElement? = nil
+            var window_index = -1
+            var folders: [String: Int] = [:]
 
             func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
                 var value: CFTypeRef?
@@ -561,6 +576,9 @@ jobs:
                 let title = (attribute(element, kAXTitleAttribute) as? String)
                     ?? (attribute(element, kAXDescriptionAttribute) as? String) ?? ""
                 if title.contains(needle) && item == nil { found = true; item = element }
+                if (title == "first-window" || title == "second-window") && window_index >= 0 {
+                    folders[title] = window_index
+                }
                 if count <= 40 { print(String(repeating: "  ", count: depth) + "\(role) \"\(title)\"") }
                 if depth > 12 { return }
                 for child in attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
@@ -568,13 +586,25 @@ jobs:
                 }
             }
 
-            for _ in 0 ..< 30 where !found {
+            for _ in 0 ..< 30 where !found || folders.count < 2 {
                 count = 0
-                walk(AXUIElementCreateApplication(pid), 0)
-                print("elements", count)
-                if !found { Thread.sleep(forTimeInterval: 2) }
+                folders = [:]
+                let app = AXUIElementCreateApplication(pid)
+                window_index = -1
+                walk(app, 0)
+                // Each window on its own, to know which window a name is in.
+                for (index, window) in (attribute(app, kAXWindowsAttribute) as? [AXUIElement] ?? []).enumerated() {
+                    window_index = index
+                    walk(window, 1)
+                }
+                print("elements", count, "folders", folders)
+                if !found || folders.count < 2 { Thread.sleep(forTimeInterval: 2) }
             }
             guard found, let found_item = item else { print("\(needle) not reachable"); exit(1) }
+            // Each folder's name is reached in a window of its own.
+            if folders.count < 2 || folders["first-window"] == folders["second-window"] {
+                print("the two windows do not each answer for their own folder: \(folders)"); exit(4)
+            }
 
             // What VoiceOver reads besides the name: what the element is, and
             // where it is, on the screen inside its window.
