@@ -189,7 +189,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit fa2e992b929fdabd1df0e851e1ae63ee4c1dab75
+          clone_at a11ykit 4ef62ada08f1b925545a9be53d8ca7504fd3505a
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -742,7 +742,8 @@ jobs:
           folder="$RUNNER_TEMP/action-folder"
           mkdir -p "$folder"
           for name in alpha beta gamma; do echo "$name" > "$folder/$name.txt"; done
-          "$bin" "$folder" > "$RUNNER_TEMP/files-app.txt" 2>&1 &
+          # A11YKIT_TRACE: each event files raises, and the answer, in its output.
+          A11YKIT_TRACE=1 "$bin" "$folder" > "$RUNNER_TEMP/files-app.txt" 2>&1 &
           app_pid=$!
           sleep 8
           if [ "$RUNNER_OS" = "Windows" ]; then
