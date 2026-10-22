@@ -179,7 +179,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 051eb07f45ce9503b14639de130eea4037a194a1
+          clone_at a11ykit 37e3cf3a960d72644a5c47bc54ba972bc872911e
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -469,7 +469,6 @@ jobs:
           # The screen reader's view of the same window: run the smoke again,
           # holding each frame, and walk files' window with the host's own
           # client API (UI Automation, AXUIElement) for the smoke's items.
-          # Reports for now; it gates once it has passed.
           log="$RUNNER_TEMP/held-smoke.txt"
           FILES_LIVE_SMOKE_HOLD=20 "$bin" --live-smoke > "$log" 2>&1 &
           smoke_pid=$!
@@ -565,7 +564,10 @@ jobs:
           fi
           kill "$smoke_pid" 2>/dev/null || true
           echo "screen-reader client walk exit $walk on ${{ matrix.os }}"
-          [ "$walk" = 0 ] || echo "::warning::the screen-reader client did not reach files' items on ${{ matrix.os }}"
+          if [ "$walk" != 0 ]; then
+            echo "::error::the screen-reader client did not reach files' items on ${{ matrix.os }}"
+            exit 1
+          fi
 
       - name: Repository lint and architecture guardrails (check_all, Linux)
         # Source-level validation that build+test do not cover: style, format,

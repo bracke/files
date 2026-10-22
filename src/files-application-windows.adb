@@ -1695,6 +1695,10 @@ package body Files.Application.Windows is
             Watch => <>));
       Files.Model.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
+      --  The screen reader looks at the window itself; answer it there.
+      Files.Accessibility.Attach_Window
+        (Runtime_Windows.Reference (Runtime_Windows.Last_Index).A11y_Key,
+         Glfw.Windows.Native.Handle (As_Window (Handle)));
    exception
       when others =>
          if Handle /= null then
@@ -2544,13 +2548,6 @@ package body Files.Application.Windows is
                then Startup.Settings.Window_Height
                else 768));
       end loop;
-
-      --  The screen reader looks at the application's window; answer it
-      --  there. One tree serves every window, so the first one carries it.
-      if not Runtime_Windows.Is_Empty then
-         Files.Accessibility.Attach_Window
-           (Glfw.Windows.Native.Handle (As_Window (Runtime_Windows.First_Element.Handle)));
-      end if;
 
       for Frame_Index in 1 .. 3 loop
          Guikit.Vulkan.Poll_Events;

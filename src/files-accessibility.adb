@@ -101,11 +101,6 @@ package body Files.Accessibility is
       A11ykit.Provider.Stop;
    end Stop;
 
-   procedure Attach_Window (Window : System.Address) is
-   begin
-      A11ykit.Provider.Attach_Window (Window);
-   end Attach_Window;
-
    procedure Service is
    begin
       A11ykit.Provider.Service;
@@ -132,6 +127,30 @@ package body Files.Accessibility is
 
    package Range_Vectors is new Ada.Containers.Vectors (Positive, Window_Range);
    Ranges : Range_Vectors.Vector;
+
+   --  Each window's native handle, by its key.
+   package Native_Handles is new Ada.Containers.Ordered_Maps
+     (Key_Type => Window_Key, Element_Type => System.Address, "=" => System."=");
+   Handles : Native_Handles.Map;
+
+   --  Name each window to the provider by its place among the combined
+   --  tree's windows, which shifts as windows come and go.
+   procedure Attach_Windows is
+      Top_Level : Positive := 1;
+   begin
+      for Item of Ranges loop
+         if Handles.Contains (Item.Window) then
+            A11ykit.Provider.Attach_Window (Handles.Element (Item.Window), Top_Level);
+         end if;
+         Top_Level := Top_Level + 1;
+      end loop;
+   end Attach_Windows;
+
+   procedure Attach_Window (Window : Window_Key; Native : System.Address) is
+   begin
+      Handles.Include (Window, Native);
+      Attach_Windows;
+   end Attach_Window;
 
    function New_Window_Key return Window_Key is
    begin
@@ -179,10 +198,12 @@ package body Files.Accessibility is
       --  tree, because only then is the application root known.  Available is
       --  therefore an outcome of Publish, not a precondition for calling it.
       A11ykit.Provider.Publish (Combined);
+      Attach_Windows;
    end Publish;
 
    procedure Forget (Window : Window_Key) is
    begin
+      Handles.Exclude (Window);
       if Trees.Contains (Window) then
          Trees.Delete (Window);
          if Focused = Window then
@@ -190,6 +211,7 @@ package body Files.Accessibility is
          end if;
          if not Trees.Is_Empty then
             A11ykit.Provider.Publish (Combined);
+            Attach_Windows;
          end if;
       end if;
    end Forget;

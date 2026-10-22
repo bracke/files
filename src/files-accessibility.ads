@@ -51,15 +51,16 @@ package Files.Accessibility is
    procedure Start;
    procedure Stop;
 
-   --  Answer the screen reader through Window, the native handle of the
-   --  application's window (an HWND, an NSWindow), where the host's screen
-   --  reader looks for it. A no-op where the host needs no window.
-   --
-   --  @param Window The native handle of the application's window.
-   procedure Attach_Window (Window : System.Address);
-
    --  Identifies one files window to the screen reader; 0 is no window.
    type Window_Key is new Natural;
+
+   --  Answer the screen reader for Window through its native handle (an
+   --  HWND, an NSWindow), the window the host's screen reader looks at. A
+   --  no-op where the host needs no window.
+   --
+   --  @param Window The files window.
+   --  @param Native Its native handle.
+   procedure Attach_Window (Window : Window_Key; Native : System.Address);
 
    --  A key no other window has had.
    --
