@@ -36,8 +36,9 @@ jobs:
     name: build-and-test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     # A hung child process used to park the suite until Actions killed the job six
-    # hours later. Fail in minutes instead: nothing here legitimately takes 45.
-    timeout-minutes: 45
+    # hours later. Fail in minutes instead: nothing here legitimately takes 75
+    # (the macOS Intel runner needs about 45 to reach the screen-reader steps).
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -687,6 +688,9 @@ jobs:
             walk=$?
           fi
           kill "$smoke_pid" 2>/dev/null || true
+          # Git Bash's kill can miss the native process behind the job.
+          if [ "$RUNNER_OS" = "Windows" ]; then taskkill //F //IM files.exe > /dev/null 2>&1 || true; fi
+          wait "$smoke_pid" 2>/dev/null || true
           echo "screen-reader client walk exit $walk on ${{ matrix.os }}"
           if [ "$walk" != 0 ]; then
             echo "--- the held smoke's own output:"
@@ -728,18 +732,34 @@ jobs:
               '}') -join "`n"
             Add-Type -ReferencedAssemblies UIAutomationClient, UIAutomationTypes, WindowsBase -TypeDefinition $source
             function Find-Item {
-              $process = Get-Process -Name files -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($process -eq $null) { return $null }
-              $byProcess = New-Object System.Windows.Automation.PropertyCondition(
-                [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+              # Every files process: one left over from an earlier step must
+              # not hide the window that shows the item.
               $byName = New-Object System.Windows.Automation.PropertyCondition(
                 [System.Windows.Automation.AutomationElement]::NameProperty, $Item)
-              foreach ($window in [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
-                         [System.Windows.Automation.TreeScope]::Children, $byProcess)) {
-                $found = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $byName)
-                if ($found -ne $null) { return $found }
+              foreach ($process in @(Get-Process -Name files -ErrorAction SilentlyContinue)) {
+                $byProcess = New-Object System.Windows.Automation.PropertyCondition(
+                  [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+                foreach ($window in [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                           [System.Windows.Automation.TreeScope]::Children, $byProcess)) {
+                  $found = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $byName)
+                  if ($found -ne $null) { return $found }
+                }
               }
               return $null
+            }
+            # What the client does see, when the item is not there.
+            function Show-Windows {
+              foreach ($process in @(Get-Process -Name files -ErrorAction SilentlyContinue)) {
+                $byProcess = New-Object System.Windows.Automation.PropertyCondition(
+                  [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+                foreach ($window in [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                           [System.Windows.Automation.TreeScope]::Children, $byProcess)) {
+                  $names = @($window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                               [System.Windows.Automation.Condition]::TrueCondition) |
+                             Select-Object -First 30 | ForEach-Object { $_.Current.Name })
+                  Write-Output ("process {0} window '{1}': {2}" -f $process.Id, $window.Current.Name, ($names -join ", "))
+                }
+              }
             }
             $deadline = (Get-Date).AddSeconds($Seconds)
             $element = $null
@@ -747,7 +767,7 @@ jobs:
               $element = Find-Item
               if ($element -eq $null) { Start-Sleep -Milliseconds 500 }
             }
-            if ($element -eq $null) { Write-Output "$Item not found"; exit 1 }
+            if ($element -eq $null) { Write-Output "$Item not found"; Show-Windows; exit 1 }
             $pattern = $element.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
             Write-Output "$Item selected before: $($pattern.Current.IsSelected)"
             [FocusWatch]::Start()
@@ -837,6 +857,8 @@ jobs:
           echo "screen-reader action exit $act on ${{ matrix.os }}"
           if [ "$act" != 0 ]; then
             echo "::error::files did not carry out or announce a screen reader's selection on ${{ matrix.os }}"
+            echo "--- files' own output:"
+            cat "$RUNNER_TEMP/files-app.txt" || true
             exit 1
           fi
 
