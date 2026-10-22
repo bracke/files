@@ -15,9 +15,10 @@ name: CI
 # (files --runtime-smoke): the snapshot -> frame-commands -> text/glyph path
 # with no window or GPU, so the cross-platform render pipeline is validated
 # end-to-end on macOS and Windows, not only through the in-process unit test.
-# The Linux job additionally runs a required live GPU smoke: the full GLFW +
-# Vulkan render path under Xvfb with the Mesa lavapipe software ICD,
-# structurally analysing the read-back framebuffer.
+# The Linux and Windows jobs additionally run a required live GPU smoke: the
+# full GLFW + Vulkan render path with the Mesa lavapipe software ICD (under
+# Xvfb on Linux), structurally analysing the read-back framebuffer. macOS
+# runs it too but only reports: its Intel runner has no Metal device.
 #
 # All three jobs now build, link and run the suite on real runners. Getting
 # there needed a platform abstraction for anything Linux-only that portable code
@@ -402,13 +403,14 @@ jobs:
             exit "$code"
           fi
 
-      - name: Live GPU smoke (Windows and macOS, exploratory)
+      - name: Live GPU smoke (Windows required, macOS exploratory)
         # The live smoke on the other hosts: Windows with Mesa's lavapipe
-        # software Vulkan driver from MSYS2, macOS with MoltenVK on the
-        # runner's own GPU. Exploratory until it has passed: it reports, but
-        # does not fail the job, while we learn what these runners provide.
+        # software Vulkan driver from MSYS2 (passing, so required), macOS
+        # with Mesa's lavapipe from Homebrew when it ships one, else MoltenVK.
+        # The Intel macOS runner has no Metal device, and MoltenVK aborts
+        # without one, so macOS still only reports.
         if: runner.os != 'Linux'
-        continue-on-error: true
+        continue-on-error: ${{ runner.os == 'macOS' }}
         shell: bash
         working-directory: files
         env:
@@ -443,8 +445,10 @@ jobs:
             fi
             bin=./bin/files.exe
           else
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install mesa || echo "::warning::could not install Homebrew mesa"
             ls "$(brew --prefix)/share/vulkan/icd.d" "$(brew --prefix)/etc/vulkan/icd.d" 2>/dev/null || true
-            icd="$(ls "$(brew --prefix)"/{share,etc}/vulkan/icd.d/MoltenVK_icd.json 2>/dev/null | head -1)"
+            icd="$(ls "$(brew --prefix)"/{share,etc}/vulkan/icd.d/lvp_icd*.json 2>/dev/null | head -1)"
+            [ -n "$icd" ] || icd="$(ls "$(brew --prefix)"/{share,etc}/vulkan/icd.d/MoltenVK_icd.json 2>/dev/null | head -1)"
             if [ -n "$icd" ]; then
               export VK_ICD_FILENAMES="$icd"
             fi
