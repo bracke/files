@@ -535,7 +535,14 @@ jobs:
               }
               if (-not $found -or $folders.Count -lt 2) { Start-Sleep -Seconds 2 }
             }
-            if (-not $found) { Write-Output "$Needle not reachable"; exit 1 }
+            if (-not $found) {
+              $all = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                [System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
+              foreach ($top in $all) {
+                Write-Output ("top-level: '{0}' process {1}" -f $top.Current.Name, $top.Current.ProcessId)
+              }
+              Write-Output "$Needle not reachable"; exit 1
+            }
             # Each folder's name is reached in a window of its own.
             Write-Output ("folders: " + (($folders.GetEnumerator() | ForEach-Object { "$($_.Key) in window $($_.Value)" }) -join ", "))
             if ($folders.Count -lt 2 -or $folders["first-window"] -eq $folders["second-window"]) {
@@ -620,7 +627,9 @@ jobs:
                 if (title == "first-window" || title == "second-window") && window_index >= 0 {
                     folders[title] = window_index
                 }
-                if count <= 40 { print(String(repeating: "  ", count: depth) + "\(role) \"\(title)\"") }
+                if count <= 40 || title.hasSuffix("-window") || role == "AXWindow" {
+                    print(String(repeating: "  ", count: depth) + "\(role) \"\(title)\"")
+                }
                 if depth > 12 { return }
                 for child in attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
                     walk(child, depth + 1)
@@ -636,7 +645,9 @@ jobs:
                 // Each window on its own, to know which window a name is in.
                 for (index, window) in (attribute(app, kAXWindowsAttribute) as? [AXUIElement] ?? []).enumerated() {
                     window_index = index
+                    let before = count
                     walk(window, 1)
+                    print("window \(index) \"\(attribute(window, kAXTitleAttribute) as? String ?? "?")\": \(count - before) elements")
                 }
                 print("elements", count, "folders", folders)
                 if !found || folders.count < 2 { Thread.sleep(forTimeInterval: 2) }
@@ -678,6 +689,8 @@ jobs:
           kill "$smoke_pid" 2>/dev/null || true
           echo "screen-reader client walk exit $walk on ${{ matrix.os }}"
           if [ "$walk" != 0 ]; then
+            echo "--- the held smoke's own output:"
+            cat "$log"
             echo "::error::the screen-reader client did not reach files' items on ${{ matrix.os }}"
             exit 1
           fi
