@@ -42,12 +42,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # An x86_64 macOS image is required: gnat_native=15.2.1 ships no
-        # aarch64-darwin binary, so macos-latest (arm64) cannot resolve the pin.
+        # macos-15-intel is the x86_64 macOS job, on the pinned toolchain.
         # macos-13 was retired on 2025-12-04 and its jobs now queue forever with
         # no runner; macos-15-intel replaces it and is the last x86_64 image
         # Actions will offer (available until August 2027).
-        os: [ubuntu-latest, macos-15-intel, windows-latest]
+        #
+        # macos-latest is Apple silicon. gnat_native=15.2.1 ships no
+        # aarch64-darwin binary (GNAT 15.2.0-1 was built for x86_64 only), so
+        # that one job builds with 15.3.1, the nearest release that has one,
+        # and rewrites the =15.2.1 pins in its own checkout to match. Every
+        # other job, and every manifest in the repositories, stays on 15.2.1.
+        os: [ubuntu-latest, macos-15-intel, windows-latest, macos-latest]
+        include:
+          - toolchain: gnat_native=15.2.1
+          - os: macos-latest
+            toolchain: gnat_native=15.3.1
 
     steps:
       - name: Checkout
@@ -176,7 +185,7 @@ jobs:
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab
-          clone_at hostkit a65d5b9c4ef942e1ecac92b0e2f353ab08395f50
+          clone_at hostkit ed3ff782283947d90bac176e2d94cf143e83c32b
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -237,7 +246,23 @@ jobs:
         # v4 pins alr 2.0.2, whose older index cannot resolve it.
         uses: alire-project/setup-alire@fc4c8ce471aa30b3af0d39ce15add1ee9eaf28f2 # v6.0.0
         with:
-          toolchain: gnat_native=15.2.1 gprbuild
+          toolchain: ${{ matrix.toolchain }} gprbuild
+
+      - name: Pin the Apple silicon toolchain in this checkout (macos-latest)
+        # See the matrix: no 15.2.1 exists for aarch64-darwin. Every crate in
+        # the closure pins gnat_native =15.2.1, so the solve would fail on the
+        # toolchain this job can have; this job's copies pin 15.3.1 instead.
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          find . -name alire.toml -not -path "*/alire/*" -print0 |
+            xargs -0 grep -l 'gnat_native = "=15.2.1"' |
+            while read -r manifest; do
+              sed -i '' 's/gnat_native = "=15.2.1"/gnat_native = "=15.3.1"/' "$manifest"
+              echo "pinned 15.3.1 in $manifest"
+            done
 
       - name: Give Alire's dependency solver room to finish (slow runners drop deps)
         # The default solver.timeout is 5 s (+10 s grace). On the slower macOS
