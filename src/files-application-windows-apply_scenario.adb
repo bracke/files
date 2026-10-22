@@ -60,6 +60,10 @@ separate (Files.Application.Windows)
                      Name => To_Unbounded_String ("Home")));
                Files.Model.Seed_Tree (Runtime.Model, Seeds);
                Files.Model.Open_Tree_Panel (Runtime.Model);
+               --  As Tab leaves it: the tree has the keyboard, its highlight
+               --  on a row other than the current folder.
+               Files.Model.Give_Tree_Keyboard (Runtime.Model);
+               Files.Model.Set_Tree_Cursor (Runtime.Model, "/home");
             end;
 
          when Scenario_Settings =>

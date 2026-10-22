@@ -52,6 +52,7 @@ package body Tree_Panel is
       Model.Tree_Panel_Open := not Model.Tree_Panel_Open;
       if not Model.Tree_Panel_Open then
          Model.Tree_Panel_Scroll := 0;
+         Model.Tree_Keyboard_Value := False;
       end if;
    end Toggle_Tree_Panel;
 
@@ -73,6 +74,7 @@ package body Tree_Panel is
       Model.Tree_Pick_Sources_Value.Clear;
       Model.Tree_Pick_Target_Value := Null_Unbounded_String;
       Model.Tree_Panel_Scroll := 0;
+      Model.Tree_Keyboard_Value := False;
    end Close_Tree_Panel;
 
    procedure Begin_Tree_Pick
@@ -85,6 +87,8 @@ package body Tree_Panel is
       Model.Tree_Pick_Mode_Value := Mode;
       if Mode /= Pick_None then
          Claim_Overlay_Input (Model);
+         --  The picker has its own highlight; the tree's keyboard turn ends.
+         Model.Tree_Keyboard_Value := False;
       end if;
       Model.Tree_Pick_Sources_Value := Sources;
       Model.Tree_Pick_Target_Value := To_Unbounded_String (Initial_Target);
@@ -134,6 +138,64 @@ package body Tree_Panel is
    begin
       return To_String (Model.Tree_Pick_Target_Value);
    end Tree_Pick_Target;
+
+   procedure Give_Tree_Keyboard
+     (Model : in out Window_Model)
+   is
+      Rows : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
+        Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value);
+   begin
+      if not Model.Tree_Panel_Open
+        or else Model.Tree_Pick_Mode_Value /= Pick_None
+        or else Rows.Is_Empty
+      then
+         return;
+      end if;
+
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Tree_Keyboard_Value := True;
+      Model.Tree_Cursor_Value := Rows.First_Element.Path;
+      for Row of Rows loop
+         if Row.Path = Model.Current_Path_Value then
+            Model.Tree_Cursor_Value := Row.Path;
+            exit;
+         end if;
+      end loop;
+   end Give_Tree_Keyboard;
+
+   procedure Take_Tree_Keyboard
+     (Model : in out Window_Model) is
+   begin
+      if Model.Tree_Keyboard_Value then
+         Model.Revision_Value := Model.Revision_Value + 1;
+         Model.Tree_Keyboard_Value := False;
+      end if;
+   end Take_Tree_Keyboard;
+
+   function Tree_Has_Keyboard
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      return Model.Tree_Keyboard_Value
+        and then Model.Tree_Panel_Open
+        and then Model.Tree_Pick_Mode_Value = Pick_None
+        and then Model.Focus_Value = Files.Types.Focus_None;
+   end Tree_Has_Keyboard;
+
+   function Tree_Cursor
+     (Model : Window_Model)
+      return String is
+   begin
+      return To_String (Model.Tree_Cursor_Value);
+   end Tree_Cursor;
+
+   procedure Set_Tree_Cursor
+     (Model : in out Window_Model;
+      Path  : String) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Tree_Cursor_Value := To_Unbounded_String (Path);
+   end Set_Tree_Cursor;
 
    function Tree_Panel_Is_Open
      (Model : Window_Model)

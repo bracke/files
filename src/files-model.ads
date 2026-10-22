@@ -1102,6 +1102,45 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
+   --  Hand the keyboard to the folder tree side panel: arrows then move a
+   --  highlighted row instead of the grid selection. The highlight starts on
+   --  the current folder when the tree shows it, else on the first row.
+   --
+   --  @param Model Model to update.
+   procedure Give_Tree_Keyboard
+     (Model : in out Window_Model);
+
+   --  Give the keyboard back to the grid.
+   --
+   --  @param Model Model to update.
+   procedure Take_Tree_Keyboard
+     (Model : in out Window_Model);
+
+   --  Return whether the folder tree has the keyboard: it was given it, the
+   --  panel is open, no destination picker runs and no text field is focused.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when arrows and Enter act on the tree.
+   function Tree_Has_Keyboard
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Return the tree row highlighted for the keyboard.
+   --
+   --  @param Model Model to inspect.
+   --  @return Path of the highlighted folder, or an empty string.
+   function Tree_Cursor
+     (Model : Window_Model)
+      return String;
+
+   --  Move the keyboard highlight to a folder of the tree.
+   --
+   --  @param Model Model to update.
+   --  @param Path Folder to highlight.
+   procedure Set_Tree_Cursor
+     (Model : in out Window_Model;
+      Path  : String);
+
    --  Return the current focus target.
    --
    --  @param Model Model to inspect.
@@ -2947,6 +2986,8 @@ private
       Tree_Pick_Mode_Value    : Tree_Pick_Mode := Pick_None;
       Tree_Pick_Sources_Value : Files.Types.String_Vectors.Vector;
       Tree_Pick_Target_Value  : UString;
+      Tree_Keyboard_Value     : Boolean := False;
+      Tree_Cursor_Value       : UString;
       Command_Palette_Open     : Boolean := False;
       Command_Palette_Mode     : Palette_Mode := Palette_Commands;
       Command_Palette_View     : Guikit.Command_Palette.Palette;

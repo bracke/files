@@ -16,6 +16,78 @@ separate (Files.Controller)
            and then not Modifiers (Guikit.Input.Alt_Key)
            and then not Modifiers (Guikit.Input.Meta_Key);
       end Control_Only;
+
+      --  Arrow keys over the visible tree rows, shared by the destination picker
+      --  and the side panel when it has the keyboard; Pick says whose highlight
+      --  moves. Up/Down step a row; Right expands the folder (loading its
+      --  children if needed) or steps into it; Left collapses it or steps out to
+      --  the parent.
+      function Move_Tree_Highlight (Pick : Boolean) return Controller_Result is
+         Rows    : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
+           Files.Model.Tree_Visible_Rows (Model);
+         Target  : constant String :=
+           (if Pick then Files.Model.Tree_Pick_Target (Model) else Files.Model.Tree_Cursor (Model));
+         Current : Natural := 0;
+
+         procedure Select_Row (Index : Positive) is
+         begin
+            if Pick then
+               Files.Model.Set_Tree_Pick_Target (Model, To_String (Rows (Index).Path));
+            else
+               Files.Model.Set_Tree_Cursor (Model, To_String (Rows (Index).Path));
+            end if;
+            Files.Model.Ensure_Tree_Row_Visible (Model, Index, Tree_Page_Rows);
+         end Select_Row;
+      begin
+         if Rows.Is_Empty then
+            return Make_Result (Controller_Ignored);
+         end if;
+         for Idx in Rows.First_Index .. Rows.Last_Index loop
+            if To_String (Rows (Idx).Path) = Target then
+               Current := Idx;
+               exit;
+            end if;
+         end loop;
+         if Current = 0 then
+            --  Nothing highlighted yet: the first arrow lands on the first row
+            --  so the rest of the navigation has an anchor.
+            Select_Row (Rows.First_Index);
+            return Make_Result (Controller_Selection_Moved);
+         end if;
+
+         case Key is
+            when Guikit.Input.Key_Up =>
+               if Current > Rows.First_Index then
+                  Select_Row (Current - 1);
+               end if;
+            when Guikit.Input.Key_Down =>
+               if Current < Rows.Last_Index then
+                  Select_Row (Current + 1);
+               end if;
+            when Guikit.Input.Key_Right =>
+               if Rows (Current).Has_Children and then not Rows (Current).Expanded then
+                  return Handle_Tree_Click
+                    (Model, Settings, Rows (Current).Node_Index, Toggle => True);
+               elsif Rows (Current).Expanded and then Current < Rows.Last_Index then
+                  Select_Row (Current + 1);
+               end if;
+            when Guikit.Input.Key_Left =>
+               if Rows (Current).Expanded then
+                  return Handle_Tree_Click
+                    (Model, Settings, Rows (Current).Node_Index, Toggle => True);
+               else
+                  for Up_Idx in reverse Rows.First_Index .. Current - 1 loop
+                     if Rows (Up_Idx).Depth < Rows (Current).Depth then
+                        Select_Row (Up_Idx);
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+            when others =>
+               null;
+         end case;
+         return Make_Result (Controller_Selection_Moved);
+      end Move_Tree_Highlight;
    begin
       --  While a long paste is running the progress overlay owns the keyboard:
       --  Escape requests cancellation (already-copied files are kept) and every
@@ -286,76 +358,37 @@ separate (Files.Controller)
                     | Guikit.Input.Key_Left | Guikit.Input.Key_Right
            and then Modifiers = Guikit.Input.No_Modifiers
          then
-            declare
-               Rows    : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
-                 Files.Model.Tree_Visible_Rows (Model);
-               Target  : constant String := Files.Model.Tree_Pick_Target (Model);
-               Current : Natural := 0;
-
-               procedure Select_Row (Index : Positive) is
-               begin
-                  Files.Model.Set_Tree_Pick_Target
-                    (Model, To_String (Rows (Index).Path));
-                  Files.Model.Ensure_Tree_Row_Visible
-                    (Model, Index, Tree_Page_Rows);
-               end Select_Row;
-            begin
-               if Rows.Is_Empty then
-                  return Make_Result (Controller_Ignored);
-               end if;
-               for Idx in Rows.First_Index .. Rows.Last_Index loop
-                  if To_String (Rows (Idx).Path) = Target then
-                     Current := Idx;
-                     exit;
-                  end if;
-               end loop;
-               if Current = 0 then
-                  --  No destination highlighted yet: the first arrow lands on the
-                  --  first row so the rest of the navigation has an anchor.
-                  Select_Row (Rows.First_Index);
-                  return Make_Result (Controller_Selection_Moved);
-               end if;
-
-               case Key is
-                  when Guikit.Input.Key_Up =>
-                     if Current > Rows.First_Index then
-                        Select_Row (Current - 1);
-                     end if;
-                  when Guikit.Input.Key_Down =>
-                     if Current < Rows.Last_Index then
-                        Select_Row (Current + 1);
-                     end if;
-                  when Guikit.Input.Key_Right =>
-                     if Rows (Current).Has_Children and then not Rows (Current).Expanded then
-                        --  Expand the folder (loading its children if needed),
-                        --  reusing the mouse toggle path.
-                        return Handle_Tree_Click
-                          (Model, Settings, Rows (Current).Node_Index, Toggle => True);
-                     elsif Rows (Current).Expanded and then Current < Rows.Last_Index then
-                        Select_Row (Current + 1);
-                     end if;
-                  when Guikit.Input.Key_Left =>
-                     if Rows (Current).Expanded then
-                        return Handle_Tree_Click
-                          (Model, Settings, Rows (Current).Node_Index, Toggle => True);
-                     else
-                        --  Step out to the parent: the nearest earlier, shallower row.
-                        for Up_Idx in reverse Rows.First_Index .. Current - 1 loop
-                           if Rows (Up_Idx).Depth < Rows (Current).Depth then
-                              Select_Row (Up_Idx);
-                              exit;
-                           end if;
-                        end loop;
-                     end if;
-                  when others =>
-                     null;
-               end case;
-               return Make_Result (Controller_Selection_Moved);
-            end;
+            return Move_Tree_Highlight (Pick => True);
          else
             --  Enter confirms the pick on the Interaction seam (running the copy or
             --  move needs the settings path); every other key is consumed.
             return Make_Result (Controller_Ignored);
+         end if;
+      end if;
+
+      --  The folder tree side panel, when Tab gave it the keyboard: arrows move
+      --  its highlight, Enter opens the highlighted folder in the main view and
+      --  Escape hands the keyboard back to the grid. Other keys fall through, so
+      --  the window's shortcuts still work.
+      if Files.Model.Tree_Has_Keyboard (Model) and then Modifiers = Guikit.Input.No_Modifiers then
+         if Key in Guikit.Input.Key_Up | Guikit.Input.Key_Down
+                 | Guikit.Input.Key_Left | Guikit.Input.Key_Right
+         then
+            return Move_Tree_Highlight (Pick => False);
+         elsif Key = Guikit.Input.Key_Escape then
+            Files.Model.Take_Tree_Keyboard (Model);
+            return Make_Result (Controller_Text_Updated);
+         elsif Key = Guikit.Input.Key_Return then
+            declare
+               Cursor : constant String := Files.Model.Tree_Cursor (Model);
+            begin
+               for Row of Files.Model.Tree_Visible_Rows (Model) loop
+                  if To_String (Row.Path) = Cursor then
+                     return Handle_Tree_Click (Model, Settings, Row.Node_Index, Toggle => False);
+                  end if;
+               end loop;
+               return Make_Result (Controller_Ignored);
+            end;
          end if;
       end if;
 
@@ -376,7 +409,8 @@ separate (Files.Controller)
       end if;
 
       --  Tab / Shift+Tab cycle keyboard focus around the main-view controls:
-      --  grid -> path input -> filter -> grid, and Shift+Tab reverses. Each field
+      --  grid -> path input -> filter -> folder tree (when open) -> grid, and
+      --  Shift+Tab reverses. Each field
       --  keeps its direct shortcut (Ctrl+L, Ctrl+F, Escape back to the grid); this
       --  adds the conventional ring. Only these three focus states take part --
       --  rename, palette, settings and ownership focus have their own handling,
@@ -391,11 +425,26 @@ separate (Files.Controller)
       then
          declare
             Backward : constant Boolean := Modifiers (Guikit.Input.Shift_Key);
+            --  The tree joins the ring only while it is shown and has rows.
+            Tree_Takes_Keyboard : constant Boolean :=
+              Files.Model.Tree_Panel_Is_Open (Model)
+              and then not Files.Model.Tree_Pick_Is_Active (Model)
+              and then not Files.Model.Tree_Visible_Rows (Model).Is_Empty;
          begin
             case Files.Model.Focus (Model) is
                when Files.Types.Focus_None =>
-                  if Backward then
-                     Files.Model.Focus_Filter_Input (Model);
+                  if Files.Model.Tree_Has_Keyboard (Model) then
+                     if Backward then
+                        Files.Model.Focus_Filter_Input (Model);
+                     else
+                        Files.Model.Take_Tree_Keyboard (Model);
+                     end if;
+                  elsif Backward then
+                     if Tree_Takes_Keyboard then
+                        Files.Model.Give_Tree_Keyboard (Model);
+                     else
+                        Files.Model.Focus_Filter_Input (Model);
+                     end if;
                   else
                      Files.Model.Focus_Path_Input (Model);
                   end if;
@@ -410,6 +459,9 @@ separate (Files.Controller)
                      Files.Model.Focus_Path_Input (Model);
                   else
                      Files.Model.Cancel_Focus_Or_Edit (Model);
+                     if Tree_Takes_Keyboard then
+                        Files.Model.Give_Tree_Keyboard (Model);
+                     end if;
                   end if;
                when others =>
                   null;

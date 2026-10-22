@@ -10,6 +10,7 @@ package body Path_Input is
       Model.Revision_Value := Model.Revision_Value + 1;
       Reset_Type_Ahead (Model);
       Model.Focus_Value := Files.Types.Focus_Path_Input;
+      Model.Tree_Keyboard_Value := False;
       Model.Path_Input_Value := Model.Current_Path_Value;
       Model.Path_Input_Cursor := Length (Model.Path_Input_Value);
       Model.Path_Input_Valid := True;

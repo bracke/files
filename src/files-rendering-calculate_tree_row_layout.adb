@@ -70,6 +70,8 @@ separate (Files.Rendering)
                      Selected     =>
                        (if Snapshot.Tree_Pick_Active
                         then To_String (TR.Path) = To_String (Snapshot.Tree_Pick_Target)
+                        elsif Snapshot.Tree_Keyboard_Active
+                        then To_String (TR.Path) = To_String (Snapshot.Tree_Cursor)
                         else To_String (TR.Path) = Current),
                      Triangle_X   => Tri_X,
                      Triangle_Y   => Tri_Y,

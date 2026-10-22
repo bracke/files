@@ -290,7 +290,11 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Data.Path,
                      Enabled  => True,
                      Selected => Row.Selected,
-                     Focused  => Row.Selected);
+                     --  Only while the tree has the keyboard (picker or Tab);
+                     --  otherwise the grid's item holds the focus.
+                     Focused  =>
+                       Row.Selected
+                       and then (Snapshot.Tree_Pick_Active or else Snapshot.Tree_Keyboard_Active));
                end;
             end loop;
             if Snapshot.Tree_Pick_Active and then Pick.Visible then

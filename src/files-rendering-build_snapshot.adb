@@ -219,6 +219,8 @@ separate (Files.Rendering)
       Snapshot.Tree_Pick_Moving :=
         Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Move;
       Snapshot.Tree_Pick_Target := To_Unbounded_String (Files.Model.Tree_Pick_Target (Model));
+      Snapshot.Tree_Keyboard_Active := Files.Model.Tree_Has_Keyboard (Model);
+      Snapshot.Tree_Cursor := To_Unbounded_String (Files.Model.Tree_Cursor (Model));
       Snapshot.Breadcrumb_Segments :=
         Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
 

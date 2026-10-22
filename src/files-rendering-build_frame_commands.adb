@@ -2204,6 +2204,8 @@ separate (Files.Rendering)
                   Focused  =>
                     Item.Selected
                     and then Snapshot.Focus = Files.Types.Focus_None
+                    and then not Snapshot.Tree_Keyboard_Active
+                    and then not Snapshot.Tree_Pick_Active
                     and then Item.Visible_Index =
                       Snapshot.Primary_Selected_Visible_Index);
             end;

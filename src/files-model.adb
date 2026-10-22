@@ -1916,6 +1916,24 @@ package body Files.Model is
       function Tree_Pick_Target
         (Model : Window_Model)
          return String;
+
+      procedure Give_Tree_Keyboard
+        (Model : in out Window_Model);
+
+      procedure Take_Tree_Keyboard
+        (Model : in out Window_Model);
+
+      function Tree_Has_Keyboard
+        (Model : Window_Model)
+         return Boolean;
+
+      function Tree_Cursor
+        (Model : Window_Model)
+         return String;
+
+      procedure Set_Tree_Cursor
+        (Model : in out Window_Model;
+         Path  : String);
    end Tree_Panel;
    package body Tree_Panel is separate;
 
@@ -2007,6 +2025,21 @@ package body Files.Model is
 
    function Tree_Pick_Target (Model : Window_Model) return String
      renames Tree_Panel.Tree_Pick_Target;
+
+   procedure Give_Tree_Keyboard (Model : in out Window_Model)
+     renames Tree_Panel.Give_Tree_Keyboard;
+
+   procedure Take_Tree_Keyboard (Model : in out Window_Model)
+     renames Tree_Panel.Take_Tree_Keyboard;
+
+   function Tree_Has_Keyboard (Model : Window_Model) return Boolean
+     renames Tree_Panel.Tree_Has_Keyboard;
+
+   function Tree_Cursor (Model : Window_Model) return String
+     renames Tree_Panel.Tree_Cursor;
+
+   procedure Set_Tree_Cursor (Model : in out Window_Model; Path : String)
+     renames Tree_Panel.Set_Tree_Cursor;
 
    package Panes is
       procedure Toggle_Info_Pane

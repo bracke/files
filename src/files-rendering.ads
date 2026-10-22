@@ -202,6 +202,10 @@ package Files.Rendering is
       Tree_Pick_Active      : Boolean := False;
       Tree_Pick_Moving      : Boolean := False;
       Tree_Pick_Target      : UString;
+      --  The side panel has the keyboard: the row whose path equals
+      --  Tree_Cursor is marked instead of the current folder.
+      Tree_Keyboard_Active  : Boolean := False;
+      Tree_Cursor           : UString;
       Breadcrumb_Segments   : Files.Breadcrumbs.Segment_Vectors.Vector;
       Command_Palette_Open           : Boolean := False;
       Command_Enabled                : Command_Enablement_Array := [others => False];
