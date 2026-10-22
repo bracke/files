@@ -10141,10 +10141,20 @@ package body Files_Suite.Operations is
                when Empty_Job => Files.Operations.Empty_Trash (Model, Settings),
                when Undo_Job => Files.Operations.Undo_Last (Model, Settings),
                when Redo_Job => Files.Operations.Redo_Last (Model, Settings));
-         Assert (Step.Status = Files.Operations.Operation_Success
-                 and then Ada.Calendar.Clock - Before < Prompt_Limit
-                 and then Files.Model.Paste_Execution_Is_Active (Model),
-                 "destructive and history commands launch promptly without filesystem work in the caller");
+         --  Three checks, each naming itself: a failure on a slow runner
+         --  has to say which one it was and how long the launch took.
+         declare
+            Elapsed : constant Duration := Ada.Calendar.Clock - Before;
+         begin
+            Assert (Step.Status = Files.Operations.Operation_Success,
+                    Kind'Image (Job_Kind) & " command did not launch: " & Files.Operations.Operation_Status'Image (Step.Status)
+                    & " " & To_String (Step.Error_Key));
+            Assert (Elapsed < Prompt_Limit,
+                    Kind'Image (Job_Kind) & " command took" & Duration'Image (Elapsed)
+                    & " s in the caller (limit" & Duration'Image (Prompt_Limit) & " s)");
+            Assert (Files.Model.Paste_Execution_Is_Active (Model),
+                    Kind'Image (Job_Kind) & " command left no background job running");
+         end;
          declare
             Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
          begin
