@@ -171,7 +171,7 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
-          clone_at i18n 791db384993510aaedad70ec74fc9321ba807346
+          clone_at i18n 9da0ada41e5fc443addcdc1e7f38c9e6ff85bbe4
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
           clone_at textrender 5361e6bd9f47c3831cbc4b5f94aaeee0729d429c
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
