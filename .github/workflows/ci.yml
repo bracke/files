@@ -189,7 +189,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 4955c44b48761fa2b486c9dd61e0c37cb3f3335f
+          clone_at a11ykit 82198827e8b2ca328b0151b2f9107cdcf6e3e5a2
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -263,6 +263,11 @@ jobs:
               sed -i '' 's/gnat_native = "=15.2.1"/gnat_native = "=15.3.1"/' "$manifest"
               echo "pinned 15.3.1 in $manifest"
             done
+          # GCC otherwise links against the Command Line Tools SDK, whose
+          # library stubs name architectures (arm64e.x1) the selected Xcode's
+          # ld does not know, and every link fails. The SDK of that Xcode
+          # matches its ld.
+          echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> "$GITHUB_ENV"
 
       - name: Give Alire's dependency solver room to finish (slow runners drop deps)
         # The default solver.timeout is 5 s (+10 s grace). On the slower macOS
