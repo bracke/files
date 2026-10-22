@@ -518,9 +518,12 @@ jobs:
                     $folders[$name] = $window.Current.NativeWindowHandle
                   }
                   if (-not $found -and $name -like "*$Needle*") {
+                    # Read at once: the held smoke moves on to its next
+                    # scenario while the walk goes on.
                     $found = $true
-                    $item = $element
-                    $itemWindow = $window
+                    $c = $element.Current
+                    $box = $c.BoundingRectangle
+                    $frame = $window.Current.BoundingRectangle
                   }
                 }
               }
@@ -534,9 +537,6 @@ jobs:
             }
             # What Narrator reads besides the name: what the element is, that
             # it is enabled, and where it is, on the screen inside its window.
-            $c = $item.Current
-            $box = $c.BoundingRectangle
-            $frame = $itemWindow.Current.BoundingRectangle
             Write-Output ("found '{0}': {1}, enabled {2}, focus {3}, at {4} in window {5}" -f
               $c.Name, $c.ControlType.ProgrammaticName, $c.IsEnabled, $c.HasKeyboardFocus, $box, $frame)
             $problems = @()
@@ -562,6 +562,12 @@ jobs:
             var count = 0
             var found = false
             var item: AXUIElement? = nil
+            // The item's answers, read the moment it is found: the held smoke
+            // moves on to its next scenario while the walk goes on, and an
+            // item gone from the list answers nothing.
+            var item_role = "?"
+            var item_enabled: Bool? = nil
+            var item_box: CGRect? = nil
             var window_index = -1
             var folders: [String: Int] = [:]
 
@@ -570,12 +576,31 @@ jobs:
                 return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
             }
 
+            func point(_ element: AXUIElement, _ name: String) -> CGPoint? {
+                guard let value = attribute(element, name) else { return nil }
+                var result = CGPoint.zero
+                return AXValueGetValue(value as! AXValue, .cgPoint, &result) ? result : nil
+            }
+            func size(_ element: AXUIElement, _ name: String) -> CGSize? {
+                guard let value = attribute(element, name) else { return nil }
+                var result = CGSize.zero
+                return AXValueGetValue(value as! AXValue, .cgSize, &result) ? result : nil
+            }
+
             func walk(_ element: AXUIElement, _ depth: Int) {
                 count += 1
                 let role = attribute(element, kAXRoleAttribute) as? String ?? "?"
                 let title = (attribute(element, kAXTitleAttribute) as? String)
                     ?? (attribute(element, kAXDescriptionAttribute) as? String) ?? ""
-                if title.contains(needle) && item == nil { found = true; item = element }
+                if title.contains(needle) && item == nil {
+                    found = true
+                    item = element
+                    item_role = role
+                    item_enabled = attribute(element, kAXEnabledAttribute) as? Bool
+                    if let p = point(element, kAXPositionAttribute), let s = size(element, kAXSizeAttribute) {
+                        item_box = CGRect(origin: p, size: s)
+                    }
+                }
                 if (title == "first-window" || title == "second-window") && window_index >= 0 {
                     folders[title] = window_index
                 }
@@ -608,32 +633,20 @@ jobs:
 
             // What VoiceOver reads besides the name: what the element is, and
             // where it is, on the screen inside its window.
-            func point(_ element: AXUIElement, _ name: String) -> CGPoint? {
-                guard let value = attribute(element, name) else { return nil }
-                var result = CGPoint.zero
-                return AXValueGetValue(value as! AXValue, .cgPoint, &result) ? result : nil
-            }
-            func size(_ element: AXUIElement, _ name: String) -> CGSize? {
-                guard let value = attribute(element, name) else { return nil }
-                var result = CGSize.zero
-                return AXValueGetValue(value as! AXValue, .cgSize, &result) ? result : nil
-            }
-            let role = attribute(found_item, kAXRoleAttribute) as? String ?? "?"
-            let enabled = attribute(found_item, kAXEnabledAttribute) as? Bool
+            _ = found_item
             var problems: [String] = []
-            if role != "AXRow" { problems.append("role \(role), not AXRow") }
-            if let p = point(found_item, kAXPositionAttribute), let s = size(found_item, kAXSizeAttribute) {
-                let box = CGRect(origin: p, size: s)
+            if item_role != "AXRow" { problems.append("role \(item_role), not AXRow") }
+            if let box = item_box {
                 let windows = attribute(AXUIElementCreateApplication(pid), kAXWindowsAttribute) as? [AXUIElement] ?? []
-                print("found item: \(role), enabled \(String(describing: enabled)), at \(box)")
-                if let window = windows.first, let wp = point(window, kAXPositionAttribute),
-                   let ws = size(window, kAXSizeAttribute) {
-                    let frame = CGRect(origin: wp, size: ws)
-                    print("in window at \(frame)")
-                    if s.width <= 0 || s.height <= 0 { problems.append("no size") }
-                    else if !frame.insetBy(dx: -1, dy: -1).contains(box) { problems.append("bounds outside its window") }
-                } else {
-                    problems.append("no window frame")
+                print("found item: \(item_role), enabled \(String(describing: item_enabled)), at \(box)")
+                let frames = windows.compactMap { window -> CGRect? in
+                    guard let wp = point(window, kAXPositionAttribute), let ws = size(window, kAXSizeAttribute) else { return nil }
+                    return CGRect(origin: wp, size: ws)
+                }
+                print("windows at \(frames)")
+                if box.width <= 0 || box.height <= 0 { problems.append("no size") }
+                else if !frames.contains(where: { $0.insetBy(dx: -1, dy: -1).contains(box) }) {
+                    problems.append("bounds outside every window")
                 }
             } else {
                 problems.append("no position or size")
