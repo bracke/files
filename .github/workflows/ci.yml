@@ -416,6 +416,9 @@ jobs:
             ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
             || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
             || '' }}
+          # The runner's name, outside the script: a run block with an expression
+          # in it may not be longer than 21000 characters.
+          MATRIX_OS: ${{ matrix.os }}
         run: |
           # A missing optional tool is information, not a reason to stop
           # before the smoke runs; the smoke's own exit decides the step.
@@ -459,11 +462,11 @@ jobs:
           vulkaninfo --summary || echo "vulkaninfo not available or failed"
           "$bin" --live-smoke
           code=$?
-          echo "live-smoke exit $code on ${{ matrix.os }}"
+          echo "live-smoke exit $code on $MATRIX_OS"
           if [ "$code" -eq 0 ]; then
-            echo "live-smoke passed on ${{ matrix.os }}"
+            echo "live-smoke passed on $MATRIX_OS"
           else
-            echo "::warning::live-smoke did not pass on ${{ matrix.os }} (exit $code)"
+            echo "::warning::live-smoke did not pass on $MATRIX_OS (exit $code)"
             exit "$code"
           fi
 
@@ -691,11 +694,11 @@ jobs:
           # Git Bash's kill can miss the native process behind the job.
           if [ "$RUNNER_OS" = "Windows" ]; then taskkill //F //IM files.exe > /dev/null 2>&1 || true; fi
           wait "$smoke_pid" 2>/dev/null || true
-          echo "screen-reader client walk exit $walk on ${{ matrix.os }}"
+          echo "screen-reader client walk exit $walk on $MATRIX_OS"
           if [ "$walk" != 0 ]; then
             echo "--- the held smoke's own output:"
             cat "$log"
-            echo "::error::the screen-reader client did not reach files' items on ${{ matrix.os }}"
+            echo "::error::the screen-reader client did not reach files' items on $MATRIX_OS"
             exit 1
           fi
 
@@ -854,9 +857,9 @@ jobs:
             act=$?
           fi
           kill "$app_pid" 2>/dev/null || true
-          echo "screen-reader action exit $act on ${{ matrix.os }}"
+          echo "screen-reader action exit $act on $MATRIX_OS"
           if [ "$act" != 0 ]; then
-            echo "::error::files did not carry out or announce a screen reader's selection on ${{ matrix.os }}"
+            echo "::error::files did not carry out or announce a screen reader's selection on $MATRIX_OS"
             echo "--- files' own output:"
             cat "$RUNNER_TEMP/files-app.txt" || true
             exit 1
