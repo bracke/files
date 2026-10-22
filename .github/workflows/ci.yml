@@ -15,10 +15,9 @@ name: CI
 # (files --runtime-smoke): the snapshot -> frame-commands -> text/glyph path
 # with no window or GPU, so the cross-platform render pipeline is validated
 # end-to-end on macOS and Windows, not only through the in-process unit test.
-# The Linux and Windows jobs additionally run a required live GPU smoke: the
-# full GLFW + Vulkan render path with the Mesa lavapipe software ICD (under
-# Xvfb on Linux), structurally analysing the read-back framebuffer. macOS
-# runs it too but only reports: its Intel runner has no Metal device.
+# Every job additionally runs a required live GPU smoke: the full GLFW +
+# Vulkan render path with the Mesa lavapipe software ICD (under Xvfb on
+# Linux), structurally analysing the read-back framebuffer.
 #
 # All three jobs now build, link and run the suite on real runners. Getting
 # there needed a platform abstraction for anything Linux-only that portable code
@@ -403,14 +402,12 @@ jobs:
             exit "$code"
           fi
 
-      - name: Live GPU smoke (Windows required, macOS exploratory)
-        # The live smoke on the other hosts: Windows with Mesa's lavapipe
-        # software Vulkan driver from MSYS2 (passing, so required), macOS
-        # with Mesa's lavapipe from Homebrew when it ships one, else MoltenVK.
-        # The Intel macOS runner has no Metal device, and MoltenVK aborts
-        # without one, so macOS still only reports.
+      - name: Live GPU smoke (Windows and macOS, software Vulkan)
+        # The live smoke on the other hosts, with Mesa's lavapipe software
+        # Vulkan driver: from MSYS2 on Windows, from Homebrew on macOS. The
+        # Intel macOS runner has no Metal device, and MoltenVK aborts without
+        # one, so it is only the fallback when Homebrew ships no lavapipe.
         if: runner.os != 'Linux'
-        continue-on-error: ${{ runner.os == 'macOS' }}
         shell: bash
         working-directory: files
         env:
@@ -419,10 +416,10 @@ jobs:
             || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
             || '' }}
         run: |
-          # Exploratory: a missing file is information here, not a reason to
-          # stop before the smoke has run.
+          # A missing optional tool is information, not a reason to stop
+          # before the smoke runs; the smoke's own exit decides the step.
           set +e +o pipefail
-          export VK_LOADER_DEBUG=error,warn,driver
+          export VK_LOADER_DEBUG=error,warn
           if [ "$RUNNER_OS" = "Windows" ]; then
             export PATH="/c/msys64/mingw64/bin:$PATH"
             # One package per call: pacman drops the whole transaction when
