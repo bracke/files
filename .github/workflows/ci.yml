@@ -175,11 +175,11 @@ jobs:
           clone_at textrender c6c1c7c665c47ced66c58fc91df953ef5ad04e25
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
           clone_at guikit e157b18f94f4c7959ed412acc7e3783966f58653
-          clone_at hostkit 95c23c4bb4b54bdb0d3cfef0fc3dfaa0e5ca4875
+          clone_at hostkit a65d5b9c4ef942e1ecac92b0e2f353ab08395f50
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 37e3cf3a960d72644a5c47bc54ba972bc872911e
+          clone_at a11ykit 2085a97130648fe1220d4fd2b73921c2f1d6f52a
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -509,13 +509,30 @@ jobs:
                     Write-Output ("  {0} [{1}]" -f $name, $element.Current.ControlType.ProgrammaticName)
                     $shown++
                   }
-                  if ($name -like "*$Needle*") { $found = $true }
+                  if (-not $found -and $name -like "*$Needle*") {
+                    $found = $true
+                    $item = $element
+                    $itemWindow = $window
+                  }
                 }
               }
               if (-not $found) { Start-Sleep -Seconds 2 }
             }
-            if ($found) { Write-Output "found $Needle"; exit 0 }
-            Write-Output "$Needle not reachable"; exit 1
+            if (-not $found) { Write-Output "$Needle not reachable"; exit 1 }
+            # What Narrator reads besides the name: what the element is, that
+            # it is enabled, and where it is, on the screen inside its window.
+            $c = $item.Current
+            $box = $c.BoundingRectangle
+            $frame = $itemWindow.Current.BoundingRectangle
+            Write-Output ("found '{0}': {1}, enabled {2}, focus {3}, at {4} in window {5}" -f
+              $c.Name, $c.ControlType.ProgrammaticName, $c.IsEnabled, $c.HasKeyboardFocus, $box, $frame)
+            $problems = @()
+            if ($c.ControlType -ne [System.Windows.Automation.ControlType]::ListItem) { $problems += "not a list item" }
+            if (-not $c.IsEnabled) { $problems += "not enabled" }
+            if ($box.IsEmpty -or $box.Width -le 0 -or $box.Height -le 0) { $problems += "no bounds" }
+            elseif (-not $frame.Contains($box)) { $problems += "bounds outside its window" }
+            if ($problems.Count -gt 0) { Write-Output ("wrong: " + ($problems -join ", ")); exit 3 }
+            exit 0
           WALK
             powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$RUNNER_TEMP/uia_walk.ps1")" -Needle smoke-item-
             walk=$?
@@ -531,6 +548,7 @@ jobs:
             print("AXIsProcessTrusted:", AXIsProcessTrusted())
             var count = 0
             var found = false
+            var item: AXUIElement? = nil
 
             func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
                 var value: CFTypeRef?
@@ -542,7 +560,7 @@ jobs:
                 let role = attribute(element, kAXRoleAttribute) as? String ?? "?"
                 let title = (attribute(element, kAXTitleAttribute) as? String)
                     ?? (attribute(element, kAXDescriptionAttribute) as? String) ?? ""
-                if title.contains(needle) { found = true }
+                if title.contains(needle) && item == nil { found = true; item = element }
                 if count <= 40 { print(String(repeating: "  ", count: depth) + "\(role) \"\(title)\"") }
                 if depth > 12 { return }
                 for child in attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
@@ -556,8 +574,42 @@ jobs:
                 print("elements", count)
                 if !found { Thread.sleep(forTimeInterval: 2) }
             }
-            if found { print("found \(needle)"); exit(0) }
-            print("\(needle) not reachable"); exit(1)
+            guard found, let found_item = item else { print("\(needle) not reachable"); exit(1) }
+
+            // What VoiceOver reads besides the name: what the element is, and
+            // where it is, on the screen inside its window.
+            func point(_ element: AXUIElement, _ name: String) -> CGPoint? {
+                guard let value = attribute(element, name) else { return nil }
+                var result = CGPoint.zero
+                return AXValueGetValue(value as! AXValue, .cgPoint, &result) ? result : nil
+            }
+            func size(_ element: AXUIElement, _ name: String) -> CGSize? {
+                guard let value = attribute(element, name) else { return nil }
+                var result = CGSize.zero
+                return AXValueGetValue(value as! AXValue, .cgSize, &result) ? result : nil
+            }
+            let role = attribute(found_item, kAXRoleAttribute) as? String ?? "?"
+            let enabled = attribute(found_item, kAXEnabledAttribute) as? Bool
+            var problems: [String] = []
+            if role != "AXRow" { problems.append("role \(role), not AXRow") }
+            if let p = point(found_item, kAXPositionAttribute), let s = size(found_item, kAXSizeAttribute) {
+                let box = CGRect(origin: p, size: s)
+                let windows = attribute(AXUIElementCreateApplication(pid), kAXWindowsAttribute) as? [AXUIElement] ?? []
+                print("found item: \(role), enabled \(String(describing: enabled)), at \(box)")
+                if let window = windows.first, let wp = point(window, kAXPositionAttribute),
+                   let ws = size(window, kAXSizeAttribute) {
+                    let frame = CGRect(origin: wp, size: ws)
+                    print("in window at \(frame)")
+                    if s.width <= 0 || s.height <= 0 { problems.append("no size") }
+                    else if !frame.insetBy(dx: -1, dy: -1).contains(box) { problems.append("bounds outside its window") }
+                } else {
+                    problems.append("no window frame")
+                }
+            } else {
+                problems.append("no position or size")
+            }
+            if !problems.isEmpty { print("wrong: " + problems.joined(separator: ", ")); exit(3) }
+            exit(0)
           WALK
             swift "$RUNNER_TEMP/ax_walk.swift" "$smoke_pid" smoke-item-
             walk=$?
