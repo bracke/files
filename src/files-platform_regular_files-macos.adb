@@ -1,3 +1,4 @@
+with Hostkit.Darwin_Symbols;
 with Interfaces.C;
 with Interfaces.C.Strings;
 
@@ -51,7 +52,7 @@ package body Files.Platform_Regular_Files is
    function C_Open (Path : Interfaces.C.Strings.chars_ptr; Flags : C_Int) return C_Int
      with Import, Convention => C, External_Name => "open";
    function C_Fstat (Descriptor : C_Int; Info : access Stat_Record) return C_Int
-     with Import, Convention => C, External_Name => "fstat$INODE64";
+     with Import, Convention => C, External_Name => Hostkit.Darwin_Symbols.Fstat;
    function C_Lseek (Descriptor : C_Int; Offset : File_Offset; Origin : C_Int) return File_Offset
      with Import, Convention => C, External_Name => "lseek";
    function C_Truncate (Descriptor : C_Int; Length : File_Offset) return C_Int

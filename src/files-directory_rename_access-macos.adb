@@ -1,3 +1,4 @@
+with Hostkit.Darwin_Symbols;
 with Ada.Directories;
 with Interfaces.C.Strings;
 
@@ -50,7 +51,7 @@ package body Files.Directory_Rename_Access is
    function C_Open (Path : Interfaces.C.Strings.chars_ptr; Flags : C_Int) return C_Int
      with Import, Convention => C, External_Name => "open";
    function C_Fstat (Descriptor : C_Int; Info : access Stat_Record) return C_Int
-     with Import, Convention => C, External_Name => "fstat$INODE64";
+     with Import, Convention => C, External_Name => Hostkit.Darwin_Symbols.Fstat;
    function C_Geteuid return C_U32
      with Import, Convention => C, External_Name => "geteuid";
    function C_Fchmod (Descriptor : C_Int; Mode : C_U16) return C_Int
