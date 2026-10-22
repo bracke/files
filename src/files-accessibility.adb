@@ -101,6 +101,11 @@ package body Files.Accessibility is
       A11ykit.Provider.Stop;
    end Stop;
 
+   procedure Attach_Window (Window : System.Address) is
+   begin
+      A11ykit.Provider.Attach_Window (Window);
+   end Attach_Window;
+
    procedure Service is
    begin
       A11ykit.Provider.Service;

@@ -17,6 +17,7 @@ with Glfw.Windows;
 with Glfw.Windows.Drop;
 with Glfw.Windows.Hints;
 with Glfw.Windows.Icon;
+with Glfw.Windows.Native;
 with Glfw.Windows.Vulkan;
 
 with A11ykit.Provider;
@@ -2543,6 +2544,13 @@ package body Files.Application.Windows is
                then Startup.Settings.Window_Height
                else 768));
       end loop;
+
+      --  The screen reader looks at the application's window; answer it
+      --  there. One tree serves every window, so the first one carries it.
+      if not Runtime_Windows.Is_Empty then
+         Files.Accessibility.Attach_Window
+           (Glfw.Windows.Native.Handle (As_Window (Runtime_Windows.First_Element.Handle)));
+      end if;
 
       for Frame_Index in 1 .. 3 loop
          Guikit.Vulkan.Poll_Events;

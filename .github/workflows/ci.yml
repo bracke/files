@@ -174,12 +174,12 @@ jobs:
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
           clone_at textrender c6c1c7c665c47ced66c58fc91df953ef5ad04e25
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
-          clone_at guikit 92142f3f0f64f7ea6b366e0c0003af2c55c1560a
+          clone_at guikit e157b18f94f4c7959ed412acc7e3783966f58653
           clone_at hostkit 95c23c4bb4b54bdb0d3cfef0fc3dfaa0e5ca4875
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 8f0749edf08f96c4e58e26b8f5ee4b23630f75e0
+          clone_at a11ykit 051eb07f45ce9503b14639de130eea4037a194a1
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -465,6 +465,107 @@ jobs:
             echo "::warning::live-smoke did not pass on ${{ matrix.os }} (exit $code)"
             exit "$code"
           fi
+
+          # The screen reader's view of the same window: run the smoke again,
+          # holding each frame, and walk files' window with the host's own
+          # client API (UI Automation, AXUIElement) for the smoke's items.
+          # Reports for now; it gates once it has passed.
+          log="$RUNNER_TEMP/held-smoke.txt"
+          FILES_LIVE_SMOKE_HOLD=20 "$bin" --live-smoke > "$log" 2>&1 &
+          smoke_pid=$!
+          for _ in $(seq 1 120); do
+            grep -q "live-smoke hold" "$log" && break
+            sleep 1
+          done
+          # The clients are written out here: files keeps no helper scripts
+          # outside Ada in the repository.
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cat > "$RUNNER_TEMP/uia_walk.ps1" <<'WALK'
+            # Walks the UI Automation tree of the running files window, the way Narrator
+            # reaches it, and looks for an element named like Needle.
+            param([string]$Needle = "smoke-item-", [int]$Seconds = 60)
+            Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+            $deadline = (Get-Date).AddSeconds($Seconds)
+            $process = $null
+            while ($process -eq $null -and (Get-Date) -lt $deadline) {
+              $process = Get-Process -Name files -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($process -eq $null) { Start-Sleep -Milliseconds 500 }
+            }
+            if ($process -eq $null) { Write-Output "files is not running"; exit 2 }
+            Write-Output "files process $($process.Id)"
+            $condition = New-Object System.Windows.Automation.PropertyCondition(
+              [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+            $found = $false
+            while (-not $found -and (Get-Date) -lt $deadline) {
+              $windows = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+                [System.Windows.Automation.TreeScope]::Children, $condition)
+              foreach ($window in $windows) {
+                $all = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                                       [System.Windows.Automation.Condition]::TrueCondition)
+                Write-Output ("window '{0}': {1} elements" -f $window.Current.Name, $all.Count)
+                $shown = 0
+                foreach ($element in $all) {
+                  $name = $element.Current.Name
+                  if ($shown -lt 25) {
+                    Write-Output ("  {0} [{1}]" -f $name, $element.Current.ControlType.ProgrammaticName)
+                    $shown++
+                  }
+                  if ($name -like "*$Needle*") { $found = $true }
+                }
+              }
+              if (-not $found) { Start-Sleep -Seconds 2 }
+            }
+            if ($found) { Write-Output "found $Needle"; exit 0 }
+            Write-Output "$Needle not reachable"; exit 1
+          WALK
+            powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$RUNNER_TEMP/uia_walk.ps1")" -Needle smoke-item-
+            walk=$?
+          else
+            cat > "$RUNNER_TEMP/ax_walk.swift" <<'WALK'
+            // Walks the accessibility tree of the running files process, the way
+            // VoiceOver reaches it, and looks for an element named like the needle.
+            import ApplicationServices
+            import Foundation
+
+            let pid = pid_t(CommandLine.arguments[1])!
+            let needle = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "smoke-item-"
+            print("AXIsProcessTrusted:", AXIsProcessTrusted())
+            var count = 0
+            var found = false
+
+            func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
+                var value: CFTypeRef?
+                return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
+            }
+
+            func walk(_ element: AXUIElement, _ depth: Int) {
+                count += 1
+                let role = attribute(element, kAXRoleAttribute) as? String ?? "?"
+                let title = (attribute(element, kAXTitleAttribute) as? String)
+                    ?? (attribute(element, kAXDescriptionAttribute) as? String) ?? ""
+                if title.contains(needle) { found = true }
+                if count <= 40 { print(String(repeating: "  ", count: depth) + "\(role) \"\(title)\"") }
+                if depth > 12 { return }
+                for child in attribute(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
+                    walk(child, depth + 1)
+                }
+            }
+
+            for _ in 0 ..< 30 where !found {
+                count = 0
+                walk(AXUIElementCreateApplication(pid), 0)
+                print("elements", count)
+                if !found { Thread.sleep(forTimeInterval: 2) }
+            }
+            if found { print("found \(needle)"); exit(0) }
+            print("\(needle) not reachable"); exit(1)
+          WALK
+            swift "$RUNNER_TEMP/ax_walk.swift" "$smoke_pid" smoke-item-
+            walk=$?
+          fi
+          kill "$smoke_pid" 2>/dev/null || true
+          echo "screen-reader client walk exit $walk on ${{ matrix.os }}"
+          [ "$walk" = 0 ] || echo "::warning::the screen-reader client did not reach files' items on ${{ matrix.os }}"
 
       - name: Repository lint and architecture guardrails (check_all, Linux)
         # Source-level validation that build+test do not cover: style, format,

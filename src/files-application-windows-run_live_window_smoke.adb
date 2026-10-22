@@ -50,6 +50,12 @@ separate (Files.Application.Windows)
       for Runtime of Runtime_Windows loop
          Guikit.Vulkan.Set_Readback_Enabled (Runtime.Vulkan, True);
       end loop;
+      --  As the application does: the screen reader is answered through the
+      --  window, so a client can walk the smoke's tree while it holds.
+      if not Runtime_Windows.Is_Empty then
+         Files.Accessibility.Attach_Window
+           (Glfw.Windows.Native.Handle (As_Window (Runtime_Windows.First_Element.Handle)));
+      end if;
 
       Result.Window_Created := not Runtime_Windows.Is_Empty;
       for Poll_Index in 1 .. Plan.Input_Poll_Count loop
@@ -176,6 +182,8 @@ separate (Files.Application.Windows)
                   Ada.Text_IO.Flush;
                   for Tick in 1 .. Hold * 10 loop
                      Guikit.Vulkan.Poll_Events;
+                     --  Answer a screen reader looking at the held frame.
+                     Files.Accessibility.Service;
                      delay 0.1;
                   end loop;
                end if;
