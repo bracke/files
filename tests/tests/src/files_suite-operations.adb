@@ -10147,7 +10147,8 @@ package body Files_Suite.Operations is
             Elapsed : constant Duration := Ada.Calendar.Clock - Before;
          begin
             Assert (Step.Status = Files.Operations.Operation_Success,
-                    Kind'Image (Job_Kind) & " command did not launch: " & Files.Operations.Operation_Status'Image (Step.Status)
+                    Kind'Image (Job_Kind) & " command did not launch: "
+                    & Files.Operations.Operation_Status'Image (Step.Status)
                     & " " & To_String (Step.Error_Key));
             Assert (Elapsed < Prompt_Limit,
                     Kind'Image (Job_Kind) & " command took" & Duration'Image (Elapsed)
