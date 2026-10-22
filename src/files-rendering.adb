@@ -21,6 +21,9 @@ with Guikit.Segmented;
 with Guikit.Text;
 with Guikit.Widgets;
 with Files.Localization;
+with Humanize.Bytes;
+with Humanize.Datetimes;
+with Humanize.Status;
 with Hostkit.Metadata;
 with Files.UTF8;
 with Files.UI;
@@ -243,7 +246,44 @@ package body Files.Rendering is
    begin
       if abs (Now - Value) < 60.0 then
          return Files.Localization.Text ("time.relative.now", Locale);
-      elsif Date = Today then
+      elsif Files.Localization.Humanize_Available then
+         --  CLDR's wording in every locale: "today 2:30 PM", "gestern 09:05",
+         --  the weekday within a week, the date beyond it, the time in the
+         --  region's own hour cycle.
+         declare
+            use type Humanize.Status.Status_Code;
+
+            --  Local time, at the offset in force on that date.
+            function Civil (Moment : Ada.Calendar.Time) return Humanize.Datetimes.Civil_Date_Time is
+               Year       : Ada.Calendar.Year_Number;
+               Month      : Ada.Calendar.Month_Number;
+               Day        : Ada.Calendar.Day_Number;
+               Hour       : Ada.Calendar.Formatting.Hour_Number;
+               Minute     : Ada.Calendar.Formatting.Minute_Number;
+               Second     : Ada.Calendar.Formatting.Second_Number;
+               Sub_Second : Ada.Calendar.Formatting.Second_Duration;
+            begin
+               Ada.Calendar.Formatting.Split
+                 (Moment, Year, Month, Day, Hour, Minute, Second, Sub_Second,
+                  Time_Zone => Ada.Calendar.Time_Zones.UTC_Time_Offset (Moment));
+               return
+                 (Year => Year, Month => Month, Day => Day,
+                  Hour => Humanize.Datetimes.Hour_Number (Hour),
+                  Minute => Humanize.Datetimes.Minute_Number (Minute),
+                  Second => Humanize.Datetimes.Second_Number (Second));
+            end Civil;
+
+            Result : constant Humanize.Status.Text_Result :=
+              Humanize.Datetimes.Calendar_Clock_Label
+                (Files.Localization.Humanize_Context (Locale), Civil (Value), Civil (Now));
+         begin
+            if Result.Status = Humanize.Status.Ok then
+               return To_String (Result.Text);
+            end if;
+         end;
+      end if;
+
+      if Date = Today then
          return Files.Localization.Text ("time.relative.today", Locale) & " " & Clock_Time_Text (Value);
       elsif Date = Today - 86_400.0 then
          return Files.Localization.Text ("time.relative.yesterday", Locale) & " " & Clock_Time_Text (Value);
@@ -499,44 +539,27 @@ package body Files.Rendering is
       return Grouped_Integer_Text (Whole) & Decimal_Separator & Integer_Text (Decimal);
    end Localized_Number_Text;
 
+   --  A size as humanize writes it in the number locale: decimal units in
+   --  CLDR's names ("4.5 MB", "4,5 Mo", "2 кБ"), one decimal at most.
    function Size_Text (Value : Long_Long_Integer) return String is
-      Unit_Index : Natural := 0;
-      Divisor    : Long_Long_Integer := 1;
-      Locale     : constant String := Files.Localization.System_Number_Locale;
-
-      function Unit_Key return String is
-      begin
-         case Unit_Index is
-            when 0 =>
-               return "details.size.unit.bytes";
-            when 1 =>
-               return "details.size.unit.kib";
-            when 2 =>
-               return "details.size.unit.mib";
-            when 3 =>
-               return "details.size.unit.gib";
-            when 4 =>
-               return "details.size.unit.tib";
-            when others =>
-               return "details.size.unit.pib";
-         end case;
-      end Unit_Key;
-
-      function Scaled_Number return String is
-         Whole     : constant Long_Long_Integer := Value / Divisor;
-         Remainder : constant Long_Long_Integer := Value mod Divisor;
-         Tenths    : constant Long_Long_Integer :=
-           Whole * 10 + ((Remainder * 10) + Divisor / 2) / Divisor;
-      begin
-         return Localized_Number_Text (Tenths, Unit_Index /= 0);
-      end Scaled_Number;
    begin
-      while Unit_Index < 5 and then Value >= Divisor * 1024 loop
-         Unit_Index := Unit_Index + 1;
-         Divisor := Divisor * 1024;
-      end loop;
-
-      return Scaled_Number & " " & Files.Localization.Text (Unit_Key, Locale);
+      if Value >= 0 and then Files.Localization.Humanize_Available then
+         declare
+            Result : constant Humanize.Status.Text_Result :=
+              Humanize.Bytes.Format
+                (Files.Localization.Humanize_Context (Files.Localization.System_Number_Locale),
+                 Humanize.Bytes.Byte_Count (Value),
+                 Humanize.Bytes.Decimal_Byte_Options);
+            use type Humanize.Status.Status_Code;
+         begin
+            if Result.Status = Humanize.Status.Ok then
+               return To_String (Result.Text);
+            end if;
+         end;
+      end if;
+      return
+        Grouped_Integer_Text (Value) & " "
+        & Files.Localization.Text ("details.size.unit.bytes", Files.Localization.System_Number_Locale);
    end Size_Text;
 
    function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean is
@@ -637,10 +660,18 @@ package body Files.Rendering is
 
    function Folder_Contents_Text (Info : Info_Snapshot) return UString is
       Result : Unbounded_String;
+      --  "1 item" / "3 items" where the locale's catalog has the plural
+      --  message; else the number and the catalog's word.
+      Counted : constant String :=
+        Files.Localization.Count_Text ("info.contents.items.count", Info.Folder_File_Count);
    begin
-      Append (Result, Grouped_Integer_Text (Long_Long_Integer (Info.Folder_File_Count)));
-      Append (Result, " ");
-      Append (Result, Files.Localization.Text ("info.contents.items"));
+      if Counted /= "" then
+         Append (Result, Counted);
+      else
+         Append (Result, Grouped_Integer_Text (Long_Long_Integer (Info.Folder_File_Count)));
+         Append (Result, " ");
+         Append (Result, Files.Localization.Text ("info.contents.items"));
+      end if;
       Append (Result, Files.Localization.Text ("info.contents.separator"));
       Append (Result, Size_Text (Info.Folder_Size_Bytes));
       Append (Result, " ");

@@ -29,8 +29,12 @@ messages = "^0.1.0"
 [[depends-on]]
 hostkit = "^0.1.0"
 
+[[depends-on]]
+humanize = "^0.5.0"
+
 [[pins]]
 hostkit = { path = "../hostkit" }
+humanize = { path = "../humanize" }
 i18n = { path = "../i18n" }
 messages = { path = "../messages" }
 

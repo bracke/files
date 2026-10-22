@@ -1910,7 +1910,7 @@ package body Files_Suite.Rendering is
         Ada.Calendar.Time_Of (2025, 1, 15, Duration (9 * 3_600 + 30 * 60 + 12));
       Frame := Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
       --  The column may clip the seconds; the hour is what a time zone moves.
-      Assert (Frame_Has_Text (Frame, "01/15/2025 09:30"), "an older file shows its local clock time");
+      Assert (Frame_Has_Text (Frame, "Jan 15, 2025 9:30"), "an older file shows its local clock time");
    end Test_Modified_Time_Is_Local;
 
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is

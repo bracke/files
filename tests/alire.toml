@@ -42,9 +42,11 @@ a11y = "^0.1.0"
 [[pins]]
 a11y = { path = "../../a11ykit" }
 
-# Pins are root-only in Alire: files uses cryptolib, so this root must pin it.
+# Pins are root-only in Alire: files uses cryptolib and humanize, so this root
+# must pin them.
 [[pins]]
 cryptolib = { path = "../../cryptolib" }
+humanize = { path = "../../humanize" }
 
 [[depends-on]]
 aunit = "=26.0.0"

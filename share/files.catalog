@@ -395,6 +395,7 @@ en.info.group.tooltip = The group that owns the item.
 en.info.folder_size = Contents
 en.info.folder_size.tooltip = The folder's total size and number of items.
 en.info.contents.items = items
+en.info.contents.items.count = {count, plural, one {# item} other {# items}}
 en.info.contents.total = total
 en.info.contents.separator = , 
 en.info.contents.capped = (lower bound)

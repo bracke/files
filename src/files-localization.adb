@@ -18,6 +18,7 @@ with Files.Fs;
 with Files.Resources;
 
 with Hostkit.Host;
+with Humanize.Catalogs;
 
 package body Files.Localization is
    use Ada.Strings.Unbounded;
@@ -27,10 +28,11 @@ package body Files.Localization is
      (Index_Type   => Natural,
       Element_Type => Unbounded_String);
 
-   Runtime     : Messages.Runtime.Instance;
+   Runtime     : aliased Messages.Runtime.Instance;
    Initialized : Boolean := False;
    Available   : Boolean := False;
    Loaded_Locales : String_Vectors.Vector;
+   Humanize_Loaded : Boolean := False;
 
    function Environment_Locale (Name : String) return String;
    function Environment_Portable_Locale (Name : String) return Boolean;
@@ -560,6 +562,18 @@ package body Files.Localization is
          Messages.Runtime.Initialize (Runtime, Catalog_Path);
          Available := Messages.Runtime.Is_Valid (Runtime);
          Initialized := True;
+         --  humanize's own messages, beside files' catalog in one runtime.
+         if Available then
+            declare
+               use type Messages.Runtime.Load_Status;
+               Result : Messages.Runtime.Load_Result;
+            begin
+               Humanize.Catalogs.Load_Defaults (Runtime, Result);
+               --  Without them humanize answers a non-Ok status, and the
+               --  callers keep files' own wording.
+               Humanize_Loaded := Result.Status = Messages.Runtime.Loaded;
+            end;
+         end if;
          Load_Locale (System_Locale);
          Load_Locale (System_Time_Locale);
          Load_Locale (System_Number_Locale);
@@ -649,5 +663,67 @@ package body Files.Localization is
 
       return Key;
    end Render_Text;
+
+   function Humanize_Available return Boolean is
+   begin
+      Ensure_Initialized;
+      return Humanize_Loaded;
+   end Humanize_Available;
+
+   function Humanize_Context (Locale : String := "") return Humanize.Contexts.Context is
+      Effective_Locale : constant String :=
+        (if Locale'Length = 0 then System_Locale else Normalize_Locale (Locale));
+   begin
+      Ensure_Initialized;
+      Load_Locale (Effective_Locale);
+      return Humanize.Contexts.Create (Runtime'Access, Effective_Locale);
+   end Humanize_Context;
+
+   function Count_Text
+     (Key    : String;
+      Count  : Natural;
+      Locale : String := "")
+      return String
+   is
+      Effective_Locale : constant String :=
+        (if Locale'Length = 0 then System_Locale else Normalize_Locale (Locale));
+
+      function Language (Tag : String) return String is
+      begin
+         for Index in Tag'Range loop
+            if Tag (Index) = '-' or else Tag (Index) = '_' then
+               return Ada.Characters.Handling.To_Lower (Tag (Tag'First .. Index - 1));
+            end if;
+         end loop;
+         return Ada.Characters.Handling.To_Lower (Tag);
+      end Language;
+   begin
+      Ensure_Initialized;
+      Load_Locale (Effective_Locale);
+      if not Available then
+         return "";
+      end if;
+      declare
+         Found : constant Messages.Runtime.Resolve_Result :=
+           Messages.Runtime.Resolve (Runtime, Effective_Locale, Key);
+         use type Messages.Runtime.Resolve_Status;
+      begin
+         if Found.Status /= Messages.Runtime.Found
+           or else Language (Messages.Runtime.Resolved_Locale (Found)) /= Language (Effective_Locale)
+         then
+            return "";
+         end if;
+      end;
+      declare
+         Args   : Messages.Arguments.Arguments;
+         Result : Messages.Result.Render_Result;
+      begin
+         Messages.Arguments.Set_Integer (Args, "count", Long_Long_Integer (Count));
+         Result := Messages.Runtime.Render (Runtime, Effective_Locale, Key, Args);
+         return
+           (if Result.Status = Messages.Result.Success
+            then Messages.Result.Output_Text (Result.Text) else "");
+      end;
+   end Count_Text;
 
 end Files.Localization;

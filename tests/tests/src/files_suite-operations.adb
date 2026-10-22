@@ -5532,8 +5532,8 @@ package body Files_Suite.Operations is
                   Found_Filetype_Value := True;
                elsif Value = Files.Localization.Text ("info.size") then
                   Found_Size := True;
-               elsif Ada.Strings.Fixed.Index
-                 (Value, " " & Files.Localization.Text ("details.size.unit.bytes")) > 1
+               --  The size as humanize writes it: CLDR's "byte"/"bytes".
+               elsif Ada.Strings.Fixed.Index (Value, " byte") > 1
                  and then Value /= Files.Localization.Text ("info.size")
                then
                   Found_Size_Value := True;

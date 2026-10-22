@@ -1,3 +1,5 @@
+with Humanize.Contexts;
+
 --  Default localization facade for files.
 package Files.Localization is
 
@@ -29,6 +31,32 @@ package Files.Localization is
    --  @return Localized text when known, otherwise Key.
    function Text
      (Key    : String;
+      Locale : String := "")
+      return String;
+
+   --  A humanize context for Locale (the system locale when empty), over the
+   --  same message runtime as Text: humanize's catalog is loaded into it, so
+   --  sizes, times and counts read in CLDR's wording for every locale.
+   --  @param Locale Locale identifier, or "" for the system locale.
+   --  @return A context over files' message runtime.
+   function Humanize_Context (Locale : String := "") return Humanize.Contexts.Context;
+
+   --  Whether humanize's catalog loaded beside files' own; without it a
+   --  caller keeps files' wording.
+   --  @return True when humanize's catalog is loaded.
+   function Humanize_Available return Boolean;
+
+   --  Key's message rendered with Count as its plural operand, in Locale (the
+   --  system locale when empty) -- or "" when neither Locale nor its language
+   --  has the message, so that a caller keeps its own wording rather than
+   --  borrow another language's.
+   --  @param Key Catalog key of a plural message over a "count" argument.
+   --  @param Count The count.
+   --  @param Locale Locale identifier, or "" for the system locale.
+   --  @return The rendered message, or "" as described above.
+   function Count_Text
+     (Key    : String;
+      Count  : Natural;
       Locale : String := "")
       return String;
 
