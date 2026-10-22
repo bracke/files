@@ -173,9 +173,9 @@ jobs:
           clone_at project_tools 58bbdb796ceb71a0b0acd63b7cde7dd6f34668f2
           clone_at i18n 9da0ada41e5fc443addcdc1e7f38c9e6ff85bbe4
           clone_at messages 6bfb945490b3863bbb92d11d1ce91c1d963aed5e
-          clone_at textrender 5361e6bd9f47c3831cbc4b5f94aaeee0729d429c
+          clone_at textrender 311584d7063b7114951f21b3d02c21b26b85757b
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
-          clone_at guikit 848b1804e0db3a61b9d680d8ae28e64919d9d861
+          clone_at guikit f3719d7adba292daa41150a5fbc45402470ec7d0
           clone_at hostkit a65d5b9c4ef942e1ecac92b0e2f353ab08395f50
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while

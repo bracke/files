@@ -16,9 +16,9 @@ package body Files.Extension_Labels is
    use type Guikit.Draw.Text_Render_Status;
 
    --  Matches the renderer's atlas cap, as far as guikit lets its glyph atlas
-   --  grow (1024 wide, 8192 tall); the atlas is a single-channel (R8) alpha
+   --  grow (1024 wide, 4096 tall); the atlas is a single-channel (R8) alpha
    --  buffer, so one byte per pixel.
-   Max_Atlas_Bytes : constant := 8_388_608;
+   Max_Atlas_Bytes : constant := 4_194_304;
    type Atlas_Bytes_Array is array (Positive range 1 .. Max_Atlas_Bytes) of Interfaces.Unsigned_8;
    package Atlas_Conversions is new System.Address_To_Access_Conversions (Atlas_Bytes_Array);
 
