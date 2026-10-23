@@ -180,8 +180,8 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
-          clone_at i18n 67ba569f0b8e80f6ee17a2ca2d7153b0636e69b4
-          clone_at messages 623fc5420180f921d50ef97ea0b60087a0992db9
+          clone_at i18n 7ca7a3cfe4dad33cc18faaad2706f9b369f8100d
+          clone_at messages 326a2e14e4cff2713a2a378bd5a84d525638c15b
           clone_at humanize 7f764396ff2720acef98eb8e30093e5dc0fb75bc
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
@@ -190,7 +190,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 713d43608cbd6c156e9dee9757a3afffcf8c6644
+          clone_at a11ykit 9d97efbee525c13d0b88f3f07bef90f9481d7cf1
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -765,6 +765,9 @@ jobs:
               '  public static int LastProcess;',
               '  public static int Selected;',
               '  public static string LastSelected = "";',
+              '  public static int WindowSelected;',
+              '  public static int WindowFocus;',
+              '  public static int WindowProperty;',
               '  [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();',
               '  public static long Foreground() { return GetForegroundWindow().ToInt64(); }',
               '  public static void Start(int process) {',
@@ -780,6 +783,16 @@ jobs:
               '          if (item.Current.ProcessId == process) { Selected++; LastSelected = item.Current.Name; }',
               '        } catch (Exception) { }',
               '      });',
+              '  }',
+              '  // The same events heard through files own window rather than the',
+              '  // desktop: tells a lost desktop-wide registration from a lost event.',
+              '  public static void StartOn(AutomationElement window) {',
+              '    Automation.AddAutomationEventHandler(SelectionItemPattern.ElementSelectedEvent,',
+              '      window, TreeScope.Subtree, (sender, e) => { WindowSelected++; });',
+              '    Automation.AddAutomationEventHandler(AutomationElement.AutomationFocusChangedEvent,',
+              '      window, TreeScope.Subtree, (sender, e) => { WindowFocus++; });',
+              '    Automation.AddAutomationPropertyChangedEventHandler(window, TreeScope.Subtree,',
+              '      (sender, e) => { WindowProperty++; }, SelectionItemPattern.IsSelectedProperty);',
               '  }',
               '}') -join "`n"
             Add-Type -ReferencedAssemblies UIAutomationClient, UIAutomationTypes, WindowsBase -TypeDefinition $source
@@ -832,6 +845,11 @@ jobs:
                          $element.Current.ProcessId))) | ForEach-Object { [long]$_.Current.NativeWindowHandle })
             Write-Output ("foreground window {0}; files' windows {1}" -f $frontmost, ($own -join ", "))
             [FocusWatch]::Start($element.Current.ProcessId)
+            $window = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($element)
+            while ($window -ne $null -and $window.Current.ControlType -ne [System.Windows.Automation.ControlType]::Window) {
+              $window = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($window)
+            }
+            if ($window -ne $null) { [FocusWatch]::StartOn($window) } else { Write-Output "no window above $Item" }
             $pattern.Select()
             $selected = $false
             $until = (Get-Date).AddSeconds(15)
@@ -845,7 +863,8 @@ jobs:
             Start-Sleep -Seconds 2
             Write-Output ("$Item selected after: $selected; focus events $([FocusWatch]::Count), last on " +
                           "'$([FocusWatch]::Last)'; selection events $([FocusWatch]::Selected), last on " +
-                          "'$([FocusWatch]::LastSelected)'")
+                          "'$([FocusWatch]::LastSelected)'; on files' window: selected $([FocusWatch]::WindowSelected), " +
+                          "focus $([FocusWatch]::WindowFocus), IsSelected changes $([FocusWatch]::WindowProperty)")
             # A control on the client itself: a window that UI Automation
             # certainly announces. No focus event from Notepad either means
             # this client hears no events at all, whatever files raises.
