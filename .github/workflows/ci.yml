@@ -180,9 +180,9 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
-          clone_at i18n c6951a9c3ec67a02cd6575c5981da63fe6ff84e4
-          clone_at messages 23d1f5465b5e1b0bca10fa4832b118235d72fbee
-          clone_at humanize 2e9c5ddc1912580e32300ef404f7b7414eee75d6
+          clone_at i18n efd90bbb20decbfe041e6cfa4c17b658fa878781
+          clone_at messages fad9d92ca534a5cde738af783d681ff35248564e
+          clone_at humanize 82577407866dbc08b787bca872965bbc7a4249a4
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab

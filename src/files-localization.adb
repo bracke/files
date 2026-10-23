@@ -568,7 +568,9 @@ package body Files.Localization is
                use type Messages.Runtime.Load_Status;
                Result : Messages.Runtime.Load_Result;
             begin
-               Humanize.Catalogs.Load_Defaults (Runtime, Result);
+               --  Phrase translations for the UI's language only; files
+               --  renders humanize phrases in no other.
+               Humanize.Catalogs.Load_Defaults (Runtime, Result, Locale => System_Locale);
                --  Without them humanize answers a non-Ok status, and the
                --  callers keep files' own wording.
                Humanize_Loaded := Result.Status = Messages.Runtime.Loaded;
