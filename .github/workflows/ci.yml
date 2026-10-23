@@ -457,14 +457,11 @@ jobs:
           export VK_LOADER_DEBUG=error,warn
           if [ "$RUNNER_OS" = "Windows" ]; then
             export PATH="/c/msys64/mingw64/bin:$PATH"
-            # One package per call: pacman drops the whole transaction when
-            # any one target is missing, and vulkaninfo is only a diagnostic.
+            # MSYS2 no longer packages vulkan-tools; the loader's own log
+            # (VK_LOADER_DEBUG) and the smoke's device line are the diagnostic.
             /c/msys64/usr/bin/pacman -S --noconfirm --needed --disable-download-timeout \
               mingw-w64-x86_64-mesa \
               || echo "::warning::could not install MSYS2 mesa"
-            /c/msys64/usr/bin/pacman -S --noconfirm --needed --disable-download-timeout \
-              mingw-w64-x86_64-vulkan-tools \
-              || echo "::warning::could not install MSYS2 vulkan-tools"
             /c/msys64/usr/bin/pacman -Ql mingw-w64-x86_64-mesa | grep -iE "vulkan|icd|lvp" || true
             icd="$(ls /c/msys64/mingw64/share/vulkan/icd.d/*lvp*.json 2>/dev/null | head -1)"
             if [ -n "$icd" ]; then
@@ -490,7 +487,7 @@ jobs:
             HOMEBREW_NO_AUTO_UPDATE=1 brew install vulkan-tools || true
           fi
           echo "VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-<unset>}"
-          vulkaninfo --summary || echo "vulkaninfo not available or failed"
+          if command -v vulkaninfo > /dev/null; then vulkaninfo --summary; fi
           "$bin" --live-smoke
           code=$?
           echo "live-smoke exit $code on $MATRIX_OS"
