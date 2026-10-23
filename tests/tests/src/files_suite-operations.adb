@@ -15461,7 +15461,9 @@ package body Files_Suite.Operations is
       Assert (Files.File_System.Set_Permissions (Locked, 8#555#).Success, "lock the trash source deletion");
       Result := Files.File_System.Move_To_Trash (Tree, Trashed);
       Assert (Result.Success and then not Ada.Directories.Exists (Tree),
-              "read-only descendants do not cause partial source deletion during trash");
+              "read-only descendants do not cause partial source deletion during trash (success="
+              & Result.Success'Image & ", error=" & To_String (Result.Error_Key)
+              & ", source left=" & Ada.Directories.Exists (Tree)'Image & ")");
       Assert
         (Project_Tools.Files.Read_Raw_File (Join (To_String (Trashed), "a.txt")) = "complete",
          "cross-device trash retains its complete payload");

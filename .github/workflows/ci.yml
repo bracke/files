@@ -180,17 +180,17 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
-          clone_at i18n a2e0167ed0349545282a3da27610441eb26bb20c
-          clone_at messages f54c4ff36fa12a9123fbe72112eb07ef59399dbe
-          clone_at humanize 9413e71337e99bd432f80bc2c3d6dad172e362b2
+          clone_at i18n fc2b7bbdaa7d7afc19477c7a3859ab62331040e7
+          clone_at messages 1cf5906d7d8a3662ab4918da6c5d8e13b898f629
+          clone_at humanize 8b6c2946ae2fbdbd79202836a69919b2a01c03a6
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
-          clone_at zlib 95d5f1dee2bb8cf3a59dc9ba61c36b7d8ff99b57
+          clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab
           clone_at hostkit 29cc9939500406f05669bf5478b78aa2b4fe22cc
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 067e3f7cb9395e98ef81b2392d2da168b6aaabaa
+          clone_at a11ykit 6055636280e9a66f74d00907e84d26df0907f962
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -390,7 +390,23 @@ jobs:
               echo "::error::the test binary has unresolved DLL imports (listed above)"
               exit 1
             fi
-            ./bin/tests.exe
+            # The suite has died with a bare segfault on Windows now and then,
+            # with no traceback. On a crash, run it again under gdb so the log
+            # carries a backtrace; the job still fails on the first run's code.
+            status=0
+            ./bin/tests.exe || status=$?
+            if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
+              echo "::warning::tests.exe exited with $status; rerunning under gdb for a backtrace"
+              /c/msys64/usr/bin/pacman -S --noconfirm --needed mingw-w64-x86_64-gdb > /dev/null || true
+              gdb -batch -ex 'handle SIGSEGV stop print' -ex run \
+                  -ex 'thread apply all bt 40' ./bin/tests.exe 2>&1 | tail -300 || true
+            fi
+            exit "$status"
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            # Windows gives the main thread a 1 MiB stack. Run with the same
+            # here, so a frame that would overflow it fails with a traceback
+            # (STORAGE_ERROR) on Linux instead of a bare segfault on Windows.
+            ( ulimit -s 1024 && ./bin/tests )
           else
             ./bin/tests
           fi
