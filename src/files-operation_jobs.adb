@@ -576,20 +576,24 @@ package body Files.Operation_Jobs is
       Write_Outcome (File'Access, Done);
       Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
       Files.Exclusive_Streams.Close (File);
-      if not Files.Durable_Writes.Published
-        (Files.Durable_Writes.Publish
-           (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
-      then
-         --  Say which part failed: an intermittent CI failure here could not
-         --  be reproduced, and a bare Use_Error does not tell.
-         raise Ada.Directories.Use_Error with
-           "result not published: job directory "
-           & (if Ada.Directories.Exists (Directory) then "present" else "gone")
-           & ", result.tmp "
-           & (if Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "result.tmp")) then "present" else "gone")
-           & ", result "
-           & (if Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "result")) then "present" else "absent");
-      end if;
+      declare
+         Outcome : constant Files.Durable_Writes.Publication_Result :=
+           Files.Durable_Writes.Publish
+             (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"));
+
+         function State (Path : String) return String is
+           (if Ada.Directories.Exists (Path) then "present" else "gone");
+      begin
+         if not Files.Durable_Writes.Published (Outcome) then
+            --  Say which part failed, as a machine-readable diagnostic: an
+            --  intermittent CI failure here could not be reproduced locally.
+            raise Ada.Directories.Use_Error with
+              "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
+              & ";dir=" & State (Directory)
+              & ";tmp=" & State (Hostkit.Fs.Join (Directory, "result.tmp"))
+              & ";result=" & State (Hostkit.Fs.Join (Directory, "result"));
+         end if;
+      end;
    exception
       when others =>
          Files.Exclusive_Streams.Close_Safely (File);
