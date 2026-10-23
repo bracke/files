@@ -180,6 +180,34 @@ package body Files.File_System.Support is
       return Left.Root_Revision = Right.Root_Revision and then Left.Shapes = Right.Shapes;
    end Same_Shape;
 
+   --  Work on a task of its own whose stack holds a tree walk's 1024 levels
+   --  (about 1-2 KB each): the caller's may hold far fewer -- Windows gives
+   --  the main thread 1 MiB -- and the recursion would overflow it long before
+   --  the walk's depth cap refuses the tree. Work's failure is the caller's.
+   procedure On_Large_Stack (Work : not null access procedure) is
+      Failure : Ada.Exceptions.Exception_Occurrence;
+      Failed  : Boolean := False;
+   begin
+      declare
+         task Worker with Storage_Size => 32 * 1024 * 1024;
+
+         task body Worker is
+         begin
+            Work.all;
+         exception
+            when Error : others =>
+               Ada.Exceptions.Save_Occurrence (Failure, Error);
+               Failed := True;
+         end Worker;
+      begin
+         null;
+      end;
+      --  The worker has terminated: what it left is the caller's to read.
+      if Failed then
+         Ada.Exceptions.Reraise_Occurrence (Failure);
+      end if;
+   end On_Large_Stack;
+
    function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot is
       Result : Source_Snapshot;
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
@@ -233,7 +261,14 @@ package body Files.File_System.Support is
       if Length (Result.Root_Revision) = 0 then
          raise Ada.Directories.Use_Error;
       end if;
-      Visit (Path, "", 0);
+      declare
+         procedure Visit_Root is
+         begin
+            Visit (Path, "", 0);
+         end Visit_Root;
+      begin
+         On_Large_Stack (Visit_Root'Access);
+      end;
       Sorting.Sort (Result.Entries);
       Sorting.Sort (Result.Shapes);
       return Result;
@@ -584,10 +619,8 @@ package body Files.File_System.Support is
       Shared_Batch : Boolean := False;
       Root_File_Digest : access Files.Types.UString := null);
 
-   --  Copy_Node on a task of its own, whose stack holds Copy_Node's 1024
-   --  levels (about 2 KB each, paths included): the caller's may hold far
-   --  fewer -- Windows gives the main thread 1 MiB -- and the recursion would
-   --  overflow it long before the depth cap refuses the tree.
+   --  Copy_Node on a large stack (On_Large_Stack): its 1024 levels take about
+   --  2 KB each.
    procedure Copy_Node_Deep
      (Source_Path      : String;
       Destination_Path : String;
@@ -600,28 +633,13 @@ package body Files.File_System.Support is
       Shared_Batch : Boolean;
       Root_File_Digest : access Files.Types.UString := null)
    is
-      Failure : Ada.Exceptions.Exception_Occurrence;
-      Failed  : Boolean := False;
-   begin
-      declare
-         task Worker with Storage_Size => 32 * 1024 * 1024;
-
-         task body Worker is
-         begin
-            Copy_Node (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
-                       Preserve_Ownership, Copied_Files, Shared_Batch, Root_File_Digest);
-         exception
-            when Error : others =>
-               Ada.Exceptions.Save_Occurrence (Failure, Error);
-               Failed := True;
-         end Worker;
+      procedure Copy is
       begin
-         null;
-      end;
-      --  The worker has terminated: what it left is the caller's to read.
-      if Failed then
-         Ada.Exceptions.Reraise_Occurrence (Failure);
-      end if;
+         Copy_Node (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
+                    Preserve_Ownership, Copied_Files, Shared_Batch, Root_File_Digest);
+      end Copy;
+   begin
+      On_Large_Stack (Copy'Access);
    end Copy_Node_Deep;
 
    procedure Copy_To_New_Path
