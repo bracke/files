@@ -577,9 +577,10 @@ package body Files.Operation_Jobs is
       Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
       Files.Exclusive_Streams.Close (File);
       declare
+         Step    : Files.Durable_Writes.Publication_Step;
          Outcome : constant Files.Durable_Writes.Publication_Result :=
            Files.Durable_Writes.Publish
-             (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"));
+             (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"), Step);
 
          function State (Path : String) return String is
            (if Ada.Directories.Exists (Path) then "present" else "gone");
@@ -589,6 +590,7 @@ package body Files.Operation_Jobs is
             --  intermittent CI failure here could not be reproduced locally.
             raise Ada.Directories.Use_Error with
               "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
+              & ";step=" & Files.Durable_Writes.Publication_Step'Image (Step)
               & ";dir=" & State (Directory)
               & ";tmp=" & State (Hostkit.Fs.Join (Directory, "result.tmp"))
               & ";result=" & State (Hostkit.Fs.Join (Directory, "result"));

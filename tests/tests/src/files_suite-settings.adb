@@ -9,6 +9,7 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
 with System;
 
 with AUnit;
@@ -1887,10 +1888,14 @@ package body Files_Suite.Settings is
          and then Loaded.Settings.Default_View = Files.Types.Details,
          "a rejected NUL-containing save preserves the existing settings file");
       declare
-         Oversized_Text : constant String :=
-           [1 .. 1 * 1024 * 1024 + 1 => 'x'];
+         --  On the heap: a megabyte on the stack overflowed Windows' 1 MiB
+         --  main stack once the code below this test grew.
+         type Text_Access is access String;
+         procedure Free is new Ada.Unchecked_Deallocation (String, Text_Access);
+         Oversized_Text : Text_Access := new String'[1 .. 1 * 1024 * 1024 + 1 => 'x'];
       begin
-         Saved := Files.Settings.Save_Text (Saved_Path, Oversized_Text);
+         Saved := Files.Settings.Save_Text (Saved_Path, Oversized_Text.all);
+         Free (Oversized_Text);
          Assert
            (not Saved.Success,
             "settings saving rejects text that its bounded loader cannot read");

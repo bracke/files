@@ -17,6 +17,19 @@ package Files.Durable_Writes is
    --    Published_Not_Durable write as though Target were unchanged.
    function Publish (Temporary, Target : String) return Publication_Result;
 
+   --  The step a publication stopped at: for saying why it failed.
+   type Publication_Step is (Completed, File_Sync_Failed, Replace_Failed, Raised);
+
+   --  Publish, and the step it stopped at.
+   --  @param Temporary Complete file to sync and publish.
+   --  @param Target Destination atomically replaced by Temporary.
+   --  @param Step Completed, or the step that failed.
+   --  @return As Publish.
+   function Publish
+     (Temporary, Target : String;
+      Step              : out Publication_Step)
+      return Publication_Result;
+
    --  @param Result Publication outcome to inspect.
    --  @return True when Target was replaced, even if directory sync failed.
    function Published (Result : Publication_Result) return Boolean is
