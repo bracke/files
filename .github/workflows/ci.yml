@@ -180,7 +180,7 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
-          clone_at i18n 7ca7a3cfe4dad33cc18faaad2706f9b369f8100d
+          clone_at i18n d8e46e75fb939a4b0c960ab1aed2b218728e0a61
           clone_at messages 326a2e14e4cff2713a2a378bd5a84d525638c15b
           clone_at humanize b47b87545350752bff8671e6f29dba4d2b4214a0
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
