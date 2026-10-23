@@ -180,8 +180,8 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
-          clone_at i18n 2b336522855d6f7e538be4cc8c9f15fbc54a4ef7
-          clone_at messages dbe63b3b894d2338722f669532a87030f1d853b8
+          clone_at i18n 67ba569f0b8e80f6ee17a2ca2d7153b0636e69b4
+          clone_at messages 623fc5420180f921d50ef97ea0b60087a0992db9
           clone_at humanize 7f764396ff2720acef98eb8e30093e5dc0fb75bc
           clone_at textrender c255b2959d9434f6102afc3fb767da7a58e86ac1
           clone_at zlib 174a6046226acf276a8cc4b2afcf1e10504e2b8a
@@ -190,7 +190,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 24cfbfadd8cf27eb0baa43fd79d56e1d2402c590
+          clone_at a11ykit 713d43608cbd6c156e9dee9757a3afffcf8c6644
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -849,23 +849,29 @@ jobs:
             # A control on the client itself: a window that UI Automation
             # certainly announces. No focus event from Notepad either means
             # this client hears no events at all, whatever files raises.
-            $before = [FocusWatch]::Count
-            $control = Start-Process notepad -PassThru
+            # What files' selection brought, before the control adds its own.
+            $focusCount = [FocusWatch]::Count
+            $focusProcess = [FocusWatch]::LastProcess
+            $focusLast = [FocusWatch]::Last
+            $selectedCount = [FocusWatch]::Selected
+            # A classic Win32 program by its full path: the runner's notepad
+            # alias no longer starts through Start-Process.
+            $control = Start-Process -FilePath "$env:WINDIR\System32\charmap.exe" -PassThru -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 4
-            Write-Output ("control: Notepad brought {0} focus events (last on '{1}')" -f
-                          ([FocusWatch]::Count - $before), [FocusWatch]::Last)
-            Stop-Process -Id $control.Id -Force -ErrorAction SilentlyContinue
+            Write-Output ("control: Character Map brought {0} focus events (last on '{1}')" -f
+                          ([FocusWatch]::Count - $focusCount), [FocusWatch]::Last)
+            if ($control -ne $null) { Stop-Process -Id $control.Id -Force -ErrorAction SilentlyContinue }
             if (-not $selected) { Write-Output "files did not select $Item"; exit 5 }
             # Announced either way a screen reader listens: the focus moving to
             # it, or ElementSelected on it.
-            if ([FocusWatch]::Count -eq 0 -and [FocusWatch]::Selected -eq 0) {
+            if ($focusCount -eq 0 -and $selectedCount -eq 0) {
               Write-Output "neither a focus nor a selection event reached the client"; exit 6
             }
             # Selecting is a single click: the focus stays in files. A file
             # opened in an editor means the request was carried out as an
             # activation instead.
-            if ([FocusWatch]::Count -gt 0 -and [FocusWatch]::LastProcess -ne $element.Current.ProcessId) {
-              Write-Output "the focus left files (to '$([FocusWatch]::Last)'): selecting opened $Item"; exit 7
+            if ($focusCount -gt 0 -and $focusProcess -ne $element.Current.ProcessId) {
+              Write-Output "the focus left files (to '$focusLast'): selecting opened $Item"; exit 7
             }
             exit 0
           ACT
