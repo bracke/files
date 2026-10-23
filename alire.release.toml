@@ -51,6 +51,9 @@ cryptolib = "^0.1.0"
 guikit = "^0.1.0"
 
 [[depends-on]]
+humanize = "^0.5.0"
+
+[[depends-on]]
 df_vulkan = "=0.1.0"
 
 [[depends-on]]
