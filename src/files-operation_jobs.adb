@@ -580,7 +580,15 @@ package body Files.Operation_Jobs is
         (Files.Durable_Writes.Publish
            (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
       then
-         raise Ada.Directories.Use_Error;
+         --  Say which part failed: an intermittent CI failure here could not
+         --  be reproduced, and a bare Use_Error does not tell.
+         raise Ada.Directories.Use_Error with
+           "result not published: job directory "
+           & (if Ada.Directories.Exists (Directory) then "present" else "gone")
+           & ", result.tmp "
+           & (if Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "result.tmp")) then "present" else "gone")
+           & ", result "
+           & (if Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "result")) then "present" else "absent");
       end if;
    exception
       when others =>
