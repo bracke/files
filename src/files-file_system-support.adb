@@ -1,4 +1,5 @@
 with Ada.Environment_Variables;
+with Ada.Exceptions;
 with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 with Ada.Strings.Unbounded;
@@ -583,6 +584,46 @@ package body Files.File_System.Support is
       Shared_Batch : Boolean := False;
       Root_File_Digest : access Files.Types.UString := null);
 
+   --  Copy_Node on a task of its own, whose stack holds Copy_Node's 1024
+   --  levels (about 2 KB each, paths included): the caller's may hold far
+   --  fewer -- Windows gives the main thread 1 MiB -- and the recursion would
+   --  overflow it long before the depth cap refuses the tree.
+   procedure Copy_Node_Deep
+     (Source_Path      : String;
+      Destination_Path : String;
+      Depth            : Natural;
+      Cancel           : Cancellation_Check;
+      Check_Job_Cancellation : Boolean;
+      Times : Source_Time_Maps.Map;
+      Preserve_Ownership : Boolean;
+      Copied_Files : in out Copied_File_Maps.Map;
+      Shared_Batch : Boolean;
+      Root_File_Digest : access Files.Types.UString := null)
+   is
+      Failure : Ada.Exceptions.Exception_Occurrence;
+      Failed  : Boolean := False;
+   begin
+      declare
+         task Worker with Storage_Size => 32 * 1024 * 1024;
+
+         task body Worker is
+         begin
+            Copy_Node (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
+                       Preserve_Ownership, Copied_Files, Shared_Batch, Root_File_Digest);
+         exception
+            when Error : others =>
+               Ada.Exceptions.Save_Occurrence (Failure, Error);
+               Failed := True;
+         end Worker;
+      begin
+         null;
+      end;
+      --  The worker has terminated: what it left is the caller's to read.
+      if Failed then
+         Ada.Exceptions.Reraise_Occurrence (Failure);
+      end if;
+   end Copy_Node_Deep;
+
    procedure Copy_To_New_Path
      (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := null;
       Preserve_Ownership : Boolean := False;
@@ -624,9 +665,9 @@ package body Files.File_System.Support is
       Tree_Revision_Value := Null_Unbounded_String;
       Check_Copy_Destination (Source_Path, Destination_Path);
       Stage := To_Unbounded_String (Create_Stage (Ada.Directories.Containing_Directory (Destination_Path)));
-      Copy_Node (Source_Path, Join_Path (To_String (Stage), "payload"), 0, Cancel, True, Times,
-                 Preserve_Ownership, Links, Files.Copy_Context.Directory (Batch) /= "",
-                 Copied_Digest'Access);
+      Copy_Node_Deep (Source_Path, Join_Path (To_String (Stage), "payload"), 0, Cancel, True, Times,
+                      Preserve_Ownership, Links, Files.Copy_Context.Directory (Batch) /= "",
+                      Copied_Digest'Access);
       Identity := To_Unbounded_String (Files.File_Identities.Token (Join_Path (To_String (Stage), "payload")));
       declare
          Payload : constant String := Join_Path (To_String (Stage), "payload");
@@ -1104,8 +1145,8 @@ package body Files.File_System.Support is
       Copied_Files : Copied_File_Maps.Map := Load_Links (Batch);
    begin
       Check_Copy_Destination (Source_Path, Destination_Path);
-      Copy_Node (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
-                 Preserve_Ownership, Copied_Files, Files.Copy_Context.Directory (Batch) /= "");
+      Copy_Node_Deep (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
+                      Preserve_Ownership, Copied_Files, Files.Copy_Context.Directory (Batch) /= "");
       Save_Links (Batch, Copied_Files, Destination_Path, Destination_Path);
    end Copy_Tree;
 
