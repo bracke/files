@@ -20,6 +20,8 @@ with Ada.Environment_Variables;
 with Ada.IO_Exceptions;
 with Interfaces;
 with Interfaces.C.Strings;
+with Files.Quick_Look;
+with Files.Recovery_CLI;
 with Ada.Strings;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -298,6 +300,7 @@ package body Files_Suite.Operations is
    procedure Test_Recursive_Folder_Size (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Tree_Preserves_Symlinks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Size_Over_Links (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -314,6 +317,7 @@ package body Files_Suite.Operations is
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -388,6 +392,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Released_Recovery_Goes_To_Trash'Access,
          "a replaced original kept for Undo goes to the trash under its own name when history ends");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recovery_Command_Line'Access,
+         "--recover restores a payload, and --discard-recovery deletes only a recovery payload");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Operations'Access,
                 "duplicate, archive, extract and recursive searches use cancellable helpers");
@@ -621,6 +628,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Directory_Size_Over_Links'Access,
          "folder size counts a link once and never follows a cycle, a dangling link or a link out of the tree");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Fifo_Never_Blocks'Access,
+         "a FIFO lists, searches, previews, thumbnails and copies without blocking anything");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Conflict_Resolution_Core'Access,
          "pure paste-conflict resolver honors replace/skip/rename/no-conflict policies");
@@ -12610,6 +12620,65 @@ package body Files_Suite.Operations is
          "Copy_Tree reproduces the ancestor-cycle symlink as a link, not following it");
    end Test_Copy_Tree_Preserves_Symlinks;
 
+   --  A FIFO opened for reading blocks until a writer arrives, so every path
+   --  that reads a listed entry must refuse it or open it without waiting.
+   procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      function Make_Fifo (Path : Interfaces.C.Strings.chars_ptr; Mode : Interfaces.C.unsigned) return Interfaces.C.int
+        with Import, Convention => C, External_Name => "mkfifo";
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Dir      : constant String := Join (Root, "with-fifo");
+      Pipe     : constant String := Join (Dir, "pipe");
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operations.Operation_Result;
+      Made     : Boolean;
+   begin
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         return;
+      end if;
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_Binary_File (Join (Dir, "note.txt"), "needle");
+      declare
+         C_Pipe : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Pipe);
+      begin
+         Made := Integer (Make_Fifo (C_Pipe, 8#600#)) = 0;
+         Interfaces.C.Strings.Free (C_Pipe);
+      end;
+      if not Made then
+         return;
+      end if;
+
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Load.Success and then Natural (Load.Items.Length) = 2, "a folder holding a FIFO lists both entries");
+      for Item of Load.Items loop
+         if To_String (Item.Name) = "pipe" then
+            Assert (Files.Quick_Look."/="
+                      (Files.Operations.Prepare_Quick_Look (Item).Kind, Files.Quick_Look.Text_Content),
+                    "Quick Look of a FIFO shows its card without reading it");
+         end if;
+      end loop;
+      Assert (Files.File_System.Generate_Thumbnail (Pipe, Join (Root, "thumbs")).Status
+                /= Files.File_System.Thumbnail_Generated,
+              "a FIFO is never thumbnailed");
+
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Files.Model.Set_Filter (Model, "needle");
+      Step := Complete_Operation (Model, Settings, Files.Operations.Run_Content_Search (Model, Settings));
+      Assert (Step.Status = Files.Operations.Operation_Success and then Files.Model.Item_Count (Model) = 1,
+              "content search reads the file and passes the FIFO by");
+
+      declare
+         Copied : constant Files.File_System.Mutation_Result := Files.File_System.Copy_Tree (Dir, Join (Root, "copy"));
+         pragma Unreferenced (Copied);
+      begin
+         Assert (Ada.Directories.Exists (Join (Dir, "note.txt")), "copying a tree with a FIFO returns, source intact");
+      end;
+      --  Ada.Directories does not see a FIFO as a file to delete.
+      GNAT.OS_Lib.Delete_File (Pipe, Made);
+   end Test_Fifo_Never_Blocks;
+
    procedure Test_Directory_Size_Over_Links (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Tree    : constant String := Join (Root, "sized");
@@ -16820,6 +16889,61 @@ package body Files_Suite.Operations is
    exception
       when others => Restore_Environment; raise;
    end Test_Symlink_Recovery;
+
+   procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dest     : constant String := Join (Root, "kept.txt");
+      Plain    : constant String := Join (Root, "plain.txt");
+      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Back : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
+      Backup   : Files.Types.UString;
+      Result   : Files.File_System.Mutation_Result;
+      Failed   : Boolean;
+
+      function Run (First : String; Second : String := "") return Boolean is
+         Arguments : Files.Types.String_Vectors.Vector;
+      begin
+         Arguments.Append (To_Unbounded_String (First));
+         if Second /= "" then
+            Arguments.Append (To_Unbounded_String (Second));
+         end if;
+         return Files.Recovery_CLI.Run (Arguments, Failed);
+      end Run;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Back then
+            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+      end Restore_Environment;
+   begin
+      Reset_Root;
+      Write_Binary_File (Plain, "not a payload");
+      Assert (not Run (Plain), "an ordinary argument is not a recovery command");
+      Assert (Run ("--discard-recovery", Plain) and then Failed and then Ada.Directories.Exists (Plain),
+              "discarding a path that is not a recovery payload is refused and keeps it");
+      Assert (Run ("--discard-recovery") and then Failed, "a command without its argument fails");
+
+      Write_Binary_File (Dest, "original");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then not Ada.Directories.Exists (Dest), "the original is kept as a payload");
+      Assert (Run ("--recover", To_String (Backup)) and then not Failed
+              and then Project_Tools.Files.Read_Raw_File (Dest) = "original",
+              "--recover puts the original back");
+
+      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Assert (Run ("--discard-recovery", To_String (Backup)) and then not Failed
+              and then not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+              "--discard-recovery deletes the payload");
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Recovery_Command_Line;
 
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

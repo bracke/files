@@ -80,7 +80,9 @@ package body Files.Grouping is
       begin
          if not Modified_Available then
             return 4;
-         elsif Day_Start (Modified_Time) = Today then
+         elsif Modified_Time >= Today then
+            --  Today -- and a time past it (a skewed clock, a camera's), which
+            --  is no older than now.
             return 1;
          elsif Modified_Time > Today - 6.0 * 86_400.0 then
             return 2;

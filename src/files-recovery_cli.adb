@@ -5,17 +5,20 @@ with Ada.Text_IO;
 
 with Files.File_System;
 with Files.Localization;
-with Files.Types;
 with Hostkit.Fs;
 
 package body Files.Recovery_CLI is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
 
+   --  Whether the command being run failed; Run_If_Requested turns it into
+   --  the exit status.
+   Command_Failed : Boolean := False;
+
    procedure Fail (Message : String) is
    begin
       Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, Message);
-      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      Command_Failed := True;
    end Fail;
 
    procedure List (Directory : String) is
@@ -91,29 +94,49 @@ package body Files.Recovery_CLI is
       end;
    end Apply;
 
-   function Run_If_Requested return Boolean is
+   function Run
+     (Arguments : Files.Types.String_Vectors.Vector;
+      Failed    : out Boolean) return Boolean
+   is
+      Count : constant Natural := Natural (Arguments.Length);
+
+      function Argument (Index : Positive) return String is
+        (To_String (Arguments (Arguments.First_Index + Index - 1)));
    begin
-      if Ada.Command_Line.Argument_Count = 0 then
+      Command_Failed := False;
+      Failed := False;
+      if Count = 0 then
          return False;
-      elsif Ada.Command_Line.Argument (1) not in
-        "--list-recoveries" | "--recover" | "--discard-recovery"
-      then
+      elsif Argument (1) not in "--list-recoveries" | "--recover" | "--discard-recovery" then
          return False;
-      elsif Ada.Command_Line.Argument (1) = "--list-recoveries" then
-         if Ada.Command_Line.Argument_Count = 1 then
+      elsif Argument (1) = "--list-recoveries" then
+         if Count = 1 then
             List_Registered;
-         elsif Ada.Command_Line.Argument_Count = 2 then
-            List (Ada.Command_Line.Argument (2));
+         elsif Count = 2 then
+            List (Argument (2));
          else
             Fail (Files.Localization.Text ("cli.recovery.error.list_argument"));
          end if;
-      elsif Ada.Command_Line.Argument_Count /= 2 then
+      elsif Count /= 2 then
          Fail (Files.Localization.Text ("cli.recovery.error.argument"));
       else
-         Apply
-           (Ada.Command_Line.Argument (2),
-            Restore => Ada.Command_Line.Argument (1) = "--recover");
+         Apply (Argument (2), Restore => Argument (1) = "--recover");
       end if;
+      Failed := Command_Failed;
       return True;
+   end Run;
+
+   function Run_If_Requested return Boolean is
+      Arguments : Files.Types.String_Vectors.Vector;
+      Failed    : Boolean;
+   begin
+      for Index in 1 .. Ada.Command_Line.Argument_Count loop
+         Arguments.Append (To_Unbounded_String (Ada.Command_Line.Argument (Index)));
+      end loop;
+      return Handled : constant Boolean := Run (Arguments, Failed) do
+         if Failed then
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         end if;
+      end return;
    end Run_If_Requested;
 end Files.Recovery_CLI;

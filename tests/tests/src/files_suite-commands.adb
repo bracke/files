@@ -107,6 +107,7 @@ package body Files_Suite.Commands is
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -139,6 +140,9 @@ package body Files_Suite.Commands is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Range_Edges_And_Picker_Tree'Access,
          "Shift+arrow stops at the listing's edges, and Copy To leaves an open folder tree open");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Multi_Rename_Multibyte_Edits'Access,
+         "deleting in several rename rows at once keeps multibyte names whole");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Rename_Return'Access, "controller commits rename on Return");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1302,6 +1306,52 @@ package body Files_Suite.Commands is
          "file path input changes model to parent directory");
       Assert (Files.Model.Item_Count (Model) = 1, "file path input loads parent directory items");
    end Test_Controller_Path_Input_Return;
+
+   procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      function U8 (Text : Wide_Wide_String) return String is
+        (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Text));
+      Items : Files.File_System.Item_Vectors.Vector;
+      Model : Files.Model.Window_Model;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+
+      function Name (Row : Positive) return String is
+        (To_String (Files.Model.Rename_Targets (Model) (Row).New_Name));
+
+      function All_Valid return Boolean is
+        (for all Target of Files.Model.Rename_Targets (Model) => Files.UTF8.Is_Valid (To_String (Target.New_Name)));
+   begin
+      Items.Append (Files.File_System.Make_Item
+                      (Files_Suite.Support.Root, U8 ("café über.txt"), Files.Types.Regular_File_Item, "text/plain"));
+      Items.Append (Files.File_System.Make_Item
+                      (Files_Suite.Support.Root, U8 ("naïve ölig.txt"), Files.Types.Regular_File_Item, "text/plain"));
+      Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
+      Files.Model.Select_All_Visible (Model);
+      Files.Model.Toggle_Rename (Model);
+      Assert (Files.Model.Rename_Field_Count (Model) = 2, "both selected names are being renamed");
+
+      Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
+      Moved := Files.Model.Rename_Delete_Forward (Model);
+      Assert (Name (1) = U8 ("afé über.txt") and then Name (2) = U8 ("aïve ölig.txt"), "Delete removes one letter");
+      Moved := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
+      Moved := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
+      Moved := Files.Model.Rename_Delete_Forward (Model);
+      Assert (Name (1) = U8 ("af über.txt") and then Name (2) = U8 ("aïe ölig.txt"),
+              "Delete after a multibyte letter takes the whole next letter");
+      Moved := Files.Model.Rename_Delete_Backward (Model);
+      Assert (Name (1) = U8 ("a über.txt") and then Name (2) = U8 ("ae ölig.txt"),
+              "Backspace takes the whole multibyte letter before the caret");
+
+      Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
+      Moved := Files.Model.Rename_Delete_Word_Forward (Model);
+      Assert (All_Valid and then Ada.Strings.Fixed.Index (Name (1), U8 ("über")) > 0
+              and then Ada.Strings.Fixed.Index (Name (2), U8 ("ölig")) > 0,
+              "Ctrl+Delete removes the first word and leaves the next one whole");
+      Moved := Files.Model.Rename_Set_All_Carets_End (Model);
+      Moved := Files.Model.Rename_Delete_Word_Backward (Model);
+      Assert (All_Valid, "Ctrl+Backspace leaves every name valid UTF-8");
+   end Test_Multi_Rename_Multibyte_Edits;
 
    procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -54,6 +54,8 @@ separate (Files.Rendering)
         (Path  : String;
          Label : String)
          return String is separate;
+      --  The selection, copied once for the selection total and the info pane.
+      Selected : Files.File_System.Item_Vectors.Vector;
    begin
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.Current_Path_Is_Favorite :=
@@ -356,6 +358,9 @@ separate (Files.Rendering)
       --  the info pane is open) so the bottom bar's total counts folder contents.
       --  Folders not yet measured mark the total pending (still growing).
       if Files.Model.Selected_Count (Model) > 0 then
+         Selected := Files.Model.Selected_Items (Model);
+      end if;
+      if Files.Model.Selected_Count (Model) > 0 then
          declare
             Total   : Long_Long_Integer := 0;
             Pending : Boolean := False;
@@ -369,7 +374,7 @@ separate (Files.Rendering)
                end if;
             end Add;
          begin
-            for Item of Files.Model.Selected_Items (Model) loop
+            for Item of Selected loop
                if Item.Kind = Files.Types.Directory_Item then
                   if Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path)) then
                      Add (Files.Model.Folder_Size_Value
@@ -388,7 +393,7 @@ separate (Files.Rendering)
 
       if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
          declare
-            Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+            Items : Files.File_System.Item_Vectors.Vector renames Selected;
 
             function Build_Info
               (Item : Files.File_System.Directory_Item)

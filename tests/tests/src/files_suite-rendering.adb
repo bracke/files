@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Project_Tools.Files;
 with Hostkit.Host;
 with Ada.Directories;
 with Ada.Strings.Fixed;
@@ -65,6 +66,7 @@ package body Files_Suite.Rendering is
 
    procedure Test_Item_Layout_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Snapshot_Key_Covers_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -148,6 +150,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Reveal_Scroll_Shows_Item'Access,
          "the selection scrolls into view whole in every view mode, and Page Down moves by the rows in view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Snapshot_Key_Covers_Settings'Access,
+         "every setting the snapshot reads is part of the key that decides when a frame can be reused");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Main_View_Scroll_Invariants'Access, "main-view scroll and scrollbar invariants");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -710,6 +715,62 @@ package body Files_Suite.Rendering is
       end loop;
       return False;
    end Has_Overlay_Rect_At;
+
+   --  The window reuses its last snapshot while Snapshot_Settings_Key_Of is
+   --  unchanged, so a setting Build_Snapshot reads but the key leaves out
+   --  would leave stale content on screen. Checked against the sources.
+   procedure Test_Snapshot_Key_Covers_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      function Source_Root return String is
+        (if Project_Tools.Files.Directory_Exists ("src/") and then Project_Tools.Files.Directory_Exists ("tests/")
+         then "src"
+         elsif Project_Tools.Files.Directory_Exists ("../src/") then "../src"
+         else "../../src");
+
+      Snapshot : constant String :=
+        Project_Tools.Files.Read_Raw_File
+          (Project_Tools.Files.Find_File (Source_Root, "files-rendering-build_snapshot.adb"));
+      Settings_Body : constant String :=
+        Project_Tools.Files.Read_Raw_File (Project_Tools.Files.Find_File (Source_Root, "files-settings.adb"));
+      Key_First : constant Natural := Ada.Strings.Fixed.Index (Settings_Body, "function Snapshot_Settings_Key_Of");
+      Key_Last  : constant Natural := Ada.Strings.Fixed.Index (Settings_Body, "end Snapshot_Settings_Key_Of;");
+      Read_Any  : Boolean := False;
+
+      function Identifier_Char (C : Character) return Boolean is
+        (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
+   begin
+      Assert (Snapshot /= "" and then Key_First > 0 and then Key_Last > Key_First,
+              "the snapshot and the key function are found");
+      declare
+         Key  : constant String := Settings_Body (Key_First .. Key_Last);
+         From : Positive := Snapshot'First;
+      begin
+         loop
+            declare
+               At_Name : constant Natural := Ada.Strings.Fixed.Index (Snapshot (From .. Snapshot'Last), "Settings.");
+               Last    : Natural;
+            begin
+               exit when At_Name = 0;
+               From := At_Name + 9;
+               --  A field of the Settings parameter, not Files.Settings.<entity>.
+               if (At_Name = Snapshot'First
+                   or else not (Identifier_Char (Snapshot (At_Name - 1)) or else Snapshot (At_Name - 1) = '.'))
+                 and then From <= Snapshot'Last and then Snapshot (From) in 'A' .. 'Z'
+               then
+                  Last := From;
+                  while Last < Snapshot'Last and then Identifier_Char (Snapshot (Last + 1)) loop
+                     Last := Last + 1;
+                  end loop;
+                  Read_Any := True;
+                  Assert (Ada.Strings.Fixed.Index (Key, "Settings." & Snapshot (From .. Last)) > 0,
+                          "the snapshot reads Settings." & Snapshot (From .. Last) & ", which the key leaves out");
+               end if;
+            end;
+         end loop;
+      end;
+      Assert (Read_Any, "the snapshot's setting reads were found");
+   end Test_Snapshot_Key_Covers_Settings;
 
    procedure Test_Reveal_Scroll_Shows_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
