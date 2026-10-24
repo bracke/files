@@ -1089,16 +1089,12 @@ package body Files.Controller is
            else Controller_Selection_Moved);
    end Page_Selection_Result;
 
-   --  Both public Handle_Key overloads: Apply_Settings selects whether a
-   --  settings command the key resolves to is applied or only reported.
    function Handle_Key
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : in out Files.Settings.Settings_Model;
-      Settings_Path  : String;
-      Apply_Settings : Boolean;
-      Key            : Guikit.Input.Key_Code;
-      Modifiers      : Guikit.Input.Modifier_Set;
-      Tree_Page_Rows : Natural)
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
       return Controller_Result
  is separate;
 
@@ -1109,22 +1105,19 @@ package body Files.Controller is
       Key            : Guikit.Input.Key_Code;
       Modifiers      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
-      return Controller_Result is
-   begin
-      return Handle_Key (Model, Settings, Settings_Path, True, Key, Modifiers, Tree_Page_Rows);
-   end Handle_Key;
-
-   function Handle_Key
-     (Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Key       : Guikit.Input.Key_Code;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Tree_Page_Rows : Natural := 0)
       return Controller_Result
    is
-      Unchanged : Files.Settings.Settings_Model := Settings;
+      Reported : constant Controller_Result := Handle_Key (Model, Settings, Key, Modifiers, Tree_Page_Rows);
    begin
-      return Handle_Key (Model, Unchanged, "", False, Key, Modifiers, Tree_Page_Rows);
+      --  Every route a key takes to a settings command (a shortcut, Enter in
+      --  the palette, Return in the settings pane) ends in the read-only
+      --  Execute_Command, which only reports it; apply it here, once.
+      if Reported.Status = Controller_Command_Executed
+        and then Files.Commands.Requires_Settings_Path (Reported.Command)
+      then
+         return Execute_Command (Reported.Command, Model, Settings, Settings_Path, Modifiers);
+      end if;
+      return Reported;
    end Handle_Key;
 
 end Files.Controller;

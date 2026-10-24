@@ -5824,6 +5824,31 @@ package body Files_Suite.Interaction is
                  and then not Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
                  "the settings-aware controller applies Ctrl+B once");
       end;
+
+      --  Enter on a settings command in the palette applies it too.
+      declare
+         Hidden_Before : constant Boolean := Settings.Show_Hidden_Files;
+      begin
+         Files.Model.Open_Command_Palette (Model);
+         Files.Model.Focus_Command_Palette_Input (Model);
+         declare
+            Typed : constant Files.Controller.Controller_Result :=
+              Files.Controller.Append_Focused_Text (Model, "hidden");
+            pragma Unreferenced (Typed);
+         begin
+            null;
+         end;
+         Assert (Files.Model.Palette_Selected_Id (Model)
+                   = Files.Commands.Command_Id'Pos (Files.Commands.Toggle_Hidden_Files_Command),
+                 "the palette query selects the hidden-files command");
+         --  Toggle_Hidden_Files saves before it applies, so it needs a real file.
+         Files.Interaction.Handle_Key
+           (Model, Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "palette-settings.conf"),
+            Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
+         Assert (Settings.Show_Hidden_Files /= Hidden_Before,
+                 "Enter in the palette applies a settings command");
+         Assert (not Files.Model.Command_Palette_Is_Open (Model), "the applied command closes the palette");
+      end;
    end Test_Text_Focus_Blocks_File_Shortcuts;
 
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is

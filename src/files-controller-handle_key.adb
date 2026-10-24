@@ -1,21 +1,12 @@
 separate (Files.Controller)
    function Handle_Key
-     (Model          : in out Files.Model.Window_Model;
-      Settings       : in out Files.Settings.Settings_Model;
-      Settings_Path  : String;
-      Apply_Settings : Boolean;
-      Key            : Guikit.Input.Key_Code;
-      Modifiers      : Guikit.Input.Modifier_Set;
-      Tree_Page_Rows : Natural)
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Key       : Guikit.Input.Key_Code;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
       return Controller_Result
    is
-      --  Execute a command the key resolved to, applying it to Settings when
-      --  this is the settings-aware overload.
-      function Dispatch (Command : Files.Commands.Command_Id) return Controller_Result is
-        (if Apply_Settings
-         then Execute_Command (Command, Model, Settings, Settings_Path, Modifiers)
-         else Execute_Command (Command, Model, Settings, Modifiers));
-
       Action : constant Files.Events.Input_Action := Files.Events.Translate_Key (Key, Modifiers);
 
       function Control_Only return Boolean is
@@ -348,7 +339,7 @@ separate (Files.Controller)
                      when Files.Model.Sort_Changed => Files.Commands.Sort_By_Changed_Command);
             begin
                Files.Model.Close_Sort_Menu (Model);
-               return Dispatch (Command);
+               return Execute_Command (Command, Model, Settings, Modifiers);
             end;
          else
             return Make_Result (Controller_Ignored);
@@ -762,7 +753,7 @@ separate (Files.Controller)
                --  Shift+Delete must never delete the selection behind the field.
                return Make_Result (Controller_Ignored);
             end if;
-            return Dispatch (Action.Command);
+            return Execute_Command (Action.Command, Model, Settings, Modifiers);
          when Files.Events.Selection_Input_Action =>
             if Files.Model.Focus (Model) = Files.Types.Focus_None
               and then not Files.Model.Settings_Pane_Is_Open (Model)
