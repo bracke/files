@@ -182,7 +182,7 @@ jobs:
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
           clone_at i18n 33d2dc7775f97adf4c227643b7d2b81850cc76da
           clone_at messages a6fb47b2a1d520d2e202dd9d7ac318375116615a
-          clone_at humanize 553d937186923692c2c870cfd68c796bf53307a8
+          clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab
@@ -587,7 +587,11 @@ jobs:
                     Write-Output ("  {0} [{1}]" -f $name, $element.Current.ControlType.ProgrammaticName)
                     $shown++
                   }
-                  if ($name -eq "first-window" -or $name -eq "second-window") {
+                  # A folder counts in the window that shows it as its own (its
+                  # title ends with it): the other window's folder can be listed
+                  # here too, in the recent folders.
+                  if (($name -eq "first-window" -or $name -eq "second-window") -and
+                      $window.Current.Name -like "*$name") {
                     $folders[$name] = $window.Current.NativeWindowHandle
                   }
                   if (-not $found -and $name -like "*$Needle*") {
@@ -699,7 +703,10 @@ jobs:
                         }
                     }
                 }
-                if (title == "first-window" || title == "second-window") && !window.isEmpty {
+                // A folder counts in the window that shows it as its own (its
+                // title ends with it): the other window's folder can be listed
+                // here too, in the recent folders.
+                if (title == "first-window" || title == "second-window") && window.hasSuffix("/" + title) {
                     folders[title] = window
                 }
                 if count <= 40 || title.hasSuffix("-window") || role == "AXWindow" {
