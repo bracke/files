@@ -589,6 +589,22 @@ package Files.File_System is
       Directory : String)
       return Boolean;
 
+   --  Whether Name, the name of a file that already exists, can be stored in
+   --  Directory: only what that filesystem cannot hold is refused -- empty,
+   --  "." / "..", a separator or NUL on POSIX; Windows rules on a FAT, exFAT or
+   --  NTFS destination (which cannot store invalid UTF-8 either). A name
+   --  another program created ("notes " with a trailing space, bytes that are
+   --  not UTF-8) copies and moves like any other; Valid_Leaf_Name_At, for
+   --  names a user types, refuses those too.
+   --
+   --  @param Name Existing filename without parent path components.
+   --  @param Directory The directory the name will live in.
+   --  @return True when the destination can hold Name.
+   function Storable_Leaf_Name_At
+     (Name      : String;
+      Directory : String)
+      return Boolean;
+
    --  Return a deterministic available untitled file name in Directory_Path.
    --
    --  @param Directory_Path Directory to inspect.

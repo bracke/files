@@ -517,6 +517,11 @@ package body Files.File_System is
          Directory : String)
          return Boolean;
 
+      function Storable_Leaf_Name_At
+        (Name      : String;
+         Directory : String)
+         return Boolean;
+
       function Next_Untitled_Name
         (Directory_Path : String)
          return String;
@@ -555,6 +560,12 @@ package body Files.File_System is
       Directory : String)
       return Boolean
      renames Path.Valid_Leaf_Name_At;
+
+   function Storable_Leaf_Name_At
+     (Name      : String;
+      Directory : String)
+      return Boolean
+     renames Path.Storable_Leaf_Name_At;
 
    function Next_Untitled_Name
      (Directory_Path : String)

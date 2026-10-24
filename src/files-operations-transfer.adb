@@ -1900,7 +1900,9 @@ package body Transfer is
             Old_Name : constant String := To_String (Target.Old_Name);
             New_Name : constant String := To_String (Target.New_Name);
          begin
-            if not Files.File_System.Valid_Leaf_Name_At (New_Name, Current_Dir) then
+            --  An unchanged name stays as it is, whatever it holds; a new one
+            --  is a name the user typed.
+            if New_Name /= Old_Name and then not Files.File_System.Valid_Leaf_Name_At (New_Name, Current_Dir) then
                Failure := Failure + 1;
                Record_First_Error ("error.name.invalid", Old_Full);
             elsif New_Name = Old_Name then

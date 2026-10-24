@@ -4860,14 +4860,14 @@ package body Files_Suite.Operations is
          "non-directory destination parent reports invalid destination");
       Assert (Ada.Directories.Exists (Non_Directory_Source), "non-directory parent rename leaves source in place");
       Mutation :=
-        Files.File_System.Rename_Item (Direct_Source, Join (Root, "bad" & Character'Val (9) & "name.txt"));
-      Assert (not Mutation.Success, "direct rename rejects invalid leaf names");
+        Files.File_System.Rename_Item (Direct_Source, Join (Root, "bad" & ASCII.NUL & "name.txt"));
+      Assert (not Mutation.Success, "direct rename rejects a name no filesystem can store");
       Assert
         (To_String (Mutation.Error_Key) = "error.name.invalid",
          "direct invalid-name rename reports invalid-name diagnostic");
       Assert (Ada.Directories.Exists (Direct_Source), "direct invalid-name rename leaves source in place");
       Assert
-        (not Path_Exists (Join (Root, "bad" & Character'Val (9) & "name.txt")),
+        (not Path_Exists (Join (Root, "bad" & ASCII.NUL & "name.txt")),
          "direct invalid-name rename writes no target");
       Mutation := Files.File_System.Rename_Item (Direct_Source, Direct_Target);
       Assert (Mutation.Success, "direct rename mutation succeeds");

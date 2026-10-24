@@ -249,7 +249,7 @@ package body Copy_Move is
                Result.Error_Key := Plan.Error_Key;
             else
                Leaf := To_Unbounded_String (Ada.Directories.Simple_Name (Source_Text));
-               if not Valid_Leaf_Name_At (To_String (Leaf), Destination_Directory) then
+               if not Storable_Leaf_Name_At (To_String (Leaf), Destination_Directory) then
                   Plan.Valid := False;
                   Plan.Error_Key := To_Unbounded_String ("error.name.invalid");
                   Result.Error_Key := Plan.Error_Key;

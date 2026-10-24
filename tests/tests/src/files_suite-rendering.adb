@@ -120,6 +120,7 @@ package body Files_Suite.Rendering is
    procedure Test_Marquee_Frame_Draws_Rectangle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drag_Preview_Uses_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Invalid_UTF8_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compact_Breadcrumbs_Stay_In_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compact_Empty_State_Stays_In_View (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -336,6 +337,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Details_Header_Text_Centered'Access,
          "details header labels are optically centred like the bottom-bar text");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Invalid_UTF8_Names'Access,
+         "a file name that is not valid UTF-8 lists, renders, renames and deletes");
    end Register_Tests;
 
    --  Build a deterministic snapshot with Count regular-file items in Mode.
@@ -4767,5 +4771,82 @@ package body Files_Suite.Rendering is
          end loop;
       end loop;
    end Test_Drag_Preview_Uses_Overlay;
+
+   --  POSIX file names are bytes: one that is not valid UTF-8 ("bad\xFF.txt")
+   --  must list, render (snapshot, frame, accessibility tree), rename and
+   --  delete like any other. Hosts whose file systems refuse such a name skip.
+   procedure Test_Invalid_UTF8_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Bad      : constant String := "bad" & Character'Val (16#FF#) & Character'Val (16#C3#) & ".txt";
+      Bad_Path : constant String := Files_Suite.Support.Root & "/" & Bad;
+      Good     : constant String := Files_Suite.Support.Root & "/good.txt";
+      Created  : Boolean := True;
+   begin
+      Files_Suite.Support.Reset_Root;
+      begin
+         Files_Suite.Support.Write_File (Bad_Path, "bytes");
+      exception
+         when others =>
+            Created := False;
+      end;
+      if not Created or else not Ada.Directories.Exists (Bad_Path) then
+         return;
+      end if;
+      Files_Suite.Support.Write_File (Files_Suite.Support.Root & "/plain.txt", "x");
+
+      declare
+         Load   : constant Files.File_System.Directory_Load_Result :=
+           Files.File_System.Load_Directory (Files_Suite.Support.Root, Settings);
+         Listed : Boolean := False;
+         Model  : Files.Model.Window_Model;
+      begin
+         Assert (Load.Success, "a directory holding a non-UTF-8 name loads");
+         for Item of Load.Items loop
+            Listed := Listed or else Ada.Strings.Unbounded.To_String (Item.Name) = Bad;
+         end loop;
+         Assert (Listed, "the non-UTF-8 name is listed with its bytes");
+         Files.Model.Navigate_To (Model, Files_Suite.Support.Root, Load.Items);
+         declare
+            Snapshot : constant View_Snapshot := Build_Snapshot (Model, Settings);
+            Frame    : constant Frame_Commands :=
+              Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
+            Tree     : constant A11ykit.Tree.Accessibility_Tree := Files.Accessibility.To_A11ykit_Tree (Frame);
+         begin
+            Assert (Natural (Snapshot.Items.Length) = 2, "both items reach the snapshot");
+            Assert (not Tree.Nodes.Is_Empty, "the accessibility tree builds over a non-UTF-8 name");
+         end;
+      end;
+
+      Assert (Files.File_System.Rename_Item (Bad_Path, Good).Success, "a non-UTF-8 name renames to a valid one");
+      Assert (Ada.Directories.Exists (Good) and then not Ada.Directories.Exists (Bad_Path), "the rename moved it");
+      declare
+         Back : constant Files.File_System.Mutation_Result := Files.File_System.Rename_Item (Good, Bad_Path);
+      begin
+         Assert (Back.Success, "and renames back to the non-UTF-8 name: "
+                 & Ada.Strings.Unbounded.To_String (Back.Error_Key));
+      end;
+      --  Copied and moved into another folder with its name kept: the name
+      --  exists, so only what the destination cannot hold is refused.
+      declare
+         Into    : constant String := Files_Suite.Support.Root & "/into";
+         Sources : Files.Types.String_Vectors.Vector;
+      begin
+         Ada.Directories.Create_Path (Into);
+         Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String (Bad_Path));
+         declare
+            Plan : constant Files.File_System.Drop_Import_Result :=
+              Files.File_System.Plan_Drop_Import (Sources, Into, Files.File_System.Drop_Copy);
+         begin
+            Assert (Plan.Plans.First_Element.Valid, "a non-UTF-8 name can be copied: "
+                    & Ada.Strings.Unbounded.To_String (Plan.Error_Key));
+            Assert (Files.File_System.Execute_Drop_Import (Plan.Plans).Success, "the copy runs");
+            Assert (Ada.Directories.Exists (Into & "/" & Bad), "the copy keeps the name's bytes");
+         end;
+      end;
+      Assert (Files.File_System.Delete_Permanently (Bad_Path).Success, "a non-UTF-8 name deletes");
+      Assert (not Ada.Directories.Exists (Bad_Path), "the delete removed it");
+      Files_Suite.Support.Reset_Root;
+   end Test_Invalid_UTF8_Names;
 
 end Files_Suite.Rendering;

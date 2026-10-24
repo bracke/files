@@ -1570,6 +1570,35 @@ package body Files_Suite.Commands is
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
          Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across UTF-8 NBSP");
       end;
+      --  Words of multibyte letters: offsets are bytes, a word is whole letters.
+      declare
+         function U (Code : Natural) return String is
+           (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (Code)));
+         Cafe : constant String := "caf" & U (16#E9#);                    --  5 bytes
+         Uber : constant String := U (16#FC#) & "ber";                    --  5 bytes
+         Nihongo : constant String := U (16#65E5#) & U (16#672C#) & U (16#8A9E#);  --  9 bytes
+         Tesuto  : constant String := U (16#30C6#) & U (16#30B9#) & U (16#30C8#);  --  9 bytes
+      begin
+         Files.Controller.Replace_Focused_Text (Model, Cafe & " " & Uber);
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left stops before a word of multibyte letters");
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+         Assert (Files.Model.Filter_Text (Model) = Uber, "Control+Backspace removes a whole multibyte word");
+
+         Files.Controller.Replace_Focused_Text (Model, Cafe & " " & Uber);
+         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 0);
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
+         Assert (Files.Model.Text_Cursor_Position (Model) in 5 | 6, "Control+Right ends after the whole first word");
+         Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
+         Assert (Files.Model.Filter_Text (Model) = Cafe, "Control+Delete removes the next multibyte word");
+
+         Files.Controller.Replace_Focused_Text (Model, Nihongo & " " & Tesuto);
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
+         Assert (Files.Model.Text_Cursor_Position (Model) = 10, "Control+Left stops before a word of CJK letters");
+         Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
+         Assert (Files.Model.Filter_Text (Model) = Tesuto, "Control+Backspace removes a whole CJK word");
+      end;
       declare
          Line_Separator : constant String :=
            Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
