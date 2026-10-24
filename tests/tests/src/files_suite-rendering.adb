@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Hostkit.Host;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -4774,7 +4775,8 @@ package body Files_Suite.Rendering is
 
    --  POSIX file names are bytes: one that is not valid UTF-8 ("bad\xFF.txt")
    --  must list, render (snapshot, frame, accessibility tree), rename and
-   --  delete like any other. Hosts whose file systems refuse such a name skip.
+   --  delete like any other. Hosts whose file systems refuse such a name skip,
+   --  and so does Windows, whose UTF-16 names translate the bytes on the way in.
    procedure Test_Invalid_UTF8_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -4783,6 +4785,9 @@ package body Files_Suite.Rendering is
       Good     : constant String := Files_Suite.Support.Root & "/good.txt";
       Created  : Boolean := True;
    begin
+      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
+         return;
+      end if;
       Files_Suite.Support.Reset_Root;
       begin
          Files_Suite.Support.Write_File (Bad_Path, "bytes");
