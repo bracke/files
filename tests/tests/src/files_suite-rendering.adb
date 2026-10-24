@@ -1804,6 +1804,7 @@ package body Files_Suite.Rendering is
       Tile_Identity : Unbounded_String;
    begin
       if not Ada.Directories.Exists (Emoji_Font) then
+         Files_Suite.Support.Skip ("Test_Emoji_Draws_As_Colour_Icons", "not Ada.Directories.Exists (Emoji_Font)");
          return;
       end if;
 
@@ -4904,6 +4905,9 @@ package body Files_Suite.Rendering is
       Created  : Boolean := True;
    begin
       if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
+         Files_Suite.Support.Skip
+           ("Test_Invalid_UTF8_Names",
+            "Hostkit.Host.""="" (Hostkit.Host.Current, Hostkit.Host.Windows)");
          return;
       end if;
       Files_Suite.Support.Reset_Root;
@@ -4914,6 +4918,9 @@ package body Files_Suite.Rendering is
             Created := False;
       end;
       if not Created or else not Ada.Directories.Exists (Bad_Path) then
+         Files_Suite.Support.Skip
+           ("Test_Invalid_UTF8_Names",
+            "not Created or else not Ada.Directories.Exists (Bad_Path)");
          return;
       end if;
       Files_Suite.Support.Write_File (Files_Suite.Support.Root & "/plain.txt", "x");

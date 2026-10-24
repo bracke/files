@@ -2327,6 +2327,7 @@ package body Files_Suite.Interaction is
          end if;
       end loop;
       if Target_Row = 0 then
+         Files_Suite.Support.Skip ("Test_Bottom_Bar_Sort_Persists", "Target_Row = 0");
          return;
       end if;
       Row_X := Menu.X + Menu.Width / 2;

@@ -1,3 +1,4 @@
+with Ada.Text_IO;
 with Ada.Calendar;
 with Ada.Characters.Handling;
 with Ada.Command_Line;
@@ -555,4 +556,38 @@ package body Files_Suite.Support is
       end loop;
       Guard.Count := 0;
    end Finalize;
+
+   procedure Assert_Equal (Actual, Expected : Integer; Message : String) is
+   begin
+      AUnit.Assertions.Assert
+        (Actual = Expected, Message & " (expected" & Expected'Image & ", got" & Actual'Image & ")");
+   end Assert_Equal;
+
+   procedure Assert_Equal (Actual, Expected : Long_Long_Integer; Message : String) is
+   begin
+      AUnit.Assertions.Assert
+        (Actual = Expected, Message & " (expected" & Expected'Image & ", got" & Actual'Image & ")");
+   end Assert_Equal;
+
+   procedure Assert_Equal (Actual, Expected : String; Message : String) is
+   begin
+      AUnit.Assertions.Assert
+        (Actual = Expected, Message & " (expected """ & Expected & """, got """ & Actual & """)");
+   end Assert_Equal;
+
+   procedure Assert_Equal (Actual, Expected : Boolean; Message : String) is
+   begin
+      AUnit.Assertions.Assert
+        (Actual = Expected, Message & " (expected " & Expected'Image & ", got " & Actual'Image & ")");
+   end Assert_Equal;
+
+   Skipped : Natural := 0;
+
+   procedure Skip (Test : String; Reason : String) is
+   begin
+      Skipped := Skipped + 1;
+      Ada.Text_IO.Put_Line ("SKIP" & ':' & ' ' & Test & ':' & ' ' & Reason);
+   end Skip;
+
+   function Skip_Count return Natural is (Skipped);
 end Files_Suite.Support;

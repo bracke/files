@@ -2646,6 +2646,24 @@ procedure Check_All is
            (Path,
             "Files.Operations.",
             Label & " must not execute operations");
+         --  The qualified forms alone let `use Files.Operations;` and an
+         --  unqualified call through; the dependency itself is what is barred.
+         Require_Not_Contains_In_Unit
+           (Path,
+            "with Files.Operations",
+            Label & " must not depend on operations");
+         Require_Not_Contains_In_Unit
+           (Path,
+            "with Files.Controller",
+            Label & " must not depend on the controller");
+         Require_Not_Contains_In_Unit
+           (Path,
+            "with Files.Application",
+            Label & " must not depend on application startup");
+         Require_Not_Contains_In_Unit
+           (Path,
+            "with Files.Interaction",
+            Label & " must not depend on the interaction reducer");
          Require_Not_Contains_In_Unit
            (Path,
             "Files.Controller.",
@@ -3783,34 +3801,43 @@ procedure Check_All is
       Project_Tools.Files.Delete_Tree (Stage);
    end Check_Packaging_Metadata;
 
-   --  Robust test-coverage signal (replaces the removed brittle exact-message
-   --  contract checks): require the test suite to exercise each production
-   --  subsystem. The compiler and the AUnit suite verify behavior; this only
-   --  guards against a subsystem silently losing all test coverage.
+   --  Test coverage by area: each suite must keep registering tests. A check
+   --  that only looked for a package name in the suite text was satisfied by
+   --  a with clause alone; a suite that lost its tests now fails here.
    procedure Check_Test_Subsystem_Coverage is
-      Suite : constant String := To_String (Project_Tools.Text.Read_Text_File (Combined_Suite));
-      procedure Require_Tested (Token : String; What : String) is
+      procedure Require_Tests (Suite : String; Minimum : Positive) is
+         Text  : constant String :=
+           To_String (Project_Tools.Text.Read_Text_File (Root & "/tests/tests/src/files_suite-" & Suite & ".adb"));
+         Count : Natural := 0;
+         From  : Natural := Text'First;
       begin
-         if not Project_Tools.Text.Contains (Suite, Token) then
+         loop
+            declare
+               At_Name : constant Natural :=
+                 Ada.Strings.Fixed.Index (Text (From .. Text'Last), "Register_Routine");
+            begin
+               exit when At_Name = 0;
+               Count := Count + 1;
+               From := At_Name + 1;
+            end;
+         end loop;
+         if Count < Minimum then
             Put_Line
               (Standard_Error,
-               "test suite must exercise " & What & " (missing reference: " & Token & ")");
+               "the " & Suite & " test suite registers" & Natural'Image (Count)
+               & " tests, fewer than" & Positive'Image (Minimum));
             Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
             raise Program_Error;
          end if;
-      end Require_Tested;
+      end Require_Tests;
    begin
-      Require_Tested ("Files.Rendering", "the rendering subsystem");
-      Require_Tested ("Files.Events", "the events subsystem");
-      Require_Tested ("Files.Model", "the model subsystem");
-      Require_Tested ("Files.Controller", "the controller subsystem");
-      Require_Tested ("Files.Commands", "the command registry");
-      Require_Tested ("Files.Command_Palette", "the command palette");
-      Require_Tested ("Files.Settings", "the settings subsystem");
-      Require_Tested ("Files.Operations", "the operations subsystem");
-      Require_Tested ("Files.File_System", "the file-system subsystem");
-      Require_Tested ("Files.UI", "the UI layout helpers");
-      Require_Tested ("Files.Accessibility", "the accessibility bridge");
+      Require_Tests ("settings", 10);
+      Require_Tests ("startup", 10);
+      Require_Tests ("commands", 10);
+      Require_Tests ("model", 20);
+      Require_Tests ("interaction", 50);
+      Require_Tests ("rendering", 50);
+      Require_Tests ("operations", 150);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -3847,7 +3874,11 @@ begin
    Check_Executable_CLI_Help;
    Check_Desktop_Runtime_Contract;
    Run ("top-level tests build", Root & "/tests", Alr, [1 => new String'("build")]);
-   Run ("top-level AUnit tests", Root & "/tests", "./bin/tests", []);
+   --  CI has just run the suite with its own settings (a small stack among
+   --  them) and passes --skip-suite rather than run it a second time.
+   if not (Ada.Command_Line.Argument_Count >= 1 and then Ada.Command_Line.Argument (1) = "--skip-suite") then
+      Run ("top-level AUnit tests", Root & "/tests", "./bin/tests", []);
+   end if;
    Cleanup_Temps;
    Put_Line ("files project checks passed");
    Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);

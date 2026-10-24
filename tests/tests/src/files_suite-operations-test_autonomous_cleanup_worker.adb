@@ -1,0 +1,124 @@
+separate (Files_Suite.Operations)
+   procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Flag_Had  : constant Boolean :=
+        Ada.Environment_Variables.Exists ("FILES_TEST_STALL_CLEANUP_WORKER");
+      Flag_Old  : constant String :=
+        Ada.Environment_Variables.Value ("FILES_TEST_STALL_CLEANUP_WORKER", "");
+      Job       : Files.Process_Jobs.Session;
+      Transport : Files.Types.UString;
+      Before    : Ada.Calendar.Time;
+
+      function Item (Name : String) return String is
+        (Join (To_String (Transport), Name));
+
+      procedure Touch (Path : String) is
+         File : Ada.Text_IO.File_Type;
+      begin
+         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Path);
+         Ada.Text_IO.Close (File);
+      exception
+         when others =>
+            if Ada.Text_IO.Is_Open (File) then
+               Ada.Text_IO.Close (File);
+            end if;
+      end Touch;
+
+      procedure Restore is
+      begin
+         if Flag_Had then
+            Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", Flag_Old);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_CLEANUP_WORKER");
+         end if;
+         if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
+            Touch (Item ("release-cleanup-worker"));
+            for Attempt in 1 .. 5_000 loop
+               exit when not Ada.Directories.Exists (To_String (Transport));
+               delay 0.001;
+            end loop;
+         end if;
+         if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
+            Project_Tools.Files.Delete_Tree (To_String (Transport));
+         end if;
+      end Restore;
+   begin
+      Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", "1");
+      Files.Process_Jobs.Reserve (Job);
+      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+      Ada.Directories.Create_Directory (Item ("stages"));
+
+      Before := Ada.Calendar.Clock;
+      Files.Process_Jobs.Reset (Job);
+      Assert
+        (Ada.Calendar.Clock - Before < Prompt_Limit,
+         "session disposal returns without waiting for the cleanup worker");
+      for Attempt in 1 .. 5_000 loop
+         exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
+         delay 0.001;
+      end loop;
+      Assert
+        (Ada.Directories.Exists (Item ("cleanup-worker-started"))
+         and then Ada.Directories.Exists (To_String (Transport)),
+         "the stalled worker remains owned after disposal returns");
+
+      Touch (Item ("release-cleanup-worker"));
+      for Attempt in 1 .. 5_000 loop
+         exit when not Ada.Directories.Exists (To_String (Transport));
+         delay 0.001;
+      end loop;
+      Assert
+        (not Ada.Directories.Exists (To_String (Transport)),
+         "cleanup completes without a later process-jobs API call");
+
+      if Hostkit.Host.Current = Hostkit.Host.Linux
+        and then Ada.Directories.Exists ("/proc/thread-self/children")
+      then
+         declare
+            Children_Before : constant String :=
+              Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children");
+            Launcher_Id : Integer;
+            Resumed : Boolean;
+            Id_File : Ada.Text_IO.File_Type;
+         begin
+            Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", "stop");
+            Files.Process_Jobs.Reserve (Job);
+            Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+            Ada.Directories.Create_Directory (Item ("stages"));
+            Files.Process_Jobs.Reset (Job);
+            for Attempt in 1 .. 5_000 loop
+               exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
+               delay 0.001;
+            end loop;
+            Assert
+              (Ada.Directories.Exists (Item ("cleanup-worker-started")),
+               "the stopped cleanup worker publishes its process id");
+            --  Let the uncatchable stop take effect before the autonomous
+            --  reaper observes its state.
+            delay 0.05;
+            Ada.Text_IO.Open
+              (Id_File, Ada.Text_IO.In_File, Item ("cleanup-worker-started"));
+            Launcher_Id := Integer'Value (Ada.Text_IO.Get_Line (Id_File));
+            Ada.Text_IO.Close (Id_File);
+            Resumed := Hostkit.Signals.Send_To_Process
+              (Launcher_Id, Hostkit.Signals.Signal_Continue);
+            Assert (Resumed, "the stopped cleanup worker remains resumable");
+            for Attempt in 1 .. 5_000 loop
+               exit when not Ada.Directories.Exists (To_String (Transport))
+                 and then Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
+                   Children_Before;
+               delay 0.001;
+            end loop;
+            Assert
+              (not Ada.Directories.Exists (To_String (Transport))
+               and then Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
+                 Children_Before,
+               "stopped and continued cleanup workers stay owned until reaped");
+         end;
+      end if;
+      Restore;
+   exception
+      when others =>
+         Restore;
+         raise;
+   end Test_Autonomous_Cleanup_Worker;

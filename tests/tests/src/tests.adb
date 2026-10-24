@@ -9,6 +9,7 @@ with AUnit;
 with AUnit.Reporter.Text;
 with AUnit.Options;
 with AUnit.Run;
+with Files_Suite.Support;
 with All_Suites;
 with Files.Job_Helpers;
 with Files.Job_Context;
@@ -660,6 +661,8 @@ begin
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Status :=
         Run (Reporter, (AUnit.Options.Default_Options with delta Filter => Test_Progress.Filter'Access));
+      --  Tests that cannot run on this host count as passed with AUnit; say how many.
+      Ada.Text_IO.Put_Line ("Skipped Tests:" & Natural'Image (Files_Suite.Support.Skip_Count));
       if Status = AUnit.Failure then
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;

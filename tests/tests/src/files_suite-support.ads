@@ -8,6 +8,53 @@ with Files.Types;
 
 package Files_Suite.Support is
 
+   --  Record that Test does not run here (a host without the feature it
+   --  needs), so a skipped test is counted and named instead of passing in
+   --  silence.
+   --
+   --  @param Test The test routine.
+   --  @param Reason The condition that skips it.
+   procedure Skip (Test : String; Reason : String);
+
+   --  How many tests skipped so far.
+   --
+   --  @return The number of Skip calls.
+   function Skip_Count return Natural;
+
+   --  Assert Actual = Expected; a failure says both values, not only what
+   --  was expected to hold.
+   --
+   --  @param Actual Observed value.
+   --  @param Expected Wanted value.
+   --  @param Message What the check is about.
+   procedure Assert_Equal (Actual, Expected : Integer; Message : String);
+
+   --  As Assert_Equal for sizes and byte counts.
+   --
+   --  @param Actual Observed value.
+   --  @param Expected Wanted value.
+   --  @param Message What the check is about.
+   procedure Assert_Equal (Actual, Expected : Long_Long_Integer; Message : String);
+
+   --  As Assert_Equal for text.
+   --
+   --  @param Actual Observed value.
+   --  @param Expected Wanted value.
+   --  @param Message What the check is about.
+   procedure Assert_Equal (Actual, Expected : String; Message : String);
+
+   --  As Assert_Equal for flags.
+   --
+   --  @param Actual Observed value.
+   --  @param Expected Wanted value.
+   --  @param Message What the check is about.
+   procedure Assert_Equal (Actual, Expected : Boolean; Message : String);
+
+   --  How long a call may take and still count as not waiting for a stalled
+   --  helper (which never finishes): long enough for a loaded CI runner to
+   --  spawn a process, far short of anything that would wait.
+   Prompt_Limit : constant Duration := 1.0;
+
    --  Restores the environment variables it saved when it leaves scope,
    --  whether the test passed or an assertion raised, so a failing test
    --  cannot leave HOME or TMPDIR pointing into its fixtures.

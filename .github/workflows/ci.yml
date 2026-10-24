@@ -179,7 +179,7 @@ jobs:
             git -C "$name" fetch --depth 1 origin "$revision"
             git -C "$name" checkout --detach FETCH_HEAD
           }
-          clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
+          clone_at project_tools 963f8c922115d2174a05bf0d190ef9fbe5ead62b
           clone_at i18n 33d2dc7775f97adf4c227643b7d2b81850cc76da
           clone_at messages a6fb47b2a1d520d2e202dd9d7ac318375116615a
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
@@ -1024,7 +1024,8 @@ jobs:
         run: |
           (cd tools && alr --non-interactive build)
           ./tools/bin/release_check
-          ./tools/bin/check_all
+          # The test step above already ran the suite (with a 1 MiB stack).
+          ./tools/bin/check_all --skip-suite
       - name: Validate desktop packaging metadata (Linux)
         if: runner.os == 'Linux'
         shell: bash
