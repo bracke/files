@@ -651,6 +651,28 @@ package body Files.Model is
    function Take_Recent_Opens (Model : in out Window_Model) return Files.Types.String_Vectors.Vector
      renames Navigation.Take_Recent_Opens;
 
+   procedure Note_Path_Move
+     (Model : in out Window_Model;
+      From  : String;
+      To    : String) is
+   begin
+      if From /= "" and then To /= "" and then From /= To then
+         Model.Moved_From_Queue.Append (To_Unbounded_String (From));
+         Model.Moved_To_Queue.Append (To_Unbounded_String (To));
+      end if;
+   end Note_Path_Move;
+
+   procedure Take_Path_Moves
+     (Model : in out Window_Model;
+      From  : out Files.Types.String_Vectors.Vector;
+      To    : out Files.Types.String_Vectors.Vector) is
+   begin
+      From := Model.Moved_From_Queue;
+      To := Model.Moved_To_Queue;
+      Model.Moved_From_Queue.Clear;
+      Model.Moved_To_Queue.Clear;
+   end Take_Path_Moves;
+
    function Can_Go_Back (Model : Window_Model) return Boolean
      renames Navigation.Can_Go_Back;
 

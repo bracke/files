@@ -201,6 +201,19 @@ package Files.Interaction is
       To_Index      : Files.Types.Detail_Column_Index;
       Result        : out Interaction_Result);
 
+   --  Make labels, favorites and recent entries follow the renames and moves
+   --  the model recorded (Files.Model.Note_Path_Move), and persist them.
+   --
+   --  @param Model Model whose recorded moves are drained.
+   --  @param Settings Live settings model updated in place.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @return True when any stored path changed.
+   function Follow_Path_Moves
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Boolean;
+
    --  Persist the settings model to the central settings file. A no-op when the
    --  path is empty; write failures are intentionally ignored.
    --

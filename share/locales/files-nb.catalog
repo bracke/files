@@ -218,6 +218,7 @@ nb.error.selection.empty = Ingen elementer er valgt.
 nb.error.open_action.missing = Ingen åpningshandling er konfigurert for denne filtypen.
 nb.error.open_action.execution = Den konfigurerte åpningshandlingen kunne ikke kjøres.
 nb.error.settings.invalid = Innstillingsfilen er ugyldig.
+nb.error.settings.full = For mange fargeetiketter og favoritter til å lagre. Fjern noen først.
 nb.error.settings.not_file = Innstillingsstien er ikke en vanlig fil.
 nb.error.settings.load = Innstillingsfilen kunne ikke lastes.
 nb.error.settings.save = Innstillingsfilen kunne ikke lagres.

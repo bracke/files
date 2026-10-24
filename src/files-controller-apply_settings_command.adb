@@ -21,6 +21,7 @@ begin
          declare
             Selected : constant Files.File_System.Item_Vectors.Vector :=
               Files.Model.Selected_Items (Model);
+            Before   : constant Files.Settings.Settings_Model := Settings;
             Changed  : Boolean := False;
 
             --  Add or remove Path so it matches Favorited, toggling only when
@@ -78,7 +79,11 @@ begin
                   end loop;
                end;
             end if;
-            if Changed then
+            if Changed and then not Files.Settings.Loadable (Settings) then
+               --  Too many favorites to load again: refuse the toggle whole.
+               Settings := Before;
+               Files.Model.Set_Error (Model, "error.settings.full");
+            elsif Changed then
                Persist_Settings (Settings, Settings_Path);
             end if;
             return Executed;

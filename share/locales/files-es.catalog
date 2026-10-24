@@ -218,6 +218,7 @@ es.error.selection.empty = No hay ningún elemento seleccionado.
 es.error.open_action.missing = No hay una acción de apertura configurada para este tipo de archivo.
 es.error.open_action.execution = No se pudo ejecutar la acción de apertura configurada.
 es.error.settings.invalid = El archivo de ajustes no es válido.
+es.error.settings.full = Hay demasiadas etiquetas de color y favoritos para guardar. Elimine algunos primero.
 es.error.settings.not_file = La ruta de ajustes no es un archivo normal.
 es.error.settings.load = No se pudo cargar el archivo de ajustes.
 es.error.settings.save = No se pudo guardar el archivo de ajustes.

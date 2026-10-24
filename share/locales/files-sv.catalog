@@ -218,6 +218,7 @@ sv.error.selection.empty = Inget objekt är markerat.
 sv.error.open_action.missing = Ingen öppningsåtgärd är konfigurerad för denna filtyp.
 sv.error.open_action.execution = Den konfigurerade öppningsåtgärden kunde inte köras.
 sv.error.settings.invalid = Inställningsfilen är ogiltig.
+sv.error.settings.full = För många färgetiketter och favoriter för att spara. Ta bort några först.
 sv.error.settings.not_file = Inställningssökvägen är inte en vanlig fil.
 sv.error.settings.load = Inställningsfilen kunde inte läsas in.
 sv.error.settings.save = Inställningsfilen kunde inte sparas.

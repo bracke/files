@@ -218,6 +218,7 @@ it.error.selection.empty = Nessun elemento selezionato.
 it.error.open_action.missing = Nessuna azione di apertura configurata per questo tipo di file.
 it.error.open_action.execution = Impossibile eseguire l'azione di apertura configurata.
 it.error.settings.invalid = Il file delle impostazioni non è valido.
+it.error.settings.full = Troppe etichette colore e preferiti da salvare. Rimuovine prima alcuni.
 it.error.settings.not_file = Il percorso delle impostazioni non è un file normale.
 it.error.settings.load = Impossibile caricare il file delle impostazioni.
 it.error.settings.save = Impossibile salvare il file delle impostazioni.

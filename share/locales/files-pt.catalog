@@ -218,6 +218,7 @@ pt.error.selection.empty = Nenhum item está selecionado.
 pt.error.open_action.missing = Não há ação de abertura configurada para este tipo de ficheiro.
 pt.error.open_action.execution = Não foi possível executar a ação de abertura configurada.
 pt.error.settings.invalid = O ficheiro de definições é inválido.
+pt.error.settings.full = Demasiadas etiquetas de cor e favoritos para guardar. Remova alguns primeiro.
 pt.error.settings.not_file = O caminho das definições não é um ficheiro normal.
 pt.error.settings.load = Não foi possível carregar o ficheiro de definições.
 pt.error.settings.save = Não foi possível guardar o ficheiro de definições.

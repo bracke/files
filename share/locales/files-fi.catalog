@@ -218,6 +218,7 @@ fi.error.selection.empty = Mitään kohdetta ei ole valittu.
 fi.error.open_action.missing = Tälle tiedostotyypille ei ole määritetty avaustoimintoa.
 fi.error.open_action.execution = Määritettyä avaustoimintoa ei voitu suorittaa.
 fi.error.settings.invalid = Asetustiedosto on virheellinen.
+fi.error.settings.full = Liian monta värietikettiä ja suosikkia tallennettavaksi. Poista ensin osa.
 fi.error.settings.not_file = Asetuspolku ei ole tavallinen tiedosto.
 fi.error.settings.load = Asetustiedostoa ei voitu ladata.
 fi.error.settings.save = Asetustiedostoa ei voitu tallentaa.

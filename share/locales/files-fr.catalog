@@ -218,6 +218,7 @@ fr.error.selection.empty = Aucun élément n'est sélectionné.
 fr.error.open_action.missing = Aucune action d'ouverture n'est configurée pour ce type de fichier.
 fr.error.open_action.execution = L'action d'ouverture configurée n'a pas pu être exécutée.
 fr.error.settings.invalid = Le fichier de réglages est invalide.
+fr.error.settings.full = Trop d’étiquettes de couleur et de favoris à enregistrer. Supprimez-en d’abord.
 fr.error.settings.not_file = Le chemin des réglages n'est pas un fichier ordinaire.
 fr.error.settings.load = Le fichier de réglages n'a pas pu être chargé.
 fr.error.settings.save = Le fichier de réglages n'a pas pu être enregistré.

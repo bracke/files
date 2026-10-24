@@ -218,6 +218,7 @@ nl.error.selection.empty = Er is geen item geselecteerd.
 nl.error.open_action.missing = Geen openactie geconfigureerd voor dit bestandstype.
 nl.error.open_action.execution = Geconfigureerde openactie kon niet worden uitgevoerd.
 nl.error.settings.invalid = Instellingenbestand is ongeldig.
+nl.error.settings.full = Te veel kleurlabels en favorieten om op te slaan. Verwijder er eerst een paar.
 nl.error.settings.not_file = Instellingenpad is geen normaal bestand.
 nl.error.settings.load = Instellingenbestand kon niet worden geladen.
 nl.error.settings.save = Instellingenbestand kon niet worden opgeslagen.

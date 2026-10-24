@@ -51,7 +51,7 @@ package body History is
 
    function Move_Back
      (Action : in out Files.Model.Undo_Entry;
-      Model : Files.Model.Window_Model;
+      Model : in out Files.Model.Window_Model;
       Forward : Boolean) return Boolean
    is
       Sources : constant Files.Types.String_Vectors.Vector := (if Forward then Action.To else Action.From);
@@ -94,9 +94,11 @@ package body History is
                if Identity = "" then
                   Succeeded := False;
                elsif Matches then
+                  Files.Model.Note_Path_Move (Model, Source, Target);
                   Completed (Sources (Index));
                elsif Exists_Safely (Source) then
                   if Files.File_System.Rename_Item (Source, Target, Identity).Success then
+                     Files.Model.Note_Path_Move (Model, Source, Target);
                      --  A cross-device copy gives the moved entry a new identity.
                      Action.Created_Identities.Replace_Element
                        (Index, To_Unbounded_String (Files.File_Identities.Token (Target)));
@@ -204,7 +206,7 @@ package body History is
    --  Apply the reverse (undo) direction of Action. Returns True on full
    --  success. Mirrors the pre-existing single-level undo behaviour.
    function Apply_Reverse
-     (Action : in out Files.Model.Undo_Entry; Model : Files.Model.Window_Model)
+     (Action : in out Files.Model.Undo_Entry; Model : in out Files.Model.Window_Model)
       return Boolean
    is
       Succeeded : Boolean := True;
@@ -388,7 +390,7 @@ package body History is
    --  Apply the forward (redo) direction of Action. Returns True on full
    --  success. Undo_Restore_Trash is undo-only and never reaches here.
    function Apply_Forward
-     (Action : in out Files.Model.Undo_Entry; Model : Files.Model.Window_Model)
+     (Action : in out Files.Model.Undo_Entry; Model : in out Files.Model.Window_Model)
       return Boolean
    is
       Succeeded : Boolean := True;

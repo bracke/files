@@ -124,6 +124,60 @@ package body Files.Interaction is
    --  Fold any paths the model queued while opening items into the persisted
    --  recent list and write the settings. A no-op when nothing was opened, so it
    --  is safe to call after every dispatch seam (open routes through several).
+   --  Give every selected item Label (No_Label clears it) and close the label
+   --  picker. An edit that would make the settings file too big to load again
+   --  is refused whole, with an error, rather than saved.
+   procedure Apply_Label
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Label         : Files.Types.Color_Label;
+      Result        : in out Interaction_Result)
+   is
+      Selected : constant Files.File_System.Item_Vectors.Vector :=
+        Files.Model.Selected_Items (Model);
+      Before   : constant Files.Settings.Settings_Model := Settings;
+   begin
+      for Item of Selected loop
+         Files.Settings.Set_Label (Settings, To_String (Item.Full_Path), Label);
+      end loop;
+      Files.Model.Close_Label_Picker (Model);
+      if Selected.Is_Empty then
+         return;
+      elsif not Files.Settings.Loadable (Settings) then
+         Settings := Before;
+         Files.Model.Set_Error (Model, "error.settings.full");
+         return;
+      end if;
+      Persist_Settings (Settings, Settings_Path);
+      Result.Settings_Changed := True;
+   end Apply_Label;
+
+   function Follow_Path_Moves
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Boolean
+   is
+      From, To : Files.Types.String_Vectors.Vector;
+      Changed  : Boolean := False;
+   begin
+      Files.Model.Take_Path_Moves (Model, From, To);
+      for Index in From.First_Index .. From.Last_Index loop
+         declare
+            Moved : Boolean;
+         begin
+            Files.Settings.Move_Path_References
+              (Settings, To_String (From (Index)), To_String (To (Index)), Moved);
+            Changed := Changed or else Moved;
+         end;
+      end loop;
+      if Changed then
+         Persist_Settings (Settings, Settings_Path);
+      end if;
+      return Changed;
+   end Follow_Path_Moves;
+
    procedure Persist_Recent_Opens
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -133,6 +187,10 @@ package body Files.Interaction is
       Opened : constant Files.Types.String_Vectors.Vector :=
         Files.Model.Take_Recent_Opens (Model);
    begin
+      --  Renames and moves made by this action carry their labels along.
+      if Follow_Path_Moves (Model, Settings, Settings_Path) then
+         Result.Settings_Changed := True;
+      end if;
       if Opened.Is_Empty then
          return;
       end if;
@@ -419,21 +477,7 @@ package body Files.Interaction is
         and then Files.Model.Label_Picker_Is_Open (Model)
         and then Key = Guikit.Input.Key_Return
       then
-         declare
-            Label    : constant Files.Types.Color_Label :=
-              Files.Model.Label_Picker_Highlight_Color (Model);
-            Selected : constant Files.File_System.Item_Vectors.Vector :=
-              Files.Model.Selected_Items (Model);
-         begin
-            for Item of Selected loop
-               Files.Settings.Set_Label (Settings, To_String (Item.Full_Path), Label);
-            end loop;
-            Files.Model.Close_Label_Picker (Model);
-            if not Selected.Is_Empty then
-               Persist_Settings (Settings, Settings_Path);
-               Result.Settings_Changed := True;
-            end if;
-         end;
+         Apply_Label (Model, Settings, Settings_Path, Files.Model.Label_Picker_Highlight_Color (Model), Result);
       end if;
 
       --  A keyboard Enter on the open context menu runs the highlighted command,
@@ -574,32 +618,27 @@ package body Files.Interaction is
                 in Files.Types.Color_Label'Pos (Files.Types.Color_Label'First)
                    .. Files.Types.Color_Label'Pos (Files.Types.Color_Label'Last)
             then
-               declare
-                  Label : constant Files.Types.Color_Label :=
-                    Files.Types.Color_Label'Val (Action.Item_Index);
-                  Selected : constant Files.File_System.Item_Vectors.Vector :=
-                    Files.Model.Selected_Items (Model);
-               begin
-                  for Item of Selected loop
-                     Files.Settings.Set_Label
-                       (Settings, To_String (Item.Full_Path), Label);
-                  end loop;
-                  Files.Model.Close_Label_Picker (Model);
-                  if not Selected.Is_Empty then
-                     Persist_Settings (Settings, Settings_Path);
-                     Result.Settings_Changed := True;
-                  end if;
-               end;
+               Apply_Label
+                 (Model, Settings, Settings_Path, Files.Types.Color_Label'Val (Action.Item_Index), Result);
             end if;
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
             --  Toggle the current directory's favorite state directly by path,
             --  independent of the selection, then persist through the same
             --  settings-write seam the Toggle_Favorite_Command uses so it saves.
             if not Files.Model.Input_Owning_Overlay_Is_Open (Model) then
-               Files.Settings.Toggle_Favorite_Path
-                 (Settings, Files.Model.Current_Path (Model));
-               Persist_Settings (Settings, Settings_Path);
-               Result.Settings_Changed := True;
+               declare
+                  Before : constant Files.Settings.Settings_Model := Settings;
+               begin
+                  Files.Settings.Toggle_Favorite_Path
+                    (Settings, Files.Model.Current_Path (Model));
+                  if Files.Settings.Loadable (Settings) then
+                     Persist_Settings (Settings, Settings_Path);
+                     Result.Settings_Changed := True;
+                  else
+                     Settings := Before;
+                     Files.Model.Set_Error (Model, "error.settings.full");
+                  end if;
+               end;
             end if;
          when Files.Events.Tree_Click_Input_Action =>
             Outcome :=

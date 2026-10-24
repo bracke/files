@@ -1584,6 +1584,7 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.settings.invalid_sort_field");
       Add_Error_Key ("error.settings.invalid_group");
       Add_Error_Key ("error.settings.invalid_label");
+      Add_Error_Key ("error.settings.full");
       Add_Error_Key ("error.settings.invalid_column_order");
       Add_Error_Key ("error.settings.invalid_font_pixel_size");
       Add_Error_Key ("error.settings.unknown_key");

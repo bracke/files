@@ -216,6 +216,15 @@ package body Undo_Redo is
       if Kind = Undo_None or else From.Is_Empty then
          return False;
       end if;
+      --  A rename or move is recorded once it is done, whether or not it can
+      --  be undone: To holds the old paths, From the new ones.
+      if Kind in Undo_Rename | Undo_Move then
+         for Index in From.First_Index .. From.Last_Index loop
+            if Index <= To.Last_Index then
+               Note_Path_Move (Model, To_String (To (Index)), To_String (From (Index)));
+            end if;
+         end loop;
+      end if;
       if Kind in Undo_Delete_Created | Undo_Rename | Undo_Move | Undo_Restore_Trash
         | Undo_Set_Permissions | Undo_Set_Ownership
       then

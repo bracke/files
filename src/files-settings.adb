@@ -473,6 +473,64 @@ package body Files.Settings is
       Label    : Files.Types.Color_Label)
  is separate;
 
+   procedure Move_Path_References
+     (Settings : in out Settings_Model;
+      From     : String;
+      To       : String;
+      Changed  : out Boolean)
+   is
+      --  Path moved along with From: From itself or an entry inside it.
+      function Moved (Path : String) return String is
+      begin
+         if Path = From then
+            return To;
+         elsif Path'Length > From'Length
+           and then Path (Path'First .. Path'First + From'Length - 1) = From
+           and then Path (Path'First + From'Length) in '/' | GNAT.OS_Lib.Directory_Separator
+         then
+            return To & Path (Path'First + From'Length .. Path'Last);
+         end if;
+         return Path;
+      end Moved;
+
+      procedure Rewrite (Paths : in out String_Vectors.Vector) is
+      begin
+         for Index in Paths.First_Index .. Paths.Last_Index loop
+            declare
+               Old_Path : constant String := To_String (Paths (Index));
+               New_Path : constant String := Moved (Old_Path);
+            begin
+               if New_Path /= Old_Path then
+                  Paths.Replace_Element (Index, To_Unbounded_String (New_Path));
+                  Changed := True;
+               end if;
+            end;
+         end loop;
+      end Rewrite;
+   begin
+      Changed := False;
+      if From = "" or else To = "" or else From = To then
+         return;
+      end if;
+      Rewrite (Settings.Favorite_Paths);
+      Rewrite (Settings.Recent_Paths_Value);
+      for Index in Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
+         declare
+            Old_Path : constant String := To_String (Settings.Labels (Index).Path);
+            New_Path : constant String := Moved (Old_Path);
+         begin
+            if New_Path /= Old_Path then
+               Settings.Labels.Replace_Element
+                 (Index, (Path => To_Unbounded_String (New_Path), Label => Settings.Labels (Index).Label));
+               Changed := True;
+            end if;
+         end;
+      end loop;
+   end Move_Path_References;
+
+   function Loadable (Settings : Settings_Model) return Boolean is
+     (Parse (To_Text (Settings)).Success);
+
    function Has_Embedded_Placeholder
      (Argument : String)
       return Boolean

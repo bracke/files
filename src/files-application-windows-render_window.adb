@@ -75,6 +75,10 @@ separate (Files.Application.Windows)
             Progress : constant Files.Operations.Operation_Result :=
               Files.Operations.Advance_Paste_Execution (Runtime.Model, Runtime.Settings, 8);
             pragma Unreferenced (Progress);
+            --  A finished background move carries its labels along.
+            Followed : constant Boolean :=
+              Files.Interaction.Follow_Path_Moves (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path));
+            pragma Unreferenced (Followed);
          begin
             null;
          end;

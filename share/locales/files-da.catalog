@@ -218,6 +218,7 @@ da.error.selection.empty = Intet element er valgt.
 da.error.open_action.missing = Ingen åbningshandling er konfigureret for denne filtype.
 da.error.open_action.execution = Den konfigurerede åbningshandling kunne ikke udføres.
 da.error.settings.invalid = Indstillingsfilen er ugyldig.
+da.error.settings.full = For mange farveetiketter og favoritter til at gemme. Fjern nogle først.
 da.error.settings.not_file = Indstillingsstien er ikke en almindelig fil.
 da.error.settings.load = Indstillingsfilen kunne ikke indlæses.
 da.error.settings.save = Indstillingsfilen kunne ikke gemmes.

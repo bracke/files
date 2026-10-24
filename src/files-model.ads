@@ -690,6 +690,28 @@ package Files.Model is
      (Model : in out Window_Model)
       return Files.Types.String_Vectors.Vector;
 
+   --  Record that the item at From now lives at To (a rename, a move, or Undo
+   --  or Redo of one), so the interaction layer can make labels, favorites and
+   --  recent entries follow it.
+   --
+   --  @param Model Model to update.
+   --  @param From Old full path.
+   --  @param To New full path.
+   procedure Note_Path_Move
+     (Model : in out Window_Model;
+      From  : String;
+      To    : String);
+
+   --  Return and clear the moves queued by Note_Path_Move, in order.
+   --
+   --  @param Model Model to update.
+   --  @param From Old paths.
+   --  @param To New paths, parallel to From.
+   procedure Take_Path_Moves
+     (Model : in out Window_Model;
+      From  : out Files.Types.String_Vectors.Vector;
+      To    : out Files.Types.String_Vectors.Vector);
+
    --  Return whether back navigation is available.
    --
    --  @param Model Model to inspect.
@@ -2949,6 +2971,10 @@ private
       --  Paths opened since the last drain, awaiting fold into the persisted
       --  recent list by the interaction layer (see Note_Recent_Open).
       Recent_Open_Queue    : Files.Types.String_Vectors.Vector;
+      --  Renames and moves since the last drain, awaiting the interaction
+      --  layer so labels, favorites and recent paths follow (Note_Path_Move).
+      Moved_From_Queue     : Files.Types.String_Vectors.Vector;
+      Moved_To_Queue       : Files.Types.String_Vectors.Vector;
       Items                : Files.File_System.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System.Directory_Signature;
       Filter_Value         : UString;

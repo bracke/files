@@ -368,6 +368,29 @@ package Files.Settings is
       Path     : String;
       Label    : Files.Types.Color_Label);
 
+   --  Follow a rename or move: every label, favorite and recent path that is
+   --  From, or lies inside the folder From, is rewritten to the same place
+   --  under To, so a label stays with its item and a new item at the old path
+   --  does not inherit it.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param From Old full path of the moved item.
+   --  @param To New full path of the moved item.
+   --  @param Changed True when any stored path was rewritten.
+   procedure Move_Path_References
+     (Settings : in out Settings_Model;
+      From     : String;
+      To       : String;
+      Changed  : out Boolean);
+
+   --  Whether Settings, once written, would load again: Parse bounds the file
+   --  (size and entry count) against hostile input, so an edit that grows it
+   --  past those bounds -- thousands of labels -- must be refused, not saved.
+   --
+   --  @param Settings Settings model to check.
+   --  @return True when To_Text (Settings) parses successfully.
+   function Loadable (Settings : Settings_Model) return Boolean;
+
    --  Add or replace an extension-to-filetype mapping.
    --
    --  @param Settings Settings model to update.

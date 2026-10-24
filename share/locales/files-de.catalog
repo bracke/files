@@ -221,6 +221,7 @@ de.error.selection.empty = Kein Element ist ausgewählt.
 de.error.open_action.missing = Für diesen Dateityp ist keine Öffnungsaktion konfiguriert.
 de.error.open_action.execution = Konfigurierte Öffnungsaktion konnte nicht ausgeführt werden.
 de.error.settings.invalid = Einstellungsdatei ist ungültig.
+de.error.settings.full = Zu viele Farbetiketten und Favoriten zum Speichern. Entfernen Sie zuerst einige.
 de.error.settings.not_file = Einstellungspfad ist keine reguläre Datei.
 de.error.settings.load = Einstellungsdatei konnte nicht geladen werden.
 de.error.settings.save = Einstellungsdatei konnte nicht gespeichert werden.

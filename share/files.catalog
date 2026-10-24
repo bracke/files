@@ -666,6 +666,7 @@ en.error.settings.invalid_column_order = Settings file contains an invalid detai
 en.error.settings.unknown_key = Settings file contains an unknown key.
 en.error.settings.missing_section = Settings entry appears before any section.
 en.error.settings.invalid = Settings file is invalid.
+en.error.settings.full = Too many color labels and favorites to save. Remove some first.
 en.error.settings.not_file = Settings path is not a regular file.
 en.error.settings.load = Settings file could not be loaded.
 en.error.settings.save = Settings file could not be saved.
