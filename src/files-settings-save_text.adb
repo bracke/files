@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 separate (Files.Settings)
    function Save_Text
      (Path : String;
@@ -38,8 +39,8 @@ separate (Files.Settings)
             end if;
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Settings.Save_Text");
       end Remove_Owned_Temp;
    begin
       if Path = ""

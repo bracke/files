@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Calendar;
 with Ada.Containers.Vectors;
 with Ada.Directories;
@@ -607,8 +608,8 @@ package body Files.Application.Windows is
    exception
       --  This is a Convention => C callback invoked from GLFW's C stack; an
       --  exception must never unwind through C frames. Swallow anything.
-      when others =>
-         null;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
    end Raw_Drop_Callback;
 
    function To_Glfw_Key (Key : Tracked_Key) return Glfw.Input.Keys.Key;
@@ -2663,8 +2664,8 @@ package body Files.Application.Windows is
             --  rendering should not tear down every window. Skip the frame and
             --  keep the event loop running. (The Wait above paces the loop, so
             --  this cannot become a tight busy-spin.)
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
          end;
       end loop;
 

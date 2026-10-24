@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Streams;
 with Ada.Strings.Hash;
@@ -59,7 +60,8 @@ package body Files.Icon_Assets is
             File := GNAT.OS_Lib.Invalid_FD;
          end if;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Icon_Assets");
       end Close_File;
    begin
       File := Files.Fs.Open_Regular_Read_Following_Links (Path);

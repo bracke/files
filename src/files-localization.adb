@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Ada.Directories;
@@ -377,7 +378,8 @@ package body Files.Localization is
             File := GNAT.OS_Lib.Invalid_FD;
          end if;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Localization");
       end Close_File;
    begin
       if not Ada.Directories.Exists (Path)

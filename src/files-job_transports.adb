@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Calendar;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -181,7 +182,8 @@ package body Files.Job_Transports is
          begin
             Ada.Directories.Delete_File (Path);
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          end;
       end if;
    exception
@@ -225,7 +227,8 @@ package body Files.Job_Transports is
                Ada.Directories.Delete_File (Temp);
             end if;
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          end;
          Identity := Null_Unbounded_String;
          raise;
@@ -243,7 +246,8 @@ package body Files.Job_Transports is
                Ada.Directories.Delete_File (Name);
             end if;
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          end Remove_File;
       begin
          --  Only fixed protocol files can exist before Create returns. Remove
@@ -255,7 +259,8 @@ package body Files.Job_Transports is
          begin
             Ada.Directories.Delete_Directory (Candidate);
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          end;
       end Remove_Failed_Candidate;
    begin
@@ -657,7 +662,8 @@ package body Files.Job_Transports is
                begin
                   Ada.Directories.End_Search (Search);
                exception
-                  when others => null;
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
                end;
                Search_Open := False;
             end if;
@@ -740,7 +746,8 @@ package body Files.Job_Transports is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
             end;
          end if;
          Release (Owner);
@@ -793,7 +800,8 @@ package body Files.Job_Transports is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
             end;
          end if;
    end Scavenge_Witnesses;

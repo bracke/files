@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Calendar;
 with Files.File_System.Support;
 with Ada.Strings.Unbounded;
@@ -1880,8 +1881,8 @@ package body Directory is
             begin
                Kind := Ada.Directories.Kind (Full);
             exception
-               when others =>
-                  null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
             end;
 
             if Kind = Ada.Directories.Ordinary_File then
@@ -1905,8 +1906,8 @@ package body Directory is
                   Result.Latest_Modified_Known := True;
                end if;
             exception
-               when others =>
-                  null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
             end;
          exception
             when others =>

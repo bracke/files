@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.File_System.Support;
 with Files.File_System.Recovery;
 with Files.File_Identities;
@@ -260,8 +261,8 @@ package body Create is
                      null;
                   end;
                exception
-                  when others =>
-                     null;
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Create");
                end;
                return
                  (Success   => False,

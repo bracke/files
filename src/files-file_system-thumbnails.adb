@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.File_System.Support;
 with Files.Private_Directories;
 with Ada.Strings.Unbounded;
@@ -148,8 +149,8 @@ package body Thumbnails is
       Loader_Set_Size (Loader, Target_Width, Target_Height);
    exception
       --  Never let an Ada exception cross the C callback boundary.
-      when others =>
-         null;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
    end Loader_Size_Prepared;
 
    procedure Safe_Free
@@ -178,8 +179,8 @@ package body Thumbnails is
          begin
             Interfaces.C.Strings.Free (Pointer);
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          end;
       end if;
    end Safe_Free;
@@ -404,8 +405,8 @@ package body Thumbnails is
             --  A file that vanished mid-scan, or whose size the host will not
             --  report, simply is not counted. Pruning is housekeeping: it must
             --  never be the reason a thumbnail fails to be written.
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          end;
          <<Continue>>
       end loop;
@@ -436,8 +437,8 @@ package body Thumbnails is
                Total := Total - Candidate.Size;
             end if;
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          end;
       end loop;
    exception
@@ -446,7 +447,8 @@ package body Thumbnails is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
             end;
          end if;
          null;
@@ -997,8 +999,8 @@ package body Thumbnails is
             Ada.Directories.Delete_File (To_String (Temp));
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       end Remove_Owned_Temp;
 
       function Publish_Temp (Target_Path : String) return Boolean is
@@ -1625,7 +1627,8 @@ package body Thumbnails is
                      Zlib.Close (Filter, Ignore_Error => True);
                   end if;
                exception
-                  when others => null;
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
                end Close_Filter;
 
                function Append_Output

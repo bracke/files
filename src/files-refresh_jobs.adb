@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
@@ -602,7 +603,8 @@ package body Files.Refresh_Jobs is
             Ada.Directories.Delete_File (Temporary);
          end if;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
       end Remove_Temporary;
    begin
       Files.Exclusive_Streams.Create (File, Temporary);
@@ -639,7 +641,8 @@ package body Files.Refresh_Jobs is
             Ada.Directories.Delete_File (Claimed);
          end if;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
       end Remove_Claim;
    begin
       if not Files.Process_Jobs.Active (Job.Process) then

@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 separate (Files.Settings)
    function Load_File
      (Path : String)
@@ -23,8 +24,8 @@ separate (Files.Settings)
             File := GNAT.OS_Lib.Invalid_FD;
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Settings.Load_File");
       end Close_File;
    begin
       if Path = "" or else Contains_Nul (Path) then

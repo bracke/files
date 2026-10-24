@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
@@ -333,7 +334,8 @@ package body Files.Process_Jobs is
             return;
          end if;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
       end;
 
       --  A transport without staging records can still resist removal: an
@@ -465,7 +467,8 @@ package body Files.Process_Jobs is
                         Files.Job_Transports.Release (Job.Shared.Owner);
                         Destroy (Job.Shared);
                      exception
-                        when others => null;
+                        when Swallowed : others =>
+                           Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
                      end;
                   end if;
             end;

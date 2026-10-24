@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
@@ -1040,7 +1041,8 @@ package body Files.File_System is
             Support.Delete_Owned_Tree (To_String (Backup));
             Removed := True;
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System");
          end;
          if not Removed then
             declare

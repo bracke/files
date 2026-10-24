@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.Job_Context;
 with Files.File_System.Support;
 with Files.File_System.Recovery;
@@ -697,8 +698,8 @@ package body Trash is
             Ada.Directories.Delete_File (To_String (Info_Path));
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
       end Delete_Info_File_If_Present;
    begin
       Trashed_Path := Null_Unbounded_String;
@@ -904,8 +905,8 @@ package body Trash is
                Ada.Directories.Delete_File (Info_Path);
             end if;
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
          end;
       end if;
 
@@ -1170,8 +1171,8 @@ package body Trash is
                Ada.Directories.Delete_File (Info_Path);
             end if;
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
          end;
 
          return (Success => True, Error_Key => Null_Unbounded_String);

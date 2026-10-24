@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
@@ -55,7 +56,8 @@ package body Files.Recovery_CLI is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Recovery_Cli");
             end;
          end if;
          Fail (Files.Localization.Text ("cli.recovery.error.list") & ':' & ' ' & Directory);

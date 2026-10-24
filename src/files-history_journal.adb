@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Streams;
 with Ada.Directories;
@@ -246,8 +247,8 @@ package body Files.History_Journal is
             Ada.Directories.Delete_File (Temporary);
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.History_Journal");
       end Remove_Owned_Temporary;
    begin
       if Directory = "" then

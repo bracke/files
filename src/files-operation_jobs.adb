@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
@@ -432,7 +433,8 @@ package body Files.Operation_Jobs is
             end if;
          end if;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
       end Recover_Undo;
    begin
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);

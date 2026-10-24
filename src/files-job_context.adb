@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
@@ -165,8 +166,8 @@ package body Files.Job_Context is
             Ada.Directories.Delete_File (Temporary);
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
       end Remove_Owned_Temporary;
    begin
       if Hostkit.Fs.Is_Link (Temporary)
@@ -286,7 +287,8 @@ package body Files.Job_Context is
          end;
       end if;
    exception
-      when others => null;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
    end Sync_Journal;
 
    procedure Register_Stage_Internal
@@ -301,7 +303,8 @@ package body Files.Job_Context is
          Files.Fs.Delete_Tree (Record_Directory);
       end if;
    exception
-      when others => null;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
    end Remove_Record;
 
    procedure Initialize (Directory : String) is
@@ -430,7 +433,8 @@ package body Files.Job_Context is
                      Ada.Directories.Delete_Directory (Candidate);
                      Remove_Record (To_String (Record_Directory));
                   exception
-                     when others => null;
+                     when Swallowed : others =>
+                        Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
                   end;
                   raise;
             end;
@@ -991,7 +995,8 @@ package body Files.Job_Context is
          begin
             Ada.Directories.End_Search (Search);
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          end;
    end Clean_Stages;
 end Files.Job_Context;

@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Environment_Variables;
@@ -95,7 +96,8 @@ package body Files.Job_Scavenger is
       end;
       Report_Directory := Null_Unbounded_String;
    exception
-      when others => null;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
    end Clean_Report;
 
    protected Monitor_Result is
@@ -564,7 +566,8 @@ package body Files.Job_Scavenger is
                begin
                   Ada.Directories.End_Search (Search);
                exception
-                  when others => null;
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
                end;
             end if;
       end Scan;

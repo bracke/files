@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.Copy_Context;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Characters.Handling;
@@ -1297,7 +1298,8 @@ package body Transfer is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Operations.Transfer");
             end;
          end if;
          return Files.Types.String_Vectors.Empty_Vector;

@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Directories;
@@ -240,8 +241,8 @@ package body Files.Fonts is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others =>
-                  null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Fonts");
             end;
          end if;
    end Scan_Font_Directory;

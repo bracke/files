@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.File_System.Support;
 with Ada.Strings.Unbounded;
 with Ada.Directories;
@@ -308,8 +309,8 @@ package body Roots is
             end if;
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Roots");
       end Append_If_Directory;
 
       procedure Append_Children

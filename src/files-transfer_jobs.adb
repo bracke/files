@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
@@ -325,7 +326,8 @@ package body Files.Transfer_Jobs is
             Result.Cancelled := False;
             return;
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          end;
          Read_Transport_Request
            (Files.Process_Jobs.Path (Job.Process, "request"),
@@ -336,7 +338,8 @@ package body Files.Transfer_Jobs is
                Result.Trashed, Backup_Identity);
             Result.Trashed_Identity := Backup_Identity;
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          end;
          if Mode = Files.File_System.Drop_Move then
             Files.Job_Context.Read_Moved
@@ -358,7 +361,8 @@ package body Files.Transfer_Jobs is
             end if;
          end loop;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
       end Recover;
    begin
       Result := (others => <>);

@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 
 with Files.File_System;
@@ -85,7 +86,8 @@ package body Files.Job_Cleanup is
                      end if;
                   end;
                exception
-                  when others => null;
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.Job_Cleanup");
                end;
             end if;
          end if;

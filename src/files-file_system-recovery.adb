@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.File_Identities;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
@@ -230,7 +231,8 @@ package body Files.File_System.Recovery is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             end;
          end if;
          return False;
@@ -318,7 +320,8 @@ package body Files.File_System.Recovery is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             end;
          end if;
    end Delete_Registry_Record;
@@ -443,7 +446,8 @@ package body Files.File_System.Recovery is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             end;
          end if;
    end Unregister;
@@ -535,7 +539,8 @@ package body Files.File_System.Recovery is
       begin
          null;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
       end;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
@@ -687,7 +692,8 @@ package body Files.File_System.Recovery is
             begin
                Delete_Tree (To_String (Stage));
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             end;
             if Length (Registry_Entry) > 0 then
                Delete_Registry_Record (To_String (Registry_Entry));
@@ -785,7 +791,8 @@ package body Files.File_System.Recovery is
             begin
                Ada.Directories.End_Search (Search);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             end;
          end if;
          return Result;
@@ -861,7 +868,8 @@ package body Files.File_System.Recovery is
       begin
          Delete_Tree (Parent);
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
       end;
       Unregister (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);

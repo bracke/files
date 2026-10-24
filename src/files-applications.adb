@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -1068,8 +1069,8 @@ package body Files.Applications is
                end;
             end if;
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Applications");
          end;
       end loop;
 
@@ -1079,8 +1080,8 @@ package body Files.Applications is
          begin
             Ada.Directories.End_Search (Search);
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Applications");
          end;
    end Scan_Directory;
 

@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Streams;
@@ -70,7 +71,8 @@ package body Files.File_System.Support is
             begin
                GNAT.Directory_Operations.Close (Dir);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
             end;
          end if;
          raise;
@@ -84,8 +86,8 @@ package body Files.File_System.Support is
          begin
             Ada.Directories.End_Search (Search);
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
          end;
          Started := False;
       end if;
@@ -98,8 +100,8 @@ package body Files.File_System.Support is
          begin
             Ada.Text_IO.Close (File);
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
          end;
       end if;
    end Safe_Close;
@@ -111,8 +113,8 @@ package body Files.File_System.Support is
          begin
             Ada.Streams.Stream_IO.Close (File);
          exception
-            when others =>
-               null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
          end;
       end if;
    end Safe_Close;
@@ -388,8 +390,8 @@ package body Files.File_System.Support is
                   end;
                end if;
             exception
-               when others =>
-                  null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
             end;
          end loop;
       end Restore_Directory_Times;
@@ -718,7 +720,8 @@ package body Files.File_System.Support is
       begin
          null;
       exception
-         when others => null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
       end;
    exception
       when others =>
@@ -732,7 +735,8 @@ package body Files.File_System.Support is
                end;
             end if;
          exception
-            when others => null;
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
          end;
          raise;
    end Copy_To_New_Path;
@@ -1137,7 +1141,8 @@ package body Files.File_System.Support is
             begin
                Delete_Owned_Tree (Destination_Path);
             exception
-               when others => null;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
             end;
          end if;
          raise;

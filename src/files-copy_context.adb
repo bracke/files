@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -179,8 +180,8 @@ package body Files.Copy_Context is
             Ada.Directories.Delete_File (Temp);
          end if;
       exception
-         when others =>
-            null;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Copy_Context");
       end Remove_Owned_Temp;
    begin
       if Path = "" then
