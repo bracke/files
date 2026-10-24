@@ -10130,8 +10130,11 @@ package body Files_Suite.Operations is
       Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
       Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "");
       Old_Xdg : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
+      --  The stalled helper never finishes, so a command that waited for it
+      --  would hang; the limit bounds only the launch, a process spawn that
+      --  takes about half a second on the slow Windows and macOS Intel runners.
       Prompt_Limit : constant Duration :=
-        (if Hostkit.Host.Current = Hostkit.Host.Windows then 1.0 else 0.25);
+        (if Hostkit.Host.Current in Hostkit.Host.Windows | Hostkit.Host.MacOS then 1.0 else 0.25);
       type Kind is (Trash_Job, Delete_Job, Restore_Job, Empty_Job, Undo_Job, Redo_Job);
       procedure Restore is
       begin
