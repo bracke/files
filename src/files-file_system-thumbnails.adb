@@ -979,6 +979,216 @@ package body Thumbnails is
                  Pixels => Files.Types.Byte_Vectors.Empty_Vector);
    end Decode_Image_To_Pixels;
 
+   function Clamp_Channel (Value : Natural) return Natural is
+   begin
+      return Value mod 256;
+   end Clamp_Channel;
+
+   function File_Size_Signal (Source_Path : String) return Natural is
+   begin
+      return Natural (Long_Long_Integer'Min (Long_Long_Integer (Ada.Directories.Size (Source_Path)), 65_535));
+   exception
+      when others =>
+         return 0;
+   end File_Size_Signal;
+
+   --  Cap the input given to the pure-Ada PNG/PPM decoders, which read the
+   --  whole file into memory before validating its magic bytes. A valid
+   --  image within the 2048x2048 decode cap is at most a few MB, so 32 MiB is
+   --  generous; a larger (or unreadable-size) file skips the slurping fast
+   --  path and falls through to the streaming gdk-pixbuf loader, so a huge
+   --  non-image named *.png can no longer be read into RAM on a directory
+   --  browse (a memory/CPU denial of service).
+   Max_Fast_Decode_Source_Bytes : constant Natural := 33_554_432;
+
+   function Source_Fits_Fast_Decode (Source_Path : String) return Boolean is
+   begin
+      return Long_Long_Integer (Ada.Directories.Size (Source_Path))
+               <= Long_Long_Integer (Max_Fast_Decode_Source_Bytes);
+   exception
+      when others =>
+         return False;
+   end Source_Fits_Fast_Decode;
+
+   type Rgba_Pixel is record
+      Red   : Natural := 0;
+      Green : Natural := 0;
+      Blue  : Natural := 0;
+      Alpha : Natural := 255;
+   end record;
+
+   package Pixel_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Rgba_Pixel);
+
+   package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Ada.Streams.Stream_Element);
+
+   type Stream_Element_Array_Access is
+     access Ada.Streams.Stream_Element_Array;
+   procedure Free_Stream_Element_Array is new Ada.Unchecked_Deallocation
+     (Object => Ada.Streams.Stream_Element_Array,
+      Name   => Stream_Element_Array_Access);
+
+   type Gdk_Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
+   pragma Convention (C, Gdk_Pixel_Array);
+
+   package Gdk_Pixel_Pointers is new System.Address_To_Access_Conversions (Gdk_Pixel_Array);
+   use type Gdk_Pixel_Pointers.Object_Pointer;
+
+   function Byte_At
+     (Data  : Thumbnail_Byte_Vectors.Vector;
+      Index : Natural)
+      return Natural is
+   begin
+      if Index >= Natural (Data.Length) then
+         return 0;
+      end if;
+
+      return Natural (Data.Element (Index));
+   end Byte_At;
+
+   function U32_BE_From
+     (Data  : Thumbnail_Byte_Vectors.Vector;
+      Index : Natural)
+      return Natural
+   is
+      use type Interfaces.Unsigned_32;
+      Value : constant Interfaces.Unsigned_32 :=
+        Interfaces.Unsigned_32 (Byte_At (Data, Index)) * 16#1000000#
+        + Interfaces.Unsigned_32 (Byte_At (Data, Index + 1)) * 16#10000#
+        + Interfaces.Unsigned_32 (Byte_At (Data, Index + 2)) * 16#100#
+        + Interfaces.Unsigned_32 (Byte_At (Data, Index + 3));
+   begin
+      --  Compute in Unsigned_32 (modular, no overflow) and clamp: a crafted
+      --  PNG length/dimension with the high bit set exceeds Natural'Last, and
+      --  the old Natural arithmetic overflowed into a Constraint_Error.
+      --  Callers reject the resulting too-large dimension anyway.
+      return Natural (Interfaces.Unsigned_32'Min (Value, Interfaces.Unsigned_32 (Natural'Last)));
+   end U32_BE_From;
+
+   function Bytes_To_Stream_Array
+     (Data : Thumbnail_Byte_Vectors.Vector)
+      return Stream_Element_Array_Access
+   is
+      Result : Stream_Element_Array_Access :=
+        new Ada.Streams.Stream_Element_Array
+          (0 .. Ada.Streams.Stream_Element_Offset (Data.Length) - 1);
+   begin
+      for Index in 0 .. Natural (Data.Length) - 1 loop
+         Result (Ada.Streams.Stream_Element_Offset (Index)) :=
+           Data.Element (Index);
+      end loop;
+
+      return Result;
+   exception
+      when others =>
+         Free_Stream_Element_Array (Result);
+         raise;
+   end Bytes_To_Stream_Array;
+
+   --  Binary P6, not the ASCII P3 this used to write.
+   --
+   --  Identical pixels either way, but a 64x64 thumbnail is 12 KB here and
+   --  was 43 KB as text, and the loader on the directory-listing path had to
+   --  turn some twelve thousand ASCII numbers per thumbnail into as many
+   --  strings to read one back.
+   --
+   --  Stream_IO rather than Text_IO, and not only for the line endings:
+   --  Alire's switches carry -gnatW8, so Text_IO would try to encode every
+   --  pixel byte above 127 as UTF-8 on the way out and corrupt the image.
+   --  Load_Cached_Thumbnail reads both formats, so caches written before
+   --  this keep working rather than being silently discarded.
+   procedure Write_Pixels_As_Ppm
+     (Target_Path   : String;
+      Size          : Positive;
+      Pixels        : Pixel_Vectors.Vector;
+      Source_Width  : Natural;
+      Source_Height : Natural)
+   is
+      use Ada.Streams;
+
+      Output : Stream_IO.File_Type;
+      Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
+
+      procedure Put_Header (Text : String) is
+         Buffer : Stream_Element_Array (1 .. Text'Length);
+      begin
+         for Index in Text'Range loop
+            Buffer (Stream_Element_Offset (Index - Text'First + 1)) :=
+              Stream_Element (Character'Pos (Text (Index)));
+         end loop;
+
+         Stream_IO.Write (Output, Buffer);
+      end Put_Header;
+
+      function Against_White
+        (Channel, Alpha : Natural) return Stream_Element is
+        (Stream_Element
+           ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
+   begin
+      Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path);
+      Put_Header
+        ("P6" & ASCII.LF
+         & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF
+         & "255" & ASCII.LF);
+
+      for Row in 0 .. Size - 1 loop
+         for Column in 0 .. Size - 1 loop
+            declare
+               Source_Row    : constant Natural := Row * Source_Height / Size;
+               Source_Column : constant Natural := Column * Source_Width / Size;
+               Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
+               Pixel         : constant Rgba_Pixel := Pixels.Element (Source_Index);
+               At_Byte       : constant Stream_Element_Offset :=
+                 Stream_Element_Offset (Column) * 3 + 1;
+            begin
+               --  PPM has no alpha channel. Composite rather than exposing
+               --  arbitrary RGB values hidden beneath transparent pixels.
+               Row_Bytes (At_Byte)     := Against_White (Pixel.Red, Pixel.Alpha);
+               Row_Bytes (At_Byte + 1) := Against_White (Pixel.Green, Pixel.Alpha);
+               Row_Bytes (At_Byte + 2) := Against_White (Pixel.Blue, Pixel.Alpha);
+            end;
+         end loop;
+
+         Stream_IO.Write (Output, Row_Bytes);
+      end loop;
+
+      Stream_IO.Close (Output);
+   exception
+      when others =>
+         if Stream_IO.Is_Open (Output) then
+            Stream_IO.Close (Output);
+         end if;
+         raise;
+   end Write_Pixels_As_Ppm;
+
+   function Try_Write_Decoded_P3_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean
+   is separate;
+
+   function Try_Write_Decoded_Png_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean
+   is separate;
+
+   function Try_Write_Gdk_Pixbuf_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean
+   is separate;
+
+   Checksum  : Natural := 0;
+   Size_Bias : Natural := 0;
+   Target    : Unbounded_String;
+
    function Generate_Thumbnail
      (Source_Path      : String;
       Cache_Directory : String;
@@ -1019,840 +1229,6 @@ package body Thumbnails is
             return False;
       end Publish_Temp;
 
-      function Clamp_Channel (Value : Natural) return Natural is
-      begin
-         return Value mod 256;
-      end Clamp_Channel;
-
-      function File_Size_Signal return Natural is
-      begin
-         return Natural (Long_Long_Integer'Min (Long_Long_Integer (Ada.Directories.Size (Source_Path)), 65_535));
-      exception
-         when others =>
-            return 0;
-      end File_Size_Signal;
-
-      --  Cap the input given to the pure-Ada PNG/PPM decoders, which read the
-      --  whole file into memory before validating its magic bytes. A valid
-      --  image within the 2048x2048 decode cap is at most a few MB, so 32 MiB is
-      --  generous; a larger (or unreadable-size) file skips the slurping fast
-      --  path and falls through to the streaming gdk-pixbuf loader, so a huge
-      --  non-image named *.png can no longer be read into RAM on a directory
-      --  browse (a memory/CPU denial of service).
-      Max_Fast_Decode_Source_Bytes : constant Natural := 33_554_432;
-
-      function Source_Fits_Fast_Decode return Boolean is
-      begin
-         return Long_Long_Integer (Ada.Directories.Size (Source_Path))
-                  <= Long_Long_Integer (Max_Fast_Decode_Source_Bytes);
-      exception
-         when others =>
-            return False;
-      end Source_Fits_Fast_Decode;
-
-      type Rgba_Pixel is record
-         Red   : Natural := 0;
-         Green : Natural := 0;
-         Blue  : Natural := 0;
-         Alpha : Natural := 255;
-      end record;
-
-      package Pixel_Vectors is new Ada.Containers.Vectors
-        (Index_Type   => Natural,
-         Element_Type => Rgba_Pixel);
-
-      package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
-        (Index_Type   => Natural,
-         Element_Type => Ada.Streams.Stream_Element);
-
-      type Stream_Element_Array_Access is
-        access Ada.Streams.Stream_Element_Array;
-      procedure Free_Stream_Element_Array is new Ada.Unchecked_Deallocation
-        (Object => Ada.Streams.Stream_Element_Array,
-         Name   => Stream_Element_Array_Access);
-
-      type Gdk_Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
-      pragma Convention (C, Gdk_Pixel_Array);
-
-      package Gdk_Pixel_Pointers is new System.Address_To_Access_Conversions (Gdk_Pixel_Array);
-      use type Gdk_Pixel_Pointers.Object_Pointer;
-
-      function Byte_At
-        (Data  : Thumbnail_Byte_Vectors.Vector;
-         Index : Natural)
-         return Natural is
-      begin
-         if Index >= Natural (Data.Length) then
-            return 0;
-         end if;
-
-         return Natural (Data.Element (Index));
-      end Byte_At;
-
-      function U32_BE_From
-        (Data  : Thumbnail_Byte_Vectors.Vector;
-         Index : Natural)
-         return Natural
-      is
-         use type Interfaces.Unsigned_32;
-         Value : constant Interfaces.Unsigned_32 :=
-           Interfaces.Unsigned_32 (Byte_At (Data, Index)) * 16#1000000#
-           + Interfaces.Unsigned_32 (Byte_At (Data, Index + 1)) * 16#10000#
-           + Interfaces.Unsigned_32 (Byte_At (Data, Index + 2)) * 16#100#
-           + Interfaces.Unsigned_32 (Byte_At (Data, Index + 3));
-      begin
-         --  Compute in Unsigned_32 (modular, no overflow) and clamp: a crafted
-         --  PNG length/dimension with the high bit set exceeds Natural'Last, and
-         --  the old Natural arithmetic overflowed into a Constraint_Error.
-         --  Callers reject the resulting too-large dimension anyway.
-         return Natural (Interfaces.Unsigned_32'Min (Value, Interfaces.Unsigned_32 (Natural'Last)));
-      end U32_BE_From;
-
-      function Bytes_To_Stream_Array
-        (Data : Thumbnail_Byte_Vectors.Vector)
-         return Stream_Element_Array_Access
-      is
-         Result : Stream_Element_Array_Access :=
-           new Ada.Streams.Stream_Element_Array
-             (0 .. Ada.Streams.Stream_Element_Offset (Data.Length) - 1);
-      begin
-         for Index in 0 .. Natural (Data.Length) - 1 loop
-            Result (Ada.Streams.Stream_Element_Offset (Index)) :=
-              Data.Element (Index);
-         end loop;
-
-         return Result;
-      exception
-         when others =>
-            Free_Stream_Element_Array (Result);
-            raise;
-      end Bytes_To_Stream_Array;
-
-      --  Binary P6, not the ASCII P3 this used to write.
-      --
-      --  Identical pixels either way, but a 64x64 thumbnail is 12 KB here and
-      --  was 43 KB as text, and the loader on the directory-listing path had to
-      --  turn some twelve thousand ASCII numbers per thumbnail into as many
-      --  strings to read one back.
-      --
-      --  Stream_IO rather than Text_IO, and not only for the line endings:
-      --  Alire's switches carry -gnatW8, so Text_IO would try to encode every
-      --  pixel byte above 127 as UTF-8 on the way out and corrupt the image.
-      --  Load_Cached_Thumbnail reads both formats, so caches written before
-      --  this keep working rather than being silently discarded.
-      procedure Write_Pixels_As_Ppm
-        (Target_Path   : String;
-         Pixels        : Pixel_Vectors.Vector;
-         Source_Width  : Natural;
-         Source_Height : Natural)
-      is
-         use Ada.Streams;
-
-         Output : Stream_IO.File_Type;
-         Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
-
-         procedure Put_Header (Text : String) is
-            Buffer : Stream_Element_Array (1 .. Text'Length);
-         begin
-            for Index in Text'Range loop
-               Buffer (Stream_Element_Offset (Index - Text'First + 1)) :=
-                 Stream_Element (Character'Pos (Text (Index)));
-            end loop;
-
-            Stream_IO.Write (Output, Buffer);
-         end Put_Header;
-
-         function Against_White
-           (Channel, Alpha : Natural) return Stream_Element is
-           (Stream_Element
-              ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
-      begin
-         Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path);
-         Put_Header
-           ("P6" & ASCII.LF
-            & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF
-            & "255" & ASCII.LF);
-
-         for Row in 0 .. Size - 1 loop
-            for Column in 0 .. Size - 1 loop
-               declare
-                  Source_Row    : constant Natural := Row * Source_Height / Size;
-                  Source_Column : constant Natural := Column * Source_Width / Size;
-                  Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
-                  Pixel         : constant Rgba_Pixel := Pixels.Element (Source_Index);
-                  At_Byte       : constant Stream_Element_Offset :=
-                    Stream_Element_Offset (Column) * 3 + 1;
-               begin
-                  --  PPM has no alpha channel. Composite rather than exposing
-                  --  arbitrary RGB values hidden beneath transparent pixels.
-                  Row_Bytes (At_Byte)     := Against_White (Pixel.Red, Pixel.Alpha);
-                  Row_Bytes (At_Byte + 1) := Against_White (Pixel.Green, Pixel.Alpha);
-                  Row_Bytes (At_Byte + 2) := Against_White (Pixel.Blue, Pixel.Alpha);
-               end;
-            end loop;
-
-            Stream_IO.Write (Output, Row_Bytes);
-         end loop;
-
-         Stream_IO.Close (Output);
-      exception
-         when others =>
-            if Stream_IO.Is_Open (Output) then
-               Stream_IO.Close (Output);
-            end if;
-            raise;
-      end Write_Pixels_As_Ppm;
-
-      function Try_Write_Decoded_P3_Thumbnail
-        (Target_Path : String)
-         return Boolean
-      is
-         Token   : Unbounded_String;
-         Content : Unbounded_String;
-         Scan_Index : Positive := 1;
-         Pixels : Pixel_Vectors.Vector;
-         Source_Width  : Natural := 0;
-         Source_Height : Natural := 0;
-         Max_Value     : Natural := 0;
-         Read_Succeeded : Boolean := False;
-         Read_Complete  : Boolean := False;
-
-         function Next_Token return Boolean is
-            Value : Character;
-         begin
-            Token := Null_Unbounded_String;
-            while Scan_Index <= Length (Content) loop
-               Value := Element (Content, Scan_Index);
-               Scan_Index := Scan_Index + 1;
-               if Value = ' ' or else Value = ASCII.HT or else Value = ASCII.LF or else Value = ASCII.CR then
-                  if Length (Token) > 0 then
-                     return True;
-                  end if;
-               elsif Value = '#' then
-                  while Scan_Index <= Length (Content)
-                    and then Element (Content, Scan_Index) /= ASCII.LF
-                    and then Element (Content, Scan_Index) /= ASCII.CR
-                  loop
-                     Scan_Index := Scan_Index + 1;
-                  end loop;
-                  if Length (Token) > 0 then
-                     return True;
-                  end if;
-               else
-                  Append (Token, Value);
-               end if;
-            end loop;
-
-            return Length (Token) > 0;
-         end Next_Token;
-
-         function Next_Natural
-           (Value : out Natural)
-            return Boolean is
-         begin
-            if not Next_Token then
-               return False;
-            end if;
-
-            Value := Natural'Value (To_String (Token));
-            return True;
-         exception
-            when others =>
-               return False;
-         end Next_Natural;
-
-         function Scaled_Channel
-           (Value : Natural)
-            return Natural is
-         begin
-            if Max_Value = 0 then
-               return 0;
-            elsif Max_Value = 255 then
-               return Natural'Min (Value, 255);
-            end if;
-
-            return Natural'Min ((Value * 255) / Max_Value, 255);
-         end Scaled_Channel;
-      begin
-         Content := To_Unbounded_String
-           (Read_Bounded_Regular_File
-              (Source_Path, Max_Fast_Decode_Source_Bytes,
-               Read_Succeeded, Read_Complete));
-         if not Read_Succeeded or else not Read_Complete then
-            return False;
-         end if;
-
-         if not Next_Token or else To_String (Token) /= "P3" then
-            return False;
-         end if;
-
-         if not Next_Natural (Source_Width)
-           or else not Next_Natural (Source_Height)
-           or else not Next_Natural (Max_Value)
-           or else Source_Width = 0
-           or else Source_Height = 0
-           or else Max_Value = 0
-           or else Max_Value > 65_535
-           or else Source_Width > Max_Source_Side
-           or else Source_Height > Max_Source_Side
-           or else Source_Width * Source_Height > Max_Source_Pixels
-         then
-            return False;
-         end if;
-
-         for Pixel_Index in 1 .. Source_Width * Source_Height loop
-            declare
-               Red   : Natural;
-               Green : Natural;
-               Blue  : Natural;
-            begin
-               if not Next_Natural (Red)
-                 or else not Next_Natural (Green)
-                 or else not Next_Natural (Blue)
-                 or else Red > Max_Value
-                 or else Green > Max_Value
-                 or else Blue > Max_Value
-               then
-                  return False;
-               end if;
-
-               Pixels.Append
-                 (New_Item =>
-                    Rgba_Pixel'
-                      (Red   => Scaled_Channel (Red),
-                       Green => Scaled_Channel (Green),
-                       Blue  => Scaled_Channel (Blue),
-                       Alpha => 255));
-            end;
-         end loop;
-
-         if Next_Token then
-            return False;
-         end if;
-
-         Write_Pixels_As_Ppm (Target_Path, Pixels, Source_Width, Source_Height);
-         return True;
-      exception
-         when others =>
-            return False;
-      end Try_Write_Decoded_P3_Thumbnail;
-
-      function Try_Write_Decoded_Png_Thumbnail
-        (Target_Path : String)
-         return Boolean
-      is
-         use type GNAT.OS_Lib.File_Descriptor;
-         File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-         Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
-         Bytes_Read : Integer;
-         Bytes      : Thumbnail_Byte_Vectors.Vector;
-         Idat       : Thumbnail_Byte_Vectors.Vector;
-         Width  : Natural := 0;
-         Height : Natural := 0;
-         Bit_Depth  : Natural := 0;
-         Color_Type : Natural := 0;
-         Interlace  : Natural := 0;
-         Position   : Natural := 8;
-         Channels   : Natural := 0;
-         Pixels     : Pixel_Vectors.Vector;
-         Saw_Ihdr   : Boolean := False;
-         Saw_Plte   : Boolean := False;
-         Saw_Trns   : Boolean := False;
-         Saw_Idat   : Boolean := False;
-         Ended_Idat : Boolean := False;
-         Saw_Iend   : Boolean := False;
-         Transparent_Red   : Natural := 0;
-         Transparent_Green : Natural := 0;
-         Transparent_Blue  : Natural := 0;
-
-         function Is_Png_Signature return Boolean is
-         begin
-            return Natural (Bytes.Length) >= 8
-              and then Byte_At (Bytes, 0) = 16#89#
-              and then Byte_At (Bytes, 1) = Character'Pos ('P')
-              and then Byte_At (Bytes, 2) = Character'Pos ('N')
-              and then Byte_At (Bytes, 3) = Character'Pos ('G')
-              and then Byte_At (Bytes, 4) = 16#0D#
-              and then Byte_At (Bytes, 5) = 16#0A#
-              and then Byte_At (Bytes, 6) = 16#1A#
-              and then Byte_At (Bytes, 7) = 16#0A#;
-         end Is_Png_Signature;
-
-         function Chunk_Type
-           (Index : Natural)
-            return String is
-         begin
-            return
-              Character'Val (Byte_At (Bytes, Index))
-              & Character'Val (Byte_At (Bytes, Index + 1))
-              & Character'Val (Byte_At (Bytes, Index + 2))
-              & Character'Val (Byte_At (Bytes, Index + 3));
-         end Chunk_Type;
-
-         function Chunk_Crc_Is_Valid
-           (Type_Start : Natural;
-            Crc_Start  : Natural) return Boolean
-         is
-            use type Interfaces.Unsigned_32;
-            Context : GNAT.CRC32.CRC32;
-            Buffer  : Ada.Streams.Stream_Element_Array (1 .. 4096);
-            Cursor  : Natural := Type_Start;
-            Expected : constant Interfaces.Unsigned_32 :=
-              Interfaces.Shift_Left
-                (Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start)), 24)
-              or Interfaces.Shift_Left
-                (Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start + 1)), 16)
-              or Interfaces.Shift_Left
-                (Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start + 2)), 8)
-              or Interfaces.Unsigned_32 (Byte_At (Bytes, Crc_Start + 3));
-         begin
-            GNAT.CRC32.Initialize (Context);
-            while Cursor < Crc_Start loop
-               declare
-                  Count : constant Natural := Natural'Min
-                    (Natural (Buffer'Length), Crc_Start - Cursor);
-               begin
-                  for Index in 0 .. Count - 1 loop
-                     Buffer
-                       (Buffer'First + Ada.Streams.Stream_Element_Offset (Index)) :=
-                         Bytes.Element (Cursor + Index);
-                  end loop;
-                  GNAT.CRC32.Update
-                    (Context,
-                     Buffer
-                       (Buffer'First
-                        .. Buffer'First
-                          + Ada.Streams.Stream_Element_Offset (Count) - 1));
-                  Cursor := Cursor + Count;
-               end;
-            end loop;
-            return GNAT.CRC32.Get_Value (Context) = Expected;
-         exception
-            when others =>
-               return False;
-         end Chunk_Crc_Is_Valid;
-
-         function Paeth
-           (Left  : Natural;
-            Up    : Natural;
-            Upper : Natural)
-            return Natural
-         is
-            P  : constant Integer := Integer (Left) + Integer (Up) - Integer (Upper);
-            PA : constant Natural := Natural (abs (P - Integer (Left)));
-            PB : constant Natural := Natural (abs (P - Integer (Up)));
-            PC : constant Natural := Natural (abs (P - Integer (Upper)));
-         begin
-            if PA <= PB and then PA <= PC then
-               return Left;
-            elsif PB <= PC then
-               return Up;
-            else
-               return Upper;
-            end if;
-         end Paeth;
-      begin
-         File := Files.Fs.Open_Regular_Read (Source_Path);
-         if File = GNAT.OS_Lib.Invalid_FD then
-            return False;
-         end if;
-         loop
-            Bytes_Read := GNAT.OS_Lib.Read
-              (File, Buffer'Address, Integer (Buffer'Length));
-            if Bytes_Read < 0 then
-               raise Ada.Directories.Use_Error;
-            end if;
-            exit when Bytes_Read = 0;
-            if Long_Long_Integer (Natural (Bytes.Length))
-                + Long_Long_Integer (Bytes_Read) >
-                  Long_Long_Integer (Max_Fast_Decode_Source_Bytes)
-            then
-               GNAT.OS_Lib.Close (File);
-               File := GNAT.OS_Lib.Invalid_FD;
-               return False;
-            end if;
-            for Index in Buffer'First
-              .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1
-            loop
-               Bytes.Append (Buffer (Index));
-            end loop;
-         end loop;
-         GNAT.OS_Lib.Close (File);
-         File := GNAT.OS_Lib.Invalid_FD;
-
-         if not Is_Png_Signature then
-            return False;
-         end if;
-
-         while Position + 12 <= Natural (Bytes.Length) loop
-            declare
-               Length_Value : constant Natural := U32_BE_From (Bytes, Position);
-               Kind         : constant String := Chunk_Type (Position + 4);
-               Data_Start   : constant Natural := Position + 8;
-               Data_Last    : constant Natural := Data_Start + Length_Value - 1;
-               Crc_Start    : constant Natural := Data_Start + Length_Value;
-            begin
-               if Data_Start + Length_Value + 4 > Natural (Bytes.Length) then
-                  return False;
-               elsif not Chunk_Crc_Is_Valid (Position + 4, Crc_Start) then
-                  return False;
-               end if;
-
-               if Kind = "IHDR" then
-                  if Saw_Ihdr or else Position /= 8 or else Length_Value /= 13 then
-                     return False;
-                  end if;
-                  Saw_Ihdr := True;
-                  Width := U32_BE_From (Bytes, Data_Start);
-                  Height := U32_BE_From (Bytes, Data_Start + 4);
-                  Bit_Depth := Byte_At (Bytes, Data_Start + 8);
-                  Color_Type := Byte_At (Bytes, Data_Start + 9);
-                  Interlace := Byte_At (Bytes, Data_Start + 12);
-                  if Byte_At (Bytes, Data_Start + 10) /= 0
-                    or else Byte_At (Bytes, Data_Start + 11) /= 0
-                  then
-                     return False;
-                  end if;
-               elsif Kind = "IDAT" then
-                  if not Saw_Ihdr or else Ended_Idat then
-                     return False;
-                  end if;
-                  Saw_Idat := True;
-                  if Length_Value > 0 then
-                     for Index in Data_Start .. Data_Last loop
-                        Idat.Append (Bytes.Element (Index));
-                     end loop;
-                  end if;
-               elsif Kind = "IEND" then
-                  if not Saw_Ihdr or else not Saw_Idat or else Length_Value /= 0 then
-                     return False;
-                  end if;
-                  Saw_Iend := True;
-                  Position := Crc_Start + 4;
-                  exit;
-               elsif Kind = "PLTE" then
-                  if not Saw_Ihdr
-                    or else Saw_Plte
-                    or else Saw_Idat
-                    or else Length_Value = 0
-                    or else Length_Value mod 3 /= 0
-                    or else Length_Value > 768
-                  then
-                     return False;
-                  end if;
-                  Saw_Plte := True;
-               elsif Kind = "tRNS" then
-                  --  For the true-colour format decoded here, tRNS identifies
-                  --  one fully transparent RGB sample.  It must precede IDAT;
-                  --  silently ignoring it exposes RGB data that should be
-                  --  invisible in the generated opaque PPM thumbnail.
-                  if not Saw_Ihdr
-                    or else Saw_Trns
-                    or else Saw_Idat
-                    or else Color_Type /= 2
-                    or else Bit_Depth /= 8
-                    or else Length_Value /= 6
-                    or else Byte_At (Bytes, Data_Start) /= 0
-                    or else Byte_At (Bytes, Data_Start + 2) /= 0
-                    or else Byte_At (Bytes, Data_Start + 4) /= 0
-                  then
-                     return False;
-                  end if;
-                  Saw_Trns := True;
-                  Transparent_Red := Byte_At (Bytes, Data_Start + 1);
-                  Transparent_Green := Byte_At (Bytes, Data_Start + 3);
-                  Transparent_Blue := Byte_At (Bytes, Data_Start + 5);
-               else
-                  if Saw_Idat then
-                     Ended_Idat := True;
-                  end if;
-                  --  Unknown critical chunks change decoding semantics.  This
-                  --  minimal decoder may ignore ancillary chunks only.
-                  if Kind (Kind'First) in 'A' .. 'Z' and then Kind /= "PLTE" then
-                     return False;
-                  end if;
-               end if;
-
-               Position := Crc_Start + 4;
-            end;
-         end loop;
-
-         if not Saw_Iend
-           or else Position /= Natural (Bytes.Length)
-           or else Width = 0
-           or else Height = 0
-           or else Width > Max_Source_Side
-           or else Height > Max_Source_Side
-           --  Guard against absurd dimensions (the inflated raster is bounded by
-           --  RAM, not the stack -- see the heap-backed raster vector below).
-           or else Width * Height > Max_Source_Pixels
-           or else Bit_Depth /= 8
-           or else Interlace /= 0
-           or else Idat.Is_Empty
-         then
-            --  Adam7-interlaced PNGs have a different IDAT layout than the
-            --  single raster this decoder assumes; defer to the gdk-pixbuf
-            --  fallback rather than producing a garbled thumbnail.
-            return False;
-         elsif Color_Type = 2 then
-            Channels := 3;
-         elsif Color_Type = 6 then
-            Channels := 4;
-         else
-            return False;
-         end if;
-
-         declare
-            Row_Stride : constant Natural := Width * Channels;
-            Needed     : constant Natural := Height * (Row_Stride + 1);
-            Compressed : Stream_Element_Array_Access :=
-              Bytes_To_Stream_Array (Idat);
-            Inflated   : Thumbnail_Byte_Vectors.Vector;
-            Previous   : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
-              [others => 0];
-            Current    : Ada.Streams.Stream_Element_Array (0 .. Ada.Streams.Stream_Element_Offset (Row_Stride - 1)) :=
-              [others => 0];
-
-            function Inflate_Raster return Boolean is
-               use type Ada.Containers.Count_Type;
-
-               Filter   : Zlib.Filter_Type;
-               Position : Ada.Streams.Stream_Element_Offset :=
-                 Compressed'First;
-               Output   : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
-
-               procedure Close_Filter is
-               begin
-                  if Zlib.Is_Open (Filter) then
-                     Zlib.Close (Filter, Ignore_Error => True);
-                  end if;
-               exception
-                  when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-               end Close_Filter;
-
-               function Append_Output
-                 (Last : Ada.Streams.Stream_Element_Offset) return Boolean
-               is
-                  Count : constant Natural :=
-                    (if Last < Output'First then 0
-                     else Natural (Last - Output'First + 1));
-               begin
-                  if Count > Needed - Natural (Inflated.Length) then
-                     return False;
-                  end if;
-                  for Index in Output'First .. Last loop
-                     Inflated.Append (Output (Index));
-                  end loop;
-                  return True;
-               end Append_Output;
-            begin
-               Inflated.Reserve_Capacity (Ada.Containers.Count_Type (Needed));
-               Zlib.Inflate_Init (Filter, Header => Zlib.Zlib_Header);
-
-               while Position <= Compressed'Last loop
-                  declare
-                     In_Last  : Ada.Streams.Stream_Element_Offset;
-                     Out_Last : Ada.Streams.Stream_Element_Offset;
-                     Before   : constant Ada.Streams.Stream_Element_Offset := Position;
-                  begin
-                     Zlib.Translate
-                       (Filter,
-                        Compressed (Position .. Compressed'Last),
-                        In_Last,
-                        Output,
-                        Out_Last);
-                     if not Append_Output (Out_Last) then
-                        Close_Filter;
-                        return False;
-                     end if;
-                     if In_Last >= Before then
-                        Position := In_Last + 1;
-                     end if;
-                     if Zlib.Stream_End (Filter) then
-                        if Position <= Compressed'Last then
-                           Close_Filter;
-                           return False;
-                        end if;
-                        exit;
-                     end if;
-                     if In_Last < Before and then Out_Last < Output'First then
-                        Close_Filter;
-                        return False;
-                     end if;
-                  end;
-               end loop;
-
-               while not Zlib.Stream_End (Filter) loop
-                  declare
-                     Empty    : constant Ada.Streams.Stream_Element_Array (1 .. 0) := [];
-                     In_Last  : Ada.Streams.Stream_Element_Offset;
-                     Out_Last : Ada.Streams.Stream_Element_Offset;
-                  begin
-                     Zlib.Translate
-                       (Filter, Empty, In_Last, Output, Out_Last, Zlib.Finish);
-                     if not Append_Output (Out_Last)
-                       or else (Out_Last < Output'First
-                         and then not Zlib.Stream_End (Filter))
-                     then
-                        Close_Filter;
-                        return False;
-                     end if;
-                  end;
-               end loop;
-
-               if Inflated.Length /= Ada.Containers.Count_Type (Needed) then
-                  Close_Filter;
-                  return False;
-               end if;
-               Zlib.Close (Filter);
-               return True;
-            exception
-               when others =>
-                  Close_Filter;
-                  return False;
-            end Inflate_Raster;
-         begin
-            --  Stream into the exact declared raster budget.  A compressed
-            --  payload that expands past it is invalid instead of being fully
-            --  materialized first as an attacker-controlled allocation.
-            if not Inflate_Raster then
-               Free_Stream_Element_Array (Compressed);
-               return False;
-            end if;
-
-            for Row in 0 .. Height - 1 loop
-               declare
-                  Filter : constant Natural := Byte_At (Inflated, Row * (Row_Stride + 1));
-                  Base   : constant Natural := Row * (Row_Stride + 1) + 1;
-               begin
-                  if Filter > 4 then
-                     Free_Stream_Element_Array (Compressed);
-                     return False;
-                  end if;
-
-                  for Column in 0 .. Row_Stride - 1 loop
-                     declare
-                        Raw   : constant Natural := Byte_At (Inflated, Base + Column);
-                        Left  : constant Natural :=
-                          (if Column >= Channels
-                           then Natural (Current (Ada.Streams.Stream_Element_Offset (Column - Channels)))
-                           else 0);
-                        Up    : constant Natural :=
-                          Natural (Previous (Ada.Streams.Stream_Element_Offset (Column)));
-                        Upper : constant Natural :=
-                          (if Column >= Channels
-                           then Natural (Previous (Ada.Streams.Stream_Element_Offset (Column - Channels)))
-                           else 0);
-                        Value : Natural := Raw;
-                     begin
-                        case Filter is
-                           when 0 =>
-                              null;
-                           when 1 =>
-                              Value := Raw + Left;
-                           when 2 =>
-                              Value := Raw + Up;
-                           when 3 =>
-                              Value := Raw + (Left + Up) / 2;
-                           when 4 =>
-                              Value := Raw + Paeth (Left, Up, Upper);
-                           when others =>
-                              null;
-                        end case;
-                        Current (Ada.Streams.Stream_Element_Offset (Column)) :=
-                          Ada.Streams.Stream_Element (Value mod 256);
-                     end;
-                  end loop;
-
-                  for Column in 0 .. Width - 1 loop
-                     Pixels.Append
-                       (Rgba_Pixel'
-                          (Red   =>
-                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels))),
-                           Green =>
-                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 1))),
-                           Blue  =>
-                             Natural (Current (Ada.Streams.Stream_Element_Offset (Column * Channels + 2))),
-                           Alpha =>
-                             (if Channels = 4
-                              then Natural
-                                (Current
-                                   (Ada.Streams.Stream_Element_Offset
-                                      (Column * Channels + 3)))
-                              elsif Saw_Trns
-                                and then Natural
-                                  (Current
-                                     (Ada.Streams.Stream_Element_Offset
-                                        (Column * Channels))) = Transparent_Red
-                                and then Natural
-                                  (Current
-                                     (Ada.Streams.Stream_Element_Offset
-                                        (Column * Channels + 1))) = Transparent_Green
-                                and then Natural
-                                  (Current
-                                     (Ada.Streams.Stream_Element_Offset
-                                        (Column * Channels + 2))) = Transparent_Blue
-                              then 0
-                              else 255)));
-                  end loop;
-
-                  Previous := Current;
-               end;
-            end loop;
-            Free_Stream_Element_Array (Compressed);
-         exception
-            when others =>
-               Free_Stream_Element_Array (Compressed);
-               raise;
-         end;
-
-         Write_Pixels_As_Ppm (Target_Path, Pixels, Width, Height);
-         return True;
-      exception
-         when others =>
-            if File /= GNAT.OS_Lib.Invalid_FD then
-               GNAT.OS_Lib.Close (File);
-            end if;
-            return False;
-      end Try_Write_Decoded_Png_Thumbnail;
-
-      function Try_Write_Gdk_Pixbuf_Thumbnail
-        (Target_Path : String)
-         return Boolean
-      is
-         Image   : constant Decoded_Image :=
-           Decode_Image_To_Pixels (Source_Path, Size);
-         Decoded : Pixel_Vectors.Vector;
-      begin
-         if not Image.Available
-           or else Image.Width = 0
-           or else Image.Height = 0
-           or else Natural (Image.Pixels.Length) /= Image.Width * Image.Height * 4
-         then
-            return False;
-         end if;
-         Decoded.Reserve_Capacity
-           (Ada.Containers.Count_Type (Image.Width * Image.Height));
-         for Index in 0 .. Image.Width * Image.Height - 1 loop
-            Decoded.Append
-              (Rgba_Pixel'
-                 (Red   => Natural (Image.Pixels.Element (Index * 4)),
-                  Green => Natural (Image.Pixels.Element (Index * 4 + 1)),
-                  Blue  => Natural (Image.Pixels.Element (Index * 4 + 2)),
-                  Alpha => Natural (Image.Pixels.Element (Index * 4 + 3))));
-         end loop;
-         Write_Pixels_As_Ppm
-           (Target_Path, Decoded, Image.Width, Image.Height);
-         return True;
-      exception
-         when others =>
-            return False;
-      end Try_Write_Gdk_Pixbuf_Thumbnail;
-
-      Checksum  : Natural := 0;
-      Size_Bias : Natural := 0;
-      Target    : Unbounded_String;
    begin
       if Size > Max_Thumbnail_Dimension then
          return
@@ -1924,10 +1300,10 @@ package body Thumbnails is
             end if;
             raise;
       end;
-      if (Source_Fits_Fast_Decode
-          and then (Try_Write_Decoded_Png_Thumbnail (To_String (Temp))
-                    or else Try_Write_Decoded_P3_Thumbnail (To_String (Temp))))
-        or else Try_Write_Gdk_Pixbuf_Thumbnail (To_String (Temp))
+      if (Source_Fits_Fast_Decode (Source_Path)
+          and then (Try_Write_Decoded_Png_Thumbnail (Source_Path, Size, To_String (Temp))
+                    or else Try_Write_Decoded_P3_Thumbnail (Source_Path, Size, To_String (Temp))))
+        or else Try_Write_Gdk_Pixbuf_Thumbnail (Source_Path, Size, To_String (Temp))
       then
          if Publish_Temp (To_String (Target)) then
             return
@@ -1942,7 +1318,7 @@ package body Thumbnails is
       end if;
 
       Checksum := Thumbnail_Path_Checksum (Source_Path);
-      Size_Bias := File_Size_Signal;
+      Size_Bias := File_Size_Signal (Source_Path);
 
       --  The deterministic stand-in, written in the same binary P6 the decoded
       --  thumbnails use, through Stream_IO for the same reason: -gnatW8 would
