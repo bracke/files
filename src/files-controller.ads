@@ -87,6 +87,32 @@ package Files.Controller is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
+   --  Execute a command, applying and persisting the ones that change settings
+   --  (Files.Commands.Requires_Settings_Path) instead of only reporting them.
+   --
+   --  @param Id Command identifier.
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, replaced by a settings command.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Modifiers Active modifier keys.
+   --  @return Controller result with any operation details.
+   function Execute_Command
+     (Id            : Files.Commands.Command_Id;
+      Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Controller_Result;
+
+   --  Persist the settings model to the central settings file. A no-op when the
+   --  path is empty; write failures are intentionally ignored.
+   --
+   --  @param Settings Settings model to serialize.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   procedure Persist_Settings
+     (Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String);
+
    --  Validate, save, apply, and refresh edited settings.
    --
    --  @param Model Window model to update.

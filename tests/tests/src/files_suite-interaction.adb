@@ -4493,6 +4493,19 @@ package body Files_Suite.Interaction is
               "the permissions-column command flips its visibility");
       Assert (Result.Settings_Changed, "the column toggle reports a settings change");
 
+      --  The controller applies a settings command itself when given the
+      --  settings to change; the interaction layer only adds UI follow-ups.
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Execute_Command
+             (Files.Commands.Toggle_Column_Permissions_Command, Model, Settings, Settings_Path => "");
+      begin
+         Assert (Outcome.Status = Files.Controller.Controller_Command_Executed,
+                 "the controller executes a settings command");
+         Assert (Settings.Column_Visible (Files.Types.Permissions_Column) = Before,
+                 "the controller applies the settings command to the settings it is given");
+      end;
+
       --  The group command advances the persisted grouping mode.
       Result.Font_Size_Changed := True;
       Result.Needs_Glyph_Rebuild := True;

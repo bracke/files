@@ -435,6 +435,41 @@ package body Files.Controller is
       return Execute_Command (Id, Model, Settings, Modifiers);
    end Handle_Command_Click;
 
+   procedure Persist_Settings
+     (Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String)
+   is
+      Saved : Files.Settings.Settings_Write_Result;
+   begin
+      if Settings_Path = "" then
+         return;
+      end if;
+      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
+      pragma Unreferenced (Saved);
+   end Persist_Settings;
+
+   function Apply_Settings_Command
+     (Id            : Files.Commands.Command_Id;
+      Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result
+   is separate;
+
+   function Execute_Command
+     (Id            : Files.Commands.Command_Id;
+      Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      return Controller_Result is
+   begin
+      if Files.Commands.Requires_Settings_Path (Id) and then Files.Commands.Is_Enabled (Id, Model) then
+         return Apply_Settings_Command (Id, Model, Settings, Settings_Path);
+      end if;
+      return Execute_Command (Id, Model, Settings, Modifiers);
+   end Execute_Command;
+
    function Handle_Search_Scope_Toggle
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
