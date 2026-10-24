@@ -185,7 +185,7 @@ jobs:
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
-          clone_at guikit 5fae7cf2dca68eb548e162a5c07982c258e5a43d
+          clone_at guikit 365b3b193ecffaf316e6c9271096c6c171f193b1
           clone_at hostkit 2ec9fa37796a78ea0ee71901aab0268ebae2aa6d
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
