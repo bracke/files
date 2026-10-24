@@ -3020,6 +3020,60 @@ private
       Element_Type => Files.File_System.Directory_Size_Result,
       "<"          => Ada.Strings.Unbounded."<");
 
+   --  The right-click menu: where it opened, what it was opened on, and the
+   --  keyboard highlight (0 = none). Every default is the closed state.
+   type Context_Menu_State is record
+      Open       : Boolean := False;
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Target     : Context_Menu_Target := Context_Menu_None;
+      Item_Index : Natural := 0;
+      Highlight  : Natural := 0;
+   end record;
+
+   --  The replace-or-skip prompt shown when a paste meets existing names.
+   --  Every default is the closed state, as for Paste_Execution_State.
+   type Paste_Conflict_State is record
+      Active           : Boolean := False;
+      Items            : Files.Paste.Work_Item_Vectors.Vector;
+      Existing         : Files.Types.String_Vectors.Vector;
+      Overrides        : Files.Paste.Item_Decision_Vectors.Vector;
+      Policy           : Files.Paste.Conflict_Policy := Files.Paste.Policy_Ask;
+      Mode             : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Index            : Natural := 0;
+      Apply_All        : Boolean := False;
+      Clears_Clipboard : Boolean := True;
+   end record;
+
+   --  One paste (or drop) being carried out, action by action. Every field's
+   --  default is the idle state, so a paste starts and ends by assigning a
+   --  fresh aggregate rather than clearing each field by hand.
+   type Paste_Execution_State is record
+      Active                  : Boolean := False;
+      Copy_Context            : Files.Copy_Context.Session;
+      Actions                 : Files.Paste.Resolved_Action_Vectors.Vector;
+      Cursor                  : Natural := 0;
+      Done                    : Natural := 0;
+      Total                   : Natural := 0;
+      Mode                    : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Cancelled               : Boolean := False;
+      Clears_Clipboard        : Boolean := True;
+      Current                 : UString;
+      First_Dest              : UString;
+      Undo_From               : Files.Types.String_Vectors.Vector;
+      Undo_To                 : Files.Types.String_Vectors.Vector;
+      Identities              : Files.Types.String_Vectors.Vector;
+      Tree_Revisions          : Files.Types.String_Vectors.Vector;
+      Verified_Created_Count  : Natural := 0;
+      --  Trash locations of destinations overwritten by a Replace during this
+      --  paste, so the undo entry can restore them (each is restored to its
+      --  own recorded original path).
+      Replaced_Trash          : Files.Types.String_Vectors.Vector;
+      Replaced_Identities     : Files.Types.String_Vectors.Vector;
+      Replaced_Targets        : Files.Types.String_Vectors.Vector;
+      Verified_Replaced_Count : Natural := 0;
+   end record;
+
    type Window_Model is record
       Current_Path_Value   : UString;
       Home_Path_Value      : UString;
@@ -3105,51 +3159,14 @@ private
       Redo_Stack            : Undo_Entry_Vectors.Vector;
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
-      Context_Menu_Open_Value       : Boolean := False;
-      Context_Menu_X_Value          : Natural := 0;
-      Context_Menu_Y_Value          : Natural := 0;
-      Context_Menu_Target_Value     : Context_Menu_Target := Context_Menu_None;
-      Context_Menu_Item_Index_Value : Natural := 0;
-      Context_Menu_Highlight_Value  : Natural := 0;
-      Paste_Conflict_Active_Value    : Boolean := False;
-      Paste_Conflict_Items_Value     : Files.Paste.Work_Item_Vectors.Vector;
-      Paste_Conflict_Existing_Value  : Files.Types.String_Vectors.Vector;
-      Paste_Conflict_Overrides_Value : Files.Paste.Item_Decision_Vectors.Vector;
-      Paste_Conflict_Policy_Value    : Files.Paste.Conflict_Policy := Files.Paste.Policy_Ask;
-      Paste_Conflict_Mode_Value      : Files.File_System.Drop_Import_Mode :=
-        Files.File_System.Drop_Copy;
-      Paste_Conflict_Index_Value     : Natural := 0;
-      Paste_Conflict_Apply_All_Value : Boolean := False;
-      Paste_Conflict_Clears_Clip_Val : Boolean := True;
-      Paste_Exec_Active_Value        : Boolean := False;
+      Context_Menu                  : Context_Menu_State;
+      Paste_Conflict                : Paste_Conflict_State;
       Background_Transfers_Value    : Boolean := False;
       Paste_Exec_Job                 : Files.Transfer_Jobs.Session;
-      Paste_Exec_Copy_Context        : Files.Copy_Context.Session;
       Operation_Job                 : Files.Process_Jobs.Session;
       Refresh_Job                   : Files.Process_Jobs.Session;
       Operation_Label_Key           : UString;
-      Paste_Exec_Actions_Value       : Files.Paste.Resolved_Action_Vectors.Vector;
-      Paste_Exec_Cursor_Value        : Natural := 0;
-      Paste_Exec_Done_Value          : Natural := 0;
-      Paste_Exec_Total_Value         : Natural := 0;
-      Paste_Exec_Mode_Value          : Files.File_System.Drop_Import_Mode :=
-        Files.File_System.Drop_Copy;
-      Paste_Exec_Cancelled_Value     : Boolean := False;
-      Paste_Exec_Clears_Clip_Value   : Boolean := True;
-      Paste_Exec_Current_Value       : UString;
-      Paste_Exec_First_Dest_Value    : UString;
-      Paste_Exec_Undo_From_Value     : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Undo_To_Value       : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Identities_Value    : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Tree_Revisions_Value : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Verified_Created_Count : Natural := 0;
-      --  Trash locations of destinations overwritten by a Replace during this
-      --  paste, so the undo entry can restore them (parallel to nothing; each is
-      --  restored to its own recorded original path).
-      Paste_Exec_Replaced_Trash_Value : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Replaced_Identities_Value : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Replaced_Targets_Value : Files.Types.String_Vectors.Vector;
-      Paste_Exec_Verified_Replaced_Count : Natural := 0;
+      Paste_Exec                    : Paste_Execution_State;
       --  Monotonic change counter bumped by every model mutator. The render
       --  layer caches the value it built a snapshot at and rebuilds only when it
       --  differs, so snapshot invalidation follows the model automatically

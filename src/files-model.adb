@@ -362,7 +362,7 @@ package body Files.Model is
    begin
       Model.Operation_Job := Job;
       Model.Operation_Label_Key := To_Unbounded_String (Label_Key);
-      Model.Paste_Exec_Current_Value := To_Unbounded_String (Current_Path (Model));
+      Model.Paste_Exec.Current := To_Unbounded_String (Current_Path (Model));
       Model.Revision_Value := Model.Revision_Value + 1;
    end Set_Background_Operation;
 
@@ -382,19 +382,19 @@ package body Files.Model is
    is
    begin
       if not Files.Transfer_Jobs.Active (Model.Paste_Exec_Job) then
-         if Model.Paste_Exec_Cancelled_Value then
+         if Model.Paste_Exec.Cancelled then
             Finished := True;
             Result := (Cancelled => True, others => <>);
             return;
          end if;
          Files.Transfer_Jobs.Start
            (Model.Paste_Exec_Job,
-            Model.Paste_Exec_Actions_Value.Element (Model.Paste_Exec_Cursor_Value + 1),
-            Model.Paste_Exec_Mode_Value, Model.Paste_Exec_Copy_Context);
-         Model.Paste_Exec_Current_Value :=
+            Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1),
+            Model.Paste_Exec.Mode, Model.Paste_Exec.Copy_Context);
+         Model.Paste_Exec.Current :=
            To_Unbounded_String
              (Ada.Directories.Simple_Name
-                (To_String (Model.Paste_Exec_Actions_Value.Element (Model.Paste_Exec_Cursor_Value + 1).Source_Path)));
+                (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
          Model.Revision_Value := Model.Revision_Value + 1;
       end if;
       Files.Transfer_Jobs.Poll (Model.Paste_Exec_Job, Finished, Result);
@@ -488,12 +488,12 @@ package body Files.Model is
         or else Model.Command_Palette_Open
         or else Model.Root_Selector_Open
         or else Model.Sort_Menu_Open
-        or else Model.Context_Menu_Open_Value
+        or else Model.Context_Menu.Open
         or else Model.Label_Picker_Active
         or else Model.Quick_Look_Active
         or else Model.Tree_Pick_Mode_Value /= Pick_None
-        or else Model.Paste_Conflict_Active_Value
-        or else Model.Paste_Exec_Active_Value;
+        or else Model.Paste_Conflict.Active
+        or else Model.Paste_Exec.Active;
    end Input_Owning_Overlay_Is_Open;
 
    --  Opening an overlay ends the grid's current type-to-select session.  Every
